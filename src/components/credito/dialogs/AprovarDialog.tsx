@@ -11,11 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 import { useTransicionarAnalise } from "@/hooks/credito/useTransicionarAnalise";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
-import { useDefinirPortaoAnalise } from "@/hooks/credito/useDefinirPortaoAnalise";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import type { CamposDecisao } from "../FormDecisaoCredito";
@@ -28,22 +26,6 @@ interface Props {
   sugestaoIA: SugestaoIA | null;
   comRessalva?: boolean;
 }
-
-type PortaoEscolha = "regra" | "exigir" | "liberar";
-
-const PORTAO_VALOR: Record<PortaoEscolha, boolean | null> = {
-  regra: null,
-  exigir: true,
-  liberar: false,
-};
-
-const PORTAO_EXPLICACAO: Record<PortaoEscolha, string> = {
-  regra: "O pedido segue o comportamento normal da forma de pagamento escolhida.",
-  exigir: "A mercadoria só sai depois que o pagamento for confirmado.",
-  liberar:
-    "A mercadoria sai sem esperar o pagamento. O cliente será cobrado depois.",
-};
-
 
 function calcularDelta(campos: CamposDecisao, ia: SugestaoIA | null) {
   if (!ia) return null;
@@ -68,25 +50,20 @@ function calcularDelta(campos: CamposDecisao, ia: SugestaoIA | null) {
   return Object.keys(delta).length > 0 ? delta : null;
 }
 
-export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRessalva = false }: Props) {
+export function AprovarDialog({ analise_id, pedido_id: _pedido_id, campos, sugestaoIA, comRessalva = false }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState(campos.ressalva);
-  const [portao, setPortao] = useState<PortaoEscolha>("regra");
-  const [motivoPortao, setMotivoPortao] = useState("");
   const navigate = useNavigate();
   const transicionar = useTransicionarAnalise();
-  const definirPortao = useDefinirPortaoAnalise();
   const { toast } = useToast();
   const formasQ = useFormasPagamento(true);
   const rotuloForma = (codigo: string) =>
     formasQ.data?.find((f) => f.codigo === codigo)?.nome ?? codigo;
 
   const ressalvaValida = !comRessalva || motivo.trim().length >= 10;
-  const portaoValor = PORTAO_VALOR[portao];
-  const motivoPortaoValido = portaoValor === null || motivoPortao.trim().length >= 10;
 
   const handleConfirm = async () => {
-    if (!ressalvaValida || !motivoPortaoValido) return;
+    if (!ressalvaValida) return;
     const delta = calcularDelta(campos, sugestaoIA);
     await transicionar.mutateAsync({
       analise_id,
@@ -101,22 +78,6 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
       validade_ate: campos.validade_ate || undefined,
       delta_ia: delta,
     });
-
-    if (portaoValor !== null) {
-      try {
-        await definirPortao.mutateAsync({
-          pedido_id,
-          valor: portaoValor,
-          motivo: motivoPortao.trim(),
-        });
-      } catch {
-        toast({
-          title: "Análise aprovada, mas a regra de liberação não foi salva. Tente de novo pelo pedido.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
 
     setOpen(false);
     navigate("/credito");
@@ -185,50 +146,6 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
               </p>
             </div>
           )}
-
-          <div className="space-y-2 pt-2 border-t">
-            <Label>Liberação da mercadoria</Label>
-            <RadioGroup
-              value={portao}
-              onValueChange={(v) => setPortao(v as PortaoEscolha)}
-              className="gap-2"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="regra" id="portao-regra" />
-                <Label htmlFor="portao-regra" className="font-normal">
-                  Seguir a regra da forma de pagamento
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="exigir" id="portao-exigir" />
-                <Label htmlFor="portao-exigir" className="font-normal">
-                  Exigir pagamento antes de liberar
-                </Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="liberar" id="portao-liberar" />
-                <Label htmlFor="portao-liberar" className="font-normal">
-                  Liberar sem esperar o pagamento
-                </Label>
-              </div>
-            </RadioGroup>
-            <p className="text-xs text-muted-foreground">{PORTAO_EXPLICACAO[portao]}</p>
-
-            {portaoValor !== null && (
-              <div className="space-y-2 pt-1">
-                <Label>Motivo</Label>
-                <Textarea
-                  rows={3}
-                  value={motivoPortao}
-                  onChange={(e) => setMotivoPortao(e.target.value)}
-                  placeholder="Ex: Cliente com histórico limpo há 2 anos, libera sem esperar captura."
-                />
-                <p className="text-xs text-muted-foreground">
-                  {motivoPortao.trim().length}/10 caracteres
-                </p>
-              </div>
-            )}
-          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>
@@ -236,17 +153,10 @@ export function AprovarDialog({ analise_id, pedido_id, campos, sugestaoIA, comRe
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={
-              !ressalvaValida ||
-              !motivoPortaoValido ||
-              transicionar.isPending ||
-              definirPortao.isPending
-            }
+            disabled={!ressalvaValida || transicionar.isPending}
             className={comRessalva ? "" : "bg-success hover:bg-success"}
           >
-            {transicionar.isPending || definirPortao.isPending
-              ? "Aprovando..."
-              : "Confirmar aprovação"}
+            {transicionar.isPending ? "Aprovando..." : "Confirmar aprovação"}
           </Button>
 
         </DialogFooter>
