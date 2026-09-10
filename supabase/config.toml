@@ -104,3 +104,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
   [functions.inspecionar-api-xpm]
     verify_jwt = true
 
+  [functions.cancelar-expedicao-xpm]
+    verify_jwt = true
+

@@ -18,8 +18,10 @@ interface Props {
 }
 
 /**
- * A integracao ZenLOG nao informa cancelamento: quem cancela e a XPM, por fora.
- * Aqui o operador DECLARA, com autor e motivo. A RPC valida o resto.
+ * Caminho SECUNDARIO desde 09/09/2026. Cancelar pela API existe (ver
+ * CancelarExpedicaoXpmDialog, POST CancelaExpedicao) e e o caminho primario.
+ * Este dialog serve para quando a XPM cancelou POR FORA, sem passar pelo SNCF:
+ * o operador DECLARA o fato, com autor e motivo, e a RPC valida o resto.
  */
 export function DeclararCancelamentoXpmDialog({ pedidoId, expedicaoCodigo }: Props) {
   const [open, setOpen] = useState(false);
