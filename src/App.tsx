@@ -363,6 +363,10 @@ const App = () => (
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
               <Route path="/cliente/:id" element={<ClientePainel />} />
 
+              {/* Comercial — Comissões de Representante (menu comercial.comissoes) */}
+              <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
+
+
               {/* ═══════════════════════════════════════════════
                   App SOPs — com sidebar lateral
                   Absorve: Pedidos, Cobrança, NFs, Parceiros, Estoque Virtual
