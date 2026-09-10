@@ -43,6 +43,49 @@ serve(async (req) => {
       return json({ ok: false, erro: "Body JSON inválido" }, 400);
     }
 
+    // Branch registrar_pi: a Importação de PI manda os itens já julgados pelo
+    // cartório e o FOP decide se cada produto nasce. Nada aqui reinterpreta
+    // identidade — só repassa a resposta da fn_registrar_produtos_cartorio.
+    if (body?.tipo === "registrar_pi") {
+      const itens = body?.itens;
+      if (!Array.isArray(itens) || itens.length === 0) {
+        return json({ ok: false, erro: "itens obrigatório (array não vazio)" }, 400);
+      }
+      const dryRun = body?.dry_run === true;
+
+      const { data: fopKeyPi, error: errVault } = await supabase.rpc("get_vault_secret", {
+        p_name: "FOP_SERVICE_ROLE_KEY",
+      });
+      if (errVault || !fopKeyPi) {
+        console.error("[promover-fase-produto] registrar_pi: vault falhou", errVault);
+        throw new Error(
+          `FOP_SERVICE_ROLE_KEY indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
+        );
+      }
+
+      const respPi = await fetch(`${FOP_URL}/rest/v1/rpc/fn_registrar_produtos_cartorio`, {
+        method: "POST",
+        headers: {
+          apikey: fopKeyPi,
+          Authorization: `Bearer ${fopKeyPi}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ p_itens: itens, p_dry_run: dryRun }),
+      });
+
+      const corpoPi = await respPi.text();
+      if (!respPi.ok) {
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, corpoPi);
+        throw new Error(`FOP recusou o registro (HTTP ${respPi.status}): ${corpoPi}`);
+      }
+
+      console.log("[promover-fase-produto] registrar_pi ok", { itens: itens.length, dryRun });
+      return new Response(corpoPi, {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
     const faseDestino = typeof body?.fase_destino === "string" ? body.fase_destino.trim() : "";
     const confirmarSaldo = body?.confirmar_saldo === true;

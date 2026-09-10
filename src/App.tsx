@@ -215,6 +215,7 @@ const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
+const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
@@ -393,6 +394,11 @@ const App = () => (
                 <Route path="/vendas/produto/cartorio" element={
                   <ProtectedRoute>
                     <CartorioCodigos />
+                  </ProtectedRoute>
+                } />
+                <Route path="/vendas/produto/importar-pi" element={
+                  <ProtectedRoute>
+                    <ImportarPI />
                   </ProtectedRoute>
                 } />
                 <Route element={<ProdutoEstoqueLayout />}>
