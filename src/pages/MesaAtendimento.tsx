@@ -1,7 +1,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Headphones, Plus, AlertTriangle, Inbox } from "lucide-react";
+import {
+  Headphones,
+  Plus,
+  AlertTriangle,
+  Inbox,
+  ArrowUpRight,
+  Undo2,
+  History,
+  MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
