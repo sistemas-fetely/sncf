@@ -42,4 +42,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'regua-cobranca': reguaCobranca,
   'solicitacao-documento': solicitacaoDocumento,
   'pedido-espelho': pedidoEspelho,
+  'portal-representante-link': portalRepresentanteLink,
 }
