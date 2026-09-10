@@ -52,7 +52,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
     try {
       await chamarPortal("contestar", {
         sessao,
-        apuracao_id: contestando?.apuracao_id ?? contestando?.id,
+        apuracao_id: contestando?.apuracao_id,
         motivo: motivo.trim(),
         valor_esperado: valorEsperado.trim() === "" ? null : Number(valorEsperado.replace(",", ".")),
       });
@@ -91,7 +91,7 @@ export function PortalComissoes({ sessao, comissoes, onMudou }: Props) {
         </CardHeader>
         <CardContent className="space-y-3">
           {comissoes.map((c: any, i: number) => {
-            const id = String(c.apuracao_id ?? c.id ?? i);
+            const id = String(c.apuracao_id);
             const expandida = aberta === id;
             const atraso = emAtraso(c.situacao_cliente);
             return (
