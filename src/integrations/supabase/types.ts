@@ -15496,6 +15496,13 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
           {
+            foreignKeyName: "demanda_canal_origem_fkey"
+            columns: ["canal_origem"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_painel_canal"
+            referencedColumns: ["canal_codigo"]
+          },
+          {
             foreignKeyName: "demanda_motivo_id_fkey"
             columns: ["motivo_id"]
             isOneToOne: false
@@ -15613,6 +15620,101 @@ export type Database = {
           ordem?: number | null
         }
         Relationships: []
+      }
+      demanda_historico: {
+        Row: {
+          ator_id: string | null
+          cadeira_de_id: string | null
+          cadeira_para_id: string | null
+          camada_de: string | null
+          camada_para: string | null
+          criado_em: string
+          demanda_id: string
+          evento: string
+          id: number
+          motivo_texto: string | null
+          status_de: string | null
+          status_para: string | null
+        }
+        Insert: {
+          ator_id?: string | null
+          cadeira_de_id?: string | null
+          cadeira_para_id?: string | null
+          camada_de?: string | null
+          camada_para?: string | null
+          criado_em?: string
+          demanda_id: string
+          evento: string
+          id?: number
+          motivo_texto?: string | null
+          status_de?: string | null
+          status_para?: string | null
+        }
+        Update: {
+          ator_id?: string | null
+          cadeira_de_id?: string | null
+          cadeira_para_id?: string | null
+          camada_de?: string | null
+          camada_para?: string | null
+          criado_em?: string
+          demanda_id?: string
+          evento?: string
+          id?: number
+          motivo_texto?: string | null
+          status_de?: string | null
+          status_para?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_historico_cadeira_de_id_fkey"
+            columns: ["cadeira_de_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_cadeira_de_id_fkey"
+            columns: ["cadeira_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_cadeira_para_id_fkey"
+            columns: ["cadeira_para_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_cadeira_para_id_fkey"
+            columns: ["cadeira_para_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demanda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_aberta"
+            referencedColumns: ["demanda_id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demandas_triagem"
+            referencedColumns: ["demanda_id"]
+          },
+        ]
       }
       demanda_motivo: {
         Row: {
@@ -67254,6 +67356,51 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_demanda_painel_assunto: {
+        Row: {
+          abertas: number | null
+          assunto: string | null
+          assunto_codigo: string | null
+          cadeira_destino: string | null
+          camada_esperada: string | null
+          horas_medias: number | null
+          prazo_dias: number | null
+          resolvidas: number | null
+          resolvidas_fora_do_prazo: number | null
+          total: number | null
+          ultima_ocorrencia: string | null
+        }
+        Relationships: []
+      }
+      vw_demanda_painel_canal: {
+        Row: {
+          abertas: number | null
+          canal: string | null
+          canal_codigo: string | null
+          estado_registro: string | null
+          horas_medias: number | null
+          natureza: string | null
+          resolvidas: number | null
+          sem_assunto: number | null
+          total: number | null
+          ultimo_registro: string | null
+        }
+        Relationships: []
+      }
+      vw_demanda_painel_motivo: {
+        Row: {
+          cadeira_do_remedio: string | null
+          escalou_certo: boolean | null
+          gera_roadmap: boolean | null
+          motivo: string | null
+          motivo_codigo: string | null
+          ocorrencias: number | null
+          pct: number | null
+          remedio: string | null
+          ultima_ocorrencia: string | null
+        }
+        Relationships: []
+      }
       vw_demanda_por_assunto: {
         Row: {
           abertas: number | null
@@ -67270,6 +67417,58 @@ export type Database = {
           ultima_ocorrencia: string | null
         }
         Relationships: []
+      }
+      vw_demanda_roadmap: {
+        Row: {
+          assuntos_afetados: number | null
+          cadeira_responsavel: string | null
+          demandas_causadas: number | null
+          desde: string | null
+          lacuna: string | null
+          onde_aparece: string | null
+          remedio: string | null
+        }
+        Relationships: []
+      }
+      vw_demanda_trilha: {
+        Row: {
+          ator: string | null
+          cadeira_de: string | null
+          cadeira_para: string | null
+          camada_de: string | null
+          camada_para: string | null
+          codigo: string | null
+          criado_em: string | null
+          demanda_id: string | null
+          evento: string | null
+          motivo_texto: string | null
+          passo: number | null
+          status_de: string | null
+          status_para: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "demanda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_aberta"
+            referencedColumns: ["demanda_id"]
+          },
+          {
+            foreignKeyName: "demanda_historico_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demandas_triagem"
+            referencedColumns: ["demanda_id"]
+          },
+        ]
       }
       vw_despesas: {
         Row: {
@@ -95471,6 +95670,10 @@ export type Database = {
         }[]
       }
       detectar_tipo_pagamento: { Args: { descricao: string }; Returns: string }
+      devolver_demanda: {
+        Args: { p_demanda_id: string; p_motivo_texto: string }
+        Returns: Json
+      }
       devolver_pedido_para_cobranca: {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
@@ -95592,6 +95795,14 @@ export type Database = {
       }
       erguer_bandeira_vermelha: {
         Args: { p_motivo: string; p_parceiro_id: string }
+        Returns: Json
+      }
+      escalar_demanda: {
+        Args: {
+          p_cadeira_destino: string
+          p_demanda_id: string
+          p_motivo_texto: string
+        }
         Returns: Json
       }
       estornar_devolucao_pedido: {
