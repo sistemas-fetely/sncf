@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { chamarPortal, fmtBRL, fmtCompetencia, fmtData, fmtPct } from "@/lib/portal/api";
+import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "@/lib/portal/api";
 import { PortalCartilha } from "./PortalCartilha";
 import { PortalComissoes } from "./PortalComissoes";
 import { PortalSimulador } from "./PortalSimulador";
@@ -150,5 +150,3 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
     </div>
   );
 }
-
-export { chamarPortal };
