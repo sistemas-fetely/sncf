@@ -46,12 +46,16 @@ serve(async (req) => {
     // Branch registrar_pi: a Importação de PI manda os itens já julgados pelo
     // cartório e o FOP decide se cada produto nasce. Nada aqui reinterpreta
     // identidade — só repassa a resposta da fn_registrar_produtos_cartorio.
+    // A RPC fn_registrar_produtos_cartorio vive no FOP porque e la que o produto nasce (FOP-E-VERDADE-DO-CADASTRO). Cria com identidade so: cod_cadastro, sku, ean, marca. Classificacao e nome_comercial vem na PRE-VENDA.
     if (body?.tipo === "registrar_pi") {
       const itens = body?.itens;
       if (!Array.isArray(itens) || itens.length === 0) {
         return json({ ok: false, erro: "itens obrigatório (array não vazio)" }, 400);
       }
-      const dryRun = body?.dry_run === true;
+      if (itens.length > 200) {
+        return json({ ok: false, erro: "limite de 200 itens por chamada excedido" }, 400);
+      }
+      const dryRun = body?.dry_run !== false;
 
       const { data: fopKeyPi, error: errVault } = await supabase.rpc("get_vault_secret", {
         p_name: "FOP_SERVICE_ROLE_KEY",
@@ -73,17 +77,14 @@ serve(async (req) => {
         body: JSON.stringify({ p_itens: itens, p_dry_run: dryRun }),
       });
 
-      const corpoPi = await respPi.text();
+      const j = await respPi.json().catch(() => ({}));
       if (!respPi.ok) {
-        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, corpoPi);
-        throw new Error(`FOP recusou o registro (HTTP ${respPi.status}): ${corpoPi}`);
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, j);
+        throw new Error(`fn_registrar_produtos_cartorio: HTTP ${respPi.status} ${JSON.stringify(j)}`);
       }
 
       console.log("[promover-fase-produto] registrar_pi ok", { itens: itens.length, dryRun });
-      return new Response(corpoPi, {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return json({ ok: true, tipo: "registrar_pi", resultado: j });
     }
 
     const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
