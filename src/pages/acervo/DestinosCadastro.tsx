@@ -1064,16 +1064,7 @@ export default function DestinosCadastro() {
         </TabsContent>
 
         <TabsContent value="xpm" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">Em construção</p>
-              <Button asChild variant="outline" size="sm" className="gap-2">
-                <Link to="/vendas/xpm">
-                  Ir para XPM <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <XpmCadastroPainel />
         </TabsContent>
 
         <TabsContent value="shopify" className="mt-4">
