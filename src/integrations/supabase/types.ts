@@ -26927,6 +26927,7 @@ export type Database = {
       nfs_emitidas: {
         Row: {
           ausente_na_origem_desde: string | null
+          autorizada_em: string | null
           bling_id: string | null
           bling_pedido_venda_id: string | null
           bling_pedido_venda_numero: string | null
@@ -26937,6 +26938,7 @@ export type Database = {
           duplicatas: Json | null
           duplicatas_sync_em: string | null
           emitente_cnpj: string | null
+          emitida_em: string | null
           id: string
           itens_json: Json | null
           numero: string | null
@@ -26969,6 +26971,7 @@ export type Database = {
         }
         Insert: {
           ausente_na_origem_desde?: string | null
+          autorizada_em?: string | null
           bling_id?: string | null
           bling_pedido_venda_id?: string | null
           bling_pedido_venda_numero?: string | null
@@ -26979,6 +26982,7 @@ export type Database = {
           duplicatas?: Json | null
           duplicatas_sync_em?: string | null
           emitente_cnpj?: string | null
+          emitida_em?: string | null
           id?: string
           itens_json?: Json | null
           numero?: string | null
@@ -27011,6 +27015,7 @@ export type Database = {
         }
         Update: {
           ausente_na_origem_desde?: string | null
+          autorizada_em?: string | null
           bling_id?: string | null
           bling_pedido_venda_id?: string | null
           bling_pedido_venda_numero?: string | null
@@ -27021,6 +27026,7 @@ export type Database = {
           duplicatas?: Json | null
           duplicatas_sync_em?: string | null
           emitente_cnpj?: string | null
+          emitida_em?: string | null
           id?: string
           itens_json?: Json | null
           numero?: string | null
