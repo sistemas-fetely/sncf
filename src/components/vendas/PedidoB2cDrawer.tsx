@@ -47,6 +47,15 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { data: itens, isLoading } = useItensB2c(open ? pedido?.shopify_id ?? null : null);
 
+  // quantity e o original da compra; current_quantity e o que vale apos edicao na
+  // loja. Linhas legadas (current_quantity nulo) caem para quantity. Linha com
+  // quantidade vigente zero foi removida na loja: sai da tabela, mas e listada
+  // abaixo para a edicao ficar visivel.
+  const qtdVigente = (it: { quantity: number; current_quantity: number | null }) =>
+    it.current_quantity ?? it.quantity;
+  const itensVigentes = (itens ?? []).filter((it) => qtdVigente(it) > 0);
+  const itensRemovidos = (itens ?? []).filter((it) => qtdVigente(it) === 0);
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="flex w-full flex-col gap-0 sm:max-w-xl">
