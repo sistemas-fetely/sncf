@@ -1,396 +1,224 @@
+// Importacao de PI — passos 1 a 3. A tela SO orquestra: deteccao de cabecalho,
+// coercao de EAN/DUN e insert vivem em src/lib/pi/*. Nada julga identidade aqui:
+// quem decide se o item existe e fn_pi_conferir_lote (parte 2).
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import * as XLSX from "xlsx";
-import { FileSpreadsheet, AlertTriangle, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { Loader2, FileSpreadsheet, Info } from "lucide-react";
 
-import { supabase } from "@/integrations/supabase/client";
-import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Importação de PI — PARTE 1: ler a planilha, o humano confirma o mapeamento,
- * grava em estágio. Nada toca produto aqui.
- *
- * O arquivo é lido NO NAVEGADOR com SheetJS e não sobe para storage.
- *
- * ARMADILHA MEDIDA: o cabeçalho varia da linha 5 à 18 entre os 5 formatos e os
- * nomes de coluna não repetem entre fornecedores — posição fixa quebra no
- * segundo arquivo. Um formato (Rocabella/Glasses) tem cabeçalho em duas linhas
- * com células mescladas, então quando a linha vencedora tem muitas células
- * vazias tentamos concatenar com a linha seguinte.
- *
- * ARMADILHA CRÍTICA: EAN e DUN vão como TEXTO com zero à esquerda. O Excel
- * entrega número e o zero se perde — foi assim que 633 itens do XPM nasceram
- * sem o zero à esquerda.
- */
+import {
+  lerArquivo,
+  detectarCabecalho,
+  extrairLinhas,
+  normalizar,
+  type MatchSinonimo,
+  type CabecalhoDetectado,
+} from "@/lib/pi/lerPlanilhaPI";
+import { gravarLotePI } from "@/lib/pi/gravarLotePI";
 
-const CAMPOS = [
-  "sku",
-  "cod_cadastro",
-  "ean",
-  "dun",
-  "inner_qtd",
-  "descricao",
-  "qtd",
-  "peso_g",
+const IGNORAR = "— ignorar —";
+const CAMPOS_DESTINO = [
+  "sku", "cod_cadastro", "ean", "dun", "inner_qtd", "descricao", "qtd", "peso_g",
 ] as const;
-type Campo = (typeof CAMPOS)[number];
-const IGNORAR = "__ignorar__";
+const CAMPOS_IDENTIDADE = ["sku", "cod_cadastro", "ean"];
 
-const ROTULO: Record<Campo, string> = {
-  sku: "SKU",
-  cod_cadastro: "Cód. cadastro",
-  ean: "EAN",
-  dun: "DUN",
-  inner_qtd: "Inner (qtd)",
-  descricao: "Descrição",
-  qtd: "Quantidade",
-  peso_g: "Peso (g)",
-};
-
-interface Sinonimo {
-  campo: string;
-  sinonimo: string;
-  formato: string | null;
+function chaveColuna(nome: string, i: number): string {
+  return nome || `coluna_${i + 1}`;
 }
 
-function normalizar(v: unknown): string {
-  return String(v ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
+function textoCelula(v: unknown): string {
+  return v === null || v === undefined ? "" : String(v);
 }
-
-/** Numérico ou null — nunca 0 de consolo. */
-function numero(v: unknown): number | null {
-  if (v === null || v === undefined || v === "") return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
-  const limpo = String(v).replace(/[^\d,.-]/g, "");
-  if (!limpo) return null;
-  const pt = limpo.includes(",") ? limpo.replace(/\./g, "").replace(",", ".") : limpo;
-  const n = Number(pt);
-  return Number.isFinite(n) ? n : null;
-}
-
-/** Texto com zeros à esquerda preservados. */
-function codigoBarras(v: unknown, tamanho: number): string | null {
-  if (v === null || v === undefined || v === "") return null;
-  const bruto = typeof v === "number" ? String(Math.round(v)) : String(v).trim();
-  const so = bruto.replace(/\D/g, "");
-  if (!so) return null;
-  return so.length >= tamanho ? so : so.padStart(tamanho, "0");
-}
-
-function texto(v: unknown): string | null {
-  if (v === null || v === undefined) return null;
-  const s = String(v).trim();
-  return s === "" ? null : s;
-}
-
-type Matriz = unknown[][];
 
 export default function ImportarPI() {
-  const [arquivoNome, setArquivoNome] = useState("");
+  const [arquivoNome, setArquivoNome] = useState<string | null>(null);
   const [abas, setAbas] = useState<string[]>([]);
-  const [aba, setAba] = useState("");
-  const [matriz, setMatriz] = useState<Matriz>([]);
-  const [linhaCabecalho, setLinhaCabecalho] = useState(0); // índice 0-based
+  const [matrizPorAba, setMatrizPorAba] = useState<Record<string, unknown[][]>>({});
+  const [aba, setAba] = useState<string>("");
   const [lendo, setLendo] = useState(false);
-  const [workbook, setWorkbook] = useState<XLSX.WorkBook | null>(null);
 
-  const [mapa, setMapa] = useState<Record<number, string>>({});
-  const [mapeamentoConfirmado, setMapeamentoConfirmado] = useState(false);
+  const [cabecalho, setCabecalho] = useState<CabecalhoDetectado | null>(null);
+  const [semMatch, setSemMatch] = useState(false);
+  const [linhaManual, setLinhaManual] = useState<string>("");
+
+  const [mapeamento, setMapeamento] = useState<Record<string, string>>({});
   const [fornecedor, setFornecedor] = useState("");
   const [piNumero, setPiNumero] = useState("");
 
   const [gravando, setGravando] = useState(false);
   const [loteId, setLoteId] = useState<string | null>(null);
+  const [gravadas, setGravadas] = useState<number>(0);
 
-  const sinonimos = useQuery({
-    queryKey: ["pi_coluna_sinonimo"],
-    queryFn: async (): Promise<Sinonimo[]> => {
+  const sinonimosQuery = useQuery({
+    queryKey: ["pi-coluna-sinonimo"],
+    queryFn: async (): Promise<MatchSinonimo[]> => {
       const { data, error } = await supabase
         .from("pi_coluna_sinonimo")
         .select("campo, sinonimo, formato");
-      if (error) throw error;
-      return (data ?? []) as Sinonimo[];
+      if (error) throw new Error(error.message);
+      return (data ?? []) as MatchSinonimo[];
     },
   });
 
-  const indice = useMemo(() => {
-    const m = new Map<string, Sinonimo>();
-    for (const s of sinonimos.data ?? []) m.set(normalizar(s.sinonimo), s);
-    return m;
-  }, [sinonimos.data]);
+  const sinonimos = sinonimosQuery.data ?? [];
+  const matriz = aba ? (matrizPorAba[aba] ?? []) : [];
 
-  /** Quantas células da linha casam com algum sinônimo. */
-  function pontuar(linha: unknown[]): number {
-    let n = 0;
-    for (const c of linha) {
-      const k = normalizar(c);
-      if (k && indice.has(k)) n++;
-    }
-    return n;
-  }
-
-  function detectarCabecalho(m: Matriz): number {
-    let melhor = 0;
-    let pontos = -1;
-    const teto = Math.min(25, m.length);
-    for (let i = 0; i < teto; i++) {
-      const p = pontuar(m[i] ?? []);
-      if (p > pontos) {
-        pontos = p;
-        melhor = i;
-      }
-    }
-    return melhor;
-  }
-
-  /** Cabeçalho de duas linhas mescladas: concatena com a linha seguinte. */
-  function montarCabecalho(m: Matriz, idx: number): string[] {
-    const linha = (m[idx] ?? []).map((c) => texto(c) ?? "");
-    const largura = Math.max(linha.length, ...m.slice(idx, idx + 6).map((r) => r?.length ?? 0));
-    const atual = Array.from({ length: largura }, (_, i) => linha[i] ?? "");
-    const vazias = atual.filter((c) => c === "").length;
-
-    if (vazias > atual.length / 3) {
-      const proxima = (m[idx + 1] ?? []).map((c) => texto(c) ?? "");
-      const juntas = atual.map((c, i) => [c, proxima[i] ?? ""].filter(Boolean).join(" ").trim());
-      if (pontuar(juntas) > pontuar(atual)) return juntas;
-    }
-    return atual;
-  }
-
-  const cabecalho = useMemo(
-    () => (matriz.length ? montarCabecalho(matriz, linhaCabecalho) : []),
-    [matriz, linhaCabecalho, indice],
-  );
-
-  const colunasCasadas = useMemo(
-    () => cabecalho.filter((c) => indice.has(normalizar(c))).length,
-    [cabecalho, indice],
-  );
-
-  /** Linhas de dado com o número REAL da linha na planilha. */
-  const linhasDado = useMemo(() => {
-    const inicio = linhaCabecalho + 1;
-    return matriz
-      .slice(inicio)
-      .map((valores, i) => ({ linha_num: inicio + i + 1, valores: valores ?? [] }))
-      .filter((r) => r.valores.some((c) => texto(c) !== null));
-  }, [matriz, linhaCabecalho]);
-
-  function aplicarPreSelecao(cab: string[]) {
-    const novo: Record<number, string> = {};
-    cab.forEach((c, i) => {
-      const s = indice.get(normalizar(c));
-      novo[i] = s && (CAMPOS as readonly string[]).includes(s.campo) ? s.campo : IGNORAR;
-    });
-    setMapa(novo);
-  }
-
-  function carregarAba(wb: XLSX.WorkBook, nome: string) {
-    const folha = wb.Sheets[nome];
-    const m = XLSX.utils.sheet_to_json<unknown[]>(folha, {
-      header: 1,
-      raw: true,
-      defval: null,
-      blankrows: true,
-    }) as Matriz;
-    const idx = detectarCabecalho(m);
-    setMatriz(m);
-    setLinhaCabecalho(idx);
-    aplicarPreSelecao(montarCabecalho(m, idx));
-    setMapeamentoConfirmado(false);
+  function aplicarDeteccao(m: unknown[][]) {
+    const det = detectarCabecalho(m, sinonimos);
+    setCabecalho(det);
+    setSemMatch(det === null);
+    setMapeamento(det?.mapeamentoSugerido ?? {});
+    setLinhaManual(det ? String(det.linhaCabecalho) : "");
     setLoteId(null);
-
-    // pré-preenche PI varrendo as primeiras linhas
-    const alvo = m
-      .slice(0, Math.max(idx, 10))
-      .flat()
-      .map((c) => texto(c))
-      .filter(Boolean) as string[];
-    const achou = alvo.find((s) => /p\.?\s?i\.?\s*[:#-]?\s*\d+/i.test(s));
-    if (achou) {
-      const n = achou.match(/(\d[\d./-]*)/);
-      if (n) setPiNumero(n[1]);
+    if (det) {
+      toast.success(
+        `Cabeçalho na linha ${det.linhaCabecalho} — ${det.camposCasados} de ${det.colunas.length} colunas reconhecidas`,
+      );
+    } else {
+      toast.error("Nenhuma coluna casou com os sinônimos conhecidos — informe a linha do cabeçalho à mão");
     }
   }
 
-  async function escolherArquivo(file: File | undefined) {
+  async function onArquivo(file: File | undefined) {
     if (!file) return;
-    if (indice.size === 0) {
-      toast.error("Sinônimos de coluna ainda não carregaram. Aguarde e tente de novo.");
+    if (sinonimosQuery.isPending) {
+      toast.error("Sinônimos de coluna ainda carregando — tente de novo em um instante");
       return;
     }
     setLendo(true);
     try {
-      const buf = await file.arrayBuffer();
-      const wb = XLSX.read(buf, { type: "array" });
-      if (!wb.SheetNames.length) throw new Error("A planilha não tem nenhuma aba.");
-      setWorkbook(wb);
-      setAbas(wb.SheetNames);
+      const { abas: as, matrizPorAba: mpa } = await lerArquivo(file);
+      if (as.length === 0) throw new Error("planilha sem abas");
       setArquivoNome(file.name);
-      const primeira = wb.SheetNames[0];
-      setAba(primeira);
-      carregarAba(wb, primeira);
-      toast.success(`${file.name} lido no navegador`);
+      setAbas(as);
+      setMatrizPorAba(mpa);
+      setAba(as[0]);
+      aplicarDeteccao(mpa[as[0]] ?? []);
+      // pre-preenche PI varrendo as primeiras linhas
+      const alvo = (mpa[as[0]] ?? []).slice(0, 25);
+      for (const linha of alvo) {
+        for (const cel of linha ?? []) {
+          const m = /\bp\.?\s*i\.?\s*[:#nº ]*([a-z0-9-]{2,})/i.exec(textoCelula(cel));
+          if (m) { setPiNumero(m[1]); break; }
+        }
+      }
+      toast.success(`${file.name} lido — ${as.length} aba(s)`);
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setLendo(false);
     }
   }
 
   function trocarAba(nome: string) {
-    if (!workbook) return;
     setAba(nome);
-    try {
-      carregarAba(workbook, nome);
-      toast.success(`Aba "${nome}" carregada`);
-    } catch (e) {
-      toast.error(formatError(e));
-    }
+    aplicarDeteccao(matrizPorAba[nome] ?? []);
   }
 
-  function corrigirLinha(valor: string) {
-    const n = Number(valor);
-    if (!Number.isFinite(n) || n < 1 || n > matriz.length) return;
-    const idx = n - 1;
-    setLinhaCabecalho(idx);
-    aplicarPreSelecao(montarCabecalho(matriz, idx));
-    setMapeamentoConfirmado(false);
-  }
-
-  const camposEscolhidos = useMemo(() => {
-    const pares: { indiceColuna: number; campo: Campo }[] = [];
-    Object.entries(mapa).forEach(([i, campo]) => {
-      if (campo !== IGNORAR) pares.push({ indiceColuna: Number(i), campo: campo as Campo });
-    });
-    return pares.sort((a, b) => CAMPOS.indexOf(a.campo) - CAMPOS.indexOf(b.campo));
-  }, [mapa]);
-
-  function valorCampo(valores: unknown[], campo: Campo, indiceColuna: number) {
-    const cru = valores[indiceColuna];
-    if (campo === "ean") return codigoBarras(cru, 13);
-    if (campo === "dun") return codigoBarras(cru, 14);
-    if (campo === "inner_qtd" || campo === "qtd" || campo === "peso_g") return numero(cru);
-    return texto(cru);
-  }
-
-  function exemploColuna(i: number): string {
-    for (const r of linhasDado) {
-      const v = texto(r.valores[i]);
-      if (v) return v;
-    }
-    return "—";
-  }
-
-  function confirmarMapeamento() {
-    if (camposEscolhidos.length === 0) {
-      toast.error("Escolha ao menos uma coluna de destino.");
+  function reprocessar() {
+    const n = Number(linhaManual);
+    if (!Number.isInteger(n) || n < 1 || n > matriz.length) {
+      toast.error(`Linha de cabeçalho inválida — a planilha tem ${matriz.length} linhas`);
       return;
     }
-    const vistos = new Set<string>();
-    for (const p of camposEscolhidos) {
-      if (vistos.has(p.campo)) {
-        toast.error(`O campo ${ROTULO[p.campo]} foi apontado por mais de uma coluna.`);
-        return;
-      }
-      vistos.add(p.campo);
+    const largura = matriz.reduce((w, l) => Math.max(w, l?.length ?? 0), 1);
+    const colunas = Array.from({ length: largura }, (_, i) =>
+      textoCelula((matriz[n - 1] ?? [])[i]).trim(),
+    );
+    const indice = new Map<string, MatchSinonimo>();
+    for (const s of sinonimos) {
+      const k = normalizar(s.sinonimo);
+      if (k && !indice.has(k)) indice.set(k, s);
     }
-    setMapeamentoConfirmado(true);
-    toast.success("Mapeamento confirmado");
+    const sugerido: Record<string, string> = {};
+    const porFormato = new Map<string, number>();
+    let casados = 0;
+    colunas.forEach((c, i) => {
+      const s = indice.get(normalizar(c));
+      if (!s) return;
+      casados += 1;
+      sugerido[chaveColuna(c, i)] = s.campo;
+      if (s.formato) porFormato.set(s.formato, (porFormato.get(s.formato) ?? 0) + 1);
+    });
+    let formatoProvavel: string | null = null;
+    let maior = 0;
+    porFormato.forEach((q, f) => { if (q > maior) { maior = q; formatoProvavel = f; } });
+
+    setCabecalho({
+      linhaCabecalho: n,
+      colunas,
+      camposCasados: casados,
+      mapeamentoSugerido: sugerido,
+      formatoProvavel,
+      usouDuasLinhas: false,
+    });
+    setSemMatch(casados === 0);
+    setMapeamento(sugerido);
+    setLoteId(null);
+    toast.success(`Reprocessado com cabeçalho na linha ${n} — ${casados} colunas reconhecidas`);
   }
 
-  const formatoLote = useMemo(() => {
-    const contagem = new Map<string, number>();
-    for (const c of cabecalho) {
-      const s = indice.get(normalizar(c));
-      if (s?.formato) contagem.set(s.formato, (contagem.get(s.formato) ?? 0) + 1);
-    }
-    let vencedor: string | null = null;
-    let max = 0;
-    contagem.forEach((n, f) => {
-      if (n > max) {
-        max = n;
-        vencedor = f;
+  const linhas = useMemo(() => {
+    if (!cabecalho) return [];
+    return extrairLinhas(matriz, cabecalho.linhaCabecalho, mapeamento, cabecalho.colunas);
+  }, [matriz, cabecalho, mapeamento]);
+
+  const exemplos = useMemo(() => {
+    if (!cabecalho) return {} as Record<string, string>;
+    const out: Record<string, string> = {};
+    cabecalho.colunas.forEach((nome, c) => {
+      const chave = chaveColuna(nome, c);
+      for (let i = cabecalho.linhaCabecalho; i < matriz.length; i++) {
+        const v = textoCelula((matriz[i] ?? [])[c]).trim();
+        if (v !== "") { out[chave] = v; break; }
       }
     });
-    return vencedor;
-  }, [cabecalho, indice]);
+    return out;
+  }, [cabecalho, matriz]);
 
-  async function gravarLote() {
+  const camposUsados = useMemo(
+    () => Array.from(new Set(Object.values(mapeamento).filter((c) => c && c !== IGNORAR))),
+    [mapeamento],
+  );
+  const temIdentidade = camposUsados.some((c) => CAMPOS_IDENTIDADE.includes(c));
+
+  async function gravar() {
+    if (!cabecalho) return;
     setGravando(true);
     try {
-      const mapeamento: Record<string, string> = {};
-      camposEscolhidos.forEach((p) => {
-        mapeamento[cabecalho[p.indiceColuna] || `coluna_${p.indiceColuna + 1}`] = p.campo;
-      });
-
-      const { data: lote, error: erroLote } = await supabase
-        .from("pi_import_lote")
-        .insert({
-          arquivo_nome: arquivoNome,
-          formato: formatoLote,
+      const r = await gravarLotePI(
+        {
+          arquivoNome: arquivoNome ?? "sem-nome",
+          formato: cabecalho.formatoProvavel,
           fornecedor: fornecedor.trim() || null,
-          pi_numero: piNumero.trim() || null,
-          linha_cabecalho: linhaCabecalho + 1,
-          total_linhas: linhasDado.length,
+          piNumero: piNumero.trim() || null,
+          linhaCabecalho: cabecalho.linhaCabecalho,
           mapeamento,
-        })
-        .select("id")
-        .single();
-      if (erroLote) throw erroLote;
-
-      const linhas = linhasDado.map((r) => {
-        const bruto: Record<string, unknown> = {};
-        cabecalho.forEach((nome, i) => {
-          bruto[nome || `coluna_${i + 1}`] = r.valores[i] ?? null;
-        });
-        const campos: Record<string, unknown> = {};
-        camposEscolhidos.forEach((p) => {
-          campos[p.campo] = valorCampo(r.valores, p.campo, p.indiceColuna);
-        });
-        return { lote_id: lote.id, linha_num: r.linha_num, bruto: bruto as never, ...campos };
-      });
-
-      for (let i = 0; i < linhas.length; i += 500) {
-        const { error } = await supabase.from("pi_import_stage").insert(linhas.slice(i, i + 500));
-        if (error) throw error;
-      }
-
-      setLoteId(lote.id);
-      toast.success(`${linhas.length} linhas gravadas em estágio`);
+        },
+        linhas,
+      );
+      setLoteId(r.loteId);
+      setGravadas(r.gravadas);
+      toast.success(`${r.gravadas} linha(s) gravada(s) em estágio`);
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setGravando(false);
     }
@@ -399,238 +227,267 @@ export default function ImportarPI() {
   return (
     <PageShell>
       <PageHeader
-        titulo="Importação de PI"
-        icone={FileSpreadsheet}
-        breadcrumb={[
-          { label: "Produto", to: "/vendas/produto" },
-          { label: "Importação de PI" },
-        ]}
-        estado="A planilha é lida no navegador e não sobe para o servidor · parte 1: leitura e estágio"
+        title="Importação de PI"
+        description="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
       />
 
-      {sinonimos.isError && (
+      {sinonimosQuery.isError && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Não foi possível carregar os sinônimos de coluna. {formatError(sinonimos.error)}
+            Falha ao carregar os sinônimos de coluna:{" "}
+            {sinonimosQuery.error instanceof Error ? sinonimosQuery.error.message : "erro desconhecido"}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* ── PASSO 1 */}
+      {/* PASSO 1 */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">1 · Planilha e cabeçalho</CardTitle>
+        <CardHeader>
+          <CardTitle className="text-base">1. Arquivo</CardTitle>
+          <CardDescription>
+            .xlsx ou .xls, lido no navegador. O arquivo não sobe para o storage.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {sinonimos.isLoading ? (
-            <Skeleton className="h-10 w-full" />
+          {sinonimosQuery.isPending ? (
+            <Skeleton className="h-10 w-full max-w-sm" />
           ) : (
-            <div className="flex flex-wrap items-end gap-3">
-              <div className="space-y-1.5">
-                <Label>Arquivo (.xlsx / .xls)</Label>
-                <Input
-                  type="file"
-                  accept=".xlsx,.xls"
-                  onChange={(e) => void escolherArquivo(e.target.files?.[0])}
-                />
-              </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <Input
+                type="file"
+                accept=".xlsx,.xls"
+                className="max-w-sm"
+                onChange={(e) => onArquivo(e.target.files?.[0])}
+              />
               {lendo && (
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Upload className="h-4 w-4 animate-pulse" /> Lendo a planilha...
+                  <Loader2 className="h-4 w-4 animate-spin" /> lendo planilha…
                 </span>
               )}
             </div>
           )}
 
-          {matriz.length > 0 && (
-            <>
-              <div className="flex flex-wrap items-end gap-3">
+          {arquivoNome && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-end gap-4">
                 {abas.length > 1 && (
-                  <div className="space-y-1.5">
-                    <Label>Aba ({abas.length})</Label>
+                  <div className="space-y-1">
+                    <Label>Aba</Label>
                     <Select value={aba} onValueChange={trocarAba}>
-                      <SelectTrigger className="w-[240px]">
-                        <SelectValue />
-                      </SelectTrigger>
+                      <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {abas.map((a) => (
-                          <SelectItem key={a} value={a}>
-                            {a}
-                          </SelectItem>
+                          <SelectItem key={a} value={a}>{a}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                 )}
-                <div className="space-y-1.5">
-                  <Label>Linha do cabeçalho</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="linha-cab">Linha do cabeçalho</Label>
                   <Input
+                    id="linha-cab"
                     type="number"
                     min={1}
-                    max={matriz.length}
-                    className="w-[140px]"
-                    value={linhaCabecalho + 1}
-                    onChange={(e) => corrigirLinha(e.target.value)}
+                    className="w-32"
+                    value={linhaManual}
+                    onChange={(e) => setLinhaManual(e.target.value)}
                   />
                 </div>
+                <Button variant="outline" onClick={reprocessar} disabled={!matriz.length}>
+                  Reprocessar
+                </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline">{arquivoNome}</Badge>
-                <Badge variant="outline">aba: {aba}</Badge>
-                <Badge variant="outline">cabeçalho na linha {linhaCabecalho + 1}</Badge>
-                <Badge variant={colunasCasadas > 0 ? "secondary" : "destructive"}>
-                  {colunasCasadas} colunas reconhecidas
-                </Badge>
-                <Badge variant="outline">{linhasDado.length} linhas de dado</Badge>
-                {formatoLote && <Badge variant="outline">formato: {formatoLote}</Badge>}
+              <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div>
+                  <div className="text-xs text-muted-foreground">Arquivo</div>
+                  <div className="flex items-center gap-2 font-medium">
+                    <FileSpreadsheet className="h-4 w-4" /> {arquivoNome}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Aba</div>
+                  <div className="font-medium">{aba || "—"}</div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Cabeçalho / colunas reconhecidas</div>
+                  <div className="font-medium">
+                    linha {cabecalho?.linhaCabecalho ?? "—"} · {cabecalho?.camposCasados ?? 0} de{" "}
+                    {cabecalho?.colunas.length ?? 0}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Linhas de dado</div>
+                  <div className="font-medium">{linhas.length}</div>
+                </div>
+                {cabecalho?.usouDuasLinhas && (
+                  <div><Badge variant="secondary">cabeçalho em 2 linhas</Badge></div>
+                )}
+                {cabecalho?.formatoProvavel && (
+                  <div>
+                    <div className="text-xs text-muted-foreground">Formato provável</div>
+                    <div className="font-medium">{cabecalho.formatoProvavel}</div>
+                  </div>
+                )}
               </div>
 
-              {colunasCasadas === 0 && (
+              {semMatch && (
                 <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Nenhuma coluna foi reconhecida nesta linha. Corrija a linha do cabeçalho
-                    acima ou aponte os campos à mão no passo 2.
+                    Nenhuma coluna casou com os sinônimos conhecidos. Informe a linha do cabeçalho
+                    acima e clique em Reprocessar.
                   </AlertDescription>
                 </Alert>
               )}
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {/* ── PASSO 2 */}
-      {matriz.length > 0 && (
+      {/* PASSO 2 */}
+      {cabecalho && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">2 · Como as colunas foram entendidas</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-base">2. Mapeamento</CardTitle>
+            <CardDescription>
+              Confirme como cada coluna foi entendida. Confira os zeros à esquerda de EAN e DUN na prévia.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label>Fornecedor</Label>
-                <Input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
+          <CardContent className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label htmlFor="fornecedor">Fornecedor</Label>
+                <Input id="fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label>Número da PI</Label>
-                <Input value={piNumero} onChange={(e) => setPiNumero(e.target.value)} />
+              <div className="space-y-1">
+                <Label htmlFor="pi-numero">Número da PI</Label>
+                <Input id="pi-numero" value={piNumero} onChange={(e) => setPiNumero(e.target.value)} />
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Coluna da planilha</TableHead>
-                    <TableHead>Campo destino</TableHead>
+                    <TableHead>Coluna na planilha</TableHead>
+                    <TableHead className="w-56">Campo destino</TableHead>
                     <TableHead>Exemplo</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cabecalho.map((nome, i) => (
-                    <TableRow key={i}>
-                      <TableCell className="text-sm">
-                        {nome || (
-                          <span className="text-muted-foreground">coluna {i + 1}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Select
-                          value={mapa[i] ?? IGNORAR}
-                          onValueChange={(v) => {
-                            setMapa((m) => ({ ...m, [i]: v }));
-                            setMapeamentoConfirmado(false);
-                          }}
-                        >
-                          <SelectTrigger className="w-[190px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={IGNORAR}>— ignorar —</SelectItem>
-                            {CAMPOS.map((c) => (
-                              <SelectItem key={c} value={c}>
-                                {ROTULO[c]}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell className="max-w-[280px] truncate text-sm text-muted-foreground">
-                        {exemploColuna(i)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {cabecalho.colunas.map((nome, i) => {
+                    const chave = chaveColuna(nome, i);
+                    return (
+                      <TableRow key={chave}>
+                        <TableCell className="font-medium">{nome || <span className="text-muted-foreground">{chave}</span>}</TableCell>
+                        <TableCell>
+                          <Select
+                            value={mapeamento[chave] ?? IGNORAR}
+                            onValueChange={(v) =>
+                              setMapeamento((prev) => {
+                                const next = { ...prev };
+                                if (v === IGNORAR) delete next[chave];
+                                else next[chave] = v;
+                                return next;
+                              })
+                            }
+                          >
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={IGNORAR}>{IGNORAR}</SelectItem>
+                              {CAMPOS_DESTINO.map((c) => (
+                                <SelectItem key={c} value={c}>{c}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">{exemplos[chave] ?? "—"}</TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
 
-            {camposEscolhidos.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium">Prévia com o mapeamento aplicado</p>
-                <div className="overflow-x-auto rounded-md border border-border">
+            <div>
+              <div className="mb-2 text-sm font-medium">Prévia — 5 primeiras linhas</div>
+              {camposUsados.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma coluna mapeada ainda.
+                </p>
+              ) : (
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Linha</TableHead>
-                        {camposEscolhidos.map((p) => (
-                          <TableHead key={p.campo}>{ROTULO[p.campo]}</TableHead>
+                        <TableHead className="w-20">Linha</TableHead>
+                        {camposUsados.map((c) => (
+                          <TableHead key={c}>{c}</TableHead>
                         ))}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {linhasDado.slice(0, 5).map((r) => (
-                        <TableRow key={r.linha_num}>
-                          <TableCell className="text-xs tabular-nums text-muted-foreground">
-                            {r.linha_num}
-                          </TableCell>
-                          {camposEscolhidos.map((p) => (
-                            <TableCell key={p.campo} className="font-mono text-xs">
-                              {String(valorCampo(r.valores, p.campo, p.indiceColuna) ?? "—")}
+                      {linhas.slice(0, 5).map((l) => (
+                        <TableRow key={l.linhaNum}>
+                          <TableCell className="text-muted-foreground">{l.linhaNum}</TableCell>
+                          {camposUsados.map((c) => (
+                            <TableCell key={c} className="font-mono text-xs">
+                              {l.campos[c] === null || l.campos[c] === undefined
+                                ? "—"
+                                : String(l.campos[c])}
                             </TableCell>
                           ))}
                         </TableRow>
                       ))}
+                      {linhas.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={camposUsados.length + 1} className="text-muted-foreground">
+                            Nenhuma linha de dado abaixo do cabeçalho informado.
+                          </TableCell>
+                        </TableRow>
+                      )}
                     </TableBody>
                   </Table>
                 </div>
-              </div>
-            )}
-
-            <div className="flex justify-end">
-              <Button onClick={confirmarMapeamento}>Confirmar mapeamento</Button>
+              )}
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* ── PASSO 3 */}
-      {mapeamentoConfirmado && (
+      {/* PASSO 3 */}
+      {cabecalho && camposUsados.length > 0 && (
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">3 · Gravar o lote em estágio</CardTitle>
+          <CardHeader>
+            <CardTitle className="text-base">3. Gravar</CardTitle>
+            <CardDescription>
+              O lote nasce em estágio. Identidade e alocação de código ficam para a conferência.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {linhasDado.length} linhas serão gravadas. EAN e DUN vão como texto, com o zero à
-              esquerda preservado. Nada toca produto nesta etapa.
-            </p>
-            <div className="flex justify-end">
-              <Button onClick={() => void gravarLote()} disabled={gravando}>
-                {gravando ? "Gravando..." : "Gravar lote em estágio"}
-              </Button>
-            </div>
-
-            {loteId && (
+          <CardContent className="space-y-4">
+            {!temIdentidade && (
               <Alert>
-                <AlertDescription className="space-y-1">
-                  <div>
-                    Lote gravado: <span className="font-mono text-xs">{loteId}</span>
-                  </div>
-                  <div className="text-muted-foreground">Conferência — parte 2</div>
+                <AlertDescription>
+                  Mapeie ao menos uma coluna para <strong>sku</strong>, <strong>cod_cadastro</strong> ou{" "}
+                  <strong>ean</strong> — sem nenhum dos três não há como identificar o item.
                 </AlertDescription>
               </Alert>
+            )}
+            <Button onClick={gravar} disabled={!temIdentidade || gravando || linhas.length === 0}>
+              {gravando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Gravar lote em estágio
+            </Button>
+
+            {loteId && (
+              <div className="rounded-md border p-4 text-sm">
+                <div className="flex items-center gap-2 font-medium">
+                  <Info className="h-4 w-4" /> Conferência — parte 2
+                </div>
+                <div className="mt-1 text-muted-foreground">
+                  Lote <span className="font-mono">{loteId}</span> · {gravadas} linha(s) em estágio.
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
