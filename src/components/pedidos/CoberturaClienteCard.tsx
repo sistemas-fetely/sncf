@@ -53,7 +53,8 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
 
   const valor = Number(valorPedido ?? 0);
   const total = Number(cob.cobertura_total ?? 0);
-  const cobre = valor > 0 ? total >= valor : total > 0;
+  const valorConhecido = valor > 0;
+  const cobre = valorConhecido && total >= valor;
   const falta = Math.max(0, valor - total);
 
   const estagioPermite = !!estagio && estagio !== "faturado" && estagio !== "cancelado";
@@ -98,23 +99,33 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
     <div
       className={cn(
         "rounded-md border p-3 space-y-2",
-        cobre ? "border-success/40 bg-success/5" : "border-warning/40 bg-warning/5",
+        !valorConhecido
+          ? "border-border/60 bg-muted/30"
+          : cobre
+            ? "border-success/40 bg-success/5"
+            : "border-warning/40 bg-warning/5",
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium">Cobertura do cliente</span>
         <div className="flex items-center gap-1.5">
           {empenhado && <Selo estado="success">empenhado</Selo>}
-          {cobre ? (
-            <CheckCircle2 className="h-4 w-4 text-success" />
-          ) : (
-            <AlertTriangle className="h-4 w-4 text-warning" />
-          )}
+          {valorConhecido &&
+            (cobre ? (
+              <CheckCircle2 className="h-4 w-4 text-success" />
+            ) : (
+              <AlertTriangle className="h-4 w-4 text-warning" />
+            ))}
         </div>
       </div>
 
       <div className="flex items-baseline gap-2">
-        <span className={cn("text-lg font-semibold", cobre ? "text-success" : "text-warning")}>
+        <span
+          className={cn(
+            "text-lg font-semibold",
+            !valorConhecido ? "text-muted-foreground" : cobre ? "text-success" : "text-warning",
+          )}
+        >
           {formatBRL(total)}
         </span>
         <span className="text-[11px] text-muted-foreground">
@@ -122,7 +133,12 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
         </span>
       </div>
 
-      {!cobre && (
+      {!valorConhecido && (
+        <p className="text-[11px] text-muted-foreground">
+          valor do pedido indisponível — cobertura não avaliada
+        </p>
+      )}
+      {valorConhecido && !cobre && (
         <p className="text-[11px] text-warning">
           falta {formatBRL(falta)} — rota: análise de crédito
         </p>

@@ -14750,6 +14750,69 @@ export type Database = {
         }
         Relationships: []
       }
+      demanda_assunto: {
+        Row: {
+          alcada_cadeira_id: string | null
+          ativo: boolean
+          cadeira_id: string
+          camada_esperada: string
+          codigo: string
+          created_at: string
+          criado_por: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          prazo_dias: number | null
+          updated_at: string
+        }
+        Insert: {
+          alcada_cadeira_id?: string | null
+          ativo?: boolean
+          cadeira_id: string
+          camada_esperada: string
+          codigo: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          prazo_dias?: number | null
+          updated_at?: string
+        }
+        Update: {
+          alcada_cadeira_id?: string | null
+          ativo?: boolean
+          cadeira_id?: string
+          camada_esperada?: string
+          codigo?: string
+          created_at?: string
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          prazo_dias?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_assunto_alcada_cadeira_id_fkey"
+            columns: ["alcada_cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departamentos: {
         Row: {
           area_negocio: string | null
@@ -47391,6 +47454,7 @@ export type Database = {
       }
       solicitacao_comercial: {
         Row: {
+          assunto_id: string | null
           atendido_em: string | null
           atendido_por: string | null
           criado_em: string
@@ -47403,6 +47467,7 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          assunto_id?: string | null
           atendido_em?: string | null
           atendido_por?: string | null
           criado_em?: string
@@ -47415,6 +47480,7 @@ export type Database = {
           tipo: string
         }
         Update: {
+          assunto_id?: string | null
           atendido_em?: string | null
           atendido_por?: string | null
           criado_em?: string
@@ -47427,6 +47493,13 @@ export type Database = {
           tipo?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "solicitacao_comercial_assunto_id_fkey"
+            columns: ["assunto_id"]
+            isOneToOne: false
+            referencedRelation: "demanda_assunto"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "solicitacao_comercial_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -65323,6 +65396,23 @@ export type Database = {
           faixa: string | null
           pedidos: number | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_demanda_por_assunto: {
+        Row: {
+          abertas: number | null
+          assunto: string | null
+          assunto_codigo: string | null
+          atendidas: number | null
+          cadeira_alcada: string | null
+          cadeira_destino: string | null
+          camada_esperada: string | null
+          canceladas: number | null
+          horas_medias: number | null
+          prazo_dias: number | null
+          total: number | null
+          ultima_ocorrencia: string | null
         }
         Relationships: []
       }
@@ -87328,14 +87418,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
