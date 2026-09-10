@@ -682,17 +682,56 @@ export default function MesaAtendimento() {
                         {d.dias_aberta ?? 0}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setAtendendo(d);
-                            setResolucao("");
-                            setMotivo("");
-                          }}
-                        >
-                          Atender
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              setAtendendo(d);
+                              setResolucao("");
+                              setMotivo("");
+                            }}
+                          >
+                            Atender
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            title="Ver trilha"
+                            onClick={() => setDemandaSelecionada(d)}
+                          >
+                            <History className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="icon" variant="ghost" title="Mais ações">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEscalando(d);
+                                  setCadeiraDestino("");
+                                  setMotivoEscalar("");
+                                }}
+                              >
+                                <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setDevolvendo(d);
+                                  setComoResolver("");
+                                }}
+                              >
+                                <Undo2 className="mr-2 h-4 w-4" /> Devolver
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setDemandaSelecionada(d)}>
+                                <History className="mr-2 h-4 w-4" /> Trilha
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
