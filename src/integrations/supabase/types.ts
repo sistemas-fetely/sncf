@@ -2361,6 +2361,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
             columns: ["fila_id"]
             isOneToOne: false
@@ -15178,6 +15185,111 @@ export type Database = {
         }
         Relationships: []
       }
+      demanda: {
+        Row: {
+          assunto_id: string | null
+          cadeira_atual_id: string | null
+          camada: string
+          canal_origem: string
+          codigo: string
+          criado_em: string
+          criado_por: string | null
+          descricao: string
+          entidade_id: string | null
+          entidade_ref: string | null
+          entidade_tipo: string
+          id: string
+          motivo_id: string | null
+          resolucao: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          solicitante_contato: string | null
+          solicitante_nome: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assunto_id?: string | null
+          cadeira_atual_id?: string | null
+          camada?: string
+          canal_origem: string
+          codigo?: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao: string
+          entidade_id?: string | null
+          entidade_ref?: string | null
+          entidade_tipo?: string
+          id?: string
+          motivo_id?: string | null
+          resolucao?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          solicitante_contato?: string | null
+          solicitante_nome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assunto_id?: string | null
+          cadeira_atual_id?: string | null
+          camada?: string
+          canal_origem?: string
+          codigo?: string
+          criado_em?: string
+          criado_por?: string | null
+          descricao?: string
+          entidade_id?: string | null
+          entidade_ref?: string | null
+          entidade_tipo?: string
+          id?: string
+          motivo_id?: string | null
+          resolucao?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          solicitante_contato?: string | null
+          solicitante_nome?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_assunto_id_fkey"
+            columns: ["assunto_id"]
+            isOneToOne: false
+            referencedRelation: "demanda_assunto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_canal_origem_fkey"
+            columns: ["canal_origem"]
+            isOneToOne: false
+            referencedRelation: "demanda_canal"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "demanda_motivo_id_fkey"
+            columns: ["motivo_id"]
+            isOneToOne: false
+            referencedRelation: "demanda_motivo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       demanda_assunto: {
         Row: {
           alcada_cadeira_id: string | null
@@ -15236,13 +15348,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "demanda_assunto_alcada_cadeira_id_fkey"
+            columns: ["alcada_cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "demanda_assunto_cadeira_id_fkey"
             columns: ["cadeira_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "demanda_assunto_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
+      }
+      demanda_canal: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          exige_solicitante_externo: boolean
+          natureza: string
+          nome: string
+          ordem: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          exige_solicitante_externo?: boolean
+          natureza: string
+          nome: string
+          ordem?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          exige_solicitante_externo?: boolean
+          natureza?: string
+          nome?: string
+          ordem?: number | null
+        }
+        Relationships: []
       }
       demanda_motivo: {
         Row: {
@@ -15294,6 +15450,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_motivo_cadeira_remedio_id_fkey"
+            columns: ["cadeira_remedio_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
         ]
       }
@@ -15370,6 +15533,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "departamentos_apelidos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
         ]
       }
@@ -21675,6 +21845,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gestao_sala_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "gestao_sala_dono_pessoa_id_fkey"
@@ -38160,6 +38337,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pedidos_compra_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_parceiro_preferencial_id_fkey"
             columns: ["parceiro_preferencial_id"]
             isOneToOne: false
@@ -38819,6 +39003,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_departamentos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "pessoa_departamentos_pessoa_id_fkey"
@@ -39872,6 +40063,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "posicoes_planejadas_unidade_id_fkey"
@@ -46315,6 +46513,7 @@ export type Database = {
       }
       shopify_pedidos: {
         Row: {
+          billing_address: Json | null
           cancelled_at: string | null
           created_at: string
           created_at_shopify: string
@@ -46329,6 +46528,7 @@ export type Database = {
           payment_method_raw: string | null
           payment_reference: string | null
           refunded_amount: number
+          shipping_address: Json | null
           shipping_city: string | null
           shipping_cost: number
           shipping_method: string | null
@@ -46346,6 +46546,7 @@ export type Database = {
           wns_pedido_id: string | null
         }
         Insert: {
+          billing_address?: Json | null
           cancelled_at?: string | null
           created_at?: string
           created_at_shopify: string
@@ -46360,6 +46561,7 @@ export type Database = {
           payment_method_raw?: string | null
           payment_reference?: string | null
           refunded_amount?: number
+          shipping_address?: Json | null
           shipping_city?: string | null
           shipping_cost?: number
           shipping_method?: string | null
@@ -46377,6 +46579,7 @@ export type Database = {
           wns_pedido_id?: string | null
         }
         Update: {
+          billing_address?: Json | null
           cancelled_at?: string | null
           created_at?: string
           created_at_shopify?: string
@@ -46391,6 +46594,7 @@ export type Database = {
           payment_method_raw?: string | null
           payment_reference?: string | null
           refunded_amount?: number
+          shipping_address?: Json | null
           shipping_city?: string | null
           shipping_cost?: number
           shipping_method?: string | null
@@ -47846,6 +48050,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "sncf_tarefas_origem_extensao_id_fkey"
             columns: ["origem_extensao_id"]
             isOneToOne: false
@@ -49276,6 +49487,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tarefas_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "tarefas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -49575,6 +49793,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
         ]
       }
@@ -49985,6 +50210,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_etiquetas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_filas: {
@@ -50067,6 +50299,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
         ]
       }
@@ -50330,6 +50569,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_projetos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_recorrencias: {
@@ -50421,6 +50667,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "tarefas_recorrencias_projeto_id_fkey"
@@ -50726,6 +50979,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_templates_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_timer: {
@@ -50837,6 +51097,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_tipos_processo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
         ]
       }
@@ -56448,6 +56715,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "vinculos_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -60599,6 +60873,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "vinculos_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
@@ -63130,6 +63411,13 @@ export type Database = {
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       vw_carga_atribuicao: {
@@ -63204,6 +63492,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
@@ -66684,6 +66979,64 @@ export type Database = {
           faixa: string | null
           pedidos: number | null
           valor: number | null
+        }
+        Relationships: []
+      }
+      vw_demanda_aberta: {
+        Row: {
+          assunto: string | null
+          assunto_codigo: string | null
+          cadeira: string | null
+          cadeira_atual_id: string | null
+          camada: string | null
+          canal: string | null
+          canal_natureza: string | null
+          codigo: string | null
+          criado_em: string | null
+          demanda_id: string | null
+          descricao: string | null
+          dias_aberta: number | null
+          em_triagem: boolean | null
+          entidade_id: string | null
+          entidade_ref: string | null
+          entidade_tipo: string | null
+          pedido_id_externo: string | null
+          prazo_dias: number | null
+          registrado_por: string | null
+          solicitante_contato: string | null
+          solicitante_nome: string | null
+          status: string | null
+          vencida: boolean | null
+          vencimento: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+        ]
+      }
+      vw_demanda_carga_cadeira: {
+        Row: {
+          abertas_total: number | null
+          aguardando: number | null
+          cadeira: string | null
+          cadeira_id: string | null
+          em_atendimento: number | null
+          em_triagem: number | null
+          escaladas: number | null
+          mais_antiga: string | null
+          vencidas: number | null
         }
         Relationships: []
       }
@@ -70604,6 +70957,7 @@ export type Database = {
       }
       vw_fila_baixas_manuais_sem_batimento: {
         Row: {
+          data_pagamento: string | null
           exige_acao_nossa: boolean | null
           numero_titulo: string | null
           status: string | null
@@ -70612,6 +70966,7 @@ export type Database = {
           valor: number | null
         }
         Insert: {
+          data_pagamento?: string | null
           exige_acao_nossa?: never
           numero_titulo?: string | null
           status?: string | null
@@ -70620,6 +70975,7 @@ export type Database = {
           valor?: never
         }
         Update: {
+          data_pagamento?: string | null
           exige_acao_nossa?: never
           numero_titulo?: string | null
           status?: string | null
@@ -71345,6 +71701,19 @@ export type Database = {
           },
         ]
       }
+      vw_fila_demandas_triagem: {
+        Row: {
+          canal: string | null
+          codigo: string | null
+          criado_em: string | null
+          demanda_id: string | null
+          descricao: string | null
+          dias_sem_classificar: number | null
+          exige_acao_nossa: boolean | null
+          solicitante_nome: string | null
+        }
+        Relationships: []
+      }
       vw_fila_medida: {
         Row: {
           amostra_humana: number | null
@@ -71414,6 +71783,7 @@ export type Database = {
         Row: {
           data_vencimento: string | null
           dias_aguardando: number | null
+          entrada_em: string | null
           exige_acao_nossa: boolean | null
           id_externo: string | null
           parceiro_cnpj: string | null
@@ -79666,14 +80036,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -80139,6 +80509,7 @@ export type Database = {
           devido_familia: number | null
           dias_atraso_pai: number | null
           dias_esperando: number | null
+          entrada_em: string | null
           falta_familia: number | null
           falta_linha: number | null
           grupo: string | null
@@ -84717,6 +85088,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "vinculos_tipo_vinculo_fkey"
@@ -89642,14 +90020,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -89783,6 +90161,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "tarefas_parent_id_fkey"
@@ -89932,6 +90317,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_demanda_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
           },
           {
             foreignKeyName: "sncf_tarefas_origem_extensao_id_fkey"
@@ -93874,6 +94266,19 @@ export type Database = {
         Args: { p_competencia?: string; p_parceiro_id: string }
         Returns: string
       }
+      abrir_demanda: {
+        Args: {
+          p_assunto_codigo?: string
+          p_canal: string
+          p_descricao: string
+          p_entidade_id?: string
+          p_entidade_ref?: string
+          p_entidade_tipo?: string
+          p_solicitante_contato?: string
+          p_solicitante_nome?: string
+        }
+        Returns: Json
+      }
       abrir_solicitacao_comercial: {
         Args: {
           p_assunto_codigo?: string
@@ -94017,6 +94422,14 @@ export type Database = {
       }
       aprovar_nf_pj: {
         Args: { _nota_id: string; _observacao_rh?: string }
+        Returns: Json
+      }
+      atender_demanda: {
+        Args: {
+          p_demanda_id: string
+          p_motivo_codigo: string
+          p_resolucao: string
+        }
         Returns: Json
       }
       atender_solicitacao_comercial: {
@@ -96430,6 +96843,7 @@ export type Database = {
         Returns: string
       }
       fn_sem_acento: { Args: { p_txt: string }; Returns: string }
+      fn_shopify_endereco_parse: { Args: { p_addr: Json }; Returns: Json }
       fn_simular_portao: {
         Args: { p_fonte?: string; p_rota: string; p_user_id: string }
         Returns: string
