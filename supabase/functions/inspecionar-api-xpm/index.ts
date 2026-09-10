@@ -104,7 +104,9 @@ Deno.serve(async (req) => {
       });
       if (ePat) throw new Error(`vault: ${ePat.message}`);
       if (!pat) throw new Error("PAT ausente no vault");
-      const authUrl = cfg!.auth_endpoint ?? `${base}/api/TokenAuth/AuthenticatePAT`;
+      // config.auth_endpoint e caminho relativo ("/api/TokenAuth/AuthenticatePAT").
+      const endpoint = cfg!.auth_endpoint ?? "/api/TokenAuth/AuthenticatePAT";
+      const authUrl = endpoint.startsWith("http") ? endpoint : `${base}${endpoint}`;
       const r = await fetch(authUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
