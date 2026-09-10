@@ -36673,6 +36673,153 @@ export type Database = {
         }
         Relationships: []
       }
+      pi_coluna_sinonimo: {
+        Row: {
+          campo: string
+          criado_em: string
+          formato: string | null
+          id: number
+          observacao: string | null
+          sinonimo: string
+        }
+        Insert: {
+          campo: string
+          criado_em?: string
+          formato?: string | null
+          id?: number
+          observacao?: string | null
+          sinonimo: string
+        }
+        Update: {
+          campo?: string
+          criado_em?: string
+          formato?: string | null
+          id?: number
+          observacao?: string | null
+          sinonimo?: string
+        }
+        Relationships: []
+      }
+      pi_import_lote: {
+        Row: {
+          arquivo_nome: string
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          estado: string
+          formato: string | null
+          fornecedor: string | null
+          id: string
+          linha_cabecalho: number | null
+          mapeamento: Json | null
+          observacao: string | null
+          pi_numero: string | null
+          total_linhas: number | null
+        }
+        Insert: {
+          arquivo_nome: string
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          estado?: string
+          formato?: string | null
+          fornecedor?: string | null
+          id?: string
+          linha_cabecalho?: number | null
+          mapeamento?: Json | null
+          observacao?: string | null
+          pi_numero?: string | null
+          total_linhas?: number | null
+        }
+        Update: {
+          arquivo_nome?: string
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          estado?: string
+          formato?: string | null
+          fornecedor?: string | null
+          id?: string
+          linha_cabecalho?: number | null
+          mapeamento?: Json | null
+          observacao?: string | null
+          pi_numero?: string | null
+          total_linhas?: number | null
+        }
+        Relationships: []
+      }
+      pi_import_stage: {
+        Row: {
+          bruto: Json
+          cartorio_id: string | null
+          cod_cadastro: string | null
+          criado_em: string
+          descricao: string | null
+          dun: string | null
+          ean: string | null
+          estado: string
+          id: string
+          inner_qtd: number | null
+          linha_num: number
+          lote_id: string
+          motivo: string | null
+          peso_g: number | null
+          qtd: number | null
+          sku: string | null
+        }
+        Insert: {
+          bruto: Json
+          cartorio_id?: string | null
+          cod_cadastro?: string | null
+          criado_em?: string
+          descricao?: string | null
+          dun?: string | null
+          ean?: string | null
+          estado?: string
+          id?: string
+          inner_qtd?: number | null
+          linha_num: number
+          lote_id: string
+          motivo?: string | null
+          peso_g?: number | null
+          qtd?: number | null
+          sku?: string | null
+        }
+        Update: {
+          bruto?: Json
+          cartorio_id?: string | null
+          cod_cadastro?: string | null
+          criado_em?: string
+          descricao?: string | null
+          dun?: string | null
+          ean?: string | null
+          estado?: string
+          id?: string
+          inner_qtd?: number | null
+          linha_num?: number
+          lote_id?: string
+          motivo?: string | null
+          peso_g?: number | null
+          qtd?: number | null
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pi_import_stage_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio_codigo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pi_import_stage_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "pi_import_lote"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planilha_fatura_vinculo: {
         Row: {
           created_at: string
@@ -90853,6 +91000,7 @@ export type Database = {
         Returns: boolean
       }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_pi_conferir_lote: { Args: { p_lote_id: string }; Returns: Json }
       fn_pix_brcode: {
         Args: {
           p_chave: string
