@@ -203,6 +203,7 @@ const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
 const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
+const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
