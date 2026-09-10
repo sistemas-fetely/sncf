@@ -88,23 +88,23 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                         <Skeleton className="h-4 w-32" />
                       </TableCell>
                     </TableRow>
-                  ) : (itens ?? []).length === 0 ? (
+                  ) : itensVigentes.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
                         Sem itens registrados.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    (itens ?? []).map((it) => (
+                    itensVigentes.map((it) => (
                       <TableRow key={it.id}>
                         <TableCell className="font-mono text-xs">{txt(it.sku)}</TableCell>
                         <TableCell className="text-xs">{txt(it.product_name)}</TableCell>
-                        <TableCell className="text-right text-xs tabular-nums">{it.quantity}</TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">{qtdVigente(it)}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
                           {formatBRL(it.unit_price)}
                         </TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
-                          {formatBRL(Number(it.unit_price) * Number(it.quantity))}
+                          {formatBRL(Number(it.unit_price) * qtdVigente(it))}
                         </TableCell>
                       </TableRow>
                     ))
@@ -112,6 +112,14 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                 </TableBody>
               </Table>
             </div>
+            {itensRemovidos.length > 0 && (
+              <p className="pt-1 text-xs text-muted-foreground">
+                {itensRemovidos.length === 1
+                  ? "1 item removido na loja depois da compra: "
+                  : `${itensRemovidos.length} itens removidos na loja depois da compra: `}
+                {itensRemovidos.map((it) => txt(it.sku)).join(", ")}
+              </p>
+            )}
             <div className="space-y-1 pt-1">
               <Linha rotulo="Subtotal">{formatBRL(pedido?.subtotal)}</Linha>
               <Linha rotulo="Desconto">{formatBRL(pedido?.discount_amount)}</Linha>
