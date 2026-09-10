@@ -87652,14 +87652,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -92711,10 +92711,6 @@ export type Database = {
         Args: { p_nf_id: number; p_origem: string }
         Returns: Json
       }
-      definir_portao_analise: {
-        Args: { p_motivo?: string; p_pedido_id: string; p_valor: boolean }
-        Returns: Json
-      }
       delegacao_ativa_entre: {
         Args: { _gestor: string; _substituto: string }
         Returns: boolean
@@ -94363,6 +94359,10 @@ export type Database = {
       fn_sku_tem_historico: { Args: { p_sku: string }; Returns: boolean }
       fn_snapshot_coerente: { Args: { p_snap: Json }; Returns: Json }
       fn_split_all_delete: { Args: { p_limite?: number }; Returns: number }
+      fn_split_sugerido_por_cobertura: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_sugerir_ancora_faturamento: {
         Args: {
           p_data_faturamento?: string
