@@ -23,7 +23,7 @@ const json = (body: unknown, status = 200) =>
     headers: { ...cors, "Content-Type": "application/json" },
   });
 
-const METODOS = ["get", "post", "put", "patch", "delete", "head", "options", "trace"];
+const METODOS = ["get", "post", "put", "patch", "delete", "head", "options"];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: cors });
@@ -190,12 +190,19 @@ Deno.serve(async (req) => {
     if (eSw) throw new Error(`gravar xpm_api_swagger (${urlUsada}): ${eSw.message}`);
 
     // 5. Inventario e coleta atual, nao acumulado.
+    // Swagger 2.0: `paths` na raiz, chaves de metodo em minusculo, e o objeto do path
+    // tambem carrega chaves que NAO sao verbo (parameters, $ref, x-*). So verbo entra.
+    // `vistos` evita chave repetida no mesmo lote (upsert nao aceita duplicata).
     const linhas: Record<string, unknown>[] = [];
+    const vistos = new Set<string>();
     for (const [path, item] of Object.entries(paths as Record<string, any>)) {
       if (!item || typeof item !== "object") continue;
       for (const metodo of METODOS) {
         const op = (item as Record<string, any>)[metodo];
-        if (!op || typeof op !== "object") continue;
+        if (!op || typeof op !== "object" || Array.isArray(op)) continue;
+        const chave = `${path}\u0000${metodo}`;
+        if (vistos.has(chave)) continue;
+        vistos.add(chave);
         linhas.push({
           ambiente,
           path,
