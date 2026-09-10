@@ -36,16 +36,16 @@ const CAMPOS_STAGE = [
 
 type CampoStage = (typeof CAMPOS_STAGE)[number];
 
-function montarStageRow(loteId: string, l: LinhaExtraida) {
-  const row: Record<string, unknown> = {
+function montarStageRow(loteId: string, l: LinhaExtraida): StageInsert {
+  const row: StageInsert = {
     lote_id: loteId,
     linha_num: l.linhaNum,
-    bruto: l.bruto,
+    bruto: l.bruto as StageInsert["bruto"],
   };
 
   for (const campo of CAMPOS_STAGE) {
     if (Object.prototype.hasOwnProperty.call(l.campos, campo)) {
-      row[campo] = l.campos[campo];
+      (row as Record<CampoStage, unknown>)[campo] = l.campos[campo];
     }
   }
 
