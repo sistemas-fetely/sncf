@@ -287,10 +287,40 @@ export default function MesaAtendimento() {
     },
   });
 
-  function invalidarTela() {
+  const cadeiras = useQuery({
+    queryKey: QK.cadeiras,
+    queryFn: async (): Promise<CadeiraDestino[]> => {
+      const { data, error } = await supabase
+        .from("departamentos")
+        .select("id, nome")
+        .eq("ativo", true)
+        .eq("atende_mesa", true)
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []) as CadeiraDestino[];
+    },
+  });
+
+  const trilha = useQuery({
+    queryKey: QK.trilha(demandaSelecionada?.demanda_id ?? ""),
+    enabled: !!demandaSelecionada,
+    queryFn: async (): Promise<PassoTrilha[]> => {
+      const { data, error } = await supabase
+        .from("vw_demanda_trilha")
+        .select("*")
+        .eq("demanda_id", demandaSelecionada!.demanda_id)
+        .order("passo", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PassoTrilha[];
+    },
+  });
+
+  function invalidarTela(demandaId?: string) {
     void qc.invalidateQueries({ queryKey: QK.fila });
     void qc.invalidateQueries({ queryKey: QK.carga });
+    if (demandaId) void qc.invalidateQueries({ queryKey: QK.trilha(demandaId) });
   }
+
 
   const canalSelecionado = canais.data?.find((c) => c.codigo === canal) ?? null;
   const exigeSolicitante = canalSelecionado?.exige_solicitante_externo === true;
