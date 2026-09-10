@@ -90,13 +90,17 @@ export function AbaApurar() {
       const { data, error } = await (supabase as any).rpc("fn_comissao_apurar_pendentes");
       if (error) throw error;
       const r = (data ?? {}) as Record<string, unknown>;
-      const qtd = Number(r.apuradas ?? r.total ?? 0);
-      const valor = Number(r.valor_total ?? r.valor ?? 0);
+      const qtd = Number(r.apuradas ?? 0);
+      const valor = Number(r.valor_apurado ?? 0);
       const bloq = Number(r.bloqueadas ?? 0);
-      toast.success(
-        `${qtd} nota(s) apurada(s) · ${fmtBRL(valor)}${bloq ? ` · ${bloq} bloqueada(s)` : ""}`,
-      );
-      await qc.invalidateQueries({ queryKey: ["comissao-candidata"] });
+      toast.success(`${qtd} nota(s) apurada(s) · ${fmtBRL(valor)}`);
+      if (bloq > 0) {
+        const bloqueios = (r.bloqueios ?? []) as Array<{ nf: string; motivo: string }>;
+        toast.warning(
+          `${bloq} nota(s) bloqueada(s): ${bloqueios.map((b) => `${b.nf} (${b.motivo})`).join(", ")}`,
+        );
+      }
+      await qc.invalidateQueries({ queryKey: ["comissao-a-apurar"] });
       await qc.invalidateQueries({ queryKey: ["comissao-posicao"] });
       await qc.invalidateQueries({ queryKey: ["comissao-extrato"] });
     } catch (e) {
