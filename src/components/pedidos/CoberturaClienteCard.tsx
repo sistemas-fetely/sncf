@@ -53,7 +53,8 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
 
   const valor = Number(valorPedido ?? 0);
   const total = Number(cob.cobertura_total ?? 0);
-  const cobre = valor > 0 ? total >= valor : total > 0;
+  const valorConhecido = valor > 0;
+  const cobre = valorConhecido && total >= valor;
   const falta = Math.max(0, valor - total);
 
   const estagioPermite = !!estagio && estagio !== "faturado" && estagio !== "cancelado";

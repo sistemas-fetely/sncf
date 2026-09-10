@@ -2931,7 +2931,7 @@ export default function PedidoDetalhe() {
                   {/* CONTA DO CLIENTE — leitura. O dinheiro e do CNPJ; o pedido valida contra o saldo. */}
                   <CoberturaClienteCard
                     parceiroId={pedido.parceiro_id}
-                    valorPedido={Number(pedido.valor_total ?? 0)}
+                    valorPedido={Number(pedido.valor_liquido ?? 0)}
                     pedidoId={pedido.id}
                     estagio={pedido.estagio}
                   />
