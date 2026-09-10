@@ -186,6 +186,91 @@ Deno.serve(async (req) => {
       return json(data)
     }
 
+    // ---------- estimar ----------
+    if (acao === 'estimar') {
+      const sessao = typeof body.sessao === 'string' ? body.sessao : ''
+      if (!sessao) return json({ ok: false, erro: 'Sessão inválida.' }, 400)
+
+      const itens = Array.isArray(body.itens) ? body.itens : null
+      if (!itens || itens.length === 0) {
+        return json({ ok: false, erro: 'Informe ao menos um item.' }, 400)
+      }
+      const descontoPct = Number(body.desconto_pct ?? 0)
+      if (!Number.isFinite(descontoPct)) {
+        return json({ ok: false, erro: 'Desconto inválido.' }, 400)
+      }
+
+      // A sessão é validada aqui porque fn_comissao_estimar não conhece sessão.
+      const { data: vendedor, error: errVend } = await supabase
+        .rpc('fn_portal_vendedor_da_sessao', { p_token: sessao })
+      if (errVend) throw new Error(`fn_portal_vendedor_da_sessao: ${errVend.message}`)
+      if (!vendedor) {
+        return json({ ok: false, erro: 'Sessão expirada. Peça um novo link de acesso.' }, 401)
+      }
+
+      const { data, error } = await supabase.rpc('fn_comissao_estimar', {
+        p_itens: itens,
+        p_desconto_pct: descontoPct,
+      })
+      if (error) throw new Error(`fn_comissao_estimar: ${error.message}`)
+      return json(data)
+    }
+
+    // ---------- contestar ----------
+    if (acao === 'contestar') {
+      const sessao = typeof body.sessao === 'string' ? body.sessao : ''
+      if (!sessao) return json({ ok: false, erro: 'Sessão inválida.' }, 400)
+
+      const apuracaoId = typeof body.apuracao_id === 'string' ? body.apuracao_id : ''
+      if (!apuracaoId) return json({ ok: false, erro: 'Comissão não identificada.' }, 400)
+
+      const motivo = typeof body.motivo === 'string' ? body.motivo.trim() : ''
+      if (motivo.length < 10) {
+        return json({ ok: false, erro: 'Descreva o motivo com pelo menos 10 caracteres.' }, 400)
+      }
+
+      let valorEsperado: number | null = null
+      if (body.valor_esperado !== null && body.valor_esperado !== undefined && body.valor_esperado !== '') {
+        const v = Number(body.valor_esperado)
+        if (!Number.isFinite(v)) return json({ ok: false, erro: 'Valor esperado inválido.' }, 400)
+        valorEsperado = v
+      }
+
+      const { data, error } = await supabase.rpc('fn_portal_contestar', {
+        p_token: sessao,
+        p_apuracao_id: apuracaoId,
+        p_motivo: motivo,
+        p_valor_esperado: valorEsperado,
+      })
+      if (error) throw new Error(`fn_portal_contestar: ${error.message}`)
+      return json(data)
+    }
+
+    // ---------- aceitar_cartilha ----------
+    if (acao === 'aceitar_cartilha') {
+      const sessao = typeof body.sessao === 'string' ? body.sessao : ''
+      if (!sessao) return json({ ok: false, erro: 'Sessão inválida.' }, 400)
+
+      const versaoId = typeof body.versao_id === 'string' ? body.versao_id : ''
+      if (!versaoId) return json({ ok: false, erro: 'Versão da cartilha não identificada.' }, 400)
+
+      const nome = typeof body.nome === 'string' ? body.nome.trim() : ''
+      const documento = typeof body.documento === 'string' ? body.documento.trim() : ''
+      if (!nome) return json({ ok: false, erro: 'Informe seu nome completo.' }, 400)
+      if (!documento) return json({ ok: false, erro: 'Informe seu CPF ou CNPJ.' }, 400)
+
+      const { data, error } = await supabase.rpc('fn_portal_aceitar_cartilha', {
+        p_token: sessao,
+        p_versao_id: versaoId,
+        p_nome: nome,
+        p_documento: documento,
+        p_ip: ip,
+        p_ua: ua,
+      })
+      if (error) throw new Error(`fn_portal_aceitar_cartilha: ${error.message}`)
+      return json(data)
+    }
+
     // ---------- sair ----------
     if (acao === 'sair') {
       const sessao = typeof body.sessao === 'string' ? body.sessao : ''

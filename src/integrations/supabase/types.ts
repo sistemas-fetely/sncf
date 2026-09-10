@@ -6705,6 +6705,136 @@ export type Database = {
           },
         ]
       }
+      cartilha_aceite: {
+        Row: {
+          aceito_em: string | null
+          cartilha_versao_id: string
+          documento_declarado: string | null
+          evidencia_url: string | null
+          id: string
+          ip: string | null
+          nome_declarado: string | null
+          observacao: string | null
+          origem: string
+          registrado_em: string
+          registrado_por: string | null
+          user_agent: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          aceito_em?: string | null
+          cartilha_versao_id: string
+          documento_declarado?: string | null
+          evidencia_url?: string | null
+          id?: string
+          ip?: string | null
+          nome_declarado?: string | null
+          observacao?: string | null
+          origem: string
+          registrado_em?: string
+          registrado_por?: string | null
+          user_agent?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          aceito_em?: string | null
+          cartilha_versao_id?: string
+          documento_declarado?: string | null
+          evidencia_url?: string | null
+          id?: string
+          ip?: string | null
+          nome_declarado?: string | null
+          observacao?: string | null
+          origem?: string
+          registrado_em?: string
+          registrado_por?: string | null
+          user_agent?: string | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartilha_aceite_cartilha_versao_id_fkey"
+            columns: ["cartilha_versao_id"]
+            isOneToOne: false
+            referencedRelation: "cartilha_versao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "cartilha_aceite_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
+      cartilha_versao: {
+        Row: {
+          codigo: string
+          criado_em: string
+          hash_documento: string | null
+          id: string
+          observacao: string | null
+          titulo: string
+          url_documento: string | null
+          versao: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          codigo: string
+          criado_em?: string
+          hash_documento?: string | null
+          id?: string
+          observacao?: string | null
+          titulo: string
+          url_documento?: string | null
+          versao: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          codigo?: string
+          criado_em?: string
+          hash_documento?: string | null
+          id?: string
+          observacao?: string | null
+          titulo?: string
+          url_documento?: string | null
+          versao?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: []
+      }
       cartoes_credito: {
         Row: {
           ativo: boolean
@@ -8341,6 +8471,115 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_comissao_posicao"
             referencedColumns: ["apuracao_id"]
+          },
+        ]
+      }
+      comissao_contestacao: {
+        Row: {
+          aberta_em: string
+          apuracao_corrigida_id: string | null
+          apuracao_id: string
+          id: string
+          motivo: string
+          origem: string
+          respondida_em: string | null
+          respondida_por: string | null
+          resposta: string | null
+          status: string
+          valor_esperado: number | null
+          vendedor_id: string
+        }
+        Insert: {
+          aberta_em?: string
+          apuracao_corrigida_id?: string | null
+          apuracao_id: string
+          id?: string
+          motivo: string
+          origem?: string
+          respondida_em?: string | null
+          respondida_por?: string | null
+          resposta?: string | null
+          status?: string
+          valor_esperado?: number | null
+          vendedor_id: string
+        }
+        Update: {
+          aberta_em?: string
+          apuracao_corrigida_id?: string | null
+          apuracao_id?: string
+          id?: string
+          motivo?: string
+          origem?: string
+          respondida_em?: string | null
+          respondida_por?: string | null
+          resposta?: string | null
+          status?: string
+          valor_esperado?: number | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissao_contestacao_apuracao_corrigida_id_fkey"
+            columns: ["apuracao_corrigida_id"]
+            isOneToOne: false
+            referencedRelation: "comissao_apuracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_apuracao_corrigida_id_fkey"
+            columns: ["apuracao_corrigida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["apuracao_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "comissao_apuracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["apuracao_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_contestacao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
           },
         ]
       }
@@ -14828,6 +15067,59 @@ export type Database = {
           {
             foreignKeyName: "demanda_assunto_cadeira_id_fkey"
             columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      demanda_motivo: {
+        Row: {
+          ativo: boolean
+          cadeira_remedio_id: string | null
+          codigo: string
+          created_at: string
+          descricao: string | null
+          escalou_certo: boolean
+          gera_roadmap: boolean
+          id: string
+          nome: string
+          ordem: number | null
+          remedio: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cadeira_remedio_id?: string | null
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          escalou_certo?: boolean
+          gera_roadmap?: boolean
+          id?: string
+          nome: string
+          ordem?: number | null
+          remedio: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cadeira_remedio_id?: string | null
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          escalou_certo?: boolean
+          gera_roadmap?: boolean
+          id?: string
+          nome?: string
+          ordem?: number | null
+          remedio?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demanda_motivo_cadeira_remedio_id_fkey"
+            columns: ["cadeira_remedio_id"]
             isOneToOne: false
             referencedRelation: "departamentos"
             referencedColumns: ["id"]
@@ -93262,6 +93554,10 @@ export type Database = {
         Returns: Json
       }
       fn_comissao_apurar_pendentes: { Args: never; Returns: Json }
+      fn_comissao_estimar: {
+        Args: { p_desconto_pct?: number; p_itens: Json }
+        Returns: Json
+      }
       fn_comissao_liberar_pendentes: { Args: never; Returns: Json }
       fn_comprovante_saida_registrar: {
         Args: {
@@ -94128,6 +94424,26 @@ export type Database = {
       }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
       fn_pode_ver_projeto: { Args: { _projeto_id: string }; Returns: boolean }
+      fn_portal_aceitar_cartilha: {
+        Args: {
+          p_documento: string
+          p_ip?: string
+          p_nome: string
+          p_token: string
+          p_ua?: string
+          p_versao_id: string
+        }
+        Returns: Json
+      }
+      fn_portal_contestar: {
+        Args: {
+          p_apuracao_id: string
+          p_motivo: string
+          p_token: string
+          p_valor_esperado?: number
+        }
+        Returns: Json
+      }
       fn_portal_link_solicitar: {
         Args: { p_email: string; p_ip?: string; p_ua?: string }
         Returns: Json
