@@ -145,11 +145,14 @@ Deno.serve(async (req) => {
       throw new Error(`auth falhou: ${authJson?.error?.message ?? `HTTP ${authRes.status}`}`);
     }
 
-    // CancelaExpedicaoDto: só codigo + os dois CNPJs. Nenhum campo a mais.
+    // CancelaExpedicaoDto: só codigo + cpfCnpjDepositante. O Swagger aceita
+    // cpfCnpjOperadorLogistico, mas a XPM recusou com HTTP 500 em 09/09:
+    // "Nenhuma Entidade encontrada para o CPF/CNPJ informado (08898687000136)".
+    // O operador logístico é o próprio tenant, resolvido pelo PAT na autenticação,
+    // então não vai no payload — espelhando o Create que funciona.
     payload = {
       codigo: expedicaoCodigo,
       cpfCnpjDepositante: cfg.cpf_cnpj_depositante,
-      cpfCnpjOperadorLogistico: cfg.cpf_cnpj_operador_logistico,
     };
 
     let respStatus: number | null = null;
