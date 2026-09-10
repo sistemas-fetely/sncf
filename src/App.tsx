@@ -100,6 +100,7 @@ const GestaoRiscos = lazy(() => import("@/pages/gestao/Riscos"));
 const TarefasHoje = lazy(() => import("@/pages/tarefas/TarefasHoje"));
 const TarefasDash = lazy(() => import("@/pages/tarefas/TarefasDash"));
 const MinhasTarefasNovo = lazy(() => import("@/pages/tarefas/MinhasTarefasNovo"));
+const MinhasFilas = lazy(() => import("@/pages/tarefas/MinhasFilas"));
 const ProjetosGrid = lazy(() => import("@/pages/tarefas/ProjetosGrid"));
 const ProjetoDetalhe = lazy(() => import("@/pages/tarefas/ProjetoDetalhe"));
 const CalendarioTarefas = lazy(() => import("@/pages/tarefas/CalendarioTarefas"));
