@@ -92711,6 +92711,10 @@ export type Database = {
         Args: { p_nf_id: number; p_origem: string }
         Returns: Json
       }
+      definir_portao_analise: {
+        Args: { p_motivo?: string; p_pedido_id: string; p_valor: boolean }
+        Returns: Json
+      }
       delegacao_ativa_entre: {
         Args: { _gestor: string; _substituto: string }
         Returns: boolean
