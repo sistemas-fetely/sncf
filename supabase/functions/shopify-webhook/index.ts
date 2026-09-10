@@ -88,7 +88,7 @@ function timingEq(a: string, b: string): boolean {
 async function hmacBase64(raw: string, keyBytes: Uint8Array): Promise<string> {
   const key = await crypto.subtle.importKey(
     "raw",
-    keyBytes,
+    keyBytes as unknown as BufferSource,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"]
