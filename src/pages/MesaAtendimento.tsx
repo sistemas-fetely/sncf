@@ -934,6 +934,178 @@ export default function MesaAtendimento() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Dialog escalar */}
+      <Dialog open={!!escalando} onOpenChange={(o) => !o && setEscalando(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Escalar {escalando?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Cadeira atual: {escalando?.cadeira ?? "—"}. O motivo é obrigatório e fica
+              registrado na trilha permanente da demanda.
+            </DialogDescription>
+          </DialogHeader>
+
+          {cadeiras.isError && <ErroQuery o_que="as cadeiras" erro={cadeiras.error} />}
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>
+                Cadeira de destino <span className="text-destructive">*</span>
+              </Label>
+              <Select value={cadeiraDestino} onValueChange={setCadeiraDestino}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Quem vai receber" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cadeirasDestino.map((c) => (
+                    <SelectItem key={c.id} value={c.nome}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {!cadeiras.isLoading && !cadeiras.isError && cadeirasDestino.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma outra cadeira atende a mesa.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>
+                Motivo <span className="text-destructive">*</span>
+              </Label>
+              <Textarea
+                rows={4}
+                value={motivoEscalar}
+                onChange={(e) => setMotivoEscalar(e.target.value)}
+                placeholder="Por que esta cadeira não resolve e o que a próxima precisa fazer"
+              />
+              <p className="text-xs text-muted-foreground">
+                Obrigatório — vai para a trilha permanente e não pode ser apagado.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEscalando(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarEscalada} disabled={escalar.isPending}>
+              {escalar.isPending ? "Escalando..." : "Escalar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog devolver */}
+      <Dialog open={!!devolvendo} onOpenChange={(o) => !o && setDevolvendo(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Devolver {devolvendo?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Volta para a cadeira de entrada (Atendimento ao Cliente) com a instrução de
+              como resolver. Fica na trilha permanente.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-1.5">
+            <Label>
+              Como resolver <span className="text-destructive">*</span>
+            </Label>
+            <Textarea
+              rows={5}
+              value={comoResolver}
+              onChange={(e) => setComoResolver(e.target.value)}
+              placeholder="O passo a passo que quem recebe deve seguir para resolver"
+            />
+            <p className="text-xs text-muted-foreground">
+              Obrigatório — é a instrução de resolução, não uma justificativa.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDevolvendo(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={salvarDevolucao} disabled={devolver.isPending}>
+              {devolver.isPending ? "Devolvendo..." : "Devolver"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Dialog trilha */}
+      <Dialog
+        open={!!demandaSelecionada}
+        onOpenChange={(o) => !o && setDemandaSelecionada(null)}
+      >
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Trilha de {demandaSelecionada?.codigo ?? ""}</DialogTitle>
+            <DialogDescription>
+              Todo passo que a demanda deu, em ordem, com quem fez e por quê.
+            </DialogDescription>
+          </DialogHeader>
+
+          {trilha.isError ? (
+            <ErroQuery o_que="a trilha da demanda" erro={trilha.error} />
+          ) : trilha.isLoading ? (
+            <div className="space-y-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : (trilha.data ?? []).length === 0 ? (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              Nenhum passo registrado nesta demanda.
+            </p>
+          ) : (
+            <ol className="relative space-y-4 border-l border-border pl-5">
+              {trilha.data!.map((p) => {
+                const mudouCadeira =
+                  !!p.cadeira_de && !!p.cadeira_para && p.cadeira_de !== p.cadeira_para;
+                return (
+                  <li key={`${p.passo}-${p.criado_em}`} className="relative">
+                    <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full bg-border ring-4 ring-background" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={EVENTO_VARIANTE[p.evento ?? ""] ?? "outline"}
+                        className="text-[10px]"
+                      >
+                        {p.evento ?? "—"}
+                      </Badge>
+                      {mudouCadeira && (
+                        <span className="text-xs text-muted-foreground">
+                          {p.cadeira_de} → {p.cadeira_para}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {dataHora(p.criado_em)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {p.ator ?? "ator não registrado"}
+                    </div>
+                    {p.motivo_texto && (
+                      <p className="mt-2 whitespace-pre-wrap rounded-md border border-border bg-muted/40 p-2 text-sm">
+                        {p.motivo_texto}
+                      </p>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDemandaSelecionada(null)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
