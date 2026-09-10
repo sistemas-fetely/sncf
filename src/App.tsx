@@ -396,6 +396,11 @@ const App = () => (
                     <CartorioCodigos />
                   </ProtectedRoute>
                 } />
+                <Route path="/vendas/produto/importar-pi" element={
+                  <ProtectedRoute>
+                    <ImportarPI />
+                  </ProtectedRoute>
+                } />
                 <Route element={<ProdutoEstoqueLayout />}>
                   
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
