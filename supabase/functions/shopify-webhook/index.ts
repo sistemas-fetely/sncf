@@ -408,8 +408,12 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
       paid_at,
       fulfilled_at,
       cancelled_at: iso(order.cancelled_at),
-      total: num(order.total_price),
-      subtotal: num(order.subtotal_price),
+      // Pedido editado na loja: total/subtotal guardam a verdade ATUAL (pos-edicao),
+      // porque sao lidos por views e telas; os originais ficam nas colunas *_original.
+      total: num(order.current_total_price ?? order.total_price),
+      subtotal: num(order.current_subtotal_price ?? order.subtotal_price),
+      total_original: num(order.total_price),
+      subtotal_original: num(order.subtotal_price),
       shipping_cost,
       discount_amount: num(order.total_discounts),
       refunded_amount,
@@ -446,9 +450,17 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
       if (!sku && !nome) continue;
       itens.push({
         pedido_id: shopify_id,
+        line_item_id: intN(li.id),
         sku,
         product_name: nome,
+        // quantity e o original da compra; current_quantity e o que vale apos edicao
+        // na loja. Linha removida fica gravada com current_quantity = 0 (historico),
+        // nao e filtrada aqui. Quando o payload nao traz current_quantity, o pedido
+        // nunca foi editado e a queda segura e li.quantity — nunca zero.
         quantity: int(li.quantity),
+        current_quantity: li.current_quantity !== undefined && li.current_quantity !== null
+          ? int(li.current_quantity)
+          : int(li.quantity),
         unit_price: num(li.price),
         fulfillment_status: str(li.fulfillment_status),
       });
