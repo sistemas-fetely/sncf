@@ -119,8 +119,9 @@ export function detectarCabecalho(
   });
 
   return {
-    // a linha do cabecalho e a detectada, mesmo quando concatenamos com a seguinte
-    linhaCabecalho: melhorIdx + 1,
+    // linhaCabecalho aponta para a ULTIMA linha do cabecalho: extrairLinhas comeca no indice seguinte.
+    // Com cabecalho de duas linhas (Rocabella, linhas 17-18), sem isso a linha 18 entraria como item.
+    linhaCabecalho: usouDuasLinhas ? melhorIdx + 2 : melhorIdx + 1,
     colunas,
     camposCasados: melhorContagem,
     mapeamentoSugerido,
