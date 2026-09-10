@@ -379,7 +379,7 @@ export default function ImportarPI() {
         camposEscolhidos.forEach((p) => {
           campos[p.campo] = valorCampo(r.valores, p.campo, p.indiceColuna);
         });
-        return { lote_id: lote.id, linha_num: r.linha_num, bruto, ...campos };
+        return { lote_id: lote.id, linha_num: r.linha_num, bruto: bruto as never, ...campos };
       });
 
       for (let i = 0; i < linhas.length; i += 500) {
@@ -402,7 +402,7 @@ export default function ImportarPI() {
         titulo="Importação de PI"
         icone={FileSpreadsheet}
         breadcrumb={[
-          { label: "Produto", href: "/vendas/produto" },
+          { label: "Produto", to: "/vendas/produto" },
           { label: "Importação de PI" },
         ]}
         estado="A planilha é lida no navegador e não sobe para o servidor · parte 1: leitura e estágio"
