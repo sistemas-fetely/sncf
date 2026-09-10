@@ -334,9 +334,12 @@ export default function NFsStage() {
   };
 
   async function buscarNaQive() {
+    setConfirmarBuscaQive(false);
     setBuscandoQive(true);
     try {
-      const resp = await supabase.functions.invoke("sync-qive-dfe", { body: {} });
+      const resp = await supabase.functions.invoke("sync-qive-dfe", {
+        body: { ambiente: "producao", simular: false },
+      });
       if (resp.error) throw new Error(resp.error.message);
       const data = resp.data as {
         ok: boolean;
