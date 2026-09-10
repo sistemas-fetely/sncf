@@ -43331,8 +43331,10 @@ export type Database = {
       shopify_itens: {
         Row: {
           created_at: string
+          current_quantity: number | null
           fulfillment_status: string | null
           id: string
+          line_item_id: number | null
           pedido_id: string
           product_name: string | null
           quantity: number
@@ -43341,8 +43343,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_quantity?: number | null
           fulfillment_status?: string | null
           id?: string
+          line_item_id?: number | null
           pedido_id: string
           product_name?: string | null
           quantity?: number
@@ -43351,8 +43355,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_quantity?: number | null
           fulfillment_status?: string | null
           id?: string
+          line_item_id?: number | null
           pedido_id?: string
           product_name?: string | null
           quantity?: number
@@ -43496,7 +43502,9 @@ export type Database = {
           shipping_zip: string | null
           shopify_id: string
           subtotal: number
+          subtotal_original: number | null
           total: number
+          total_original: number | null
           tracking_company: string | null
           tracking_number: string | null
           tracking_url: string | null
@@ -43525,7 +43533,9 @@ export type Database = {
           shipping_zip?: string | null
           shopify_id: string
           subtotal?: number
+          subtotal_original?: number | null
           total?: number
+          total_original?: number | null
           tracking_company?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
@@ -43554,7 +43564,9 @@ export type Database = {
           shipping_zip?: string | null
           shopify_id?: string
           subtotal?: number
+          subtotal_original?: number | null
           total?: number
+          total_original?: number | null
           tracking_company?: string | null
           tracking_number?: string | null
           tracking_url?: string | null
