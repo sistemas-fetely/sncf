@@ -288,7 +288,24 @@ serve(async (req) => {
     if (body?.acao === "reenviar") {
       if (!ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
       if (pedido.estagio !== "em_separacao" && pedido.estagio !== "pre_separacao") {
-        return err(`Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}"`, 409);
+        // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): mesmo em reenvio, problema declarado
+        // libera o pedido em qualquer estágio desde que a RPC confirme.
+        const libRef = await pedidoLiberaRefaturamento(supabase, pedido_id);
+        if (!libRef.ok) {
+          return err(
+            `Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}". ` +
+            `Falha ao consultar liberação de refaturamento: ${libRef.error}`,
+            500,
+          );
+        }
+        if (!libRef.libera) {
+          return err(
+            `Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}". ` +
+            `Liberação de refaturamento negada: ${libRef.porque}`,
+            409,
+          );
+        }
+        // libera === true: segue em qualquer estágio.
       }
       if (!pedido.bling_id_destino) {
         return err("Pedido ainda não tem id do Bling — use o envio normal, não o reenvio", 409);
