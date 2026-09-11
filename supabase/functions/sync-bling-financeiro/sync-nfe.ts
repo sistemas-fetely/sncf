@@ -421,10 +421,11 @@ async function syncNfeEntradas(
         let refChave: string | null = null;
         let finNfe: number | null = null;
         let natOpXml: string | null = null;
+        const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
         if (d.xml) {
           await sleep(120);
           try {
-            const x = await lerXmlNfe(String(d.xml));
+            const x = await lerXmlNfe(String(d.xml), numero);
             refChave = x.refNFe;
             finNfe = x.finNFe;
             natOpXml = x.natOp;
