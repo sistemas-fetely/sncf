@@ -15,6 +15,13 @@ interface Args {
 /** Assinatura da guarda de lastro na RPC `transicionar_pedido` (ERRCODE 22023). */
 const MARCA_SEM_LASTRO = "sem lastro para descer a pre-separacao";
 
+/**
+ * Assinatura da guarda de lastro FINANCEIRO (PED-2202): mesmo gatilho, outra
+ * mensagem. Sem este segundo caminho o operador recebia um toast seco e não
+ * tinha onde clicar.
+ */
+const MARCA_SEM_LASTRO_FIN = "sem lastro financeiro para descer a pre-separacao";
+
 /** Extrai a lista de faltantes que vem depois de `Faltam: ` na mensagem do banco. */
 function extrairFaltantes(msg: string): string[] {
   const i = msg.indexOf("Faltam:");
@@ -24,6 +31,42 @@ function extrairFaltantes(msg: string): string[] {
     .split(/[;,]/)
     .map((s) => s.trim().replace(/\.$/, ""))
     .filter(Boolean);
+}
+
+export interface FaltaLastroFinanceiro {
+  falta: string | null;
+  classe: string | null;
+  classeMotivo: string | null;
+  caminho: string | null;
+  mensagem: string;
+}
+
+/**
+ * Parse tolerante da mensagem do banco. Qualquer campo que não casar fica null;
+ * o parse NUNCA estoura — no pior caso a tela mostra a mensagem cheia.
+ */
+function parseLastroFinanceiro(msg: string): FaltaLastroFinanceiro {
+  const base: FaltaLastroFinanceiro = {
+    falta: null,
+    classe: null,
+    classeMotivo: null,
+    caminho: null,
+    mensagem: msg,
+  };
+  try {
+    const falta = msg.match(/Falta (.+?) de cobertura/);
+    if (falta) base.falta = falta[1].trim();
+    const classe = msg.match(/Cliente classe ([^\s(]+)\s*\(([^)]+)\)/);
+    if (classe) {
+      base.classe = classe[1].trim();
+      base.classeMotivo = classe[2].trim();
+    }
+    const caminho = msg.match(/Caminho: (.+?)\. Ou informe/);
+    if (caminho) base.caminho = caminho[1].trim();
+  } catch {
+    // parse defensivo: mantém só a mensagem cheia
+  }
+  return base;
 }
 
 export function useTransicionarPedido() {
