@@ -208,9 +208,15 @@ function parseXml(xml: string): XmlParsed {
       m1(xml, /<dhEmi>([^<]*)<\/dhEmi>/) ?? m1(xml, /<dEmi>([^<]*)<\/dEmi>/),
     ),
     natureza_operacao: m1(xml, /<natOp>([^<]*)<\/natOp>/),
-    fin_nfe: num(m1(xml, /<finNFe>(\d)<\/finNFe>/)),
+    fin_nfe: extrairFinNFeDoXml(xml),
     tp_nf: m1(xml, /<tpNF>(\d)<\/tpNF>/),
-    referenciada: m1(xml, /<refNFe>(\d{44})<\/refNFe>/),
+    // REF-NFE-TOLERANTE: o regex antigo `<refNFe>(\d{44})</refNFe>` não casava com
+    // espaço, quebra de linha ou prefixo de namespace — foi assim que a NF 26133/10
+    // da UTILPLAST entrou como devolução sem chave referenciada.
+    referenciada: normalizarChaveNfe(extrairRefNFeDoXml(xml), {
+      numero: m1(xml, /<nNF>([^<]*)<\/nNF>/),
+      fonte: "qive",
+    }),
     cnpj: m1(emitBloco, /<CNPJ>(\d{14})<\/CNPJ>/),
     razao_social: m1(emitBloco, /<xNome>([^<]*)<\/xNome>/),
     valor: num(m1(totalBloco, /<vNF>([\d.]+)<\/vNF>/)),
