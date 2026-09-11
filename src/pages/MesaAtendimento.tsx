@@ -446,7 +446,9 @@ export default function MesaAtendimento() {
       };
     },
     onSuccess: ({ id, r }) => {
-      toast.success(`${r.codigo} escalada para ${r.cadeira}`);
+      toast.success(
+        `${r.codigo} escalada para ${r.cadeira}${r.camada ? ` · camada ${r.camada}` : ""}`,
+      );
       setEscalando(null);
       setCadeiraDestino("");
       setMotivoEscalar("");
@@ -655,6 +657,20 @@ export default function MesaAtendimento() {
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         <div className="flex flex-col gap-1">
                           <span>{d.codigo ?? "—"}</span>
+                          {d.camada && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="w-fit text-[10px]">
+                                    {d.camada}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {CAMADA_ROTULO[d.camada] ?? d.camada}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           {d.vencida === true && (
                             <Badge variant="destructive" className="w-fit text-[10px]">
                               Vencida
@@ -741,14 +757,16 @@ export default function MesaAtendimento() {
                               >
                                 <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setDevolvendo(d);
-                                  setComoResolver("");
-                                }}
-                              >
-                                <Undo2 className="mr-2 h-4 w-4" /> Devolver
-                              </DropdownMenuItem>
+                              {d.cadeira !== "Atendimento ao Cliente" && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setDevolvendo(d);
+                                    setComoResolver("");
+                                  }}
+                                >
+                                  <Undo2 className="mr-2 h-4 w-4" /> Devolver
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => setDemandaSelecionada(d)}>
                                 <History className="mr-2 h-4 w-4" /> Trilha
                               </DropdownMenuItem>
