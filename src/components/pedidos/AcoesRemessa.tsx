@@ -377,12 +377,28 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         );
       })}
 
+      {refatErro && (
+        <Alert variant="default" className="bg-warning/10 border-warning/40">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertDescription className="text-warning text-xs">
+            Não foi possível consultar a liberação de refaturamento:{" "}
+            {(refatErroObj as Error)?.message ?? "erro desconhecido"}. O botão de reenvio
+            pode estar faltando por causa disso.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {podeReenviar && (
-        <ReenviarBlingDialog
-          pedidoId={pedido_id}
-          idExterno={id_externo}
-          blingIdAtual={String(bling_id_destino)}
-        />
+        <>
+          <ReenviarBlingDialog
+            pedidoId={pedido_id}
+            idExterno={id_externo}
+            blingIdAtual={String(bling_id_destino)}
+          />
+          {liberaRefaturamento && refat?.porque && (
+            <p className="text-[11px] text-muted-foreground leading-tight">{refat.porque}</p>
+          )}
+        </>
       )}
     </div>
   );
