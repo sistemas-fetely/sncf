@@ -2375,6 +2375,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
             columns: ["fila_id"]
             isOneToOne: false
@@ -2408,6 +2415,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "macro_processo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["macro_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
@@ -2499,6 +2513,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
@@ -15550,6 +15571,7 @@ export type Database = {
           nome: string
           ordem: number | null
           prazo_dias: number | null
+          processo_id: string | null
           tipo_legado: string | null
           updated_at: string
         }
@@ -15566,6 +15588,7 @@ export type Database = {
           nome: string
           ordem?: number | null
           prazo_dias?: number | null
+          processo_id?: string | null
           tipo_legado?: string | null
           updated_at?: string
         }
@@ -15582,6 +15605,7 @@ export type Database = {
           nome?: string
           ordem?: number | null
           prazo_dias?: number | null
+          processo_id?: string | null
           tipo_legado?: string | null
           updated_at?: string
         }
@@ -15601,6 +15625,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "demanda_assunto_alcada_cadeira_id_fkey"
+            columns: ["alcada_cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "demanda_assunto_cadeira_id_fkey"
             columns: ["cadeira_id"]
             isOneToOne: false
@@ -15613,6 +15644,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_processo_custo"
+            referencedColumns: ["processo_id"]
           },
         ]
       }
@@ -15672,6 +15738,13 @@ export type Database = {
             columns: ["cadeira_remedio_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_motivo_cadeira_remedio_id_fkey"
+            columns: ["cadeira_remedio_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
         ]
@@ -15755,6 +15828,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "departamentos_apelidos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
         ]
@@ -22077,6 +22157,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "gestao_sala_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "gestao_sala_dono_pessoa_id_fkey"
             columns: ["dono_pessoa_id"]
             isOneToOne: false
@@ -26847,6 +26934,8 @@ export type Database = {
       macro_processo: {
         Row: {
           ativo: boolean
+          cadeira_id: string | null
+          codigo: string | null
           cor: string | null
           created_at: string
           criado_por: string | null
@@ -26857,6 +26946,8 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cadeira_id?: string | null
+          codigo?: string | null
           cor?: string | null
           created_at?: string
           criado_por?: string | null
@@ -26867,6 +26958,8 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cadeira_id?: string | null
+          codigo?: string | null
           cor?: string | null
           created_at?: string
           criado_por?: string | null
@@ -26875,7 +26968,29 @@ export type Database = {
           nome?: string
           ordem?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "macro_processo_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "macro_processo_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "macro_processo_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+        ]
       }
       meios_pagamento: {
         Row: {
@@ -38581,6 +38696,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "pedidos_compra_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "pedidos_compra_parceiro_preferencial_id_fkey"
             columns: ["parceiro_preferencial_id"]
             isOneToOne: false
@@ -39246,6 +39368,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "pessoa_departamentos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -40309,6 +40438,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "posicoes_planejadas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "posicoes_planejadas_unidade_id_fkey"
             columns: ["unidade_id"]
             isOneToOne: false
@@ -40669,6 +40805,13 @@ export type Database = {
             foreignKeyName: "processo_passo_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -40736,6 +40879,13 @@ export type Database = {
             foreignKeyName: "processo_passo_sugerido_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processo_passo_sugerido_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -40745,6 +40895,7 @@ export type Database = {
         Row: {
           abrangencia: string | null
           area_negocio_id: string | null
+          cadeira_id: string | null
           codigo: string
           created_at: string
           criado_por: string | null
@@ -40753,6 +40904,7 @@ export type Database = {
           id: string
           importacao_pdf_id: string | null
           importado_de_pdf: boolean | null
+          macro_processo_id: string | null
           narrativa: string | null
           natureza_valor: string
           nome: string
@@ -40769,6 +40921,7 @@ export type Database = {
         Insert: {
           abrangencia?: string | null
           area_negocio_id?: string | null
+          cadeira_id?: string | null
           codigo: string
           created_at?: string
           criado_por?: string | null
@@ -40777,6 +40930,7 @@ export type Database = {
           id?: string
           importacao_pdf_id?: string | null
           importado_de_pdf?: boolean | null
+          macro_processo_id?: string | null
           narrativa?: string | null
           natureza_valor?: string
           nome: string
@@ -40793,6 +40947,7 @@ export type Database = {
         Update: {
           abrangencia?: string | null
           area_negocio_id?: string | null
+          cadeira_id?: string | null
           codigo?: string
           created_at?: string
           criado_por?: string | null
@@ -40801,6 +40956,7 @@ export type Database = {
           id?: string
           importacao_pdf_id?: string | null
           importado_de_pdf?: boolean | null
+          macro_processo_id?: string | null
           narrativa?: string | null
           natureza_valor?: string
           nome?: string
@@ -40830,11 +40986,46 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processos_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "processos_cadeira_id_fkey"
+            columns: ["cadeira_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "processos_importacao_pdf_id_fkey"
             columns: ["importacao_pdf_id"]
             isOneToOne: false
             referencedRelation: "processos_importacoes_pdf"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "macro_processo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["macro_id"]
           },
           {
             foreignKeyName: "processos_owner_perfil_codigo_fkey"
@@ -40947,6 +41138,13 @@ export type Database = {
             foreignKeyName: "processos_ligacoes_processo_destino_id_fkey"
             columns: ["processo_destino_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_ligacoes_processo_destino_id_fkey"
+            columns: ["processo_destino_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -40963,6 +41161,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_ligacoes_processo_origem_id_fkey"
+            columns: ["processo_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_ligacoes_processo_origem_id_fkey"
@@ -41006,6 +41211,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_log_consultas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_log_consultas_processo_id_fkey"
@@ -41075,6 +41287,13 @@ export type Database = {
             foreignKeyName: "processos_sugestoes_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_sugestoes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -41114,6 +41333,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_tags_areas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_tags_areas_processo_id_fkey"
@@ -41163,6 +41389,13 @@ export type Database = {
             foreignKeyName: "processos_tags_cargos_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_tags_cargos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -41207,6 +41440,13 @@ export type Database = {
             foreignKeyName: "processos_tags_departamentos_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_tags_departamentos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -41239,6 +41479,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_tags_sistemas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_tags_sistemas_processo_id_fkey"
@@ -41288,6 +41535,13 @@ export type Database = {
             foreignKeyName: "processos_tags_tipos_colaborador_processo_id_fkey"
             columns: ["processo_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_tags_tipos_colaborador_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -41320,6 +41574,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_tags_unidades_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_tags_unidades_processo_id_fkey"
@@ -41397,6 +41658,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_versoes_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_versoes_processo_id_fkey"
@@ -48308,6 +48576,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "sncf_tarefas_origem_extensao_id_fkey"
             columns: ["origem_extensao_id"]
             isOneToOne: false
@@ -48672,6 +48947,7 @@ export type Database = {
           descricao: string | null
           id: string
           nome: string
+          processo_vinculado_id: string | null
           processos_id: string | null
           tipo_colaborador: string | null
           tipo_processo: string
@@ -48684,6 +48960,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome: string
+          processo_vinculado_id?: string | null
           processos_id?: string | null
           tipo_colaborador?: string | null
           tipo_processo: string
@@ -48696,6 +48973,7 @@ export type Database = {
           descricao?: string | null
           id?: string
           nome?: string
+          processo_vinculado_id?: string | null
           processos_id?: string | null
           tipo_colaborador?: string | null
           tipo_processo?: string
@@ -48710,6 +48988,34 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "sncf_templates_processos_processo_vinculado_id_fkey"
+            columns: ["processo_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_templates_processos_processo_vinculado_id_fkey"
+            columns: ["processo_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_templates_processos_processo_vinculado_id_fkey"
+            columns: ["processo_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "sncf_templates_processos_processo_vinculado_id_fkey"
+            columns: ["processo_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_processo_custo"
+            referencedColumns: ["processo_id"]
+          },
+          {
             foreignKeyName: "sncf_templates_processos_processos_id_fkey"
             columns: ["processos_id"]
             isOneToOne: false
@@ -48722,6 +49028,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sncf_templates_processos_processos_id_fkey"
+            columns: ["processos_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "sncf_templates_processos_processos_id_fkey"
@@ -49030,6 +49343,13 @@ export type Database = {
             columns: ["cadeira_atual_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_comercial_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -49415,6 +49735,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "solicitacao_historico_cadeira_de_id_fkey"
+            columns: ["cadeira_de_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "solicitacao_historico_cadeira_para_id_fkey"
             columns: ["cadeira_para_id"]
             isOneToOne: false
@@ -49426,6 +49753,13 @@ export type Database = {
             columns: ["cadeira_para_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_cadeira_para_id_fkey"
+            columns: ["cadeira_para_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -49860,6 +50194,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "tarefas_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "tarefas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -50165,6 +50506,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
         ]
@@ -50583,6 +50931,13 @@ export type Database = {
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
           },
+          {
+            foreignKeyName: "tarefas_etiquetas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_filas: {
@@ -50606,6 +50961,7 @@ export type Database = {
           nome: string
           ordem: number
           prazo_resposta_dias: number | null
+          processo_id: string | null
           rota: string | null
           severidade: string
           updated_at: string
@@ -50630,6 +50986,7 @@ export type Database = {
           nome: string
           ordem?: number
           prazo_resposta_dias?: number | null
+          processo_id?: string | null
           rota?: string | null
           severidade?: string
           updated_at?: string
@@ -50654,6 +51011,7 @@ export type Database = {
           nome?: string
           ordem?: number
           prazo_resposta_dias?: number | null
+          processo_id?: string | null
           rota?: string | null
           severidade?: string
           updated_at?: string
@@ -50672,6 +51030,41 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processos_unificados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "tarefas_filas_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_processo_custo"
+            referencedColumns: ["processo_id"]
           },
         ]
       }
@@ -50942,6 +51335,13 @@ export type Database = {
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
           },
+          {
+            foreignKeyName: "tarefas_projetos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_recorrencias: {
@@ -51039,6 +51439,13 @@ export type Database = {
             columns: ["departamento_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "tarefas_recorrencias_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -51352,6 +51759,13 @@ export type Database = {
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
           },
+          {
+            foreignKeyName: "tarefas_templates_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       tarefas_timer: {
@@ -51469,6 +51883,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "tarefas_tipos_processo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
         ]
@@ -57133,6 +57554,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "vinculos_forma_pagamento_id_fkey"
             columns: ["forma_pagamento_id"]
             isOneToOne: false
@@ -61081,6 +61509,13 @@ export type Database = {
             foreignKeyName: "processos_ligacoes_processo_destino_id_fkey"
             columns: ["processo_destino_id"]
             isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
+          },
+          {
+            foreignKeyName: "processos_ligacoes_processo_destino_id_fkey"
+            columns: ["processo_destino_id"]
+            isOneToOne: false
             referencedRelation: "vw_processo_custo"
             referencedColumns: ["processo_id"]
           },
@@ -61097,6 +61532,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processos_ligacoes_processo_origem_id_fkey"
+            columns: ["processo_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "processos_ligacoes_processo_origem_id_fkey"
@@ -61288,6 +61730,13 @@ export type Database = {
             columns: ["departamento_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -63859,6 +64308,13 @@ export type Database = {
             referencedRelation: "vw_cadeira_atendimento"
             referencedColumns: ["cadeira_id"]
           },
+          {
+            foreignKeyName: "tarefas_campos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
         ]
       }
       vw_carga_atribuicao: {
@@ -63942,6 +64398,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "atribuicao_catalogo_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "atribuicao_catalogo_fila_id_fkey"
             columns: ["fila_id"]
             isOneToOne: false
@@ -63975,6 +64438,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "macro_processo"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_macro_processo_id_fkey"
+            columns: ["macro_processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["macro_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_pessoa_id_fkey"
@@ -64066,6 +64536,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
@@ -73056,6 +73533,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "solicitacao_comercial_cadeira_atual_id_fkey"
+            columns: ["cadeira_atual_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "solicitacao_comercial_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -76903,6 +77387,49 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_mapa_lacunas: {
+        Row: {
+          descricao: string | null
+          detalhe: string | null
+          gravidade: number | null
+          lacuna: string | null
+          onde: string | null
+        }
+        Relationships: []
+      }
+      vw_mapa_operacao: {
+        Row: {
+          abrangencia: string | null
+          atribuicoes: number | null
+          cadeira: string | null
+          cadeira_id: string | null
+          cadeira_ordem: number | null
+          cadeira_responde: string | null
+          filas: number | null
+          itens_catalogo: number | null
+          macro: string | null
+          macro_ativo: boolean | null
+          macro_codigo: string | null
+          macro_id: string | null
+          macro_ordem: number | null
+          owner_nome: string | null
+          passos: number | null
+          processo: string | null
+          processo_codigo: string | null
+          processo_id: string | null
+          processo_status: string | null
+          templates: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processos_abrangencia_fkey"
+            columns: ["abrangencia"]
+            isOneToOne: false
+            referencedRelation: "processo_abrangencia_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_mesa_comercial: {
         Row: {
           alerta_operacional: string | null
@@ -80435,14 +80962,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -85496,6 +86023,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "vinculos_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "vinculos_tipo_vinculo_fkey"
             columns: ["tipo_vinculo"]
             isOneToOne: false
@@ -85707,6 +86241,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processos_unificados"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["processo_id"]
           },
           {
             foreignKeyName: "atribuicao_catalogo_processo_id_fkey"
@@ -90615,6 +91156,13 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
           {
+            foreignKeyName: "tarefas_departamento_destino_id_fkey"
+            columns: ["departamento_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
             foreignKeyName: "tarefas_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
@@ -90768,6 +91316,13 @@ export type Database = {
             columns: ["area_destino_id"]
             isOneToOne: false
             referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "sncf_tarefas_area_destino_id_fkey"
+            columns: ["area_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
           },
           {
@@ -97921,6 +98476,29 @@ export type Database = {
           status: string
           tela_slug: string
         }[]
+      }
+      mapa_ligar_fila: {
+        Args: { p_fila_chave: string; p_processo_id: string }
+        Returns: Json
+      }
+      mapa_ligar_item: {
+        Args: { p_assunto_codigo: string; p_processo_id: string }
+        Returns: Json
+      }
+      mapa_mover_processo: {
+        Args: { p_macro_id: string; p_processo_id: string }
+        Returns: Json
+      }
+      mapa_salvar_macro: {
+        Args: {
+          p_ativo: boolean
+          p_cadeira_id: string
+          p_codigo: string
+          p_id: string
+          p_nome: string
+          p_ordem: number
+        }
+        Returns: Json
       }
       marcar_atencao_pedido: {
         Args: { p_motivo: string; p_nivel: string; p_pedido_id: string }
