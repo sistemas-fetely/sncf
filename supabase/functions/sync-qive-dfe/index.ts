@@ -444,6 +444,30 @@ Deno.serve(async (req) => {
 
                 const numero = p?.numero ?? null;
 
+                // Chave referenciada: XML primeiro; se não vier, tenta o JSON cru da
+                // Qive. Sempre normalizada (44 dígitos) — chave de outro tamanho não
+                // é gravada, para não casar com a nota errada.
+                let referenciada = p?.referenciada ?? null;
+                if (!referenciada) {
+                  referenciada = normalizarChaveNfe(refNFeDoJson(doc.bruto, chave), {
+                    numero,
+                    fonte: "qive_json",
+                  });
+                }
+
+                // FAIL-LOUD: devolução sem nota referenciada é documento incompleto.
+                // Não bloqueia a ingestão — a nota entra com o alarme aceso.
+                alertarDevolucaoSemReferencia({
+                  fin_nfe: p?.fin_nfe ?? null,
+                  chave_referenciada: referenciada,
+                  numero,
+                  serie: p?.serie ?? null,
+                  cnpj_emitente: p?.cnpj ?? null,
+                  fonte: `qive/${entidade}`,
+                  diagnostico: doc.bruto,
+                });
+
+
                 if (resumo.amostra.length < 5) {
                   const cfops = Array.from(
                     new Set(
