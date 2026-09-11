@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -242,6 +243,7 @@ type AcaoTipo = "pegar" | "responder" | "pausar" | "retomar" | "passar" | "larga
 
 function ChamadosConteudo() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { podeEditar } = usePermissaoTelaContext();
 
@@ -637,7 +639,9 @@ function ChamadosConteudo() {
                   return (
                     <TableRow
                       key={c.chamado_id}
+                      onClick={() => navigate(`/chamados/${c.chamado_id}`)}
                       className={cn(
+                        "cursor-pointer",
                         c.vencido && "border-l-2 border-l-destructive bg-destructive/[0.03]",
                       )}
                     >
@@ -743,11 +747,16 @@ function ChamadosConteudo() {
                       <TableCell className="text-right text-xs tabular-nums">
                         {c.mensagens ?? 0}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         {podeEditar ? (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
