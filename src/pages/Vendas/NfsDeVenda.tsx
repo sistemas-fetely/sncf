@@ -25,15 +25,8 @@ import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
 import { PageShell } from "@/components/layout/PageShell";
-import { hojeISO } from "@/lib/data";
-function formatDate(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR", {
-    day: "2-digit", month: "2-digit", year: "numeric",
-  });
-}
+import { fmtData, hojeISO } from "@/lib/data";
+
 
 function formatCurrency(n: number | null | undefined) {
   const v = Number(n ?? 0);
