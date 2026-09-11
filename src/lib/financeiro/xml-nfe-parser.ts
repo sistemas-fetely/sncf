@@ -4,6 +4,7 @@
 
 import type { ItemNFParsed, NFParsed } from "./types";
 import { mapearMeioPagamentoXml } from "./parsers";
+import { alertarDevolucaoSemReferencia, normalizarChaveNfe } from "./chave-nfe";
 
 const NFE_NS = "http://www.portalfiscal.inf.br/nfe";
 
