@@ -12,6 +12,12 @@
  * lidas na última execução.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  alertarDevolucaoSemReferencia,
+  extrairFinNFeDoXml,
+  extrairRefNFeDoXml,
+  normalizarChaveNfe,
+} from "../_shared/nf-referenciada.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
