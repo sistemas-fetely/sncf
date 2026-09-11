@@ -233,8 +233,8 @@ const ShopifyEstoque = lazy(() => import("@/pages/vendas/shopify/ShopifyEstoque"
 const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
-const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
 const Chamados = lazy(() => import("@/pages/Chamados"));
+const ChamadoDetalhe = lazy(() => import("@/pages/ChamadoDetalhe"));
 const MapaOperacao = lazy(() => import("@/pages/operacao/MapaOperacao"));
 
 
@@ -433,8 +433,9 @@ const App = () => (
                 
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
-                <Route path="/canal-cpo" element={<CanalCPO />} />
+                <Route path="/canal-cpo" element={<Navigate to="/chamados" replace />} />
                 <Route path="/chamados" element={<Chamados />} />
+                <Route path="/chamados/:id" element={<ChamadoDetalhe />} />
                 <Route path="/operacao/mapa" element={
                   <ProtectedRoute>
                     <MapaOperacao />

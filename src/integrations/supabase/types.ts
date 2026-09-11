@@ -66304,6 +66304,67 @@ export type Database = {
           },
         ]
       }
+      vw_chamado_trilha: {
+        Row: {
+          ator: string | null
+          cadeira_de: string | null
+          cadeira_para: string | null
+          camada_de: string | null
+          camada_para: string | null
+          chamado_id: string | null
+          criado_em: string | null
+          evento: string | null
+          motivo_texto: string | null
+          numero: string | null
+          passo: number | null
+          status_de: string | null
+          status_para: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "solicitacao_historico_solicitacao_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
+          },
+        ]
+      }
       vw_ciclo_pedido: {
         Row: {
           a_receber_futuro: number | null
@@ -82247,14 +82308,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -92756,14 +92817,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -98215,6 +98276,7 @@ export type Database = {
         Args: { p_descricao: string }
         Returns: string
       }
+      fechar_chamado: { Args: { p_chamado_id: string }; Returns: Json }
       finalizar_conciliacao_v2: {
         Args: {
           p_itau_pag_id: string
@@ -98391,6 +98453,10 @@ export type Database = {
           total: number
         }[]
       }
+      fn_baixa_pendente_diagnostico: {
+        Args: { p_pendencia_id: string }
+        Returns: Json
+      }
       fn_boleto_fator_vencimento: { Args: { p_venc: string }; Returns: number }
       fn_boleto_linha_digitavel: {
         Args: { p_nosso_numero: string; p_valor: number; p_vencimento: string }
@@ -98465,6 +98531,7 @@ export type Database = {
         Args: { p_chamado: Database["public"]["Tables"]["chamado"]["Row"] }
         Returns: boolean
       }
+      fn_chamados_autofechar: { Args: never; Returns: number }
       fn_classificar_pagamento: {
         Args: {
           p_condicao_solicitada: string
@@ -99610,6 +99677,14 @@ export type Database = {
           user_id: string
         }[]
       }
+      fn_resolver_baixa_pendente: {
+        Args: { p_motivo: string; p_pendencia_id: string }
+        Returns: Json
+      }
+      fn_resolver_baixa_pendente_nf: {
+        Args: { p_motivo?: string; p_nf_chave: string; p_user_id?: string }
+        Returns: Json
+      }
       fn_resolver_condicao: { Args: { p_condicao: string }; Returns: string }
       fn_resolver_conta_b2c: {
         Args: {
@@ -100596,6 +100671,10 @@ export type Database = {
           p_motivo?: string
           p_pedido_id: string
         }
+        Returns: Json
+      }
+      reabrir_chamado: {
+        Args: { p_chamado_id: string; p_motivo_texto: string }
         Returns: Json
       }
       reabrir_nf_pj: {
