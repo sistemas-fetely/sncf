@@ -58,6 +58,8 @@ interface ResumoEntidade {
 interface DocQive {
   chave: string | null;
   xmlBase64: string | null;
+  /** Documento cru da API (sem o XML) — só para diagnóstico de campo ausente. */
+  bruto: Record<string, unknown> | null;
 }
 
 const novoResumo = (simulado: boolean): ResumoEntidade => ({
