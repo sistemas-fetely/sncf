@@ -740,17 +740,29 @@ function MesaAtendimentoConteudo() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setAtendendo(d);
-                              setResolucao("");
-                              setMotivo("");
-                            }}
-                          >
-                            Atender
-                          </Button>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!podeEditar}
+                                  onClick={() => {
+                                    setAtendendo(d);
+                                    setResolucao("");
+                                    setMotivo("");
+                                  }}
+                                >
+                                  Atender
+                                </Button>
+                              </TooltipTrigger>
+                              {!podeEditar && (
+                                <TooltipContent>
+                                  Você tem acesso somente leitura nesta tela
+                                </TooltipContent>
+                              )}
+                            </Tooltip>
+                          </TooltipProvider>
                           <Button
                             size="icon"
                             variant="ghost"
@@ -766,24 +778,48 @@ function MesaAtendimentoConteudo() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setEscalando(d);
-                                  setCadeiraDestino("");
-                                  setMotivoEscalar("");
-                                }}
-                              >
-                                <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
-                              </DropdownMenuItem>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <DropdownMenuItem
+                                      disabled={!podeEditar}
+                                      onClick={() => {
+                                        setEscalando(d);
+                                        setCadeiraDestino("");
+                                        setMotivoEscalar("");
+                                      }}
+                                    >
+                                      <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
+                                    </DropdownMenuItem>
+                                  </TooltipTrigger>
+                                  {!podeEditar && (
+                                    <TooltipContent>
+                                      Você tem acesso somente leitura nesta tela
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
                               {d.cadeira !== "Atendimento ao Cliente" && (
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setDevolvendo(d);
-                                    setComoResolver("");
-                                  }}
-                                >
-                                  <Undo2 className="mr-2 h-4 w-4" /> Devolver
-                                </DropdownMenuItem>
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <DropdownMenuItem
+                                        disabled={!podeEditar}
+                                        onClick={() => {
+                                          setDevolvendo(d);
+                                          setComoResolver("");
+                                        }}
+                                      >
+                                        <Undo2 className="mr-2 h-4 w-4" /> Devolver
+                                      </DropdownMenuItem>
+                                    </TooltipTrigger>
+                                    {!podeEditar && (
+                                      <TooltipContent>
+                                        Você tem acesso somente leitura nesta tela
+                                      </TooltipContent>
+                                    )}
+                                  </Tooltip>
+                                </TooltipProvider>
                               )}
                               <DropdownMenuItem onClick={() => setDemandaSelecionada(d)}>
                                 <History className="mr-2 h-4 w-4" /> Trilha
