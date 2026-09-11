@@ -234,6 +234,7 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["solicitacoes-por-status"] });
   qc.invalidateQueries({ queryKey: ["solicitacoes-contagem-status"] });
   qc.invalidateQueries({ queryKey: ["canal-cpo-page"] });
+  qc.invalidateQueries({ queryKey: ["vw_fila_solicitacoes_comercial"] });
 }
 
 
@@ -264,11 +265,16 @@ export function useAbrirSolicitacao(pedidoId: string) {
 export function useAtenderSolicitacao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { solicitacaoId: string; nota?: string | null }) => {
+    mutationFn: async (input: {
+      solicitacaoId: string;
+      nota?: string | null;
+      motivoCodigo?: string | null;
+    }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any).rpc("atender_solicitacao_comercial", {
         p_solicitacao_id: input.solicitacaoId,
         p_nota: input.nota ?? null,
+        p_motivo_codigo: input.motivoCodigo ?? null,
       });
       if (error) throw error;
       return data;
