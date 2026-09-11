@@ -31,6 +31,27 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// BOTÃO-SEGUE-O-PROBLEMA (PED-2174): quando uma NF sai errada e a carga já foi
+// (ex.: NF 6917 de remessa em consignação saiu com desconto 20% em vez de 35%,
+// cliente emitiu NF de devolução total anulando a nota, mas a carga já estava
+// em_transporte), o pedido NÃO retrocede de estágio. Ele ganha um problema
+// declarado cujo tipo libera refaturamento. A RPC fn_pedido_libera_refaturamento
+// é o juiz único de "este pedido pode ser refaturado/reenviado?".
+async function pedidoLiberaRefaturamento(
+  supabase: any,
+  pedido_id: string,
+): Promise<
+  | { ok: true; libera: boolean; problemas_abertos: unknown[]; porque: string }
+  | { ok: false; error: string }
+> {
+  const { data, error } = await supabase.rpc("fn_pedido_libera_refaturamento" as string, {
+    p_pedido_id: pedido_id,
+  });
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "RPC não retornou dados" };
+  return { ok: true, ...(data as any) };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
