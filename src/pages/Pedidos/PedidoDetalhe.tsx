@@ -802,6 +802,33 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
         />
       )}
 
+      <LastroFinanceiroDialog
+        open={!!faltaFin}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastroFinanceiro(); }}
+        falta={faltaFin?.falta ?? null}
+        classe={faltaFin?.classe ?? null}
+        classeMotivo={faltaFin?.classeMotivo ?? null}
+        caminho={faltaFin?.caminho ?? null}
+        isPending={transicionar.isPending || reabrir.isPending}
+        podeForcar={podeForcarFinanceiro}
+        onReenviarAnalise={(motivo) =>
+          reabrir.mutate(
+            { pedidoId: pedido.id, motivo },
+            { onSuccess: () => transicionar.limparFaltaLastroFinanceiro() },
+          )
+        }
+        onDividirPedido={() => {
+          transicionar.limparFaltaLastroFinanceiro();
+          setSplitOpen(true);
+        }}
+        onForcar={(motivo) =>
+          transicionar.mutate(
+            { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
+            { onSuccess: () => transicionar.limparFaltaLastroFinanceiro() },
+          )
+        }
+      />
+
       <SplitPedidoDialog
         open={splitOpen}
         onOpenChange={setSplitOpen}
