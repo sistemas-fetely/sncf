@@ -495,7 +495,7 @@ export default function MesaAtendimento() {
   }
 
   const cadeirasDestino = (cadeiras.data ?? []).filter(
-    (c) => c.nome !== escalando?.cadeira,
+    (c) => c.cadeira !== escalando?.cadeira,
   );
 
 
@@ -982,8 +982,15 @@ export default function MesaAtendimento() {
                 </SelectTrigger>
                 <SelectContent>
                   {cadeirasDestino.map((c) => (
-                    <SelectItem key={c.id} value={c.nome}>
-                      {c.nome}
+                    <SelectItem key={c.cadeira_id} value={c.cadeira}>
+                      <div className="flex flex-col">
+                        <span>{c.cadeira}</span>
+                        {c.atende && (
+                          <span className="text-xs text-muted-foreground">
+                            atende: {c.atende}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1094,10 +1101,10 @@ export default function MesaAtendimento() {
                     <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full bg-border ring-4 ring-background" />
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
-                        variant={EVENTO_VARIANTE[p.evento ?? ""] ?? "outline"}
-                        className="text-[10px]"
+                        variant="outline"
+                        className={`text-[10px] ${EVENTO_CLASSE[p.evento ?? ""] ?? ""}`}
                       >
-                        {p.evento ?? "—"}
+                        {EVENTO_ROTULO[p.evento ?? ""] ?? p.evento ?? "—"}
                       </Badge>
                       {mudouCadeira && (
                         <span className="text-xs text-muted-foreground">
