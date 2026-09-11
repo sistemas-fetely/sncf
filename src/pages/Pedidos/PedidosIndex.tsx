@@ -13,6 +13,8 @@ import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercia
 import { useMesaComercialContagem } from "@/hooks/pedidos/useMesaComercialContagem";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
+import { ProblemasPedidoAba } from "@/components/pedidos/ProblemasPedidoAba";
+import { useProblemasAbertos } from "@/hooks/pedidos/useProblemasPedido";
 
 import { PageShell } from "@/components/layout/PageShell";
 
@@ -20,7 +22,7 @@ import { PageShell } from "@/components/layout/PageShell";
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 
-const ABAS = ["fila", "dash", "recuperacao", "consignados", "solicitacoes"] as const;
+const ABAS = ["fila", "dash", "problemas", "recuperacao", "consignados", "solicitacoes"] as const;
 type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
@@ -43,6 +45,9 @@ export default function PedidosIndex() {
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
+    // PROBLEMA-NAO-RETROCEDE-ESTAGIO: a aba de problemas é a mesma fila vista por
+    // outro filtro — quem vê a Fila vê os problemas dela.
+    problemas: permFila,
     recuperacao: permMesa,
     consignados: permConsignados,
     solicitacoes: permSolicitacoes,
@@ -83,6 +88,13 @@ export default function PedidosIndex() {
   const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
   const { data: qtdSolicitacoes = 0 } = useContagemSolicitacoes();
+
+  const {
+    data: problemasAbertos,
+    isError: problemasErro,
+    error: problemasErroObj,
+  } = useProblemasAbertos();
+  const qtdProblemas = problemasAbertos?.length ?? 0;
 
   const setAba = (valor: string) => {
     // Trocar de aba preserva os outros params (ex.: ?estagio= aplicado na Fila).
@@ -131,6 +143,20 @@ export default function PedidosIndex() {
             </AbaPermitida>
             <AbaPermitida slug="tela.dash_pedidos">
               <TabsTrigger value="dash">Dash</TabsTrigger>
+            </AbaPermitida>
+            <AbaPermitida slug="tela.pedidos_fila">
+              <TabsTrigger
+                value="problemas"
+                title={
+                  problemasErro
+                    ? `Não foi possível ler a contagem: ${(problemasErroObj as Error)?.message ?? "erro desconhecido"}`
+                    : "Pedidos com problema declarado. O pedido continua no estágio dele."
+                }
+              >
+                {problemasErro
+                  ? "Resolução de Problema (—)"
+                  : `Resolução de Problema${qtdProblemas > 0 ? ` (${qtdProblemas})` : ""}`}
+              </TabsTrigger>
             </AbaPermitida>
             {/* Separador: à esquerda, duas leituras da carteira ativa;
                 à direita, salas separadas. */}
@@ -189,6 +215,12 @@ export default function PedidosIndex() {
           <TabsContent value="dash">
             <ConteudoAba slug="tela.dash_pedidos">
               <PainelDashPedidos />
+            </ConteudoAba>
+          </TabsContent>
+
+          <TabsContent value="problemas">
+            <ConteudoAba slug="tela.pedidos_fila">
+              <ProblemasPedidoAba />
             </ConteudoAba>
           </TabsContent>
 

@@ -23,6 +23,7 @@ import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard"
 import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
+import { ProblemasPedidoBloco } from "@/components/pedidos/ProblemasPedidoBloco";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
@@ -1733,6 +1734,9 @@ export default function PedidoDetalhe() {
 
         />
       )}
+
+      {/* PROBLEMA-NAO-RETROCEDE-ESTAGIO: marcação paralela — não muda o estágio. */}
+      <ProblemasPedidoBloco pedidoId={pedido.id} />
 
       {/* Canal único de alerta operacional: achados vivos da auditoria. */}
       <AlertasPedidoPanel pedidoId={pedido.id} />
