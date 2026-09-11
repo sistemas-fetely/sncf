@@ -48,6 +48,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -132,8 +138,12 @@ interface CargaCadeira {
 }
 
 interface CadeiraDestino {
-  id: string;
-  nome: string;
+  cadeira_id: string;
+  cadeira: string;
+  dono_role: string | null;
+  responde: string | null;
+  atende: string | null;
+  ordem: number | null;
 }
 
 interface PassoTrilha {
@@ -158,19 +168,34 @@ const QK = {
   motivos: ["demanda_motivo"] as const,
   fila: ["vw_demanda_aberta"] as const,
   carga: ["vw_demanda_carga_cadeira"] as const,
-  cadeiras: ["departamentos", "atende_mesa"] as const,
+  cadeiras: ["vw_cadeira_atendimento"] as const,
   trilha: (id: string) => ["vw_demanda_trilha", id] as const,
 };
 
-const EVENTO_VARIANTE: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  aberta: "outline",
-  classificada: "secondary",
-  assumida: "secondary",
-  escalada: "default",
-  devolvida: "destructive",
-  resolvida: "default",
-  descartada: "destructive",
-  reaberta: "destructive",
+const EVENTO_ROTULO: Record<string, string> = {
+  aberta: "Aberta",
+  classificada: "Classificada",
+  assumida: "Assumida",
+  escalada: "Escalada",
+  devolvida: "Devolvida",
+  resolvida: "Resolvida",
+  descartada: "Descartada",
+  reaberta: "Reaberta",
+};
+
+/** escalada/devolvida em âmbar, resolvida em verde, descartada em cinza, resto neutro */
+const EVENTO_CLASSE: Record<string, string> = {
+  escalada: "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  devolvida: "border-orange-500/60 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  resolvida: "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  descartada: "border-border bg-muted text-muted-foreground",
+};
+
+const CAMADA_ROTULO: Record<string, string> = {
+  C0: "Autoatendimento",
+  C1: "Atendimento",
+  C2: "Cadeira dona",
+  C3: "Sistema",
 };
 
 function dataHora(iso: string | null) {
@@ -291,11 +316,9 @@ export default function MesaAtendimento() {
     queryKey: QK.cadeiras,
     queryFn: async (): Promise<CadeiraDestino[]> => {
       const { data, error } = await supabase
-        .from("departamentos")
-        .select("id, nome")
-        .eq("ativo", true)
-        .eq("atende_mesa", true)
-        .order("nome");
+        .from("vw_cadeira_atendimento")
+        .select("cadeira_id, cadeira, dono_role, responde, atende, ordem")
+        .order("ordem");
       if (error) throw error;
       return (data ?? []) as CadeiraDestino[];
     },
