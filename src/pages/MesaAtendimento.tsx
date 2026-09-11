@@ -48,6 +48,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Table,
   TableBody,
   TableCell,
@@ -132,8 +138,12 @@ interface CargaCadeira {
 }
 
 interface CadeiraDestino {
-  id: string;
-  nome: string;
+  cadeira_id: string;
+  cadeira: string;
+  dono_role: string | null;
+  responde: string | null;
+  atende: string | null;
+  ordem: number | null;
 }
 
 interface PassoTrilha {
@@ -158,19 +168,34 @@ const QK = {
   motivos: ["demanda_motivo"] as const,
   fila: ["vw_demanda_aberta"] as const,
   carga: ["vw_demanda_carga_cadeira"] as const,
-  cadeiras: ["departamentos", "atende_mesa"] as const,
+  cadeiras: ["vw_cadeira_atendimento"] as const,
   trilha: (id: string) => ["vw_demanda_trilha", id] as const,
 };
 
-const EVENTO_VARIANTE: Record<string, "default" | "secondary" | "outline" | "destructive"> = {
-  aberta: "outline",
-  classificada: "secondary",
-  assumida: "secondary",
-  escalada: "default",
-  devolvida: "destructive",
-  resolvida: "default",
-  descartada: "destructive",
-  reaberta: "destructive",
+const EVENTO_ROTULO: Record<string, string> = {
+  aberta: "Aberta",
+  classificada: "Classificada",
+  assumida: "Assumida",
+  escalada: "Escalada",
+  devolvida: "Devolvida",
+  resolvida: "Resolvida",
+  descartada: "Descartada",
+  reaberta: "Reaberta",
+};
+
+/** escalada/devolvida em âmbar, resolvida em verde, descartada em cinza, resto neutro */
+const EVENTO_CLASSE: Record<string, string> = {
+  escalada: "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  devolvida: "border-orange-500/60 bg-orange-500/10 text-orange-700 dark:text-orange-400",
+  resolvida: "border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+  descartada: "border-border bg-muted text-muted-foreground",
+};
+
+const CAMADA_ROTULO: Record<string, string> = {
+  C0: "Autoatendimento",
+  C1: "Atendimento",
+  C2: "Cadeira dona",
+  C3: "Sistema",
 };
 
 function dataHora(iso: string | null) {
@@ -291,11 +316,9 @@ export default function MesaAtendimento() {
     queryKey: QK.cadeiras,
     queryFn: async (): Promise<CadeiraDestino[]> => {
       const { data, error } = await supabase
-        .from("departamentos")
-        .select("id, nome")
-        .eq("ativo", true)
-        .eq("atende_mesa", true)
-        .order("nome");
+        .from("vw_cadeira_atendimento")
+        .select("cadeira_id, cadeira, dono_role, responde, atende, ordem")
+        .order("ordem");
       if (error) throw error;
       return (data ?? []) as CadeiraDestino[];
     },
@@ -423,7 +446,9 @@ export default function MesaAtendimento() {
       };
     },
     onSuccess: ({ id, r }) => {
-      toast.success(`${r.codigo} escalada para ${r.cadeira}`);
+      toast.success(
+        `${r.codigo} escalada para ${r.cadeira}${r.camada ? ` · camada ${r.camada}` : ""}`,
+      );
       setEscalando(null);
       setCadeiraDestino("");
       setMotivoEscalar("");
@@ -472,7 +497,7 @@ export default function MesaAtendimento() {
   }
 
   const cadeirasDestino = (cadeiras.data ?? []).filter(
-    (c) => c.nome !== escalando?.cadeira,
+    (c) => c.cadeira !== escalando?.cadeira,
   );
 
 
@@ -632,6 +657,20 @@ export default function MesaAtendimento() {
                       <TableCell className="whitespace-nowrap font-mono text-xs">
                         <div className="flex flex-col gap-1">
                           <span>{d.codigo ?? "—"}</span>
+                          {d.camada && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="w-fit text-[10px]">
+                                    {d.camada}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {CAMADA_ROTULO[d.camada] ?? d.camada}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                           {d.vencida === true && (
                             <Badge variant="destructive" className="w-fit text-[10px]">
                               Vencida
@@ -718,14 +757,16 @@ export default function MesaAtendimento() {
                               >
                                 <ArrowUpRight className="mr-2 h-4 w-4" /> Escalar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => {
-                                  setDevolvendo(d);
-                                  setComoResolver("");
-                                }}
-                              >
-                                <Undo2 className="mr-2 h-4 w-4" /> Devolver
-                              </DropdownMenuItem>
+                              {d.cadeira !== "Atendimento ao Cliente" && (
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    setDevolvendo(d);
+                                    setComoResolver("");
+                                  }}
+                                >
+                                  <Undo2 className="mr-2 h-4 w-4" /> Devolver
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem onClick={() => setDemandaSelecionada(d)}>
                                 <History className="mr-2 h-4 w-4" /> Trilha
                               </DropdownMenuItem>
@@ -941,8 +982,8 @@ export default function MesaAtendimento() {
           <DialogHeader>
             <DialogTitle>Escalar {escalando?.codigo ?? ""}</DialogTitle>
             <DialogDescription>
-              Cadeira atual: {escalando?.cadeira ?? "—"}. O motivo é obrigatório e fica
-              registrado na trilha permanente da demanda.
+              Cadeira atual: {escalando?.cadeira ?? "—"}. Escalar sobe a camada da
+              demanda e fica registrado na trilha.
             </DialogDescription>
           </DialogHeader>
 
@@ -959,8 +1000,15 @@ export default function MesaAtendimento() {
                 </SelectTrigger>
                 <SelectContent>
                   {cadeirasDestino.map((c) => (
-                    <SelectItem key={c.id} value={c.nome}>
-                      {c.nome}
+                    <SelectItem key={c.cadeira_id} value={c.cadeira}>
+                      <div className="flex flex-col">
+                        <span>{c.cadeira}</span>
+                        {c.atende && (
+                          <span className="text-xs text-muted-foreground">
+                            atende: {c.atende}
+                          </span>
+                        )}
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -974,13 +1022,13 @@ export default function MesaAtendimento() {
 
             <div className="space-y-1.5">
               <Label>
-                Motivo <span className="text-destructive">*</span>
+                Por que está escalando <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 rows={4}
                 value={motivoEscalar}
                 onChange={(e) => setMotivoEscalar(e.target.value)}
-                placeholder="Por que esta cadeira não resolve e o que a próxima precisa fazer"
+                placeholder="O que você tentou e por que precisa de outra cadeira"
               />
               <p className="text-xs text-muted-foreground">
                 Obrigatório — vai para a trilha permanente e não pode ser apagado.
@@ -1005,8 +1053,8 @@ export default function MesaAtendimento() {
           <DialogHeader>
             <DialogTitle>Devolver {devolvendo?.codigo ?? ""}</DialogTitle>
             <DialogDescription>
-              Volta para a cadeira de entrada (Atendimento ao Cliente) com a instrução de
-              como resolver. Fica na trilha permanente.
+              Devolver manda a demanda de volta para a cadeira de entrada COM a
+              instrução de como resolver.
             </DialogDescription>
           </DialogHeader>
 
@@ -1018,11 +1066,11 @@ export default function MesaAtendimento() {
               rows={5}
               value={comoResolver}
               onChange={(e) => setComoResolver(e.target.value)}
-              placeholder="O passo a passo que quem recebe deve seguir para resolver"
-            />
-            <p className="text-xs text-muted-foreground">
-              Obrigatório — é a instrução de resolução, não uma justificativa.
-            </p>
+                placeholder="Explique o passo a passo para quem vai resolver na entrada"
+              />
+              <p className="text-xs text-muted-foreground">
+                Obrigatório — a instrução é o que fecha a lacuna de autoatendimento.
+              </p>
           </div>
 
           <DialogFooter>
@@ -1071,10 +1119,10 @@ export default function MesaAtendimento() {
                     <span className="absolute -left-[26px] top-1.5 h-2.5 w-2.5 rounded-full bg-border ring-4 ring-background" />
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
-                        variant={EVENTO_VARIANTE[p.evento ?? ""] ?? "outline"}
-                        className="text-[10px]"
+                        variant="outline"
+                        className={`text-[10px] ${EVENTO_CLASSE[p.evento ?? ""] ?? ""}`}
                       >
-                        {p.evento ?? "—"}
+                        {EVENTO_ROTULO[p.evento ?? ""] ?? p.evento ?? "—"}
                       </Badge>
                       {mudouCadeira && (
                         <span className="text-xs text-muted-foreground">
