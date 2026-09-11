@@ -136,31 +136,19 @@ function AbaNFs() {
   }
 
   function handleExportXLSX() {
-    const linhas = filtrados.map((n) => {
-      const dataRaw = n.data_emissao;
-      let dataStr = "";
-      if (dataRaw) {
-        const d = new Date(dataRaw);
-        if (!isNaN(d.getTime())) {
-          dataStr = d.toLocaleDateString("pt-BR", {
-            day: "2-digit", month: "2-digit", year: "numeric",
-          });
-        }
-      }
-      return {
-        "NF": n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? ""),
-        "Data": dataStr,
-        "Parceiro": n.parceiro?.razao_social ?? "",
-        "Nome fantasia": apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) ?? "",
-        "CNPJ": n.parceiro?.cnpj ?? "",
-        "Valor": Number(n.valor_nota ?? 0),
-        "Frete": Number(n.valor_frete ?? 0),
-        "Nº Pedido (Bling)": n.bling_pedido_venda_numero ?? "",
-        "Pedido": n.pedido_ref ?? "",
-        "Canal": n.canal ?? "",
-        "Situação": SITUACAO_LABELS[n.situacao] ?? n.situacao ?? "",
-      };
-    });
+    const linhas = filtrados.map((n) => ({
+      "NF": n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? ""),
+      "Data": fmtData(n.data_emissao, ""),
+      "Parceiro": n.parceiro?.razao_social ?? "",
+      "Nome fantasia": apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) ?? "",
+      "CNPJ": n.parceiro?.cnpj ?? "",
+      "Valor": Number(n.valor_nota ?? 0),
+      "Frete": Number(n.valor_frete ?? 0),
+      "Nº Pedido (Bling)": n.bling_pedido_venda_numero ?? "",
+      "Pedido": n.pedido_ref ?? "",
+      "Canal": n.canal ?? "",
+      "Situação": SITUACAO_LABELS[n.situacao] ?? n.situacao ?? "",
+    }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "NFs de Venda");
