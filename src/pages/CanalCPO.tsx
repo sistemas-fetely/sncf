@@ -940,7 +940,7 @@ function CanalCPOConteudo() {
                         variant="outline"
                         className={`text-[10px] ${EVENTO_CLASSE[ev] ?? ""}`}
                       >
-                        {EVENTO_ROTULO[ev] ?? ev || "—"}
+                        {EVENTO_ROTULO[ev] ?? (ev || "—")}
                       </Badge>
                       {mostraCadeiras && (
                         <span className="text-xs text-muted-foreground">
