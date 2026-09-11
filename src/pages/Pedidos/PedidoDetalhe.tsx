@@ -104,6 +104,8 @@ import { transicoesPara } from "@/lib/pedidoTransicoes";
 import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { SplitPedidoDialog } from "@/components/pedidos/dialogs/SplitPedidoDialog";
 import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
+import { LastroFinanceiroDialog } from "@/components/pedidos/dialogs/LastroFinanceiroDialog";
+import { useReabrirAnalisePedido } from "@/hooks/pedidos/useReabrirAnalisePedido";
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
@@ -763,6 +765,11 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
   const [splitOpen, setSplitOpen] = useState(false);
   const { permitido: podeLiberarSemProva } = usePermissaoAcao("acao.liberar_sem_prova");
   const falta = transicionar.faltaLastro;
+  // LASTRO-FINANCEIRO-TEM-PORTA-PROPRIA (PED-2202): reenviar para análise e
+  // dividir o pedido não exigem alçada — só o forçar exige (prop podeForcar).
+  const faltaFin = transicionar.faltaLastroFinanceiro;
+  const { permitido: podeForcarFinanceiro } = usePermissaoAcao("acao.pedido_forcar_prazo_credito");
+  const reabrir = useReabrirAnalisePedido();
 
   return (
     <>
@@ -794,6 +801,33 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
           }}
         />
       )}
+
+      <LastroFinanceiroDialog
+        open={!!faltaFin}
+        onOpenChange={(v) => { if (!v) transicionar.limparFaltaLastroFinanceiro(); }}
+        falta={faltaFin?.falta ?? null}
+        classe={faltaFin?.classe ?? null}
+        classeMotivo={faltaFin?.classeMotivo ?? null}
+        caminho={faltaFin?.caminho ?? null}
+        isPending={transicionar.isPending || reabrir.isPending}
+        podeForcar={podeForcarFinanceiro}
+        onReenviarAnalise={(motivo) =>
+          reabrir.mutate(
+            { pedidoId: pedido.id, motivo },
+            { onSuccess: () => transicionar.limparFaltaLastroFinanceiro() },
+          )
+        }
+        onDividirPedido={() => {
+          transicionar.limparFaltaLastroFinanceiro();
+          setSplitOpen(true);
+        }}
+        onForcar={(motivo) =>
+          transicionar.mutate(
+            { pedido_id: pedido.id, para_estagio: "pre_separacao", motivo },
+            { onSuccess: () => transicionar.limparFaltaLastroFinanceiro() },
+          )
+        }
+      />
 
       <SplitPedidoDialog
         open={splitOpen}

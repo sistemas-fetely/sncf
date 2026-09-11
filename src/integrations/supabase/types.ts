@@ -30111,6 +30111,8 @@ export type Database = {
       }
       nfs_emitidas: {
         Row: {
+          anulada_por_devolucao_em: string | null
+          anulada_por_vinculo_id: string | null
           ausente_na_origem_desde: string | null
           autorizada_em: string | null
           bling_id: string | null
@@ -30155,6 +30157,8 @@ export type Database = {
           xml_url: string | null
         }
         Insert: {
+          anulada_por_devolucao_em?: string | null
+          anulada_por_vinculo_id?: string | null
           ausente_na_origem_desde?: string | null
           autorizada_em?: string | null
           bling_id?: string | null
@@ -30199,6 +30203,8 @@ export type Database = {
           xml_url?: string | null
         }
         Update: {
+          anulada_por_devolucao_em?: string | null
+          anulada_por_vinculo_id?: string | null
           ausente_na_origem_desde?: string | null
           autorizada_em?: string | null
           bling_id?: string | null
