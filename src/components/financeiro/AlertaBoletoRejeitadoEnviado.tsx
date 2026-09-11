@@ -106,7 +106,7 @@ export function AlertaBoletoRejeitadoEnviado() {
                     {l.boleto_codigo_rejeicao ? `motivo ${l.boleto_codigo_rejeicao}` : "não informado"}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatBRL(Number(l.valor_bruto ?? 0))}
+                    {formatBRL(Number(l.valor_atual ?? 0))}
                   </TableCell>
                 </TableRow>
               ))}
