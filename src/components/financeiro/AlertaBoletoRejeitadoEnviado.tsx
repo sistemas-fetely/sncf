@@ -7,7 +7,11 @@
  * mãos. O cliente está com um documento inválido e precisa ser avisado.
  *
  * O alerta cai sozinho quando um novo boleto é registrado para o título (o
- * `boleto_status` deixa de ser 'rejeitado'). Bloco somente LEITURA.
+ * `boleto_status` deixa de ser 'rejeitado').
+ *
+ * Restrição: considera apenas títulos com status 'aberto'. Títulos
+ * cancelados/pagos/devolvidos não entram porque não há boleto a reemitir.
+ * Bloco somente LEITURA.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +31,7 @@ const sb = supabase as any;
 type Linha = {
   id: string;
   numero_titulo: string | null;
-  valor_bruto: number | null;
+  valor_atual: number | null;
   data_vencimento_atual: string | null;
   boleto_enviado_em: string | null;
   boleto_codigo_rejeicao: string | null;
@@ -43,9 +47,10 @@ export function AlertaBoletoRejeitadoEnviado() {
       const { data, error } = await sb
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, valor_bruto, data_vencimento_atual, boleto_enviado_em, boleto_codigo_rejeicao, nosso_numero_seq, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
+          "id, numero_titulo, valor_atual, data_vencimento_atual, boleto_enviado_em, boleto_codigo_rejeicao, nosso_numero_seq, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
         )
         .eq("boleto_status", "rejeitado")
+        .eq("status", "aberto")
         .not("boleto_enviado_em", "is", null)
         .order("boleto_enviado_em", { ascending: false })
         .limit(200);
@@ -101,7 +106,7 @@ export function AlertaBoletoRejeitadoEnviado() {
                     {l.boleto_codigo_rejeicao ? `motivo ${l.boleto_codigo_rejeicao}` : "não informado"}
                   </TableCell>
                   <TableCell className="text-right font-mono">
-                    {formatBRL(Number(l.valor_bruto ?? 0))}
+                    {formatBRL(Number(l.valor_atual ?? 0))}
                   </TableCell>
                 </TableRow>
               ))}
