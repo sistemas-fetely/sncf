@@ -81,6 +81,14 @@ export function useTransicionarPedido() {
   const [faltaLastro, setFaltaLastro] = useState<{ faltantes: string[]; mensagem: string } | null>(null);
   const limparFaltaLastro = () => setFaltaLastro(null);
 
+  /**
+   * LASTRO-FINANCEIRO-TEM-PORTA-PROPRIA (PED-2202): guarda de dinheiro, não de
+   * SKU. O diálogo oferece reenviar para análise, dividir o pedido ou forçar
+   * com alçada — o toast seco morreu aqui.
+   */
+  const [faltaLastroFinanceiro, setFaltaLastroFinanceiro] = useState<FaltaLastroFinanceiro | null>(null);
+  const limparFaltaLastroFinanceiro = () => setFaltaLastroFinanceiro(null);
+
   const mutation = useMutation({
     mutationFn: async ({ pedido_id, para_estagio, proxima_acao, motivo }: Args) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
