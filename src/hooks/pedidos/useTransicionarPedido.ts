@@ -103,11 +103,19 @@ export function useTransicionarPedido() {
     },
     onSuccess: (_, variables) => {
       setFaltaLastro(null);
+      setFaltaLastroFinanceiro(null);
       invalidarPedido(qc, variables.pedido_id);
       toast({ title: "Pedido avançado" });
     },
     onError: (e: Error, variables) => {
       const msg = e.message ?? "";
+      // Financeiro ANTES do físico: a mensagem financeira contém a marca física
+      // como substring ("sem lastro financeiro para descer a pre-separacao"
+      // inclui "...para descer a pre-separacao"), então a ordem decide.
+      if (msg.includes(MARCA_SEM_LASTRO_FIN) && !variables?.motivo) {
+        setFaltaLastroFinanceiro(parseLastroFinanceiro(msg));
+        return;
+      }
       const ehLastro = msg.includes(MARCA_SEM_LASTRO);
       if (ehLastro && !variables?.motivo) {
         setFaltaLastro({ faltantes: extrairFaltantes(msg), mensagem: msg });
@@ -117,5 +125,5 @@ export function useTransicionarPedido() {
     },
   });
 
-  return { ...mutation, faltaLastro, limparFaltaLastro };
+  return { ...mutation, faltaLastro, limparFaltaLastro, faltaLastroFinanceiro, limparFaltaLastroFinanceiro };
 }
