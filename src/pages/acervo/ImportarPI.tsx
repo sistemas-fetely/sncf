@@ -712,7 +712,7 @@ export default function ImportarPI() {
             {loteId && (
               <div className="rounded-md border p-4 text-sm">
                 <div className="flex items-center gap-2 font-medium">
-                  <Info className="h-4 w-4" /> Conferência — parte 2
+                  <Info className="h-4 w-4" /> Lote em estágio
                 </div>
                 <div className="mt-1 text-muted-foreground">
                   Lote <span className="font-mono">{loteId}</span> · {gravadas} linha(s) em estágio.
@@ -722,6 +722,300 @@ export default function ImportarPI() {
           </CardContent>
         </Card>
       )}
+
+      {/* PASSO 4 — CONFERIR */}
+      {loteId && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">4. Conferir</CardTitle>
+            <CardDescription>
+              O banco decide o que já existe, o que precisa de código e o que não dá para ler.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={conferir} disabled={conferindo}>
+              {conferindo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Conferir lote
+            </Button>
+
+            {contagens && (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {ORDEM_ESTADOS.filter((e) => contagens[e] !== undefined).map((e) => (
+                  <div key={e} className="rounded-md border p-4">
+                    <div className="text-xs text-muted-foreground">{e}</div>
+                    <div className="text-2xl font-semibold">{contagens[e]}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {stageQuery.isError && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Falha ao carregar as linhas do lote: {msgErro(stageQuery.error)}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {contagens && stageQuery.isPending && <Skeleton className="h-40 w-full" />}
+
+            {contagens && !stageQuery.isPending && !stageQuery.isError && (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-20">Linha</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>cod_cadastro</TableHead>
+                      <TableHead>EAN</TableHead>
+                      <TableHead>DUN</TableHead>
+                      <TableHead>Inner</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Motivo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {linhasStage.map((l) => (
+                      <TableRow key={l.linha_num}>
+                        <TableCell className="text-muted-foreground">{l.linha_num}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.dun ?? "—"}</TableCell>
+                        <TableCell>{l.inner_qtd ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant={badgeEstado(l.estado)}>{l.estado ?? "—"}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{l.motivo ?? ""}</TableCell>
+                      </TableRow>
+                    ))}
+                    {linhasStage.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-muted-foreground">
+                          Nenhuma linha no estágio deste lote.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">Linha com erro não bloqueia o lote.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* PASSO 5 — ALOCAR */}
+      {loteId && contagens && !stageQuery.isPending && !stageQuery.isError && (
+        aAlocar.length === 0 ? (
+          <Card>
+            <CardContent className="py-4 text-sm text-muted-foreground">
+              Todos os itens já tinham código no cartório. Nada a alocar.
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">5. Alocar códigos</CardTitle>
+              <CardDescription>
+                {aAlocar.length} linha(s) sem código. A alocação é do cartório — a tela só pede.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="inner">Inner</Label>
+                  <Input
+                    id="inner"
+                    type="number"
+                    min={1}
+                    value={innerQtd}
+                    onChange={(e) => { setInnerQtd(e.target.value); setPropostaVista(false); }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Vem do packing list da fábrica — não se inventa.
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="motivo-aloc">Motivo</Label>
+                  <Input
+                    id="motivo-aloc"
+                    value={motivoAloc || (piNumero ? `PI ${piNumero}` : "")}
+                    onChange={(e) => { setMotivoAloc(e.target.value); setPropostaVista(false); }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button variant="outline" onClick={() => alocar(true)} disabled={alocando}>
+                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Ver proposta
+                </Button>
+                <Button onClick={() => alocar(false)} disabled={alocando || !propostaVista}>
+                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Confirmar alocação
+                </Button>
+              </div>
+
+              {proposta && (
+                <div className="space-y-2">
+                  {proposta.livres_depois !== null && (
+                    <div className="text-sm text-muted-foreground">
+                      Livres depois: <span className="font-medium">{proposta.livres_depois}</span>
+                    </div>
+                  )}
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>cod_cadastro</TableHead>
+                          <TableHead>EAN</TableHead>
+                          <TableHead>DUN</TableHead>
+                          <TableHead>SKU sugerido</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {proposta.codigos.map((c, i) => (
+                          <TableRow key={i}>
+                            <TableCell className="font-mono text-xs">{textoCelula(c.cod_cadastro) || "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{textoCelula(c.ean) || "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{textoCelula(c.dun) || "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{textoCelula(c.sku_sugerido) || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                        {proposta.codigos.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-muted-foreground">
+                              Nenhum código na proposta.
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      )}
+
+      {/* PASSO 6 — REGISTRAR NO FOP */}
+      {loteId && contagens && paraFop.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">6. Registrar no FOP</CardTitle>
+            <CardDescription>
+              {paraFop.length} item(ns) reconhecido(s) ou alocado(s). Quem decide se nasce é o FOP.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-3">
+              <Button variant="outline" onClick={() => registrarFop(true)} disabled={registrando}>
+                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Ver o que será registrado
+              </Button>
+              <Button onClick={() => registrarFop(false)} disabled={registrando || !registroVisto}>
+                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Registrar no FOP
+              </Button>
+            </div>
+
+            {erro401 && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Registrar exige sessão de usuário ativa: a escrita em cadastro não aceita token de
+                  serviço. Não é erro de dado — entre com sua conta e repita.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {registroResultado && (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>cod_cadastro</TableHead>
+                      <TableHead>EAN</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Motivo</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {registroResultado.map((it, i) => {
+                      const status = textoCelula(it.status);
+                      return (
+                        <TableRow key={i}>
+                          <TableCell className="font-mono text-xs">{textoCelula(it.cod_cadastro) || "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{textoCelula(it.ean) || "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{textoCelula(it.sku) || "—"}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                status === "nasceria" ? "default"
+                                  : status === "bloqueado" ? "secondary"
+                                    : status === "erro" ? "destructive" : "outline"
+                              }
+                            >
+                              {status || "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {textoCelula(it.motivo)}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {registroResultado.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-muted-foreground">
+                          Nenhum item retornado.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* PASSO 7 — DEVOLVER A PLANILHA */}
+      {loteId && contagens && comCodigo.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">7. Devolver a planilha</CardTitle>
+            <CardDescription>
+              A mesma PI de volta, agora com os códigos preenchidos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button onClick={baixarPlanilha} disabled={baixando || comCodigo.length === 0}>
+              {baixando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Baixar planilha com os códigos
+            </Button>
+
+            {baixou && (
+              <p className="text-xs text-muted-foreground">
+                Imagens e parte da formatação não sobrevivem ao ciclo — o Thomer tem o original; o que
+                volta são os códigos.
+              </p>
+            )}
+
+            {colunasCriadas && colunasCriadas.length > 0 && (
+              <Alert>
+                <AlertDescription>
+                  Colunas acrescentadas ao final da planilha: {colunasCriadas.join(", ")}.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </PageShell>
   );
 }
+
