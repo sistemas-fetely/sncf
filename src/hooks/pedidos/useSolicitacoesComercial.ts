@@ -234,6 +234,7 @@ function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: ["solicitacoes-por-status"] });
   qc.invalidateQueries({ queryKey: ["solicitacoes-contagem-status"] });
   qc.invalidateQueries({ queryKey: ["canal-cpo-page"] });
+  qc.invalidateQueries({ queryKey: ["vw_fila_solicitacoes_comercial"] });
 }
 
 
