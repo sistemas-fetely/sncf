@@ -165,7 +165,9 @@ export default function ImportarPI() {
     try {
       const { abas: as, matrizPorAba: mpa } = await lerArquivo(file);
       if (as.length === 0) throw new Error("planilha sem abas");
+      setArquivoOriginal(file);
       setArquivoNome(file.name);
+
       setAbas(as);
       setMatrizPorAba(mpa);
       setAba(as[0]);
