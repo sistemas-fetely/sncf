@@ -31,6 +31,27 @@ const err = (msg: string, status = 400) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+// BOTÃO-SEGUE-O-PROBLEMA (PED-2174): quando uma NF sai errada e a carga já foi
+// (ex.: NF 6917 de remessa em consignação saiu com desconto 20% em vez de 35%,
+// cliente emitiu NF de devolução total anulando a nota, mas a carga já estava
+// em_transporte), o pedido NÃO retrocede de estágio. Ele ganha um problema
+// declarado cujo tipo libera refaturamento. A RPC fn_pedido_libera_refaturamento
+// é o juiz único de "este pedido pode ser refaturado/reenviado?".
+async function pedidoLiberaRefaturamento(
+  supabase: any,
+  pedido_id: string,
+): Promise<
+  | { ok: true; libera: boolean; problemas_abertos: unknown[]; porque: string }
+  | { ok: false; error: string }
+> {
+  const { data, error } = await supabase.rpc("fn_pedido_libera_refaturamento" as string, {
+    p_pedido_id: pedido_id,
+  });
+  if (error) return { ok: false, error: error.message };
+  if (!data) return { ok: false, error: "RPC não retornou dados" };
+  return { ok: true, ...(data as any) };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -236,7 +257,24 @@ serve(async (req) => {
     // qualquer checagem de portão.
     const estagiosPermitidos = ["pre_separacao", "em_separacao", "pre_faturamento"];
     if (!estagiosPermitidos.includes(pedido.estagio)) {
-      return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
+      // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): problema declarado pode liberar refaturamento
+      // mesmo em estágios avançados (ex.: em_transporte), porque a carga já foi e o
+      // pedido não retrocede de estágio.
+      const libRef = await pedidoLiberaRefaturamento(supabase, pedido_id);
+      if (!libRef.ok) {
+        return err(
+          `Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio. ` +
+          `Falha ao consultar liberação de refaturamento: ${libRef.error}`,
+          500,
+        );
+      }
+      if (!libRef.libera) {
+        return err(
+          `Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio. ` +
+          `Liberação de refaturamento negada: ${libRef.porque}`,
+        );
+      }
+      // libera === true: segue em qualquer estágio.
     }
 
     // ── Branch: reenviar ─────────────────────────────────────────────────
@@ -250,7 +288,24 @@ serve(async (req) => {
     if (body?.acao === "reenviar") {
       if (!ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
       if (pedido.estagio !== "em_separacao" && pedido.estagio !== "pre_separacao") {
-        return err(`Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}"`, 409);
+        // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): mesmo em reenvio, problema declarado
+        // libera o pedido em qualquer estágio desde que a RPC confirme.
+        const libRef = await pedidoLiberaRefaturamento(supabase, pedido_id);
+        if (!libRef.ok) {
+          return err(
+            `Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}". ` +
+            `Falha ao consultar liberação de refaturamento: ${libRef.error}`,
+            500,
+          );
+        }
+        if (!libRef.libera) {
+          return err(
+            `Reenvio só em "Pré-separação" ou "Em separação" — pedido está em "${pedido.estagio}". ` +
+            `Liberação de refaturamento negada: ${libRef.porque}`,
+            409,
+          );
+        }
+        // libera === true: segue em qualquer estágio.
       }
       if (!pedido.bling_id_destino) {
         return err("Pedido ainda não tem id do Bling — use o envio normal, não o reenvio", 409);
