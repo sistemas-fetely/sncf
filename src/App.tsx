@@ -234,6 +234,7 @@ const PedidosVenda = lazy(() => import("@/pages/administrativo/PedidosVenda"));
 const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 
 const CanalCPO = lazy(() => import("@/pages/CanalCPO"));
+const MapaOperacao = lazy(() => import("@/pages/operacao/MapaOperacao"));
 
 
 const queryClient = new QueryClient({
