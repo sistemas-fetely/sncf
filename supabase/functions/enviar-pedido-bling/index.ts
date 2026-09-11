@@ -257,7 +257,24 @@ serve(async (req) => {
     // qualquer checagem de portão.
     const estagiosPermitidos = ["pre_separacao", "em_separacao", "pre_faturamento"];
     if (!estagiosPermitidos.includes(pedido.estagio)) {
-      return err(`Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio`);
+      // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): problema declarado pode liberar refaturamento
+      // mesmo em estágios avançados (ex.: em_transporte), porque a carga já foi e o
+      // pedido não retrocede de estágio.
+      const libRef = await pedidoLiberaRefaturamento(supabase, pedido_id);
+      if (!libRef.ok) {
+        return err(
+          `Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio. ` +
+          `Falha ao consultar liberação de refaturamento: ${libRef.error}`,
+          500,
+        );
+      }
+      if (!libRef.libera) {
+        return err(
+          `Pedido em estágio "${pedido.estagio}" — envio não permitido neste estágio. ` +
+          `Liberação de refaturamento negada: ${libRef.porque}`,
+        );
+      }
+      // libera === true: segue em qualquer estágio.
     }
 
     // ── Branch: reenviar ─────────────────────────────────────────────────
