@@ -4,7 +4,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useProblemasAbertos, type ProblemaLinha } from "@/hooks/pedidos/useProblemasPedido";
-import { rotuloEstagio } from "@/types/pedido";
+import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
+
+const rotuloEstagio = (e: string) => ESTAGIO_LABELS[e as EstagioPedido] ?? e;
 
 const brl = (v: number | null) =>
   (Number(v) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -86,10 +88,10 @@ export function ProblemasPedidoAba() {
               </TableCell>
               <TableCell className="text-right text-sm whitespace-nowrap">{brl(l.valor_liquido)}</TableCell>
               <TableCell className="text-sm whitespace-nowrap">
-                {l.estagio ? rotuloEstagio(l.estagio as never) : "—"}
+                {l.estagio ? rotuloEstagio(l.estagio) : "—"}
                 {l.estagio_na_abertura && l.estagio_na_abertura !== l.estagio && (
                   <span className="block text-[11px] text-muted-foreground">
-                    abriu em {rotuloEstagio(l.estagio_na_abertura as never)}
+                    abriu em {rotuloEstagio(l.estagio_na_abertura)}
                   </span>
                 )}
               </TableCell>
