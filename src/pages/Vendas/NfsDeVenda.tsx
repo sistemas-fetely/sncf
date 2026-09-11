@@ -306,7 +306,7 @@ function AbaNFs() {
                   <TableCell className="font-mono text-xs">
                     {n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? "—")}
                   </TableCell>
-                  <TableCell className="text-sm">{formatDate(n.data_emissao)}</TableCell>
+                  <TableCell className="text-sm">{fmtData(n.data_emissao)}</TableCell>
                   <TableCell className="text-sm max-w-xs truncate" title={n.parceiro?.razao_social ?? undefined}>
                     {n.parceiro?.razao_social ?? "—"}
                     {apelidoParceiro(n.parceiro?.razao_social, n.parceiro?.nome_fantasia) && (
