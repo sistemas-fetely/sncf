@@ -2,6 +2,11 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  PermissaoTelaProvider,
+  usePermissaoTelaContext,
+  AvisoSomenteLeitura,
+} from "@/contexts/PermissaoTelaContext";
+import {
   Headphones,
   Plus,
   AlertTriangle,
