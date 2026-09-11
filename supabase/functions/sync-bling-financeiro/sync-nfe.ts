@@ -438,6 +438,18 @@ async function syncNfeEntradas(
         }
         if (refChave) comReferencia++;
 
+        // FAIL-LOUD: devolução sem nota referenciada é documento incompleto. Só loga;
+        // a nota entra em nfs_stage de qualquer jeito.
+        alertarDevolucaoSemReferencia({
+          fin_nfe: finNfe,
+          chave_referenciada: refChave,
+          numero,
+          serie: d.serie != null ? String(d.serie) : null,
+          cnpj_emitente: String(d.contato?.numeroDocumento ?? "").replace(/\D/g, "") || null,
+          fonte: "bling_entrada",
+        });
+
+
         const natRaw = d.naturezaOperacao;
         const natJson = typeof natRaw === "string"
           ? natRaw
