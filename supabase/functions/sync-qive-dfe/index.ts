@@ -485,7 +485,7 @@ Deno.serve(async (req) => {
                     valor: p?.valor ?? null,
                     natureza_operacao: p?.natureza_operacao ?? null,
                     fin_nfe: p?.fin_nfe ?? null,
-                    referenciada: p?.referenciada ?? null,
+                    referenciada,
                     qtd_itens: p?.itens?.length ?? 0,
                     cfops,
                   });
@@ -508,7 +508,7 @@ Deno.serve(async (req) => {
                     resumo.ja_existiam++;
                   } else {
                     resumo.seriam_gravados++;
-                    if (p?.referenciada) resumo.com_referencia++;
+                    if (referenciada) resumo.com_referencia++;
                   }
                   continue;
                 }
@@ -533,7 +533,7 @@ Deno.serve(async (req) => {
                     p_valor: p?.valor ?? null,
                     p_natureza_operacao: p?.natureza_operacao ?? null,
                     p_fin_nfe: p?.fin_nfe ?? null,
-                    p_nf_referenciada_chave: p?.referenciada ?? null,
+                    p_nf_referenciada_chave: referenciada,
                     p_itens: p?.itens ?? null,
                     p_descricao: `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
                   },
@@ -560,7 +560,7 @@ Deno.serve(async (req) => {
                   resumo.ja_existiam++;
                 } else {
                   resumo.gravados++;
-                  if (p?.referenciada) resumo.com_referencia++;
+                  if (referenciada) resumo.com_referencia++;
                   // QIVE-MANDA-EM-NOTA-DE-FORNECEDOR: emitente externo é fonte
                   // autoritativa; quem chegou primeiro fica.
                   if (p?.cnpj && !p.cnpj.startsWith(CNPJ_FETELY_PREFIXO)) {
