@@ -546,11 +546,15 @@ function MesaAtendimentoConteudo() {
         icone={Headphones}
         estado="Demanda que chegou por fora do sistema · WhatsApp, Instagram, telefone, e-mail"
         acoes={
-          <Button onClick={() => setAbrirAberto(true)}>
-            <Plus className="mr-1 h-4 w-4" /> Registrar demanda
-          </Button>
+          podeEditar && (
+            <Button onClick={() => setAbrirAberto(true)}>
+              <Plus className="mr-1 h-4 w-4" /> Registrar demanda
+            </Button>
+          )
         }
       />
+
+      {!podeEditar && <AvisoSomenteLeitura />}
 
       {/* ── 1. Resumo por cadeira */}
       {carga.isError ? (
