@@ -6,6 +6,7 @@
  * dívida — qualquer enriquecimento entra AQUI.
  */
 import { XMLParser } from "https://esm.sh/fast-xml-parser@4.4.1";
+import { alertarDevolucaoSemReferencia, normalizarChaveNfe } from "./nf-referenciada.ts";
 
 export const soDigitos = (s: unknown) => String(s ?? "").replace(/\D/g, "");
 
