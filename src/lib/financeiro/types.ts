@@ -111,6 +111,11 @@ export interface NFParsed {
   // Parceiro_id resolvido após auto-cadastro (sobrescreve a busca por CNPJ no import-handler)
   _parceiro_id_resolvido?: string;
 
+  // Grupo NFref/refNFe + finalidade (ide/finNFe). Devolução (fin_nfe=4) sem chave
+  // referenciada é documento incompleto — o parser loga a anomalia.
+  fin_nfe?: number | null;
+  nf_referenciada_chave?: string | null;
+
   // Grupo <cobr> da NF-e (fatura + duplicatas). null quando o XML não tem <cobr>.
   duplicatas?: {
     fat: { nFat: string; vOrig: number; vDesc: number; vLiq: number } | null;
