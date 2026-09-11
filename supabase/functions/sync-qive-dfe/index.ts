@@ -12,6 +12,12 @@
  * lidas na última execução.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import {
+  alertarDevolucaoSemReferencia,
+  extrairFinNFeDoXml,
+  extrairRefNFeDoXml,
+  normalizarChaveNfe,
+} from "../_shared/nf-referenciada.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,6 +58,8 @@ interface ResumoEntidade {
 interface DocQive {
   chave: string | null;
   xmlBase64: string | null;
+  /** Documento cru da API (sem o XML) — só para diagnóstico de campo ausente. */
+  bruto: Record<string, unknown> | null;
 }
 
 const novoResumo = (simulado: boolean): ResumoEntidade => ({
@@ -87,11 +95,41 @@ function extrairCursor(nextUrl: string | null): string | null {
   }
 }
 
+/**
+ * Copia o documento cru da API sem o XML (que é enorme e já é parseado).
+ * Serve de diagnóstico quando a chave referenciada não aparece em lugar nenhum.
+ */
+function semXml(d: any): Record<string, unknown> | null {
+  if (!d || typeof d !== "object") return null;
+  const copia: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(d)) {
+    if (k === "xml" || k === "Xml") continue;
+    copia[k] = v;
+  }
+  return copia;
+}
+
+/**
+ * Fallback JSON: a API da Qive pode trazer a nota referenciada em campos de nome
+ * variável (referenced_access_key, refNFe, nfe_referenciada…). Em vez de adivinhar o
+ * nome, procura qualquer chave de 44 dígitos no documento cru que seja DIFERENTE da
+ * chave da própria nota.
+ */
+function refNFeDoJson(bruto: Record<string, unknown> | null, chavePropria: string | null): string | null {
+  if (!bruto) return null;
+  const texto = JSON.stringify(bruto);
+  for (const m of texto.matchAll(/\d{44}/g)) {
+    if (m[0] !== chavePropria) return m[0];
+  }
+  return null;
+}
+
 /** Envelope v1 (sandbox + produção): { data: [{access_key, xml}], page: {next} } */
 function adaptarV1(json: any): { docs: DocQive[]; nextUrl: string | null; cursor: string | null; total: number | null } {
   const docs: DocQive[] = (Array.isArray(json?.data) ? json.data : []).map((d: any) => ({
     chave: typeof d?.access_key === "string" ? d.access_key : null,
     xmlBase64: typeof d?.xml === "string" ? d.xml : null,
+    bruto: semXml(d),
   }));
   const nextUrl = typeof json?.page?.next === "string" && json.page.next ? json.page.next : null;
   const cursor = extrairCursor(nextUrl);
@@ -108,6 +146,7 @@ function adaptarV2(json: any): { docs: DocQive[]; next: string | null; total: nu
   const docs: DocQive[] = lista.map((d: any) => ({
     chave: typeof d?.access_key === "string" ? d.access_key : (d?.AccessKey ?? null),
     xmlBase64: typeof d?.xml === "string" ? d.xml : (d?.Xml ?? null),
+    bruto: semXml(d),
   }));
   let next: string | null = null;
   if (typeof json?.Paginator === "string") {
@@ -208,9 +247,15 @@ function parseXml(xml: string): XmlParsed {
       m1(xml, /<dhEmi>([^<]*)<\/dhEmi>/) ?? m1(xml, /<dEmi>([^<]*)<\/dEmi>/),
     ),
     natureza_operacao: m1(xml, /<natOp>([^<]*)<\/natOp>/),
-    fin_nfe: num(m1(xml, /<finNFe>(\d)<\/finNFe>/)),
+    fin_nfe: extrairFinNFeDoXml(xml),
     tp_nf: m1(xml, /<tpNF>(\d)<\/tpNF>/),
-    referenciada: m1(xml, /<refNFe>(\d{44})<\/refNFe>/),
+    // REF-NFE-TOLERANTE: o regex antigo `<refNFe>(\d{44})</refNFe>` não casava com
+    // espaço, quebra de linha ou prefixo de namespace — foi assim que a NF 26133/10
+    // da UTILPLAST entrou como devolução sem chave referenciada.
+    referenciada: normalizarChaveNfe(extrairRefNFeDoXml(xml), {
+      numero: m1(xml, /<nNF>([^<]*)<\/nNF>/),
+      fonte: "qive",
+    }),
     cnpj: m1(emitBloco, /<CNPJ>(\d{14})<\/CNPJ>/),
     razao_social: m1(emitBloco, /<xNome>([^<]*)<\/xNome>/),
     valor: num(m1(totalBloco, /<vNF>([\d.]+)<\/vNF>/)),
@@ -399,6 +444,30 @@ Deno.serve(async (req) => {
 
                 const numero = p?.numero ?? null;
 
+                // Chave referenciada: XML primeiro; se não vier, tenta o JSON cru da
+                // Qive. Sempre normalizada (44 dígitos) — chave de outro tamanho não
+                // é gravada, para não casar com a nota errada.
+                let referenciada = p?.referenciada ?? null;
+                if (!referenciada) {
+                  referenciada = normalizarChaveNfe(refNFeDoJson(doc.bruto, chave), {
+                    numero,
+                    fonte: "qive_json",
+                  });
+                }
+
+                // FAIL-LOUD: devolução sem nota referenciada é documento incompleto.
+                // Não bloqueia a ingestão — a nota entra com o alarme aceso.
+                alertarDevolucaoSemReferencia({
+                  fin_nfe: p?.fin_nfe ?? null,
+                  chave_referenciada: referenciada,
+                  numero,
+                  serie: p?.serie ?? null,
+                  cnpj_emitente: p?.cnpj ?? null,
+                  fonte: `qive/${entidade}`,
+                  diagnostico: doc.bruto,
+                });
+
+
                 if (resumo.amostra.length < 5) {
                   const cfops = Array.from(
                     new Set(
@@ -416,7 +485,7 @@ Deno.serve(async (req) => {
                     valor: p?.valor ?? null,
                     natureza_operacao: p?.natureza_operacao ?? null,
                     fin_nfe: p?.fin_nfe ?? null,
-                    referenciada: p?.referenciada ?? null,
+                    referenciada,
                     qtd_itens: p?.itens?.length ?? 0,
                     cfops,
                   });
@@ -439,7 +508,7 @@ Deno.serve(async (req) => {
                     resumo.ja_existiam++;
                   } else {
                     resumo.seriam_gravados++;
-                    if (p?.referenciada) resumo.com_referencia++;
+                    if (referenciada) resumo.com_referencia++;
                   }
                   continue;
                 }
@@ -464,7 +533,7 @@ Deno.serve(async (req) => {
                     p_valor: p?.valor ?? null,
                     p_natureza_operacao: p?.natureza_operacao ?? null,
                     p_fin_nfe: p?.fin_nfe ?? null,
-                    p_nf_referenciada_chave: p?.referenciada ?? null,
+                    p_nf_referenciada_chave: referenciada,
                     p_itens: p?.itens ?? null,
                     p_descricao: `${entidade.toUpperCase()} ${numero ?? chave.slice(-9)} · Qive`,
                   },
@@ -491,7 +560,7 @@ Deno.serve(async (req) => {
                   resumo.ja_existiam++;
                 } else {
                   resumo.gravados++;
-                  if (p?.referenciada) resumo.com_referencia++;
+                  if (referenciada) resumo.com_referencia++;
                   // QIVE-MANDA-EM-NOTA-DE-FORNECEDOR: emitente externo é fonte
                   // autoritativa; quem chegou primeiro fica.
                   if (p?.cnpj && !p.cnpj.startsWith(CNPJ_FETELY_PREFIXO)) {

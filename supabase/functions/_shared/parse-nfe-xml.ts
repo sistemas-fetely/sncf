@@ -6,6 +6,7 @@
  * dívida — qualquer enriquecimento entra AQUI.
  */
 import { XMLParser } from "https://esm.sh/fast-xml-parser@4.4.1";
+import { alertarDevolucaoSemReferencia, normalizarChaveNfe } from "./nf-referenciada.ts";
 
 export const soDigitos = (s: unknown) => String(s ?? "").replace(/\D/g, "");
 
@@ -98,10 +99,25 @@ export function parseXmlNfe(xmlString: string) {
     infCpl.match(/CONTAINER[:\s]*([A-Za-z0-9-]+)/i) ||
     infCpl.match(/CONT[EÊ]INER[:\s]*([A-Za-z0-9-]+)/i);
 
+  // CHAVE-REFERENCIADA-SO-COM-44-DIGITOS: chave de outro tamanho não é gravada —
+  // chave truncada casaria com nota errada em fn_devolucao_sugerir_vinculos.
   const nfRefChave =
     arr<any>(ide.NFref)
-      .map((r) => txt(r?.refNFe))
+      .map((r) =>
+        normalizarChaveNfe(r?.refNFe, { numero: txt(ide.nNF), fonte: "xml" }),
+      )
       .find((v) => !!v) ?? null;
+
+  // FAIL-LOUD: devolução (finNFe=4) sem refNFe é documento incompleto. Só loga —
+  // a leitura continua e a nota entra normalmente.
+  alertarDevolucaoSemReferencia({
+    fin_nfe: numOuNull(ide.finNFe),
+    chave_referenciada: nfRefChave,
+    numero: txt(ide.nNF),
+    serie: txt(ide.serie),
+    cnpj_emitente: soDigitos(emit?.CNPJ) || null,
+    fonte: "xml",
+  });
 
   const dets = arr<any>(infNFe.det);
   const linhas: LinhaNfeParsed[] = dets.map((det, i) => {

@@ -7277,6 +7277,7 @@ export type Database = {
           created_at: string
           descricao: string
           destino_por_parceiro: boolean
+          eh_devolucao: boolean
           eh_venda: boolean
           exige_destino_proprio: boolean
           motivo_consumo: string | null
@@ -7286,6 +7287,7 @@ export type Database = {
           natureza: string | null
           observacao: string | null
           origem_por_parceiro: boolean
+          sentido: string | null
           updated_at: string
         }
         Insert: {
@@ -7300,6 +7302,7 @@ export type Database = {
           created_at?: string
           descricao: string
           destino_por_parceiro?: boolean
+          eh_devolucao?: boolean
           eh_venda?: boolean
           exige_destino_proprio?: boolean
           motivo_consumo?: string | null
@@ -7309,6 +7312,7 @@ export type Database = {
           natureza?: string | null
           observacao?: string | null
           origem_por_parceiro?: boolean
+          sentido?: string | null
           updated_at?: string
         }
         Update: {
@@ -7323,6 +7327,7 @@ export type Database = {
           created_at?: string
           descricao?: string
           destino_por_parceiro?: boolean
+          eh_devolucao?: boolean
           eh_venda?: boolean
           exige_destino_proprio?: boolean
           motivo_consumo?: string | null
@@ -7332,6 +7337,7 @@ export type Database = {
           natureza?: string | null
           observacao?: string | null
           origem_por_parceiro?: boolean
+          sentido?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -29488,6 +29494,7 @@ export type Database = {
       nf_devolucao_vinculo: {
         Row: {
           chave_referenciada: string
+          classe: string
           confirmado_em: string | null
           confirmado_por: string | null
           confirmado_por_nome: string | null
@@ -29507,6 +29514,7 @@ export type Database = {
         }
         Insert: {
           chave_referenciada: string
+          classe?: string
           confirmado_em?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
@@ -29526,6 +29534,7 @@ export type Database = {
         }
         Update: {
           chave_referenciada?: string
+          classe?: string
           confirmado_em?: string | null
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
@@ -70414,6 +70423,7 @@ export type Database = {
       vw_devolucao_vinculo_mesa: {
         Row: {
           adiantamento_vivo: number | null
+          classe: string | null
           cliente: string | null
           confirmado_em: string | null
           confirmado_por_nome: string | null
@@ -82228,14 +82238,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

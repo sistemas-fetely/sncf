@@ -4,6 +4,7 @@
 
 import type { ItemNFParsed, NFParsed } from "./types";
 import { mapearMeioPagamentoXml } from "./parsers";
+import { alertarDevolucaoSemReferencia, normalizarChaveNfe } from "./chave-nfe";
 
 const NFE_NS = "http://www.portalfiscal.inf.br/nfe";
 
@@ -118,7 +119,34 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
   const dhEmi = tag(ide, "dhEmi") || tag(ide, "dEmi");
   const dataEmissao = dhEmi ? dhEmi.substring(0, 10) : null;
 
+  // NFref/refNFe + finalidade: este parser não lia nenhum dos dois, então toda
+  // devolução importada pela tela nascia sem a nota referenciada.
+  const finNfe = parseInt(tag(ide, "finNFe"), 10);
+  const fin_nfe = Number.isFinite(finNfe) ? finNfe : null;
+  const nfRefEls = ide ? Array.from(ide.getElementsByTagName("*")) : [];
+  let refBruto = "";
+  for (const el of nfRefEls) {
+    if (el.localName === "refNFe" || el.nodeName.replace(/^.*:/, "") === "refNFe") {
+      refBruto = (el.textContent || "").trim();
+      if (refBruto) break;
+    }
+  }
+  const nf_referenciada_chave = normalizarChaveNfe(refBruto, {
+    numero: tag(ide, "nNF"),
+    fonte: "xml_nfe (tela)",
+  });
+  alertarDevolucaoSemReferencia({
+    fin_nfe,
+    chave_referenciada: nf_referenciada_chave,
+    numero: tag(ide, "nNF"),
+    serie: tag(ide, "serie"),
+    cnpj_emitente: tag(emit, "CNPJ").replace(/\D/g, ""),
+    fonte: "xml_nfe (tela)",
+  });
+
   return {
+    fin_nfe,
+    nf_referenciada_chave,
     nf_chave_acesso: chave || undefined,
     nf_numero: tag(ide, "nNF"),
     nf_serie: tag(ide, "serie"),
