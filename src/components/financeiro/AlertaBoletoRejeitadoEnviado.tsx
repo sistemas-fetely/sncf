@@ -31,7 +31,7 @@ const sb = supabase as any;
 type Linha = {
   id: string;
   numero_titulo: string | null;
-  valor_bruto: number | null;
+  valor_atual: number | null;
   data_vencimento_atual: string | null;
   boleto_enviado_em: string | null;
   boleto_codigo_rejeicao: string | null;
