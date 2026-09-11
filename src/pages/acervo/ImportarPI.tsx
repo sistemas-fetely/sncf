@@ -277,13 +277,178 @@ export default function ImportarPI() {
       );
       setLoteId(r.loteId);
       setGravadas(r.gravadas);
+      setContagens(null);
+      setProposta(null);
+      setPropostaVista(false);
+      setRegistroResultado(null);
+      setRegistroVisto(false);
+      setErro401(false);
+      setColunasCriadas(null);
+      setBaixou(false);
       toast.success(`${r.gravadas} linha(s) gravada(s) em estágio`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(msgErro(e));
     } finally {
       setGravando(false);
     }
   }
+
+  // ---------- PASSO 4 ----------
+  const stageQuery = useQuery({
+    queryKey: ["pi-import-stage", loteId],
+    enabled: !!loteId && !!contagens,
+    queryFn: async (): Promise<LinhaStage[]> => {
+      const { data, error } = await supabase
+        .from("pi_import_stage")
+        .select("linha_num, sku, cod_cadastro, ean, dun, inner_qtd, estado, motivo")
+        .eq("lote_id", loteId!)
+        .order("linha_num");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as LinhaStage[];
+    },
+  });
+
+  const linhasStage = stageQuery.data ?? [];
+  const aAlocar = linhasStage.filter((l) => l.estado === "a_alocar");
+  const paraFop = linhasStage.filter((l) => l.estado === "reconhecido" || l.estado === "alocado");
+  const comCodigo = linhasStage.filter((l) => l.cod_cadastro || l.ean || l.dun);
+
+  async function conferir() {
+    if (!loteId) return;
+    setConferindo(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_pi_conferir_lote", { p_lote_id: loteId });
+      if (error) throw new Error(error.message);
+      const obj = (data ?? {}) as Record<string, number>;
+      setContagens(obj);
+      await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
+      toast.success("Lote conferido");
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setConferindo(false);
+    }
+  }
+
+  // ---------- PASSO 5 ----------
+  async function alocar(dryRun: boolean) {
+    const inner = Number(innerQtd);
+    if (!Number.isFinite(inner) || inner <= 0) {
+      toast.error("Informe o Inner — vem do packing list da fábrica");
+      return;
+    }
+    if (!motivoAloc.trim()) {
+      toast.error("Informe o motivo da alocação");
+      return;
+    }
+    setAlocando(true);
+    try {
+      const { data, error } = await supabase.rpc("fn_cartorio_alocar", {
+        p_qtd: aAlocar.length,
+        p_inner: inner,
+        p_motivo: motivoAloc.trim(),
+        p_dry_run: dryRun,
+      });
+      if (error) throw new Error(error.message);
+      const r = (data ?? {}) as { codigos?: Record<string, unknown>[]; livres_depois?: number };
+      if (dryRun) {
+        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
+        setPropostaVista(true);
+        toast.success(`Proposta para ${r.codigos?.length ?? 0} código(s)`);
+      } else {
+        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
+        setPropostaVista(false);
+        await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
+        toast.success(`${r.codigos?.length ?? 0} código(s) alocado(s)`);
+      }
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setAlocando(false);
+    }
+  }
+
+  // ---------- PASSO 6 ----------
+  async function registrarFop(dryRun: boolean) {
+    const itens = paraFop.map((l) => ({
+      cod_cadastro: l.cod_cadastro,
+      ean: l.ean,
+      ...(l.sku ? { sku: l.sku } : {}),
+    }));
+    if (itens.length === 0) {
+      toast.error("Nenhuma linha reconhecida ou alocada para registrar");
+      return;
+    }
+    setRegistrando(true);
+    setErro401(false);
+    try {
+      const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
+        body: { tipo: "registrar_pi", itens, dry_run: dryRun },
+      });
+      if (error) {
+        const status = (error as { context?: { status?: number } }).context?.status;
+        if (status === 401) {
+          setErro401(true);
+          throw new Error("401 — registrar exige sessão de usuário ativa");
+        }
+        throw new Error(error.message);
+      }
+      const res = (data as { resultado?: { itens?: Record<string, unknown>[] } } | null)?.resultado;
+      setRegistroResultado(res?.itens ?? []);
+      if (dryRun) {
+        setRegistroVisto(true);
+        toast.success(`${res?.itens?.length ?? 0} item(ns) avaliado(s)`);
+      } else {
+        setRegistroVisto(false);
+        toast.success("Itens registrados no FOP");
+      }
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setRegistrando(false);
+    }
+  }
+
+  // ---------- PASSO 7 ----------
+  async function baixarPlanilha() {
+    if (!arquivoOriginal || !cabecalho) {
+      toast.error("Arquivo original indisponível — leia a planilha novamente");
+      return;
+    }
+    setBaixando(true);
+    try {
+      const preenchimentos: PreenchimentoLinha[] = comCodigo.map((l) => ({
+        linhaNum: l.linha_num,
+        cod_cadastro: l.cod_cadastro,
+        ean: l.ean,
+        dun: l.dun,
+      }));
+      const r = await devolverPlanilhaPI({
+        file: arquivoOriginal,
+        aba,
+        linhaCabecalho: cabecalho.linhaCabecalho,
+        mapeamento,
+        colunas: cabecalho.colunas,
+        preenchimentos,
+      });
+      const url = URL.createObjectURL(r.blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = r.nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setColunasCriadas(r.colunasCriadas);
+      setBaixou(true);
+      toast.success(`${r.linhasPreenchidas} linha(s) preenchida(s) em ${r.nomeArquivo}`);
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setBaixando(false);
+    }
+  }
+
 
   return (
     <PageShell>
