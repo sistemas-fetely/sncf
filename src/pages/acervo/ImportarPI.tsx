@@ -2,9 +2,10 @@
 // coercao de EAN/DUN e insert vivem em src/lib/pi/*. Nada julga identidade aqui:
 // quem decide se o item existe e fn_pi_conferir_lote (parte 2).
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, FileSpreadsheet, Info } from "lucide-react";
+import { Loader2, FileSpreadsheet, Info, Download } from "lucide-react";
+
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -21,7 +22,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+
 
 import {
   lerArquivo,
@@ -32,12 +35,41 @@ import {
   type CabecalhoDetectado,
 } from "@/lib/pi/lerPlanilhaPI";
 import { gravarLotePI } from "@/lib/pi/gravarLotePI";
+import { devolverPlanilhaPI, type PreenchimentoLinha } from "@/lib/pi/devolverPlanilhaPI";
+
 
 const IGNORAR = "— ignorar —";
 const CAMPOS_DESTINO = [
   "sku", "cod_cadastro", "ean", "dun", "inner_qtd", "descricao", "qtd", "peso_g",
 ] as const;
 const CAMPOS_IDENTIDADE = ["sku", "cod_cadastro", "ean"];
+
+type LinhaStage = {
+  linha_num: number;
+  sku: string | null;
+  cod_cadastro: string | null;
+  ean: string | null;
+  dun: string | null;
+  inner_qtd: number | null;
+  estado: string | null;
+  motivo: string | null;
+};
+
+const ORDEM_ESTADOS = ["reconhecido", "a_alocar", "erro", "ignorado"] as const;
+
+function badgeEstado(estado: string | null): "default" | "secondary" | "destructive" | "outline" {
+  switch (estado) {
+    case "reconhecido": return "secondary";
+    case "a_alocar":
+    case "alocado": return "default";
+    case "erro": return "destructive";
+    default: return "outline";
+  }
+}
+
+function msgErro(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 function chaveColuna(nome: string, i: number): string {
   return nome || `coluna_${i + 1}`;
@@ -47,8 +79,12 @@ function textoCelula(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+
 export default function ImportarPI() {
+  const queryClient = useQueryClient();
+  const [arquivoOriginal, setArquivoOriginal] = useState<File | null>(null);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
+
   const [abas, setAbas] = useState<string[]>([]);
   const [matrizPorAba, setMatrizPorAba] = useState<Record<string, unknown[][]>>({});
   const [aba, setAba] = useState<string>("");
@@ -65,6 +101,29 @@ export default function ImportarPI() {
   const [gravando, setGravando] = useState(false);
   const [loteId, setLoteId] = useState<string | null>(null);
   const [gravadas, setGravadas] = useState<number>(0);
+
+  // passo 4
+  const [conferindo, setConferindo] = useState(false);
+  const [contagens, setContagens] = useState<Record<string, number> | null>(null);
+
+  // passo 5
+  const [innerQtd, setInnerQtd] = useState("");
+  const [motivoAloc, setMotivoAloc] = useState("");
+  const [propostaVista, setPropostaVista] = useState(false);
+  const [proposta, setProposta] = useState<{ codigos: Record<string, unknown>[]; livres_depois: number | null } | null>(null);
+  const [alocando, setAlocando] = useState(false);
+
+  // passo 6
+  const [registroVisto, setRegistroVisto] = useState(false);
+  const [registroResultado, setRegistroResultado] = useState<Record<string, unknown>[] | null>(null);
+  const [registrando, setRegistrando] = useState(false);
+  const [erro401, setErro401] = useState(false);
+
+  // passo 7
+  const [baixando, setBaixando] = useState(false);
+  const [colunasCriadas, setColunasCriadas] = useState<string[] | null>(null);
+  const [baixou, setBaixou] = useState(false);
+
 
   const sinonimosQuery = useQuery({
     queryKey: ["pi-coluna-sinonimo"],
