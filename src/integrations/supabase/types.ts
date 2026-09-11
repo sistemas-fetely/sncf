@@ -38289,6 +38289,7 @@ export type Database = {
           transportadora_id: string | null
           transportadora_origem: string | null
           triado_em: string | null
+          updated_at: string
           urgencia_declarada: string
           urgencia_observacao: string | null
           valor_bruto: number
@@ -38399,6 +38400,7 @@ export type Database = {
           transportadora_id?: string | null
           transportadora_origem?: string | null
           triado_em?: string | null
+          updated_at?: string
           urgencia_declarada?: string
           urgencia_observacao?: string | null
           valor_bruto: number
@@ -38509,6 +38511,7 @@ export type Database = {
           transportadora_id?: string | null
           transportadora_origem?: string | null
           triado_em?: string | null
+          updated_at?: string
           urgencia_declarada?: string
           urgencia_observacao?: string | null
           valor_bruto?: number
