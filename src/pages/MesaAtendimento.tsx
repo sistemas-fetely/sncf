@@ -221,8 +221,17 @@ function ErroQuery({ o_que, erro }: { o_que: string; erro: unknown }) {
 }
 
 export default function MesaAtendimento() {
+  return (
+    <PermissaoTelaProvider slug="tela.mesa_atendimento">
+      <MesaAtendimentoConteudo />
+    </PermissaoTelaProvider>
+  );
+}
+
+function MesaAtendimentoConteudo() {
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { podeEditar } = usePermissaoTelaContext();
 
   // ── filtros da fila
   const [fCadeira, setFCadeira] = useState("todas");
