@@ -7,7 +7,11 @@
  * mãos. O cliente está com um documento inválido e precisa ser avisado.
  *
  * O alerta cai sozinho quando um novo boleto é registrado para o título (o
- * `boleto_status` deixa de ser 'rejeitado'). Bloco somente LEITURA.
+ * `boleto_status` deixa de ser 'rejeitado').
+ *
+ * Restrição: considera apenas títulos com status 'aberto'. Títulos
+ * cancelados/pagos/devolvidos não entram porque não há boleto a reemitir.
+ * Bloco somente LEITURA.
  */
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
