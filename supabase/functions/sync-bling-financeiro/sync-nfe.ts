@@ -1,4 +1,10 @@
 import type { BlingClient } from "../_shared/bling/bling-client.ts";
+import {
+  alertarDevolucaoSemReferencia,
+  extrairFinNFeDoXml,
+  extrairRefNFeDoXml,
+  normalizarChaveNfe,
+} from "../_shared/nf-referenciada.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
