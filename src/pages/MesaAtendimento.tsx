@@ -982,8 +982,8 @@ export default function MesaAtendimento() {
           <DialogHeader>
             <DialogTitle>Escalar {escalando?.codigo ?? ""}</DialogTitle>
             <DialogDescription>
-              Cadeira atual: {escalando?.cadeira ?? "—"}. O motivo é obrigatório e fica
-              registrado na trilha permanente da demanda.
+              Cadeira atual: {escalando?.cadeira ?? "—"}. Escalar sobe a camada da
+              demanda e fica registrado na trilha.
             </DialogDescription>
           </DialogHeader>
 
@@ -1022,13 +1022,13 @@ export default function MesaAtendimento() {
 
             <div className="space-y-1.5">
               <Label>
-                Motivo <span className="text-destructive">*</span>
+                Por que está escalando <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 rows={4}
                 value={motivoEscalar}
                 onChange={(e) => setMotivoEscalar(e.target.value)}
-                placeholder="Por que esta cadeira não resolve e o que a próxima precisa fazer"
+                placeholder="O que você tentou e por que precisa de outra cadeira"
               />
               <p className="text-xs text-muted-foreground">
                 Obrigatório — vai para a trilha permanente e não pode ser apagado.
@@ -1053,8 +1053,8 @@ export default function MesaAtendimento() {
           <DialogHeader>
             <DialogTitle>Devolver {devolvendo?.codigo ?? ""}</DialogTitle>
             <DialogDescription>
-              Volta para a cadeira de entrada (Atendimento ao Cliente) com a instrução de
-              como resolver. Fica na trilha permanente.
+              Devolver manda a demanda de volta para a cadeira de entrada COM a
+              instrução de como resolver.
             </DialogDescription>
           </DialogHeader>
 
@@ -1066,11 +1066,11 @@ export default function MesaAtendimento() {
               rows={5}
               value={comoResolver}
               onChange={(e) => setComoResolver(e.target.value)}
-              placeholder="O passo a passo que quem recebe deve seguir para resolver"
-            />
-            <p className="text-xs text-muted-foreground">
-              Obrigatório — é a instrução de resolução, não uma justificativa.
-            </p>
+                placeholder="Explique o passo a passo para quem vai resolver na entrada"
+              />
+              <p className="text-xs text-muted-foreground">
+                Obrigatório — a instrução é o que fecha a lacuna de autoatendimento.
+              </p>
           </div>
 
           <DialogFooter>
