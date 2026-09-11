@@ -109,9 +109,8 @@ export function useTransicionarPedido() {
     },
     onError: (e: Error, variables) => {
       const msg = e.message ?? "";
-      // Financeiro ANTES do físico: a mensagem financeira contém a marca física
-      // como substring ("sem lastro financeiro para descer a pre-separacao"
-      // inclui "...para descer a pre-separacao"), então a ordem decide.
+      // Financeiro ANTES do físico: são marcas distintas, mas a financeira é a
+      // mais específica — testar primeiro evita qualquer colisão futura.
       if (msg.includes(MARCA_SEM_LASTRO_FIN) && !variables?.motivo) {
         setFaltaLastroFinanceiro(parseLastroFinanceiro(msg));
         return;
