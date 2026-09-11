@@ -47,9 +47,10 @@ export function AlertaBoletoRejeitadoEnviado() {
       const { data, error } = await sb
         .from("titulo_a_receber")
         .select(
-          "id, numero_titulo, valor_bruto, data_vencimento_atual, boleto_enviado_em, boleto_codigo_rejeicao, nosso_numero_seq, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
+          "id, numero_titulo, valor_atual, data_vencimento_atual, boleto_enviado_em, boleto_codigo_rejeicao, nosso_numero_seq, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social))",
         )
         .eq("boleto_status", "rejeitado")
+        .eq("status", "aberto")
         .not("boleto_enviado_em", "is", null)
         .order("boleto_enviado_em", { ascending: false })
         .limit(200);
