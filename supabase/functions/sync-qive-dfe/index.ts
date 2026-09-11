@@ -95,6 +95,35 @@ function extrairCursor(nextUrl: string | null): string | null {
   }
 }
 
+/**
+ * Copia o documento cru da API sem o XML (que é enorme e já é parseado).
+ * Serve de diagnóstico quando a chave referenciada não aparece em lugar nenhum.
+ */
+function semXml(d: any): Record<string, unknown> | null {
+  if (!d || typeof d !== "object") return null;
+  const copia: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(d)) {
+    if (k === "xml" || k === "Xml") continue;
+    copia[k] = v;
+  }
+  return copia;
+}
+
+/**
+ * Fallback JSON: a API da Qive pode trazer a nota referenciada em campos de nome
+ * variável (referenced_access_key, refNFe, nfe_referenciada…). Em vez de adivinhar o
+ * nome, procura qualquer chave de 44 dígitos no documento cru que seja DIFERENTE da
+ * chave da própria nota.
+ */
+function refNFeDoJson(bruto: Record<string, unknown> | null, chavePropria: string | null): string | null {
+  if (!bruto) return null;
+  const texto = JSON.stringify(bruto);
+  for (const m of texto.matchAll(/\d{44}/g)) {
+    if (m[0] !== chavePropria) return m[0];
+  }
+  return null;
+}
+
 /** Envelope v1 (sandbox + produção): { data: [{access_key, xml}], page: {next} } */
 function adaptarV1(json: any): { docs: DocQive[]; nextUrl: string | null; cursor: string | null; total: number | null } {
   const docs: DocQive[] = (Array.isArray(json?.data) ? json.data : []).map((d: any) => ({
