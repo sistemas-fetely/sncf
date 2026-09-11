@@ -100,6 +100,7 @@ function adaptarV1(json: any): { docs: DocQive[]; nextUrl: string | null; cursor
   const docs: DocQive[] = (Array.isArray(json?.data) ? json.data : []).map((d: any) => ({
     chave: typeof d?.access_key === "string" ? d.access_key : null,
     xmlBase64: typeof d?.xml === "string" ? d.xml : null,
+    bruto: semXml(d),
   }));
   const nextUrl = typeof json?.page?.next === "string" && json.page.next ? json.page.next : null;
   const cursor = extrairCursor(nextUrl);
