@@ -117,6 +117,7 @@ function adaptarV2(json: any): { docs: DocQive[]; next: string | null; total: nu
   const docs: DocQive[] = lista.map((d: any) => ({
     chave: typeof d?.access_key === "string" ? d.access_key : (d?.AccessKey ?? null),
     xmlBase64: typeof d?.xml === "string" ? d.xml : (d?.Xml ?? null),
+    bruto: semXml(d),
   }));
   let next: string | null = null;
   if (typeof json?.Paginator === "string") {
