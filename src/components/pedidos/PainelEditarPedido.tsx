@@ -216,7 +216,9 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
   const bloqueadoPeloImpacto = caminho === "financeiro" || caminho === "bloqueado";
   const podeAplicar = impacto?.pode_aplicar !== false;
   const papeisAlcada = impacto?.papeis_com_alcada || [];
-  const mostrarReanalise = !!impacto && impacto.pode_aplicar === false && !bloqueadoPeloImpacto;
+  // Ter alçada para aplicar não significa que aplicar seja o caminho certo:
+  // quando a condição fura o envelope, as duas portas ficam visíveis para todos.
+  const mostrarReanalise = !!impacto && caminho === "re_analise" && !bloqueadoPeloImpacto;
 
   const reabrir = useMutation({
     mutationFn: async () => {
@@ -442,9 +444,15 @@ function SecaoPagamento({ pedidoId, pedido, guarda }: {
               pending={salvar.isPending}
               motivoTooltip={tooltipAlcada || tooltipPapel}
             >
-              Salvar
+              {caminho === "re_analise" ? "Aplicar por alçada" : "Salvar"}
             </BotaoSalvar>
           </DialogFooter>
+          {caminho === "re_analise" && podeAplicar && (
+            <p className="text-xs text-muted-foreground">
+              Aplicar por alçada assume a exposição sem carimbo do crédito — fica
+              registrado na auditoria até uma nova análise cobrir a condição.
+            </p>
+          )}
 
         </DialogContent>
       </Dialog>
