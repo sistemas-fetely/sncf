@@ -457,7 +457,6 @@ async function syncNfeEntradas(
         const natureza = natOpXml ?? natJson;
 
         const doc = String(d.contato?.numeroDocumento ?? nf.contato?.numeroDocumento ?? "").replace(/\D/g, "");
-        const numero = d.numero != null ? String(d.numero) : (nf.numero != null ? String(nf.numero) : null);
 
         const linha: any = {
           fonte: "bling_entrada",
