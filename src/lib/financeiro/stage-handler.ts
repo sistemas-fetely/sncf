@@ -159,6 +159,11 @@ export async function moverParaStage(
         total_parcelas: nf.total_parcelas ?? null,
         duplicatas: nf.duplicatas ?? null,
         meio_pagamento: nf.meio_pagamento ?? null,
+        // NFref/finNFe lidos do XML. ATENÇÃO: `merge_nf_stage` hoje não copia estes
+        // dois campos para nfs_stage — vão no payload para que a correção da RPC não
+        // precise mexer na tela. O reprocesso (`reprocessar-nf-stage`) preenche.
+        fin_nfe: nf.fin_nfe ?? null,
+        nf_referenciada_chave: nf.nf_referenciada_chave ?? null,
       };
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
