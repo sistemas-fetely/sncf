@@ -361,16 +361,19 @@ return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalid
 // finNFe e natOp existem somente no XML (verificado na NF real 000402: finNFe=4,
 // natOp="Devolucao de Venda de Mercadoria"). A URL do campo `xml` ja vem assinada —
 // GET puro, sem Authorization. Um GET so, regex simples, sem parser novo.
-async function lerXmlNfe(xmlUrl: string): Promise<{ refNFe: string | null; finNFe: number | null; natOp: string | null }> {
+async function lerXmlNfe(
+  xmlUrl: string,
+  numero: string | null,
+): Promise<{ refNFe: string | null; finNFe: number | null; natOp: string | null }> {
   const res = await fetch(xmlUrl);
   if (!res.ok) throw new Error(`XML ${res.status}`);
   const txt = await res.text();
-  const mRef = txt.match(/<refNFe>(\d{44})<\/refNFe>/);
-  const mFin = txt.match(/<finNFe>(\d)<\/finNFe>/);
-  const mNat = txt.match(/<natOp>([^<]*)<\/natOp>/);
+  // REF-NFE-TOLERANTE: o regex antigo exigia a chave colada na tag e sem prefixo de
+  // namespace — devolução com XML indentado perdia a refNFe em silêncio.
+  const mNat = txt.match(/<(?:\w+:)?natOp\b[^>]*>([^<]*)<\/(?:\w+:)?natOp>/i);
   return {
-    refNFe: mRef ? mRef[1] : null,
-    finNFe: mFin ? Number(mFin[1]) : null,
+    refNFe: normalizarChaveNfe(extrairRefNFeDoXml(txt), { numero, fonte: "bling_entrada" }),
+    finNFe: extrairFinNFeDoXml(txt),
     natOp: mNat ? mNat[1].trim() : null,
   };
 }
