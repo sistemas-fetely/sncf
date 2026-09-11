@@ -19,6 +19,7 @@ import { usePreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/DeclararCancelamentoXpmDialog";
 import { CancelarExpedicaoXpmDialog } from "@/components/pedidos/dialogs/CancelarExpedicaoXpmDialog";
 import { PREFIXO_PRE_VOO } from "@/lib/pedidos/xpm";
+import { useLiberaRefaturamento } from "@/hooks/pedidos/useProblemasPedido";
 
 
 interface Props {
@@ -89,6 +90,11 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     estagio === "pre_separacao" || estagio === "em_separacao",
   );
 
+  // Hook antes de qualquer return: a RPC decide se o reenvio existe fora dos
+  // estagios de separacao (problema aberto de tipo que libera refaturamento).
+  const { data: refat, isError: refatErro, error: refatErroObj } = useLiberaRefaturamento(pedido_id);
+  const liberaRefaturamento = refat?.libera === true;
+
   if (isLoading || estagio === "cancelado") return null;
 
   const semRemessa = !remessas || remessas.length === 0;
@@ -146,9 +152,14 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     r.status !== "cancelada" && !!r.bling_pedido_id &&
     String(r.bling_pedido_id) === String(bling_id_destino)
   );
+  // BOTAO-SEGUE-O-PROBLEMA (11/09/2026): a regra de refaturamento NAO se repete
+  // aqui — quem julga e a RPC `fn_pedido_libera_refaturamento`, a mesma que a edge
+  // `enviar-pedido-bling` consulta. Caso real PED-2174: NF de remessa em consignacao
+  // saiu com desconto errado, cliente devolveu a nota inteira e a carga ja estava
+  // em transito (`em_transporte`) — estagio nenhum na lista antiga tinha botao.
   const podeReenviar =
-    isSuperAdmin && (estagio === "pre_separacao" || estagio === "em_separacao")
-    && !!bling_id_destino && temTentativaVigente;
+    isSuperAdmin && !!bling_id_destino && temTentativaVigente
+    && (estagio === "pre_separacao" || estagio === "em_separacao" || liberaRefaturamento);
 
   if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;
