@@ -260,6 +260,21 @@ serve(async (req) => {
     if (userErr || !userData?.user) {
       return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    const token = authHeader.replace("Bearer ", "");
+    if (!(serviceKey && token === serviceKey)) {
+      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+        p_slug: "acao.remessa_safra",
+      });
+      if (ePerm || permitido !== true) {
+        return new Response(
+          JSON.stringify({ error: "Sem permissão (acao.remessa_safra). Concessão é feita no Console de Acesso." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
+
     const callerId = userData.user.id;
     const sb = createClient(supabaseUrl, serviceKey);
 
