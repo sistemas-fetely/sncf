@@ -1190,6 +1190,27 @@ function PedidosCobrancaTab() {
 
 // ─── CobrancaFila (hub principal com 3 tabs) ─────────────────────────────────
 
+// CASCA-E-ABA (12/09/2026): mesmo padrão do PedidosIndex — a rota tem portão
+// próprio (tela.cobranca_casa) e cada aba tem slug próprio. sem-prova usa
+// tela.cobranca até a fatia futura decidir o slug definitivo.
+const ABAS_COBRANCA = [
+  { value: "mesa", slug: "tela.cobranca_mesa" },
+  { value: "regua", slug: "tela.cobranca_regua" },
+  { value: "sem-prova", slug: "tela.cobranca" },
+  { value: "fila", slug: "tela.cobranca_fila" },
+  { value: "titulos", slug: "tela.cobranca_titulos" },
+  { value: "banco", slug: "tela.cobranca_remessa" },
+] as const;
+type AbaCobranca = (typeof ABAS_COBRANCA)[number]["value"];
+
+function CarregandoAba() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
