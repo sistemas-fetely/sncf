@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, Info, SlidersHorizontal } from "lucide-react";
 import type { PapelNivel } from "@/hooks/useConsoleAcesso";
 
 /**
@@ -26,6 +26,8 @@ interface Props {
   rotuloAria: string;
   onToggle: (valor: boolean) => void;
   onNivel: (nivel: number | null) => void;
+  /** Abre o painel de níveis (a escada, com contagem por nível). */
+  onEntenderNiveis?: () => void;
 }
 
 export default function CelulaConcessao({
@@ -36,6 +38,7 @@ export default function CelulaConcessao({
   rotuloAria,
   onToggle,
   onNivel,
+  onEntenderNiveis,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   const nivelAtual = niveis.find((n) => n.nivel === nivelMinimo) ?? null;
@@ -78,9 +81,25 @@ export default function CelulaConcessao({
             )}
           </PopoverTrigger>
           <PopoverContent align="center" className="z-50 w-52 p-1">
-            <p className="px-2 py-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-              Alçada mínima
-            </p>
+            <div className="flex items-center justify-between gap-1 px-2 py-1">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                Alçada mínima
+              </p>
+              {onEntenderNiveis && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAberto(false);
+                    onEntenderNiveis();
+                  }}
+                  className="rounded-sm p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  title="Entenda os níveis"
+                  aria-label="Entenda os níveis"
+                >
+                  <Info className="h-3 w-3" />
+                </button>
+              )}
+            </div>
             <button
               type="button"
               onClick={() => {

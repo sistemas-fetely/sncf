@@ -50,6 +50,12 @@ export interface ConsoleAcessoRow {
   acao_superficie_id: string | null;
   conferido: boolean | null;
   ordem_linha: number | null;
+  /** Chave do nó de navegação da tela — alvo do toggle "No ar". */
+  nav_chave: string | null;
+  nav_ativo: boolean | null;
+  nav_status: string | null;
+  /** ativo E status='pronta'. Em linhas de ação/escopo vem sempre true. */
+  no_ar: boolean | null;
 }
 
 export const CHAVE_CONSOLE_ACESSO = ["console-acesso"];
@@ -63,7 +69,7 @@ export function useConsoleAcesso() {
       const { data, error } = await (supabase as any)
         .from("vw_console_acesso")
         .select(
-          "linha_id, tipo, app_chave, app_label, app_ordem, grupo_chave, grupo_label, grupo_ordem, item_chave, item_label, eh_aba, tela_ordem, tela_descricao, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha",
+          "linha_id, tipo, app_chave, app_label, app_ordem, grupo_chave, grupo_label, grupo_ordem, item_chave, item_label, eh_aba, tela_ordem, tela_descricao, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha, nav_chave, nav_ativo, nav_status, no_ar",
         )
         .order("app_ordem")
         .order("grupo_ordem")
@@ -266,6 +272,40 @@ export function useLiberarParaGrupo() {
     onSettled: () => {
       qc.invalidateQueries({ queryKey: CHAVE_MATRIZ_GRUPO_PERMISSOES });
       qc.invalidateQueries({ queryKey: ["grupos-acesso-v2"] });
+    },
+  });
+}
+
+/**
+ * TOGGLE "NO AR" da tela, direto na linha do Console.
+ *
+ * Ligar = `ativo = true` + `status = 'pronta'`. Desligar mexe SÓ no status
+ * (`em_construcao`): desligar é obra, não demolição — `ativo` continua como
+ * está. FAIL-LOUD: erro sobe com a mensagem real do banco.
+ */
+export function useToggleNoAr() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ navChave, noAr }: { navChave: string; noAr: boolean }) => {
+      const patch = noAr
+        ? { ativo: true, status: "pronta" }
+        : { status: "em_construcao" };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("sncf_navegacao")
+        .update(patch)
+        .eq("chave", navChave);
+      if (error) throw error;
+      return noAr;
+    },
+    onSuccess: (noAr) =>
+      toast.success(noAr ? "Tela no ar." : "Tela fora do ar (em construção)."),
+    onError: (e: unknown) => toast.error(formatError(e)),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: CHAVE_CONSOLE_ACESSO });
+      qc.invalidateQueries({ queryKey: ["navegacao-portao"] });
+      qc.invalidateQueries({ queryKey: ["navegacao-visibilidade-menu"] });
+      qc.invalidateQueries({ queryKey: ["navegacao-admin"] });
     },
   });
 }

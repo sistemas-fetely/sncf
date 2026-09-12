@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +37,7 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
+  Info,
   Loader2,
   
   Search,
@@ -53,6 +55,7 @@ import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
 import PainelGrupo from "./PainelGrupo";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
 import CelulaConcessao from "./CelulaConcessao";
+import PainelNiveis from "./PainelNiveis";
 import {
   CHAVE_MATRIZ_GRUPO_PERMISSOES,
   useConsoleAcesso,
@@ -62,6 +65,7 @@ import {
   useMatrizGrupoPermissoes,
   usePapeisNivel,
   useDefinirNivelMinimo,
+  useToggleNoAr,
   type ConsoleAcessoRow,
   type GrupoConsole,
 } from "@/hooks/useConsoleAcesso";
@@ -173,6 +177,10 @@ function NumeroFaixa({
 
 interface TelaNodo {
   chave: string;
+  /** Nó de navegação da tela — nulo em tela sem nó. */
+  navChave: string | null;
+  /** ativo E pronta. Falso = tela em obra, atenuada na árvore. */
+  noAr: boolean;
   telaLabel: string;
   descricao: string | null;
   ordem: number;
@@ -329,8 +337,14 @@ function DetalheLinha({
 }
 
 
-export default function ConsoleAcessoTab() {
+export default function ConsoleAcessoTab({
+  niveisAbertoInicial = false,
+}: {
+  /** Abre o painel de níveis já na montagem (quem chega por ?aba=papeis). */
+  niveisAbertoInicial?: boolean;
+} = {}) {
   const telaLarga = useTelaLarga();
+  const [niveisAberto, setNiveisAberto] = useState(niveisAbertoInicial);
 
   const qc = useQueryClient();
   const { roles } = useAuth();
@@ -343,6 +357,7 @@ export default function ConsoleAcessoTab() {
   const liberarParaGrupo = useLiberarParaGrupo();
   const { data: niveis = [] } = usePapeisNivel();
   const definirNivel = useDefinirNivelMinimo();
+  const toggleNoAr = useToggleNoAr();
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
@@ -359,6 +374,7 @@ export default function ConsoleAcessoTab() {
   const [soSemGuarda, setSoSemGuarda] = useState(false);
   const [soAltoSemGuarda, setSoAltoSemGuarda] = useState(false);
   const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);
+  const [soForaDoAr, setSoForaDoAr] = useState(false);
   const [concedidasGrupoId, setConcedidasGrupoId] = useState<string | null>(null);
 
   // ── Liberação em massa (substitui os menus ••• dos cabeçalhos) ──
@@ -399,6 +415,7 @@ export default function ConsoleAcessoTab() {
     soSemGuarda ||
     soAltoSemGuarda ||
     soNaoDeclaradas ||
+    soForaDoAr ||
     !!filtroConcedidas;
 
   function limparFiltros() {
@@ -406,6 +423,7 @@ export default function ConsoleAcessoTab() {
     setSoSemGuarda(false);
     setSoAltoSemGuarda(false);
     setSoNaoDeclaradas(false);
+    setSoForaDoAr(false);
     setConcedidasGrupoId(null);
   }
 
@@ -416,6 +434,7 @@ export default function ConsoleAcessoTab() {
       if (soSemGuarda && !semGuarda(l)) return false;
       if (soAltoSemGuarda && !ehAltoSemGuarda(l)) return false;
       if (soNaoDeclaradas && !(l.tipo === "acao" && naoDeclarada(l))) return false;
+      if (soForaDoAr && l.no_ar !== false) return false;
       if (filtroConcedidas) {
         if (!l.permissao_id) return false;
         if (!concedido.has(`${filtroConcedidas}|${l.permissao_id}`)) return false;
@@ -429,7 +448,16 @@ export default function ConsoleAcessoTab() {
       }
       return true;
     });
-  }, [linhas, busca, soSemGuarda, soAltoSemGuarda, soNaoDeclaradas, filtroConcedidas, concedido]);
+  }, [
+    linhas,
+    busca,
+    soSemGuarda,
+    soAltoSemGuarda,
+    soNaoDeclaradas,
+    soForaDoAr,
+    filtroConcedidas,
+    concedido,
+  ]);
 
   /**
    * Árvore Módulo → Grupo → Tela, montada só a partir da view.
@@ -471,6 +499,8 @@ export default function ConsoleAcessoTab() {
       if (!tela) {
         tela = {
           chave: `${appChave}|${grupoChave}|${telaLabel}`,
+          navChave: l.nav_chave ?? null,
+          noAr: true,
           telaLabel,
           descricao: l.tela_descricao ?? null,
           ordem: l.tela_ordem ?? 9999,
@@ -484,6 +514,11 @@ export default function ConsoleAcessoTab() {
           abas: [],
         };
         grupo.telas.push(tela);
+      }
+      // A linha de tela é a dona do estado "no ar" e da chave de navegação.
+      if (l.tipo === "tela") {
+        tela.navChave = l.nav_chave ?? tela.navChave;
+        tela.noAr = l.no_ar !== false;
       }
       tela.linhas.push(l);
       tela.total += 1;
@@ -557,6 +592,7 @@ export default function ConsoleAcessoTab() {
       altoSemGuarda: semGuardaList.filter((l) => (l.risco ?? "").toUpperCase() === "ALTO")
         .length,
       naoDeclaradas: linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length,
+      foraDoAr: linhas.filter((l) => l.tipo === "tela" && l.no_ar === false).length,
     };
   }, [linhas]);
 
@@ -706,10 +742,16 @@ export default function ConsoleAcessoTab() {
           "flex items-center gap-2 rounded-md px-2 py-1 text-left text-xs transition-colors hover:bg-accent",
           recuoTela[nivel],
           t.chave === telaAtiva?.chave && "bg-accent",
+          !t.noAr && "opacity-55",
         )}
       >
         <span className="min-w-0 flex-1 truncate">{t.telaLabel}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
+          {!t.noAr && (
+            <Badge variant="outline" className="px-1 py-0 text-[9px] font-normal">
+              fora do ar
+            </Badge>
+          )}
           <span className="tabular-nums">
             {porGrupo && grupoLenteId
               ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
@@ -732,6 +774,9 @@ export default function ConsoleAcessoTab() {
     const semDeclaracao = naoDeclarada(l);
     const porFlag = portaoPorFlag(l);
     const bloqueado = semDeclaracao || porFlag || !l.permissao_id;
+    // Tela em obra: linha atenuada, mas concessão segue editável — configurar
+    // acesso de tela fora do ar é legítimo.
+    const foraDoAr = l.no_ar === false;
     return (
       <TableRow
         key={l.linha_id}
@@ -744,6 +789,7 @@ export default function ConsoleAcessoTab() {
           escopo && "bg-accent/30 hover:bg-accent/40",
           !ehTela && !escopo && semGuarda(l) && "bg-warning/5",
           !ehTela && !escopo && l.conferido && "bg-success/5",
+          foraDoAr && "opacity-60",
           detalhe?.linha_id === l.linha_id && "ring-1 ring-inset ring-primary",
         )}
       >
@@ -754,8 +800,40 @@ export default function ConsoleAcessoTab() {
           )}
         >
           {ehTela && (
-            <span className="mb-0.5 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              Acesso à tela
+            <span className="mb-0.5 flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                Acesso à tela
+              </span>
+              {/* TOGGLE "NO AR": ligar publica (ativo + pronta); desligar volta
+                  para em_construcao e NÃO desativa o nó — obra, não demolição. */}
+              {isSuperAdmin && l.nav_chave && (
+                <span
+                  className="inline-flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Switch
+                    id={`no-ar-${l.linha_id}`}
+                    className="h-4 w-7"
+                    checked={!foraDoAr}
+                    disabled={toggleNoAr.isPending}
+                    onCheckedChange={(v) =>
+                      toggleNoAr.mutate({ navChave: l.nav_chave as string, noAr: v })
+                    }
+                    aria-label={`Deixar ${l.rotulo} no ar`}
+                  />
+                  <Label
+                    htmlFor={`no-ar-${l.linha_id}`}
+                    className="cursor-pointer text-[10px] font-normal text-muted-foreground"
+                  >
+                    No ar
+                  </Label>
+                </span>
+              )}
+              {foraDoAr && (
+                <Badge variant="outline" className="px-1 py-0 text-[9px] font-normal">
+                  fora do ar
+                </Badge>
+              )}
             </span>
           )}
           <span className="flex flex-wrap items-center gap-1.5">
@@ -846,6 +924,7 @@ export default function ConsoleAcessoTab() {
                     nivelMinimo: nivel,
                   })
                 }
+                onEntenderNiveis={() => setNiveisAberto(true)}
               />
             ) : (
               <span className="text-[11px] text-muted-foreground">escolha o grupo</span>
@@ -872,6 +951,7 @@ export default function ConsoleAcessoTab() {
                     nivelMinimo: nivel,
                   })
                 }
+                onEntenderNiveis={() => setNiveisAberto(true)}
               />
             </TableCell>
           ))
@@ -954,6 +1034,14 @@ export default function ConsoleAcessoTab() {
           tom="muted"
           ativo={soNaoDeclaradas}
           onClick={() => setSoNaoDeclaradas((v) => !v)}
+        />
+        <span className="text-muted-foreground">·</span>
+        <NumeroFaixa
+          valor={totais.foraDoAr}
+          rotulo="fora do ar"
+          tom="muted"
+          ativo={soForaDoAr}
+          onClick={() => setSoForaDoAr((v) => !v)}
         />
       </div>
 
@@ -1118,7 +1206,14 @@ export default function ConsoleAcessoTab() {
             )}
             <p className="text-[11px] text-muted-foreground">
               Clique na linha para ver o detalhe. O chip na célula aparece só quando há
-              alçada mínima definida — sem chip, qualquer pessoa do grupo executa.
+              alçada mínima definida — sem chip, qualquer pessoa do grupo executa.{" "}
+              <button
+                type="button"
+                onClick={() => setNiveisAberto(true)}
+                className="inline-flex items-center gap-1 font-medium text-primary underline-offset-2 hover:underline"
+              >
+                <Info className="h-3 w-3" /> entenda os níveis
+              </button>
             </p>
 
 
@@ -1413,6 +1508,8 @@ export default function ConsoleAcessoTab() {
         </SheetContent>
       </Sheet>
 
+
+      <PainelNiveis aberto={niveisAberto} onOpenChange={setNiveisAberto} />
 
       <DeclararAcaoDialog
         linha={declarando}
