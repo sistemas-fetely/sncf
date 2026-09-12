@@ -75,6 +75,16 @@ export function AtalhosFixos() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
+          {podeChamados && !nosChamados && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/chamados" className={classe}>
+                  <Ticket className="h-[18px] w-[18px] shrink-0" />
+                  {!collapsed && <span>Chamados</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
