@@ -26,6 +26,8 @@ interface Props {
   rotuloAria: string;
   onToggle: (valor: boolean) => void;
   onNivel: (nivel: number | null) => void;
+  /** Abre o painel de níveis (a escada, com contagem por nível). */
+  onEntenderNiveis?: () => void;
 }
 
 export default function CelulaConcessao({
