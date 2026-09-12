@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { Check, SlidersHorizontal } from "lucide-react";
+import { Check, Info, SlidersHorizontal } from "lucide-react";
 import type { PapelNivel } from "@/hooks/useConsoleAcesso";
 
 /**
