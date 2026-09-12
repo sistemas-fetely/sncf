@@ -39,7 +39,14 @@ export function AtalhosFixos() {
     pathname.startsWith("/minhas-notas") ||
     pathname.startsWith("/fala-fetely/memorias");
 
-  if (naCasa && noMeuEspaco) return null;
+  // CHAMADOS-FIXO (12/09/2026): na sncf_navegacao o nó `chamados` saiu do topo
+  // (superficies ['sidebar','palette']) e passou a ser item fixo da sidebar,
+  // logo abaixo de Meu Espaço. Está hardcoded aqui igual Casa e Meu Espaço —
+  // o certo é a sidebar ler `superficies` da navegação e montar os fixos a
+  // partir da tabela; isso é fatia própria.
+  const visiveis = useTelasVisiveis(["/chamados"]);
+  const podeChamados = visiveis.has("/chamados");
+  const nosChamados = pathname.startsWith("/chamados");
 
   const classe =
     "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200";
