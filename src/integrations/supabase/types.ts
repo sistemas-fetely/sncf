@@ -99594,6 +99594,20 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
         Returns: Json
       }
+      fn_nascer_tela: {
+        Args: {
+          p_abas?: Json
+          p_chave: string
+          p_descricao: string
+          p_label: string
+          p_nivel?: string
+          p_ordem?: number
+          p_pai_chave: string
+          p_rota: string
+          p_slug?: string
+        }
+        Returns: Json
+      }
       fn_nav_saude_corrigir: {
         Args: { p_achado: string; p_chave: string }
         Returns: Json
