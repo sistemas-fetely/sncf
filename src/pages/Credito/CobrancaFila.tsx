@@ -1337,76 +1337,87 @@ export default function CobrancaFila() {
         }
       />
 
-      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
+      {carregandoPermissoes ? (
+        <CarregandoAba />
+      ) : !primeiraPermitida ? (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-6 text-sm text-muted-foreground text-center">
+          Você não tem acesso a nenhuma aba desta tela.
+        </div>
+      ) : (
+      <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setTabAtiva} className="space-y-4">
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
-            { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
-            { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
+            { value: "mesa", slug: "tela.cobranca_mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
+            { value: "regua", slug: "tela.cobranca_regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
             {
               value: "sem-prova",
+              slug: "tela.cobranca",
               label: `Problemas Cobrança${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}`,
             },
 
-            { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
-            { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "fila", slug: "tela.cobranca_fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
+            { value: "titulos", slug: "tela.cobranca_titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             // aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido)
             { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
-          ].map((tab) => {
-            const trigger = (
+          ].map((tab) => (
+            <AbaPermitida key={tab.value} slug={tab.slug}>
               <TabsTrigger value={tab.value} className={tabTriggerCls}>
                 {tab.label}
               </TabsTrigger>
-            );
-            return tab.slug ? (
-              <AbaPermitida key={tab.value} slug={tab.slug}>
-                {trigger}
-              </AbaPermitida>
-            ) : (
-              <Fragment key={tab.value}>{trigger}</Fragment>
-            );
-          })}
+            </AbaPermitida>
+          ))}
         </TabsList>
 
         <TabsContent value="mesa">
-          <MesaCobranca
-            onIrParaBanco={() => {
-              setSubTabBanco("remessas");
-              setTabAtiva("banco");
-            }}
-          />
+          <ConteudoAba slug="tela.cobranca_mesa">
+            <MesaCobranca
+              onIrParaBanco={() => {
+                setSubTabBanco("remessas");
+                setTabAtiva("banco");
+              }}
+            />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="regua">
-          <ReguaTab />
+          <ConteudoAba slug="tela.cobranca_regua">
+            <ReguaTab />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="sem-prova">
-          <SemProvaTab />
+          <ConteudoAba slug="tela.cobranca">
+            <SemProvaTab />
+          </ConteudoAba>
         </TabsContent>
 
 
         <TabsContent value="fila">
-          <Tabs defaultValue="materializacao" className="space-y-4">
-            <TabsList className="bg-transparent p-0 h-auto gap-2">
-              <TabsTrigger value="materializacao" className={pillTriggerCls}>
-                Materialização
-              </TabsTrigger>
-              <TabsTrigger value="primeiro-pagamento" className={pillTriggerCls}>
-                Primeiro Pagamento
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="materializacao">
-              <PedidosCobrancaTab />
-            </TabsContent>
-            <TabsContent value="primeiro-pagamento">
-              <PrimeiroPagamentoTab />
-            </TabsContent>
-          </Tabs>
+          <ConteudoAba slug="tela.cobranca_fila">
+            <Tabs defaultValue="materializacao" className="space-y-4">
+              <TabsList className="bg-transparent p-0 h-auto gap-2">
+                <TabsTrigger value="materializacao" className={pillTriggerCls}>
+                  Materialização
+                </TabsTrigger>
+                <TabsTrigger value="primeiro-pagamento" className={pillTriggerCls}>
+                  Primeiro Pagamento
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="materializacao">
+                <PedidosCobrancaTab />
+              </TabsContent>
+              <TabsContent value="primeiro-pagamento">
+                <PrimeiroPagamentoTab />
+              </TabsContent>
+            </Tabs>
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="titulos">
           {/* sub-aba Faturados removida em 01/09/2026 porque todo título vivo tem NF por construção (RECEBÍVEL-NASCE-PAREADO), então o filtro nunca divergia de Todos */}
-          <TitulosTab />
+          <ConteudoAba slug="tela.cobranca_titulos">
+            <TitulosTab />
+          </ConteudoAba>
         </TabsContent>
 
         {/* aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido) */}
@@ -1432,6 +1443,7 @@ export default function CobrancaFila() {
         </TabsContent>
 
       </Tabs>
+      )}
     </div>
     </PageShell>
   );
