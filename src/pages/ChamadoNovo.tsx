@@ -194,7 +194,7 @@ function ChamadoNovoConteudo() {
       <PageHeader
         titulo="Abrir chamado"
         icone={Ticket}
-        breadcrumb={[{ label: "Chamados", href: "/chamados" }, { label: "Abrir chamado" }]}
+        breadcrumb={[{ label: "Chamados", to: "/chamados" }, { label: "Abrir chamado" }]}
         estado={
           item
             ? `Serviço: ${item.item ?? "—"}`
