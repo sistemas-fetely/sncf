@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
-import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -40,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Search, FileDown, Upload, CheckCircle2, XCircle, Clock,
   AlertTriangle, FileText, RefreshCw, ChevronDown, ChevronRight, Plus,
+  Loader2,
 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
@@ -1189,12 +1190,68 @@ function PedidosCobrancaTab() {
 
 // ─── CobrancaFila (hub principal com 3 tabs) ─────────────────────────────────
 
+// CASCA-E-ABA (12/09/2026): mesmo padrão do PedidosIndex — a rota tem portão
+// próprio (tela.cobranca_casa) e cada aba tem slug próprio. sem-prova usa
+// tela.cobranca até a fatia futura decidir o slug definitivo.
+const ABAS_COBRANCA = [
+  { value: "mesa", slug: "tela.cobranca_mesa" },
+  { value: "regua", slug: "tela.cobranca_regua" },
+  { value: "sem-prova", slug: "tela.cobranca" },
+  { value: "fila", slug: "tela.cobranca_fila" },
+  { value: "titulos", slug: "tela.cobranca_titulos" },
+  { value: "banco", slug: "tela.cobranca_remessa" },
+] as const;
+type AbaCobranca = (typeof ABAS_COBRANCA)[number]["value"];
+
+function CarregandoAba() {
+  return (
+    <div className="flex items-center justify-center py-16">
+      <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
 export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
   const [tabAtiva, setTabAtiva] = useAbaUrl("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
+
+  // Permissão por aba — primeira permitida vira o fallback quando a URL
+  // aponta para uma aba proibida (mesma solução do PedidosIndex).
+  const permMesa = usePodeVerAba("tela.cobranca_mesa");
+  const permRegua = usePodeVerAba("tela.cobranca_regua");
+  const permSemProva = usePodeVerAba("tela.cobranca");
+  const permFila = usePodeVerAba("tela.cobranca_fila");
+  const permTitulos = usePodeVerAba("tela.cobranca_titulos");
+  const permBanco = usePodeVerAba("tela.cobranca_remessa");
+
+  const permissoes: Record<AbaCobranca, { podeVer: boolean; carregando: boolean }> = {
+    mesa: permMesa,
+    regua: permRegua,
+    "sem-prova": permSemProva,
+    fila: permFila,
+    titulos: permTitulos,
+    banco: permBanco,
+  };
+
+  const carregandoPermissoes = ABAS_COBRANCA.some((a) => permissoes[a.value].carregando);
+  const primeiraPermitida = ABAS_COBRANCA.find((a) => permissoes[a.value].podeVer)?.value;
+  const abaSolicitada: AbaCobranca = ABAS_COBRANCA.some((a) => a.value === tabAtiva)
+    ? (tabAtiva as AbaCobranca)
+    : "mesa";
+  const abaEfetiva: AbaCobranca | undefined = carregandoPermissoes
+    ? abaSolicitada
+    : permissoes[abaSolicitada].podeVer
+      ? abaSolicitada
+      : primeiraPermitida;
+
+  // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
+  useEffect(() => {
+    if (carregandoPermissoes) return;
+    if (abaEfetiva && abaEfetiva !== abaSolicitada) setTabAtiva(abaEfetiva);
+  }, [carregandoPermissoes, abaEfetiva, abaSolicitada, setTabAtiva]);
 
   const totalPedidos = pedidos.length;
   const totalTitulosAbertos = titulosCobranca.filter(
@@ -1280,76 +1337,87 @@ export default function CobrancaFila() {
         }
       />
 
-      <Tabs value={tabAtiva} onValueChange={setTabAtiva} className="space-y-4">
+      {carregandoPermissoes ? (
+        <CarregandoAba />
+      ) : !primeiraPermitida ? (
+        <div className="rounded-md border border-border bg-muted/40 px-3 py-6 text-sm text-muted-foreground text-center">
+          Você não tem acesso a nenhuma aba desta tela.
+        </div>
+      ) : (
+      <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setTabAtiva} className="space-y-4">
         <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
           {[
-            { value: "mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
-            { value: "regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
+            { value: "mesa", slug: "tela.cobranca_mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
+            { value: "regua", slug: "tela.cobranca_regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
             {
               value: "sem-prova",
+              slug: "tela.cobranca",
               label: `Problemas Cobrança${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}`,
             },
 
-            { value: "fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
-            { value: "titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
+            { value: "fila", slug: "tela.cobranca_fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
+            { value: "titulos", slug: "tela.cobranca_titulos", label: `Títulos${totalTitulosAbertos > 0 ? ` · ${totalTitulosAbertos}` : ""}` },
             // aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido)
             { value: "banco", slug: "tela.cobranca_remessa", label: "Banco" },
-          ].map((tab) => {
-            const trigger = (
+          ].map((tab) => (
+            <AbaPermitida key={tab.value} slug={tab.slug}>
               <TabsTrigger value={tab.value} className={tabTriggerCls}>
                 {tab.label}
               </TabsTrigger>
-            );
-            return tab.slug ? (
-              <AbaPermitida key={tab.value} slug={tab.slug}>
-                {trigger}
-              </AbaPermitida>
-            ) : (
-              <Fragment key={tab.value}>{trigger}</Fragment>
-            );
-          })}
+            </AbaPermitida>
+          ))}
         </TabsList>
 
         <TabsContent value="mesa">
-          <MesaCobranca
-            onIrParaBanco={() => {
-              setSubTabBanco("remessas");
-              setTabAtiva("banco");
-            }}
-          />
+          <ConteudoAba slug="tela.cobranca_mesa">
+            <MesaCobranca
+              onIrParaBanco={() => {
+                setSubTabBanco("remessas");
+                setTabAtiva("banco");
+              }}
+            />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="regua">
-          <ReguaTab />
+          <ConteudoAba slug="tela.cobranca_regua">
+            <ReguaTab />
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="sem-prova">
-          <SemProvaTab />
+          <ConteudoAba slug="tela.cobranca">
+            <SemProvaTab />
+          </ConteudoAba>
         </TabsContent>
 
 
         <TabsContent value="fila">
-          <Tabs defaultValue="materializacao" className="space-y-4">
-            <TabsList className="bg-transparent p-0 h-auto gap-2">
-              <TabsTrigger value="materializacao" className={pillTriggerCls}>
-                Materialização
-              </TabsTrigger>
-              <TabsTrigger value="primeiro-pagamento" className={pillTriggerCls}>
-                Primeiro Pagamento
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="materializacao">
-              <PedidosCobrancaTab />
-            </TabsContent>
-            <TabsContent value="primeiro-pagamento">
-              <PrimeiroPagamentoTab />
-            </TabsContent>
-          </Tabs>
+          <ConteudoAba slug="tela.cobranca_fila">
+            <Tabs defaultValue="materializacao" className="space-y-4">
+              <TabsList className="bg-transparent p-0 h-auto gap-2">
+                <TabsTrigger value="materializacao" className={pillTriggerCls}>
+                  Materialização
+                </TabsTrigger>
+                <TabsTrigger value="primeiro-pagamento" className={pillTriggerCls}>
+                  Primeiro Pagamento
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="materializacao">
+                <PedidosCobrancaTab />
+              </TabsContent>
+              <TabsContent value="primeiro-pagamento">
+                <PrimeiroPagamentoTab />
+              </TabsContent>
+            </Tabs>
+          </ConteudoAba>
         </TabsContent>
 
         <TabsContent value="titulos">
           {/* sub-aba Faturados removida em 01/09/2026 porque todo título vivo tem NF por construção (RECEBÍVEL-NASCE-PAREADO), então o filtro nunca divergia de Todos */}
-          <TitulosTab />
+          <ConteudoAba slug="tela.cobranca_titulos">
+            <TitulosTab />
+          </ConteudoAba>
         </TabsContent>
 
         {/* aba Adiantamento s/ NF removida em 01/09/2026 — alarme coberto pelo motor de auditoria (pedido-sem-recebivel, pre-nf-sem-lastro, plano-cobranca-fora-do-liquido) */}
@@ -1375,6 +1443,7 @@ export default function CobrancaFila() {
         </TabsContent>
 
       </Tabs>
+      )}
     </div>
     </PageShell>
   );
