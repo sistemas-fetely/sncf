@@ -26,6 +26,30 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const filaId: string | null = body?.fila_id ?? null;
 
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    // A trava valida o USUÁRIO chamador. Service role (cron em lote) passa —
+    // máquina não tem auth.uid(); chamada anônima é recusada.
+    const authHeader = req.headers.get("Authorization");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const token = (authHeader ?? "").replace("Bearer ", "");
+    if (!token) return json({ ok: false, error: "Não autorizado" }, 401);
+    if (!(serviceKey && token === serviceKey)) {
+      const sbUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader! } } },
+      );
+      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+        p_slug: "acao.empurrar_nf_xpm",
+      });
+      if (ePerm || permitido !== true) {
+        return json(
+          { error: "Sem permissão (acao.empurrar_nf_xpm). Concessão é feita no Console de Acesso." },
+          403,
+        );
+      }
+    }
+
     let q = sb.from("xpm_nf_fila")
       .select("id, nf_id, pedido_id, expedicao_codigo, tentativas")
       .order("enfileirado_em")

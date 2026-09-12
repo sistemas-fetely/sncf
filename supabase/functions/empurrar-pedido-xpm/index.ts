@@ -58,11 +58,16 @@ Deno.serve(async (req) => {
     motivo = typeof body?.motivo === "string" ? body.motivo : "";
 
     // Permissão nominal de ação (server-side) + autoria da trilha.
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA: empurrão forçado
+    // sobre expedição exige acao.forcar_expedicao_xpm; empurrão comum, acao.empurrar_xpm.
+    const slugGuarda = overrides.length > 0 ? "acao.forcar_expedicao_xpm" : "acao.empurrar_xpm";
     const guarda = await exigirAcao(
       sb,
       req.headers.get("Authorization"),
-      "acao.empurrar_xpm",
-      "empurrar pedido pra XPM",
+      slugGuarda,
+      slugGuarda === "acao.forcar_expedicao_xpm"
+        ? "forçar empurrão sobre expedição"
+        : "empurrar pedido pra XPM",
     );
     if (!guarda.ok) return json({ sucesso: false, erro: guarda.erro }, guarda.status);
     userId = guarda.userId;

@@ -222,12 +222,25 @@ serve(async (req) => {
     let acionadoPor: string | null = null;
 
     if (origem === "manual") {
+      // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+      // Trava nominal no usuário chamador; super_admin e alçada por nível
+      // vivem dentro de usuario_tem_acao. Anônimo não executa ação de gente.
+      if (!authRaw) return err("Não autorizado", 401);
       const { data: userData, error: userErr } = await supabase.auth.getUser(authRaw);
       if (userErr || !userData.user) return err("Não autorizado", 401);
       acionadoPor = userData.user.id;
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", acionadoPor);
-      const allowed = (roles || []).some((r: any) => ["super_admin", "admin_rh", "sops"].includes(r.role));
-      if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
+      const sbUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: req.headers.get("Authorization")! } } },
+      );
+      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+        p_slug: "acao.sincronizar_parceiro_bling",
+        p_user_id: acionadoPor,
+      });
+      if (ePerm || permitido !== true) {
+        return err("Sem permissão (acao.sincronizar_parceiro_bling). Concessão é feita no Console de Acesso.", 403);
+      }
     } else {
       let sharedOk = false;
       const sharedHeader = req.headers.get("x-sync-secret") || "";
