@@ -11,6 +11,7 @@ import {
   Play,
   ArrowRightLeft,
   LogOut,
+  PlusCircle,
   Ticket,
 } from "lucide-react";
 
@@ -464,6 +465,14 @@ function ChamadosConteudo() {
           lista.isLoading
             ? "Carregando fila..."
             : `${filtrados.length} chamado(s) na visão atual`
+        }
+        acoes={
+          podeEditar ? (
+            <Button onClick={() => navigate("/chamados/novo")}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Abrir chamado
+            </Button>
+          ) : undefined
         }
       />
 
