@@ -32,7 +32,7 @@ interface NivelResumo {
   sensiveis: number;
 }
 
-export function useNiveisResumo() {
+function useNiveisResumo() {
   return useQuery({
     queryKey: ["nivel-resumo"],
     staleTime: 5 * 60 * 1000,
