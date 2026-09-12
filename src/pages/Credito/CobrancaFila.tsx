@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -19,7 +19,7 @@ import { useTitulosCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { useReguaFilaHoje } from "@/hooks/credito/useReguaFila";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
-import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
+import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -40,6 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Search, FileDown, Upload, CheckCircle2, XCircle, Clock,
   AlertTriangle, FileText, RefreshCw, ChevronDown, ChevronRight, Plus,
+  Loader2,
 } from "lucide-react";
 import { formatCNPJ } from "@/lib/cnpj";
 import { formatBRL } from "@/lib/format-currency";
