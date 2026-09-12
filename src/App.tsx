@@ -608,11 +608,6 @@ const App = () => (
                     <ColaboradorDetalhe />
                   </ProtectedRoute>
                 } />
-                <Route path="/organograma" element={
-                  <ProtectedRoute>
-                    <Organograma />
-                  </ProtectedRoute>
-                } />
                 <Route path="/movimentacoes" element={
                   <ProtectedRoute>
                     <Movimentacoes />
@@ -841,6 +836,8 @@ const App = () => (
                 ela não exibe nada, e o destino tem o portão dele.
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
+            {/* ORGANOGRAMA-MORA-EM-PESSOAS (12/09/2026): rota oficial é /pessoas/organograma */}
+            <Route path="/organograma" element={<Navigate to="/pessoas/organograma" replace />} />
             {/* DESMONTE-PROJECOES (23/08/2026): absorvido pela classificação de despesa */}
             <Route path="/administrativo/fluxo-futuro" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
             <Route path="/administrativo/fluxo-futuro-investimento" element={<Navigate to="/administrativo/fluxo-caixa" replace />} />
