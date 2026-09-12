@@ -1218,6 +1218,41 @@ export default function CobrancaFila() {
   const [tabAtiva, setTabAtiva] = useAbaUrl("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
+  // Permissão por aba — primeira permitida vira o fallback quando a URL
+  // aponta para uma aba proibida (mesma solução do PedidosIndex).
+  const permMesa = usePodeVerAba("tela.cobranca_mesa");
+  const permRegua = usePodeVerAba("tela.cobranca_regua");
+  const permSemProva = usePodeVerAba("tela.cobranca");
+  const permFila = usePodeVerAba("tela.cobranca_fila");
+  const permTitulos = usePodeVerAba("tela.cobranca_titulos");
+  const permBanco = usePodeVerAba("tela.cobranca_remessa");
+
+  const permissoes: Record<AbaCobranca, { podeVer: boolean; carregando: boolean }> = {
+    mesa: permMesa,
+    regua: permRegua,
+    "sem-prova": permSemProva,
+    fila: permFila,
+    titulos: permTitulos,
+    banco: permBanco,
+  };
+
+  const carregandoPermissoes = ABAS_COBRANCA.some((a) => permissoes[a.value].carregando);
+  const primeiraPermitida = ABAS_COBRANCA.find((a) => permissoes[a.value].podeVer)?.value;
+  const abaSolicitada: AbaCobranca = ABAS_COBRANCA.some((a) => a.value === tabAtiva)
+    ? (tabAtiva as AbaCobranca)
+    : "mesa";
+  const abaEfetiva: AbaCobranca | undefined = carregandoPermissoes
+    ? abaSolicitada
+    : permissoes[abaSolicitada].podeVer
+      ? abaSolicitada
+      : primeiraPermitida;
+
+  // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
+  useEffect(() => {
+    if (carregandoPermissoes) return;
+    if (abaEfetiva && abaEfetiva !== abaSolicitada) setTabAtiva(abaEfetiva);
+  }, [carregandoPermissoes, abaEfetiva, abaSolicitada, setTabAtiva]);
+
   const totalPedidos = pedidos.length;
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
