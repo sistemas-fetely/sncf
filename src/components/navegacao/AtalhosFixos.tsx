@@ -1,10 +1,11 @@
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { Home, User } from "lucide-react";
+import { Home, User, Ticket } from "lucide-react";
 import {
   SidebarGroup, SidebarGroupContent, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { useTelasVisiveis } from "@/hooks/useTelasVisiveis";
 
 /**
  * AtalhosFixos — Casa e Meu Espaço no topo de toda sidebar.
@@ -38,7 +39,14 @@ export function AtalhosFixos() {
     pathname.startsWith("/minhas-notas") ||
     pathname.startsWith("/fala-fetely/memorias");
 
-  if (naCasa && noMeuEspaco) return null;
+  // CHAMADOS-FIXO (12/09/2026): na sncf_navegacao o nó `chamados` saiu do topo
+  // (superficies ['sidebar','palette']) e passou a ser item fixo da sidebar,
+  // logo abaixo de Meu Espaço. Está hardcoded aqui igual Casa e Meu Espaço —
+  // o certo é a sidebar ler `superficies` da navegação e montar os fixos a
+  // partir da tabela; isso é fatia própria.
+  const visiveis = useTelasVisiveis(["/chamados"]);
+  const podeChamados = visiveis.has("/chamados");
+  const nosChamados = pathname.startsWith("/chamados");
 
   const classe =
     "flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-all duration-200";
@@ -63,6 +71,16 @@ export function AtalhosFixos() {
                 <NavLink to="/tarefas/hoje" className={classe}>
                   <User className="h-[18px] w-[18px] shrink-0" />
                   {!collapsed && <span>Meu Espaço</span>}
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          {podeChamados && !nosChamados && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <NavLink to="/chamados" className={classe}>
+                  <Ticket className="h-[18px] w-[18px] shrink-0" />
+                  {!collapsed && <span>Chamados</span>}
                 </NavLink>
               </SidebarMenuButton>
             </SidebarMenuItem>
