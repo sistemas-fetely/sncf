@@ -276,6 +276,40 @@ export function useLiberarParaGrupo() {
   });
 }
 
+/**
+ * TOGGLE "NO AR" da tela, direto na linha do Console.
+ *
+ * Ligar = `ativo = true` + `status = 'pronta'`. Desligar mexe SÓ no status
+ * (`em_construcao`): desligar é obra, não demolição — `ativo` continua como
+ * está. FAIL-LOUD: erro sobe com a mensagem real do banco.
+ */
+export function useToggleNoAr() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ navChave, noAr }: { navChave: string; noAr: boolean }) => {
+      const patch = noAr
+        ? { ativo: true, status: "pronta" }
+        : { status: "em_construcao" };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("sncf_navegacao")
+        .update(patch)
+        .eq("chave", navChave);
+      if (error) throw error;
+      return noAr;
+    },
+    onSuccess: (noAr) =>
+      toast.success(noAr ? "Tela no ar." : "Tela fora do ar (em construção)."),
+    onError: (e: unknown) => toast.error(formatError(e)),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: CHAVE_CONSOLE_ACESSO });
+      qc.invalidateQueries({ queryKey: ["navegacao-portao"] });
+      qc.invalidateQueries({ queryKey: ["navegacao-visibilidade-menu"] });
+      qc.invalidateQueries({ queryKey: ["navegacao-admin"] });
+    },
+  });
+}
+
 /** Sugestão de slug derivada do rótulo: acao.minusculas_com_underline. */
 export function sugerirSlug(rotulo: string): string {
   const base = (rotulo ?? "")
