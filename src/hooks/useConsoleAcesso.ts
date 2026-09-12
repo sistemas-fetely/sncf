@@ -50,6 +50,12 @@ export interface ConsoleAcessoRow {
   acao_superficie_id: string | null;
   conferido: boolean | null;
   ordem_linha: number | null;
+  /** Chave do nó de navegação da tela — alvo do toggle "No ar". */
+  nav_chave: string | null;
+  nav_ativo: boolean | null;
+  nav_status: string | null;
+  /** ativo E status='pronta'. Em linhas de ação/escopo vem sempre true. */
+  no_ar: boolean | null;
 }
 
 export const CHAVE_CONSOLE_ACESSO = ["console-acesso"];
