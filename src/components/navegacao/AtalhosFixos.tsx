@@ -1,10 +1,11 @@
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
-import { Home, User } from "lucide-react";
+import { Home, User, Ticket } from "lucide-react";
 import {
   SidebarGroup, SidebarGroupContent, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { useTelasVisiveis } from "@/hooks/useTelasVisiveis";
 
 /**
  * AtalhosFixos — Casa e Meu Espaço no topo de toda sidebar.
