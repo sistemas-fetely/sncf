@@ -35,7 +35,6 @@ import NovoUsuarioDialog from "@/components/gerenciar-usuarios/NovoUsuarioDialog
 import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
-import PapeisTab from "@/components/gerenciar-usuarios/PapeisTab";
 import ConsoleAcessoTab from "@/components/gerenciar-usuarios/ConsoleAcessoTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
@@ -145,7 +144,15 @@ export default function GerenciarUsuarios() {
   const [searchParams, setSearchParams] = useSearchParams();
   const abaBruta = searchParams.get("aba") || searchParams.get("tab") || "usuarios";
   // CONSOLE DE ACESSO ÚNICO: as antigas abas "grupos" e "acoes" viraram uma só.
-  const activeTab = abaBruta === "grupos" || abaBruta === "acoes" ? "acesso" : abaBruta;
+  // MÓDULO DE ACESSO (12/09/2026): "Papéis" morreu como aba — a escada de níveis
+  // virou painel contextual do Console. Link antigo (?aba=papeis) cai no Console
+  // com o painel já aberto.
+  const veioDePapeis = abaBruta === "papeis";
+  const activeTab =
+    abaBruta === "grupos" || abaBruta === "acoes" || veioDePapeis ? "acesso" : abaBruta;
+  useEffect(() => {
+    if (veioDePapeis) setSearchParams({ aba: "acesso" }, { replace: true });
+  }, [veioDePapeis, setSearchParams]);
   const handleTabChange = (value: string) => {
     setSearchParams(value === "usuarios" ? {} : { aba: value }, { replace: true });
   };
@@ -589,7 +596,6 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="acesso" className="gap-2"><ShieldCheck className="h-4 w-4" /> Console de Acesso</TabsTrigger>
-          <TabsTrigger value="papeis" className="gap-2"><Shield className="h-4 w-4" /> Papéis</TabsTrigger>
           {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
@@ -618,12 +624,8 @@ export default function GerenciarUsuarios() {
         </TabsContent>
 
 
-        <TabsContent value="papeis" className="mt-4">
-          <PapeisTab />
-        </TabsContent>
-
         <TabsContent value="acesso" className="mt-4">
-          <ConsoleAcessoTab />
+          <ConsoleAcessoTab niveisAbertoInicial={veioDePapeis} />
         </TabsContent>
 
         {podeAuditarAcesso && (

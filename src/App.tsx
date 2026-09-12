@@ -128,7 +128,6 @@ const MinhasNotas = lazy(() => import("@/pages/MinhasNotas"));
 const MinhasNotificacoes = lazy(() => import("@/pages/MinhasNotificacoes"));
 const SistemaReportes = lazy(() => import("@/pages/admin/SistemaReportes"));
 const HistoricoImportacoesPDF = lazy(() => import("@/pages/admin/HistoricoImportacoesPDF"));
-const GerenciarVisibilidade = lazy(() => import("@/pages/admin/GerenciarVisibilidade"));
 const MesaDeclaracoes = lazy(() => import("@/pages/admin/MesaDeclaracoes"));
 const CamposTarefa = lazy(() => import("@/pages/admin/CamposTarefa"));
 const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
@@ -731,11 +730,12 @@ const App = () => (
                     <HistoricoImportacoesPDF />
                   </ProtectedRoute>
                 } />
-                <Route path="visibilidade" element={
-                  <ProtectedRoute>
-                    <GerenciarVisibilidade />
-                  </ProtectedRoute>
-                } />
+                {/* MÓDULO DE ACESSO (12/09/2026): Visibilidade de Telas morreu —
+                    o toggle "No ar" mora na linha de tela do Console de Acesso. */}
+                <Route
+                  path="visibilidade"
+                  element={<Navigate to="/admin/usuarios?aba=acesso" replace />}
+                />
                 <Route path="declaracoes" element={
                   <ProtectedRoute>
                     <MesaDeclaracoes />
