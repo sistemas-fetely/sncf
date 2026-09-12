@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import {
   Sheet,
   SheetContent,
@@ -36,6 +37,7 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
+  Info,
   Loader2,
   
   Search,
@@ -53,6 +55,7 @@ import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
 import PainelGrupo from "./PainelGrupo";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
 import CelulaConcessao from "./CelulaConcessao";
+import PainelNiveis from "./PainelNiveis";
 import {
   CHAVE_MATRIZ_GRUPO_PERMISSOES,
   useConsoleAcesso,
@@ -62,6 +65,7 @@ import {
   useMatrizGrupoPermissoes,
   usePapeisNivel,
   useDefinirNivelMinimo,
+  useToggleNoAr,
   type ConsoleAcessoRow,
   type GrupoConsole,
 } from "@/hooks/useConsoleAcesso";
@@ -173,6 +177,10 @@ function NumeroFaixa({
 
 interface TelaNodo {
   chave: string;
+  /** Nó de navegação da tela — nulo em tela sem nó. */
+  navChave: string | null;
+  /** ativo E pronta. Falso = tela em obra, atenuada na árvore. */
+  noAr: boolean;
   telaLabel: string;
   descricao: string | null;
   ordem: number;
@@ -329,8 +337,14 @@ function DetalheLinha({
 }
 
 
-export default function ConsoleAcessoTab() {
+export default function ConsoleAcessoTab({
+  niveisAbertoInicial = false,
+}: {
+  /** Abre o painel de níveis já na montagem (quem chega por ?aba=papeis). */
+  niveisAbertoInicial?: boolean;
+} = {}) {
   const telaLarga = useTelaLarga();
+  const [niveisAberto, setNiveisAberto] = useState(niveisAbertoInicial);
 
   const qc = useQueryClient();
   const { roles } = useAuth();
@@ -343,6 +357,7 @@ export default function ConsoleAcessoTab() {
   const liberarParaGrupo = useLiberarParaGrupo();
   const { data: niveis = [] } = usePapeisNivel();
   const definirNivel = useDefinirNivelMinimo();
+  const toggleNoAr = useToggleNoAr();
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
@@ -359,6 +374,7 @@ export default function ConsoleAcessoTab() {
   const [soSemGuarda, setSoSemGuarda] = useState(false);
   const [soAltoSemGuarda, setSoAltoSemGuarda] = useState(false);
   const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);
+  const [soForaDoAr, setSoForaDoAr] = useState(false);
   const [concedidasGrupoId, setConcedidasGrupoId] = useState<string | null>(null);
 
   // ── Liberação em massa (substitui os menus ••• dos cabeçalhos) ──
@@ -399,6 +415,7 @@ export default function ConsoleAcessoTab() {
     soSemGuarda ||
     soAltoSemGuarda ||
     soNaoDeclaradas ||
+    soForaDoAr ||
     !!filtroConcedidas;
 
   function limparFiltros() {
@@ -406,6 +423,7 @@ export default function ConsoleAcessoTab() {
     setSoSemGuarda(false);
     setSoAltoSemGuarda(false);
     setSoNaoDeclaradas(false);
+    setSoForaDoAr(false);
     setConcedidasGrupoId(null);
   }
 
@@ -416,6 +434,7 @@ export default function ConsoleAcessoTab() {
       if (soSemGuarda && !semGuarda(l)) return false;
       if (soAltoSemGuarda && !ehAltoSemGuarda(l)) return false;
       if (soNaoDeclaradas && !(l.tipo === "acao" && naoDeclarada(l))) return false;
+      if (soForaDoAr && l.no_ar !== false) return false;
       if (filtroConcedidas) {
         if (!l.permissao_id) return false;
         if (!concedido.has(`${filtroConcedidas}|${l.permissao_id}`)) return false;
@@ -429,7 +448,16 @@ export default function ConsoleAcessoTab() {
       }
       return true;
     });
-  }, [linhas, busca, soSemGuarda, soAltoSemGuarda, soNaoDeclaradas, filtroConcedidas, concedido]);
+  }, [
+    linhas,
+    busca,
+    soSemGuarda,
+    soAltoSemGuarda,
+    soNaoDeclaradas,
+    soForaDoAr,
+    filtroConcedidas,
+    concedido,
+  ]);
 
   /**
    * Árvore Módulo → Grupo → Tela, montada só a partir da view.
@@ -471,6 +499,8 @@ export default function ConsoleAcessoTab() {
       if (!tela) {
         tela = {
           chave: `${appChave}|${grupoChave}|${telaLabel}`,
+          navChave: l.nav_chave ?? null,
+          noAr: true,
           telaLabel,
           descricao: l.tela_descricao ?? null,
           ordem: l.tela_ordem ?? 9999,
@@ -484,6 +514,11 @@ export default function ConsoleAcessoTab() {
           abas: [],
         };
         grupo.telas.push(tela);
+      }
+      // A linha de tela é a dona do estado "no ar" e da chave de navegação.
+      if (l.tipo === "tela") {
+        tela.navChave = l.nav_chave ?? tela.navChave;
+        tela.noAr = l.no_ar !== false;
       }
       tela.linhas.push(l);
       tela.total += 1;
@@ -557,6 +592,7 @@ export default function ConsoleAcessoTab() {
       altoSemGuarda: semGuardaList.filter((l) => (l.risco ?? "").toUpperCase() === "ALTO")
         .length,
       naoDeclaradas: linhas.filter((l) => l.tipo === "acao" && naoDeclarada(l)).length,
+      foraDoAr: linhas.filter((l) => l.tipo === "tela" && l.no_ar === false).length,
     };
   }, [linhas]);
 
@@ -954,6 +990,14 @@ export default function ConsoleAcessoTab() {
           tom="muted"
           ativo={soNaoDeclaradas}
           onClick={() => setSoNaoDeclaradas((v) => !v)}
+        />
+        <span className="text-muted-foreground">·</span>
+        <NumeroFaixa
+          valor={totais.foraDoAr}
+          rotulo="fora do ar"
+          tom="muted"
+          ativo={soForaDoAr}
+          onClick={() => setSoForaDoAr((v) => !v)}
         />
       </div>
 
