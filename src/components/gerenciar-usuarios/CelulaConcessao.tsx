@@ -38,6 +38,7 @@ export default function CelulaConcessao({
   rotuloAria,
   onToggle,
   onNivel,
+  onEntenderNiveis,
 }: Props) {
   const [aberto, setAberto] = useState(false);
   const nivelAtual = niveis.find((n) => n.nivel === nivelMinimo) ?? null;
