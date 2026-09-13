@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -396,12 +397,12 @@ export default function ContratosPJ() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles: authRoles } = useAuth();
-  const hasPermission = (_m: string, _a?: string) => true;
+  const { permitido: podeEditarContrato, carregando: carregandoPermissao } = usePermissaoAcao("acao.contrato_pj_editar");
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
-  const canCreate = hasPermission("contratos_pj", "create");
-  const canEdit = hasPermission("contratos_pj", "edit");
-  const canDelete = hasPermission("contratos_pj", "delete");
+  const canCreate = podeEditarContrato && !carregandoPermissao;
+  const canEdit = podeEditarContrato && !carregandoPermissao;
+  const canDelete = podeEditarContrato && !carregandoPermissao;
   const [contratos, setContratos] = useState<ContratoPJ[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

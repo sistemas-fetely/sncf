@@ -33,6 +33,7 @@ import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, end
 import { ptBR as dateFnsPtBR } from "date-fns/locale";
 import ImportNFDialog from "@/components/notas-fiscais/ImportNFDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -105,11 +106,11 @@ export default function NotasFiscais() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles } = useAuth();
   const isSuperAdmin = roles.includes("super_admin");
-  const hasPermission = (_m: string, _a?: string) => true;
-  const canCreate = hasPermission("notas_fiscais", "create");
-  const canEdit = hasPermission("notas_fiscais", "edit");
-  const canDelete = hasPermission("notas_fiscais", "delete");
-  const hasAnyAction = canEdit || canDelete;
+  const { permitido: podeOperarNF, carregando: carregandoPermissao } = usePermissaoAcao("acao.nf_pj_operar");
+  const canCreate = podeOperarNF && !carregandoPermissao;
+  const canEdit = podeOperarNF && !carregandoPermissao;
+  const canDelete = podeOperarNF && !carregandoPermissao;
+  const hasAnyAction = podeOperarNF && !carregandoPermissao;
   const { data: statusParams } = useParametros("status_nota_fiscal");
   const statusMap = useMemo(() => {
     if (statusParams && statusParams.length > 0) {

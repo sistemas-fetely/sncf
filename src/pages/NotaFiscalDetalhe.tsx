@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { toast } from "sonner";
 import { nomeCanonico } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
@@ -121,10 +122,10 @@ interface EmailLog {
 export default function NotaFiscalDetalhe() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const hasPermission = (_m: string, _a?: string) => true;
-  const canEdit = hasPermission("notas_fiscais", "edit");
-  const canApprove = hasPermission("notas_fiscais", "aprovar");
-  const canSendEmail = hasPermission("notas_fiscais", "enviar_email");
+  const { permitido: podeOperarNF, carregando: carregandoPermissao } = usePermissaoAcao("acao.nf_pj_operar");
+  const canEdit = podeOperarNF && !carregandoPermissao;
+  const canApprove = podeOperarNF && !carregandoPermissao;
+  const canSendEmail = podeOperarNF && !carregandoPermissao;
   const [nota, setNota] = useState<NotaFiscal | null>(null);
   const [contrato, setContrato] = useState<ContratoPJ | null>(null);
   const [pagamentos, setPagamentos] = useState<PagamentoPJ[]>([]);
