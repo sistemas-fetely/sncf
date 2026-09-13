@@ -33,6 +33,7 @@ import { format, parseISO, startOfMonth, endOfMonth, subMonths, startOfYear, end
 import { ptBR as dateFnsPtBR } from "date-fns/locale";
 import ImportNFDialog from "@/components/notas-fiscais/ImportNFDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";

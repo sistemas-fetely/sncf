@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUrlAssinada } from "@/lib/storage/arquivoPrivado";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { toast } from "sonner";
 import { nomeCanonico } from "@/lib/parceiros/nome";
 import { format, parseISO } from "date-fns";
