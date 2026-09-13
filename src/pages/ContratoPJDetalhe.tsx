@@ -107,11 +107,11 @@ export default function ContratoPJDetalhe() {
   const { roles: authRoles } = useAuth();
   const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
   const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");
-  const hasPermission = (_m: string, _a?: string) => true;
+  const { permitido: podeEditarContrato, carregando: carregandoPermissao } = usePermissaoAcao("acao.contrato_pj_editar");
   const canSeeSalary = (isCLevel = false) => isCLevel ? isSuperAdminLocal : (isSuperAdminLocal || isAdminRHLocal);
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const { isCargoClevel } = useCLevelCargos();
-  const canEditContract = hasPermission("contratos_pj", "edit");
+  const canEditContract = podeEditarContrato && !carregandoPermissao;
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(searchParams.get("edit") === "true" && canEditContract);
   const [saving, setSaving] = useState(false);

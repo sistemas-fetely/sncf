@@ -106,11 +106,11 @@ export default function NotasFiscais() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles } = useAuth();
   const isSuperAdmin = roles.includes("super_admin");
-  const hasPermission = (_m: string, _a?: string) => true;
-  const canCreate = hasPermission("notas_fiscais", "create");
-  const canEdit = hasPermission("notas_fiscais", "edit");
-  const canDelete = hasPermission("notas_fiscais", "delete");
-  const hasAnyAction = canEdit || canDelete;
+  const { permitido: podeOperarNF, carregando: carregandoPermissao } = usePermissaoAcao("acao.nf_pj_operar");
+  const canCreate = podeOperarNF && !carregandoPermissao;
+  const canEdit = podeOperarNF && !carregandoPermissao;
+  const canDelete = podeOperarNF && !carregandoPermissao;
+  const hasAnyAction = podeOperarNF && !carregandoPermissao;
   const { data: statusParams } = useParametros("status_nota_fiscal");
   const statusMap = useMemo(() => {
     if (statusParams && statusParams.length > 0) {
