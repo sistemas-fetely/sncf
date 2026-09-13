@@ -276,6 +276,29 @@ Deno.serve(async (req) => {
     });
 
   try {
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    // Valida o USUÁRIO chamador; service role passa (invocação operacional).
+    const authHeader = req.headers.get("Authorization");
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const tokenChamador = (authHeader ?? "").replace("Bearer ", "");
+    if (!tokenChamador) return json({ ok: false, error: "Não autorizado" }, 401);
+    if (!(serviceKey && tokenChamador === serviceKey)) {
+      const sbUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader! } } },
+      );
+      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+        p_slug: "acao.nf_stage_operar",
+      });
+      if (ePerm || permitido !== true) {
+        return json(
+          { error: "Sem permissão (acao.nf_stage_operar). Concessão é feita no Console de Acesso." },
+          403,
+        );
+      }
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
