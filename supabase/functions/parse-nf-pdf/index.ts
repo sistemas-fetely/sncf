@@ -50,6 +50,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    // Valida o USUÁRIO chamador contra o Console de Acesso.
+    const { data: permitido, error: ePerm } = await supabaseClient.rpc("usuario_tem_acao", {
+      p_slug: "acao.extrato_importar",
+    });
+    if (ePerm || permitido !== true) {
+      return new Response(
+        JSON.stringify({ error: "Sem permissão (acao.extrato_importar). Concessão é feita no Console de Acesso." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     if (!file) {

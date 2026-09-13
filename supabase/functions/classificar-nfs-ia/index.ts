@@ -57,6 +57,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    // Valida o USUÁRIO chamador contra o Console de Acesso.
+    const { data: permitido, error: ePerm } = await (supabase as any).rpc("usuario_tem_acao", {
+      p_slug: "acao.nf_stage_operar",
+    });
+    if (ePerm || permitido !== true) {
+      return new Response(
+        JSON.stringify({ error: "Sem permissão (acao.nf_stage_operar). Concessão é feita no Console de Acesso." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY não configurada");
 

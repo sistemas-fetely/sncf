@@ -81,14 +81,33 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: userData, error: userErr } = await supabaseAsUser.auth.getUser();
-    if (userErr || !userData?.user) {
+    // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
+    // Service role (pipeline) passa; usuário precisa da ação concedida no Console.
+    const tokenChamador = authHeader.replace("Bearer ", "");
+    const chamadorEhServiceRole = serviceKey !== "" && tokenChamador === serviceKey;
+
+    const { data: userData, error: userErr } = chamadorEhServiceRole
+      ? { data: { user: null }, error: null }
+      : await supabaseAsUser.auth.getUser();
+    if (!chamadorEhServiceRole && (userErr || !userData?.user)) {
       return new Response(JSON.stringify({ ok: false, erro: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const callerId = userData.user.id;
+    const callerId = userData?.user?.id ?? null;
+
+    if (!chamadorEhServiceRole) {
+      const { data: permitido, error: ePerm } = await supabaseAsUser.rpc("usuario_tem_acao", {
+        p_slug: "acao.pagar_executar",
+      });
+      if (ePerm || permitido !== true) {
+        return new Response(
+          JSON.stringify({ ok: false, erro: "Sem permissão (acao.pagar_executar). Concessão é feita no Console de Acesso." }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     const body = await req.json();
     const cprId: string = body.cpr_id;
