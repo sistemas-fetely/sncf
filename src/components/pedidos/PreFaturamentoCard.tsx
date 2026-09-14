@@ -25,6 +25,9 @@ import { useNivel } from "@/hooks/useNivel";
  *  - bloqueia && !ok  → bloqueio duro (botão desabilitado, sem override)
  *  - !bloqueia && !ok → aviso; a RPC devolve exige_motivo e o envio pede motivo
  * `pode_enviar` e `exige_motivo` vêm prontos — não recalcular no cliente.
+ * CONFERÊNCIA-É-A-PORTA (14/09/2026): `pode_enviar`/`exige_motivo` deixaram de ser
+ * só regra de tela — a edge `enviar-pedido-bling` roda a MESMA conferência no envio
+ * inicial e recusa (409) sem `motivo` de 15+ caracteres quando há avisos.
  */
 
 export const PRE_FATURAMENTO_CHECKLIST_KEY = (pedidoId: string) =>
@@ -128,7 +131,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
       {enviar.isPending
         ? <Loader2 className="h-4 w-4 animate-spin" />
         : <Send className="h-4 w-4" />}
-      Enviar ao Bling e faturar
+      Enviar ao Bling
     </Button>
   );
 
@@ -169,6 +172,12 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
         ) : botao
       )}
 
+      {podeEscrever && (
+        <p className="text-xs text-muted-foreground leading-snug">
+          A NF é emitida no Bling. O pedido vira Faturado sozinho quando ela for ingerida.
+        </p>
+      )}
+
       <Dialog
         open={dialogOpen}
         onOpenChange={(v) => {
@@ -178,7 +187,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Faturar com pendências</DialogTitle>
+            <DialogTitle>Enviar com pendências</DialogTitle>
             <DialogDescription>
               Pedido <strong>#{data.id_externo}</strong> tem {data.avisos} aviso(s) na conferência.
               Descreva o motivo do envio mesmo assim (mínimo {MIN_MOTIVO} caracteres).
@@ -207,7 +216,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
               {enviar.isPending
                 ? <Loader2 className="h-4 w-4 animate-spin" />
                 : <Send className="h-4 w-4" />}
-              Enviar ao Bling e faturar
+              Enviar ao Bling
             </Button>
           </DialogFooter>
         </DialogContent>
