@@ -355,12 +355,21 @@ export function useMoverTarefaSecao(projetoId: string) {
 export function useCriarTarefaNaSecao(projetoId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ titulo, secaoId }: { titulo: string; secaoId: string | null }) => {
+    mutationFn: async ({
+      titulo,
+      secaoId,
+      status,
+    }: {
+      titulo: string;
+      secaoId: string | null;
+      status?: string | null;
+    }) => {
       const { data: auth } = await supabase.auth.getUser();
       const { error } = await supabase.from("tarefas").insert({
         titulo,
         projeto_id: projetoId,
         secao_id: secaoId,
+        status: status ?? undefined,
         criado_por: auth.user?.id ?? null,
       });
       if (error) throw error;
