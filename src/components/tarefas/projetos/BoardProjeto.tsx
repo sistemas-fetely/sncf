@@ -678,6 +678,13 @@ export function BoardProjeto({ projetoId }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RebaixarTarefaDialog
+        aberto={!!rebaixando}
+        onOpenChange={(v) => !v && setRebaixando(null)}
+        projetoId={projetoId}
+        tarefa={rebaixando}
+      />
     </div>
   );
 }
