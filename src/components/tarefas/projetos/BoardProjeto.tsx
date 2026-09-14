@@ -37,6 +37,7 @@ import {
   formatarValorCampo, useCamposCatalogo, useCamposDoProjeto, useValoresCamposDoBoard,
 } from "@/hooks/tarefas/useProjetoCampos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RebaixarTarefaDialog } from "./RebaixarTarefaDialog";
 
 const SEM_SECAO = "__sem_secao__";
 const DIAS_CONCLUIDAS = 7;
@@ -137,6 +138,7 @@ export function BoardProjeto({ projetoId }: Props) {
   /** status exibido até a mutation confirmar; rollback em erro */
   const [otimista, setOtimista] = useState<Record<string, TarefaStatus>>({});
   const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
+  const [rebaixando, setRebaixando] = useState<{ id: string; titulo: string } | null>(null);
   const [motivo, setMotivo] = useState("");
 
   const statusAbertos = useMemo(
@@ -473,6 +475,24 @@ export function BoardProjeto({ projetoId }: Props) {
                               {t.titulo}
                             </span>
                           </div>
+                          {/* tarefa principal sem filhas pode virar passo de outra;
+                              contêiner não — não existe subtarefa de subtarefa */}
+                          {!t.parent_id && !container && (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" aria-label="Ações da tarefa">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem
+                                  onClick={() => setRebaixando({ id: t.id, titulo: t.titulo })}
+                                >
+                                  Transformar em subtarefa de…
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
                         </div>
 
 
