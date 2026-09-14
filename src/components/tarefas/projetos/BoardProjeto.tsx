@@ -257,6 +257,42 @@ export function BoardProjeto({ projetoId }: Props) {
     }
   }
 
+  /** passo em aberto = filha cujo status NÃO é terminal na dimensão (cancelada conta como fechada) */
+  const passosEmAberto = useCallback(
+    (tarefaId: string) =>
+      (filhasPorMae.get(tarefaId) ?? []).filter(
+        (f) => !statusDim?.find((s) => s.codigo === f.status)?.e_terminal
+      ).length,
+    [filhasPorMae, statusDim]
+  );
+
+  /**
+   * Guarda única de conclusão: destino "concluida" com passos em aberto
+   * pergunta antes. Retorna true quando abriu a pergunta (fluxo pausado).
+   * Reabrir uma concluída nunca pergunta.
+   */
+  function pedirConclusao(tarefaId: string, destino: string): boolean {
+    if (destino !== "concluida") return false;
+    const abertos = passosEmAberto(tarefaId);
+    if (!abertos) return false;
+    setConfirmandoConcluir({ tarefaId, passosAbertos: abertos });
+    return true;
+  }
+
+  /** depois do "Concluir mesmo assim" segue o fluxo normal: motivo se exigido, senão troca */
+  function concluirMesmoAssim() {
+    if (!confirmandoConcluir) return;
+    const { tarefaId } = confirmandoConcluir;
+    setConfirmandoConcluir(null);
+    const dim = statusDim?.find((s) => s.codigo === "concluida");
+    if (dim?.exige_motivo) {
+      setMotivo("");
+      setPedido({ tarefaId, status: dim });
+      return;
+    }
+    void trocarStatus(tarefaId, "concluida");
+  }
+
   function soltar(colunaId: string, e: React.DragEvent) {
     e.preventDefault();
     setAlvo(null);
@@ -266,10 +302,10 @@ export function BoardProjeto({ projetoId }: Props) {
     if (!atual) return;
 
     if (agruparPor === "status") {
-      if (ehContainer(atual)) return;
       if (statusExibido(atual) === colunaId) return;
       // dimensão inteira, não só abertos: a coluna Concluída também é alvo
       const dim = statusDim?.find((s) => s.codigo === colunaId);
+      if (pedirConclusao(tarefaId, colunaId)) return;
       if (dim?.exige_motivo) {
         setMotivo("");
         setPedido({ tarefaId, status: dim });
