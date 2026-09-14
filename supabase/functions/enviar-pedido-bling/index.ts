@@ -1251,6 +1251,7 @@ if (itensSemProdutoBling.length > 0) {
       sucesso,
       erro_msg: erroMsg,
       duracao_ms: duracaoMs,
+      motivo_override: motivoOverride || null,
     });
 
     if (sucesso) {
