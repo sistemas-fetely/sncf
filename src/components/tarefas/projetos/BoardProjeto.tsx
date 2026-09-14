@@ -583,35 +583,47 @@ export function BoardProjeto({ projetoId }: Props) {
                     );
                   })}
 
-                  {agruparPor === "status" ? null : novaTarefaEm === col.id ? (
-                    <Input
-                      autoFocus
-                      className="h-8"
-                      placeholder="Título da tarefa"
-                      value={tituloNovaTarefa}
-                      onChange={(e) => setTituloNovaTarefa(e.target.value)}
-                      onBlur={() => { setNovaTarefaEm(null); setTituloNovaTarefa(""); }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && tituloNovaTarefa.trim()) {
-                          criarTarefa.mutate({
-                            titulo: tituloNovaTarefa.trim(),
-                            secaoId: col.id === SEM_SECAO ? null : col.id,
-                          });
-                          setTituloNovaTarefa("");
-                        }
-                        if (e.key === "Escape") { setNovaTarefaEm(null); setTituloNovaTarefa(""); }
-                      }}
-                    />
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="justify-start text-muted-foreground"
-                      onClick={() => setNovaTarefaEm(col.id)}
-                    >
-                      <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar tarefa
-                    </Button>
-                  )}
+                  {(() => {
+                    const statusColuna = agruparPor === "status" ? statusDim?.find((s) => s.codigo === col.id) : null;
+                    const podeAdicionar =
+                      agruparPor === "secao" ||
+                      (agruparPor === "status" && !!statusColuna && !statusColuna.e_terminal && !statusColuna.exige_motivo);
+                    if (!podeAdicionar) return null;
+
+                    if (novaTarefaEm === col.id) {
+                      return (
+                        <Input
+                          autoFocus
+                          className="h-8"
+                          placeholder="Título da tarefa"
+                          value={tituloNovaTarefa}
+                          onChange={(e) => setTituloNovaTarefa(e.target.value)}
+                          onBlur={() => { setNovaTarefaEm(null); setTituloNovaTarefa(""); }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && tituloNovaTarefa.trim()) {
+                              criarTarefa.mutate({
+                                titulo: tituloNovaTarefa.trim(),
+                                secaoId: agruparPor === "status" ? null : (col.id === SEM_SECAO ? null : col.id),
+                                ...(agruparPor === "status" ? { status: col.id } : {}),
+                              });
+                              setTituloNovaTarefa("");
+                            }
+                            if (e.key === "Escape") { setNovaTarefaEm(null); setTituloNovaTarefa(""); }
+                          }}
+                        />
+                      );
+                    }
+                    return (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="justify-start text-muted-foreground"
+                        onClick={() => setNovaTarefaEm(col.id)}
+                      >
+                        <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar tarefa
+                      </Button>
+                    );
+                  })()}
                 </div>
               </div>
             );
