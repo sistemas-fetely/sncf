@@ -14,7 +14,24 @@ export interface PapelProjeto {
   descricao: string | null;
   pode_editar_projeto: boolean;
   pode_editar_tarefas: boolean;
+  pode_criar_tarefa: boolean;
+  pode_editar_qualquer_tarefa: boolean;
   ordem: number;
+}
+
+/**
+ * Linha curta do que o papel dá — montada das colunas de projeto_papel_dim,
+ * nunca escrita à mão. Se uma coluna virar true no banco, o texto acompanha.
+ */
+export function capacidadesDoPapel(p: Pick<PapelProjeto, "pode_editar_projeto" | "pode_criar_tarefa" | "pode_editar_qualquer_tarefa">): string {
+  const partes: string[] = [];
+  if (p.pode_editar_projeto) partes.push("edita o projeto");
+  if (p.pode_criar_tarefa) partes.push("cria tarefas");
+  if (p.pode_editar_qualquer_tarefa) partes.push("mexe em qualquer tarefa");
+  else if (p.pode_criar_tarefa) partes.push("mexe nas próprias");
+  if (partes.length === 0) return "Só visualiza";
+  const frase = partes.join(" · ");
+  return frase.charAt(0).toUpperCase() + frase.slice(1);
 }
 
 export interface PessoaParaProjeto {
@@ -53,7 +70,7 @@ export function usePapeisProjeto() {
     queryFn: async (): Promise<PapelProjeto[]> => {
       const { data, error } = await supabase
         .from("projeto_papel_dim")
-        .select("codigo,nome,descricao,pode_editar_projeto,pode_editar_tarefas,ordem")
+        .select("codigo,nome,descricao,pode_editar_projeto,pode_editar_tarefas,pode_criar_tarefa,pode_editar_qualquer_tarefa,ordem")
         .eq("ativo", true)
         .order("ordem");
       if (error) throw error;
@@ -110,6 +127,48 @@ export function useMeusPapeisProjeto() {
       return mapa;
     },
   });
+}
+
+export interface MeuPapelNoProjeto {
+  papel: string | null;
+  podeCriarTarefa: boolean;
+  podeEditarQualquerTarefa: boolean;
+  carregando: boolean;
+}
+
+/**
+ * Papel efetivo do usuário logado num projeto + o que ele pode fazer,
+ * vindos das RPCs do banco (fn_papel_efetivo_projeto, fn_pode_criar_tarefa_no_projeto,
+ * fn_pode_editar_tarefa_do_projeto). Cache por projeto. Enquanto carrega, os
+ * booleanos vêm false (fail-closed: a tela esconde o que ainda não sabe).
+ */
+export function useMeuPapelNoProjeto(projetoId: string | null): MeuPapelNoProjeto {
+  const query = useQuery({
+    queryKey: ["tarefas", "meu-papel-no-projeto", projetoId ?? "nenhum"],
+    enabled: !!projetoId,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const [papel, criar, editar] = await Promise.all([
+        supabase.rpc("fn_papel_efetivo_projeto", { _projeto_id: projetoId! }),
+        supabase.rpc("fn_pode_criar_tarefa_no_projeto", { _projeto_id: projetoId! }),
+        supabase.rpc("fn_pode_editar_tarefa_do_projeto", { _projeto_id: projetoId! }),
+      ]);
+      if (papel.error) throw papel.error;
+      if (criar.error) throw criar.error;
+      if (editar.error) throw editar.error;
+      return {
+        papel: (papel.data as string | null) ?? null,
+        podeCriarTarefa: criar.data === true,
+        podeEditarQualquerTarefa: editar.data === true,
+      };
+    },
+  });
+  return {
+    papel: query.data?.papel ?? null,
+    podeCriarTarefa: query.data?.podeCriarTarefa ?? false,
+    podeEditarQualquerTarefa: query.data?.podeEditarQualquerTarefa ?? false,
+    carregando: query.isLoading,
+  };
 }
 
 function useInvalidarMembros(projetoId: string) {

@@ -28,8 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
-  useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto, usePapeisProjeto,
-  usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
+  capacidadesDoPapel, useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto,
+  usePapeisProjeto, usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
 } from "@/hooks/tarefas/useProjetoMembros";
 import type { PessoaParaProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { cn } from "@/lib/utils";
@@ -191,11 +191,8 @@ export function PessoasProjeto({ projetoId }: Props) {
             <p className="mt-0.5 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-            {vinculo ? (
-              <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>
-            ) : papel ? (
-              <Badge variant="secondary" className="text-[10px]">{rotuloPapel(papel)}</Badge>
-            ) : null}
+            {vinculo && <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>}
+            {papel && <Badge variant="secondary" className="text-[10px]">{rotuloPapel(papel)}</Badge>}
           </div>
           {papel && (
             <p className="mt-2 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
@@ -222,9 +219,19 @@ export function PessoasProjeto({ projetoId }: Props) {
         )}
 
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
-          {fixos.map((f) => (
-            <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
-          ))}
+          {fixos.map((f) => {
+            // responsável/criador também pode ser membro — mostra o papel junto do vínculo
+            const membro = (membros ?? []).find((m) => m.user_id === f.id);
+            return (
+              <CardPessoa
+                key={`fixo-${f.id}`}
+                userId={f.id}
+                vinculo={f.vinculo}
+                papel={membro?.papel}
+                desde={membro?.desde}
+              />
+            );
+          })}
 
           {(membros ?? []).map((m) => (
             <CardPessoa
@@ -382,16 +389,16 @@ export function PessoasProjeto({ projetoId }: Props) {
                         <SelectItem key={p.codigo} value={p.codigo}>
                           <span className="flex flex-col">
                             <span>{p.nome}</span>
-                            {p.descricao && (
-                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {capacidadesDoPapel(p)}
+                            </span>
                           </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {papelEscolhido?.descricao && (
-                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  {papelEscolhido && (
+                    <p className="text-xs text-muted-foreground">{capacidadesDoPapel(papelEscolhido)}</p>
                   )}
                 </div>
               </div>
@@ -531,16 +538,16 @@ export function PessoasProjeto({ projetoId }: Props) {
                         <SelectItem key={p.codigo} value={p.codigo}>
                           <span className="flex flex-col">
                             <span>{p.nome}</span>
-                            {p.descricao && (
-                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {capacidadesDoPapel(p)}
+                            </span>
                           </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {papelEscolhido?.descricao && (
-                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  {papelEscolhido && (
+                    <p className="text-xs text-muted-foreground">{capacidadesDoPapel(papelEscolhido)}</p>
                   )}
                 </div>
 
