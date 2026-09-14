@@ -538,16 +538,16 @@ export function PessoasProjeto({ projetoId }: Props) {
                         <SelectItem key={p.codigo} value={p.codigo}>
                           <span className="flex flex-col">
                             <span>{p.nome}</span>
-                            {p.descricao && (
-                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {capacidadesDoPapel(p)}
+                            </span>
                           </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {papelEscolhido?.descricao && (
-                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  {papelEscolhido && (
+                    <p className="text-xs text-muted-foreground">{capacidadesDoPapel(papelEscolhido)}</p>
                   )}
                 </div>
 
