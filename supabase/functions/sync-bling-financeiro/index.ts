@@ -24,9 +24,13 @@ const ok = (data: any, status = 200) =>
 const err = (msg: string, status = 400) =>
   new Response(JSON.stringify({ sucesso: false, erro: msg }), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-// Budget bem abaixo do idle timeout de 150s do edge runtime, para garantir
-// que a função sempre retorne resposta antes do timeout (cliente faz loop).
-const MAX_EXEC_MS = 90_000;
+// Budget bem abaixo do limite do gateway, para garantir que a função sempre
+// retorne resposta antes do timeout (cliente faz loop com `continuar: true`).
+// 14/09/2026: baixado de 90s para 55s — `timeUp()` só é consultado ENTRE páginas,
+// então uma página lenta empurrava a execução além do teto e virava 504 sem
+// rastro. Com 55s sobra folga para a página em curso terminar e a função gravar
+// cursor e log antes de responder.
+const MAX_EXEC_MS = 55_000;
 
 type Entidade = "situacoes" | "contatos" | "produtos" | "estoques" | "contas_receber" | "pedidos" | "nfe";
 // estoques roda depois de produtos (precisa dos bling_id já populados).

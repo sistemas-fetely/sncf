@@ -8,7 +8,46 @@ import {
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
-async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> { if (!contato?.id) return null; const blingId = String(contato.id); const { data: found } = await supabase .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle(); if (found) return found.id; if (!contato.nome) return null; const doc = (contato.numeroDocumento || "").replace(/\D/g, ""); const { data: novo, error: insErr } = await supabase.from("parceiros_comerciais").insert({ razao_social: contato.nome, tipo: "pj", tipo_pessoa: doc.length === 11 ? "PF" : "PJ", tipos: ["cliente"], origem: "bling", bling_id: blingId, cpf: doc.length === 11 ? doc : null, cnpj: doc.length === 14 ? doc : null, email: contato.email || null, telefone: contato.telefone || null, }).select("id").maybeSingle(); if (insErr) { console.error(`resolveParceiroId INSERT failed [bling_id=${blingId}]: ${insErr.message}`); return null; } return novo?.id ?? null; }
+// CLIENTE-NAO-SE-PERDE-EM-SILENCIO (14/09/2026): quando o INSERT do parceiro
+// falhava (ex.: "Could not query the database for the schema cache"), a funcao
+// devolvia null e a NF/pedido era gravado SEM cliente. Agora tenta 2x com pausa
+// curta e, se ainda falhar, LANCA — o item cai no catch do laco, conta como erro
+// e aparece em integracoes_sync_log. Nada entra sem cliente em silencio.
+async function inserirParceiroComRetry(supabase: any, registro: Record<string, unknown>) {
+  let ultimoErro = "";
+  for (let tentativa = 1; tentativa <= 3; tentativa++) {
+    const { data, error } = await supabase
+      .from("parceiros_comerciais").insert(registro).select("id").maybeSingle();
+    if (!error) return data?.id ?? null;
+    ultimoErro = error.message;
+    if (tentativa < 3) await new Promise((r) => setTimeout(r, 400 * tentativa));
+  }
+  throw new Error(
+    `parceiro nao cadastrado [bling_id=${registro.bling_id}]: ${ultimoErro}`,
+  );
+}
+
+async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> {
+  if (!contato?.id) return null;
+  const blingId = String(contato.id);
+  const { data: found } = await supabase
+    .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle();
+  if (found) return found.id;
+  if (!contato.nome) return null;
+  const doc = (contato.numeroDocumento || "").replace(/\D/g, "");
+  return await inserirParceiroComRetry(supabase, {
+    razao_social: contato.nome,
+    tipo: "pj",
+    tipo_pessoa: doc.length === 11 ? "PF" : "PJ",
+    tipos: ["cliente"],
+    origem: "bling",
+    bling_id: blingId,
+    cpf: doc.length === 11 ? doc : null,
+    cnpj: doc.length === 14 ? doc : null,
+    email: contato.email || null,
+    telefone: contato.telefone || null,
+  });
+}
 
 // FONTE UNICA de resolucao: a regra vive no banco (fn_resolver_pedido_por_ref_bling).
 // numeroPedidoLoja pode conter o codigo canonico da remessa gravado em pedido_remessa.codigo_bling.

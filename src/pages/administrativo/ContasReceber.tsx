@@ -40,7 +40,7 @@ import * as XLSX from "xlsx";
 import { useNivel } from "@/hooks/useNivel";
 import {
   useTituloEstado,
-  useTituloEstadoKpis,
+  useTituloEstadoKpisDe,
 } from "@/hooks/financeiro/useTituloEstadoKpis";
 
 type RecebivelB2B = {
@@ -712,8 +712,14 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     };
   }, [baseFiltros]);
 
-  /* Fonte única do vencido contábil e das faixas de aging. */
-  const { kpis: estadoTitulos } = useTituloEstadoKpis();
+  /* Fonte única do vencido contábil e das faixas de aging, restrita aos títulos
+     que sobraram nos filtros da tela — senão o cartão promete um total que a
+     lista não entrega ao clicar. */
+  const idsFiltrados = useMemo(
+    () => new Set(baseFiltros.map((t) => t.id as string)),
+    [baseFiltros],
+  );
+  const { kpis: estadoTitulos } = useTituloEstadoKpisDe(idsFiltrados);
   const faixasAging: Record<ChaveFaixa, number> =
     estadoTitulos?.faixas ?? { "1-7": 0, "8-30": 0, "31-60": 0, "60+": 0 };
   const vencidoContabil = estadoTitulos?.vencidoContabil ?? { qtd: 0, valor: 0 };
