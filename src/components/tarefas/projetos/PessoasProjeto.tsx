@@ -219,9 +219,19 @@ export function PessoasProjeto({ projetoId }: Props) {
         )}
 
         <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
-          {fixos.map((f) => (
-            <CardPessoa key={`fixo-${f.id}`} userId={f.id} vinculo={f.vinculo} />
-          ))}
+          {fixos.map((f) => {
+            // responsável/criador também pode ser membro — mostra o papel junto do vínculo
+            const membro = (membros ?? []).find((m) => m.user_id === f.id);
+            return (
+              <CardPessoa
+                key={`fixo-${f.id}`}
+                userId={f.id}
+                vinculo={f.vinculo}
+                papel={membro?.papel}
+                desde={membro?.desde}
+              />
+            );
+          })}
 
           {(membros ?? []).map((m) => (
             <CardPessoa
@@ -379,16 +389,16 @@ export function PessoasProjeto({ projetoId }: Props) {
                         <SelectItem key={p.codigo} value={p.codigo}>
                           <span className="flex flex-col">
                             <span>{p.nome}</span>
-                            {p.descricao && (
-                              <span className="text-[11px] text-muted-foreground">{p.descricao}</span>
-                            )}
+                            <span className="text-[11px] text-muted-foreground">
+                              {capacidadesDoPapel(p)}
+                            </span>
                           </span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {papelEscolhido?.descricao && (
-                    <p className="text-xs text-muted-foreground">{papelEscolhido.descricao}</p>
+                  {papelEscolhido && (
+                    <p className="text-xs text-muted-foreground">{capacidadesDoPapel(papelEscolhido)}</p>
                   )}
                 </div>
               </div>
