@@ -5204,6 +5204,7 @@ export type Database = {
           enviado_por: string | null
           erro_msg: string | null
           id: string
+          motivo_override: string | null
           payload_enviado: Json
           pedido_id: string
           resposta_body: Json | null
@@ -5217,6 +5218,7 @@ export type Database = {
           enviado_por?: string | null
           erro_msg?: string | null
           id?: string
+          motivo_override?: string | null
           payload_enviado: Json
           pedido_id: string
           resposta_body?: Json | null
@@ -5230,6 +5232,7 @@ export type Database = {
           enviado_por?: string | null
           erro_msg?: string | null
           id?: string
+          motivo_override?: string | null
           payload_enviado?: Json
           pedido_id?: string
           resposta_body?: Json | null

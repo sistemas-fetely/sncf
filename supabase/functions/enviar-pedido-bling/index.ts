@@ -88,6 +88,9 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
     let remessa_id_input: string | null = body?.remessa_id ?? null;
+    // CONFERENCIA-E-A-PORTA: override declarado do pre-faturamento, em escopo geral
+    // (o `motivo` do ramo `reenviar` continua com nome proprio).
+    const motivoOverride = String(body?.motivo ?? "").trim();
     if (!pedido_id) return err("pedido_id obrigatório");
 
     // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA), por cima do papel.
@@ -425,6 +428,53 @@ serve(async (req) => {
       }
     }
 
+    // ── CONFERENCIA-E-A-PORTA (14/09/2026) ────────────────────────────────
+    // A conferencia de pre-faturamento passa a ser juiz UNICO no servidor, e
+    // so no envio INICIAL. O checklist tem `bling_id_destino is not null` como
+    // bloqueio duro: aplica-lo no split (remessa_id explicito) ou no reenvio
+    // mataria os dois, porque ali o pedido JA tem id do Bling por desenho.
+    // Roda ANTES de a remessa nascer — recusa depois deixaria remessa orfa (PED-2116).
+    if (body?.acao !== "reenviar" && !remessa_id_input) {
+      const { data: conf, error: eConf } = await supabase.rpc(
+        "fn_pedido_pre_faturamento_checklist",
+        { p_pedido_id: pedido_id },
+      );
+      if (eConf) {
+        return err(
+          `Nao foi possivel rodar a conferencia de pre-faturamento: ${eConf.message}`,
+          500,
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const c: any = conf ?? {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const itens: any[] = Array.isArray(c.itens) ? c.itens : [];
+      if (c.pode_enviar !== true) {
+        const duros = itens
+          .filter((i) => i?.bloqueia === true && i?.ok === false)
+          .map((i) => String(i?.rotulo ?? i?.codigo ?? "item"));
+        return err(
+          `Conferencia de pre-faturamento bloqueia o envio: ${duros.join(" · ") || "bloqueio nao identificado"}`,
+          409,
+        );
+      }
+      if (c.exige_motivo === true && motivoOverride.length < 15) {
+        const avisos = itens
+          .filter((i) => i?.bloqueia === false && i?.ok === false)
+          .map((i) => String(i?.rotulo ?? i?.codigo ?? "item"));
+        return err(
+          `A conferencia tem ${avisos.length} aviso(s) e exige justificativa declarada de no minimo 15 caracteres: ` +
+          `${avisos.join(" · ")}`,
+          409,
+        );
+      }
+      console.log("[enviar-pedido-bling] conferencia OK", {
+        pedido_id,
+        avisos: c.avisos ?? null,
+        tem_motivo: motivoOverride.length > 0,
+      });
+    }
+
     // 1b. Remessa: usa a fornecida ou cria lazy /01
     let remessa: any = null;
     // Guarda o id da remessa criada NESTA chamada (nunca de remessa preexistente),
@@ -728,6 +778,7 @@ serve(async (req) => {
         sucesso: false,
         erro_msg: msg,
         duracao_ms: Date.now() - t0,
+        motivo_override: motivoOverride || null,
       });
       await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
       return await falhaLimpando(msg, 409);
@@ -1200,6 +1251,7 @@ if (itensSemProdutoBling.length > 0) {
       sucesso,
       erro_msg: erroMsg,
       duracao_ms: duracaoMs,
+      motivo_override: motivoOverride || null,
     });
 
     if (sucesso) {
@@ -1255,7 +1307,8 @@ if (itensSemProdutoBling.length > 0) {
       const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
         pedido_id,
         tipo_evento: "bling_enviado",
-        descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling`,
+        descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling` +
+          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : ""),
         metadata: {
           bling_id: String(blingId),
           remessa_id: remessa.id,
@@ -1263,6 +1316,7 @@ if (itensSemProdutoBling.length > 0) {
           duracao_ms: duracaoMs,
           carimbou_destino: carimbarDestino,
           enviado_por: userId,
+          motivo_override: motivoOverride || null,
         },
         automatico: false,
       });

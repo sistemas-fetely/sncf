@@ -97,8 +97,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
   if (isLoading || estagio === "cancelado") return null;
 
-  const semRemessa = !remessas || remessas.length === 0;
-  const podeEnviarInicial = estagio === "pre_faturamento" && !bling_id_destino;
   const estagioDeEnvio = estagio === "pre_separacao" || estagio === "em_separacao";
   const temBlingId = !!parceiroBling?.bling_id;
   const precisaSincronizar = estagioDeEnvio && !bling_id_destino && !temBlingId;
@@ -140,7 +138,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     : undefined;
 
   const mostrarAlerta = precisaSincronizar;
-  const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
   // Reenvio: só super_admin, só em (pré-)separação, e só se existe uma tentativa VIVA
   // carregando exatamente o id que o pedido aponta hoje (a "vigente").
@@ -161,7 +158,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     isSuperAdmin && !!bling_id_destino && temTentativaVigente
     && (estagio === "pre_separacao" || estagio === "em_separacao" || liberaRefaturamento);
 
-  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar
+  if (!mostrarAlerta && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;
 
 
@@ -191,8 +188,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
       {/* Motivo visível do bloqueio por permissão — mesmo padrão de card do
           "XPM recusou: …". O botão fica DESABILITADO, nunca escondido. */}
-      {((mostrarInicial && !podeEnviarBling) ||
-        (!precisaSincronizar && podeEmpurrarXpm && !podeEmpurrarXpmAcao)) && (
+      {(!precisaSincronizar && podeEmpurrarXpm && !podeEmpurrarXpmAcao) && (
         <Alert variant="default" className="bg-muted/60 border-border">
           <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           <AlertDescription className="text-muted-foreground text-xs">
@@ -201,22 +197,9 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Alert>
       )}
 
-      {mostrarInicial && (
-        <Button
-          size="sm"
-          className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
-          title={podeEnviarBling ? `Enviar ${id_externo} pro Bling` : MOTIVO_SEM_ACAO}
-          disabled={ocupado || !podeEnviarBling}
-          onClick={() => enviar.mutate({ pedido_id })}
-        >
-          {enviar.isPending ? (
-            <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
-          ) : (
-            <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling</>
-
-          )}
-        </Button>
-      )}
+      {/* CONFERENCIA-E-A-PORTA: o envio inicial mora no PreFaturamentoCard, que
+          passa pela conferencia. O botao paralelo que existia aqui furava a
+          ancora (PED-2164) e foi removido. */}
 
       {!precisaSincronizar && podeEmpurrarXpm && (previa?.avisos?.length ?? 0) > 0 && (
         <Alert variant="default" className="bg-warning/10 border-warning/40">
