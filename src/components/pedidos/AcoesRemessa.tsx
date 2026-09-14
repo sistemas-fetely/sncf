@@ -97,8 +97,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
   if (isLoading || estagio === "cancelado") return null;
 
-  const semRemessa = !remessas || remessas.length === 0;
-  const podeEnviarInicial = estagio === "pre_faturamento" && !bling_id_destino;
   const estagioDeEnvio = estagio === "pre_separacao" || estagio === "em_separacao";
   const temBlingId = !!parceiroBling?.bling_id;
   const precisaSincronizar = estagioDeEnvio && !bling_id_destino && !temBlingId;
