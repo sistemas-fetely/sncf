@@ -140,6 +140,8 @@ export function BoardProjeto({ projetoId }: Props) {
   const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
   const [rebaixando, setRebaixando] = useState<{ id: string; titulo: string } | null>(null);
   const [motivo, setMotivo] = useState("");
+  /** guarda de conclusão com passos em aberto — pergunta antes de concluir */
+  const [confirmandoConcluir, setConfirmandoConcluir] = useState<{ tarefaId: string; passosAbertos: number } | null>(null);
 
   const statusAbertos = useMemo(
     () => (statusDim ?? []).filter((s) => s.e_aberto),
@@ -227,11 +229,9 @@ export function BoardProjeto({ projetoId }: Props) {
   }, [tarefas, ehCard, agruparPor, statusExibido]);
 
   function podeArrastar(t: TarefaBoard): boolean {
-    const permitido = !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
-    if (!permitido) return false;
-    // contêiner fecha pelo progresso das filhas — não muda de status arrastando
-    if (agruparPor === "status" && ehContainer(t)) return false;
-    return true;
+    // permissão de sempre: gerencia o projeto, é responsável ou é criador.
+    // Contêiner arrasta normal — o banco não tem regra que amarre a mãe às filhas.
+    return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
   }
 
   /** FAIL-LOUD: otimista, await real, rollback e toast no erro.
