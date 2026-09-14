@@ -129,6 +129,48 @@ export function useMeusPapeisProjeto() {
   });
 }
 
+export interface MeuPapelNoProjeto {
+  papel: string | null;
+  podeCriarTarefa: boolean;
+  podeEditarQualquerTarefa: boolean;
+  carregando: boolean;
+}
+
+/**
+ * Papel efetivo do usuário logado num projeto + o que ele pode fazer,
+ * vindos das RPCs do banco (fn_papel_efetivo_projeto, fn_pode_criar_tarefa_no_projeto,
+ * fn_pode_editar_tarefa_do_projeto). Cache por projeto. Enquanto carrega, os
+ * booleanos vêm false (fail-closed: a tela esconde o que ainda não sabe).
+ */
+export function useMeuPapelNoProjeto(projetoId: string | null): MeuPapelNoProjeto {
+  const query = useQuery({
+    queryKey: ["tarefas", "meu-papel-no-projeto", projetoId ?? "nenhum"],
+    enabled: !!projetoId,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const [papel, criar, editar] = await Promise.all([
+        supabase.rpc("fn_papel_efetivo_projeto", { _projeto_id: projetoId! }),
+        supabase.rpc("fn_pode_criar_tarefa_no_projeto", { _projeto_id: projetoId! }),
+        supabase.rpc("fn_pode_editar_tarefa_do_projeto", { _projeto_id: projetoId! }),
+      ]);
+      if (papel.error) throw papel.error;
+      if (criar.error) throw criar.error;
+      if (editar.error) throw editar.error;
+      return {
+        papel: (papel.data as string | null) ?? null,
+        podeCriarTarefa: criar.data === true,
+        podeEditarQualquerTarefa: editar.data === true,
+      };
+    },
+  });
+  return {
+    papel: query.data?.papel ?? null,
+    podeCriarTarefa: query.data?.podeCriarTarefa ?? false,
+    podeEditarQualquerTarefa: query.data?.podeEditarQualquerTarefa ?? false,
+    carregando: query.isLoading,
+  };
+}
+
 function useInvalidarMembros(projetoId: string) {
   const qc = useQueryClient();
   return () => {
