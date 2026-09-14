@@ -38,6 +38,7 @@ import {
 } from "@/hooks/tarefas/useProjetoCampos";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RebaixarTarefaDialog } from "./RebaixarTarefaDialog";
+import { useMeuPapelNoProjeto } from "@/hooks/tarefas/useProjetoMembros";
 
 const SEM_SECAO = "__sem_secao__";
 const DIAS_CONCLUIDAS = 7;
@@ -103,6 +104,8 @@ export function BoardProjeto({ projetoId }: Props) {
   const { data: secoes } = useSecoesProjeto(projetoId);
   const { data: tarefas, isLoading } = useTarefasDoProjeto(projetoId);
   const { data: podeGerenciar } = usePodeGerenciarProjeto(projetoId);
+  // papel efetivo no projeto (gestor/membro/observador) — vem das RPCs do banco
+  const { podeCriarTarefa, podeEditarQualquerTarefa, carregando: carregandoPapel } = useMeuPapelNoProjeto(projetoId);
   const mover = useMoverTarefaSecao(projetoId);
   const criarSecao = useCriarSecao(projetoId);
   const renomear = useRenomearSecao(projetoId);
@@ -224,9 +227,10 @@ export function BoardProjeto({ projetoId }: Props) {
   }, [tarefas, ehCard, agruparPor, statusExibido]);
 
   function podeArrastar(t: TarefaBoard): boolean {
-    // permissão de sempre: gerencia o projeto, é responsável ou é criador.
+    // permissão de sempre: gerencia o projeto, é responsável ou é criador —
+    // ou o papel no projeto permite editar qualquer tarefa (gestor, pela dim).
     // Contêiner arrasta normal — o banco não tem regra que amarre a mãe às filhas.
-    return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
+    return !!podeGerenciar || podeEditarQualquerTarefa || t.responsavel_id === user?.id || t.criado_por === user?.id;
   }
 
   /** FAIL-LOUD: otimista, await real, rollback e toast no erro.
@@ -614,8 +618,10 @@ export function BoardProjeto({ projetoId }: Props) {
                   {(() => {
                     const statusColuna = agruparPor === "status" ? statusDim?.find((s) => s.codigo === col.id) : null;
                     const podeAdicionar =
-                      agruparPor === "secao" ||
-                      (agruparPor === "status" && !!statusColuna && !statusColuna.e_terminal && !statusColuna.exige_motivo);
+                      // papel sem direito de criar tarefa (ou ainda carregando) não vê o botão
+                      podeCriarTarefa && !carregandoPapel &&
+                      (agruparPor === "secao" ||
+                        (agruparPor === "status" && !!statusColuna && !statusColuna.e_terminal && !statusColuna.exige_motivo));
                     if (!podeAdicionar) return null;
 
                     if (novaTarefaEm === col.id) {
