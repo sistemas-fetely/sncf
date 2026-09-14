@@ -14,7 +14,24 @@ export interface PapelProjeto {
   descricao: string | null;
   pode_editar_projeto: boolean;
   pode_editar_tarefas: boolean;
+  pode_criar_tarefa: boolean;
+  pode_editar_qualquer_tarefa: boolean;
   ordem: number;
+}
+
+/**
+ * Linha curta do que o papel dá — montada das colunas de projeto_papel_dim,
+ * nunca escrita à mão. Se uma coluna virar true no banco, o texto acompanha.
+ */
+export function capacidadesDoPapel(p: Pick<PapelProjeto, "pode_editar_projeto" | "pode_criar_tarefa" | "pode_editar_qualquer_tarefa">): string {
+  const partes: string[] = [];
+  if (p.pode_editar_projeto) partes.push("edita o projeto");
+  if (p.pode_criar_tarefa) partes.push("cria tarefas");
+  if (p.pode_editar_qualquer_tarefa) partes.push("mexe em qualquer tarefa");
+  else if (p.pode_criar_tarefa) partes.push("mexe nas próprias");
+  if (partes.length === 0) return "Só visualiza";
+  const frase = partes.join(" · ");
+  return frase.charAt(0).toUpperCase() + frase.slice(1);
 }
 
 export interface PessoaParaProjeto {
@@ -53,7 +70,7 @@ export function usePapeisProjeto() {
     queryFn: async (): Promise<PapelProjeto[]> => {
       const { data, error } = await supabase
         .from("projeto_papel_dim")
-        .select("codigo,nome,descricao,pode_editar_projeto,pode_editar_tarefas,ordem")
+        .select("codigo,nome,descricao,pode_editar_projeto,pode_editar_tarefas,pode_criar_tarefa,pode_editar_qualquer_tarefa,ordem")
         .eq("ativo", true)
         .order("ordem");
       if (error) throw error;
