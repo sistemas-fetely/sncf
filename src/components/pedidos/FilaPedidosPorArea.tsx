@@ -1036,10 +1036,8 @@ export function FilaPedidosPorArea({
                       <EstagioBadge estagio={p.estagio} />
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
                         <span title="Pedido criado no Bling — aguardando emissão da NF">
-                          <Selo
-                            estado="muted"
-                            className="border border-border"
-                          >
+                          {/* info = processando (aguarda NF). Verde seria mentira: concluído é Faturado, e Faturado exige NF. */}
+                          <Selo estado="info">
                             Enviado ao Bling
                           </Selo>
                         </span>
