@@ -178,11 +178,6 @@ export function BoardProjeto({ projetoId }: Props) {
     return mapa;
   }, [tarefas]);
 
-  const ehContainer = useCallback(
-    (t: TarefaBoard) => (filhasPorMae.get(t.id) ?? []).length > 0,
-    [filhasPorMae]
-  );
-
   const statusExibido = useCallback(
     (t: TarefaBoard) => otimista[t.id] ?? (t.status as TarefaStatus),
     [otimista]
@@ -483,24 +478,21 @@ export function BoardProjeto({ projetoId }: Props) {
                                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {agruparPor === "status" && container
-                                    ? "Agrupador: fecha pelo progresso das subtarefas, não arrasta"
-                                    : "Você não pode mover esta tarefa"}
+                                  Você não pode mover esta tarefa
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          {/* contêiner NÃO tem círculo: fecha pelo progresso das filhas */}
-                          {!container && (
-                            <BotaoConcluir
-                              concluida={statusDoCard === "concluida"}
-                              className="mt-0.5 shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void trocarStatus(t.id, statusDoCard === "concluida" ? "pendente" : "concluida");
-                              }}
-                            />
-                          )}
+                          <BotaoConcluir
+                            concluida={statusDoCard === "concluida"}
+                            className="mt-0.5 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const destino = statusDoCard === "concluida" ? "pendente" : "concluida";
+                              if (pedirConclusao(t.id, destino)) return;
+                              void trocarStatus(t.id, destino);
+                            }}
+                          />
                           <div className="min-w-0 flex-1">
                             <span
                               className={cn(
