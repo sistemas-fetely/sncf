@@ -100,6 +100,8 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "cobranca-pedido-minimo",
   "cobranca-plano-existente",
   "cobranca-proposta",
+  // PreFaturamentoCard — some depois de enviar/declarar âncora.
+  "pre-faturamento-checklist",
 ];
 
 export function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): void {
