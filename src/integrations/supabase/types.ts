@@ -100162,6 +100162,19 @@ export type Database = {
           valor: number
         }[]
       }
+      fn_tarefa_promover: {
+        Args: {
+          p_manter_vinculo?: boolean
+          p_projeto_id?: string
+          p_secao_id?: string
+          p_tarefa_id: string
+        }
+        Returns: string
+      }
+      fn_tarefa_rebaixar: {
+        Args: { p_parent_id: string; p_tarefa_id: string }
+        Returns: string
+      }
       fn_tarefa_sou_raci: {
         Args: {
           p_acc_user: string
