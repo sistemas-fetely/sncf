@@ -43554,7 +43554,9 @@ export type Database = {
           descricao: string
           nome: string
           ordem: number
+          pode_criar_tarefa: boolean
           pode_editar_projeto: boolean
+          pode_editar_qualquer_tarefa: boolean
           pode_editar_tarefas: boolean
         }
         Insert: {
@@ -43563,7 +43565,9 @@ export type Database = {
           descricao: string
           nome: string
           ordem?: number
+          pode_criar_tarefa?: boolean
           pode_editar_projeto: boolean
+          pode_editar_qualquer_tarefa?: boolean
           pode_editar_tarefas: boolean
         }
         Update: {
@@ -43572,7 +43576,9 @@ export type Database = {
           descricao?: string
           nome?: string
           ordem?: number
+          pode_criar_tarefa?: boolean
           pode_editar_projeto?: boolean
+          pode_editar_qualquer_tarefa?: boolean
           pode_editar_tarefas?: boolean
         }
         Relationships: []
@@ -99708,6 +99714,10 @@ export type Database = {
             }
             Returns: number
           }
+      fn_papel_efetivo_projeto: {
+        Args: { _projeto_id: string }
+        Returns: string
+      }
       fn_papel_no_projeto: { Args: { _projeto_id: string }; Returns: string }
       fn_parceiro_apelido: {
         Args: { p_fantasia: string; p_razao: string }
@@ -99798,6 +99808,14 @@ export type Database = {
       }
       fn_pode_agir_na_tarefa: {
         Args: { p_tarefa_id: string }
+        Returns: boolean
+      }
+      fn_pode_criar_tarefa_no_projeto: {
+        Args: { _projeto_id: string }
+        Returns: boolean
+      }
+      fn_pode_editar_tarefa_do_projeto: {
+        Args: { _projeto_id: string }
         Returns: boolean
       }
       fn_pode_operar_mercadoria: { Args: never; Returns: boolean }
