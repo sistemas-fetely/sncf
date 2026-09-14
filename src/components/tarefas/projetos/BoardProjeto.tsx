@@ -140,6 +140,8 @@ export function BoardProjeto({ projetoId }: Props) {
   const [pedido, setPedido] = useState<{ tarefaId: string; status: StatusTarefaDim } | null>(null);
   const [rebaixando, setRebaixando] = useState<{ id: string; titulo: string } | null>(null);
   const [motivo, setMotivo] = useState("");
+  /** guarda de conclusão com passos em aberto — pergunta antes de concluir */
+  const [confirmandoConcluir, setConfirmandoConcluir] = useState<{ tarefaId: string; passosAbertos: number } | null>(null);
 
   const statusAbertos = useMemo(
     () => (statusDim ?? []).filter((s) => s.e_aberto),
@@ -175,11 +177,6 @@ export function BoardProjeto({ projetoId }: Props) {
     }
     return mapa;
   }, [tarefas]);
-
-  const ehContainer = useCallback(
-    (t: TarefaBoard) => (filhasPorMae.get(t.id) ?? []).length > 0,
-    [filhasPorMae]
-  );
 
   const statusExibido = useCallback(
     (t: TarefaBoard) => otimista[t.id] ?? (t.status as TarefaStatus),
@@ -227,11 +224,9 @@ export function BoardProjeto({ projetoId }: Props) {
   }, [tarefas, ehCard, agruparPor, statusExibido]);
 
   function podeArrastar(t: TarefaBoard): boolean {
-    const permitido = !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
-    if (!permitido) return false;
-    // contêiner fecha pelo progresso das filhas — não muda de status arrastando
-    if (agruparPor === "status" && ehContainer(t)) return false;
-    return true;
+    // permissão de sempre: gerencia o projeto, é responsável ou é criador.
+    // Contêiner arrasta normal — o banco não tem regra que amarre a mãe às filhas.
+    return !!podeGerenciar || t.responsavel_id === user?.id || t.criado_por === user?.id;
   }
 
   /** FAIL-LOUD: otimista, await real, rollback e toast no erro.
@@ -257,6 +252,42 @@ export function BoardProjeto({ projetoId }: Props) {
     }
   }
 
+  /** passo em aberto = filha cujo status NÃO é terminal na dimensão (cancelada conta como fechada) */
+  const passosEmAberto = useCallback(
+    (tarefaId: string) =>
+      (filhasPorMae.get(tarefaId) ?? []).filter(
+        (f) => !statusDim?.find((s) => s.codigo === f.status)?.e_terminal
+      ).length,
+    [filhasPorMae, statusDim]
+  );
+
+  /**
+   * Guarda única de conclusão: destino "concluida" com passos em aberto
+   * pergunta antes. Retorna true quando abriu a pergunta (fluxo pausado).
+   * Reabrir uma concluída nunca pergunta.
+   */
+  function pedirConclusao(tarefaId: string, destino: string): boolean {
+    if (destino !== "concluida") return false;
+    const abertos = passosEmAberto(tarefaId);
+    if (!abertos) return false;
+    setConfirmandoConcluir({ tarefaId, passosAbertos: abertos });
+    return true;
+  }
+
+  /** depois do "Concluir mesmo assim" segue o fluxo normal: motivo se exigido, senão troca */
+  function concluirMesmoAssim() {
+    if (!confirmandoConcluir) return;
+    const { tarefaId } = confirmandoConcluir;
+    setConfirmandoConcluir(null);
+    const dim = statusDim?.find((s) => s.codigo === "concluida");
+    if (dim?.exige_motivo) {
+      setMotivo("");
+      setPedido({ tarefaId, status: dim });
+      return;
+    }
+    void trocarStatus(tarefaId, "concluida");
+  }
+
   function soltar(colunaId: string, e: React.DragEvent) {
     e.preventDefault();
     setAlvo(null);
@@ -266,10 +297,10 @@ export function BoardProjeto({ projetoId }: Props) {
     if (!atual) return;
 
     if (agruparPor === "status") {
-      if (ehContainer(atual)) return;
       if (statusExibido(atual) === colunaId) return;
       // dimensão inteira, não só abertos: a coluna Concluída também é alvo
       const dim = statusDim?.find((s) => s.codigo === colunaId);
+      if (pedirConclusao(tarefaId, colunaId)) return;
       if (dim?.exige_motivo) {
         setMotivo("");
         setPedido({ tarefaId, status: dim });
@@ -447,24 +478,21 @@ export function BoardProjeto({ projetoId }: Props) {
                                   <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {agruparPor === "status" && container
-                                    ? "Agrupador: fecha pelo progresso das subtarefas, não arrasta"
-                                    : "Você não pode mover esta tarefa"}
+                                  Você não pode mover esta tarefa
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           )}
-                          {/* contêiner NÃO tem círculo: fecha pelo progresso das filhas */}
-                          {!container && (
-                            <BotaoConcluir
-                              concluida={statusDoCard === "concluida"}
-                              className="mt-0.5 shrink-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                void trocarStatus(t.id, statusDoCard === "concluida" ? "pendente" : "concluida");
-                              }}
-                            />
-                          )}
+                          <BotaoConcluir
+                            concluida={statusDoCard === "concluida"}
+                            className="mt-0.5 shrink-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const destino = statusDoCard === "concluida" ? "pendente" : "concluida";
+                              if (pedirConclusao(t.id, destino)) return;
+                              void trocarStatus(t.id, destino);
+                            }}
+                          />
                           <div className="min-w-0 flex-1">
                             <span
                               className={cn(
@@ -630,6 +658,24 @@ export function BoardProjeto({ projetoId }: Props) {
           })}
         </div>
       )}
+
+      {/* concluir com passos em aberto pergunta antes; cancelar deixa o card onde estava */}
+      <AlertDialog open={!!confirmandoConcluir} onOpenChange={(v) => !v && setConfirmandoConcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir com passos em aberto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmandoConcluir?.passosAbertos === 1
+                ? "Esta tarefa tem 1 passo que ainda não fechou. Ele continua aberto depois."
+                : `Esta tarefa tem ${confirmandoConcluir?.passosAbertos ?? 0} passos que ainda não fecharam. Eles continuam abertos depois.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={concluirMesmoAssim}>Concluir mesmo assim</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!excluindo} onOpenChange={(v) => !v && setExcluindo(null)}>
         <AlertDialogContent>
