@@ -106,11 +106,31 @@ export function useTituloEstado() {
   });
 }
 
-/** KPIs agregados da fonte única — usado por Cobrança e Recebíveis. */
+/** KPIs agregados da fonte única — carteira inteira, sem filtro de tela. */
 export function useTituloEstadoKpis() {
   const q = useTituloEstado();
   return {
     ...q,
     kpis: q.data ? agregar(q.data) : undefined,
   };
+}
+
+/**
+ * CARTAO-NAO-PROMETE-O-QUE-A-LISTA-NAO-ENTREGA (14/09/2026): os cartões de
+ * vencido vinham da carteira inteira enquanto os vizinhos respeitavam período,
+ * banco, carteira e busca — clicar no cartão abria uma lista com outro número.
+ * Aqui a fonte única continua sendo a ÚNICA a dizer quem está vencido; só
+ * restringimos as linhas aos títulos que sobraram na tela.
+ */
+export function useTituloEstadoKpisDe(ids: Set<string> | undefined) {
+  const q = useTituloEstado();
+  const linhas = q.data;
+  const kpis = linhas
+    ? agregar(
+        ids
+          ? linhas.filter((l) => l.titulo_id && ids.has(l.titulo_id))
+          : linhas,
+      )
+    : undefined;
+  return { ...q, kpis };
 }
