@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, X } from "lucide-react";
+import { MoreHorizontal, Plus, X } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { PromoverSubtarefaDialog } from "./PromoverSubtarefaDialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -174,6 +178,9 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
   const { data: filhas } = useSubtarefas(tarefa.id);
   const criar = useCriarSubtarefa(tarefa);
   const [titulo, setTitulo] = useState("");
+  const [promovendo, setPromovendo] = useState<{
+    id: string; titulo: string; projeto_id: string | null; secao_id: string | null;
+  } | null>(null);
   const lista = filhas ?? [];
   const feitas = lista.filter((t) => t.status === "concluida").length;
 
@@ -189,10 +196,38 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
             <span className={t.status === "concluida" ? "line-through text-muted-foreground" : ""}>
               {t.titulo}
             </span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="ml-auto h-6 w-6" aria-label="Ações da subtarefa">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() =>
+                    setPromovendo({
+                      id: t.id,
+                      titulo: t.titulo,
+                      // endereço atual da subtarefa é o herdado da mãe
+                      projeto_id: t.projeto_id ?? tarefa.projeto_id ?? null,
+                      secao_id: t.secao_id ?? tarefa.secao_id ?? null,
+                    })
+                  }
+                >
+                  Promover a tarefa
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         ))}
         {lista.length === 0 && <p className="text-xs text-muted-foreground">Nenhuma subtarefa.</p>}
       </div>
+
+      <PromoverSubtarefaDialog
+        aberto={!!promovendo}
+        onOpenChange={(v) => !v && setPromovendo(null)}
+        subtarefa={promovendo}
+      />
       <p className="text-[11px] text-muted-foreground">
         Subtarefa é passo desta tarefa. Se você atribuir uma delas a outra pessoa,
         ela passa a valer como tarefa independente na lista dessa pessoa.
