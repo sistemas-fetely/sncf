@@ -31,9 +31,9 @@ Deno.serve(async (req) => {
     // máquina não tem auth.uid(); chamada anônima é recusada.
     const authHeader = req.headers.get("Authorization");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const token = (authHeader ?? "").replace("Bearer ", "");
-    if (!token) return json({ ok: false, error: "Não autorizado" }, 401);
-    if (!(serviceKey && token === serviceKey)) {
+    const tokenChamador = (authHeader ?? "").replace("Bearer ", "");
+    if (!tokenChamador) return json({ ok: false, error: "Não autorizado" }, 401);
+    if (!(serviceKey && tokenChamador === serviceKey)) {
       const sbUser = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,

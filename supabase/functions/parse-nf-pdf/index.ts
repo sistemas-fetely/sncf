@@ -52,12 +52,25 @@ Deno.serve(async (req) => {
 
     // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
     // Valida o USUÁRIO chamador contra o Console de Acesso.
-    const { data: permitido, error: ePerm } = await supabaseClient.rpc("usuario_tem_acao", {
-      p_slug: "acao.extrato_importar",
-    });
-    if (ePerm || permitido !== true) {
+    // ESTA-EDGE-SERVE-TRES-FLUXOS (14/09/2026): leitor de PDF de NF é chamado por
+    // ImportNFDialog, ImportadorNFs e SubmeterNFDialog (NF do PJ). Exigir só
+    // `acao.extrato_importar` (domínio do extrato bancário) tirava a extração de
+    // quem opera NF. Vale qualquer uma das ações de NF ou do extrato.
+    const SLUGS_ACEITOS = [
+      "acao.extrato_importar",
+      "acao.nf_stage_operar",
+      "acao.nf_pj_operar",
+    ];
+    let permitido = false;
+    let ePerm: { message: string } | null = null;
+    for (const slug of SLUGS_ACEITOS) {
+      const { data, error } = await supabaseClient.rpc("usuario_tem_acao", { p_slug: slug });
+      if (error) { ePerm = error; continue; }
+      if (data === true) { permitido = true; ePerm = null; break; }
+    }
+    if (permitido !== true) {
       return new Response(
-        JSON.stringify({ error: "Sem permissão (acao.extrato_importar). Concessão é feita no Console de Acesso." }),
+        JSON.stringify({ error: ePerm ? `Falha ao checar permissão: ${ePerm.message}` : `Sem permissão (${SLUGS_ACEITOS.join(" ou ")}). Concessão é feita no Console de Acesso.` }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
