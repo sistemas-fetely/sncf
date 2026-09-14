@@ -1307,7 +1307,8 @@ if (itensSemProdutoBling.length > 0) {
       const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
         pedido_id,
         tipo_evento: "bling_enviado",
-        descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling`,
+        descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling` +
+          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : ""),
         metadata: {
           bling_id: String(blingId),
           remessa_id: remessa.id,
@@ -1315,6 +1316,7 @@ if (itensSemProdutoBling.length > 0) {
           duracao_ms: duracaoMs,
           carimbou_destino: carimbarDestino,
           enviado_por: userId,
+          motivo_override: motivoOverride || null,
         },
         automatico: false,
       });
