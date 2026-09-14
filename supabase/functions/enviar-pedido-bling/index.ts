@@ -778,6 +778,7 @@ serve(async (req) => {
         sucesso: false,
         erro_msg: msg,
         duracao_ms: Date.now() - t0,
+        motivo_override: motivoOverride || null,
       });
       await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
       return await falhaLimpando(msg, 409);
