@@ -77133,6 +77133,7 @@ export type Database = {
           nf_emitida_em: string | null
           nf_refs: string | null
           nf_tem_fila: boolean | null
+          nf_viva: boolean | null
           order_name: string | null
           paid_at: string | null
           payment_method: string | null
@@ -81629,14 +81630,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]

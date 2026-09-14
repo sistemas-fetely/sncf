@@ -345,9 +345,9 @@ export default function ShopifyB2c() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filtrados.map((p) => (
+                          filtrados.map((p, idx) => (
                             <TableRow
-                              key={p.shopify_id ?? p.order_name ?? ""}
+                              key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
                               onClick={() => setSelecionado(p)}
                               className="cursor-pointer"
                             >
