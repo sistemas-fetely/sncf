@@ -51607,6 +51607,7 @@ export type Database = {
           criado_por: string | null
           depende_de_id: string
           id: string
+          origem: string
           tarefa_id: string
         }
         Insert: {
@@ -51614,6 +51615,7 @@ export type Database = {
           criado_por?: string | null
           depende_de_id: string
           id?: string
+          origem?: string
           tarefa_id: string
         }
         Update: {
@@ -51621,6 +51623,7 @@ export type Database = {
           criado_por?: string | null
           depende_de_id?: string
           id?: string
+          origem?: string
           tarefa_id?: string
         }
         Relationships: [
