@@ -191,8 +191,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
 
       {/* Motivo visível do bloqueio por permissão — mesmo padrão de card do
           "XPM recusou: …". O botão fica DESABILITADO, nunca escondido. */}
-      {((mostrarInicial && !podeEnviarBling) ||
-        (!precisaSincronizar && podeEmpurrarXpm && !podeEmpurrarXpmAcao)) && (
+      {(!precisaSincronizar && podeEmpurrarXpm && !podeEmpurrarXpmAcao) && (
         <Alert variant="default" className="bg-muted/60 border-border">
           <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           <AlertDescription className="text-muted-foreground text-xs">
