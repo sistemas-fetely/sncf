@@ -659,6 +659,24 @@ export function BoardProjeto({ projetoId }: Props) {
         </div>
       )}
 
+      {/* concluir com passos em aberto pergunta antes; cancelar deixa o card onde estava */}
+      <AlertDialog open={!!confirmandoConcluir} onOpenChange={(v) => !v && setConfirmandoConcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Concluir com passos em aberto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmandoConcluir?.passosAbertos === 1
+                ? "Esta tarefa tem 1 passo que ainda não fechou. Ele continua aberto depois."
+                : `Esta tarefa tem ${confirmandoConcluir?.passosAbertos ?? 0} passos que ainda não fecharam. Eles continuam abertos depois.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={concluirMesmoAssim}>Concluir mesmo assim</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={!!excluindo} onOpenChange={(v) => !v && setExcluindo(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
