@@ -458,16 +458,18 @@ serve(async (req) => {
           409,
         );
       }
-      if (c.exige_motivo === true && motivoOverride.length < 15) {
-        const avisos = itens
-          .filter((i) => i?.bloqueia === false && i?.ok === false)
-          .map((i) => String(i?.rotulo ?? i?.codigo ?? "item"));
-        return err(
-          `A conferencia tem ${avisos.length} aviso(s) e exige justificativa declarada de no minimo 15 caracteres: ` +
-          `${avisos.join(" · ")}`,
-          409,
-        );
-      }
+      // MOTIVO-EXIGIDO-SO-NA-TELA (14/09/2026, decisao Flavio). O gate de
+      // `exige_motivo` no servidor foi retirado ANTES de subir. Medido em 14/09 nos
+      // pedidos em pre_faturamento: SHP-1273 e SHP-1274 acusam 4 avisos cada, e o
+      // item "Plano de cobranca" e falso positivo ESTRUTURAL do B2C — o cliente ja
+      // pagou no Shopify/MP e nao existe provisao no SNCF. Exigir 15 caracteres de
+      // justificativa em todo pedido B2C produziria ritual vazio ("ok pode enviar"),
+      // que e o oposto do rastro que a coluna motivo_override quer guardar. A causa
+      // raiz pertence a frente `frente-b2c-ciclo-recebivel` (aberta desde 01/09) —
+      // TRAVA UNICA. Quando o B2C entrar no ciclo do recebivel e o item "Plano de
+      // cobranca" parar de acusar falso positivo, este gate volta.
+      // Ate la: bloqueio duro vale no servidor, aviso vale na tela (PreFaturamentoCard
+      // continua abrindo o dialogo de motivo e o motivo continua sendo gravado).
       console.log("[enviar-pedido-bling] conferencia OK", {
         pedido_id,
         avisos: c.avisos ?? null,
