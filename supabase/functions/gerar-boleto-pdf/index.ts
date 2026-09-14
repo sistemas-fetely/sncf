@@ -173,7 +173,7 @@ async function buildPdf(dados: DadosBoleto): Promise<Uint8Array> {
     page.drawText(dados.banco_nome, { x: mx + 4, y: y - 19, size: 9, font: fontBold, color: PRETO });
     vline(mx + nomeW, y - hdrH, hdrH);
 
-    const codBanco = `${dados.banco_codigo}-${dvMod10(dados.banco_codigo)}`;
+    const codBanco = `${dados.banco_codigo}-${dvMod11Banco(dados.banco_codigo)}`;
     page.drawText(codBanco, { x: mx + nomeW + 9, y: y - 20, size: 11, font: fontBold, color: PRETO });
     vline(mx + nomeW + codW, y - hdrH, hdrH);
 
