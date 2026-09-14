@@ -140,7 +140,6 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     : undefined;
 
   const mostrarAlerta = precisaSincronizar;
-  const mostrarInicial = !precisaSincronizar && semRemessa && podeEnviarInicial;
 
   // Reenvio: só super_admin, só em (pré-)separação, e só se existe uma tentativa VIVA
   // carregando exatamente o id que o pedido aponta hoje (a "vigente").
