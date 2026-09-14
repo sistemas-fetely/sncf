@@ -1035,13 +1035,14 @@ export function FilaPedidosPorArea({
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
-                        <Selo
-                          estado="muted"
-                          className="border border-border"
-                          title="Pedido criado no Bling — aguardando emissão da NF"
-                        >
-                          Enviado ao Bling
-                        </Selo>
+                        <span title="Pedido criado no Bling — aguardando emissão da NF">
+                          <Selo
+                            estado="muted"
+                            className="border border-border"
+                          >
+                            Enviado ao Bling
+                          </Selo>
+                        </span>
                       )}
                       {/* AREA-DIZ-ONDE-TRATAR (20/08/2026): o estagio diz o que falta, a area diz quem
                           trabalha. aguardando_pagamento e recuperacao_venda moram na Mesa Comercial. */}
