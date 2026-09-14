@@ -161,7 +161,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
     isSuperAdmin && !!bling_id_destino && temTentativaVigente
     && (estagio === "pre_separacao" || estagio === "em_separacao" || liberaRefaturamento);
 
-  if (!mostrarAlerta && !mostrarInicial && elegiveis.length === 0 && !podeReenviar
+  if (!mostrarAlerta && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;
 
 
