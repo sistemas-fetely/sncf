@@ -88,6 +88,9 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
     let remessa_id_input: string | null = body?.remessa_id ?? null;
+    // CONFERENCIA-E-A-PORTA: override declarado do pre-faturamento, em escopo geral
+    // (o `motivo` do ramo `reenviar` continua com nome proprio).
+    const motivoOverride = String(body?.motivo ?? "").trim();
     if (!pedido_id) return err("pedido_id obrigatório");
 
     // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA), por cima do papel.
