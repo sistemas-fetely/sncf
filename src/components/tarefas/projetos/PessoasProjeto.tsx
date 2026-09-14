@@ -28,8 +28,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePodeGerenciarProjeto, useProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import {
-  useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto, usePapeisProjeto,
-  usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
+  capacidadesDoPapel, useAdicionarMembro, useAdicionarMembrosEmMassa, useMembrosProjeto,
+  usePapeisProjeto, usePessoasParaProjeto, useRemoverMembro, useTrocarPapelMembro,
 } from "@/hooks/tarefas/useProjetoMembros";
 import type { PessoaParaProjeto } from "@/hooks/tarefas/useProjetoMembros";
 import { cn } from "@/lib/utils";
@@ -191,11 +191,8 @@ export function PessoasProjeto({ projetoId }: Props) {
             <p className="mt-0.5 text-[11px] text-muted-foreground">reporta a {pessoa.gestor_nome}</p>
           )}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-            {vinculo ? (
-              <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>
-            ) : papel ? (
-              <Badge variant="secondary" className="text-[10px]">{rotuloPapel(papel)}</Badge>
-            ) : null}
+            {vinculo && <Badge variant="secondary" className="text-[10px]">{vinculo}</Badge>}
+            {papel && <Badge variant="secondary" className="text-[10px]">{rotuloPapel(papel)}</Badge>}
           </div>
           {papel && (
             <p className="mt-2 text-[11px] text-muted-foreground">desde {dataBr(desde)}</p>
