@@ -539,11 +539,13 @@ function CanalCPOConteudo() {
                   </div>
 
                   <div className="flex flex-col items-end gap-2 shrink-0">
+                    {/* MODO-LEITURA-NAO-ESCONDE-DADO: este botão só NAVEGA para o
+                        pedido — leitura. Travá-lo com pode_editar escondia dado de
+                        quem tem direito de ver. Só as ações que mudam estado abaixo
+                        seguem travadas. */}
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={!podeEditar}
-                      title={podeEditar ? undefined : SEM_EDICAO}
                       onClick={() => navigate(`/pedidos/${s.pedido_id}`)}
                     >
                       Responder <ArrowRight className="h-3 w-3 ml-1" />

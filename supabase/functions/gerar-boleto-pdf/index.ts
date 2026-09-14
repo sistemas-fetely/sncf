@@ -38,6 +38,21 @@ function dvMod10(numero: string): number {
   return (10 - (soma % 10)) % 10;
 }
 
+/**
+ * DV do código do banco na face do boleto é MOD 11 (pesos 2..9), não mod10.
+ * Com mod10 o Safra saía "422-6"; o correto é "422-7".
+ */
+function dvMod11Banco(numero: string): number {
+  let soma = 0, peso = 2;
+  for (const d of [...numero].reverse()) {
+    soma += parseInt(d) * peso;
+    peso = peso === 9 ? 2 : peso + 1;
+  }
+  const resto = soma % 11;
+  const dv = 11 - resto;
+  return dv >= 10 ? 0 : dv;
+}
+
 /** Nosso número: 9 dígitos idêntico ao enviado na remessa */
 function formatNossoNumero(_carteira: string, seq: string): string {
   return seq.padStart(9, "0");
