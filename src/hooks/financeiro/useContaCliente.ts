@@ -130,15 +130,28 @@ export function useContaClienteFuros(parceiroId: string | null | undefined) {
   });
 }
 
-/** Cobertura do cliente — SISTEMA SUGERE / HUMANO DECIDE. Somente leitura. */
-export function useContaClienteCobertura(parceiroId: string | null | undefined) {
+/**
+ * Cobertura do cliente — SISTEMA SUGERE / HUMANO DECIDE. Somente leitura.
+ *
+ * Com `pedidoId`, a leitura é NO CONTEXTO DO PEDIDO: o RPC aplica a doutrina
+ * LIMITE-NÃO-PAGA-VENDA-À-VISTA (à vista, o limite sai da composição) e devolve
+ * `classe`/`forma_a_prazo`/`fonte3_elegivel`. Sem `pedidoId`, é a leitura de
+ * carteira usada pela tela da Conta do Cliente — comportamento inalterado.
+ */
+export function useContaClienteCobertura(
+  parceiroId: string | null | undefined,
+  pedidoId?: string | null,
+) {
   return useQuery({
-    queryKey: [QK_CONTA_CLIENTE_COBERTURA, parceiroId],
+    queryKey: [QK_CONTA_CLIENTE_COBERTURA, parceiroId, pedidoId ?? null],
     enabled: !!parceiroId,
     queryFn: async (): Promise<ContaClienteCobertura | null> => {
-      const { data, error } = await (supabase as any).rpc("fn_conta_cliente_cobertura", {
-        p_parceiro_id: parceiroId,
-      });
+      const params: Record<string, unknown> = { p_parceiro_id: parceiroId };
+      if (pedidoId) params.p_pedido_id = pedidoId;
+      const { data, error } = await (supabase as any).rpc(
+        "fn_conta_cliente_cobertura",
+        params,
+      );
       if (error) throw error;
       return (data ?? null) as ContaClienteCobertura | null;
     },
