@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Loader2, ShieldAlert } from "lucide-react";
+import { AlertTriangle, Loader2, ShieldAlert, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,6 +12,7 @@ import {
   useAbrirProblema, useProblemaTipos, useProblemasDoPedido, useResolverProblema,
 } from "@/hooks/pedidos/useProblemasPedido";
 import { BadgeTipoProblema } from "@/components/pedidos/ProblemasPedidoAba";
+import { AbrirChamadoPedidoDialog } from "@/components/pedidos/AbrirChamadoPedidoDialog";
 
 /**
  * PROBLEMA-NAO-RETROCEDE-ESTAGIO (11/09/2026): declarar problema NÃO muda o
@@ -94,6 +95,7 @@ export function ProblemasPedidoBloco({
         </Alert>
       )}
 
+      <div className="flex flex-wrap items-center gap-2">
       <Dialog open={abrirOpen} onOpenChange={(v) => { setAbrirOpen(v); if (!v) { setTipo(""); setDescricao(""); } }}>
         <DialogTrigger asChild>
           <Button size="sm" variant="outline" className="gap-2">
@@ -169,6 +171,23 @@ export function ProblemasPedidoBloco({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {pedidoIdExterno && (
+        <Button size="sm" variant="outline" className="gap-2" onClick={() => setChamadoOpen(true)}>
+          <Ticket className="h-4 w-4" />
+          Abrir chamado
+        </Button>
+      )}
+      </div>
+
+      {pedidoIdExterno && (
+        <AbrirChamadoPedidoDialog
+          pedidoId={pedidoId}
+          pedidoIdExterno={pedidoIdExterno}
+          open={chamadoOpen}
+          onOpenChange={setChamadoOpen}
+        />
+      )}
 
       <Dialog open={!!resolverId} onOpenChange={(v) => { if (!v) { setResolverId(null); setResolucao(""); } }}>
         <DialogContent>

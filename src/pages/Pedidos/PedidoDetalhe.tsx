@@ -1770,7 +1770,7 @@ export default function PedidoDetalhe() {
       )}
 
       {/* PROBLEMA-NAO-RETROCEDE-ESTAGIO: marcação paralela — não muda o estágio. */}
-      <ProblemasPedidoBloco pedidoId={pedido.id} />
+      <ProblemasPedidoBloco pedidoId={pedido.id} pedidoIdExterno={pedido.id_externo} />
 
       {/* Canal único de alerta operacional: achados vivos da auditoria. */}
       <AlertasPedidoPanel pedidoId={pedido.id} />
