@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, Ticket } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Props {
   pedidoId: string;
@@ -65,6 +66,15 @@ export function CanalFopTab({ pedidoId, eventos }: Props) {
                 <p className="text-foreground whitespace-pre-wrap">
                   {ev.descricao}
                 </p>
+                {ev.metadata?.origem === "chamado" && ev.metadata?.chamado_id && (
+                  <Link
+                    to={`/chamados/${ev.metadata.chamado_id}`}
+                    className="mt-2 inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-primary hover:bg-accent"
+                  >
+                    <Ticket className="h-3 w-3" aria-hidden="true" />
+                    Chamado {ev.metadata?.numero ?? ""}
+                  </Link>
+                )}
                 <p className="text-xs text-muted-foreground mt-1.5">
                   {isCom ? "Comercial" : "SOPS"} · {autorNome} ·{" "}
                   {fmtData(ev.criado_em)}

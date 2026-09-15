@@ -24,6 +24,7 @@ import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard"
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
 import { ProblemasPedidoBloco } from "@/components/pedidos/ProblemasPedidoBloco";
+import { ChamadosPedidoTab, useChamadosDoPedido, chamadosNaoFinalizados } from "@/components/pedidos/ChamadosPedidoTab";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
@@ -1317,6 +1318,10 @@ export default function PedidoDetalhe() {
     STATUS_ABERTOS.includes(t.status),
   ).length;
 
+  // Chamados do pedido — alimenta o dot da aba Chamados.
+  const { data: chamadosDoPedido } = useChamadosDoPedido(id);
+  const chamadosAbertos = chamadosNaoFinalizados(chamadosDoPedido);
+
   const recalcularPeso = async () => {
     if (!id) return;
     setRecalculandoPeso(true);
@@ -1770,7 +1775,7 @@ export default function PedidoDetalhe() {
       )}
 
       {/* PROBLEMA-NAO-RETROCEDE-ESTAGIO: marcação paralela — não muda o estágio. */}
-      <ProblemasPedidoBloco pedidoId={pedido.id} />
+      <ProblemasPedidoBloco pedidoId={pedido.id} pedidoIdExterno={pedido.id_externo} />
 
       {/* Canal único de alerta operacional: achados vivos da auditoria. */}
       <AlertasPedidoPanel pedidoId={pedido.id} />
@@ -2421,6 +2426,12 @@ export default function PedidoDetalhe() {
                       <span className="h-1.5 w-1.5 rounded-full bg-info" />
                     )}
                   </TabsTrigger>
+                  <TabsTrigger value="chamados" className="gap-1.5">
+                    Chamados
+                    {chamadosAbertos > 0 && (
+                      <span className="h-1.5 w-1.5 rounded-full bg-info" />
+                    )}
+                  </TabsTrigger>
                   <TabsTrigger value="tarefas" className="gap-1.5">
                     Tarefas
                     {tarefasAbertas > 0 && (
@@ -2540,6 +2551,12 @@ export default function PedidoDetalhe() {
                   </TabsContent>
                   <TabsContent value="canal_fop">
                     <CanalFopTab pedidoId={pedido.id} eventos={eventos ?? []} />
+                  </TabsContent>
+                  <TabsContent value="chamados">
+                    <ChamadosPedidoTab
+                      pedidoId={pedido.id}
+                      pedidoIdExterno={pedido.id_externo}
+                    />
                   </TabsContent>
                   <TabsContent value="tarefas">
                   <PedidoTarefasVinculadasTab pedidoId={pedido.id} />
