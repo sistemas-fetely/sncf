@@ -255,7 +255,7 @@ function ChamadosCatalogoConteudo() {
       const { data, error } = await supabase
         .from("demanda_assunto")
         .select(
-          "id, codigo, nome, descricao, descricao_solicitante, cadeira_id, fila_id, camada_esperada, entidade_tipo_exigida, campos_extras, prazo_primeira_resposta_h, prazo_dias, visivel_para, ordem, ativo",
+          "id, codigo, nome, descricao, descricao_solicitante, cadeira_id, fila_id, camada_esperada, entidade_tipo_exigida, libera_refaturamento, campos_extras, prazo_primeira_resposta_h, prazo_dias, visivel_para, ordem, ativo",
         )
         .order("ordem", { ascending: true });
       if (error) throw error;
