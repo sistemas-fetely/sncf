@@ -42,7 +42,7 @@ export function useChamadosDoPedido(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("chamado")
         .select(
-          "id, numero, tipo, status, criado_em, resolvido_em, assunto:demanda_assunto(nome), cadeira:departamentos!chamado_cadeira_atual_id_fkey(nome)",
+          "id, numero, tipo, status, criado_em, resolvido_em, assunto:demanda_assunto(nome), cadeira:departamentos!solicitacao_comercial_cadeira_atual_id_fkey(nome)",
         )
         .eq("pedido_id", pedidoId!)
         .order("criado_em", { ascending: false });
