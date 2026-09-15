@@ -374,13 +374,16 @@ export default function ConsignadoDetalhe() {
   const produtosEstimadosQ = useQuery({
     queryKey: ["consignado-estoque-produtos", skusEstimados],
     enabled: modelo === "venda_com_acerto" && skusEstimados.length > 0,
-    queryFn: async (): Promise<Array<{ codigo: string | null; nome: string }>> => {
+    queryFn: async (): Promise<Array<{ sku: string; nome: string }>> => {
       const { data, error } = await (supabase as any)
-        .from("produtos")
-        .select("codigo, nome")
-        .in("codigo", skusEstimados);
+        .from("sncf_produtos")
+        .select("sku, nome_completo, nome_comercial")
+        .in("sku", skusEstimados);
       if (error) throw error;
-      return (data ?? []) as Array<{ codigo: string | null; nome: string }>;
+      return (data ?? []).map((p: any) => ({
+        sku: p.sku,
+        nome: p.nome_completo ?? p.nome_comercial,
+      }));
     },
   });
 
