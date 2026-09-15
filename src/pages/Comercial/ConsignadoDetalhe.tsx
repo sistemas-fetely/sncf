@@ -619,7 +619,7 @@ export default function ConsignadoDetalhe() {
     setSearchParams(next, { replace: true });
   };
   const nomesEstimados = new Map(
-    (produtosEstimadosQ.data ?? []).map((produto) => [produto.codigo, produto.nome]),
+    (produtosEstimadosQ.data ?? []).map((produto) => [produto.sku, produto.nome]),
   );
   const termoEstoque = buscaEstoque.trim().toLocaleLowerCase("pt-BR");
   const estoqueEstimadoFiltrado = (estoqueEstimadoQ.data ?? [])
