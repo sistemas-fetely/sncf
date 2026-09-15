@@ -5,13 +5,15 @@
  * `useContaCliente` (saldo, extrato, cobertura, furos); aqui ficam o cabeçalho
  * de cadastro e a análise de crédito vigente.
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface ClienteCadastro {
   id: string;
   razao_social: string | null;
   nome_fantasia: string | null;
+  /** papéis do parceiro; pode vir vazio */
+  tipos: string[] | null;
   cnpj: string | null;
   cpf: string | null;
   inscricao_estadual: string | null;
@@ -41,12 +43,44 @@ export function useClienteCadastro(parceiroId: string | null | undefined) {
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
         .select(
-          "id, razao_social, nome_fantasia, cnpj, cpf, inscricao_estadual, isento_ie, telefone, email, cep, logradouro, numero, bairro, cidade, uf, nivel_programa, perfil_credito, ativo",
+          "id, razao_social, nome_fantasia, tipos, cnpj, cpf, inscricao_estadual, isento_ie, telefone, email, cep, logradouro, numero, bairro, cidade, uf, nivel_programa, perfil_credito, ativo",
         )
         .eq("id", parceiroId)
         .maybeSingle();
       if (error) throw error;
       return (data ?? null) as ClienteCadastro | null;
+    },
+  });
+}
+
+/** Papéis possíveis de um parceiro comercial (coluna `tipos`, text[]). */
+export const TIPOS_PARCEIRO = [
+  { valor: "cliente", rotulo: "Cliente" },
+  { valor: "fornecedor", rotulo: "Fornecedor" },
+  { valor: "transportadora", rotulo: "Transportadora" },
+  { valor: "prestador_pj", rotulo: "Prestador PJ" },
+] as const;
+
+/**
+ * Grava o papel do parceiro. FAIL-LOUD: erro do banco sobe como exceção,
+ * quem chama mostra a mensagem real no toast.
+ */
+export function useSalvarTiposParceiro(parceiroId: string | null | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (tipos: string[]) => {
+      if (!parceiroId) throw new Error("Parceiro não informado.");
+      const { error } = await (supabase as any)
+        .from("parceiros_comerciais")
+        .update({ tipos })
+        .eq("id", parceiroId);
+      if (error) throw error;
+      return tipos;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [QK_CLIENTE_CADASTRO, parceiroId] });
+      qc.invalidateQueries({ queryKey: ["parceiro"] });
+      qc.invalidateQueries({ queryKey: ["parceiros"] });
     },
   });
 }
