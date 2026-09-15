@@ -407,7 +407,9 @@ function ChamadosCatalogoConteudo() {
         prazo_dias: dlgServico.prazo_dias.trim() === "" ? null : Number(dlgServico.prazo_dias),
         visivel_para: dlgServico.visivel_para,
         ordem: Number(dlgServico.ordem) || 0,
-        campos_extras: dlgServico.campos_extras.filter((c) => c.chave.trim() && c.rotulo.trim()),
+        campos_extras: dlgServico.campos_extras.filter(
+          (c) => c.chave.trim() && c.rotulo.trim(),
+        ) as unknown as never,
       };
       if (dlgServico.id) {
         const { error } = await supabase
