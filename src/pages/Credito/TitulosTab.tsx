@@ -1400,7 +1400,7 @@ export default function TitulosTab() {
                           <div className="flex flex-col gap-1">
                             <RegistrarRecebimentoDialog
                               parceiroId={detalhe.parceiro_id}
-                              parceiroNome={detalhe.parceiro_nome_fantasia ?? detalhe.parceiro_razao_social ?? null}
+                              parceiroNome={detalhe.parceiro_razao_social ?? detalhe.parceiro_nome_fantasia ?? null}
                               valorSugerido={detalhe.valor_efetivo}
                             >
                               <Button variant="outline">Cliente pagou — declarar recebimento</Button>

@@ -638,7 +638,7 @@ function NovaDeclaracaoForm({
   });
 
   const nomeTransportadora =
-    transportadoras?.find((t) => t.id === transportadoraId)?.nome_fantasia ?? "";
+    transportadoras?.find((t) => t.id === transportadoraId)?.razao_social ?? "";
 
   return (
     <Card>
@@ -767,7 +767,7 @@ function NovaDeclaracaoForm({
                   <SelectContent>
                     {(transportadoras ?? []).map((t) => (
                       <SelectItem key={t.id} value={t.id}>
-                        {t.nome_fantasia ?? t.razao_social ?? t.id}
+                        {nomeExibicao(t.razao_social, t.nome_fantasia, t.id)}
                       </SelectItem>
                     ))}
                   </SelectContent>
