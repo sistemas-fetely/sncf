@@ -7908,6 +7908,45 @@ export type Database = {
           },
         ]
       }
+      chamado_fila: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          descricao: string | null
+          icone: string | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+          visivel_para: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          updated_at?: string
+          visivel_para?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          icone?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+          visivel_para?: string
+        }
+        Relationships: []
+      }
       chamado_historico: {
         Row: {
           ator_id: string | null
@@ -16301,6 +16340,7 @@ export type Database = {
           descricao: string | null
           descricao_solicitante: string | null
           entidade_tipo_exigida: string | null
+          fila_id: string | null
           id: string
           nome: string
           ordem: number | null
@@ -16323,6 +16363,7 @@ export type Database = {
           descricao?: string | null
           descricao_solicitante?: string | null
           entidade_tipo_exigida?: string | null
+          fila_id?: string | null
           id?: string
           nome: string
           ordem?: number | null
@@ -16345,6 +16386,7 @@ export type Database = {
           descricao?: string | null
           descricao_solicitante?: string | null
           entidade_tipo_exigida?: string | null
+          fila_id?: string | null
           id?: string
           nome?: string
           ordem?: number | null
@@ -16425,6 +16467,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_mapa_operacao"
             referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "chamado_fila"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demanda_assunto_fila_id_fkey"
+            columns: ["fila_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_arvore"
+            referencedColumns: ["fila_id"]
           },
           {
             foreignKeyName: "demanda_assunto_processo_id_fkey"
@@ -66439,6 +66495,12 @@ export type Database = {
           codigo: string | null
           descricao: string | null
           entidade_tipo_exigida: string | null
+          fila: string | null
+          fila_codigo: string | null
+          fila_descricao: string | null
+          fila_icone: string | null
+          fila_id: string | null
+          fila_ordem: number | null
           item: string | null
           ordem: number | null
           prazo_dias: number | null
@@ -81636,14 +81698,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -82583,14 +82645,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
