@@ -757,7 +757,7 @@ export default function ConsignadoDetalhe() {
       </section>
 
       <Tabs value={secao} onValueChange={mudarSecao} className="space-y-4">
-        <TabsList className="h-auto w-full justify-start overflow-x-auto">
+        <TabsList className="h-auto w-full max-w-full justify-start overflow-x-auto">
           <TabsTrigger value="ciclo">Ciclo de acerto</TabsTrigger>
           <TabsTrigger value="remessas">Remessas e extrato</TabsTrigger>
           <TabsTrigger value="estoque">Estoque no parceiro</TabsTrigger>
@@ -970,7 +970,7 @@ export default function ConsignadoDetalhe() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-base">Acertos anteriores</CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="overflow-x-auto p-0">
                 {acertosQ.isError ? (
                   <ErroBloco error={acertosQ.error} />
                 ) : acertosQ.isLoading ? (
@@ -1031,7 +1031,7 @@ export default function ConsignadoDetalhe() {
               </Alert>
             )}
             <Card>
-              <CardContent className="p-0">
+              <CardContent className="overflow-x-auto p-0">
                 {remessasQ.isError ? <ErroBloco error={remessasQ.error} /> : remessasQ.isLoading ? <Carregando /> : (remessasQ.data ?? []).length === 0 ? (
                   <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma remessa encontrada.</p>
                 ) : (
@@ -1107,7 +1107,7 @@ export default function ConsignadoDetalhe() {
             </div>
           </div>
           <Card>
-            <CardContent className="p-0">
+            <CardContent className="overflow-x-auto p-0">
               {ehConsignacaoFiscal ? (
                 estoqueParceiroQ.isError ? <ErroBloco error={estoqueParceiroQ.error} /> : estoqueParceiroQ.isLoading ? <Carregando /> : estoqueRealFiltrado.length === 0 ? <p className="p-6 text-center text-sm text-muted-foreground">Nada em poder do parceiro.</p> : (
                   <Table>
