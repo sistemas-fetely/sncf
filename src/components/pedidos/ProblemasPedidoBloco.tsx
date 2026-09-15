@@ -18,7 +18,14 @@ import { BadgeTipoProblema } from "@/components/pedidos/ProblemasPedidoAba";
  * estágio do pedido. Ele fica onde está e ganha esta marcação paralela, que
  * o faz aparecer também na aba "Resolução de Problema" da Casa dos Pedidos.
  */
-export function ProblemasPedidoBloco({ pedidoId }: { pedidoId: string }) {
+export function ProblemasPedidoBloco({
+  pedidoId,
+  pedidoIdExterno,
+}: {
+  pedidoId: string;
+  pedidoIdExterno?: string | null;
+}) {
+  const [chamadoOpen, setChamadoOpen] = useState(false);
   const { data: problemas, isError, error } = useProblemasDoPedido(pedidoId);
   const [abrirOpen, setAbrirOpen] = useState(false);
   const [tipo, setTipo] = useState<string>("");
