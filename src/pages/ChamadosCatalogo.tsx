@@ -118,6 +118,7 @@ interface Servico {
   fila_id: string | null;
   camada_esperada: string;
   entidade_tipo_exigida: string | null;
+  libera_refaturamento: boolean | null;
   campos_extras: CampoExtra[] | null;
   prazo_primeira_resposta_h: number;
   prazo_dias: number | null;
@@ -191,6 +192,7 @@ type FormServico = {
   fila_id: string;
   camada_esperada: string;
   entidade_tipo_exigida: string;
+  libera_refaturamento: boolean;
   prazo_primeira_resposta_h: string;
   prazo_dias: string;
   visivel_para: string;
@@ -218,6 +220,7 @@ const SERVICO_VAZIO: FormServico = {
   fila_id: "sem_fila",
   camada_esperada: "C1",
   entidade_tipo_exigida: "nenhuma",
+  libera_refaturamento: false,
   prazo_primeira_resposta_h: "4",
   prazo_dias: "",
   visivel_para: "interno",
@@ -468,6 +471,7 @@ function ChamadosCatalogoConteudo() {
       fila_id: s.fila_id ?? "sem_fila",
       camada_esperada: s.camada_esperada,
       entidade_tipo_exigida: s.entidade_tipo_exigida ?? "nenhuma",
+      libera_refaturamento: s.libera_refaturamento === true,
       prazo_primeira_resposta_h: String(s.prazo_primeira_resposta_h ?? 4),
       prazo_dias: s.prazo_dias == null ? "" : String(s.prazo_dias),
       visivel_para: s.visivel_para,
@@ -924,6 +928,20 @@ function ChamadosCatalogoConteudo() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Libera refaturamento</Label>
+                  <div className="flex items-center gap-2 pt-1">
+                    <Switch
+                      checked={dlgServico.libera_refaturamento}
+                      onCheckedChange={(v) =>
+                        setDlgServico({ ...dlgServico, libera_refaturamento: v })
+                      }
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      Chamado aberto deste serviço libera o botão de refaturar o pedido
+                    </span>
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Visível para</Label>
