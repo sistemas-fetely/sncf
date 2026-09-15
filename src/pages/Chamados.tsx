@@ -10,6 +10,7 @@ import {
   Pause,
   Play,
   ArrowRightLeft,
+  LibraryBig,
   LogOut,
   PlusCircle,
   Ticket,
@@ -247,6 +248,8 @@ function ChamadosConteudo() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { podeEditar } = usePermissaoTelaContext();
+  // Atalho para o Catálogo de Serviços — só quem tem direito de ver a tela.
+  const podeVerCatalogo = usePermissoesTela("tela.chamados_catalogo").podeVer;
 
   const [busca, setBusca] = useState("");
   const [visao, setVisao] = useState<Visao>("abertos");
