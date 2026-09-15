@@ -17,6 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Loader2, AlertTriangle, Plus, Trash2, ExternalLink, HandCoins, Boxes, Undo2, ShieldAlert, Copy,
+  ClipboardPaste,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -910,6 +911,14 @@ export default function ConsignadoDetalhe() {
                     >
                       {salvarItens.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                       Salvar reporte
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={operacaoBloqueada}
+                      onClick={() => setImportAberto(true)}
+                    >
+                      <ClipboardPaste className="h-4 w-4" /> Importar relatório
                     </Button>
                   </div>
 
