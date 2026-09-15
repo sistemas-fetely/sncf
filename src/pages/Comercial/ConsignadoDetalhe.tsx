@@ -17,6 +17,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Loader2, AlertTriangle, Plus, Trash2, ExternalLink, HandCoins, Boxes, Undo2, ShieldAlert, Copy,
+  ClipboardPaste,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -102,6 +103,62 @@ interface AcertoItemRow {
   quantidade: number | null;
   valor_unitario: number | null;
   valor_total: number | null;
+}
+
+interface PreviaLinha {
+  codigo_informado: string | null;
+  sku: string | null;
+  descricao: string | null;
+  quantidade: number;
+  valor_unitario: number;
+  valor_total: number | null;
+  enviado: number | null;
+  devolvido: number | null;
+  ja_reportado: number | null;
+  disponivel: number | null;
+  diag: string | null;
+}
+
+interface ReportePrevia {
+  ok: boolean;
+  pronto: boolean;
+  n_linhas: number | null;
+  valor_total: number | null;
+  linhas: PreviaLinha[] | null;
+}
+
+const MSG_DIAG: Record<string, string> = {
+  ok: "OK",
+  codigo_nao_encontrado: "Código não encontrado",
+  codigo_ambiguo: "Código ambíguo — mais de um SKU",
+  excede_disponivel: "Quantidade acima do disponível",
+  sem_remessa_para_este_parceiro: "Sem remessa para este parceiro",
+  linha_invalida: "Linha inválida",
+};
+
+/**
+ * Parser tolerante do relatório colado: tab, espaços múltiplos ou ponto-e-vírgula.
+ * Primeiro token = código; quantidade = primeiro token numérico seguinte.
+ */
+function parsearLinhasColadas(texto: string): { codigo: string; quantidade: number }[] {
+  const saida: { codigo: string; quantidade: number }[] = [];
+  for (const linhaBruta of texto.split(/\r?\n/)) {
+    const linha = linhaBruta.trim();
+    if (!linha) continue;
+    const tokens = linha.split(/[\t;]+|\s{1,}/).map((t) => t.trim()).filter(Boolean);
+    if (tokens.length === 0) continue;
+    const codigo = tokens[0];
+    let quantidade = 0;
+    for (const t of tokens.slice(1)) {
+      const n = Number(t.replace(/\./g, "").replace(",", "."));
+      if (Number.isFinite(n) && n !== 0) {
+        quantidade = n;
+        break;
+      }
+    }
+    saida.push({ codigo, quantidade });
+  }
+  return saida;
 }
 
 const MSG_SITUACAO: Record<string, string> = {
@@ -386,6 +443,66 @@ export default function ConsignadoDetalhe() {
     onError: (e: Error) => toast.error("Falha ao registrar retorno", { description: e.message }),
   });
 
+  // ── importar relatório do parceiro (colar → prévia → importar) ─────────
+  // PRECO-VEM-DA-NOTA: a prévia é leitura pura; o valor unitário é o resolvido
+  // pela remessa, nunca digitado aqui.
+  const [importAberto, setImportAberto] = useState(false);
+  const [importTexto, setImportTexto] = useState("");
+  const [periodoInicio, setPeriodoInicio] = useState("");
+  const [periodoFim, setPeriodoFim] = useState("");
+  const [previa, setPrevia] = useState<ReportePrevia | null>(null);
+
+  const fecharImport = () => {
+    setImportAberto(false);
+    setImportTexto("");
+    setPeriodoInicio("");
+    setPeriodoFim("");
+    setPrevia(null);
+  };
+
+  const analisar = useMutation({
+    mutationFn: async () => {
+      const itensColados = parsearLinhasColadas(importTexto);
+      if (itensColados.length === 0) throw new Error("Nada para analisar: cole ao menos uma linha com código e quantidade.");
+      const { data, error } = await (supabase as any).rpc("resolver_reporte_consignado", {
+        p_parceiro_id: parceiroId,
+        p_itens: itensColados,
+      });
+      if (error) throw new Error(error.message);
+      return data as ReportePrevia;
+    },
+    onSuccess: (d) => setPrevia(d),
+    onError: (e: Error) => toast.error("Falha ao analisar o relatório", { description: e.message }),
+  });
+
+  const importarPrevia = useMutation({
+    mutationFn: async () => {
+      if (!rascunho) throw new Error("Não há acerto em rascunho.");
+      if (!previa?.pronto) throw new Error("A prévia ainda tem linhas com problema.");
+      const payload = (previa.linhas ?? []).map((l) => ({
+        sku: l.sku,
+        quantidade: l.quantidade,
+        valor_unitario: l.valor_unitario,
+      }));
+      const { data, error } = await (supabase as any).rpc("registrar_venda_reportada_consignado", {
+        p_acerto_id: rascunho.id,
+        p_itens: payload,
+        p_periodo_inicio: periodoInicio || null,
+        p_periodo_fim: periodoFim || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async (d) => {
+      toast.success(`Relatório importado — ${num(d?.itens)} item(ns)`, {
+        description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
+      });
+      fecharImport();
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Importação recusada pelo banco", { description: e.message }),
+  });
+
   const nome = parceiroQ.data?.razao_social ?? "Parceiro";
   const rotuloModelo = ehConsignacaoFiscal
     ? "Consignação fiscal"
@@ -403,7 +520,7 @@ export default function ConsignadoDetalhe() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Comercial" },
-          { label: "Consignados", to: "/pedidos?aba=consignados" },
+          { label: "Consignados", to: "/comercial/consignados" },
           { label: nome },
         ]}
         title={nome}
@@ -795,6 +912,14 @@ export default function ConsignadoDetalhe() {
                       {salvarItens.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                       Salvar reporte
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={operacaoBloqueada}
+                      onClick={() => setImportAberto(true)}
+                    >
+                      <ClipboardPaste className="h-4 w-4" /> Importar relatório
+                    </Button>
                   </div>
 
                   {ehConsignacaoFiscal && (
@@ -1018,6 +1143,123 @@ export default function ConsignadoDetalhe() {
           </Dialog>
         </section>
       )}
+      {/* ═══ IMPORTAR RELATÓRIO DO PARCEIRO ═══ */}
+      <Dialog open={importAberto} onOpenChange={(o) => (o ? setImportAberto(true) : fecharImport())}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Importar relatório de vendas — {nome}</DialogTitle>
+          </DialogHeader>
+
+          {!previa ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="import-texto">Relatório colado</Label>
+                <Textarea
+                  id="import-texto"
+                  className="min-h-[16rem] font-mono text-xs"
+                  value={importTexto}
+                  onChange={(e) => setImportTexto(e.target.value)}
+                  placeholder={
+                    "Uma linha por item: código e quantidade.\n" +
+                    "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
+                    "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
+                    "01846\t12\n01847;3\nLUM-VELA-0 5"
+                  }
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="periodo-inicio" className="text-xs">Período apurado — início</Label>
+                  <Input
+                    id="periodo-inicio"
+                    type="date"
+                    className="w-44"
+                    value={periodoInicio}
+                    onChange={(e) => setPeriodoInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="periodo-fim" className="text-xs">Período apurado — fim</Label>
+                  <Input
+                    id="periodo-fim"
+                    type="date"
+                    className="w-44"
+                    value={periodoFim}
+                    onChange={(e) => setPeriodoFim(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O ciclo do parceiro não é mês-calendário — as datas são opcionais.
+              </p>
+              <DialogFooter>
+                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate()}>
+                  {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Analisar
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-md border max-h-[24rem] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código informado</TableHead>
+                      <TableHead>SKU resolvido</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(previa.linhas ?? []).map((l, i) => (
+                      <TableRow
+                        key={`${l.codigo_informado ?? "sem-codigo"}-${i}`}
+                        className={cn(l.diag !== "ok" && "bg-destructive/10")}
+                      >
+                        <TableCell className="font-mono text-xs">{l.codigo_informado ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.descricao ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(l.quantidade)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatBRL(l.valor_unitario)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(l.disponivel)}</TableCell>
+                        <TableCell className="text-xs">
+                          {l.diag ? MSG_DIAG[l.diag] ?? l.diag : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm tabular-nums">
+                  {num(previa.n_linhas)} itens · Total {formatBRL(previa.valor_total)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  O preço vem da NF de remessa — não é editável aqui.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPrevia(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  disabled={previa.pronto !== true || importarPrevia.isPending}
+                  onClick={() => importarPrevia.mutate()}
+                >
+                  {importarPrevia.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {`Importar ${num(previa.n_linhas)} itens — ${formatBRL(previa.valor_total)}`}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

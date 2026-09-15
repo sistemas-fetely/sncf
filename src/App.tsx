@@ -204,6 +204,7 @@ const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
 const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
+const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -456,6 +457,8 @@ const App = () => (
                 } />
               </Route>
 
+              {/* UMA-PORTA-SO: a lista de consignados deixou de ser aba da Casa dos Pedidos. */}
+              <Route path="/comercial/consignados" element={<Consignados />} />
               <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
 
 
@@ -877,7 +880,8 @@ const App = () => (
             <Route path="/vendas/produto/estoque/devolucoes" element={<Navigate to="/devolucoes" replace />} />
             {/* Portal SNCF desmontado (23/08/2026): a Casa já faz essa função */}
             <Route path="/sncf" element={<Navigate to="/" replace />} />
-            <Route path="/comercial/consignados" element={<Navigate to="/pedidos?aba=consignados" replace />} />
+            {/* Consignados virou rota própria (/comercial/consignados) — o antigo link da aba não quebra. */}
+            <Route path="/pedidos/consignados" element={<Navigate to="/comercial/consignados" replace />} />
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
