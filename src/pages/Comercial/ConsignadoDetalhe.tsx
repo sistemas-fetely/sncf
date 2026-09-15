@@ -386,6 +386,66 @@ export default function ConsignadoDetalhe() {
     onError: (e: Error) => toast.error("Falha ao registrar retorno", { description: e.message }),
   });
 
+  // ── importar relatório do parceiro (colar → prévia → importar) ─────────
+  // PRECO-VEM-DA-NOTA: a prévia é leitura pura; o valor unitário é o resolvido
+  // pela remessa, nunca digitado aqui.
+  const [importAberto, setImportAberto] = useState(false);
+  const [importTexto, setImportTexto] = useState("");
+  const [periodoInicio, setPeriodoInicio] = useState("");
+  const [periodoFim, setPeriodoFim] = useState("");
+  const [previa, setPrevia] = useState<ReportePrevia | null>(null);
+
+  const fecharImport = () => {
+    setImportAberto(false);
+    setImportTexto("");
+    setPeriodoInicio("");
+    setPeriodoFim("");
+    setPrevia(null);
+  };
+
+  const analisar = useMutation({
+    mutationFn: async () => {
+      const itensColados = parsearLinhasColadas(importTexto);
+      if (itensColados.length === 0) throw new Error("Nada para analisar: cole ao menos uma linha com código e quantidade.");
+      const { data, error } = await (supabase as any).rpc("resolver_reporte_consignado", {
+        p_parceiro_id: parceiroId,
+        p_itens: itensColados,
+      });
+      if (error) throw new Error(error.message);
+      return data as ReportePrevia;
+    },
+    onSuccess: (d) => setPrevia(d),
+    onError: (e: Error) => toast.error("Falha ao analisar o relatório", { description: e.message }),
+  });
+
+  const importarPrevia = useMutation({
+    mutationFn: async () => {
+      if (!rascunho) throw new Error("Não há acerto em rascunho.");
+      if (!previa?.pronto) throw new Error("A prévia ainda tem linhas com problema.");
+      const payload = (previa.linhas ?? []).map((l) => ({
+        sku: l.sku,
+        quantidade: l.quantidade,
+        valor_unitario: l.valor_unitario,
+      }));
+      const { data, error } = await (supabase as any).rpc("registrar_venda_reportada_consignado", {
+        p_acerto_id: rascunho.id,
+        p_itens: payload,
+        p_periodo_inicio: periodoInicio || null,
+        p_periodo_fim: periodoFim || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async (d) => {
+      toast.success(`Relatório importado — ${num(d?.itens)} item(ns)`, {
+        description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
+      });
+      fecharImport();
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Importação recusada pelo banco", { description: e.message }),
+  });
+
   const nome = parceiroQ.data?.razao_social ?? "Parceiro";
   const rotuloModelo = ehConsignacaoFiscal
     ? "Consignação fiscal"
