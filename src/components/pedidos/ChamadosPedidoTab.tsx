@@ -38,7 +38,8 @@ export function useChamadosDoPedido(pedidoId: string | undefined) {
     queryKey: [CHAVE_CHAMADOS_PEDIDO, pedidoId],
     enabled: !!pedidoId,
     queryFn: async (): Promise<ChamadoDoPedido[]> => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("chamado")
         .select(
           "id, numero, tipo, status, criado_em, resolvido_em, assunto:demanda_assunto(nome), cadeira:departamentos!chamado_cadeira_atual_id_fkey(nome)",

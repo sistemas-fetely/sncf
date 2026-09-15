@@ -24,7 +24,7 @@ import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard"
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
 import { ProblemasPedidoBloco } from "@/components/pedidos/ProblemasPedidoBloco";
-import { ChamadosPedidoTab } from "@/components/pedidos/ChamadosPedidoTab";
+import { ChamadosPedidoTab, useChamadosDoPedido, chamadosNaoFinalizados } from "@/components/pedidos/ChamadosPedidoTab";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
 import { useTituloEixosPedido } from "@/hooks/pedidos/useTituloEixosPedido";
 import { useTituloEixosDim } from "@/hooks/credito/useTituloEixosDim";
@@ -1318,6 +1318,10 @@ export default function PedidoDetalhe() {
     STATUS_ABERTOS.includes(t.status),
   ).length;
 
+  // Chamados do pedido — alimenta o dot da aba Chamados.
+  const { data: chamadosDoPedido } = useChamadosDoPedido(id);
+  const chamadosAbertos = chamadosNaoFinalizados(chamadosDoPedido);
+
   const recalcularPeso = async () => {
     if (!id) return;
     setRecalculandoPeso(true);
@@ -2552,7 +2556,6 @@ export default function PedidoDetalhe() {
                     <ChamadosPedidoTab
                       pedidoId={pedido.id}
                       pedidoIdExterno={pedido.id_externo}
-                      onTotalAbertos={setChamadosAbertos}
                     />
                   </TabsContent>
                   <TabsContent value="tarefas">
