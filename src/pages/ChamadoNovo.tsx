@@ -209,7 +209,7 @@ function ChamadoNovoConteudo() {
   }
 
   return (
-    <PageShell variant="leitura">
+    <PageShell variant={item ? "leitura" : "dados"}>
       <PageHeader
         titulo="Abrir chamado"
         icone={Ticket}
@@ -233,6 +233,9 @@ function ChamadoNovoConteudo() {
 
       {!podeEditar && <AvisoSomenteLeitura />}
 
+      {/* CATÁLOGO — só quando nenhum serviço está escolhido */}
+      {!item && (
+      <>
       <div className="space-y-3 rounded-lg border border-border bg-card p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Input
@@ -275,8 +278,8 @@ function ChamadoNovoConteudo() {
           onTentar={() => catalogo.refetch()}
         />
       ) : catalogo.isLoading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
             <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
@@ -299,16 +302,13 @@ function ChamadoNovoConteudo() {
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtrados.map((i) => {
             const ativo = item?.codigo === i.codigo;
             const detalhes = [
               i.cadeira ?? "Sem cadeira",
               i.prazo_primeira_resposta_h != null
                 ? `resposta em ${i.prazo_primeira_resposta_h}h`
-                : null,
-              i.prazo_dias != null
-                ? `solução em ${i.prazo_dias} ${i.prazo_dias === 1 ? "dia útil" : "dias úteis"}`
                 : null,
             ].filter(Boolean);
             return (
@@ -317,7 +317,7 @@ function ChamadoNovoConteudo() {
                 type="button"
                 onClick={() => selecionar(i)}
                 className={cn(
-                  "rounded-md border p-3 text-left transition-colors hover:border-primary/50",
+                  "flex flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50",
                   ativo && "border-primary bg-primary/5 ring-1 ring-primary/40",
                 )}
               >
@@ -327,13 +327,15 @@ function ChamadoNovoConteudo() {
                     {i.descricao}
                   </p>
                 )}
-                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                <p className="mt-auto pt-1.5 text-[11px] text-muted-foreground">
                   {detalhes.join(" · ")}
                 </p>
               </button>
             );
           })}
         </div>
+      )}
+      </>
       )}
 
       {/* ETAPA 2 — DESCREVER */}
@@ -362,7 +364,11 @@ function ChamadoNovoConteudo() {
                     `Primeira resposta em até ${item.prazo_primeira_resposta_h}h`}
                   {item.prazo_primeira_resposta_h != null && item.prazo_dias != null && " · "}
                   {item.prazo_dias != null &&
-                    `Solução em até ${item.prazo_dias} dia${item.prazo_dias === 1 ? "" : "s"} útil${item.prazo_dias === 1 ? "" : "eis"}`}
+                    (item.prazo_dias === 0
+                      ? "Solução no mesmo dia"
+                      : item.prazo_dias === 1
+                        ? "Solução em 1 dia útil"
+                        : `Solução em ${item.prazo_dias} dias úteis`)}
                 </>
               )}
             </p>
@@ -453,17 +459,10 @@ function ChamadoNovoConteudo() {
 
       {/* Rodapé — abrir avulso sem item vem em outra entrega */}
       {!item && !catalogo.isLoading && (
-        <Card className="border-dashed">
-          <CardContent className="flex items-start gap-3 p-4">
-            <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Não achou o que precisa?</p>
-              <p className="text-sm text-muted-foreground">
-                Abra o chamado pela tela do pedido ou fale com o Atendimento.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        <p className="flex items-center gap-2 text-xs text-muted-foreground">
+          <HelpCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Não achou o serviço? Abra o chamado pela tela do pedido ou fale com o Atendimento.
+        </p>
       )}
     </PageShell>
   );
