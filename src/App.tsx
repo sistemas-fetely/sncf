@@ -235,6 +235,7 @@ const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 const Chamados = lazy(() => import("@/pages/Chamados"));
 const ChamadoDetalhe = lazy(() => import("@/pages/ChamadoDetalhe"));
 const ChamadoNovo = lazy(() => import("@/pages/ChamadoNovo"));
+const ChamadosCatalogo = lazy(() => import("@/pages/ChamadosCatalogo"));
 const MapaOperacao = lazy(() => import("@/pages/operacao/MapaOperacao"));
 
 
