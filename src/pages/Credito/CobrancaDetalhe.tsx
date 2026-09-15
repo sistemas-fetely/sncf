@@ -20,7 +20,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText, QrCode, CreditCard, Landmark, MoreHorizontal } from "lucide-react";
+import { ArrowLeft, Loader2, RefreshCcw, AlertTriangle, Copy, Check, Mail, Plus, Trash2, Lock, Info, ChevronDown, FileText, QrCode, CreditCard, Landmark, MoreHorizontal, Ticket } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -42,6 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useParametros } from "@/hooks/useParametros";
 import { ComunicacaoPedidoPanel } from "@/components/pedidos/ComunicacaoPedidoPanel";
+import { AbrirChamadoPedidoDialog } from "@/components/pedidos/AbrirChamadoPedidoDialog";
 // AlterarFormaPagamentoDialog aposentado — fluxo /pgXX substituído por reverter_para_cobranca.
 import { ReverterParaCobrancaDialog } from "@/components/pedidos/dialogs/ReverterParaCobrancaDialog";
 import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedidoDialog";
@@ -381,6 +382,7 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
+  const [chamadoOpen, setChamadoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
   const haverQ = useHaverAplicadoPedido(pedido.id);
@@ -563,6 +565,15 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       <div className="flex items-center justify-between gap-3">
         <SmartBackButton fallback="/recebimento/cobranca" fallbackLabel="Voltar ao pedido" />
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setChamadoOpen(true)}
+          >
+            <Ticket className="h-4 w-4" />
+            Abrir chamado
+          </Button>
           <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -588,6 +599,15 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
         estagio={pedido.estagio}
         motivoAlterarPagamento
       />
+
+      {pedido.id_externo && (
+        <AbrirChamadoPedidoDialog
+          pedidoId={pedido.id}
+          pedidoIdExterno={pedido.id_externo}
+          open={chamadoOpen}
+          onOpenChange={setChamadoOpen}
+        />
+      )}
     </PageShell>
   );
 }
