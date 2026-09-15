@@ -68,6 +68,7 @@ import {
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   PermissaoTelaProvider,
   usePermissaoTelaContext,
