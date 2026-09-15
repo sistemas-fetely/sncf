@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -74,6 +74,7 @@ interface Props {
 
 export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOpenChange }: Props) {
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const [item, setItem] = useState<ItemCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [descricao, setDescricao] = useState("");
@@ -166,9 +167,7 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
         {
           action: {
             label: "Ver chamado",
-            onClick: () => {
-              window.location.assign(`/chamados/${r.chamado_id}`);
-            },
+            onClick: () => navigate(`/chamados/${r.chamado_id}`),
           },
         },
       );
