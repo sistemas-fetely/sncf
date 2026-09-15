@@ -12050,6 +12050,8 @@ export type Database = {
           observacao: string | null
           parceiro_id: string
           pedido_sintetico_id: string | null
+          periodo_fim: string | null
+          periodo_inicio: string | null
           status: string
           titulo_id: string | null
           updated_at: string
@@ -12068,6 +12070,8 @@ export type Database = {
           observacao?: string | null
           parceiro_id: string
           pedido_sintetico_id?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
           status?: string
           titulo_id?: string | null
           updated_at?: string
@@ -12086,6 +12090,8 @@ export type Database = {
           observacao?: string | null
           parceiro_id?: string
           pedido_sintetico_id?: string | null
+          periodo_fim?: string | null
+          periodo_inicio?: string | null
           status?: string
           titulo_id?: string | null
           updated_at?: string
@@ -12797,126 +12803,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "consignado_acerto"
             referencedColumns: ["id"]
-          },
-        ]
-      }
-      consignado_venda_reportada: {
-        Row: {
-          criado_em: string
-          criado_por: string | null
-          data_recebimento: string
-          fonte_arquivo: string | null
-          id: string
-          observacao: string | null
-          parceiro_id: string
-          periodo_fim: string | null
-          periodo_inicio: string | null
-          quantidade: number
-          sku: string
-        }
-        Insert: {
-          criado_em?: string
-          criado_por?: string | null
-          data_recebimento?: string
-          fonte_arquivo?: string | null
-          id?: string
-          observacao?: string | null
-          parceiro_id: string
-          periodo_fim?: string | null
-          periodo_inicio?: string | null
-          quantidade: number
-          sku: string
-        }
-        Update: {
-          criado_em?: string
-          criado_por?: string | null
-          data_recebimento?: string
-          fonte_arquivo?: string | null
-          id?: string
-          observacao?: string | null
-          parceiro_id?: string
-          periodo_fim?: string | null
-          periodo_inicio?: string | null
-          quantidade?: number
-          sku?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "parceiros_comerciais"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "v_credito_resumo_financeiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_limite"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_consignado_valor_a_acertar"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_conta_corrente_cliente"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_estoque_estimado_parceiro"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_limite_a_vencer"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_oportunidades_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_historico_comercial"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_parceiro_nome"
-            referencedColumns: ["parceiro_id"]
-          },
-          {
-            foreignKeyName: "consignado_venda_reportada_parceiro_id_fkey"
-            columns: ["parceiro_id"]
-            isOneToOne: false
-            referencedRelation: "vw_recebivel_por_conta"
-            referencedColumns: ["conta_id"]
           },
         ]
       }
@@ -82054,14 +81940,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -83001,14 +82887,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -84515,14 +84401,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -93518,14 +93404,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -101851,7 +101737,12 @@ export type Database = {
         Returns: undefined
       }
       registrar_venda_reportada_consignado: {
-        Args: { p_acerto_id: string; p_itens: Json }
+        Args: {
+          p_acerto_id: string
+          p_itens: Json
+          p_periodo_fim?: string
+          p_periodo_inicio?: string
+        }
         Returns: Json
       }
       rejeitar_nf_pj: {
@@ -101888,6 +101779,10 @@ export type Database = {
       }
       resolver_problema_pedido: {
         Args: { p_problema_id: string; p_resolucao: string }
+        Returns: Json
+      }
+      resolver_reporte_consignado: {
+        Args: { p_itens: Json; p_parceiro_id: string }
         Returns: Json
       }
       resolver_vendedor_pedido: {
