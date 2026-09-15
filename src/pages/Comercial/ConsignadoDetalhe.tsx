@@ -104,6 +104,62 @@ interface AcertoItemRow {
   valor_total: number | null;
 }
 
+interface PreviaLinha {
+  codigo_informado: string | null;
+  sku: string | null;
+  descricao: string | null;
+  quantidade: number;
+  valor_unitario: number;
+  valor_total: number | null;
+  enviado: number | null;
+  devolvido: number | null;
+  ja_reportado: number | null;
+  disponivel: number | null;
+  diag: string | null;
+}
+
+interface ReportePrevia {
+  ok: boolean;
+  pronto: boolean;
+  n_linhas: number | null;
+  valor_total: number | null;
+  linhas: PreviaLinha[] | null;
+}
+
+const MSG_DIAG: Record<string, string> = {
+  ok: "OK",
+  codigo_nao_encontrado: "Código não encontrado",
+  codigo_ambiguo: "Código ambíguo — mais de um SKU",
+  excede_disponivel: "Quantidade acima do disponível",
+  sem_remessa_para_este_parceiro: "Sem remessa para este parceiro",
+  linha_invalida: "Linha inválida",
+};
+
+/**
+ * Parser tolerante do relatório colado: tab, espaços múltiplos ou ponto-e-vírgula.
+ * Primeiro token = código; quantidade = primeiro token numérico seguinte.
+ */
+function parsearLinhasColadas(texto: string): { codigo: string; quantidade: number }[] {
+  const saida: { codigo: string; quantidade: number }[] = [];
+  for (const linhaBruta of texto.split(/\r?\n/)) {
+    const linha = linhaBruta.trim();
+    if (!linha) continue;
+    const tokens = linha.split(/[\t;]+|\s{1,}/).map((t) => t.trim()).filter(Boolean);
+    if (tokens.length === 0) continue;
+    const codigo = tokens[0];
+    let quantidade = 0;
+    for (const t of tokens.slice(1)) {
+      const n = Number(t.replace(/\./g, "").replace(",", "."));
+      if (Number.isFinite(n) && n !== 0) {
+        quantidade = n;
+        break;
+      }
+    }
+    saida.push({ codigo, quantidade });
+  }
+  return saida;
+}
+
 const MSG_SITUACAO: Record<string, string> = {
   sem_analise: "Sem análise de crédito aprovada.",
   analise_vencida: "Análise de crédito vencida — reanálise obrigatória.",
