@@ -695,12 +695,12 @@ function ChamadoDetalheConteudo() {
                 )}
               </span>
               {c.vencimento && <span>Vence: {fmtDataHora(c.vencimento)}</span>}
-              {c.pedido_id_externo && (
+              {c.pedido_id && (
                 <Link
-                  to={`/pedidos/${c.pedido_id_externo}`}
+                  to={`/pedidos/${c.pedido_id}`}
                   className="text-primary underline-offset-4 hover:underline"
                 >
-                  Ver pedido {c.entidade_ref ?? ""}
+                  Ver pedido {c.pedido_id_externo ?? ""}
                 </Link>
               )}
             </div>
