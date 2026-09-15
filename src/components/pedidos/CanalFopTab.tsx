@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useRegistrarEventoPedido } from "@/hooks/pedidos/useRegistrarEventoPedido";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, Ticket } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface Props {
   pedidoId: string;
