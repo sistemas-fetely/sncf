@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { useContasClienteSaldo } from "@/hooks/financeiro/useContaCliente";
+import { apelidoParceiro, nomeCanonico, parceiroCombina } from "@/lib/parceiros/nome";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 function dataBR(iso: string | null | undefined) {
@@ -46,7 +47,8 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
     const t = busca.trim().toLowerCase();
     const base = contas ?? [];
     if (!t) return base;
-    return base.filter((c) => (c.nome_fantasia ?? "").toLowerCase().includes(t));
+    // NOME-É-RAZÃO-SOCIAL: casa razão social, apelido e CNPJ.
+    return base.filter((c) => parceiroCombina(t, c.razao_social, c.nome_fantasia, c.cnpj));
   }, [contas, busca]);
 
   const kpis = useMemo(() => {
@@ -122,7 +124,7 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
         <Input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar cliente"
+          placeholder="Buscar por razão social, apelido ou CNPJ"
           className="h-8 pl-8"
         />
       </div>
@@ -169,7 +171,12 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
                     }
                   >
                     <TableCell className="text-xs font-medium">
-                      {c.nome_fantasia ?? "(sem nome)"}
+                      {nomeCanonico(c.razao_social, "(sem nome)")}
+                      {apelidoParceiro(c.razao_social, c.nome_fantasia) && (
+                        <span className="block text-[11px] font-normal text-muted-foreground">
+                          {apelidoParceiro(c.razao_social, c.nome_fantasia)}
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell
                       className={cn(
