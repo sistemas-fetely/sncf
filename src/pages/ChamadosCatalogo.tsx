@@ -406,6 +406,7 @@ function ChamadosCatalogoConteudo() {
         camada_esperada: dlgServico.camada_esperada,
         entidade_tipo_exigida:
           dlgServico.entidade_tipo_exigida === "nenhuma" ? null : dlgServico.entidade_tipo_exigida,
+        libera_refaturamento: dlgServico.libera_refaturamento,
         prazo_primeira_resposta_h: Number(dlgServico.prazo_primeira_resposta_h) || 0,
         prazo_dias: dlgServico.prazo_dias.trim() === "" ? null : Number(dlgServico.prazo_dias),
         visivel_para: dlgServico.visivel_para,
