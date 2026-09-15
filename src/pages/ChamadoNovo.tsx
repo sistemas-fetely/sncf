@@ -9,19 +9,13 @@ import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
 import {
   ToggleGroup,
   ToggleGroupItem,
@@ -83,12 +77,25 @@ const TIPOS: { valor: TipoChamado; rotulo: string; ajuda: string }[] = [
   { valor: "duvida", rotulo: "Dúvida", ajuda: "quero entender" },
 ];
 
-function ErroQuery({ o_que, erro }: { o_que: string; erro: unknown }) {
+function ErroQuery({
+  o_que,
+  erro,
+  onTentar,
+}: {
+  o_que: string;
+  erro: unknown;
+  onTentar?: () => void;
+}) {
   return (
     <Alert variant="destructive">
       <AlertDescription>
         Não foi possível carregar {o_que}: {formatError(erro)}
       </AlertDescription>
+      {onTentar && (
+        <Button variant="outline" size="sm" className="mt-3" onClick={onTentar}>
+          Tentar de novo
+        </Button>
+      )}
     </Alert>
   );
 }
@@ -106,6 +113,7 @@ function ChamadoNovoConteudo() {
   const { podeEditar } = usePermissaoTelaContext();
 
   const [busca, setBusca] = useState("");
+  const [cadeiraFiltro, setCadeiraFiltro] = useState<string>("todas");
   const [item, setItem] = useState<ItemCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [pedidoRef, setPedidoRef] = useState("");
@@ -122,23 +130,34 @@ function ChamadoNovoConteudo() {
     },
   });
 
-  const grupos = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    const itens = (catalogo.data ?? []).filter((i) => {
-      if (!termo) return true;
-      return (
-        (i.item ?? "").toLowerCase().includes(termo) ||
-        (i.descricao ?? "").toLowerCase().includes(termo)
-      );
-    });
-    const mapa = new Map<string, ItemCatalogo[]>();
-    for (const i of itens) {
-      const chave = i.cadeira ?? "Sem cadeira";
-      if (!mapa.has(chave)) mapa.set(chave, []);
-      mapa.get(chave)!.push(i);
+  const cadeiras = useMemo(() => {
+    const porNome = new Map<string, number>();
+    for (const i of catalogo.data ?? []) {
+      const nome = i.cadeira ?? "Sem cadeira";
+      const ordem = i.cadeira_ordem ?? Number.MAX_SAFE_INTEGER;
+      const ordemAtual = porNome.get(nome);
+      if (ordemAtual == null || ordem < ordemAtual) porNome.set(nome, ordem);
     }
-    return [...mapa.entries()];
-  }, [catalogo.data, busca]);
+    return [...porNome.entries()]
+      .sort(([nomeA, ordemA], [nomeB, ordemB]) => ordemA - ordemB || nomeA.localeCompare(nomeB))
+      .map(([nome]) => nome);
+  }, [catalogo.data]);
+
+  const filtrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return (catalogo.data ?? []).filter((i) => {
+      const correspondeCadeira =
+        cadeiraFiltro === "todas" || (i.cadeira ?? "Sem cadeira") === cadeiraFiltro;
+      const correspondeBusca =
+        !termo ||
+        (i.item ?? "").toLowerCase().includes(termo) ||
+        (i.descricao ?? "").toLowerCase().includes(termo);
+      return correspondeCadeira && correspondeBusca;
+    });
+  }, [catalogo.data, busca, cadeiraFiltro]);
+
+  const totalServicos = catalogo.data?.length ?? 0;
+  const totalCadeiras = cadeiras.length;
 
   const camposExtras = (item?.campos_extras ?? []) as CampoExtra[];
   const pedidoObrigatorio = item?.entidade_tipo_exigida === "pedido";
@@ -196,95 +215,133 @@ function ChamadoNovoConteudo() {
         icone={Ticket}
         breadcrumb={[{ label: "Chamados", to: "/chamados" }, { label: "Abrir chamado" }]}
         estado={
-          item
-            ? `Serviço: ${item.item ?? "—"}`
-            : "Escolha o serviço no catálogo abaixo"
+          catalogo.isLoading
+            ? "Carregando catálogo..."
+            : item
+              ? [
+                  item.item ?? "—",
+                  item.cadeira ?? "—",
+                  item.prazo_primeira_resposta_h != null
+                    ? `resposta em ${item.prazo_primeira_resposta_h}h`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : `${totalServicos} serviços em ${totalCadeiras} cadeiras`
         }
       />
 
       {!podeEditar && <AvisoSomenteLeitura />}
 
-      {/* ETAPA 1 — ESCOLHER O SERVIÇO */}
-      <Card>
-        <CardHeader className="space-y-3">
-          <CardTitle className="text-base">1 · Escolha o serviço</CardTitle>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome ou descrição..."
-              className="pl-9"
-            />
-          </div>
-        </CardHeader>
-        <CardContent>
-          {catalogo.isError ? (
-            <ErroQuery o_que="o catálogo de serviços" erro={catalogo.error} />
-          ) : catalogo.isLoading ? (
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-12 w-full" />
-              ))}
-            </div>
-          ) : grupos.length === 0 ? (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              Nenhum serviço encontrado{busca.trim() ? ` para "${busca.trim()}"` : ""}.
-            </p>
-          ) : (
-            <Accordion
-              type="multiple"
-              defaultValue={grupos.map(([c]) => c)}
-              className="w-full"
+      <div className="space-y-3 rounded-lg border border-border bg-card p-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome ou descrição..."
+            className="h-9 w-full max-w-xs"
+          />
+          <span className="text-sm text-muted-foreground">
+            {filtrados.length} {filtrados.length === 1 ? "serviço" : "serviços"}
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant={cadeiraFiltro === "todas" ? "default" : "outline"}
+            onClick={() => setCadeiraFiltro("todas")}
+          >
+            Todas
+          </Button>
+          {cadeiras.map((cadeira) => (
+            <Button
+              key={cadeira}
+              type="button"
+              size="sm"
+              variant={cadeiraFiltro === cadeira ? "default" : "outline"}
+              onClick={() => setCadeiraFiltro(cadeira)}
             >
-              {grupos.map(([cadeira, itens]) => (
-                <AccordionItem key={cadeira} value={cadeira}>
-                  <AccordionTrigger className="text-sm font-medium">
-                    <span className="flex items-center gap-2">
-                      {cadeira}
-                      <Badge variant="secondary" className="text-xs">
-                        {itens.length}
-                      </Badge>
-                    </span>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {itens.map((i) => {
-                        const ativo = item?.codigo === i.codigo;
-                        return (
-                          <button
-                            key={i.codigo ?? i.item}
-                            type="button"
-                            onClick={() => selecionar(i)}
-                            className={cn(
-                              "rounded-md border p-3 text-left transition-colors hover:border-primary/50",
-                              ativo && "border-primary bg-primary/5 ring-1 ring-primary/40",
-                            )}
-                          >
-                            <p className="text-sm font-medium">{i.item ?? "—"}</p>
-                            {i.descricao && (
-                              <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                                {i.descricao}
-                              </p>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
-          )}
-        </CardContent>
-      </Card>
+              {cadeira}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {catalogo.isError ? (
+        <ErroQuery
+          o_que="o catálogo de serviços"
+          erro={catalogo.error}
+          onTentar={() => catalogo.refetch()}
+        />
+      ) : catalogo.isLoading ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : filtrados.length === 0 ? (
+        <EstadoVazio
+          icone={Search}
+          titulo="Nenhum serviço com esse nome"
+          mensagem="Tente outra palavra ou volte para todas as cadeiras."
+          acao={
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setBusca("");
+                setCadeiraFiltro("todas");
+              }}
+            >
+              Limpar busca
+            </Button>
+          }
+        />
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filtrados.map((i) => {
+            const ativo = item?.codigo === i.codigo;
+            const detalhes = [
+              i.cadeira ?? "Sem cadeira",
+              i.prazo_primeira_resposta_h != null
+                ? `resposta em ${i.prazo_primeira_resposta_h}h`
+                : null,
+              i.prazo_dias != null
+                ? `solução em ${i.prazo_dias} ${i.prazo_dias === 1 ? "dia útil" : "dias úteis"}`
+                : null,
+            ].filter(Boolean);
+            return (
+              <button
+                key={i.codigo ?? i.item}
+                type="button"
+                onClick={() => selecionar(i)}
+                className={cn(
+                  "rounded-md border p-3 text-left transition-colors hover:border-primary/50",
+                  ativo && "border-primary bg-primary/5 ring-1 ring-primary/40",
+                )}
+              >
+                <p className="text-sm font-medium">{i.item ?? "—"}</p>
+                {i.descricao && (
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                    {i.descricao}
+                  </p>
+                )}
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {detalhes.join(" · ")}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* ETAPA 2 — DESCREVER */}
       {item && (
         <Card>
           <CardHeader className="space-y-1">
             <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-base">2 · Descreva o chamado</CardTitle>
+              <CardTitle className="text-base">Descreva o chamado</CardTitle>
               <Button
                 variant="ghost"
                 size="sm"
@@ -402,8 +459,7 @@ function ChamadoNovoConteudo() {
             <div className="space-y-1">
               <p className="text-sm font-medium">Não achou o que precisa?</p>
               <p className="text-sm text-muted-foreground">
-                Não achou? Abra pelo pedido na tela do pedido, ou fale com o
-                Atendimento.
+                Abra o chamado pela tela do pedido ou fale com o Atendimento.
               </p>
             </div>
           </CardContent>
