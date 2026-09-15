@@ -16342,6 +16342,7 @@ export type Database = {
           entidade_tipo_exigida: string | null
           fila_id: string | null
           id: string
+          libera_refaturamento: boolean
           nome: string
           ordem: number | null
           prazo_dias: number | null
@@ -16365,6 +16366,7 @@ export type Database = {
           entidade_tipo_exigida?: string | null
           fila_id?: string | null
           id?: string
+          libera_refaturamento?: boolean
           nome: string
           ordem?: number | null
           prazo_dias?: number | null
@@ -16388,6 +16390,7 @@ export type Database = {
           entidade_tipo_exigida?: string | null
           fila_id?: string | null
           id?: string
+          libera_refaturamento?: boolean
           nome?: string
           ordem?: number | null
           prazo_dias?: number | null
@@ -66502,6 +66505,7 @@ export type Database = {
           fila_id: string | null
           fila_ordem: number | null
           item: string | null
+          libera_refaturamento: boolean | null
           ordem: number | null
           prazo_dias: number | null
           prazo_primeira_resposta_h: number | null
@@ -82645,14 +82649,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
