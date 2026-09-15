@@ -27692,6 +27692,36 @@ export type Database = {
           },
         ]
       }
+      lastro_cobranca_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          eh_problema: boolean
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          eh_problema?: boolean
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          eh_problema?: boolean
+          ordem?: number
+          rotulo?: string
+          tom?: string
+        }
+        Relationships: []
+      }
       leitura_tabela_tela: {
         Row: {
           criado_em: string
@@ -84479,14 +84509,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

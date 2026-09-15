@@ -25,7 +25,7 @@ interface Props {
 }
 
 export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagio }: Props) {
-  const { data: cob, isLoading, isError, error } = useContaClienteCobertura(parceiroId);
+  const { data: cob, isLoading, isError, error } = useContaClienteCobertura(parceiroId, pedidoId);
   const liberar = useLiberarPorCobertura();
   const [empenhado, setEmpenhado] = useState(false);
   const [rota, setRota] = useState<string | null>(null);
@@ -81,9 +81,10 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
         return;
       }
 
-      // ok: false com rota analise_credito NÃO é erro — é rota.
-      if (!res.ok && res.rota === "analise_credito") {
-        setRota(res.mensagem ?? "Rota: análise de crédito.");
+      // ok: false com rota NÃO é erro — é rota. FALTA-TEM-DONO: cada falta tem
+      // seu dono e a mensagem diz quem é, sem toast de erro.
+      if (!res.ok && (res.rota === "analise_credito" || res.rota === "aguardar_deposito" || res.rota === "manutencao_indice")) {
+        setRota(res.mensagem ?? "Rota informada pelo banco.");
         return;
       }
 
@@ -140,16 +141,23 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       )}
       {valorConhecido && !cobre && (
         <p className="text-[11px] text-warning">
-          falta {formatBRL(falta)} — rota: análise de crédito
+          {cob.classe === "portao"
+            ? `falta ${formatBRL(falta)} — rota: aguardar depósito`
+            : `falta ${formatBRL(falta)} — rota: análise de crédito`}
+        </p>
+      )}
+      {cob.forma_a_prazo === false && cob.fonte3_elegivel === false && (
+        <p className="text-[11px] text-muted-foreground">
+          pedido à vista — limite de crédito não conta como cobertura
         </p>
       )}
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-        <dt>Saldo em conta</dt>
+        <dt>Saldo disponível</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.fonte1_saldo_disponivel)}</dd>
         <dt>Limite disponível</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.fonte3_limite_disponivel)}</dd>
-        <dt>Em aberto</dt>
+        <dt>Exposição em aberto</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.exposicao_em_aberto)}</dd>
         <dt>Vencido em aberto</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.vencido_em_aberto)}</dd>
