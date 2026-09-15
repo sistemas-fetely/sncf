@@ -1143,6 +1143,123 @@ export default function ConsignadoDetalhe() {
           </Dialog>
         </section>
       )}
+      {/* ═══ IMPORTAR RELATÓRIO DO PARCEIRO ═══ */}
+      <Dialog open={importAberto} onOpenChange={(o) => (o ? setImportAberto(true) : fecharImport())}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Importar relatório de vendas — {nome}</DialogTitle>
+          </DialogHeader>
+
+          {!previa ? (
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <Label htmlFor="import-texto">Relatório colado</Label>
+                <Textarea
+                  id="import-texto"
+                  className="min-h-[16rem] font-mono text-xs"
+                  value={importTexto}
+                  onChange={(e) => setImportTexto(e.target.value)}
+                  placeholder={
+                    "Uma linha por item: código e quantidade.\n" +
+                    "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
+                    "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
+                    "01846\t12\n01847;3\nLUM-VELA-0 5"
+                  }
+                />
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <div className="space-y-1">
+                  <Label htmlFor="periodo-inicio" className="text-xs">Período apurado — início</Label>
+                  <Input
+                    id="periodo-inicio"
+                    type="date"
+                    className="w-44"
+                    value={periodoInicio}
+                    onChange={(e) => setPeriodoInicio(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="periodo-fim" className="text-xs">Período apurado — fim</Label>
+                  <Input
+                    id="periodo-fim"
+                    type="date"
+                    className="w-44"
+                    value={periodoFim}
+                    onChange={(e) => setPeriodoFim(e.target.value)}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O ciclo do parceiro não é mês-calendário — as datas são opcionais.
+              </p>
+              <DialogFooter>
+                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate()}>
+                  {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Analisar
+                </Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="rounded-md border max-h-[24rem] overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Código informado</TableHead>
+                      <TableHead>SKU resolvido</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead className="text-right">Qtd</TableHead>
+                      <TableHead className="text-right">Preço</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead>
+                      <TableHead>Situação</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(previa.linhas ?? []).map((l, i) => (
+                      <TableRow
+                        key={`${l.codigo_informado ?? "sem-codigo"}-${i}`}
+                        className={cn(l.diag !== "ok" && "bg-destructive/10")}
+                      >
+                        <TableCell className="font-mono text-xs">{l.codigo_informado ?? "—"}</TableCell>
+                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{l.descricao ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(l.quantidade)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatBRL(l.valor_unitario)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(l.disponivel)}</TableCell>
+                        <TableCell className="text-xs">
+                          {l.diag ? MSG_DIAG[l.diag] ?? l.diag : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm tabular-nums">
+                  {num(previa.n_linhas)} itens · Total {formatBRL(previa.valor_total)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  O preço vem da NF de remessa — não é editável aqui.
+                </p>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setPrevia(null)}>
+                  Voltar
+                </Button>
+                <Button
+                  disabled={previa.pronto !== true || importarPrevia.isPending}
+                  onClick={() => importarPrevia.mutate()}
+                >
+                  {importarPrevia.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {`Importar ${num(previa.n_linhas)} itens — ${formatBRL(previa.valor_total)}`}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
