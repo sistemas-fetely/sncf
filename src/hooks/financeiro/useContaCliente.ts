@@ -9,6 +9,7 @@
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { nomeExibicao } from "@/lib/parceiros/nome";
 import {
   sha256Hex,
   extensaoDe,
@@ -298,14 +299,15 @@ export function useClientesBusca(termo: string) {
         .from("parceiros_comerciais")
         .select("id, razao_social, nome_fantasia, cnpj")
         .eq("ativo", true)
-        .order("nome_fantasia")
+        .order("razao_social")
         .limit(30);
       if (t) q = q.or(`nome_fantasia.ilike.%${t}%,razao_social.ilike.%${t}%,cnpj.ilike.%${t}%`);
       const { data, error } = await q;
       if (error) throw error;
       return ((data ?? []) as any[]).map((p) => ({
         id: p.id,
-        nome: p.nome_fantasia || p.razao_social || "(sem nome)",
+        // NOME-É-RAZÃO-SOCIAL: apelido só como complemento.
+        nome: nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)"),
         cnpj: p.cnpj ?? null,
       }));
     },
@@ -473,11 +475,11 @@ export function useCortesiasCliente(parceiroId?: string) {
       if (ids.length) {
         const p = await (supabase as any)
           .from("parceiros_comerciais")
-          .select("id, nome_fantasia, razao_social")
+          .select("id, razao_social, nome_fantasia")
           .in("id", ids);
         if (p.error) throw p.error;
         for (const linha of (p.data ?? []) as any[]) {
-          nomes.set(linha.id, linha.nome_fantasia || linha.razao_social || "(sem nome)");
+          nomes.set(linha.id, nomeExibicao(linha.razao_social, linha.nome_fantasia, "(sem nome)"));
         }
       }
 
