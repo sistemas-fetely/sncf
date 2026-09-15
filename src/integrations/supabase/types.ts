@@ -68593,6 +68593,7 @@ export type Database = {
           parceiro_sugerido_id: string | null
           parceiro_sugerido_nome: string | null
           pos_corte: boolean | null
+          sugerido_eh_entidade_propria: boolean | null
           sugestao_forca: string | null
           valor: number | null
         }
@@ -69059,17 +69060,22 @@ export type Database = {
       vw_conta_cliente_saldo: {
         Row: {
           a_vencer: number | null
+          cnpj: string | null
           credito_futuro_boleto: number | null
           dias_atraso_max: number | null
+          eh_entidade_propria: boolean | null
           faixa_1_7: number | null
           faixa_31_60: number | null
           faixa_60_mais: number | null
           faixa_8_30: number | null
           lancamentos: number | null
+          nome_exibicao: string | null
           nome_fantasia: string | null
           parceiro_id: string | null
           qtd_titulos_abertos: number | null
+          razao_social: string | null
           saldo: number | null
+          tipos: string[] | null
           ultima_movimentacao: string | null
           vencido_em_aberto: number | null
         }
@@ -82995,14 +83001,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -88563,6 +88569,7 @@ export type Database = {
           numero_parcela: number | null
           pedido_id: string | null
           provisao_id: string | null
+          razao_social: string | null
           valor_extrato: number | null
           valor_provisao: number | null
         }
@@ -93511,14 +93518,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -99398,9 +99405,10 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
-      fn_conta_conciliar_entradas:
-        | { Args: { p_dry_run?: boolean }; Returns: Json }
-        | { Args: { p_corte?: string; p_dry_run?: boolean }; Returns: Json }
+      fn_conta_conciliar_entradas: {
+        Args: { p_corte?: string; p_dry_run?: boolean }
+        Returns: Json
+      }
       fn_conta_consumir: {
         Args: { p_dry_run?: boolean; p_parceiro: string }
         Returns: {

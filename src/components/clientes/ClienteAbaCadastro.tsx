@@ -1,13 +1,114 @@
-/** Cadastro do cliente — somente leitura. */
+/**
+ * Cadastro do cliente — leitura, com uma exceção: o papel do parceiro
+ * ("Tipo de cadastro", coluna `tipos`) é editável aqui, em multi-seleção.
+ * FAIL-LOUD: falha de gravação mostra a mensagem real do banco.
+ */
 import { Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useClienteCadastro } from "@/hooks/clientes/useClientePainel";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { formatError } from "@/lib/format-error";
+import { cn } from "@/lib/utils";
+import {
+  TIPOS_PARCEIRO,
+  useClienteCadastro,
+  useSalvarTiposParceiro,
+} from "@/hooks/clientes/useClientePainel";
 
 function Linha({ label, value }: { label: string; value: string | null | undefined }) {
   return (
     <div className="flex justify-between gap-3 text-sm">
       <span className="text-muted-foreground">{label}</span>
       <span className="text-right">{value || "—"}</span>
+    </div>
+  );
+}
+
+function TipoCadastroCampo({
+  parceiroId,
+  tipos,
+}: {
+  parceiroId: string;
+  tipos: string[] | null;
+}) {
+  const { toast } = useToast();
+  const salvar = useSalvarTiposParceiro(parceiroId);
+  const [selecao, setSelecao] = useState<string[]>(tipos ?? []);
+
+  useEffect(() => {
+    setSelecao(tipos ?? []);
+  }, [tipos]);
+
+  const original = tipos ?? [];
+  const mudou =
+    selecao.length !== original.length || selecao.some((t) => !original.includes(t));
+
+  function alternar(valor: string) {
+    setSelecao((atual) =>
+      atual.includes(valor) ? atual.filter((v) => v !== valor) : [...atual, valor],
+    );
+  }
+
+  async function gravar() {
+    try {
+      await salvar.mutateAsync(selecao);
+      toast({ title: "Tipo de cadastro atualizado" });
+    } catch (e) {
+      toast({
+        title: "Não foi possível gravar o tipo de cadastro",
+        description: formatError(e),
+        variant: "destructive",
+      });
+    }
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm text-muted-foreground">Tipo de cadastro</span>
+        {selecao.length === 0 && !mudou && (
+          <span className="text-xs text-muted-foreground">Papel não definido</span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        {TIPOS_PARCEIRO.map((t) => {
+          const ativo = selecao.includes(t.valor);
+          return (
+            <button
+              key={t.valor}
+              type="button"
+              onClick={() => alternar(t.valor)}
+              disabled={salvar.isPending}
+              className="rounded-full disabled:opacity-60"
+            >
+              <Badge
+                variant={ativo ? "default" : "outline"}
+                className={cn("cursor-pointer font-normal", !ativo && "text-muted-foreground")}
+              >
+                {t.rotulo}
+              </Badge>
+            </button>
+          );
+        })}
+      </div>
+      {mudou && (
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={gravar} disabled={salvar.isPending}>
+            {salvar.isPending && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
+            Salvar
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setSelecao(original)}
+            disabled={salvar.isPending}
+          >
+            Cancelar
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -56,6 +157,7 @@ export function ClienteAbaCadastro({ parceiroId }: { parceiroId: string }) {
             value={data.isento_ie ? "Isento" : data.inscricao_estadual}
           />
           <Linha label="Situação" value={data.ativo === false ? "Inativo" : "Ativo"} />
+          <TipoCadastroCampo parceiroId={parceiroId} tipos={data.tipos ?? null} />
         </CardContent>
       </Card>
 

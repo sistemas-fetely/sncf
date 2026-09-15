@@ -490,7 +490,7 @@ export function ClienteBlocoProdutos({ parceiroId }: { parceiroId: string }) {
   const erroSecao = mix.isError ? mix.error : sugestao.isError ? sugestao.error : null;
 
   function copiarBriefing() {
-    const nome = cadastro.data?.nome_fantasia || cadastro.data?.razao_social || "Cliente";
+    const nome = cadastro.data?.razao_social || cadastro.data?.nome_fantasia || "Cliente";
     const partes: string[] = [nome, `Potencial não explorado: ${formatBRL(potencialTotal)}`, ""];
     for (const l of comEspaco.slice(0, 5)) {
       partes.push(

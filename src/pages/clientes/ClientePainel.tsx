@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AcessoBloqueado } from "@/components/AcessoBloqueado";
 import { usePodeVerAba } from "@/components/AbaGate";
 import { useClienteCadastro } from "@/hooks/clientes/useClientePainel";
+import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { ClienteAbaPosicao } from "@/components/clientes/ClienteAbaPosicao";
 import { ClienteAbaExtrato } from "@/components/clientes/ClienteAbaExtrato";
 import { ClienteAbaCadastro } from "@/components/clientes/ClienteAbaCadastro";
@@ -107,7 +108,9 @@ export default function ClientePainel() {
   }
 
   const cliente = cadastro.data;
-  const nome = cliente?.nome_fantasia || cliente?.razao_social || "Cliente";
+  // NOME-É-RAZÃO-SOCIAL: o título é a razão social; o apelido vira subtítulo.
+  const nome = nomeCanonico(cliente?.razao_social, "Cliente");
+  const apelido = apelidoParceiro(cliente?.razao_social, cliente?.nome_fantasia);
   const documento = cliente?.cnpj || cliente?.cpf || null;
 
   return (
@@ -118,7 +121,7 @@ export default function ClientePainel() {
         estado={
           cadastro.isLoading
             ? "carregando"
-            : [cliente?.razao_social, documento].filter(Boolean).join(" · ") || undefined
+            : [apelido, documento].filter(Boolean).join(" · ") || undefined
         }
         acoes={
           <Button variant="ghost" size="sm" className="gap-1.5" onClick={voltar}>
