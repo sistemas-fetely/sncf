@@ -235,6 +235,7 @@ const Logistica = lazy(() => import("@/pages/logistica/Logistica"));
 const Chamados = lazy(() => import("@/pages/Chamados"));
 const ChamadoDetalhe = lazy(() => import("@/pages/ChamadoDetalhe"));
 const ChamadoNovo = lazy(() => import("@/pages/ChamadoNovo"));
+const ChamadosCatalogo = lazy(() => import("@/pages/ChamadosCatalogo"));
 const MapaOperacao = lazy(() => import("@/pages/operacao/MapaOperacao"));
 
 
@@ -436,6 +437,7 @@ const App = () => (
                 <Route path="/canal-cpo" element={<Navigate to="/chamados" replace />} />
                 <Route path="/chamados" element={<Chamados />} />
                 <Route path="/chamados/novo" element={<ChamadoNovo />} />
+                <Route path="/chamados/catalogo" element={<ChamadosCatalogo />} />
                 <Route path="/chamados/:id" element={<ChamadoDetalhe />} />
                 <Route path="/operacao/mapa" element={
                   <ProtectedRoute>

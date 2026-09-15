@@ -9,6 +9,7 @@ import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,6 +30,7 @@ import {
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { iconeDaFila } from "@/pages/ChamadosCatalogo";
 import {
   PermissaoTelaProvider,
   usePermissaoTelaContext,
@@ -36,9 +38,12 @@ import {
 } from "@/contexts/PermissaoTelaContext";
 
 /**
- * Abrir chamado — duas etapas na mesma página: escolher o serviço no catálogo
- * (vw_catalogo_arvore agrupada por cadeira) e descrever. Quem valida tudo
- * (pedido obrigatório, campos extras, duplicidade) é a RPC
+ * Abrir chamado — três etapas na mesma página: escolher a FILA, escolher o
+ * SERVIÇO dentro dela e descrever. A busca é global: digitar atravessa as filas
+ * e mostra o nome da fila em cada resultado. Serviço sem fila cai no bloco
+ * "Outros".
+ *
+ * Quem valida tudo (pedido obrigatório, campos extras, duplicidade) é a RPC
  * `abrir_chamado_catalogo` — a tela só orquestra e repassa a mensagem do
  * Postgres no toast. FAIL-LOUD: nenhum erro é engolido.
  *
@@ -67,7 +72,24 @@ interface ItemCatalogo {
   camada_esperada: string | null;
   visivel_para: string | null;
   ordem: number | null;
+  fila_id: string | null;
+  fila_codigo: string | null;
+  fila: string | null;
+  fila_icone: string | null;
+  fila_ordem: number | null;
+  fila_descricao: string | null;
 }
+
+interface FilaAgrupada {
+  chave: string;
+  nome: string;
+  descricao: string | null;
+  icone: string | null;
+  ordem: number;
+  itens: ItemCatalogo[];
+}
+
+const CHAVE_OUTROS = "__outros__";
 
 type TipoChamado = "incidente" | "requisicao" | "duvida";
 
@@ -113,7 +135,7 @@ function ChamadoNovoConteudo() {
   const { podeEditar } = usePermissaoTelaContext();
 
   const [busca, setBusca] = useState("");
-  const [cadeiraFiltro, setCadeiraFiltro] = useState<string>("todas");
+  const [filaSel, setFilaSel] = useState<string | null>(null);
   const [item, setItem] = useState<ItemCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [pedidoRef, setPedidoRef] = useState("");
@@ -130,34 +152,48 @@ function ChamadoNovoConteudo() {
     },
   });
 
-  const cadeiras = useMemo(() => {
-    const porNome = new Map<string, number>();
+  const filas = useMemo<FilaAgrupada[]>(() => {
+    const mapa = new Map<string, FilaAgrupada>();
     for (const i of catalogo.data ?? []) {
-      const nome = i.cadeira ?? "Sem cadeira";
-      const ordem = i.cadeira_ordem ?? Number.MAX_SAFE_INTEGER;
-      const ordemAtual = porNome.get(nome);
-      if (ordemAtual == null || ordem < ordemAtual) porNome.set(nome, ordem);
+      const chave = i.fila_id ?? CHAVE_OUTROS;
+      const existente = mapa.get(chave);
+      if (existente) {
+        existente.itens.push(i);
+        continue;
+      }
+      mapa.set(chave, {
+        chave,
+        nome: i.fila ?? "Outros",
+        descricao: i.fila_descricao ?? null,
+        icone: i.fila_icone ?? null,
+        ordem: i.fila_id ? (i.fila_ordem ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER,
+        itens: [i],
+      });
     }
-    return [...porNome.entries()]
-      .sort(([nomeA, ordemA], [nomeB, ordemB]) => ordemA - ordemB || nomeA.localeCompare(nomeB))
-      .map(([nome]) => nome);
+    return [...mapa.values()].sort(
+      (a, b) =>
+        a.ordem - b.ordem ||
+        (a.chave === CHAVE_OUTROS ? 1 : 0) - (b.chave === CHAVE_OUTROS ? 1 : 0) ||
+        a.nome.localeCompare(b.nome, "pt-BR"),
+    );
   }, [catalogo.data]);
 
-  const filtrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return (catalogo.data ?? []).filter((i) => {
-      const correspondeCadeira =
-        cadeiraFiltro === "todas" || (i.cadeira ?? "Sem cadeira") === cadeiraFiltro;
-      const correspondeBusca =
-        !termo ||
+  const termo = busca.trim().toLowerCase();
+
+  const resultadosBusca = useMemo(() => {
+    if (!termo) return [];
+    return (catalogo.data ?? []).filter(
+      (i) =>
         (i.item ?? "").toLowerCase().includes(termo) ||
-        (i.descricao ?? "").toLowerCase().includes(termo);
-      return correspondeCadeira && correspondeBusca;
-    });
-  }, [catalogo.data, busca, cadeiraFiltro]);
+        (i.descricao ?? "").toLowerCase().includes(termo),
+    );
+  }, [catalogo.data, termo]);
+
+  const filaAtual = filas.find((f) => f.chave === filaSel) ?? null;
+  const servicosDaFila = filaAtual?.itens ?? [];
+  const visiveis = termo ? resultadosBusca : servicosDaFila;
 
   const totalServicos = catalogo.data?.length ?? 0;
-  const totalCadeiras = cadeiras.length;
 
   const camposExtras = (item?.campos_extras ?? []) as CampoExtra[];
   const pedidoObrigatorio = item?.entidade_tipo_exigida === "pedido";
@@ -208,12 +244,21 @@ function ChamadoNovoConteudo() {
     }
   }
 
+  const mostrandoServicos = !!termo || !!filaAtual;
+
   return (
     <PageShell variant={item ? "leitura" : "dados"}>
       <PageHeader
         titulo="Abrir chamado"
         icone={Ticket}
-        breadcrumb={[{ label: "Chamados", to: "/chamados" }, { label: "Abrir chamado" }]}
+        breadcrumb={[
+          { label: "Chamados", to: "/chamados" },
+          ...(item || filaAtual
+            ? [{ label: "Abrir chamado", to: "/chamados/novo" }]
+            : [{ label: "Abrir chamado" }]),
+          ...(filaAtual && !item ? [{ label: filaAtual.nome }] : []),
+          ...(item ? [{ label: item.item ?? "Serviço" }] : []),
+        ]}
         estado={
           catalogo.isLoading
             ? "Carregando catálogo..."
@@ -227,7 +272,9 @@ function ChamadoNovoConteudo() {
                 ]
                   .filter(Boolean)
                   .join(" · ")
-              : `${totalServicos} serviços em ${totalCadeiras} cadeiras`
+              : filaAtual && !termo
+                ? `${filaAtual.nome} · ${servicosDaFila.length} serviço(s)`
+                : `${totalServicos} serviços em ${filas.length} filas`
         }
       />
 
@@ -235,110 +282,136 @@ function ChamadoNovoConteudo() {
 
       {/* CATÁLOGO — só quando nenhum serviço está escolhido */}
       {!item && (
-      <>
-      <div className="space-y-3 rounded-lg border border-border bg-card p-3">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome ou descrição..."
-            className="h-9 w-full max-w-xs"
-          />
-          <span className="text-sm text-muted-foreground">
-            {filtrados.length} {filtrados.length === 1 ? "serviço" : "serviços"}
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={cadeiraFiltro === "todas" ? "default" : "outline"}
-            onClick={() => setCadeiraFiltro("todas")}
-          >
-            Todas
-          </Button>
-          {cadeiras.map((cadeira) => (
-            <Button
-              key={cadeira}
-              type="button"
-              size="sm"
-              variant={cadeiraFiltro === cadeira ? "default" : "outline"}
-              onClick={() => setCadeiraFiltro(cadeira)}
-            >
-              {cadeira}
-            </Button>
-          ))}
-        </div>
-      </div>
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-3">
+            <div className="flex flex-wrap items-center gap-2">
+              {mostrandoServicos && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setBusca("");
+                    setFilaSel(null);
+                  }}
+                >
+                  <ArrowLeft className="mr-1 h-4 w-4" />
+                  Todas as filas
+                </Button>
+              )}
+              <Input
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                placeholder="Buscar serviço em todas as filas..."
+                className="h-9 w-full max-w-xs"
+              />
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {mostrandoServicos
+                ? `${visiveis.length} ${visiveis.length === 1 ? "serviço" : "serviços"}`
+                : `${filas.length} ${filas.length === 1 ? "fila" : "filas"}`}
+            </span>
+          </div>
 
-      {catalogo.isError ? (
-        <ErroQuery
-          o_que="o catálogo de serviços"
-          erro={catalogo.error}
-          onTentar={() => catalogo.refetch()}
-        />
-      ) : catalogo.isLoading ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full" />
-          ))}
-        </div>
-      ) : filtrados.length === 0 ? (
-        <EstadoVazio
-          icone={Search}
-          titulo="Nenhum serviço com esse nome"
-          mensagem="Tente outra palavra ou volte para todas as cadeiras."
-          acao={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setBusca("");
-                setCadeiraFiltro("todas");
-              }}
-            >
-              Limpar busca
-            </Button>
-          }
-        />
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filtrados.map((i) => {
-            const ativo = item?.codigo === i.codigo;
-            const detalhes = [
-              i.cadeira ?? "Sem cadeira",
-              i.prazo_primeira_resposta_h != null
-                ? `resposta em ${i.prazo_primeira_resposta_h}h`
-                : null,
-            ].filter(Boolean);
-            return (
-              <button
-                key={i.codigo ?? i.item}
-                type="button"
-                onClick={() => selecionar(i)}
-                className={cn(
-                  "flex flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50",
-                  ativo && "border-primary bg-primary/5 ring-1 ring-primary/40",
-                )}
-              >
-                <p className="text-sm font-medium">{i.item ?? "—"}</p>
-                {i.descricao && (
-                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
-                    {i.descricao}
-                  </p>
-                )}
-                <p className="mt-auto pt-1.5 text-[11px] text-muted-foreground">
-                  {detalhes.join(" · ")}
-                </p>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      </>
+          {catalogo.isError ? (
+            <ErroQuery
+              o_que="o catálogo de serviços"
+              erro={catalogo.error}
+              onTentar={() => catalogo.refetch()}
+            />
+          ) : catalogo.isLoading ? (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          ) : !mostrandoServicos ? (
+            /* ETAPA 1 — FILAS */
+            filas.length === 0 ? (
+              <EstadoVazio
+                icone={Search}
+                titulo="Nenhuma fila no catálogo"
+                mensagem="Fale com o Atendimento para cadastrar os serviços."
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {filas.map((f) => {
+                  const Icone = iconeDaFila(f.icone);
+                  return (
+                    <button
+                      key={f.chave}
+                      type="button"
+                      onClick={() => setFilaSel(f.chave)}
+                      className="flex h-full flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50"
+                    >
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <Icone className="h-5 w-5 shrink-0 text-gold" aria-hidden="true" />
+                        <Badge variant="secondary">{f.itens.length}</Badge>
+                      </span>
+                      <p className="mt-2 text-sm font-medium">{f.nome}</p>
+                      {f.descricao && (
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {f.descricao}
+                        </p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : /* ETAPA 2 — SERVIÇOS */
+          visiveis.length === 0 ? (
+            <EstadoVazio
+              icone={Search}
+              titulo="Nenhum serviço com esse nome"
+              mensagem="Tente outra palavra ou volte para todas as filas."
+              acao={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setBusca("");
+                    setFilaSel(null);
+                  }}
+                >
+                  Limpar busca
+                </Button>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {visiveis.map((i) => {
+                const detalhes = [
+                  termo ? (i.fila ?? "Outros") : null,
+                  i.cadeira ?? "Sem área",
+                  i.prazo_primeira_resposta_h != null
+                    ? `resposta em ${i.prazo_primeira_resposta_h}h`
+                    : null,
+                ].filter(Boolean);
+                return (
+                  <button
+                    key={i.codigo ?? i.item}
+                    type="button"
+                    onClick={() => selecionar(i)}
+                    className="flex h-full flex-col items-start rounded-md border p-3 text-left transition-colors hover:border-primary/50"
+                  >
+                    <p className="text-sm font-medium">{i.item ?? "—"}</p>
+                    {i.descricao && (
+                      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                        {i.descricao}
+                      </p>
+                    )}
+                    <p className="mt-auto pt-1.5 text-[11px] text-muted-foreground">
+                      {detalhes.join(" · ")}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </>
       )}
 
-      {/* ETAPA 2 — DESCREVER */}
+      {/* ETAPA 3 — DESCREVER */}
       {item && (
         <Card>
           <CardHeader className="space-y-1">

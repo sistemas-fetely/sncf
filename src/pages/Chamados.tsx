@@ -10,6 +10,7 @@ import {
   Pause,
   Play,
   ArrowRightLeft,
+  LibraryBig,
   LogOut,
   PlusCircle,
   Ticket,
@@ -67,6 +68,7 @@ import {
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import {
   PermissaoTelaProvider,
   usePermissaoTelaContext,
@@ -247,6 +249,8 @@ function ChamadosConteudo() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { podeEditar } = usePermissaoTelaContext();
+  // Atalho para o Catálogo de Serviços — só quem tem direito de ver a tela.
+  const podeVerCatalogo = usePermissoesTela("tela.chamados_catalogo").podeVer;
 
   const [busca, setBusca] = useState("");
   const [visao, setVisao] = useState<Visao>("abertos");
@@ -467,12 +471,20 @@ function ChamadosConteudo() {
             : `${filtrados.length} chamado(s) na visão atual`
         }
         acoes={
-          podeEditar ? (
-            <Button onClick={() => navigate("/chamados/novo")}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Abrir chamado
-            </Button>
-          ) : undefined
+          <>
+            {podeVerCatalogo && (
+              <Button variant="outline" onClick={() => navigate("/chamados/catalogo")}>
+                <LibraryBig className="mr-2 h-4 w-4" />
+                Catálogo
+              </Button>
+            )}
+            {podeEditar && (
+              <Button onClick={() => navigate("/chamados/novo")}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Abrir chamado
+              </Button>
+            )}
+          </>
         }
       />
 
