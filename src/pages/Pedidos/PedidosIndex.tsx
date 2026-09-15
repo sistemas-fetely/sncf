@@ -18,11 +18,11 @@ import { PageShell } from "@/components/layout/PageShell";
 
 // Telas pesadas: só entram no bundle quando a aba é aberta.
 const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
-const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 
 // PROBLEMA-E-CHAMADO (15/09/2026): a aba "Resolução de Problema" saiu daqui.
 // Problema de pedido agora É chamado e vive em /chamados.
-const ABAS = ["fila", "dash", "recuperacao", "consignados", "solicitacoes"] as const;
+// UMA-PORTA-SO (15/09/2026): a aba "Consignados" saiu daqui — a lista vive em /comercial/consignados.
+const ABAS = ["fila", "dash", "recuperacao", "solicitacoes"] as const;
 type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
@@ -39,14 +39,12 @@ export default function PedidosIndex() {
   const permFila = usePodeVerAba("tela.pedidos_fila");
   const permDash = usePodeVerAba("tela.dash_pedidos");
   const permMesa = usePodeVerAba("tela.comercial");
-  const permConsignados = usePodeVerAba("tela.consignado");
   const permSolicitacoes = usePodeVerAba("tela.solicitacoes");
 
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
     recuperacao: permMesa,
-    consignados: permConsignados,
     solicitacoes: permSolicitacoes,
   };
 
@@ -152,9 +150,6 @@ export default function PedidosIndex() {
                   : `Mesa Comercial${qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}`}
               </TabsTrigger>
             </AbaPermitida>
-            <AbaPermitida slug="tela.consignado">
-              <TabsTrigger value="consignados">Consignados</TabsTrigger>
-            </AbaPermitida>
             <AbaPermitida slug="tela.solicitacoes">
               <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
             </AbaPermitida>
@@ -204,13 +199,6 @@ export default function PedidosIndex() {
             </ConteudoAba>
           </TabsContent>
 
-          <TabsContent value="consignados">
-            <ConteudoAba slug="tela.consignado">
-              <Suspense fallback={<CarregandoAba />}>
-                <Consignados embutido />
-              </Suspense>
-            </ConteudoAba>
-          </TabsContent>
           <TabsContent value="solicitacoes">
             <ConteudoAba slug="tela.solicitacoes">
               <SolicitacoesSopsAba />

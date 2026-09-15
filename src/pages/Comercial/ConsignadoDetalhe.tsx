@@ -403,7 +403,7 @@ export default function ConsignadoDetalhe() {
       <CasaPageHeader
         breadcrumb={[
           { label: "Comercial" },
-          { label: "Consignados", to: "/pedidos?aba=consignados" },
+          { label: "Consignados", to: "/comercial/consignados" },
           { label: nome },
         ]}
         title={nome}
