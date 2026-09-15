@@ -335,8 +335,6 @@ function ChamadoNovoConteudo() {
           })}
         </div>
       )}
-        </CardContent>
-      </Card>
 
       {/* ETAPA 2 — DESCREVER */}
       {item && (
