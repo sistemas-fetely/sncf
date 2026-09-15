@@ -96,6 +96,7 @@ interface Chamado {
   primeira_resposta_em: string | null;
   vencimento: string | null;
   vencido: boolean | null;
+  pedido_id: string | null;
   pedido_id_externo: string | null;
   entidade_ref: string | null;
   motivo: string | null;
