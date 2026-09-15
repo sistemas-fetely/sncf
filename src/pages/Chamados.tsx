@@ -466,6 +466,10 @@ function ChamadosConteudo() {
     largar: "Largar chamado",
   };
 
+  if (!slugValido) {
+    return <Navigate to="/chamados/fila/abertos" replace />;
+  }
+
   return (
     <PageShell>
       <PageHeader
@@ -605,19 +609,6 @@ function ChamadosConteudo() {
           <span className="text-sm text-muted-foreground">
             {filtrados.length} resultado(s)
           </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {VISOES.map((v) => (
-            <Button
-              key={v.valor}
-              size="sm"
-              variant={visao === v.valor ? "default" : "outline"}
-              onClick={() => setVisao(v.valor)}
-            >
-              {v.rotulo}
-            </Button>
-          ))}
         </div>
       </div>
 
