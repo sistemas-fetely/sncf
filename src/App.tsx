@@ -216,6 +216,7 @@ const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
 const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
+const ChamadosLayout = lazy(() => import("@/layouts/ChamadosLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
@@ -434,8 +435,17 @@ const App = () => (
                 
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
-                <Route path="/canal-cpo" element={<Navigate to="/chamados" replace />} />
-                <Route path="/chamados" element={<Chamados />} />
+                <Route path="/devolucoes" element={<RetornoDevolucao />} />
+              </Route>
+
+              {/* ═══════════════════════════════════════════════
+                  App Chamados — sidebar própria.
+                  CHAMADOS-É-APP-PRÓPRIO (15/09/2026): antes morava no
+                  VendasLayout e abria com a sidebar do SOPs.
+                  ═══════════════════════════════════════════════ */}
+              <Route element={<ChamadosLayout />}>
+                <Route path="/chamados" element={<Navigate to="/chamados/fila/abertos" replace />} />
+                <Route path="/chamados/fila/:visao" element={<Chamados />} />
                 <Route path="/chamados/novo" element={<ChamadoNovo />} />
                 <Route path="/chamados/catalogo" element={<ChamadosCatalogo />} />
                 <Route path="/chamados/:id" element={<ChamadoDetalhe />} />
@@ -444,7 +454,6 @@ const App = () => (
                     <MapaOperacao />
                   </ProtectedRoute>
                 } />
-                <Route path="/devolucoes" element={<RetornoDevolucao />} />
               </Route>
 
               <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
@@ -927,6 +936,9 @@ const App = () => (
             <Route path="/administrativo-fetely/pedidos" element={<Navigate to="/pedidos" replace />} />
             <Route path="/administrativo-fetely/produtos" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/administrativo-fetely" element={<Navigate to="/administrativo" replace />} />
+
+            {/* CHAMADOS-É-APP-PRÓPRIO (15/09/2026): link antigo do Canal CPO → Central de Chamados */}
+            <Route path="/canal-cpo" element={<Navigate to="/chamados" replace />} />
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -160,16 +160,19 @@ type Visao =
   | "pendentes"
   | "todos";
 
-const VISOES: { valor: Visao; rotulo: string }[] = [
-  { valor: "abertos", rotulo: "Abertos" },
-  { valor: "meus", rotulo: "Meus" },
-  { valor: "sem_dono", rotulo: "Sem dono" },
-  { valor: "vencidos", rotulo: "Vencidos" },
-  { valor: "sem_resposta", rotulo: "Sem resposta" },
-  { valor: "em_triagem", rotulo: "Em triagem" },
-  { valor: "pendentes", rotulo: "Pendentes" },
-  { valor: "todos", rotulo: "Todos" },
-];
+// VISÃO-NA-URL (15/09/2026): a visão vem de /chamados/fila/:visao — dá pra
+// mandar link direto (ex.: fila de vencidos). A navegação entre visões é a
+// sidebar do app Chamados; a faixa de botões saiu do corpo da tela.
+const SLUG_PARA_VISAO: Record<string, Visao> = {
+  abertos: "abertos",
+  meus: "meus",
+  "sem-dono": "sem_dono",
+  vencidos: "vencidos",
+  "sem-resposta": "sem_resposta",
+  "em-triagem": "em_triagem",
+  pendentes: "pendentes",
+  todos: "todos",
+};
 
 const PRIORIDADE_CLASSE: Record<string, string> = {
   critica: "border-destructive/60 bg-destructive/10 text-destructive",
@@ -253,7 +256,10 @@ function ChamadosConteudo() {
   const podeVerCatalogo = usePermissoesTela("tela.chamados_catalogo").podeVer;
 
   const [busca, setBusca] = useState("");
-  const [visao, setVisao] = useState<Visao>("abertos");
+  // Visão vem da URL (VISÃO-NA-URL): slug desconhecido cai no redirect abaixo.
+  const { visao: visaoSlug } = useParams();
+  const visao: Visao = SLUG_PARA_VISAO[visaoSlug ?? ""] ?? "abertos";
+  const slugValido = visaoSlug == null || visaoSlug in SLUG_PARA_VISAO;
   const [cadeira, setCadeira] = useState<string>("todas");
   const [prioridade, setPrioridade] = useState<string>("todas");
   const [tipo, setTipo] = useState<string>("todos");
@@ -460,6 +466,10 @@ function ChamadosConteudo() {
     largar: "Largar chamado",
   };
 
+  if (!slugValido) {
+    return <Navigate to="/chamados/fila/abertos" replace />;
+  }
+
   return (
     <PageShell>
       <PageHeader
@@ -599,19 +609,6 @@ function ChamadosConteudo() {
           <span className="text-sm text-muted-foreground">
             {filtrados.length} resultado(s)
           </span>
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          {VISOES.map((v) => (
-            <Button
-              key={v.valor}
-              size="sm"
-              variant={visao === v.valor ? "default" : "outline"}
-              onClick={() => setVisao(v.valor)}
-            >
-              {v.rotulo}
-            </Button>
-          ))}
         </div>
       </div>
 
