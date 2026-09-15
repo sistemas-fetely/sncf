@@ -65,6 +65,12 @@ export interface ContaClienteCobertura {
   exposicao_em_aberto: number;
   vencido_em_aberto: number;
   sinal_analise_credito: boolean;
+  /** Dono da falta: 'portao' → aguardar depósito; senão → análise de crédito. */
+  classe?: string | null;
+  /** false = pedido à vista, limite de crédito não conta como cobertura. */
+  forma_a_prazo?: boolean | null;
+  /** false = limite inelegível nesta composição de cobertura. */
+  fonte3_elegivel?: boolean | null;
 }
 
 export const QK_CONTA_CLIENTE_SALDO = "conta-cliente-saldo";
