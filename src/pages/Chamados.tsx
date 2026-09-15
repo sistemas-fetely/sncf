@@ -467,12 +467,20 @@ function ChamadosConteudo() {
             : `${filtrados.length} chamado(s) na visão atual`
         }
         acoes={
-          podeEditar ? (
-            <Button onClick={() => navigate("/chamados/novo")}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Abrir chamado
-            </Button>
-          ) : undefined
+          <>
+            {podeVerCatalogo && (
+              <Button variant="outline" onClick={() => navigate("/chamados/catalogo")}>
+                <LibraryBig className="mr-2 h-4 w-4" />
+                Catálogo
+              </Button>
+            )}
+            {podeEditar && (
+              <Button onClick={() => navigate("/chamados/novo")}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Abrir chamado
+              </Button>
+            )}
+          </>
         }
       />
 
