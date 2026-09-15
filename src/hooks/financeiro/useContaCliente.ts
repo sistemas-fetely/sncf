@@ -18,6 +18,11 @@ import {
 export interface ContaClienteSaldo {
   parceiro_id: string;
   nome_fantasia: string | null;
+  /** NOME-É-RAZÃO-SOCIAL: identificação da conta é a razão social. */
+  razao_social: string | null;
+  /** "RAZÃO SOCIAL · Apelido", montado pela view. */
+  nome_exibicao: string | null;
+  cnpj: string | null;
   saldo: number;
   vencido_em_aberto: number;
   a_vencer: number;
@@ -291,7 +296,7 @@ export function useClientesBusca(termo: string) {
     queryFn: async (): Promise<ClienteOpcao[]> => {
       let q = (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, nome_fantasia, razao_social, cnpj")
+        .select("id, razao_social, nome_fantasia, cnpj")
         .eq("ativo", true)
         .order("nome_fantasia")
         .limit(30);

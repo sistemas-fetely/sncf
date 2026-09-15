@@ -65,7 +65,10 @@ export async function syncContatos(
           .maybeSingle();
 
         if (existing) {
-          await supabase.from("parceiros_comerciais").update(registro).eq("id", existing.id);
+          // PAPEL-NAO-SE-SOBRESCREVE: `tipos` de cadastro existente e verdade do
+          // SNCF (pode ter mais de um papel). Sync so define papel em cadastro novo.
+          const { tipos: _papelIgnorado, ...atualizacao } = registro;
+          await supabase.from("parceiros_comerciais").update(atualizacao).eq("id", existing.id);
           atualizados++;
         } else {
           await supabase.from("parceiros_comerciais").insert(registro);
