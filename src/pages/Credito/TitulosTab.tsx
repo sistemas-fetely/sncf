@@ -1015,6 +1015,8 @@ export default function TitulosTab() {
                 <div className="flex items-center justify-between gap-3">
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <div className="flex items-center gap-2">
+                    <BadgeParcelasAcerto saldo={saldosPorTitulo.get(detalhe.id)} />
+                    <BadgeAcerto saldo={saldosPorTitulo.get(detalhe.id)} />
                     <BadgeInstrumento eixo={detalhe.eixo_instrumento} />
                     <BadgeRecebimento
                       eixo={detalhe.eixo_recebimento}
