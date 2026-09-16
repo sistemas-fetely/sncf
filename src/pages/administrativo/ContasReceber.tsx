@@ -42,6 +42,13 @@ import {
   useTituloEstado,
   useTituloEstadoKpisDe,
 } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useTituloSaldos } from "@/hooks/financeiro/useTituloSaldo";
+import {
+  ValorSaldo,
+  BadgeParcelasAcerto,
+  BadgeAcerto,
+  LinhaTituloPai,
+} from "@/components/financeiro/SaldoTitulo";
 
 type RecebivelB2B = {
   id: string;
@@ -577,6 +584,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
      (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
      (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
   const { data: tituloEstadoLinhas } = useTituloEstado();
+  /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
+  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
   const cobravelIds = useMemo(
     () =>
       new Set(
