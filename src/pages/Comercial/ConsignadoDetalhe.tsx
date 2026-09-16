@@ -709,12 +709,38 @@ export default function ConsignadoDetalhe() {
         p_periodo_fim: periodoFim || null,
       });
       if (error) throw new Error(error.message);
-      return data as Record<string, unknown>;
+
+      // UM-GESTO-SÓ: o mesmo PDF que alimentou a importação vira o anexo do acerto.
+      // Anexo é acessório: falha aqui não desfaz a importação já gravada.
+      let avisoAnexo: string | null = null;
+      if (origemPdf && importArquivo) {
+        try {
+          const nomeLimpo = importArquivo.name.replace(/[^\w.\-]+/g, "-");
+          const caminho = `${rascunho.id}/${nomeLimpo}`;
+          const up = await supabase.storage
+            .from("consignado-acertos")
+            .upload(caminho, importArquivo, { upsert: true });
+          if (up.error) throw new Error(up.error.message);
+          const anexo = await (supabase as any).rpc("anexar_relatorio_acerto", {
+            p_acerto_id: rascunho.id,
+            p_path: caminho,
+          });
+          if (anexo.error) throw new Error(anexo.error.message);
+        } catch (e) {
+          avisoAnexo = e instanceof Error ? e.message : String(e);
+        }
+      }
+      return { retorno: data as Record<string, unknown>, avisoAnexo };
     },
-    onSuccess: async (d) => {
+    onSuccess: async ({ retorno: d, avisoAnexo }) => {
       toast.success(`Relatório importado — ${num(d?.itens)} item(ns)`, {
         description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
       });
+      if (avisoAnexo) {
+        toast.warning("O arquivo não ficou anexado ao acerto", {
+          description: `${avisoAnexo} — a importação foi mantida; você pode anexar o arquivo na tela do acerto.`,
+        });
+      }
       fecharImport();
       await invalidarTudo();
     },
