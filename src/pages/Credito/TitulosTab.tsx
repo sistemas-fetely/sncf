@@ -376,12 +376,14 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
 
 
 function LinhaTitulo({
-  t, aninhada, onAbrir, onPedido,
+  t, aninhada, onAbrir, onPedido, saldo, numeroPai,
 }: {
   t: TituloCobranca;
   aninhada?: boolean;
   onAbrir: (t: TituloCobranca) => void;
   onPedido: (pedidoId: string) => void;
+  saldo?: TituloSaldo;
+  numeroPai?: string | null;
 }) {
   let liquid: React.ReactNode;
   if (t.data_liquidacao_real) {
