@@ -3803,6 +3803,264 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_consumidor_orfao_20260915: {
+        Row: {
+          ativo: boolean | null
+          backup_em: string | null
+          bairro: string | null
+          bandeira_vermelha: boolean | null
+          bandeira_vermelha_em: string | null
+          bandeira_vermelha_motivo: string | null
+          bandeira_vermelha_por: string | null
+          bling_id: string | null
+          cadastro_incompleto: boolean | null
+          canal_fop: string | null
+          canal_venda_id: string | null
+          categoria_ka: string | null
+          centro_custo_id: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          consignado_cadencia_dias: number | null
+          consignado_dia_acerto: number | null
+          consignado_modelo: string | null
+          contatos: Json | null
+          contexto_bureau: Json | null
+          cpf: string | null
+          created_at: string | null
+          dados_bancarios: Json | null
+          data_nascimento: string | null
+          eh_entidade_propria: boolean | null
+          email: string | null
+          email_cobranca: string | null
+          endereco_complemento: string | null
+          endereco_entrega: Json | null
+          forma_pagamento_padrao_id: string | null
+          grupo_economico_id: string | null
+          grupo_id: string | null
+          id: string | null
+          inscricao_estadual: string | null
+          isento_ie: boolean | null
+          logradouro: string | null
+          nivel_programa: string | null
+          nome_fantasia: string | null
+          numero: string | null
+          observacao: string | null
+          origem: string | null
+          perfil_credito: string | null
+          pix_chave: string | null
+          pix_tipo: string | null
+          plano_contas_id: string | null
+          premissas: Json | null
+          rastreio_automatico: boolean | null
+          razao_social: string | null
+          regiao_atuacao: string | null
+          regime_consignado: boolean | null
+          regime_consignado_desde: string | null
+          regime_consignado_motivo: string | null
+          regime_consignado_por: string | null
+          rg: string | null
+          segmento: string | null
+          situacao_cadastral: string | null
+          tags: string[] | null
+          telefone: string | null
+          tipo: string | null
+          tipo_pessoa: string | null
+          tipos: string[] | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          backup_em?: string | null
+          bairro?: string | null
+          bandeira_vermelha?: boolean | null
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
+          bling_id?: string | null
+          cadastro_incompleto?: boolean | null
+          canal_fop?: string | null
+          canal_venda_id?: string | null
+          categoria_ka?: string | null
+          centro_custo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
+          consignado_modelo?: string | null
+          contatos?: Json | null
+          contexto_bureau?: Json | null
+          cpf?: string | null
+          created_at?: string | null
+          dados_bancarios?: Json | null
+          data_nascimento?: string | null
+          eh_entidade_propria?: boolean | null
+          email?: string | null
+          email_cobranca?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
+          forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
+          grupo_id?: string | null
+          id?: string | null
+          inscricao_estadual?: string | null
+          isento_ie?: boolean | null
+          logradouro?: string | null
+          nivel_programa?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacao?: string | null
+          origem?: string | null
+          perfil_credito?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          plano_contas_id?: string | null
+          premissas?: Json | null
+          rastreio_automatico?: boolean | null
+          razao_social?: string | null
+          regiao_atuacao?: string | null
+          regime_consignado?: boolean | null
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
+          rg?: string | null
+          segmento?: string | null
+          situacao_cadastral?: string | null
+          tags?: string[] | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_pessoa?: string | null
+          tipos?: string[] | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          backup_em?: string | null
+          bairro?: string | null
+          bandeira_vermelha?: boolean | null
+          bandeira_vermelha_em?: string | null
+          bandeira_vermelha_motivo?: string | null
+          bandeira_vermelha_por?: string | null
+          bling_id?: string | null
+          cadastro_incompleto?: boolean | null
+          canal_fop?: string | null
+          canal_venda_id?: string | null
+          categoria_ka?: string | null
+          centro_custo_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          consignado_cadencia_dias?: number | null
+          consignado_dia_acerto?: number | null
+          consignado_modelo?: string | null
+          contatos?: Json | null
+          contexto_bureau?: Json | null
+          cpf?: string | null
+          created_at?: string | null
+          dados_bancarios?: Json | null
+          data_nascimento?: string | null
+          eh_entidade_propria?: boolean | null
+          email?: string | null
+          email_cobranca?: string | null
+          endereco_complemento?: string | null
+          endereco_entrega?: Json | null
+          forma_pagamento_padrao_id?: string | null
+          grupo_economico_id?: string | null
+          grupo_id?: string | null
+          id?: string | null
+          inscricao_estadual?: string | null
+          isento_ie?: boolean | null
+          logradouro?: string | null
+          nivel_programa?: string | null
+          nome_fantasia?: string | null
+          numero?: string | null
+          observacao?: string | null
+          origem?: string | null
+          perfil_credito?: string | null
+          pix_chave?: string | null
+          pix_tipo?: string | null
+          plano_contas_id?: string | null
+          premissas?: Json | null
+          rastreio_automatico?: boolean | null
+          razao_social?: string | null
+          regiao_atuacao?: string | null
+          regime_consignado?: boolean | null
+          regime_consignado_desde?: string | null
+          regime_consignado_motivo?: string | null
+          regime_consignado_por?: string | null
+          rg?: string | null
+          segmento?: string | null
+          situacao_cadastral?: string | null
+          tags?: string[] | null
+          telefone?: string | null
+          tipo?: string | null
+          tipo_pessoa?: string | null
+          tipos?: string[] | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      backup_consumidor_orfao_pastas_20260915: {
+        Row: {
+          area: string | null
+          area_id: string | null
+          ativa: boolean | null
+          backup_em: string | null
+          cor: string | null
+          created_at: string | null
+          criado_por: string | null
+          descricao: string | null
+          id: string | null
+          nome: string | null
+          parceiro_id: string | null
+          parent_id: string | null
+          responsavel_id: string | null
+          status: string | null
+          tipo: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          area?: string | null
+          area_id?: string | null
+          ativa?: boolean | null
+          backup_em?: string | null
+          cor?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string | null
+          nome?: string | null
+          parceiro_id?: string | null
+          parent_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          area?: string | null
+          area_id?: string | null
+          ativa?: boolean | null
+          backup_em?: string | null
+          cor?: string | null
+          created_at?: string | null
+          criado_por?: string | null
+          descricao?: string | null
+          id?: string | null
+          nome?: string | null
+          parceiro_id?: string | null
+          parent_id?: string | null
+          responsavel_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       backup_migracao_boleto_ancora_ofx_20260909: {
         Row: {
           congelado_em: string | null
@@ -8334,6 +8592,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cobranca_fila_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          exige_acao: boolean
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          exige_acao?: boolean
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          exige_acao?: boolean
+          ordem?: number
+          rotulo?: string
+          tom?: string
+        }
+        Relationships: []
       }
       colaborador_acessos_sistemas: {
         Row: {
@@ -16876,6 +17164,33 @@ export type Database = {
           },
         ]
       }
+      despesa_estagio_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+          tom?: string
+        }
+        Relationships: []
+      }
       despesas: {
         Row: {
           centro_custo_id: string | null
@@ -18407,6 +18722,36 @@ export type Database = {
           id?: boolean
           linhas?: number | null
           refreshed_em?: string
+        }
+        Relationships: []
+      }
+      email_generico_regra: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          escopo: string
+          id: string
+          motivo: string | null
+          padrao: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          escopo: string
+          id?: string
+          motivo?: string | null
+          padrao: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          escopo?: string
+          id?: string
+          motivo?: string | null
+          padrao?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -67687,6 +68032,9 @@ export type Database = {
           etapa_ultima_offset: number | null
           faturado_em: string | null
           fila: string | null
+          fila_ordem: number | null
+          fila_rotulo: string | null
+          fila_tom: string | null
           flag_bandeira_amarela: boolean | null
           flag_grupo_economico_inadimplente: boolean | null
           instrumento: string | null
@@ -70315,7 +70663,169 @@ export type Database = {
           valor: number | null
           vinculo_status: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "despesas_centro_custo_id_fkey"
+            columns: ["centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "movimentacoes_bancarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_baixa_extrato_inequivoca"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cartao_credito_par"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_cartao_sugestoes"
+            referencedColumns: ["ofx_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_mesa"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_orfaos"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_sugestoes"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_extrato_conta"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_creditos_nao_conciliados"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_movimentacao_destino"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pagamento_alocacao_detalhe"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["credito_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pares_transferencia_sugeridos"
+            referencedColumns: ["debito_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pix_candidato_conciliacao"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2c_pedido"
+            referencedColumns: ["movimentacao_id"]
+          },
+          {
+            foreignKeyName: "despesas_movimentacao_bancaria_id_fkey"
+            columns: ["movimentacao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_baixa_extrato"
+            referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "despesas_plano_contas_id_fkey"
+            columns: ["plano_contas_id"]
+            isOneToOne: false
+            referencedRelation: "plano_contas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vw_despesas_match_nf_sugestoes: {
         Row: {
@@ -70367,6 +70877,9 @@ export type Database = {
           descricao: string | null
           documento_id: string | null
           estagio: string | null
+          estagio_ordem: number | null
+          estagio_rotulo: string | null
+          estagio_tom: string | null
           fatura_lancamento_id: string | null
           fornecedor_cnpj: string | null
           fornecedor_nome: string | null
@@ -85066,14 +85579,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -100264,6 +100777,10 @@ export type Database = {
       fn_dun_de_ean: { Args: { p_ean: string }; Returns: string }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
       fn_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
+      fn_email_identifica_pessoa: {
+        Args: { p_email: string }
+        Returns: boolean
+      }
       fn_email_tem_login: { Args: { p_email: string }; Returns: boolean }
       fn_email_usuario: { Args: { p_user_id: string }; Returns: string }
       fn_embalagem_calibracao_medir: { Args: never; Returns: number }
