@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -106,6 +106,8 @@ interface Chamado {
   pedido_id_externo: string | null;
   entidade_ref: string | null;
   motivo: string | null;
+  solucao: string | null;
+  criado_por: string | null;
   resolvido_em: string | null;
   fechado_em: string | null;
 }
@@ -135,12 +137,6 @@ interface Assunto {
   codigo: string | null;
   nome: string | null;
   descricao: string | null;
-}
-
-interface Motivo {
-  codigo: string;
-  nome: string | null;
-  remedio: string | null;
 }
 
 interface CadeiraAtendimento {
@@ -363,19 +359,6 @@ function ChamadoDetalheConteudo() {
     },
   });
 
-  const motivosQ = useQuery({
-    queryKey: ["demanda_motivo", "ativos"],
-    queryFn: async (): Promise<Motivo[]> => {
-      const { data, error } = await supabase
-        .from("demanda_motivo")
-        .select("codigo, nome, remedio")
-        .eq("ativo", true)
-        .order("ordem", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as unknown as Motivo[];
-    },
-  });
-
   const cadeirasQ = useQuery({
     queryKey: ["vw_cadeira_atendimento"],
     queryFn: async (): Promise<CadeiraAtendimento[]> => {
@@ -418,8 +401,6 @@ function ChamadoDetalheConteudo() {
   function abrir(tipoAcao: AcaoTipo) {
     setAcao(tipoAcao);
     setMotivo("");
-    setNota("");
-    setMotivoCodigo("");
     setAssuntoId("");
     setCadeiraDestino("");
     setParaUser("");
