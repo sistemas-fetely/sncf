@@ -38,6 +38,7 @@ import { estaVencido } from "@/lib/data";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
 import { VisaoConsignado } from "./consignado/VisaoConsignado";
+import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
 /**
  * MESA ÚNICA DO CONSIGNADO.
