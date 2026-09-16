@@ -759,6 +759,46 @@ export function FilaPedidosPorArea({
     });
   }, [linhas, liberacaoMap, liberacaoFilter]);
 
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const linhasOrdenadas = useMemo(() => {
+    if (ordenacao.tipo !== "coluna") return linhasFiltradas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: PedidoFilaItem): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "risco": return riscoMap?.get(p.id)?.risco_score ?? null;
+        case "pedido": return p.id_externo ?? null;
+        case "valor": return Number(p.valor_liquido ?? 0);
+        case "estoque": return coberturaMap?.get(p.id)?.pct_coberto ?? null;
+        case "cobranca": {
+          const l = cobrancaMap?.get(p.id)?.lastro;
+          return l ? COBRANCA_GRAVIDADE[l] ?? null : null;
+        }
+        case "estagio": {
+          const i = PIPELINE_PRINCIPAL.indexOf(p.estagio);
+          return i < 0 ? null : i;
+        }
+        case "entrega": {
+          const d = entregaMap?.get(p.id)?.previsao_entrega;
+          const t = d ? Date.parse(d) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "na_fase": return riscoMap?.get(p.id)?.dias_na_fase ?? null;
+        default: return null;
+      }
+    };
+    return [...linhasFiltradas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [linhasFiltradas, ordenacao, riscoMap, coberturaMap, cobrancaMap, entregaMap]);
+
   const resumoBuscaGlobal = useMemo(() => {
     if (!buscaGlobalAtiva) return null;
     let entregues = 0, cancelados = 0, recuperacao = 0;
@@ -801,10 +841,10 @@ export function FilaPedidosPorArea({
   });
   const pedidosComMsg = msgPendentes ?? new Set<string>();
 
-  const totalLinhas = linhasFiltradas.length;
+  const totalLinhas = linhasOrdenadas.length;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = linhasFiltradas.slice(
+  const pageItems = linhasOrdenadas.slice(
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
@@ -891,7 +931,15 @@ export function FilaPedidosPorArea({
             ))}
           </SelectContent>
         </Select>
-        <Select value={ordenacao} onValueChange={(v) => setOrdenacao(v as OrdenacaoFila)}>
+        <Select
+          value={ordenacao.tipo === "coluna" ? "coluna" : ordenacao.preset}
+          onValueChange={(v) => {
+            if (v === "coluna") return;
+            const preset = v as PresetOrdenacao;
+            setPresetAnterior(preset);
+            setOrdenacao({ tipo: "preset", preset });
+          }}
+        >
           <SelectTrigger className="w-full sm:w-52">
             <SelectValue />
           </SelectTrigger>
@@ -899,6 +947,11 @@ export function FilaPedidosPorArea({
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
             <SelectItem value="risco">Ordenar: Risco</SelectItem>
             <SelectItem value="entrada_paga">Ordenar: Entrada paga primeiro</SelectItem>
+            {ordenacao.tipo === "coluna" && (
+              <SelectItem value="coluna">
+                Coluna: {COLUNA_ROTULO[ordenacao.coluna]} {ordenacao.dir === "asc" ? "↑" : "↓"}
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
         <Button
@@ -931,9 +984,15 @@ export function FilaPedidosPorArea({
       })()}
 
 
-      {(ordenacao === "risco" || somenteRiscoAlto) && (
+      {(ordenacao.tipo === "coluna" ||
+        (ordenacao.tipo === "preset" && ordenacao.preset === "risco") ||
+        somenteRiscoAlto) && (
         <p className="text-xs text-muted-foreground">
-          {ordenacao === "risco" && "Ordenado por risco (maior primeiro). "}
+          {ordenacao.tipo === "coluna" &&
+            `Ordenado por ${COLUNA_ROTULO[ordenacao.coluna]} (${ordenacao.dir === "asc" ? "crescente" : "decrescente"}). Clique no cabeçalho até o ícone apagar para voltar ao padrão. `}
+          {ordenacao.tipo === "preset" &&
+            ordenacao.preset === "risco" &&
+            "Ordenado por risco (maior primeiro). "}
           {somenteRiscoAlto && "Mostrando apenas pedidos em risco alto."}
         </p>
       )}
@@ -942,15 +1001,15 @@ export function FilaPedidosPorArea({
         <Table className="table-fixed" containerClassName="overflow-visible">
           <TableHeader>
             <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-              <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead className="w-[220px]">Pedido</TableHead>
-              <TableHead className="w-[150px]">Valor</TableHead>
+              <CabecalhoOrdenavel coluna="risco" rotulo="Risco" className="w-[56px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="pedido" rotulo="Pedido" className="w-[220px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="valor" rotulo="Valor" className="w-[150px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
               <TableHead className="w-[130px]">Pagamento</TableHead>
-              <TableHead className="w-[100px]">Estoque</TableHead>
-              <TableHead className="w-[130px]">Cobrança</TableHead>
-              <TableHead className="w-[140px]">Estágio</TableHead>
-              <TableHead className="w-[200px]">Entrega</TableHead>
-              <TableHead className="w-[96px]">Na fase</TableHead>
+              <CabecalhoOrdenavel coluna="estoque" rotulo="Estoque" className="w-[100px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="cobranca" rotulo="Cobrança" className="w-[130px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="estagio" rotulo="Estágio" className="w-[140px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="entrega" rotulo="Entrega" className="w-[200px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="na_fase" rotulo="Na fase" className="w-[96px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
