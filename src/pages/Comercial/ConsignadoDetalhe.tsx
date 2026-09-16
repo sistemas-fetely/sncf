@@ -1693,7 +1693,7 @@ export default function ConsignadoDetalhe() {
                 O ciclo do parceiro não é mês-calendário — as datas são opcionais.
               </p>
               <DialogFooter>
-                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate()}>
+                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate(undefined)}>
                   {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Analisar
                 </Button>
