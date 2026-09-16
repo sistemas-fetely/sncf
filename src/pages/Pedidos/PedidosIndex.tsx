@@ -20,7 +20,8 @@ const Oportunidades = lazy(() => import("@/pages/Comercial/Oportunidades"));
 // PROBLEMA-E-CHAMADO (15/09/2026): a aba "Resolução de Problema" saiu daqui.
 // Problema de pedido agora É chamado e vive em /chamados.
 // UMA-PORTA-SO (15/09/2026): a aba "Consignados" saiu daqui — a lista vive em /comercial/consignados.
-const ABAS = ["fila", "dash", "recuperacao", "solicitacoes"] as const;
+// SOLICITAÇÃO-É-CHAMADO (16/09/2026): a aba "Solicitações" saiu daqui — a fila vive em /chamados.
+const ABAS = ["fila", "dash", "recuperacao"] as const;
 type Aba = (typeof ABAS)[number];
 
 export default function PedidosIndex() {
@@ -37,13 +38,11 @@ export default function PedidosIndex() {
   const permFila = usePodeVerAba("tela.pedidos_fila");
   const permDash = usePodeVerAba("tela.dash_pedidos");
   const permMesa = usePodeVerAba("tela.comercial");
-  const permSolicitacoes = usePodeVerAba("tela.solicitacoes");
 
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
     recuperacao: permMesa,
-    solicitacoes: permSolicitacoes,
   };
 
   const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
@@ -80,7 +79,6 @@ export default function PedidosIndex() {
   const qtdMesaComercial = mesaComercial?.total ?? 0;
   const mesaErroMsg = (mesaErroObj as Error)?.message ?? "erro desconhecido";
 
-  const { data: qtdSolicitacoes = 0 } = useContagemSolicitacoes();
 
 
   const setAba = (valor: string) => {
@@ -148,9 +146,6 @@ export default function PedidosIndex() {
                   : `Mesa Comercial${qtdMesaComercial > 0 ? ` (${qtdMesaComercial})` : ""}`}
               </TabsTrigger>
             </AbaPermitida>
-            <AbaPermitida slug="tela.solicitacoes">
-              <TabsTrigger value="solicitacoes">Solicitações ({qtdSolicitacoes})</TabsTrigger>
-            </AbaPermitida>
           </TabsList>
 
           <TabsContent value="fila" className="space-y-4">
@@ -194,12 +189,6 @@ export default function PedidosIndex() {
               <Suspense fallback={<CarregandoAba />}>
                 <Oportunidades embutido />
               </Suspense>
-            </ConteudoAba>
-          </TabsContent>
-
-          <TabsContent value="solicitacoes">
-            <ConteudoAba slug="tela.solicitacoes">
-              <SolicitacoesSopsAba />
             </ConteudoAba>
           </TabsContent>
         </Tabs>

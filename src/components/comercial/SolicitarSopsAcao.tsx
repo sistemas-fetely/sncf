@@ -85,7 +85,7 @@ export function SolicitarSopsAcao({
             size="icon"
             variant="ghost"
             className="h-7 w-7"
-            title="Solicitar ao SOPS"
+            title="Abrir chamado"
             onClick={() => setOpen(true)}
           >
             <Headset className="h-4 w-4" />
@@ -93,17 +93,14 @@ export function SolicitarSopsAcao({
         ) : (
           <Button variant="outline" className="gap-1.5" onClick={() => setOpen(true)}>
             <Headset className="h-4 w-4" />
-            Solicitar ao SOPS
+            Abrir chamado
           </Button>
         )}
 
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Solicitar ao SOPS</AlertDialogTitle>
-            <AlertDialogDescription>
-              A solicitação entra na fila do SOPS e fica registrada na timeline do pedido.
-            </AlertDialogDescription>
+            <AlertDialogTitle>Abrir chamado
           </AlertDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
