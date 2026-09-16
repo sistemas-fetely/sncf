@@ -32,6 +32,15 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useTituloEstadoKpisDe } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useTituloSaldos, type TituloSaldo } from "@/hooks/financeiro/useTituloSaldo";
+import {
+  ValorSaldo,
+  BadgeParcelasAcerto,
+  BadgeAcerto,
+  LinhaTituloPai,
+  ComposicaoSaldo,
+  somarSaldos,
+} from "@/components/financeiro/SaldoTitulo";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
@@ -367,12 +376,14 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
 
 
 function LinhaTitulo({
-  t, aninhada, onAbrir, onPedido,
+  t, aninhada, onAbrir, onPedido, saldo, numeroPai,
 }: {
   t: TituloCobranca;
   aninhada?: boolean;
   onAbrir: (t: TituloCobranca) => void;
   onPedido: (pedidoId: string) => void;
+  saldo?: TituloSaldo;
+  numeroPai?: string | null;
 }) {
   let liquid: React.ReactNode;
   if (t.data_liquidacao_real) {
@@ -415,10 +426,13 @@ function LinhaTitulo({
           {t.eh_entrada && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Entrada</Badge>
           )}
+          <BadgeParcelasAcerto saldo={saldo} />
+          <BadgeAcerto saldo={saldo} />
         </div>
         <div className="text-xs text-muted-foreground">
           parcela {t.numero_parcela}/{t.total_parcelas}
         </div>
+        <LinhaTituloPai saldo={saldo} numeroPai={numeroPai} />
       </TableCell>
       <TableCell>
         {!aninhada && (
@@ -456,7 +470,9 @@ function LinhaTitulo({
         {t.dias_atraso > 0 && <div className="text-xs text-destructive">há {t.dias_atraso}d</div>}
       </TableCell>
       <TableCell className="text-sm">{liquid}</TableCell>
-      <TableCell className="text-right font-medium">{formatBRL(t.valor_efetivo)}</TableCell>
+      <TableCell className="text-right">
+        <ValorSaldo saldo={saldo} valorFace={t.valor_efetivo} />
+      </TableCell>
       <TableCell>
         <BadgeInstrumento eixo={t.eixo_instrumento} />
       </TableCell>
@@ -576,6 +592,12 @@ export default function TitulosTab() {
   const { data: titulos = [], isLoading } = useTitulosCobranca();
 
   const universo = titulos;
+  /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
+  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
+  const numerosPorId = useMemo(
+    () => new Map(titulos.map((t) => [t.id, t.numero_titulo])),
+    [titulos],
+  );
   const enviarBoleto = useEnviarEmailBoleto();
   const enviarCobranca = useEnviarEmailCobranca();
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
@@ -690,7 +712,11 @@ export default function TitulosTab() {
 
 
 
-  const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
+  /* Rodapé soma SALDO, nunca valor de face — senão conta duas vezes o mesmo dinheiro. */
+  const totalFiltrado = somarSaldos(
+    filtrados.map((t) => ({ id: t.id, valorFace: t.valor_efetivo })),
+    saldosPorTitulo,
+  );
 
   /* Terminais neutros: contados à parte, nunca somados em atraso/inadimplência. */
   const kpisTerminais = useMemo(() => {
@@ -903,10 +929,14 @@ export default function TitulosTab() {
             )}
             {!isLoading && agrupado && grupos.map((g) => {
               if (grupoEhUnitario(g)) {
+                const t0 = g.titulos[0];
+                const s0 = saldosPorTitulo.get(t0.id);
                 return (
                   <LinhaTitulo
                     key={g.chave}
-                    t={g.titulos[0]}
+                    t={t0}
+                    saldo={s0}
+                    numeroPai={s0?.titulo_pai_id ? numerosPorId.get(s0.titulo_pai_id) ?? null : null}
                     onAbrir={setDetalhe}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
                   />
@@ -921,26 +951,36 @@ export default function TitulosTab() {
                     onToggle={() => toggleGrupo(g.chave)}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
                   />
-                  {aberto && g.titulos.map((t) => (
-                    <LinhaTitulo
-                      key={t.id}
-                      t={t}
-                      aninhada
-                      onAbrir={setDetalhe}
-                      onPedido={(id) => navigate(`/pedidos/${id}`)}
-                    />
-                  ))}
+                  {aberto && g.titulos.map((t) => {
+                    const s = saldosPorTitulo.get(t.id);
+                    return (
+                      <LinhaTitulo
+                        key={t.id}
+                        t={t}
+                        saldo={s}
+                        numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
+                        aninhada
+                        onAbrir={setDetalhe}
+                        onPedido={(id) => navigate(`/pedidos/${id}`)}
+                      />
+                    );
+                  })}
                 </Fragment>
               );
             })}
-            {!isLoading && !agrupado && filtrados.map((t) => (
-              <LinhaTitulo
-                key={t.id}
-                t={t}
-                onAbrir={setDetalhe}
-                onPedido={(id) => navigate(`/pedidos/${id}`)}
-              />
-            ))}
+            {!isLoading && !agrupado && filtrados.map((t) => {
+              const s = saldosPorTitulo.get(t.id);
+              return (
+                <LinhaTitulo
+                  key={t.id}
+                  t={t}
+                  saldo={s}
+                  numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
+                  onAbrir={setDetalhe}
+                  onPedido={(id) => navigate(`/pedidos/${id}`)}
+                />
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -975,6 +1015,8 @@ export default function TitulosTab() {
                 <div className="flex items-center justify-between gap-3">
                   <SheetTitle className="font-mono text-base">{detalhe.numero_titulo}</SheetTitle>
                   <div className="flex items-center gap-2">
+                    <BadgeParcelasAcerto saldo={saldosPorTitulo.get(detalhe.id)} />
+                    <BadgeAcerto saldo={saldosPorTitulo.get(detalhe.id)} />
                     <BadgeInstrumento eixo={detalhe.eixo_instrumento} />
                     <BadgeRecebimento
                       eixo={detalhe.eixo_recebimento}
@@ -1087,6 +1129,11 @@ export default function TitulosTab() {
                     </button>
                   )}
                 </section>
+
+                <ComposicaoSaldo
+                  tituloId={detalhe.id}
+                  saldo={saldosPorTitulo.get(detalhe.id)}
+                />
 
                 <section>
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">

@@ -42,6 +42,13 @@ import {
   useTituloEstado,
   useTituloEstadoKpisDe,
 } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useTituloSaldos } from "@/hooks/financeiro/useTituloSaldo";
+import {
+  ValorSaldo,
+  BadgeParcelasAcerto,
+  BadgeAcerto,
+  LinhaTituloPai,
+} from "@/components/financeiro/SaldoTitulo";
 
 type RecebivelB2B = {
   id: string;
@@ -577,6 +584,8 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
      (cobravel_hoje) de fim de semana/feriado ainda no prazo bancário
      (em_carencia_bancaria). Sets por titulo_id — mesma chave de TodosTitulosTab. */
   const { data: tituloEstadoLinhas } = useTituloEstado();
+  /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
+  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
   const cobravelIds = useMemo(
     () =>
       new Set(
@@ -1256,21 +1265,34 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
 
+  const numerosPorId = new Map(
+    filtrados.map((t) => [t.id, t.numero_titulo ?? null] as const),
+  );
+
   const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
     const atrasado = t.eh_inadimplente === true;
     const desvio = t.desvio_registro_dias;
+    const saldo = saldosPorTitulo.get(t.id);
     return (
       <TableRow
         key={t.id}
         className={atrasado ? "bg-destructive/10" : aninhada ? "bg-muted/10" : undefined}
       >
         <TableCell className={aninhada ? "pl-10" : undefined}>
-          <div className="font-mono text-xs">{t.numero_titulo ?? "—"}</div>
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-xs">{t.numero_titulo ?? "—"}</span>
+            <BadgeParcelasAcerto saldo={saldo} />
+            <BadgeAcerto saldo={saldo} />
+          </div>
           {t.numero_parcela != null && t.total_parcelas != null && (
             <div className="text-xs text-muted-foreground">
               parcela {t.numero_parcela}/{t.total_parcelas}
             </div>
           )}
+          <LinhaTituloPai
+            saldo={saldo}
+            numeroPai={saldo?.titulo_pai_id ? numerosPorId.get(saldo.titulo_pai_id) ?? null : null}
+          />
           {!aninhada && t.condicao_parcelamento && (
             <div className="text-xs text-muted-foreground">{t.condicao_parcelamento}</div>
           )}
@@ -1373,7 +1395,9 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         >
           {fmtDesvio(desvio)}
         </TableCell>
-        <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
+        <TableCell className="text-right tabular-nums">
+          <ValorSaldo saldo={saldo} valorFace={efetivoDe(t)} />
+        </TableCell>
         <TableCell>
           {/* Em carência bancária não é atraso: badge de aviso, não destrutivo. */}
           {carenciaIds.has(t.id) ? (
