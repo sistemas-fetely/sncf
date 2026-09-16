@@ -1678,21 +1678,61 @@ export default function ConsignadoDetalhe() {
 
           {!previa ? (
             <div className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="import-texto">Relatório colado</Label>
-                <Textarea
-                  id="import-texto"
-                  className="min-h-[16rem] font-mono text-xs"
-                  value={importTexto}
-                  onChange={(e) => setImportTexto(e.target.value)}
-                  placeholder={
-                    "Uma linha por item: código e quantidade.\n" +
-                    "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
-                    "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
-                    "01846\t12\n01847;3\nLUM-VELA-0 5"
-                  }
-                />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={importModo === "pdf" ? "secondary" : "ghost"}
+                  onClick={() => setImportModo("pdf")}
+                >
+                  Do PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant={importModo === "texto" ? "secondary" : "ghost"}
+                  onClick={() => setImportModo("texto")}
+                >
+                  Colar texto
+                </Button>
               </div>
+
+              {importModo === "pdf" ? (
+                <div className="space-y-2 rounded-md border border-dashed p-4">
+                  <Label htmlFor="import-arquivo" className="text-xs">Relatório do parceiro (PDF ou imagem)</Label>
+                  <Input
+                    id="import-arquivo"
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => setImportArquivo(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A IA lê só código e quantidade vendida. Nada é gravado até você confirmar a importação na prévia.
+                  </p>
+                  <Button
+                    size="sm"
+                    disabled={!importArquivo || lerPdf.isPending || analisar.isPending}
+                    onClick={() => lerPdf.mutate()}
+                  >
+                    {(lerPdf.isPending || analisar.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {lerPdf.isPending ? "Lendo o arquivo..." : analisar.isPending ? "Analisando..." : "Ler arquivo"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Label htmlFor="import-texto">Relatório colado</Label>
+                  <Textarea
+                    id="import-texto"
+                    className="min-h-[16rem] font-mono text-xs"
+                    value={importTexto}
+                    onChange={(e) => setImportTexto(e.target.value)}
+                    placeholder={
+                      "Uma linha por item: código e quantidade.\n" +
+                      "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
+                      "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
+                      "01846\t12\n01847;3\nLUM-VELA-0 5"
+                    }
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="periodo-inicio" className="text-xs">Período apurado — início</Label>
