@@ -596,7 +596,7 @@ function ChamadosConteudo() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todo tipo</SelectItem>
-              {["incidente", "requisicao", "duvida"].map((t) => (
+              {["incidente", "problema", "requisicao", "duvida"].map((t) => (
                 <SelectItem key={t} value={t}>
                   {TIPO_ROTULO[t]}
                 </SelectItem>
@@ -688,7 +688,10 @@ function ChamadosConteudo() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px]", TIPO_CLASSE[c.tipo ?? ""] ?? "")}
+                        >
                           {TIPO_ROTULO[c.tipo ?? ""] ?? c.tipo ?? "—"}
                         </Badge>
                       </TableCell>
