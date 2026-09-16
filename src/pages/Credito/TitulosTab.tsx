@@ -1128,6 +1128,11 @@ export default function TitulosTab() {
                   )}
                 </section>
 
+                <ComposicaoSaldo
+                  tituloId={detalhe.id}
+                  saldo={saldosPorTitulo.get(detalhe.id)}
+                />
+
                 <section>
                   <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                     Datas
