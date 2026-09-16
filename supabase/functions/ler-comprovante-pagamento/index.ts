@@ -29,14 +29,17 @@ Responda APENAS com JSON, sem markdown, sem explicação, exatamente com estas c
   "confianca": "alta|media|baixa"
 }
 
+DOIS BLOCOS DE PARTES — NUNCA MISTURAR:
+Todo comprovante brasileiro tem dois blocos de partes. O bloco RECEBEDOR (rotulado também como Beneficiário, Destino, Favorecido ou "Para") é quem recebe o dinheiro; o bloco PAGADOR (rotulado também como Origem, "De" ou Debitado) é quem paga. Os campos "beneficiario_nome", "beneficiario_cnpj" e "instituicao" vêm SEMPRE do bloco RECEBEDOR, enquanto "pagador" e "pagador_documento" vêm SEMPRE do bloco PAGADOR. Nunca troque dados entre os blocos: "instituicao" é o banco do RECEBEDOR, jamais o banco do pagador. Se não der para distinguir os blocos com certeza, devolva string vazia nos campos em dúvida e "confianca" = "baixa".
+
 REGRAS (vindas de comprovantes reais):
 1. "sentido" é "entrada" quando o dinheiro vai PARA a Fetely (CNPJ 63.591.078/0001-48) e "saida" quando SAI da Fetely para outra pessoa. Comprovante com "De: FETELY" (Fetely como pagador/origem) é "saida".
-2. "chave": para PIX é o ID/E2E da transação (começa com E e tem ~32 caracteres) ou o ID do QR Code. Para cartão é o ID da transação / NSU. NUNCA invente: se não achar, devolva string vazia.
+2. CPF ou CNPJ NUNCA é chave. O campo "chave" só aceita E2E de PIX (começa com E e tem ~32 caracteres alfanuméricos), ID de QR Code, ou NSU/ID de transação de cartão. Se o único candidato que você achar for um CPF/CNPJ, devolva "chave" vazia.
 3. Se o comprovante trouxer um código do pedido (ex.: "COD PRODUTO: PED2145"), inclua em "chave" apenas se não houver E2E — o E2E tem prioridade.
 4. "valor" é o valor da transação, número puro, ponto decimal, sem "R$" e sem separador de milhar.
 5. "data" sempre no formato YYYY-MM-DD.
 6. "confianca" é "baixa" quando a imagem estiver cortada, ilegível ou faltar valor/data.
-7. "pagador_documento" é o CPF/CNPJ do pagador como aparece no comprovante (pode vir mascarado, ex. ***.123.456-**) — copie exatamente, nunca complete os dígitos ocultos.
+7. "pagador_documento" é o CPF/CNPJ do PAGADOR como aparece no comprovante (pode vir mascarado, ex. ***.123.456-**), e "beneficiario_cnpj" é o CNPJ do RECEBEDOR (pode vir mascarado, ex. **.**1.078/0001-**). Em ambos: copie exatamente como está, nunca complete os dígitos ocultos.
 8. Não simule dados: campo que não existe no comprovante vai como string vazia (ou 0 no valor).`;
 
 Deno.serve(async (req) => {
@@ -248,6 +251,7 @@ Deno.serve(async (req) => {
       data: parsed.data ? String(parsed.data) : "",
       chave: parsed.chave ? String(parsed.chave) : "",
       pagador: parsed.pagador ? String(parsed.pagador) : "",
+      pagador_documento: parsed.pagador_documento ? String(parsed.pagador_documento) : "",
       beneficiario_nome: parsed.beneficiario_nome ? String(parsed.beneficiario_nome) : "",
       beneficiario_cnpj: parsed.beneficiario_cnpj ? String(parsed.beneficiario_cnpj) : "",
       instituicao: parsed.instituicao ? String(parsed.instituicao) : "",
