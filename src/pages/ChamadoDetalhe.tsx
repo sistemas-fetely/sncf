@@ -445,6 +445,24 @@ function ChamadoDetalheConteudo() {
     }
   }
 
+  async function salvarSolucao() {
+    if (!id) return;
+    setSalvandoSolucao(true);
+    try {
+      const { error } = await supabase.rpc("salvar_solucao_chamado", {
+        p_chamado_id: id,
+        p_texto: solucao.trim(),
+      });
+      if (error) throw error;
+      toast.success("Solução salva.");
+      await invalidar();
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setSalvandoSolucao(false);
+    }
+  }
+
   async function executar() {
     if (!id || !acao) return;
     setExecutando(true);
@@ -503,13 +521,12 @@ function ChamadoDetalheConteudo() {
         if (error) throw error;
         toast.success("Chamado devolvido.");
       } else if (acao === "resolver") {
-        const { error } = await supabase.rpc("atender_solicitacao_comercial", {
-          p_solicitacao_id: id,
-          p_nota: nota.trim() || null,
-          p_motivo_codigo: motivoCodigo,
+        const { error } = await supabase.rpc("resolver_chamado", {
+          p_chamado_id: id,
+          p_solucao: solucao.trim(),
         });
         if (error) throw error;
-        toast.success("Chamado resolvido.");
+        toast.success("Chamado resolvido e fechado.");
       } else if (acao === "fechar") {
         const { error } = await supabase.rpc("fechar_chamado", { p_chamado_id: id });
         if (error) throw error;
@@ -538,8 +555,7 @@ function ChamadoDetalheConteudo() {
     (acao === "reabrir" && !motivo.trim()) ||
     (acao === "devolver" && !motivo.trim()) ||
     (acao === "escalar" && (!motivo.trim() || !cadeiraDestino)) ||
-    (acao === "classificar" && !assuntoId) ||
-    (acao === "resolver" && !motivoCodigo);
+    (acao === "classificar" && !assuntoId);
 
   if (chamadoQ.isError) {
     return (
