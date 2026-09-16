@@ -100,7 +100,10 @@ export function SolicitarSopsAcao({
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Abrir chamado
+            <AlertDialogTitle>Abrir chamado</AlertDialogTitle>
+            <AlertDialogDescription>
+              O chamado vai para a fila do SOPS em /chamados e fica registrado na timeline do pedido.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -137,7 +140,7 @@ export function SolicitarSopsAcao({
                 void enviar();
               }}
             >
-              {abrir.isPending ? "Enviando..." : "Enviar solicitação"}
+              {abrir.isPending ? "Abrindo..." : "Abrir chamado"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
