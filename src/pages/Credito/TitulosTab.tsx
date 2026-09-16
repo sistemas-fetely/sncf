@@ -32,6 +32,15 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useTituloEstadoKpisDe } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useTituloSaldos, type TituloSaldo } from "@/hooks/financeiro/useTituloSaldo";
+import {
+  ValorSaldo,
+  BadgeParcelasAcerto,
+  BadgeAcerto,
+  LinhaTituloPai,
+  ComposicaoSaldo,
+  somarSaldos,
+} from "@/components/financeiro/SaldoTitulo";
 import { cn } from "@/lib/utils";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
