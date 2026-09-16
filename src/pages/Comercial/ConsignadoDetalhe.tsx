@@ -1342,6 +1342,68 @@ export default function ConsignadoDetalhe() {
               </div>
             </div>
           </div>
+
+          {!ehConsignacaoFiscal && (topVendidos.length > 0 || cobertura.length > 0) && (
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Top vendidos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  {topVendidos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem venda reportada.</p>
+                  ) : topVendidos.map((t) => (
+                    <div key={t.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{t.descricao ?? t.sku}</span>
+                      <span className="tabular-nums font-medium">{t.quantidade}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Cobertura</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  <p className="text-[11px] text-muted-foreground">
+                    Ritmo do período apurado ({semanasPeriodo.toFixed(1)} semana(s)).
+                  </p>
+                  {cobertura.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem itens com venda.</p>
+                  ) : cobertura.slice(0, 8).map((c) => (
+                    <div key={c.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{c.descricao ?? c.sku}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {c.semanas === null ? "—" : `${c.semanas.toFixed(1)} sem`}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Acaba primeiro</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  {acabaPrimeiro.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nada abaixo de 8 semanas.</p>
+                  ) : acabaPrimeiro.slice(0, 8).map((c) => (
+                    <div key={c.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{c.descricao ?? c.sku}</span>
+                      {c.estimado === 0 ? (
+                        <Badge variant="destructive" className="text-[10px]">esgotado</Badge>
+                      ) : (
+                        <span className="tabular-nums text-warning">{c.semanas?.toFixed(1)} sem</span>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           <Card>
             <CardContent className="overflow-x-auto p-0">
               {ehConsignacaoFiscal ? (
