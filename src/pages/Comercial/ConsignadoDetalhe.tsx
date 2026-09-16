@@ -1961,6 +1961,10 @@ export default function ConsignadoDetalhe() {
                 )}
               </div>
 
+              {acertoAberto.status === "confirmado" && acertoAberto.titulo_acerto_id && (
+                <TituloDoAcerto tituloId={acertoAberto.titulo_acerto_id} />
+              )}
+
               {acertoAberto.status === "confirmado" && (
                 <div className="space-y-2 rounded-md border p-3">
                   <p className="text-sm font-medium">Marcar liquidado</p>
