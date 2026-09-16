@@ -8,6 +8,7 @@ import {
   ArrowRightLeft,
   ArrowUpCircle,
   CheckCircle2,
+  ChevronRight,
   CornerUpLeft,
   Hand,
   LogOut,
@@ -33,6 +34,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
