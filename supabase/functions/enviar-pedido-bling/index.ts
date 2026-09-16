@@ -1032,17 +1032,17 @@ if (itensSemProdutoBling.length > 0) {
         ? parseFloat((baseItens / somaItensJson).toFixed(6))
         : 1;
 
-    // Trava de sanidade: fator fora desta faixa nao e desconto nem acrescimo, e erro
-    // de origem (itens_json com preco errado, remessa com valor incoerente). FAIL-LOUD
-    // antes de mandar preco distorcido para a NF.
-    if (ajusteFator < 0.5 || ajusteFator > 1.5) {
-      return await falhaLimpando(
-        `Fator de ajuste fora da faixa aceitavel (${ajusteFator}): base dos itens ` +
-        `R$ ${baseItens.toFixed(2)} contra soma dos itens R$ ${somaItensJson.toFixed(2)}. ` +
-        `Corrija a origem dos precos antes de reenviar.`,
-        409,
-      );
-    }
+    // TRAVA-E-NO-USUARIO-NAO-NO-SISTEMA (16/09/2026, decisao Flavio). Aqui existia uma
+    // faixa 0,5-1,5 para o ajusteFator (commit 6115263, 13/08), que recusava o envio
+    // quando o desconto passava de 50%. Ela re-julgava, por tamanho, uma decisao que ja
+    // tinha juiz nominal: o desconto so muda por `alterar_desconto_pedido`, que passa por
+    // `fn_exigir_edicao_permitida('desconto')` e exige `{super_admin}` + motivo, com rastro
+    // em `pedido_eventos`. Medido em 16/09: PED-2213/2215/2216 (bonificacao 65%, fator
+    // 0,350002) travados, com o evento de autorizacao gravado 15/09 15:52-15:57. Antes da
+    // faixa existir, PED-2114 desceu com fator 0,1755 (82,45%) e PED-2016 com 0,3395.
+    // Faixa numerica nao sabe quem assinou. O fator nao tem como ser negativo (`baseItens`
+    // ja e Math.max(0, ...)); se a aritmetica produzir algo que o Bling nao aceita, quem
+    // recusa e o Bling, e isso cai em bling_envios_log.
 
     const rawItens = itens.length > 0
       ? itens.map((it: any) => {
