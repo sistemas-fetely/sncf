@@ -1758,15 +1758,22 @@ export default function ConsignadoDetalhe() {
               <p className="text-xs text-muted-foreground">
                 O ciclo do parceiro não é mês-calendário — as datas são opcionais.
               </p>
-              <DialogFooter>
-                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate(undefined)}>
-                  {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Analisar
-                </Button>
-              </DialogFooter>
+              {importModo === "texto" && (
+                <DialogFooter>
+                  <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate(undefined)}>
+                    {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Analisar
+                  </Button>
+                </DialogFooter>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
+              {origemPdf && (
+                <p className="text-xs text-muted-foreground">
+                  Linhas lidas por IA a partir de {origemPdf}. Confira antes de importar.
+                </p>
+              )}
               <div className="rounded-md border max-h-[24rem] overflow-auto">
                 <Table>
                   <TableHeader>
