@@ -65345,6 +65345,7 @@ export type Database = {
       }
       vw_auditoria_achado: {
         Row: {
+          chamado_id: string | null
           chave: string | null
           contexto: Json | null
           detalhe: string | null
@@ -65366,6 +65367,7 @@ export type Database = {
           parceiro: string | null
           pedido_id: string | null
           permite_lote: boolean | null
+          pode_abrir_chamado: boolean | null
           primeira_vez_em: string | null
           regra_slug: string | null
           regra_titulo: string | null
@@ -65389,6 +65391,48 @@ export type Database = {
           vezes_visto: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
+          },
           {
             foreignKeyName: "auditoria_achado_entidade_fkey"
             columns: ["entidade"]
@@ -86445,14 +86489,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
