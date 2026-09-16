@@ -165,6 +165,13 @@ const TIPO_ROTULO: Record<string, string> = {
   incidente: "Incidente",
   requisicao: "Requisição",
   duvida: "Dúvida",
+  problema: "Problema",
+};
+
+// Problema agrupa N incidentes de causa comum — merece destaque proprio.
+const TIPO_CLASSE: Record<string, string> = {
+  problema:
+    "border-purple-500/60 bg-purple-500/10 text-purple-700 dark:text-purple-400",
 };
 
 const STATUS_ROTULO: Record<string, string> = {
