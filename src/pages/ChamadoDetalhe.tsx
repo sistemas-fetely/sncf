@@ -1182,3 +1182,275 @@ function ChamadoDetalheConteudo() {
     </TooltipProvider>
   );
 }
+
+// ============================================================================
+// PROBLEMA-TEM-N-INCIDENTES: leitura pura do modelo ITIL. Sem acao nenhuma —
+// problema fecha por evidencia, no banco. MODO-LEITURA-NAO-ESCONDE-DADO: o
+// bloco aparece integralmente, com ou sem podeEditar.
+// ============================================================================
+
+interface CausaIncidente {
+  chamado_id: string;
+  causa: string | null;
+  incidentes: number | null;
+  vivos: number | null;
+  resolvidos: number | null;
+  com_pedido: number | null;
+  desde: string | null;
+  visto_por_ultimo: string | null;
+}
+
+interface IncidenteLinha {
+  chamado_id: string;
+  achado_id: string;
+  regra_slug: string | null;
+  regra_titulo: string | null;
+  severidade: string | null;
+  causa: string | null;
+  id_externo: string | null;
+  chave: string | null;
+  entidade: string | null;
+  pedido_id: string | null;
+  pedido_ref: string | null;
+  parceiro: string | null;
+  valor: number | null;
+  situacao: string | null;
+  vezes_visto: number | null;
+  primeira_vez_em: string | null;
+  ultima_vez_em: string | null;
+  sumiu_em: string | null;
+  vivo: boolean | null;
+}
+
+const LIMITE_INCIDENTES = 500;
+
+const SEVERIDADE_CLASSE: Record<string, string> = {
+  bloqueante: "border-destructive/60 bg-destructive/10 text-destructive",
+  atencao: "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  informativo: "border-border bg-muted text-muted-foreground",
+};
+
+const SEVERIDADE_ROTULO: Record<string, string> = {
+  bloqueante: "Bloqueante",
+  atencao: "Atenção",
+  informativo: "Informativo",
+};
+
+function fmtDesde(v: string | null): string {
+  if (!v) return "—";
+  const t = new Date(v).getTime();
+  if (Number.isNaN(t)) return "—";
+  const min = Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (min < 60) return `há ${min}min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
+}
+
+function IncidentesDoProblema({ chamadoId }: { chamadoId: string }) {
+  const [abertas, setAbertas] = useState<Record<string, boolean>>({});
+
+  const causasQ = useQuery({
+    queryKey: ["chamado-incidente-causa", chamadoId],
+    enabled: !!chamadoId,
+    queryFn: async (): Promise<CausaIncidente[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_chamado_incidente_causa")
+        .select(
+          "chamado_id, causa, incidentes, vivos, resolvidos, com_pedido, desde, visto_por_ultimo",
+        )
+        .eq("chamado_id", chamadoId);
+      if (error) throw error;
+      return (data ?? []) as CausaIncidente[];
+    },
+  });
+
+  const incidentesQ = useQuery({
+    queryKey: ["chamado-incidente", chamadoId],
+    enabled: !!chamadoId,
+    queryFn: async (): Promise<IncidenteLinha[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_chamado_incidente")
+        .select(
+          "chamado_id, achado_id, regra_slug, regra_titulo, severidade, causa, id_externo, chave, entidade, pedido_id, pedido_ref, parceiro, valor, situacao, vezes_visto, primeira_vez_em, ultima_vez_em, sumiu_em, vivo",
+        )
+        .eq("chamado_id", chamadoId)
+        .order("vivo", { ascending: false })
+        .order("ultima_vez_em", { ascending: false })
+        .limit(LIMITE_INCIDENTES);
+      if (error) throw error;
+      return (data ?? []) as IncidenteLinha[];
+    },
+  });
+
+  const causas = useMemo(() => {
+    const lista = [...(causasQ.data ?? [])];
+    lista.sort(
+      (a, b) =>
+        (b.vivos ?? 0) - (a.vivos ?? 0) || (b.incidentes ?? 0) - (a.incidentes ?? 0),
+    );
+    return lista;
+  }, [causasQ.data]);
+
+  const incidentes = incidentesQ.data ?? [];
+  const primeiro = incidentes[0];
+  const totalVivos = causas.reduce((s, c) => s + (c.vivos ?? 0), 0);
+  const totalResolvidos = causas.reduce((s, c) => s + (c.resolvidos ?? 0), 0);
+  const noLimite = incidentes.length >= LIMITE_INCIDENTES;
+
+  const carregando = causasQ.isLoading || incidentesQ.isLoading;
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm">
+          Incidentes
+          {!carregando && !causasQ.isError && (
+            <span className="ml-1 font-normal text-muted-foreground">
+              ({totalVivos} vivos · {totalResolvidos} resolvidos)
+            </span>
+          )}
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Uma regra pode vigiar mais de uma causa. O problema só fecha quando a medição
+          para de encontrar todos os casos.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {causasQ.isError ? (
+          <ErroQuery o_que="as causas dos incidentes" erro={causasQ.error} />
+        ) : incidentesQ.isError ? (
+          <ErroQuery o_que="os incidentes" erro={incidentesQ.error} />
+        ) : carregando ? (
+          <div className="space-y-2">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        ) : causas.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Nenhum incidente vinculado</p>
+        ) : (
+          <>
+            {primeiro && (
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Regra:</span>
+                <span className="font-medium">
+                  {primeiro.regra_titulo ?? primeiro.regra_slug ?? "—"}
+                </span>
+                {primeiro.severidade && (
+                  <Badge
+                    variant="outline"
+                    className={cn(SEVERIDADE_CLASSE[primeiro.severidade] ?? "")}
+                  >
+                    {SEVERIDADE_ROTULO[primeiro.severidade] ?? primeiro.severidade}
+                  </Badge>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-1">
+              {causas.map((cs) => {
+                const chave = cs.causa ?? "(sem causa)";
+                const zerada = (cs.vivos ?? 0) === 0;
+                const aberta = !!abertas[chave];
+                const daCausa = incidentes.filter(
+                  (i) => (i.causa ?? "(sem causa)") === chave,
+                );
+                return (
+                  <Collapsible
+                    key={chave}
+                    open={aberta}
+                    onOpenChange={(v) => setAbertas((s) => ({ ...s, [chave]: v }))}
+                  >
+                    <CollapsibleTrigger className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted/50">
+                      <ChevronRight
+                        className={cn(
+                          "h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform",
+                          aberta && "rotate-90",
+                        )}
+                      />
+                      {zerada ? (
+                        <Badge
+                          variant="outline"
+                          className="border-emerald-500/60 bg-emerald-500/10 text-[10px] text-emerald-700 dark:text-emerald-400"
+                        >
+                          resolvido
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] tabular-nums">
+                          {cs.vivos} vivos
+                        </Badge>
+                      )}
+                      <span
+                        className={cn(
+                          "min-w-0 flex-1 truncate",
+                          zerada && "text-muted-foreground",
+                        )}
+                      >
+                        {chave}
+                      </span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {cs.incidentes ?? 0} no total
+                        {(cs.resolvidos ?? 0) > 0 ? ` · ${cs.resolvidos} resolvidos` : ""}
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <ul className="ml-6 mt-1 space-y-1 border-l border-border pl-3">
+                        {daCausa.length === 0 ? (
+                          <li className="py-1 text-xs text-muted-foreground">
+                            Nenhum incidente carregado desta causa.
+                          </li>
+                        ) : (
+                          daCausa.map((i) => (
+                            <li
+                              key={i.achado_id}
+                              className="flex flex-wrap items-center gap-x-2 gap-y-1 py-1 text-xs"
+                            >
+                              <span className="font-mono">
+                                {i.id_externo ?? i.chave ?? "—"}
+                              </span>
+                              <span className="text-muted-foreground">
+                                · visto {i.vezes_visto ?? 1}x
+                              </span>
+                              <span className="text-muted-foreground">
+                                · {fmtDesde(i.ultima_vez_em)}
+                              </span>
+                              {i.vivo === false && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-border bg-muted text-[10px] text-muted-foreground"
+                                >
+                                  resolvido
+                                </Badge>
+                              )}
+                              {i.pedido_id && (
+                                <Link
+                                  to={`/pedidos/${i.pedido_id}`}
+                                  className="text-primary underline-offset-4 hover:underline"
+                                >
+                                  {i.pedido_ref ?? "ver pedido"} →
+                                </Link>
+                              )}
+                            </li>
+                          ))
+                        )}
+                      </ul>
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              })}
+            </div>
+
+            {noLimite && (
+              <p className="text-xs text-muted-foreground">
+                mostrando os primeiros {LIMITE_INCIDENTES}
+              </p>
+            )}
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
