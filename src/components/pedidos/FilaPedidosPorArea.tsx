@@ -1910,3 +1910,43 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
 }
 
 
+
+/** Cabecalho clicavel: 1o clique ordena, 2o inverte, 3o volta ao preset da fila. */
+function CabecalhoOrdenavel({
+  coluna, rotulo, className, ordenacao, onOrdenar,
+}: {
+  coluna: ColunaOrdenavel;
+  rotulo: string;
+  className?: string;
+  ordenacao: Ordenacao;
+  onOrdenar: (c: ColunaOrdenavel) => void;
+}) {
+  const ativa = ordenacao.tipo === "coluna" && ordenacao.coluna === coluna;
+  const dir = ativa ? ordenacao.dir : null;
+  return (
+    <TableHead className={className} aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}>
+      <button
+        type="button"
+        onClick={() => onOrdenar(coluna)}
+        className={cn(
+          "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          ativa && "text-foreground font-medium",
+        )}
+        title={
+          dir === "asc" ? "Crescente — clique para inverter"
+          : dir === "desc" ? "Decrescente — clique para voltar à ordenação padrão"
+          : `Ordenar por ${rotulo}`
+        }
+      >
+        {rotulo}
+        {dir === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : dir === "desc" ? (
+          <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
