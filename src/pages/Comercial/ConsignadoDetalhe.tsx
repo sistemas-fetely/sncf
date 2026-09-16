@@ -616,6 +616,10 @@ export default function ConsignadoDetalhe() {
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [previa, setPrevia] = useState<ReportePrevia | null>(null);
+  // Do PDF: a IA só escreve as linhas; a validação e a gravação são as mesmas.
+  const [importModo, setImportModo] = useState<"pdf" | "texto">("pdf");
+  const [importArquivo, setImportArquivo] = useState<File | null>(null);
+  const [origemPdf, setOrigemPdf] = useState<string | null>(null);
 
   const fecharImport = () => {
     setImportAberto(false);
@@ -623,6 +627,9 @@ export default function ConsignadoDetalhe() {
     setPeriodoInicio("");
     setPeriodoFim("");
     setPrevia(null);
+    setImportModo("pdf");
+    setImportArquivo(null);
+    setOrigemPdf(null);
   };
 
   const analisar = useMutation({
