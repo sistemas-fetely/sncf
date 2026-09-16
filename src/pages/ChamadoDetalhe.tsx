@@ -600,10 +600,14 @@ function ChamadoDetalheConteudo() {
     onClick,
     children,
     variant = "outline",
+    desabilitado,
+    dicaDesabilitado,
   }: {
     onClick: () => void;
     children: React.ReactNode;
     variant?: "default" | "outline" | "destructive" | "secondary";
+    desabilitado?: boolean;
+    dicaDesabilitado?: string;
   }) {
     if (acaoBloqueada) {
       return (
@@ -616,6 +620,20 @@ function ChamadoDetalheConteudo() {
             </span>
           </TooltipTrigger>
           <TooltipContent>Você tem acesso somente leitura nesta tela</TooltipContent>
+        </Tooltip>
+      );
+    }
+    if (desabilitado) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="block">
+              <Button variant={variant} className="w-full justify-start" disabled>
+                {children}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{dicaDesabilitado}</TooltipContent>
         </Tooltip>
       );
     }
@@ -723,7 +741,6 @@ function ChamadoDetalheConteudo() {
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertDescription>
                   Aguardando confirmação do solicitante — fecha sozinho em 3 dias úteis.
-                  {c.motivo ? ` Motivo do fechamento: ${c.motivo}.` : ""}
                 </AlertDescription>
               </Alert>
             )}
@@ -740,6 +757,41 @@ function ChamadoDetalheConteudo() {
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm">
                   {c.detalhe ?? "Sem descrição."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Solução encontrada e realizada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {emAberto && podeEditar ? (
+                  <>
+                    <Textarea
+                      value={solucao}
+                      onChange={(e) => setSolucao(e.target.value)}
+                      rows={4}
+                      placeholder="O que foi encontrado e o que foi feito para resolver"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={salvarSolucao}
+                        disabled={salvandoSolucao}
+                      >
+                        {salvandoSolucao ? "Salvando..." : "Salvar solução"}
+                      </Button>
+                    </div>
+                  </>
+                ) : c.solucao ? (
+                  <p className="whitespace-pre-wrap text-sm">{c.solucao}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ainda não escrita.</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  O solicitante lê esta solução. Escreva pensando nele.
                 </p>
               </CardContent>
             </Card>
