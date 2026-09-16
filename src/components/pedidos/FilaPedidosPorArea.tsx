@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -54,10 +54,34 @@ import {
 import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useNivel } from "@/hooks/useNivel";
-import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
+import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem, PIPELINE_PRINCIPAL } from "@/types/pedido";
 
 
-type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
+type PresetOrdenacao = "cronologico" | "risco" | "entrada_paga";
+type ColunaOrdenavel =
+  | "risco" | "pedido" | "valor" | "estoque" | "cobranca" | "estagio" | "entrega" | "na_fase";
+
+/** UMA-ORDENACAO-SO (16/09/2026): preset de negocio e clique no cabecalho sao o
+ *  MESMO estado. Dois seletores de ordem concorrendo = fila mentindo sobre a ordem. */
+type Ordenacao =
+  | { tipo: "preset"; preset: PresetOrdenacao }
+  | { tipo: "coluna"; coluna: ColunaOrdenavel; dir: "asc" | "desc" };
+
+const COLUNA_ROTULO: Record<ColunaOrdenavel, string> = {
+  risco: "Risco", pedido: "Pedido", valor: "Valor", estoque: "Estoque",
+  cobranca: "Cobranca", estagio: "Estagio", entrega: "Entrega", na_fase: "Na fase",
+};
+
+/** Primeiro clique: texto e data sobem, numero desce (o util vem primeiro). */
+const COLUNA_DIR_INICIAL: Record<ColunaOrdenavel, "asc" | "desc"> = {
+  risco: "desc", pedido: "asc", valor: "desc", estoque: "desc",
+  cobranca: "desc", estagio: "asc", entrega: "asc", na_fase: "desc",
+};
+
+/** Gravidade do lastro — mesma leitura que a coluna Cobranca ja comunica. */
+const COBRANCA_GRAVIDADE: Record<string, number> = {
+  sem_instrumento: 4, boleto_sem_registro: 3, em_remessa: 2, registrado: 1, nao_aplica: 0,
+};
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -419,7 +443,22 @@ export function FilaPedidosPorArea({
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
   const [liberacaoFilter, setLiberacaoFilter] = useState<string>("todas");
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>({ tipo: "preset", preset: "risco" });
+  // Terceiro clique no cabecalho devolve a fila ao preset que estava valendo.
+  const [presetAnterior, setPresetAnterior] = useState<PresetOrdenacao>("risco");
+
+  const alternarOrdenacaoColuna = (coluna: ColunaOrdenavel) => {
+    setOrdenacao((atual) => {
+      if (atual.tipo !== "coluna" || atual.coluna !== coluna) {
+        return { tipo: "coluna", coluna, dir: COLUNA_DIR_INICIAL[coluna] };
+      }
+      const invertida = atual.dir === "asc" ? "desc" : "asc";
+      // Voltou ao inicial depois de inverter = ciclo fechado, volta pro preset.
+      return invertida === COLUNA_DIR_INICIAL[coluna]
+        ? { tipo: "preset", preset: presetAnterior }
+        : { tipo: "coluna", coluna, dir: invertida };
+    });
+  };
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(() => {
@@ -572,7 +611,10 @@ export function FilaPedidosPorArea({
     if (somenteComAlerta) {
       base = base.filter((p) => !!alertaMap?.get(p.id)?.severidade);
     }
-    if (ordenacao === "entrada_paga") {
+    // Ordenacao por coluna acontece DEPOIS (linhasOrdenadas), porque depende de
+    // mapas que so existem a partir dos ids desta lista.
+    if (ordenacao.tipo === "coluna") return base;
+    if (ordenacao.preset === "entrada_paga") {
       // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
       return [...base].sort((a, b) => {
         const va = Number(a.adiantado_vivo || 0);
@@ -581,7 +623,7 @@ export function FilaPedidosPorArea({
         return new Date(b.recebido_em).getTime() - new Date(a.recebido_em).getTime();
       });
     }
-    if (ordenacao !== "risco") return base;
+    if (ordenacao.preset !== "risco") return base;
     return [...base].sort((a, b) => {
       const ra = riscoMap?.get(a.id);
       const rb = riscoMap?.get(b.id);
@@ -717,6 +759,46 @@ export function FilaPedidosPorArea({
     });
   }, [linhas, liberacaoMap, liberacaoFilter]);
 
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const linhasOrdenadas = useMemo(() => {
+    if (ordenacao.tipo !== "coluna") return linhasFiltradas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: PedidoFilaItem): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "risco": return riscoMap?.get(p.id)?.risco_score ?? null;
+        case "pedido": return p.id_externo ?? null;
+        case "valor": return Number(p.valor_liquido ?? 0);
+        case "estoque": return coberturaMap?.get(p.id)?.pct_coberto ?? null;
+        case "cobranca": {
+          const l = cobrancaMap?.get(p.id)?.lastro;
+          return l ? COBRANCA_GRAVIDADE[l] ?? null : null;
+        }
+        case "estagio": {
+          const i = PIPELINE_PRINCIPAL.indexOf(p.estagio);
+          return i < 0 ? null : i;
+        }
+        case "entrega": {
+          const d = entregaMap?.get(p.id)?.previsao_entrega;
+          const t = d ? Date.parse(d) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "na_fase": return riscoMap?.get(p.id)?.dias_na_fase ?? null;
+        default: return null;
+      }
+    };
+    return [...linhasFiltradas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [linhasFiltradas, ordenacao, riscoMap, coberturaMap, cobrancaMap, entregaMap]);
+
   const resumoBuscaGlobal = useMemo(() => {
     if (!buscaGlobalAtiva) return null;
     let entregues = 0, cancelados = 0, recuperacao = 0;
@@ -759,10 +841,10 @@ export function FilaPedidosPorArea({
   });
   const pedidosComMsg = msgPendentes ?? new Set<string>();
 
-  const totalLinhas = linhasFiltradas.length;
+  const totalLinhas = linhasOrdenadas.length;
   const totalPaginas = Math.max(1, Math.ceil(totalLinhas / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = linhasFiltradas.slice(
+  const pageItems = linhasOrdenadas.slice(
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
@@ -849,7 +931,15 @@ export function FilaPedidosPorArea({
             ))}
           </SelectContent>
         </Select>
-        <Select value={ordenacao} onValueChange={(v) => setOrdenacao(v as OrdenacaoFila)}>
+        <Select
+          value={ordenacao.tipo === "coluna" ? "coluna" : ordenacao.preset}
+          onValueChange={(v) => {
+            if (v === "coluna") return;
+            const preset = v as PresetOrdenacao;
+            setPresetAnterior(preset);
+            setOrdenacao({ tipo: "preset", preset });
+          }}
+        >
           <SelectTrigger className="w-full sm:w-52">
             <SelectValue />
           </SelectTrigger>
@@ -857,6 +947,11 @@ export function FilaPedidosPorArea({
             <SelectItem value="cronologico">Ordenar: Cronológico</SelectItem>
             <SelectItem value="risco">Ordenar: Risco</SelectItem>
             <SelectItem value="entrada_paga">Ordenar: Entrada paga primeiro</SelectItem>
+            {ordenacao.tipo === "coluna" && (
+              <SelectItem value="coluna">
+                Coluna: {COLUNA_ROTULO[ordenacao.coluna]} {ordenacao.dir === "asc" ? "↑" : "↓"}
+              </SelectItem>
+            )}
           </SelectContent>
         </Select>
         <Button
@@ -889,9 +984,15 @@ export function FilaPedidosPorArea({
       })()}
 
 
-      {(ordenacao === "risco" || somenteRiscoAlto) && (
+      {(ordenacao.tipo === "coluna" ||
+        (ordenacao.tipo === "preset" && ordenacao.preset === "risco") ||
+        somenteRiscoAlto) && (
         <p className="text-xs text-muted-foreground">
-          {ordenacao === "risco" && "Ordenado por risco (maior primeiro). "}
+          {ordenacao.tipo === "coluna" &&
+            `Ordenado por ${COLUNA_ROTULO[ordenacao.coluna]} (${ordenacao.dir === "asc" ? "crescente" : "decrescente"}). Clique no cabeçalho até o ícone apagar para voltar ao padrão. `}
+          {ordenacao.tipo === "preset" &&
+            ordenacao.preset === "risco" &&
+            "Ordenado por risco (maior primeiro). "}
           {somenteRiscoAlto && "Mostrando apenas pedidos em risco alto."}
         </p>
       )}
@@ -900,15 +1001,15 @@ export function FilaPedidosPorArea({
         <Table className="table-fixed" containerClassName="overflow-visible">
           <TableHeader>
             <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-              <TableHead className="w-[56px]">Risco</TableHead>
-              <TableHead className="w-[220px]">Pedido</TableHead>
-              <TableHead className="w-[150px]">Valor</TableHead>
+              <CabecalhoOrdenavel coluna="risco" rotulo="Risco" className="w-[56px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="pedido" rotulo="Pedido" className="w-[220px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="valor" rotulo="Valor" className="w-[150px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
               <TableHead className="w-[130px]">Pagamento</TableHead>
-              <TableHead className="w-[100px]">Estoque</TableHead>
-              <TableHead className="w-[130px]">Cobrança</TableHead>
-              <TableHead className="w-[140px]">Estágio</TableHead>
-              <TableHead className="w-[200px]">Entrega</TableHead>
-              <TableHead className="w-[96px]">Na fase</TableHead>
+              <CabecalhoOrdenavel coluna="estoque" rotulo="Estoque" className="w-[100px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="cobranca" rotulo="Cobrança" className="w-[130px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="estagio" rotulo="Estágio" className="w-[140px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="entrega" rotulo="Entrega" className="w-[200px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel coluna="na_fase" rotulo="Na fase" className="w-[96px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -1809,3 +1910,43 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
 }
 
 
+
+/** Cabecalho clicavel: 1o clique ordena, 2o inverte, 3o volta ao preset da fila. */
+function CabecalhoOrdenavel({
+  coluna, rotulo, className, ordenacao, onOrdenar,
+}: {
+  coluna: ColunaOrdenavel;
+  rotulo: string;
+  className?: string;
+  ordenacao: Ordenacao;
+  onOrdenar: (c: ColunaOrdenavel) => void;
+}) {
+  const ativa = ordenacao.tipo === "coluna" && ordenacao.coluna === coluna;
+  const dir = ativa ? ordenacao.dir : null;
+  return (
+    <TableHead className={className} aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}>
+      <button
+        type="button"
+        onClick={() => onOrdenar(coluna)}
+        className={cn(
+          "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          ativa && "text-foreground font-medium",
+        )}
+        title={
+          dir === "asc" ? "Crescente — clique para inverter"
+          : dir === "desc" ? "Decrescente — clique para voltar à ordenação padrão"
+          : `Ordenar por ${rotulo}`
+        }
+      >
+        {rotulo}
+        {dir === "asc" ? (
+          <ArrowUp className="h-3 w-3" />
+        ) : dir === "desc" ? (
+          <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
