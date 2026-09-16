@@ -1007,7 +1007,7 @@ export default function ConsignadoDetalhe() {
                       />
                     </div>
                     <Button
-                      disabled={abrirAcerto.isPending || !competencia || operacaoBloqueada}
+                      disabled={abrirAcerto.isPending || !competencia}
                       onClick={() => abrirAcerto.mutate()}
                     >
                       {abrirAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1089,7 +1089,7 @@ export default function ConsignadoDetalhe() {
                         </Button>
                         <Button
                           size="sm"
-                          disabled={salvarItens.isPending || operacaoBloqueada}
+                          disabled={salvarItens.isPending}
                           onClick={() => salvarItens.mutate()}
                         >
                           {salvarItens.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -1098,7 +1098,6 @@ export default function ConsignadoDetalhe() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={operacaoBloqueada}
                           onClick={() => setImportAberto(true)}
                         >
                           <ClipboardPaste className="h-4 w-4" /> Importar relatório
@@ -1143,7 +1142,6 @@ export default function ConsignadoDetalhe() {
                       <Button
                         disabled={
                           confirmarAcerto.isPending
-                          || operacaoBloqueada
                           || (itensRascunhoQ.data ?? []).length === 0
                         }
                         onClick={() => confirmarAcerto.mutate()}
