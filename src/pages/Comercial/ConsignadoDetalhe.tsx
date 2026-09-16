@@ -126,6 +126,9 @@ interface AcertoRow {
   valor_total: number | null;
   pedido_sintetico_id: string | null;
   data_confirmacao: string | null;
+  periodo_inicio: string | null;
+  periodo_fim: string | null;
+  relatorio_path: string | null;
 }
 
 interface AcertoItemRow {
