@@ -1395,7 +1395,9 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
         >
           {fmtDesvio(desvio)}
         </TableCell>
-        <TableCell className="text-right tabular-nums">{formatBRL(efetivoDe(t))}</TableCell>
+        <TableCell className="text-right tabular-nums">
+          <ValorSaldo saldo={saldo} valorFace={efetivoDe(t)} />
+        </TableCell>
         <TableCell>
           {/* Em carência bancária não é atraso: badge de aviso, não destrutivo. */}
           {carenciaIds.has(t.id) ? (
