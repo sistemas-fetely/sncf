@@ -37,6 +37,7 @@ import { cn } from "@/lib/utils";
 import { estaVencido } from "@/lib/data";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
+import { VisaoConsignado } from "./consignado/VisaoConsignado";
 
 /**
  * MESA ÚNICA DO CONSIGNADO.
@@ -867,13 +868,13 @@ export default function ConsignadoDetalhe() {
       ? `acerto a cada ${parceiroQ.data.consignado_cadencia_dias} dias`
       : "cadência não definida";
   const secoes = ehConsignacaoFiscal
-    ? ["ciclo", "remessas", "estoque", "retorno"]
-    : ["ciclo", "remessas", "estoque"];
-  const secaoParam = searchParams.get("secao") ?? "ciclo";
-  const secao = secoes.includes(secaoParam) ? secaoParam : "ciclo";
+    ? ["visao", "ciclo", "remessas", "estoque", "retorno"]
+    : ["visao", "ciclo", "remessas", "estoque"];
+  const secaoParam = searchParams.get("secao") ?? "visao";
+  const secao = secoes.includes(secaoParam) ? secaoParam : "visao";
   const mudarSecao = (valor: string) => {
     const next = new URLSearchParams(searchParams);
-    if (valor === "ciclo") next.delete("secao");
+    if (valor === "visao") next.delete("secao");
     else next.set("secao", valor);
     setSearchParams(next, { replace: true });
   };
@@ -1088,11 +1089,16 @@ export default function ConsignadoDetalhe() {
 
       <Tabs value={secao} onValueChange={mudarSecao} className="space-y-4">
         <TabsList className="h-auto w-full max-w-full justify-start overflow-x-auto">
+          <TabsTrigger value="visao">Visão</TabsTrigger>
           <TabsTrigger value="ciclo">Ciclo de acerto</TabsTrigger>
           <TabsTrigger value="remessas">Remessas e extrato</TabsTrigger>
           <TabsTrigger value="estoque">Estoque no parceiro</TabsTrigger>
           {ehConsignacaoFiscal && <TabsTrigger value="retorno">Retorno</TabsTrigger>}
         </TabsList>
+
+        <TabsContent value="visao" className="space-y-4">
+          <VisaoConsignado parceiroId={parceiroId} />
+        </TabsContent>
 
         <TabsContent value="ciclo" className="space-y-4">
           {/* ═══ CICLO DE ACERTO ═══ */}

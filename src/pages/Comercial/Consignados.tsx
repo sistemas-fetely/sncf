@@ -11,6 +11,7 @@ import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { PainelGeralConsignados } from "./consignado/PainelGeralConsignados";
 interface ParceiroConsignado {
   id: string;
   razao_social: string;
@@ -103,6 +104,8 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
           </CardContent>
         </Card>
       )}
+
+      <PainelGeralConsignados />
 
       <div className="relative max-w-sm mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
