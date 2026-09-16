@@ -907,21 +907,26 @@ function ChamadoDetalheConteudo() {
                   </BotaoAcao>
                 )}
                 {emAberto && (
-                  <BotaoAcao variant="default" onClick={() => abrir("resolver")}>
+                  <BotaoAcao
+                    variant="default"
+                    onClick={() => abrir("resolver")}
+                    desabilitado={!solucao.trim()}
+                    dicaDesabilitado="Escreva a solução antes de resolver."
+                  >
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Resolver
                   </BotaoAcao>
                 )}
                 {resolvido && (
-                  <>
-                    <BotaoAcao variant="default" onClick={() => abrir("fechar")}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar fechamento
-                    </BotaoAcao>
-                    <BotaoAcao onClick={() => abrir("reabrir")}>
-                      <RotateCcw className="mr-2 h-4 w-4" /> Reabrir
-                    </BotaoAcao>
-                  </>
+                  <BotaoAcao variant="default" onClick={() => abrir("fechar")}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar fechamento
+                  </BotaoAcao>
                 )}
-                {encerrado && (
+                {(resolvido || status === "fechado") && (
+                  <BotaoAcao onClick={() => abrir("reabrir")}>
+                    <RotateCcw className="mr-2 h-4 w-4" /> Reabrir
+                  </BotaoAcao>
+                )}
+                {status === "cancelado" && (
                   <p className="text-sm text-muted-foreground">
                     Chamado {STATUS_ROTULO[status] ?? status}
                     {c.fechado_em ? ` em ${fmtDataHora(c.fechado_em)}` : ""}. Nada a fazer.
@@ -1102,47 +1107,10 @@ function ChamadoDetalheConteudo() {
               )}
 
               {acao === "resolver" && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Motivo do fechamento (obrigatório)</Label>
-                    {motivosQ.isError ? (
-                      <ErroQuery o_que="os motivos" erro={motivosQ.error} />
-                    ) : (
-                      <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              motivosQ.isLoading ? "Carregando..." : "Escolha o motivo"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(motivosQ.data ?? []).map((m) => (
-                            <SelectItem key={m.codigo} value={m.codigo}>
-                              {m.nome ?? m.codigo}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {motivoCodigo && (
-                      <p className="text-xs text-muted-foreground">
-                        {(motivosQ.data ?? []).find((m) => m.codigo === motivoCodigo)
-                          ?.remedio ?? ""}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="nota">Nota de resolução (opcional)</Label>
-                    <Textarea
-                      id="nota"
-                      value={nota}
-                      onChange={(e) => setNota(e.target.value)}
-                      rows={4}
-                      placeholder="O que foi feito para resolver?"
-                    />
-                  </div>
-                </>
+                <p className="text-sm text-muted-foreground">
+                  Resolver encerra o chamado agora. O solicitante pode reabrir em até 3
+                  dias úteis.
+                </p>
               )}
 
               {(acao === "pausar" ||
