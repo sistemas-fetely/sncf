@@ -592,6 +592,12 @@ export default function TitulosTab() {
   const { data: titulos = [], isLoading } = useTitulosCobranca();
 
   const universo = titulos;
+  /* SALDO-NAO-SE-CALCULA-NO-FRONT: saldo a receber vem de `vw_titulo_saldo`. */
+  const { porTitulo: saldosPorTitulo } = useTituloSaldos();
+  const numerosPorId = useMemo(
+    () => new Map(titulos.map((t) => [t.id, t.numero_titulo])),
+    [titulos],
+  );
   const enviarBoleto = useEnviarEmailBoleto();
   const enviarCobranca = useEnviarEmailCobranca();
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
