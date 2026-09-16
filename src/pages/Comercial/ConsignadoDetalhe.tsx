@@ -1204,8 +1204,8 @@ export default function ConsignadoDetalhe() {
                     </TableHeader>
                     <TableBody>
                       {(acertosQ.data ?? []).map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="text-xs font-mono">{a.numero ?? "—"}</TableCell>
+                        <TableRow key={a.id} className="cursor-pointer" onClick={() => setAcertoAbertoId(a.id)}>
+                          <TableCell className="text-xs font-mono underline">{a.numero ?? "—"}</TableCell>
                           <TableCell className="text-xs">{formatDateBR(a.competencia)}</TableCell>
                           <TableCell>
                             <Badge variant={a.status === "rascunho" ? "outline" : "secondary"} className="text-[10px]">
