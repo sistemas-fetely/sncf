@@ -48,43 +48,68 @@ Deno.serve(async (req) => {
 
     if (!base64) return json({ error: "arquivo_base64 é obrigatório" }, 400);
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3.8-flash",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              mime === "application/pdf"
-                ? { type: "file", file: { filename: nome, file_data: `data:${mime};base64,${base64}` } }
-                : { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
-              {
-                type: "text",
-                text: `Extraia os itens vendidos do relatório "${nome}". Só código e quantidade vendida.`,
-              },
-            ],
-          },
-        ],
-      }),
-    });
+    const MODELOS = ["google/gemini-3.8-flash", "google/gemini-3.7-flash", "google/gemini-3.5-flash"];
 
-    if (!aiResp.ok) {
+    const payload = {
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        {
+          role: "user",
+          content: [
+            mime === "application/pdf"
+              ? { type: "file", file: { filename: nome, file_data: `data:${mime};base64,${base64}` } }
+              : { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
+            {
+              type: "text",
+              text: `Extraia os itens vendidos do relatório "${nome}". Só código e quantidade vendida.`,
+            },
+          ],
+        },
+      ],
+    };
+
+    const chamarGateway = (modelo: string) =>
+      fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        },
+        body: JSON.stringify({ model: modelo, ...payload }),
+      });
+
+    let aiResp: Response | null = null;
+    let modeloUsado: string | null = null;
+    let ultimoStatus = 0;
+    let ultimoDetalhe = "";
+
+    for (const modelo of MODELOS) {
+      aiResp = await chamarGateway(modelo);
+      if (aiResp.ok) {
+        modeloUsado = modelo;
+        break;
+      }
       const detalhe = await aiResp.text().catch(() => "");
-      console.error("gateway", aiResp.status, detalhe);
-      const msg =
-        aiResp.status === 429
-          ? "A IA está sobrecarregada. Tente de novo em alguns instantes."
-          : aiResp.status === 402
-            ? "Créditos de IA esgotados no workspace."
-            : `A IA recusou a leitura (${aiResp.status}). ${detalhe.slice(0, 300)}`;
-      return json({ error: msg }, aiResp.status === 429 || aiResp.status === 402 ? aiResp.status : 502);
+      ultimoStatus = aiResp.status;
+      ultimoDetalhe = detalhe;
+      console.error("gateway", modelo, aiResp.status, detalhe);
+      // 429 e 402 não melhoram trocando de modelo — devolve a mensagem específica.
+      if (aiResp.status === 429 || aiResp.status === 402) {
+        const msg =
+          aiResp.status === 429
+            ? "A IA está sobrecarregada. Tente de novo em alguns instantes."
+            : "Créditos de IA esgotados no workspace.";
+        return json({ error: msg }, aiResp.status);
+      }
+      aiResp = null;
+      // 400/404 = modelo inexistente/não suportado; demais = tenta o próximo.
     }
+
+    if (!aiResp || !modeloUsado) {
+      const msg = `A IA recusou a leitura (${ultimoStatus}). ${ultimoDetalhe.slice(0, 300)}`;
+      return json({ error: msg }, 502);
+    }
+    console.log("modelo que respondeu:", modeloUsado);
 
     const aiData = await aiResp.json();
     const raw = String(aiData?.choices?.[0]?.message?.content ?? "").trim();
