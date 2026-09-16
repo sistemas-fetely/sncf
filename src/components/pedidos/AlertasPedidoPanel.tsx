@@ -137,7 +137,14 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
                         {a.rotulo_acao}
                       </Link>
                     )}
-                    {sev === "bloqueante" &&
+                    {a.chamado_id ? (
+                      <Link
+                        to={`/chamados/${a.chamado_id}`}
+                        className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                      >
+                        Ver chamado →
+                      </Link>
+                    ) : sev === "bloqueante" && a.pode_abrir_chamado === true ? (
                       (podeEditar ? (
                         <Button
                           variant="outline"
@@ -165,7 +172,8 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
                             Você tem acesso somente leitura nesta tela
                           </TooltipContent>
                         </Tooltip>
-                      ))}
+                      ))
+                    ) : null}
                   </div>
                 </li>
               );
