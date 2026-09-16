@@ -10968,6 +10968,7 @@ export type Database = {
           mime_type: string | null
           motivo_recusa: string | null
           movimentacao_id: string | null
+          pagador_documento_lido: string | null
           pagador_lido: string | null
           payload_ia: Json | null
           pedido_id: string | null
@@ -11001,6 +11002,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusa?: string | null
           movimentacao_id?: string | null
+          pagador_documento_lido?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
           pedido_id?: string | null
@@ -11034,6 +11036,7 @@ export type Database = {
           mime_type?: string | null
           motivo_recusa?: string | null
           movimentacao_id?: string | null
+          pagador_documento_lido?: string | null
           pagador_lido?: string | null
           payload_ia?: Json | null
           pedido_id?: string | null
@@ -84735,14 +84738,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -86277,14 +86280,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -101499,6 +101502,7 @@ export type Database = {
       fn_cnab_seu_numero: { Args: { p_titulo_id: string }; Returns: string }
       fn_cnab_uso_empresa: { Args: { p_titulo_id: string }; Returns: string }
       fn_cnpj_cpf_valido: { Args: { p_doc: string }; Returns: boolean }
+      fn_cnpj_lido_e_da_casa: { Args: { p_lido: string }; Returns: boolean }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
       fn_cobertura_refresh: { Args: never; Returns: number }
       fn_colunas_sem_grant: {
@@ -102447,6 +102451,7 @@ export type Database = {
           valor_bruto: number
         }[]
       }
+      fn_plano_trivial_linhas: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pode_agir_na_tarefa: {
         Args: { p_tarefa_id: string }
         Returns: boolean
@@ -102496,12 +102501,16 @@ export type Database = {
         Returns: string
       }
       fn_portao_conciliar_automatico: {
-        Args: { p_corte?: string; p_dry_run?: boolean; p_janela_dias?: number }
+        Args: { p_corte?: string; p_dry_run?: boolean }
         Returns: Json
       }
       fn_portao_consignado: {
         Args: { p_parceiro_id: string; p_valor_pedido: number }
         Returns: Json
+      }
+      fn_portao_janela_credito: {
+        Args: { p_data_prevista: string; p_portao_criado: string }
+        Returns: unknown
       }
       fn_prazo_transito_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       fn_previsao_entrega: { Args: { p_pedido_id: string }; Returns: Json }
