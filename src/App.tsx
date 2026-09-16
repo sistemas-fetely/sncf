@@ -222,7 +222,6 @@ const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout")
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
 
-const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
 
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
@@ -421,7 +420,7 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
+                
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
                 <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
@@ -881,6 +880,8 @@ const App = () => (
             <Route path="/vendas/dash-pedidos" element={<Navigate to="/pedidos?aba=dash" replace />} />
             {/* DESMONTE-FAROL-PEDIDOS (23/08/2026): função permanece no banco (sla_fase_pedido/fn_previsao_entrega); tela substituída pela Casa dos Pedidos */}
             <Route path="/vendas/farol-pedidos" element={<Navigate to="/pedidos" replace />} />
+            {/* DESMONTE-GESTAO-PEDIDOS (16/09/2026): planilhão paralelo à Casa dos Pedidos; view estourava timeout e a tela nunca carregava */}
+            <Route path="/vendas/gestao-pedidos" element={<Navigate to="/pedidos" replace />} />
             {/* Retorno de Devolução emancipado do Estoque (23/08/2026) */}
             <Route path="/vendas/produto/estoque/devolucoes" element={<Navigate to="/devolucoes" replace />} />
             {/* Portal SNCF desmontado (23/08/2026): a Casa já faz essa função */}
