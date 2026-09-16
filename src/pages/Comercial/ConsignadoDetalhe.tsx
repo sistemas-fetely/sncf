@@ -1217,6 +1217,7 @@ export default function ConsignadoDetalhe() {
                             {a.pedido_sintetico_id ? (
                               <Link
                                 to={`/pedidos/${a.pedido_sintetico_id}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center gap-1 underline"
                               >
                                 abrir <ExternalLink className="h-3 w-3" />
