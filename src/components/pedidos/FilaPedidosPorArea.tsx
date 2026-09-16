@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -54,10 +54,34 @@ import {
 import { MarcacaoPedido } from "./MarcacaoPedido";
 import { useAtualizarUrgencia } from "@/hooks/pedidos/useAtualizarUrgencia";
 import { useNivel } from "@/hooks/useNivel";
-import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem } from "@/types/pedido";
+import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem, PIPELINE_PRINCIPAL } from "@/types/pedido";
 
 
-type OrdenacaoFila = "cronologico" | "risco" | "entrada_paga";
+type PresetOrdenacao = "cronologico" | "risco" | "entrada_paga";
+type ColunaOrdenavel =
+  | "risco" | "pedido" | "valor" | "estoque" | "cobranca" | "estagio" | "entrega" | "na_fase";
+
+/** UMA-ORDENACAO-SO (16/09/2026): preset de negocio e clique no cabecalho sao o
+ *  MESMO estado. Dois seletores de ordem concorrendo = fila mentindo sobre a ordem. */
+type Ordenacao =
+  | { tipo: "preset"; preset: PresetOrdenacao }
+  | { tipo: "coluna"; coluna: ColunaOrdenavel; dir: "asc" | "desc" };
+
+const COLUNA_ROTULO: Record<ColunaOrdenavel, string> = {
+  risco: "Risco", pedido: "Pedido", valor: "Valor", estoque: "Estoque",
+  cobranca: "Cobranca", estagio: "Estagio", entrega: "Entrega", na_fase: "Na fase",
+};
+
+/** Primeiro clique: texto e data sobem, numero desce (o util vem primeiro). */
+const COLUNA_DIR_INICIAL: Record<ColunaOrdenavel, "asc" | "desc"> = {
+  risco: "desc", pedido: "asc", valor: "desc", estoque: "desc",
+  cobranca: "desc", estagio: "asc", entrega: "asc", na_fase: "desc",
+};
+
+/** Gravidade do lastro — mesma leitura que a coluna Cobranca ja comunica. */
+const COBRANCA_GRAVIDADE: Record<string, number> = {
+  sem_instrumento: 4, boleto_sem_registro: 3, em_remessa: 2, registrado: 1, nao_aplica: 0,
+};
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -419,7 +443,22 @@ export function FilaPedidosPorArea({
   const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
   const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
   const [liberacaoFilter, setLiberacaoFilter] = useState<string>("todas");
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoFila>("risco");
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>({ tipo: "preset", preset: "risco" });
+  // Terceiro clique no cabecalho devolve a fila ao preset que estava valendo.
+  const [presetAnterior, setPresetAnterior] = useState<PresetOrdenacao>("risco");
+
+  const alternarOrdenacaoColuna = (coluna: ColunaOrdenavel) => {
+    setOrdenacao((atual) => {
+      if (atual.tipo !== "coluna" || atual.coluna !== coluna) {
+        return { tipo: "coluna", coluna, dir: COLUNA_DIR_INICIAL[coluna] };
+      }
+      const invertida = atual.dir === "asc" ? "desc" : "asc";
+      // Voltou ao inicial depois de inverter = ciclo fechado, volta pro preset.
+      return invertida === COLUNA_DIR_INICIAL[coluna]
+        ? { tipo: "preset", preset: presetAnterior }
+        : { tipo: "coluna", coluna, dir: invertida };
+    });
+  };
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(() => {
@@ -572,7 +611,10 @@ export function FilaPedidosPorArea({
     if (somenteComAlerta) {
       base = base.filter((p) => !!alertaMap?.get(p.id)?.severidade);
     }
-    if (ordenacao === "entrada_paga") {
+    // Ordenacao por coluna acontece DEPOIS (linhasOrdenadas), porque depende de
+    // mapas que so existem a partir dos ids desta lista.
+    if (ordenacao.tipo === "coluna") return base;
+    if (ordenacao.preset === "entrada_paga") {
       // Quem já pôs dinheiro fura a fila; empate volta ao critério cronológico.
       return [...base].sort((a, b) => {
         const va = Number(a.adiantado_vivo || 0);
@@ -581,7 +623,7 @@ export function FilaPedidosPorArea({
         return new Date(b.recebido_em).getTime() - new Date(a.recebido_em).getTime();
       });
     }
-    if (ordenacao !== "risco") return base;
+    if (ordenacao.preset !== "risco") return base;
     return [...base].sort((a, b) => {
       const ra = riscoMap?.get(a.id);
       const rb = riscoMap?.get(b.id);
