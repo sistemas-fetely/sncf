@@ -897,9 +897,9 @@ export function FilaPedidosPorArea({
       )}
 
       <div className="rounded-md border border-border">
-        <Table className="table-fixed">
+        <Table className="table-fixed" containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow className="bg-card">
+            <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableHead className="w-[56px]">Risco</TableHead>
               <TableHead className="w-[220px]">Pedido</TableHead>
               <TableHead className="w-[150px]">Valor</TableHead>
