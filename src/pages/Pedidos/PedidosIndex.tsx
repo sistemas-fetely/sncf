@@ -8,8 +8,6 @@ import { PainelDashPedidos } from "@/components/pedidos/PainelDashPedidos";
 import { ExportarPedidosButton } from "@/components/pedidos/ExportarPedidosButton";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { type EstagioPedido } from "@/types/pedido";
-import { SolicitacoesSopsAba } from "@/components/pedidos/SolicitacoesSopsAba";
-import { useContagemSolicitacoes } from "@/hooks/pedidos/useSolicitacoesComercial";
 import { useMesaComercialContagem } from "@/hooks/pedidos/useMesaComercialContagem";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
