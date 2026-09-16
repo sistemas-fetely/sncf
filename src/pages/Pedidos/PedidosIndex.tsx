@@ -32,22 +32,7 @@ export default function PedidosIndex() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
 
-  // TOPO-COLADO-SE-MEDE (16/09/2026): o cabecalho da tabela cola logo abaixo do
-  // funil. A altura do funil muda (quebra de linha, cards a mais), entao ela e
-  // medida em runtime em vez de virada em numero magico.
-  const ALTURA_CASA_HEADER = 64; // CasaHeader = h-16; mesmo valor do `top-16` do funil
-  const pipelineRef = useRef<HTMLDivElement>(null);
-  const [alturaPipeline, setAlturaPipeline] = useState(0);
 
-  useEffect(() => {
-    const el = pipelineRef.current;
-    if (!el) return;
-    const medir = () => setAlturaPipeline(el.offsetHeight);
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [abaEfetiva]);
 
   // SLUG-DE-ABA-NAO-E-PORTA-DE-LEITURA (03/09/2026): a aba Fila tem slug proprio.
   // `tela.pedidos` segue sendo a porta de leitura de 15 tabelas do dominio e o gate
@@ -72,6 +57,24 @@ export default function PedidosIndex() {
     : permissoes[abaSolicitada].podeVer
       ? abaSolicitada
       : primeiraPermitida;
+
+  // TOPO-COLADO-SE-MEDE (16/09/2026): o cabecalho da tabela cola logo abaixo do
+  // funil. A altura do funil muda (quebra de linha, cards a mais), entao ela e
+  // medida em runtime em vez de virada em numero magico.
+  const ALTURA_CASA_HEADER = 64; // CasaHeader = h-16; mesmo valor do `top-16` do funil
+  const pipelineRef = useRef<HTMLDivElement>(null);
+  const [alturaPipeline, setAlturaPipeline] = useState(0);
+
+  useEffect(() => {
+    const el = pipelineRef.current;
+    if (!el) return;
+    const medir = () => setAlturaPipeline(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [abaEfetiva]);
+
 
   // Redireciona para a primeira aba permitida quando a URL aponta para uma proibida.
   useEffect(() => {
