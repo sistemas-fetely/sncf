@@ -199,6 +199,13 @@ const TIPO_ROTULO: Record<string, string> = {
   incidente: "Incidente",
   requisicao: "Requisição",
   duvida: "Dúvida",
+  problema: "Problema",
+};
+
+// Problema agrupa N incidentes de causa comum — merece destaque proprio.
+const TIPO_CLASSE: Record<string, string> = {
+  problema:
+    "border-purple-500/60 bg-purple-500/10 text-purple-700 dark:text-purple-400",
 };
 
 const STATUS_ROTULO: Record<string, string> = {
@@ -589,7 +596,7 @@ function ChamadosConteudo() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todo tipo</SelectItem>
-              {["incidente", "requisicao", "duvida"].map((t) => (
+              {["incidente", "problema", "requisicao", "duvida"].map((t) => (
                 <SelectItem key={t} value={t}>
                   {TIPO_ROTULO[t]}
                 </SelectItem>
@@ -681,7 +688,10 @@ function ChamadosConteudo() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs">
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge
+                          variant="outline"
+                          className={cn("text-[10px]", TIPO_CLASSE[c.tipo ?? ""] ?? "")}
+                        >
                           {TIPO_ROTULO[c.tipo ?? ""] ?? c.tipo ?? "—"}
                         </Badge>
                       </TableCell>
