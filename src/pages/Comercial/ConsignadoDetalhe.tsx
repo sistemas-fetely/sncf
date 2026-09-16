@@ -633,6 +633,108 @@ export default function ConsignadoDetalhe() {
     onError: (e: Error) => toast.error("Importação recusada pelo banco", { description: e.message }),
   });
 
+  // ── arbitrar limite ────────────────────────────────────────────────────
+  // A RPC é guardada por acao.credito_decidir; o botão só aparece pra quem tem.
+  const { permitido: podeArbitrar } = usePermissaoAcaoOuSuperAdmin("acao.credito_decidir");
+  const [arbitrarAberto, setArbitrarAberto] = useState(false);
+  const [arbLimite, setArbLimite] = useState("");
+  const [arbValidade, setArbValidade] = useState("");
+  const [arbParecer, setArbParecer] = useState("");
+
+  const arbitrarLimite = useMutation({
+    mutationFn: async () => {
+      const valor = Number(arbLimite);
+      if (!Number.isFinite(valor)) throw new Error("Informe o limite em reais.");
+      const { data, error } = await (supabase as any).rpc("arbitrar_limite_conta_corrente", {
+        p_parceiro_id: parceiroId,
+        p_limite: valor,
+        p_validade: arbValidade || null,
+        p_parecer: arbParecer.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async (d) => {
+      toast.success("Limite arbitrado", {
+        description: `${formatBRL(Number(d?.antes ?? 0))} → ${formatBRL(Number(d?.depois ?? 0))}`,
+      });
+      setArbitrarAberto(false);
+      setArbLimite("");
+      setArbValidade("");
+      setArbParecer("");
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao arbitrar limite", { description: e.message }),
+  });
+
+  // ── anexo do relatório do acerto ───────────────────────────────────────
+  const [arquivoAnexo, setArquivoAnexo] = useState<File | null>(null);
+
+  const anexarRelatorio = useMutation({
+    mutationFn: async () => {
+      if (!acertoAberto) throw new Error("Nenhum acerto selecionado.");
+      if (!arquivoAnexo) throw new Error("Escolha um arquivo.");
+      const nomeLimpo = arquivoAnexo.name.replace(/[^\w.\-]+/g, "-");
+      const caminho = `${acertoAberto.id}/${nomeLimpo}`;
+      const up = await supabase.storage
+        .from("consignado-acertos")
+        .upload(caminho, arquivoAnexo, { upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      const { error } = await (supabase as any).rpc("anexar_relatorio_acerto", {
+        p_acerto_id: acertoAberto.id,
+        p_path: caminho,
+      });
+      if (error) throw new Error(error.message);
+      return caminho;
+    },
+    onSuccess: async () => {
+      toast.success("Relatório anexado ao acerto");
+      setArquivoAnexo(null);
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao anexar o relatório", { description: e.message }),
+  });
+
+  const baixarRelatorio = useMutation({
+    mutationFn: async (caminho: string) => {
+      const { data, error } = await supabase.storage
+        .from("consignado-acertos")
+        .createSignedUrl(caminho, 60 * 10);
+      if (error) throw new Error(error.message);
+      if (!data?.signedUrl) throw new Error("O banco não devolveu o link do arquivo.");
+      return data.signedUrl;
+    },
+    onSuccess: (url) => window.open(url, "_blank", "noopener,noreferrer"),
+    onError: (e: Error) => toast.error("Falha ao baixar o relatório", { description: e.message }),
+  });
+
+  // ── liquidação manual ──────────────────────────────────────────────────
+  // CRÉDITO GUARDA EMBARQUE, NÃO RECEBIMENTO: receber dinheiro nunca trava.
+  const [liqData, setLiqData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [liqNota, setLiqNota] = useState("");
+
+  const liquidarManual = useMutation({
+    mutationFn: async () => {
+      if (!acertoAberto) throw new Error("Nenhum acerto selecionado.");
+      const { data, error } = await (supabase as any).rpc("liquidar_acerto_manual", {
+        p_acerto_id: acertoAberto.id,
+        p_data: liqData || null,
+        p_nota: liqNota.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async () => {
+      toast.success("Acerto marcado como liquidado");
+      setLiqNota("");
+      setAcertoAbertoId(null);
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao liquidar o acerto", { description: e.message }),
+  });
+
+
+
   const nome = parceiroQ.data?.razao_social ?? "Parceiro";
   const rotuloModelo = ehConsignacaoFiscal
     ? "Consignação fiscal"
