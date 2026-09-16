@@ -616,6 +616,10 @@ export default function ConsignadoDetalhe() {
   const [periodoInicio, setPeriodoInicio] = useState("");
   const [periodoFim, setPeriodoFim] = useState("");
   const [previa, setPrevia] = useState<ReportePrevia | null>(null);
+  // Do PDF: a IA só escreve as linhas; a validação e a gravação são as mesmas.
+  const [importModo, setImportModo] = useState<"pdf" | "texto">("pdf");
+  const [importArquivo, setImportArquivo] = useState<File | null>(null);
+  const [origemPdf, setOrigemPdf] = useState<string | null>(null);
 
   const fecharImport = () => {
     setImportAberto(false);
@@ -623,11 +627,60 @@ export default function ConsignadoDetalhe() {
     setPeriodoInicio("");
     setPeriodoFim("");
     setPrevia(null);
+    setImportModo("pdf");
+    setImportArquivo(null);
+    setOrigemPdf(null);
   };
 
-  const analisar = useMutation({
+  const lerPdf = useMutation({
     mutationFn: async () => {
-      const itensColados = parsearLinhasColadas(importTexto);
+      if (!importArquivo) throw new Error("Escolha o arquivo do relatório.");
+      const buf = new Uint8Array(await importArquivo.arrayBuffer());
+      let bin = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < buf.length; i += CHUNK) {
+        bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)));
+      }
+      const { data, error } = await supabase.functions.invoke("ler-relatorio-consignado", {
+        body: {
+          arquivo_base64: btoa(bin),
+          mime_type: importArquivo.type || "application/pdf",
+          nome_arquivo: importArquivo.name,
+        },
+      });
+      if (error) {
+        const detalhe = await (error as any)?.context?.text?.().catch(() => "");
+        let msg = error.message;
+        try {
+          const j = JSON.parse(detalhe || "{}");
+          if (j?.error) msg = String(j.error);
+        } catch { /* mensagem crua serve */ }
+        throw new Error(msg);
+      }
+      if ((data as any)?.error) throw new Error(String((data as any).error));
+      return data as { periodo_inicio: string | null; periodo_fim: string | null; itens: { codigo: string; quantidade: number }[] };
+    },
+    onSuccess: (d) => {
+      const itens = d.itens ?? [];
+      if (itens.length === 0) {
+        toast.error("A IA não encontrou itens vendidos neste arquivo", {
+          description: "Confira o arquivo ou use o modo Colar texto.",
+        });
+        return;
+      }
+      const linhas = itens.map((it) => `${it.codigo}\t${it.quantidade}`).join("\n");
+      setImportTexto(linhas);
+      if (d.periodo_inicio) setPeriodoInicio(d.periodo_inicio);
+      if (d.periodo_fim) setPeriodoFim(d.periodo_fim);
+      setOrigemPdf(importArquivo?.name ?? null);
+      analisar.mutate(linhas);
+    },
+    onError: (e: Error) => toast.error("Falha ao ler o arquivo", { description: e.message }),
+  });
+
+  const analisar = useMutation({
+    mutationFn: async (textoOpcional?: string) => {
+      const itensColados = parsearLinhasColadas(textoOpcional ?? importTexto);
       if (itensColados.length === 0) throw new Error("Nada para analisar: cole ao menos uma linha com código e quantidade.");
       const { data, error } = await (supabase as any).rpc("resolver_reporte_consignado", {
         p_parceiro_id: parceiroId,
@@ -656,12 +709,38 @@ export default function ConsignadoDetalhe() {
         p_periodo_fim: periodoFim || null,
       });
       if (error) throw new Error(error.message);
-      return data as Record<string, unknown>;
+
+      // UM-GESTO-SÓ: o mesmo PDF que alimentou a importação vira o anexo do acerto.
+      // Anexo é acessório: falha aqui não desfaz a importação já gravada.
+      let avisoAnexo: string | null = null;
+      if (origemPdf && importArquivo) {
+        try {
+          const nomeLimpo = importArquivo.name.replace(/[^\w.\-]+/g, "-");
+          const caminho = `${rascunho.id}/${nomeLimpo}`;
+          const up = await supabase.storage
+            .from("consignado-acertos")
+            .upload(caminho, importArquivo, { upsert: true });
+          if (up.error) throw new Error(up.error.message);
+          const anexo = await (supabase as any).rpc("anexar_relatorio_acerto", {
+            p_acerto_id: rascunho.id,
+            p_path: caminho,
+          });
+          if (anexo.error) throw new Error(anexo.error.message);
+        } catch (e) {
+          avisoAnexo = e instanceof Error ? e.message : String(e);
+        }
+      }
+      return { retorno: data as Record<string, unknown>, avisoAnexo };
     },
-    onSuccess: async (d) => {
+    onSuccess: async ({ retorno: d, avisoAnexo }) => {
       toast.success(`Relatório importado — ${num(d?.itens)} item(ns)`, {
         description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
       });
+      if (avisoAnexo) {
+        toast.warning("O arquivo não ficou anexado ao acerto", {
+          description: `${avisoAnexo} — a importação foi mantida; você pode anexar o arquivo na tela do acerto.`,
+        });
+      }
       fecharImport();
       await invalidarTudo();
     },
@@ -1599,21 +1678,61 @@ export default function ConsignadoDetalhe() {
 
           {!previa ? (
             <div className="space-y-3">
-              <div className="space-y-1">
-                <Label htmlFor="import-texto">Relatório colado</Label>
-                <Textarea
-                  id="import-texto"
-                  className="min-h-[16rem] font-mono text-xs"
-                  value={importTexto}
-                  onChange={(e) => setImportTexto(e.target.value)}
-                  placeholder={
-                    "Uma linha por item: código e quantidade.\n" +
-                    "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
-                    "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
-                    "01846\t12\n01847;3\nLUM-VELA-0 5"
-                  }
-                />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={importModo === "pdf" ? "secondary" : "ghost"}
+                  onClick={() => setImportModo("pdf")}
+                >
+                  Do PDF
+                </Button>
+                <Button
+                  size="sm"
+                  variant={importModo === "texto" ? "secondary" : "ghost"}
+                  onClick={() => setImportModo("texto")}
+                >
+                  Colar texto
+                </Button>
               </div>
+
+              {importModo === "pdf" ? (
+                <div className="space-y-2 rounded-md border border-dashed p-4">
+                  <Label htmlFor="import-arquivo" className="text-xs">Relatório do parceiro (PDF ou imagem)</Label>
+                  <Input
+                    id="import-arquivo"
+                    type="file"
+                    accept="application/pdf,image/*"
+                    onChange={(e) => setImportArquivo(e.target.files?.[0] ?? null)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    A IA lê só código e quantidade vendida. Nada é gravado até você confirmar a importação na prévia.
+                  </p>
+                  <Button
+                    size="sm"
+                    disabled={!importArquivo || lerPdf.isPending || analisar.isPending}
+                    onClick={() => lerPdf.mutate()}
+                  >
+                    {(lerPdf.isPending || analisar.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {lerPdf.isPending ? "Lendo o arquivo..." : analisar.isPending ? "Analisando..." : "Ler arquivo"}
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Label htmlFor="import-texto">Relatório colado</Label>
+                  <Textarea
+                    id="import-texto"
+                    className="min-h-[16rem] font-mono text-xs"
+                    value={importTexto}
+                    onChange={(e) => setImportTexto(e.target.value)}
+                    placeholder={
+                      "Uma linha por item: código e quantidade.\n" +
+                      "O código pode ser o SKU completo ou o código curto do parceiro (ex: 01846).\n" +
+                      "Aceita tabulação, espaços ou ponto-e-vírgula — pode colar direto da planilha.\n\n" +
+                      "01846\t12\n01847;3\nLUM-VELA-0 5"
+                    }
+                  />
+                </div>
+              )}
               <div className="flex flex-wrap gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="periodo-inicio" className="text-xs">Período apurado — início</Label>
@@ -1639,15 +1758,22 @@ export default function ConsignadoDetalhe() {
               <p className="text-xs text-muted-foreground">
                 O ciclo do parceiro não é mês-calendário — as datas são opcionais.
               </p>
-              <DialogFooter>
-                <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate()}>
-                  {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Analisar
-                </Button>
-              </DialogFooter>
+              {importModo === "texto" && (
+                <DialogFooter>
+                  <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate(undefined)}>
+                    {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Analisar
+                  </Button>
+                </DialogFooter>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
+              {origemPdf && (
+                <p className="text-xs text-muted-foreground">
+                  Linhas lidas por IA a partir de {origemPdf}. Confira antes de importar.
+                </p>
+              )}
               <div className="rounded-md border max-h-[24rem] overflow-auto">
                 <Table>
                   <TableHeader>
