@@ -648,7 +648,7 @@ function ChamadoDetalheConteudo() {
               >
                 {PRIORIDADE_ROTULO[c.prioridade ?? ""] ?? c.prioridade ?? "—"}
               </Badge>
-              <Badge variant="outline">
+              <Badge variant="outline" className={cn(TIPO_CLASSE[c.tipo ?? ""] ?? "")}>
                 {TIPO_ROTULO[c.tipo ?? ""] ?? c.tipo ?? "—"}
               </Badge>
               {c.camada && (
