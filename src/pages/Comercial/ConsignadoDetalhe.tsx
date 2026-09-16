@@ -140,6 +140,7 @@ interface AcertoRow {
   periodo_inicio: string | null;
   periodo_fim: string | null;
   relatorio_path: string | null;
+  titulo_acerto_id: string | null;
 }
 
 interface AcertoItemRow {
@@ -411,7 +412,7 @@ export default function ConsignadoDetalhe() {
     queryFn: async (): Promise<AcertoRow[]> => {
       const { data, error } = await (supabase as any)
         .from("consignado_acerto")
-        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path")
+        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path, titulo_acerto_id")
         .eq("parceiro_id", parceiroId)
         .order("competencia", { ascending: false, nullsFirst: false });
       if (error) throw error;
