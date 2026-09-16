@@ -251,6 +251,7 @@ Deno.serve(async (req) => {
       data: parsed.data ? String(parsed.data) : "",
       chave: parsed.chave ? String(parsed.chave) : "",
       pagador: parsed.pagador ? String(parsed.pagador) : "",
+      pagador_documento: parsed.pagador_documento ? String(parsed.pagador_documento) : "",
       beneficiario_nome: parsed.beneficiario_nome ? String(parsed.beneficiario_nome) : "",
       beneficiario_cnpj: parsed.beneficiario_cnpj ? String(parsed.beneficiario_cnpj) : "",
       instituicao: parsed.instituicao ? String(parsed.instituicao) : "",
