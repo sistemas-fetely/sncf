@@ -99929,6 +99929,10 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      descartar_acerto_rascunho: {
+        Args: { p_acerto_id: string }
+        Returns: Json
+      }
       descartar_ofx_stage: {
         Args: { p_importacao_stage_id: string }
         Returns: Json
