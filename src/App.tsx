@@ -457,9 +457,14 @@ const App = () => (
                 } />
               </Route>
 
-              {/* UMA-PORTA-SO: a lista de consignados deixou de ser aba da Casa dos Pedidos. */}
-              <Route path="/comercial/consignados" element={<Consignados />} />
-              <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
+              {/* UMA-PORTA-SO: a lista de consignados deixou de ser aba da Casa dos Pedidos.
+                  MESMA-CASCA-DO-PILAR (16/09/2026): as duas rotas moram no VendasLayout,
+                  a mesma sidebar do SOPs que /cliente usa — antes renderizavam fora
+                  do layout, sem o menu lateral. */}
+              <Route element={<VendasLayout />}>
+                <Route path="/comercial/consignados" element={<Consignados />} />
+                <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
+              </Route>
 
 
 
