@@ -27,26 +27,45 @@ Deno.serve(async (req) => {
     const filaId: string | null = body?.fila_id ?? null;
 
     // FASE 5 12/09/2026 — CONCESSAO-QUE-NAO-TRANCA-E-MENTIRA.
-    // A trava valida o USUÁRIO chamador. Service role (cron em lote) passa —
+    // A trava valida o USUÁRIO chamador. Service role passa —
     // máquina não tem auth.uid(); chamada anônima é recusada.
+    //
+    // PORTA DE MÁQUINA (x-cron-secret): os crons do sistema não chamam com
+    // SERVICE_ROLE_KEY — mandam a ANON key no Authorization. O cron de lote
+    // se autentica pelo header `x-cron-secret` (mesmo padrão da
+    // sync-bling-financeiro), guardado no vault (SYNC_CRON_SECRET). Essa
+    // porta só vale em modo LOTE (filaId null): envio unitário é decisão
+    // humana e continua exigindo a permissão do usuário.
     const authHeader = req.headers.get("Authorization");
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const tokenChamador = (authHeader ?? "").replace("Bearer ", "");
     if (!tokenChamador) return json({ ok: false, error: "Não autorizado" }, 401);
     if (!(serviceKey && tokenChamador === serviceKey)) {
-      const sbUser = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader! } } },
-      );
-      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
-        p_slug: "acao.empurrar_nf_xpm",
-      });
-      if (ePerm || permitido !== true) {
-        return json(
-          { error: "Sem permissão (acao.empurrar_nf_xpm). Concessão é feita no Console de Acesso." },
-          403,
+      const cronSecretHeader = req.headers.get("x-cron-secret");
+      if (cronSecretHeader && filaId === null) {
+        // Chamador máquina em modo lote: valida contra o vault.
+        const { data: segredo, error: eSeg } = await sb.rpc("get_vault_secret", {
+          p_name: "SYNC_CRON_SECRET",
+        });
+        if (eSeg || !segredo || segredo !== cronSecretHeader) {
+          return json({ error: "Credencial de máquina inválida (x-cron-secret)." }, 403);
+        }
+      } else {
+        // Chamador humano (ou máquina tentando envio unitário — recusada aqui).
+        const sbUser = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader! } } },
         );
+        const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+          p_slug: "acao.empurrar_nf_xpm",
+        });
+        if (ePerm || permitido !== true) {
+          return json(
+            { error: "Sem permissão (acao.empurrar_nf_xpm). Concessão é feita no Console de Acesso." },
+            403,
+          );
+        }
       }
     }
 
