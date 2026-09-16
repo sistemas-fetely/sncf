@@ -3091,6 +3091,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "auditoria_achado_evento_achado_id_fkey"
+            columns: ["achado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_incidente"
+            referencedColumns: ["achado_id"]
+          },
+          {
             foreignKeyName: "auditoria_achado_evento_execucao_id_fkey"
             columns: ["execucao_id"]
             isOneToOne: false
@@ -67558,6 +67565,164 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_chamado_incidente: {
+        Row: {
+          achado_id: string | null
+          causa: string | null
+          chamado_id: string | null
+          chave: string | null
+          entidade: string | null
+          id_externo: string | null
+          parceiro: string | null
+          pedido_id: string | null
+          pedido_ref: string | null
+          primeira_vez_em: string | null
+          regra_slug: string | null
+          regra_titulo: string | null
+          severidade: string | null
+          situacao: string | null
+          sumiu_em: string | null
+          ultima_vez_em: string | null
+          valor: number | null
+          vezes_visto: number | null
+          vivo: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_entidade_fkey"
+            columns: ["entidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_entidade_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "auditoria_regra"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_regra_slug_fkey"
+            columns: ["regra_slug"]
+            isOneToOne: false
+            referencedRelation: "vw_auditoria_painel"
+            referencedColumns: ["regra_slug"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_situacao_fkey"
+            columns: ["situacao"]
+            isOneToOne: false
+            referencedRelation: "auditoria_situacao_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_severidade_fkey"
+            columns: ["severidade"]
+            isOneToOne: false
+            referencedRelation: "auditoria_severidade_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vw_chamado_incidente_causa: {
+        Row: {
+          causa: string | null
+          chamado_id: string | null
+          com_pedido: number | null
+          desde: string | null
+          incidentes: number | null
+          resolvidos: number | null
+          visto_por_ultimo: string | null
+          vivos: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
+          },
+        ]
+      }
       vw_chamado_lista: {
         Row: {
           assunto: string | null
@@ -83791,14 +83956,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -86280,14 +86445,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -95374,14 +95539,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]

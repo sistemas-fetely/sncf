@@ -66,12 +66,16 @@ export function SolicitacoesSopsAba() {
           {solicitacoes.map((s) => (
             <TableRow key={s.id}>
               <TableCell>
-                <Link
-                  to={`/pedidos/${s.pedido_id}`}
-                  className="font-medium text-primary underline underline-offset-2 hover:no-underline"
-                >
-                  {s.pedido_id_externo || s.pedido_id.slice(0, 8)}
-                </Link>
+                {s.pedido_id ? (
+                  <Link
+                    to={`/pedidos/${s.pedido_id}`}
+                    className="font-medium text-primary underline underline-offset-2 hover:no-underline"
+                  >
+                    {s.pedido_id_externo || s.pedido_id.slice(0, 8)}
+                  </Link>
+                ) : (
+                  <span className="text-sm text-muted-foreground">sem pedido</span>
+                )}
                 <p className="text-xs text-muted-foreground truncate">{s.cliente_razao || "—"}</p>
               </TableCell>
               <TableCell className="text-sm">
