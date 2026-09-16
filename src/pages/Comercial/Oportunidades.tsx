@@ -552,9 +552,9 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               <Badge
                                 variant="outline"
                                 className="rounded px-1.5 py-0 text-[10px] border-primary/50 text-primary"
-                                title="Solicitações abertas no SOPS"
+                                title="Chamados abertos no SOPS"
                               >
-                                SOPS {r.solicitacoes_abertas}
+                                Chamados {r.solicitacoes_abertas}
                               </Badge>
                             )}
                             {r.nf_numero && (

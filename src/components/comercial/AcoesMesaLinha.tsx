@@ -115,7 +115,7 @@ export function AcoesMesaLinha({
     });
   }
 
-  // "Solicitar ao SOPS" tem gate próprio dentro do componente da ação.
+  // "Abrir chamado" tem gate próprio dentro do componente da ação.
   const visiveis = acoes.slice(0, 3);
   const excedente = acoes.slice(3);
   const ehAcaoDeNf = (chave: string) => chave === "pdf" || chave === "xml";
