@@ -240,6 +240,9 @@ export default function ConsignadoDetalhe() {
       "consignado-estoque-estimado",
       "consignado-acertos",
       "consignado-acerto-itens",
+      "consignado-acerto-detalhe-itens",
+      "consignado-itens-acertos",
+      "consignado-parceiro",
     ].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   };
 
