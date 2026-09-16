@@ -14,6 +14,16 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -535,6 +545,30 @@ export default function ConsignadoDetalhe() {
       await invalidarTudo();
     },
     onError: (e: Error) => toast.error("Falha ao confirmar acerto", { description: e.message }),
+  });
+
+  const [descartarAberto, setDescartarAberto] = useState(false);
+  const descartarRascunho = useMutation({
+    mutationFn: async () => {
+      if (!rascunho) throw new Error("Não há acerto em rascunho.");
+      const { data, error } = await (supabase as any).rpc("descartar_acerto_rascunho", {
+        p_acerto_id: rascunho.id,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async (d) => {
+      const desc =
+        typeof d === "string" && d.trim()
+          ? d
+          : d && Object.keys(d as object).length > 0
+            ? JSON.stringify(d)
+            : undefined;
+      toast.success("Rascunho descartado", { description: desc });
+      setDescartarAberto(false);
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao descartar o rascunho", { description: e.message }),
   });
 
   // ── retorno de consignação ────────────────────────────────────────────
@@ -1152,10 +1186,45 @@ export default function ConsignadoDetalhe() {
                       <Button variant="outline" onClick={() => setAcertoAbertoId(rascunho.id)}>
                         Ver acerto
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-destructive hover:text-destructive"
+                        disabled={descartarRascunho.isPending}
+                        onClick={() => setDescartarAberto(true)}
+                      >
+                        <Trash2 className="h-4 w-4" /> Descartar rascunho
+                      </Button>
                       <span className="text-sm text-muted-foreground tabular-nums">
                         Valor do acerto: {formatBRL(rascunho.valor_total)}
                       </span>
                     </div>
+
+                    <AlertDialog open={descartarAberto} onOpenChange={setDescartarAberto}>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Descartar rascunho</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Descartar o rascunho {rascunho.numero ?? ""}? Ele nunca foi confirmado — nada
+                            aconteceu no mundo. A competência fica livre para reabrir.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel disabled={descartarRascunho.isPending}>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            disabled={descartarRascunho.isPending}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              descartarRascunho.mutate();
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {descartarRascunho.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                            Descartar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </>
                 )}
     
