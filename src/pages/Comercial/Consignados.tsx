@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatCNPJ } from "@/lib/cnpj";
+import { useKpiConsignado, type KpiConsignadoRow } from "./consignado/VisaoConsignado";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PainelGeralConsignados } from "./consignado/PainelGeralConsignados";
@@ -61,17 +63,29 @@ export function useContaCorrenteCliente(parceiroId?: string) {
   });
 }
 
+const num = (v: unknown) => Number(v ?? 0);
+const pct = (v: number) =>
+  `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+const qtd = (v: unknown) => num(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const parceirosQ = useParceirosConsignados();
   const contaQ = useContaCorrenteCliente();
+  const kpiQ = useKpiConsignado();
 
   const saldoPorParceiro = useMemo(() => {
     const m = new Map<string, ContaCorrenteRow>();
     for (const r of contaQ.data ?? []) m.set(r.parceiro_id, r);
     return m;
   }, [contaQ.data]);
+
+  const kpiPorParceiro = useMemo(() => {
+    const m = new Map<string, KpiConsignadoRow>();
+    for (const r of kpiQ.data ?? []) m.set(r.parceiro_id, r);
+    return m;
+  }, [kpiQ.data]);
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -128,56 +142,104 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
               Nenhum parceiro em regime de conta corrente.
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Parceiro</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead className="text-right">Documentado</TableHead>
-                  <TableHead className="text-right">Pago</TableHead>
-                  <TableHead className="text-right">Saldo devedor</TableHead>
-                  <TableHead>Último pagamento</TableHead>
-                  <TableHead className="w-8" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {linhas.map((p) => {
-                  const cc = saldoPorParceiro.get(p.id);
-                  const saldo = Number(cc?.saldo_devedor ?? 0);
-                  return (
-                    <TableRow
-                      key={p.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/comercial/consignados/${p.id}`)}
-                    >
-                      <TableCell className="font-medium">
-                        {p.razao_social}
-                        {p.nome_fantasia && (
-                          <span className="block text-xs text-muted-foreground">{p.nome_fantasia}</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-xs tabular-nums">{p.cnpj ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">{formatBRL(cc?.documentado)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-sm">{formatBRL(cc?.pago)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <Badge
-                          variant="outline"
-                          className={saldo > 0 ? "border-warning/40 text-warning" : "text-muted-foreground"}
-                        >
-                          {formatBRL(saldo)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDateBR(cc?.ultimo_pagamento)}
-                      </TableCell>
-                      <TableCell>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead rowSpan={2} className="align-bottom">
+                      Parceiro
+                    </TableHead>
+                    <TableHead colSpan={4} className="text-center border-b">
+                      Dinheiro
+                    </TableHead>
+                    <TableHead colSpan={6} className="text-center border-b">
+                      Negócio
+                    </TableHead>
+                    <TableHead rowSpan={2} className="w-8" />
+                  </TableRow>
+                  <TableRow>
+                    <TableHead className="text-right">Documentado</TableHead>
+                    <TableHead className="text-right">Pago</TableHead>
+                    <TableHead className="text-right">Saldo devedor</TableHead>
+                    <TableHead>Último pagamento</TableHead>
+                    <TableHead className="text-right">Giro %</TableHead>
+                    <TableHead className="text-right">Margem %</TableHead>
+                    <TableHead className="text-right">Capital parado</TableHead>
+                    <TableHead className="text-right">Ritmo/semana</TableHead>
+                    <TableHead className="text-right">Meses p/ escoar</TableHead>
+                    <TableHead className="text-right">Ciclos</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {linhas.map((p) => {
+                    const cc = saldoPorParceiro.get(p.id);
+                    const saldo = Number(cc?.saldo_devedor ?? 0);
+                    const kpi = kpiPorParceiro.get(p.id);
+                    const semCiclo = !kpi || num(kpi.n_ciclos) === 0;
+                    const fantasia = p.nome_fantasia?.trim() ?? "";
+                    const fantasiaDistinta =
+                      fantasia !== "" && fantasia.toLowerCase() !== p.razao_social?.toLowerCase();
+                    return (
+                      <TableRow
+                        key={p.id}
+                        className="cursor-pointer"
+                        onClick={() => navigate(`/comercial/consignados/${p.id}`)}
+                      >
+                        <TableCell className="font-medium">
+                          {p.razao_social}
+                          {(fantasiaDistinta || p.cnpj) && (
+                            <span className="block text-xs text-muted-foreground">
+                              {fantasiaDistinta && <span>{p.nome_fantasia}</span>}
+                              {fantasiaDistinta && p.cnpj && <span> · </span>}
+                              {p.cnpj && <span className="tabular-nums">{formatCNPJ(p.cnpj)}</span>}
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">{formatBRL(cc?.documentado)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">{formatBRL(cc?.pago)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          <Badge
+                            variant="outline"
+                            className={saldo > 0 ? "border-warning/40 text-warning" : "text-muted-foreground"}
+                          >
+                            {formatBRL(saldo)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDateBR(cc?.ultimo_pagamento)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {kpi ? pct(num(kpi.giro_pct)) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {semCiclo ? "—" : pct(num(kpi!.margem_pct))}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {kpi ? formatBRL(kpi.capital_parado) : "—"}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {semCiclo ? "—" : `${qtd(kpi!.ritmo_packs_semana)} packs`}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {semCiclo
+                            ? "—"
+                            : (num(kpi!.semanas_para_escoar) / 4.345).toLocaleString("pt-BR", {
+                                minimumFractionDigits: 1,
+                                maximumFractionDigits: 1,
+                              })}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-sm">
+                          {kpi ? num(kpi.n_ciclos) : "—"}
+                        </TableCell>
+                        <TableCell>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
