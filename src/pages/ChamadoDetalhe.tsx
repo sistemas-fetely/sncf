@@ -744,6 +744,8 @@ function ChamadoDetalheConteudo() {
               </CardContent>
             </Card>
 
+            {c.tipo === "problema" && id && <IncidentesDoProblema chamadoId={id} />}
+
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm">Conversa</CardTitle>
