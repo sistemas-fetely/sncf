@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -106,6 +106,8 @@ interface Chamado {
   pedido_id_externo: string | null;
   entidade_ref: string | null;
   motivo: string | null;
+  solucao: string | null;
+  criado_por: string | null;
   resolvido_em: string | null;
   fechado_em: string | null;
 }
@@ -135,12 +137,6 @@ interface Assunto {
   codigo: string | null;
   nome: string | null;
   descricao: string | null;
-}
-
-interface Motivo {
-  codigo: string;
-  nome: string | null;
-  remedio: string | null;
 }
 
 interface CadeiraAtendimento {
@@ -285,8 +281,6 @@ function ChamadoDetalheConteudo() {
 
   const [acao, setAcao] = useState<AcaoTipo | null>(null);
   const [motivo, setMotivo] = useState("");
-  const [nota, setNota] = useState("");
-  const [motivoCodigo, setMotivoCodigo] = useState("");
   const [assuntoId, setAssuntoId] = useState("");
   const [cadeiraDestino, setCadeiraDestino] = useState("");
   const [paraUser, setParaUser] = useState("");
@@ -295,6 +289,9 @@ function ChamadoDetalheConteudo() {
   const [texto, setTexto] = useState("");
   const [interna, setInterna] = useState(false);
   const [enviando, setEnviando] = useState(false);
+
+  const [solucao, setSolucao] = useState("");
+  const [salvandoSolucao, setSalvandoSolucao] = useState(false);
 
   const QK = useMemo(
     () => ({
@@ -362,19 +359,6 @@ function ChamadoDetalheConteudo() {
     },
   });
 
-  const motivosQ = useQuery({
-    queryKey: ["demanda_motivo", "ativos"],
-    queryFn: async (): Promise<Motivo[]> => {
-      const { data, error } = await supabase
-        .from("demanda_motivo")
-        .select("codigo, nome, remedio")
-        .eq("ativo", true)
-        .order("ordem", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as unknown as Motivo[];
-    },
-  });
-
   const cadeirasQ = useQuery({
     queryKey: ["vw_cadeira_atendimento"],
     queryFn: async (): Promise<CadeiraAtendimento[]> => {
@@ -400,6 +384,10 @@ function ChamadoDetalheConteudo() {
 
   const c = chamadoQ.data ?? null;
 
+  useEffect(() => {
+    setSolucao(c?.solucao ?? "");
+  }, [c?.solucao]);
+
   async function invalidar() {
     await Promise.all([
       qc.invalidateQueries({ queryKey: QK.chamado }),
@@ -413,8 +401,6 @@ function ChamadoDetalheConteudo() {
   function abrir(tipoAcao: AcaoTipo) {
     setAcao(tipoAcao);
     setMotivo("");
-    setNota("");
-    setMotivoCodigo("");
     setAssuntoId("");
     setCadeiraDestino("");
     setParaUser("");
@@ -442,6 +428,24 @@ function ChamadoDetalheConteudo() {
       toast.error(formatError(e));
     } finally {
       setEnviando(false);
+    }
+  }
+
+  async function salvarSolucao() {
+    if (!id) return;
+    setSalvandoSolucao(true);
+    try {
+      const { error } = await supabase.rpc("salvar_solucao_chamado", {
+        p_chamado_id: id,
+        p_texto: solucao.trim(),
+      });
+      if (error) throw error;
+      toast.success("Solução salva.");
+      await invalidar();
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setSalvandoSolucao(false);
     }
   }
 
@@ -503,13 +507,12 @@ function ChamadoDetalheConteudo() {
         if (error) throw error;
         toast.success("Chamado devolvido.");
       } else if (acao === "resolver") {
-        const { error } = await supabase.rpc("atender_solicitacao_comercial", {
-          p_solicitacao_id: id,
-          p_nota: nota.trim() || null,
-          p_motivo_codigo: motivoCodigo,
+        const { error } = await supabase.rpc("resolver_chamado", {
+          p_chamado_id: id,
+          p_solucao: solucao.trim(),
         });
         if (error) throw error;
-        toast.success("Chamado resolvido.");
+        toast.success("Chamado resolvido e fechado.");
       } else if (acao === "fechar") {
         const { error } = await supabase.rpc("fechar_chamado", { p_chamado_id: id });
         if (error) throw error;
@@ -538,8 +541,7 @@ function ChamadoDetalheConteudo() {
     (acao === "reabrir" && !motivo.trim()) ||
     (acao === "devolver" && !motivo.trim()) ||
     (acao === "escalar" && (!motivo.trim() || !cadeiraDestino)) ||
-    (acao === "classificar" && !assuntoId) ||
-    (acao === "resolver" && !motivoCodigo);
+    (acao === "classificar" && !assuntoId);
 
   if (chamadoQ.isError) {
     return (
@@ -600,10 +602,14 @@ function ChamadoDetalheConteudo() {
     onClick,
     children,
     variant = "outline",
+    desabilitado,
+    dicaDesabilitado,
   }: {
     onClick: () => void;
     children: React.ReactNode;
     variant?: "default" | "outline" | "destructive" | "secondary";
+    desabilitado?: boolean;
+    dicaDesabilitado?: string;
   }) {
     if (acaoBloqueada) {
       return (
@@ -616,6 +622,20 @@ function ChamadoDetalheConteudo() {
             </span>
           </TooltipTrigger>
           <TooltipContent>Você tem acesso somente leitura nesta tela</TooltipContent>
+        </Tooltip>
+      );
+    }
+    if (desabilitado) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="block">
+              <Button variant={variant} className="w-full justify-start" disabled>
+                {children}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{dicaDesabilitado}</TooltipContent>
         </Tooltip>
       );
     }
@@ -723,7 +743,6 @@ function ChamadoDetalheConteudo() {
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertDescription>
                   Aguardando confirmação do solicitante — fecha sozinho em 3 dias úteis.
-                  {c.motivo ? ` Motivo do fechamento: ${c.motivo}.` : ""}
                 </AlertDescription>
               </Alert>
             )}
@@ -740,6 +759,41 @@ function ChamadoDetalheConteudo() {
               <CardContent>
                 <p className="whitespace-pre-wrap text-sm">
                   {c.detalhe ?? "Sem descrição."}
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Solução encontrada e realizada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {emAberto && podeEditar ? (
+                  <>
+                    <Textarea
+                      value={solucao}
+                      onChange={(e) => setSolucao(e.target.value)}
+                      rows={4}
+                      placeholder="O que foi encontrado e o que foi feito para resolver"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={salvarSolucao}
+                        disabled={salvandoSolucao}
+                      >
+                        {salvandoSolucao ? "Salvando..." : "Salvar solução"}
+                      </Button>
+                    </div>
+                  </>
+                ) : c.solucao ? (
+                  <p className="whitespace-pre-wrap text-sm">{c.solucao}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ainda não escrita.</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  O solicitante lê esta solução. Escreva pensando nele.
                 </p>
               </CardContent>
             </Card>
@@ -907,21 +961,26 @@ function ChamadoDetalheConteudo() {
                   </BotaoAcao>
                 )}
                 {emAberto && (
-                  <BotaoAcao variant="default" onClick={() => abrir("resolver")}>
+                  <BotaoAcao
+                    variant="default"
+                    onClick={() => abrir("resolver")}
+                    desabilitado={!solucao.trim()}
+                    dicaDesabilitado="Escreva a solução antes de resolver."
+                  >
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Resolver
                   </BotaoAcao>
                 )}
                 {resolvido && (
-                  <>
-                    <BotaoAcao variant="default" onClick={() => abrir("fechar")}>
-                      <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar fechamento
-                    </BotaoAcao>
-                    <BotaoAcao onClick={() => abrir("reabrir")}>
-                      <RotateCcw className="mr-2 h-4 w-4" /> Reabrir
-                    </BotaoAcao>
-                  </>
+                  <BotaoAcao variant="default" onClick={() => abrir("fechar")}>
+                    <CheckCircle2 className="mr-2 h-4 w-4" /> Confirmar fechamento
+                  </BotaoAcao>
                 )}
-                {encerrado && (
+                {(resolvido || status === "fechado") && (
+                  <BotaoAcao onClick={() => abrir("reabrir")}>
+                    <RotateCcw className="mr-2 h-4 w-4" /> Reabrir
+                  </BotaoAcao>
+                )}
+                {status === "cancelado" && (
                   <p className="text-sm text-muted-foreground">
                     Chamado {STATUS_ROTULO[status] ?? status}
                     {c.fechado_em ? ` em ${fmtDataHora(c.fechado_em)}` : ""}. Nada a fazer.
@@ -1102,47 +1161,10 @@ function ChamadoDetalheConteudo() {
               )}
 
               {acao === "resolver" && (
-                <>
-                  <div className="space-y-1.5">
-                    <Label>Motivo do fechamento (obrigatório)</Label>
-                    {motivosQ.isError ? (
-                      <ErroQuery o_que="os motivos" erro={motivosQ.error} />
-                    ) : (
-                      <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              motivosQ.isLoading ? "Carregando..." : "Escolha o motivo"
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {(motivosQ.data ?? []).map((m) => (
-                            <SelectItem key={m.codigo} value={m.codigo}>
-                              {m.nome ?? m.codigo}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                    {motivoCodigo && (
-                      <p className="text-xs text-muted-foreground">
-                        {(motivosQ.data ?? []).find((m) => m.codigo === motivoCodigo)
-                          ?.remedio ?? ""}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="nota">Nota de resolução (opcional)</Label>
-                    <Textarea
-                      id="nota"
-                      value={nota}
-                      onChange={(e) => setNota(e.target.value)}
-                      rows={4}
-                      placeholder="O que foi feito para resolver?"
-                    />
-                  </div>
-                </>
+                <p className="text-sm text-muted-foreground">
+                  Resolver encerra o chamado agora. O solicitante pode reabrir em até 3
+                  dias úteis.
+                </p>
               )}
 
               {(acao === "pausar" ||
