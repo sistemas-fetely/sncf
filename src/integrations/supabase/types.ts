@@ -12410,6 +12410,7 @@ export type Database = {
           pedido_sintetico_id: string | null
           periodo_fim: string | null
           periodo_inicio: string | null
+          relatorio_path: string | null
           status: string
           titulo_id: string | null
           updated_at: string
@@ -12430,6 +12431,7 @@ export type Database = {
           pedido_sintetico_id?: string | null
           periodo_fim?: string | null
           periodo_inicio?: string | null
+          relatorio_path?: string | null
           status?: string
           titulo_id?: string | null
           updated_at?: string
@@ -12450,6 +12452,7 @@ export type Database = {
           pedido_sintetico_id?: string | null
           periodo_fim?: string | null
           periodo_inicio?: string | null
+          relatorio_path?: string | null
           status?: string
           titulo_id?: string | null
           updated_at?: string
@@ -99081,6 +99084,10 @@ export type Database = {
         Args: { p_boleto_stage_id: string; p_cpr_id: string }
         Returns: Json
       }
+      anexar_relatorio_acerto: {
+        Args: { p_acerto_id: string; p_path: string }
+        Returns: Json
+      }
       anexar_titulo_pago_a_credito: {
         Args: {
           p_movimentacao_id: string
@@ -99160,6 +99167,15 @@ export type Database = {
       }
       aprovar_nf_pj: {
         Args: { _nota_id: string; _observacao_rh?: string }
+        Returns: Json
+      }
+      arbitrar_limite_conta_corrente: {
+        Args: {
+          p_limite: number
+          p_parceiro_id: string
+          p_parecer?: string
+          p_validade?: string
+        }
         Returns: Json
       }
       atender_solicitacao_comercial: {
@@ -102199,6 +102215,10 @@ export type Database = {
         Returns: Json
       }
       limpar_rascunhos_antigos: { Args: never; Returns: number }
+      liquidar_acerto_manual: {
+        Args: { p_acerto_id: string; p_data?: string; p_nota?: string }
+        Returns: Json
+      }
       listar_faturas_disponiveis_para_planilha: {
         Args: { p_planilha_id: string }
         Returns: {

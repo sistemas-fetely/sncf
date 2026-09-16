@@ -19,12 +19,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   Loader2, AlertTriangle, Plus, Trash2, ExternalLink, HandCoins, Boxes, Undo2, Copy,
-  ClipboardPaste, Search,
+  ClipboardPaste, Search, Gavel, Download, Upload, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { estaVencido } from "@/lib/data";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
 
 /**
@@ -125,6 +126,9 @@ interface AcertoRow {
   valor_total: number | null;
   pedido_sintetico_id: string | null;
   data_confirmacao: string | null;
+  periodo_inicio: string | null;
+  periodo_fim: string | null;
+  relatorio_path: string | null;
 }
 
 interface AcertoItemRow {
@@ -236,6 +240,9 @@ export default function ConsignadoDetalhe() {
       "consignado-estoque-estimado",
       "consignado-acertos",
       "consignado-acerto-itens",
+      "consignado-acerto-detalhe-itens",
+      "consignado-itens-acertos",
+      "consignado-parceiro",
     ].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   };
 
@@ -393,7 +400,7 @@ export default function ConsignadoDetalhe() {
     queryFn: async (): Promise<AcertoRow[]> => {
       const { data, error } = await (supabase as any)
         .from("consignado_acerto")
-        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao")
+        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path")
         .eq("parceiro_id", parceiroId)
         .order("competencia", { ascending: false, nullsFirst: false });
       if (error) throw error;
@@ -418,6 +425,42 @@ export default function ConsignadoDetalhe() {
         .order("sku");
       if (error) throw error;
       return (data ?? []) as AcertoItemRow[];
+    },
+  });
+
+  // ── acerto de primeira classe: dialog de detalhe ───────────────────────
+  const [acertoAbertoId, setAcertoAbertoId] = useState<string | null>(null);
+  const acertoAberto = useMemo(
+    () => (acertosQ.data ?? []).find((a) => a.id === acertoAbertoId) ?? null,
+    [acertosQ.data, acertoAbertoId],
+  );
+
+  const itensAcertoQ = useQuery({
+    queryKey: ["consignado-acerto-detalhe-itens", acertoAbertoId],
+    enabled: !!acertoAbertoId,
+    queryFn: async (): Promise<AcertoItemRow[]> => {
+      const { data, error } = await (supabase as any)
+        .from("consignado_acerto_item")
+        .select("id, sku, descricao, quantidade, valor_unitario, valor_total")
+        .eq("acerto_id", acertoAbertoId)
+        .order("valor_total", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as AcertoItemRow[];
+    },
+  });
+
+  // ── inteligência de reposição: itens de todos os acertos do parceiro ────
+  const itensAcertosQ = useQuery({
+    queryKey: ["consignado-itens-acertos", parceiroId],
+    enabled: !!parceiroId && modelo === "venda_com_acerto",
+    queryFn: async (): Promise<Array<{ sku: string | null; descricao: string | null; quantidade: number | null }>> => {
+      const { data, error } = await (supabase as any)
+        .from("consignado_acerto_item")
+        .select("sku, descricao, quantidade, consignado_acerto!inner(parceiro_id, status)")
+        .eq("consignado_acerto.parceiro_id", parceiroId)
+        .neq("consignado_acerto.status", "cancelado");
+      if (error) throw error;
+      return (data ?? []) as Array<{ sku: string | null; descricao: string | null; quantidade: number | null }>;
     },
   });
 
@@ -590,6 +633,108 @@ export default function ConsignadoDetalhe() {
     onError: (e: Error) => toast.error("Importação recusada pelo banco", { description: e.message }),
   });
 
+  // ── arbitrar limite ────────────────────────────────────────────────────
+  // A RPC é guardada por acao.credito_decidir; o botão só aparece pra quem tem.
+  const { permitido: podeArbitrar } = usePermissaoAcaoOuSuperAdmin("acao.credito_decidir");
+  const [arbitrarAberto, setArbitrarAberto] = useState(false);
+  const [arbLimite, setArbLimite] = useState("");
+  const [arbValidade, setArbValidade] = useState("");
+  const [arbParecer, setArbParecer] = useState("");
+
+  const arbitrarLimite = useMutation({
+    mutationFn: async () => {
+      const valor = Number(arbLimite);
+      if (!Number.isFinite(valor)) throw new Error("Informe o limite em reais.");
+      const { data, error } = await (supabase as any).rpc("arbitrar_limite_conta_corrente", {
+        p_parceiro_id: parceiroId,
+        p_limite: valor,
+        p_validade: arbValidade || null,
+        p_parecer: arbParecer.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async (d) => {
+      toast.success("Limite arbitrado", {
+        description: `${formatBRL(Number(d?.antes ?? 0))} → ${formatBRL(Number(d?.depois ?? 0))}`,
+      });
+      setArbitrarAberto(false);
+      setArbLimite("");
+      setArbValidade("");
+      setArbParecer("");
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao arbitrar limite", { description: e.message }),
+  });
+
+  // ── anexo do relatório do acerto ───────────────────────────────────────
+  const [arquivoAnexo, setArquivoAnexo] = useState<File | null>(null);
+
+  const anexarRelatorio = useMutation({
+    mutationFn: async () => {
+      if (!acertoAberto) throw new Error("Nenhum acerto selecionado.");
+      if (!arquivoAnexo) throw new Error("Escolha um arquivo.");
+      const nomeLimpo = arquivoAnexo.name.replace(/[^\w.\-]+/g, "-");
+      const caminho = `${acertoAberto.id}/${nomeLimpo}`;
+      const up = await supabase.storage
+        .from("consignado-acertos")
+        .upload(caminho, arquivoAnexo, { upsert: true });
+      if (up.error) throw new Error(up.error.message);
+      const { error } = await (supabase as any).rpc("anexar_relatorio_acerto", {
+        p_acerto_id: acertoAberto.id,
+        p_path: caminho,
+      });
+      if (error) throw new Error(error.message);
+      return caminho;
+    },
+    onSuccess: async () => {
+      toast.success("Relatório anexado ao acerto");
+      setArquivoAnexo(null);
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao anexar o relatório", { description: e.message }),
+  });
+
+  const baixarRelatorio = useMutation({
+    mutationFn: async (caminho: string) => {
+      const { data, error } = await supabase.storage
+        .from("consignado-acertos")
+        .createSignedUrl(caminho, 60 * 10);
+      if (error) throw new Error(error.message);
+      if (!data?.signedUrl) throw new Error("O banco não devolveu o link do arquivo.");
+      return data.signedUrl;
+    },
+    onSuccess: (url) => window.open(url, "_blank", "noopener,noreferrer"),
+    onError: (e: Error) => toast.error("Falha ao baixar o relatório", { description: e.message }),
+  });
+
+  // ── liquidação manual ──────────────────────────────────────────────────
+  // CRÉDITO GUARDA EMBARQUE, NÃO RECEBIMENTO: receber dinheiro nunca trava.
+  const [liqData, setLiqData] = useState(() => new Date().toISOString().slice(0, 10));
+  const [liqNota, setLiqNota] = useState("");
+
+  const liquidarManual = useMutation({
+    mutationFn: async () => {
+      if (!acertoAberto) throw new Error("Nenhum acerto selecionado.");
+      const { data, error } = await (supabase as any).rpc("liquidar_acerto_manual", {
+        p_acerto_id: acertoAberto.id,
+        p_data: liqData || null,
+        p_nota: liqNota.trim() || null,
+      });
+      if (error) throw new Error(error.message);
+      return data as Record<string, unknown>;
+    },
+    onSuccess: async () => {
+      toast.success("Acerto marcado como liquidado");
+      setLiqNota("");
+      setAcertoAbertoId(null);
+      await invalidarTudo();
+    },
+    onError: (e: Error) => toast.error("Falha ao liquidar o acerto", { description: e.message }),
+  });
+
+
+
   const nome = parceiroQ.data?.razao_social ?? "Parceiro";
   const rotuloModelo = ehConsignacaoFiscal
     ? "Consignação fiscal"
@@ -653,6 +798,69 @@ export default function ConsignadoDetalhe() {
       ? "aguardando pagamento"
       : resumo?.acerto_vivo_status ?? null;
 
+  // ── inteligência de reposição (cálculo de leitura, no front) ────────────
+  // Réplica da seção de reposição do relatório do parceiro: vendido nos acertos
+  // ÷ semanas do período apurado do último acerto = ritmo semanal.
+  const vendidoPorSku = useMemo(() => {
+    const mapa = new Map<string, { sku: string; descricao: string | null; quantidade: number }>();
+    for (const item of itensAcertosQ.data ?? []) {
+      if (!item.sku) continue;
+      const atual = mapa.get(item.sku);
+      const qtd = Number(item.quantidade ?? 0);
+      if (atual) {
+        atual.quantidade += qtd;
+        if (!atual.descricao) atual.descricao = item.descricao;
+      } else {
+        mapa.set(item.sku, { sku: item.sku, descricao: item.descricao, quantidade: qtd });
+      }
+    }
+    return mapa;
+  }, [itensAcertosQ.data]);
+
+  const topVendidos = useMemo(
+    () => [...vendidoPorSku.values()].sort((a, b) => b.quantidade - a.quantidade).slice(0, 5),
+    [vendidoPorSku],
+  );
+
+  const ultimoPeriodo = useMemo(
+    () => (acertosQ.data ?? []).find((a) => a.periodo_inicio && a.periodo_fim) ?? null,
+    [acertosQ.data],
+  );
+
+  const semanasPeriodo = useMemo(() => {
+    if (!ultimoPeriodo?.periodo_inicio || !ultimoPeriodo?.periodo_fim) return 1;
+    const dias =
+      (new Date(ultimoPeriodo.periodo_fim).getTime() - new Date(ultimoPeriodo.periodo_inicio).getTime())
+      / 86_400_000;
+    return Math.max(1, dias / 7);
+  }, [ultimoPeriodo]);
+
+  const cobertura = useMemo(() => {
+    const estimadoPorSku = new Map(
+      (estoqueEstimadoQ.data ?? [])
+        .filter((e) => !!e.sku)
+        .map((e) => [e.sku as string, Number(e.estoque_estimado ?? 0)]),
+    );
+    return [...vendidoPorSku.values()]
+      .filter((v) => v.quantidade > 0)
+      .map((v) => {
+        const estimado = estimadoPorSku.get(v.sku) ?? 0;
+        const porSemana = v.quantidade / semanasPeriodo;
+        return {
+          sku: v.sku,
+          descricao: v.descricao,
+          estimado,
+          porSemana,
+          semanas: porSemana > 0 ? estimado / porSemana : null,
+        };
+      })
+      .sort((a, b) => (a.semanas ?? Infinity) - (b.semanas ?? Infinity));
+  }, [vendidoPorSku, estoqueEstimadoQ.data, semanasPeriodo]);
+
+  const acabaPrimeiro = cobertura.filter((c) => c.semanas !== null && c.semanas < 8);
+
+
+
   return (
     <PageShell>
       <CasaPageHeader
@@ -675,6 +883,11 @@ export default function ConsignadoDetalhe() {
             >
               {creditoOk ? "Crédito ok" : "Crédito bloqueado"}
             </Badge>
+            {podeArbitrar && (
+              <Button variant="outline" size="sm" onClick={() => setArbitrarAberto(true)}>
+                <Gavel className="h-4 w-4" /> Arbitrar limite
+              </Button>
+            )}
             {limite && (
               <span className="text-[11px] text-muted-foreground tabular-nums">
                 {formatBRL(limite.limite_disponivel)} disponíveis · {limite.uso_pct ?? "—"}% usado
@@ -794,7 +1007,7 @@ export default function ConsignadoDetalhe() {
                       />
                     </div>
                     <Button
-                      disabled={abrirAcerto.isPending || !competencia || operacaoBloqueada}
+                      disabled={abrirAcerto.isPending || !competencia}
                       onClick={() => abrirAcerto.mutate()}
                     >
                       {abrirAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -876,7 +1089,7 @@ export default function ConsignadoDetalhe() {
                         </Button>
                         <Button
                           size="sm"
-                          disabled={salvarItens.isPending || operacaoBloqueada}
+                          disabled={salvarItens.isPending}
                           onClick={() => salvarItens.mutate()}
                         >
                           {salvarItens.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -885,7 +1098,6 @@ export default function ConsignadoDetalhe() {
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={operacaoBloqueada}
                           onClick={() => setImportAberto(true)}
                         >
                           <ClipboardPaste className="h-4 w-4" /> Importar relatório
@@ -930,13 +1142,15 @@ export default function ConsignadoDetalhe() {
                       <Button
                         disabled={
                           confirmarAcerto.isPending
-                          || operacaoBloqueada
                           || (itensRascunhoQ.data ?? []).length === 0
                         }
                         onClick={() => confirmarAcerto.mutate()}
                       >
                         {confirmarAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Confirmar acerto
+                      </Button>
+                      <Button variant="outline" onClick={() => setAcertoAbertoId(rascunho.id)}>
+                        Ver acerto
                       </Button>
                       <span className="text-sm text-muted-foreground tabular-nums">
                         Valor do acerto: {formatBRL(rascunho.valor_total)}
@@ -993,8 +1207,8 @@ export default function ConsignadoDetalhe() {
                     </TableHeader>
                     <TableBody>
                       {(acertosQ.data ?? []).map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="text-xs font-mono">{a.numero ?? "—"}</TableCell>
+                        <TableRow key={a.id} className="cursor-pointer" onClick={() => setAcertoAbertoId(a.id)}>
+                          <TableCell className="text-xs font-mono underline">{a.numero ?? "—"}</TableCell>
                           <TableCell className="text-xs">{formatDateBR(a.competencia)}</TableCell>
                           <TableCell>
                             <Badge variant={a.status === "rascunho" ? "outline" : "secondary"} className="text-[10px]">
@@ -1006,6 +1220,7 @@ export default function ConsignadoDetalhe() {
                             {a.pedido_sintetico_id ? (
                               <Link
                                 to={`/pedidos/${a.pedido_sintetico_id}`}
+                                onClick={(e) => e.stopPropagation()}
                                 className="inline-flex items-center gap-1 underline"
                               >
                                 abrir <ExternalLink className="h-3 w-3" />
@@ -1072,14 +1287,32 @@ export default function ConsignadoDetalhe() {
                     <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Saldo corrido</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {(extratoQ.data ?? []).map((l, i) => {
+                        // ACERTO É EVENTO, NÃO MOVIMENTO: valor NULL não vira R$ 0,00.
+                        const ehAcerto = l.tipo === "acerto";
+                        const ehRecebimento = l.tipo === "recebimento";
                         const v = Number(l.valor ?? 0);
                         const credito = v < 0;
                         return (
                           <TableRow key={`${l.ref ?? "l"}-${i}`} className={cn(l.nao_classificado && "bg-warning/10")}>
                             <TableCell className="whitespace-nowrap text-xs">{formatDateBR(l.data)}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px]">{l.tipo ?? "—"}</Badge></TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={ehRecebimento ? "outline" : "outline"}
+                                className={cn(
+                                  "text-[10px]",
+                                  ehAcerto && "border-gold/50 text-gold",
+                                  ehRecebimento && "border-success/40 bg-success/10 text-success",
+                                )}
+                              >
+                                {l.tipo ?? "—"}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-xs">{l.descricao ?? "—"}{l.pedido_ref && <span className="block text-muted-foreground">{l.pedido_ref}</span>}{l.nao_classificado && <span className="mt-0.5 flex items-center gap-1 text-warning"><AlertTriangle className="h-3 w-3" /> NF sem pedido vinculado</span>}</TableCell>
-                            <TableCell className={cn("text-right text-sm tabular-nums", credito ? "text-success" : "text-destructive")}>{credito ? "− " : "+ "}{formatBRL(Math.abs(v))}</TableCell>
+                            {l.valor === null || l.valor === undefined ? (
+                              <TableCell className="text-right text-sm tabular-nums text-muted-foreground">—</TableCell>
+                            ) : (
+                              <TableCell className={cn("text-right text-sm tabular-nums", credito ? "text-success" : "text-destructive")}>{credito ? "− " : "+ "}{formatBRL(Math.abs(v))}</TableCell>
+                            )}
                             <TableCell className="text-right text-sm tabular-nums">{formatBRL(l.saldo_corrido)}</TableCell>
                           </TableRow>
                         );
@@ -1109,6 +1342,68 @@ export default function ConsignadoDetalhe() {
               </div>
             </div>
           </div>
+
+          {!ehConsignacaoFiscal && (topVendidos.length > 0 || cobertura.length > 0) && (
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))]">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Top vendidos</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  {topVendidos.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem venda reportada.</p>
+                  ) : topVendidos.map((t) => (
+                    <div key={t.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{t.descricao ?? t.sku}</span>
+                      <span className="tabular-nums font-medium">{t.quantidade}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Cobertura</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  <p className="text-[11px] text-muted-foreground">
+                    Ritmo do período apurado ({semanasPeriodo.toFixed(1)} semana(s)).
+                  </p>
+                  {cobertura.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sem itens com venda.</p>
+                  ) : cobertura.slice(0, 8).map((c) => (
+                    <div key={c.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{c.descricao ?? c.sku}</span>
+                      <span className="tabular-nums text-muted-foreground">
+                        {c.semanas === null ? "—" : `${c.semanas.toFixed(1)} sem`}
+                      </span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm">Acaba primeiro</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1.5 pt-0">
+                  {acabaPrimeiro.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Nada abaixo de 8 semanas.</p>
+                  ) : acabaPrimeiro.slice(0, 8).map((c) => (
+                    <div key={c.sku} className="flex items-baseline justify-between gap-2 text-xs">
+                      <span className="truncate">{c.descricao ?? c.sku}</span>
+                      {c.estimado === 0 ? (
+                        <Badge variant="destructive" className="text-[10px]">esgotado</Badge>
+                      ) : (
+                        <span className="tabular-nums text-warning">{c.semanas?.toFixed(1)} sem</span>
+                      )}
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
           <Card>
             <CardContent className="overflow-x-auto p-0">
               {ehConsignacaoFiscal ? (
@@ -1341,6 +1636,154 @@ export default function ConsignadoDetalhe() {
             </div>
           )}
         </DialogContent>
-      </Dialog>    </PageShell>
+      </Dialog>
+
+      {/* Arbitrar limite — a RPC é guardada por acao.credito_decidir */}
+      <Dialog open={arbitrarAberto} onOpenChange={setArbitrarAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Arbitrar limite da conta corrente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-limite">Limite (R$)</Label>
+              <Input
+                id="arb-limite"
+                type="number"
+                inputMode="decimal"
+                value={arbLimite}
+                onChange={(e) => setArbLimite(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-validade">Validade</Label>
+              <Input id="arb-validade" type="date" value={arbValidade} onChange={(e) => setArbValidade(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-parecer">Parecer</Label>
+              <Textarea id="arb-parecer" value={arbParecer} onChange={(e) => setArbParecer(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArbitrarAberto(false)}>Cancelar</Button>
+            <Button disabled={!arbLimite || arbitrarLimite.isPending} onClick={() => arbitrarLimite.mutate()}>
+              {arbitrarLimite.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Arbitrar limite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acerto de primeira classe — detalhe, anexo e liquidação manual */}
+      <Dialog open={!!acertoAbertoId} onOpenChange={(o) => !o && setAcertoAbertoId(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Acerto {acertoAberto?.numero ?? "—"}</DialogTitle>
+          </DialogHeader>
+          {acertoAberto && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant={acertoAberto.status === "rascunho" ? "outline" : "secondary"} className="text-[10px]">
+                  {acertoAberto.status ?? "—"}
+                </Badge>
+                <span>Competência {formatDateBR(acertoAberto.competencia)}</span>
+                {(acertoAberto.periodo_inicio || acertoAberto.periodo_fim) && (
+                  <span>
+                    Período apurado {formatDateBR(acertoAberto.periodo_inicio)} — {formatDateBR(acertoAberto.periodo_fim)}
+                  </span>
+                )}
+                <span className="tabular-nums text-foreground">{formatBRL(acertoAberto.valor_total)}</span>
+              </div>
+
+              <div className="max-h-[45vh] overflow-auto rounded-md border">
+                {itensAcertoQ.isError ? <ErroBloco error={itensAcertoQ.error} /> : itensAcertoQ.isLoading ? <Carregando /> : (itensAcertoQ.data ?? []).length === 0 ? (
+                  <p className="p-6 text-center text-sm text-muted-foreground">Sem itens neste acerto.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="text-right">Qtd</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(itensAcertoQ.data ?? []).map((it) => (
+                        <TableRow key={it.id}>
+                          <TableCell className="font-mono text-xs">{it.sku ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{it.descricao ?? "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{num(it.quantidade)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatBRL(it.valor_unitario)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatBRL(it.valor_total)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-md border p-3">
+                <p className="text-sm font-medium">Relatório do parceiro</p>
+                {acertoAberto.relatorio_path ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={baixarRelatorio.isPending}
+                    onClick={() => baixarRelatorio.mutate(acertoAberto.relatorio_path as string)}
+                  >
+                    {baixarRelatorio.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Baixar relatório
+                  </Button>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.csv,.xls,.xlsx,application/pdf"
+                      className="w-auto"
+                      onChange={(e) => setArquivoAnexo(e.target.files?.[0] ?? null)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!arquivoAnexo || anexarRelatorio.isPending}
+                      onClick={() => anexarRelatorio.mutate()}
+                    >
+                      {anexarRelatorio.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      Anexar
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {acertoAberto.status === "confirmado" && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Marcar liquidado</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Caminho manual para quando o valor recebido não bateu exato.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="liq-data">Data</Label>
+                      <Input id="liq-data" type="date" value={liqData} onChange={(e) => setLiqData(e.target.value)} className="w-auto" />
+                    </div>
+                    <div className="min-w-[14rem] flex-1 space-y-1.5">
+                      <Label htmlFor="liq-nota">Nota</Label>
+                      <Input id="liq-nota" value={liqNota} onChange={(e) => setLiqNota(e.target.value)} placeholder="opcional" />
+                    </div>
+                    <Button disabled={liquidarManual.isPending} onClick={() => liquidarManual.mutate()}>
+                      {liquidarManual.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Marcar liquidado
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   );
 }
