@@ -558,11 +558,12 @@ export default function ConsignadoDetalhe() {
       return data as Record<string, unknown>;
     },
     onSuccess: async (d) => {
+      const raw = d as unknown;
       const desc =
-        typeof d === "string" && d.trim()
-          ? d
-          : d && Object.keys(d as object).length > 0
-            ? JSON.stringify(d)
+        typeof raw === "string" && raw.trim()
+          ? raw
+          : raw && typeof raw === "object" && Object.keys(raw).length > 0
+            ? JSON.stringify(raw)
             : undefined;
       toast.success("Rascunho descartado", { description: desc });
       setDescartarAberto(false);
