@@ -222,7 +222,6 @@ const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout")
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
 
-const GestaoPedidos = lazy(() => import("@/pages/vendas/GestaoPedidos"));
 
 const ShopifyB2c = lazy(() => import("@/pages/vendas/ShopifyB2c"));
 const ShopifyCheckouts = lazy(() => import("@/pages/vendas/shopify/ShopifyCheckouts"));
@@ -421,7 +420,7 @@ const App = () => (
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
-                <Route path="/vendas/gestao-pedidos" element={<GestaoPedidos />} />
+                
                 
                 <Route path="/vendas/shopify" element={<ShopifyB2c />} />
                 <Route path="/vendas/shopify/checkouts" element={<ShopifyCheckouts />} />
