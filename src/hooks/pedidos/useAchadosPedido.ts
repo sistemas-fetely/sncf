@@ -14,6 +14,8 @@ export interface AchadoPedido {
   primeira_vez_em: string | null;
   idade_dias: number | null;
   reincidente: boolean | null;
+  pode_abrir_chamado: boolean | null;
+  chamado_id: string | null;
 }
 
 /** Achados vivos de auditoria de um pedido. FAIL-LOUD. */
@@ -27,7 +29,7 @@ export function useAchadosPedido(pedidoId: string | undefined) {
       const { data, error } = await (supabase as any)
         .from("vw_auditoria_achado")
         .select(
-          "id, regra_slug, regra_titulo, severidade, severidade_peso, o_que_significa, detalhe, rota_acao, rotulo_acao, primeira_vez_em, idade_dias, reincidente",
+          "id, regra_slug, regra_titulo, severidade, severidade_peso, o_que_significa, detalhe, rota_acao, rotulo_acao, primeira_vez_em, idade_dias, reincidente, pode_abrir_chamado, chamado_id",
         )
         .eq("pedido_id", pedidoId)
         .eq("esta_vivo", true)
