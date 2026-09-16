@@ -425,6 +425,42 @@ export default function ConsignadoDetalhe() {
     },
   });
 
+  // ── acerto de primeira classe: dialog de detalhe ───────────────────────
+  const [acertoAbertoId, setAcertoAbertoId] = useState<string | null>(null);
+  const acertoAberto = useMemo(
+    () => (acertosQ.data ?? []).find((a) => a.id === acertoAbertoId) ?? null,
+    [acertosQ.data, acertoAbertoId],
+  );
+
+  const itensAcertoQ = useQuery({
+    queryKey: ["consignado-acerto-detalhe-itens", acertoAbertoId],
+    enabled: !!acertoAbertoId,
+    queryFn: async (): Promise<AcertoItemRow[]> => {
+      const { data, error } = await (supabase as any)
+        .from("consignado_acerto_item")
+        .select("id, sku, descricao, quantidade, valor_unitario, valor_total")
+        .eq("acerto_id", acertoAbertoId)
+        .order("valor_total", { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as AcertoItemRow[];
+    },
+  });
+
+  // ── inteligência de reposição: itens de todos os acertos do parceiro ────
+  const itensAcertosQ = useQuery({
+    queryKey: ["consignado-itens-acertos", parceiroId],
+    enabled: !!parceiroId && modelo === "venda_com_acerto",
+    queryFn: async (): Promise<Array<{ sku: string | null; descricao: string | null; quantidade: number | null }>> => {
+      const { data, error } = await (supabase as any)
+        .from("consignado_acerto_item")
+        .select("sku, descricao, quantidade, consignado_acerto!inner(parceiro_id, status)")
+        .eq("consignado_acerto.parceiro_id", parceiroId)
+        .neq("consignado_acerto.status", "cancelado");
+      if (error) throw error;
+      return (data ?? []) as Array<{ sku: string | null; descricao: string | null; quantidade: number | null }>;
+    },
+  });
+
   // ── ciclo de acerto ───────────────────────────────────────────────────
   const [competencia, setCompetencia] = useState(() => new Date().toISOString().slice(0, 7));
   const [itens, setItens] = useState<{ sku: string; quantidade: string; valor_unitario: string }[]>([
