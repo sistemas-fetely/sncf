@@ -1287,14 +1287,32 @@ export default function ConsignadoDetalhe() {
                     <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Tipo</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Saldo corrido</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {(extratoQ.data ?? []).map((l, i) => {
+                        // ACERTO É EVENTO, NÃO MOVIMENTO: valor NULL não vira R$ 0,00.
+                        const ehAcerto = l.tipo === "acerto";
+                        const ehRecebimento = l.tipo === "recebimento";
                         const v = Number(l.valor ?? 0);
                         const credito = v < 0;
                         return (
                           <TableRow key={`${l.ref ?? "l"}-${i}`} className={cn(l.nao_classificado && "bg-warning/10")}>
                             <TableCell className="whitespace-nowrap text-xs">{formatDateBR(l.data)}</TableCell>
-                            <TableCell><Badge variant="outline" className="text-[10px]">{l.tipo ?? "—"}</Badge></TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={ehRecebimento ? "outline" : "outline"}
+                                className={cn(
+                                  "text-[10px]",
+                                  ehAcerto && "border-gold/50 text-gold",
+                                  ehRecebimento && "border-success/40 bg-success/10 text-success",
+                                )}
+                              >
+                                {l.tipo ?? "—"}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-xs">{l.descricao ?? "—"}{l.pedido_ref && <span className="block text-muted-foreground">{l.pedido_ref}</span>}{l.nao_classificado && <span className="mt-0.5 flex items-center gap-1 text-warning"><AlertTriangle className="h-3 w-3" /> NF sem pedido vinculado</span>}</TableCell>
-                            <TableCell className={cn("text-right text-sm tabular-nums", credito ? "text-success" : "text-destructive")}>{credito ? "− " : "+ "}{formatBRL(Math.abs(v))}</TableCell>
+                            {l.valor === null || l.valor === undefined ? (
+                              <TableCell className="text-right text-sm tabular-nums text-muted-foreground">—</TableCell>
+                            ) : (
+                              <TableCell className={cn("text-right text-sm tabular-nums", credito ? "text-success" : "text-destructive")}>{credito ? "− " : "+ "}{formatBRL(Math.abs(v))}</TableCell>
+                            )}
                             <TableCell className="text-right text-sm tabular-nums">{formatBRL(l.saldo_corrido)}</TableCell>
                           </TableRow>
                         );
