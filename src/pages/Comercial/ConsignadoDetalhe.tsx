@@ -397,7 +397,7 @@ export default function ConsignadoDetalhe() {
     queryFn: async (): Promise<AcertoRow[]> => {
       const { data, error } = await (supabase as any)
         .from("consignado_acerto")
-        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao")
+        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path")
         .eq("parceiro_id", parceiroId)
         .order("competencia", { ascending: false, nullsFirst: false });
       if (error) throw error;
