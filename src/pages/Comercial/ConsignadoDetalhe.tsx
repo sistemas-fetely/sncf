@@ -632,9 +632,55 @@ export default function ConsignadoDetalhe() {
     setOrigemPdf(null);
   };
 
-  const analisar = useMutation({
+  const lerPdf = useMutation({
     mutationFn: async () => {
-      const itensColados = parsearLinhasColadas(importTexto);
+      if (!importArquivo) throw new Error("Escolha o arquivo do relatório.");
+      const buf = new Uint8Array(await importArquivo.arrayBuffer());
+      let bin = "";
+      const CHUNK = 0x8000;
+      for (let i = 0; i < buf.length; i += CHUNK) {
+        bin += String.fromCharCode.apply(null, Array.from(buf.subarray(i, i + CHUNK)));
+      }
+      const { data, error } = await supabase.functions.invoke("ler-relatorio-consignado", {
+        body: {
+          arquivo_base64: btoa(bin),
+          mime_type: importArquivo.type || "application/pdf",
+          nome_arquivo: importArquivo.name,
+        },
+      });
+      if (error) {
+        const detalhe = await (error as any)?.context?.text?.().catch(() => "");
+        let msg = error.message;
+        try {
+          const j = JSON.parse(detalhe || "{}");
+          if (j?.error) msg = String(j.error);
+        } catch { /* mensagem crua serve */ }
+        throw new Error(msg);
+      }
+      if ((data as any)?.error) throw new Error(String((data as any).error));
+      return data as { periodo_inicio: string | null; periodo_fim: string | null; itens: { codigo: string; quantidade: number }[] };
+    },
+    onSuccess: (d) => {
+      const itens = d.itens ?? [];
+      if (itens.length === 0) {
+        toast.error("A IA não encontrou itens vendidos neste arquivo", {
+          description: "Confira o arquivo ou use o modo Colar texto.",
+        });
+        return;
+      }
+      const linhas = itens.map((it) => `${it.codigo}\t${it.quantidade}`).join("\n");
+      setImportTexto(linhas);
+      if (d.periodo_inicio) setPeriodoInicio(d.periodo_inicio);
+      if (d.periodo_fim) setPeriodoFim(d.periodo_fim);
+      setOrigemPdf(importArquivo?.name ?? null);
+      analisar.mutate(linhas);
+    },
+    onError: (e: Error) => toast.error("Falha ao ler o arquivo", { description: e.message }),
+  });
+
+  const analisar = useMutation({
+    mutationFn: async (textoOpcional?: string) => {
+      const itensColados = parsearLinhasColadas(textoOpcional ?? importTexto);
       if (itensColados.length === 0) throw new Error("Nada para analisar: cole ao menos uma linha com código e quantidade.");
       const { data, error } = await (supabase as any).rpc("resolver_reporte_consignado", {
         p_parceiro_id: parceiroId,
