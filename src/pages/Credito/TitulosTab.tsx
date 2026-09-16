@@ -929,10 +929,14 @@ export default function TitulosTab() {
             )}
             {!isLoading && agrupado && grupos.map((g) => {
               if (grupoEhUnitario(g)) {
+                const t0 = g.titulos[0];
+                const s0 = saldosPorTitulo.get(t0.id);
                 return (
                   <LinhaTitulo
                     key={g.chave}
-                    t={g.titulos[0]}
+                    t={t0}
+                    saldo={s0}
+                    numeroPai={s0?.titulo_pai_id ? numerosPorId.get(s0.titulo_pai_id) ?? null : null}
                     onAbrir={setDetalhe}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
                   />
@@ -947,26 +951,36 @@ export default function TitulosTab() {
                     onToggle={() => toggleGrupo(g.chave)}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
                   />
-                  {aberto && g.titulos.map((t) => (
-                    <LinhaTitulo
-                      key={t.id}
-                      t={t}
-                      aninhada
-                      onAbrir={setDetalhe}
-                      onPedido={(id) => navigate(`/pedidos/${id}`)}
-                    />
-                  ))}
+                  {aberto && g.titulos.map((t) => {
+                    const s = saldosPorTitulo.get(t.id);
+                    return (
+                      <LinhaTitulo
+                        key={t.id}
+                        t={t}
+                        saldo={s}
+                        numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
+                        aninhada
+                        onAbrir={setDetalhe}
+                        onPedido={(id) => navigate(`/pedidos/${id}`)}
+                      />
+                    );
+                  })}
                 </Fragment>
               );
             })}
-            {!isLoading && !agrupado && filtrados.map((t) => (
-              <LinhaTitulo
-                key={t.id}
-                t={t}
-                onAbrir={setDetalhe}
-                onPedido={(id) => navigate(`/pedidos/${id}`)}
-              />
-            ))}
+            {!isLoading && !agrupado && filtrados.map((t) => {
+              const s = saldosPorTitulo.get(t.id);
+              return (
+                <LinhaTitulo
+                  key={t.id}
+                  t={t}
+                  saldo={s}
+                  numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
+                  onAbrir={setDetalhe}
+                  onPedido={(id) => navigate(`/pedidos/${id}`)}
+                />
+              );
+            })}
           </TableBody>
         </Table>
       </div>
