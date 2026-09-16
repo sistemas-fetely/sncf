@@ -706,7 +706,11 @@ export default function TitulosTab() {
 
 
 
-  const totalFiltrado = filtrados.reduce((acc, t) => acc + (t.valor_efetivo ?? 0), 0);
+  /* Rodapé soma SALDO, nunca valor de face — senão conta duas vezes o mesmo dinheiro. */
+  const totalFiltrado = somarSaldos(
+    filtrados.map((t) => ({ id: t.id, valorFace: t.valor_efetivo })),
+    saldosPorTitulo,
+  );
 
   /* Terminais neutros: contados à parte, nunca somados em atraso/inadimplência. */
   const kpisTerminais = useMemo(() => {
