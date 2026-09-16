@@ -798,6 +798,69 @@ export default function ConsignadoDetalhe() {
       ? "aguardando pagamento"
       : resumo?.acerto_vivo_status ?? null;
 
+  // ── inteligência de reposição (cálculo de leitura, no front) ────────────
+  // Réplica da seção de reposição do relatório do parceiro: vendido nos acertos
+  // ÷ semanas do período apurado do último acerto = ritmo semanal.
+  const vendidoPorSku = useMemo(() => {
+    const mapa = new Map<string, { sku: string; descricao: string | null; quantidade: number }>();
+    for (const item of itensAcertosQ.data ?? []) {
+      if (!item.sku) continue;
+      const atual = mapa.get(item.sku);
+      const qtd = Number(item.quantidade ?? 0);
+      if (atual) {
+        atual.quantidade += qtd;
+        if (!atual.descricao) atual.descricao = item.descricao;
+      } else {
+        mapa.set(item.sku, { sku: item.sku, descricao: item.descricao, quantidade: qtd });
+      }
+    }
+    return mapa;
+  }, [itensAcertosQ.data]);
+
+  const topVendidos = useMemo(
+    () => [...vendidoPorSku.values()].sort((a, b) => b.quantidade - a.quantidade).slice(0, 5),
+    [vendidoPorSku],
+  );
+
+  const ultimoPeriodo = useMemo(
+    () => (acertosQ.data ?? []).find((a) => a.periodo_inicio && a.periodo_fim) ?? null,
+    [acertosQ.data],
+  );
+
+  const semanasPeriodo = useMemo(() => {
+    if (!ultimoPeriodo?.periodo_inicio || !ultimoPeriodo?.periodo_fim) return 1;
+    const dias =
+      (new Date(ultimoPeriodo.periodo_fim).getTime() - new Date(ultimoPeriodo.periodo_inicio).getTime())
+      / 86_400_000;
+    return Math.max(1, dias / 7);
+  }, [ultimoPeriodo]);
+
+  const cobertura = useMemo(() => {
+    const estimadoPorSku = new Map(
+      (estoqueEstimadoQ.data ?? [])
+        .filter((e) => !!e.sku)
+        .map((e) => [e.sku as string, Number(e.estoque_estimado ?? 0)]),
+    );
+    return [...vendidoPorSku.values()]
+      .filter((v) => v.quantidade > 0)
+      .map((v) => {
+        const estimado = estimadoPorSku.get(v.sku) ?? 0;
+        const porSemana = v.quantidade / semanasPeriodo;
+        return {
+          sku: v.sku,
+          descricao: v.descricao,
+          estimado,
+          porSemana,
+          semanas: porSemana > 0 ? estimado / porSemana : null,
+        };
+      })
+      .sort((a, b) => (a.semanas ?? Infinity) - (b.semanas ?? Infinity));
+  }, [vendidoPorSku, estoqueEstimadoQ.data, semanasPeriodo]);
+
+  const acabaPrimeiro = cobertura.filter((c) => c.semanas !== null && c.semanas < 8);
+
+
+
   return (
     <PageShell>
       <CasaPageHeader
