@@ -470,7 +470,9 @@ function LinhaTitulo({
         {t.dias_atraso > 0 && <div className="text-xs text-destructive">há {t.dias_atraso}d</div>}
       </TableCell>
       <TableCell className="text-sm">{liquid}</TableCell>
-      <TableCell className="text-right font-medium">{formatBRL(t.valor_efetivo)}</TableCell>
+      <TableCell className="text-right">
+        <ValorSaldo saldo={saldo} valorFace={t.valor_efetivo} />
+      </TableCell>
       <TableCell>
         <BadgeInstrumento eixo={t.eixo_instrumento} />
       </TableCell>
