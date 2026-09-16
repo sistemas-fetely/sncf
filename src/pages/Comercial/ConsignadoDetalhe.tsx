@@ -19,12 +19,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import {
   Loader2, AlertTriangle, Plus, Trash2, ExternalLink, HandCoins, Boxes, Undo2, Copy,
-  ClipboardPaste, Search,
+  ClipboardPaste, Search, Gavel, Download, Upload, CheckCircle2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { estaVencido } from "@/lib/data";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
 
 /**
