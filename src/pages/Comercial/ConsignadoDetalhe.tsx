@@ -1149,6 +1149,9 @@ export default function ConsignadoDetalhe() {
                         {confirmarAcerto.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Confirmar acerto
                       </Button>
+                      <Button variant="outline" onClick={() => setAcertoAbertoId(rascunho.id)}>
+                        Ver acerto
+                      </Button>
                       <span className="text-sm text-muted-foreground tabular-nums">
                         Valor do acerto: {formatBRL(rascunho.valor_total)}
                       </span>
