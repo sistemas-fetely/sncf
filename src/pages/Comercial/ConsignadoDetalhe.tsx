@@ -883,6 +883,11 @@ export default function ConsignadoDetalhe() {
             >
               {creditoOk ? "Crédito ok" : "Crédito bloqueado"}
             </Badge>
+            {podeArbitrar && (
+              <Button variant="outline" size="sm" onClick={() => setArbitrarAberto(true)}>
+                <Gavel className="h-4 w-4" /> Arbitrar limite
+              </Button>
+            )}
             {limite && (
               <span className="text-[11px] text-muted-foreground tabular-nums">
                 {formatBRL(limite.limite_disponivel)} disponíveis · {limite.uso_pct ?? "—"}% usado
