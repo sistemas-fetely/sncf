@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CHAVE_CHAMADOS_PEDIDO } from "@/components/pedidos/AbrirChamadoPedidoDialog";
+import { MESA_QUERY_KEY } from "@/hooks/comercial/useMesaComercial";
 
 /**
  * SOLICITAÇÃO-É-CHAMADO (16/09/2026): a fila de solicitações morreu — a Central
@@ -11,6 +12,7 @@ import { CHAVE_CHAMADOS_PEDIDO } from "@/components/pedidos/AbrirChamadoPedidoDi
  */
 function invalidar(qc: ReturnType<typeof useQueryClient>) {
   qc.invalidateQueries({ queryKey: [CHAVE_CHAMADOS_PEDIDO] });
+  qc.invalidateQueries({ queryKey: MESA_QUERY_KEY });
 }
 
 /** FAIL-LOUD: a mensagem do banco é a explicação; não a substituímos. */
