@@ -285,8 +285,6 @@ function ChamadoDetalheConteudo() {
 
   const [acao, setAcao] = useState<AcaoTipo | null>(null);
   const [motivo, setMotivo] = useState("");
-  const [nota, setNota] = useState("");
-  const [motivoCodigo, setMotivoCodigo] = useState("");
   const [assuntoId, setAssuntoId] = useState("");
   const [cadeiraDestino, setCadeiraDestino] = useState("");
   const [paraUser, setParaUser] = useState("");
@@ -295,6 +293,9 @@ function ChamadoDetalheConteudo() {
   const [texto, setTexto] = useState("");
   const [interna, setInterna] = useState(false);
   const [enviando, setEnviando] = useState(false);
+
+  const [solucao, setSolucao] = useState("");
+  const [salvandoSolucao, setSalvandoSolucao] = useState(false);
 
   const QK = useMemo(
     () => ({
@@ -399,6 +400,10 @@ function ChamadoDetalheConteudo() {
   });
 
   const c = chamadoQ.data ?? null;
+
+  useEffect(() => {
+    setSolucao(c?.solucao ?? "");
+  }, [c?.solucao]);
 
   async function invalidar() {
     await Promise.all([
