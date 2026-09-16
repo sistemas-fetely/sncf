@@ -2864,6 +2864,7 @@ export type Database = {
       }
       auditoria_achado: {
         Row: {
+          chamado_id: string | null
           chave: string
           contexto: Json | null
           created_at: string
@@ -2891,6 +2892,7 @@ export type Database = {
           vezes_visto: number
         }
         Insert: {
+          chamado_id?: string | null
           chave: string
           contexto?: Json | null
           created_at?: string
@@ -2918,6 +2920,7 @@ export type Database = {
           vezes_visto?: number
         }
         Update: {
+          chamado_id?: string | null
           chave?: string
           contexto?: Json | null
           created_at?: string
@@ -2945,6 +2948,48 @@ export type Database = {
           vezes_visto?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_comercial"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "auditoria_achado_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
+          },
           {
             foreignKeyName: "auditoria_achado_entidade_fkey"
             columns: ["entidade"]
@@ -3381,6 +3426,8 @@ export type Database = {
       }
       auditoria_regra: {
         Row: {
+          abre_problema_automatico: boolean
+          assunto_id: string | null
           ativo: boolean
           created_at: string
           criado_por: string | null
@@ -3410,6 +3457,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abre_problema_automatico?: boolean
+          assunto_id?: string | null
           ativo?: boolean
           created_at?: string
           criado_por?: string | null
@@ -3439,6 +3488,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abre_problema_automatico?: boolean
+          assunto_id?: string | null
           ativo?: boolean
           created_at?: string
           criado_por?: string | null
@@ -3468,6 +3519,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "auditoria_regra_assunto_id_fkey"
+            columns: ["assunto_id"]
+            isOneToOne: false
+            referencedRelation: "demanda_assunto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "auditoria_regra_assunto_id_fkey"
+            columns: ["assunto_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_arvore"
+            referencedColumns: ["assunto_id"]
+          },
           {
             foreignKeyName: "auditoria_regra_entidade_fkey"
             columns: ["entidade"]
@@ -7759,6 +7824,7 @@ export type Database = {
           atribuido_a: string | null
           cadeira_atual_id: string | null
           camada: string
+          causa_corrigida_em: string | null
           criado_em: string
           criado_por: string | null
           detalhe: string
@@ -7771,6 +7837,7 @@ export type Database = {
           motivo_id: string | null
           nota_atendimento: string | null
           numero: string
+          origem_regra_slug: string | null
           pausado_desde: string | null
           pausado_total_min: number
           pedido_id: string | null
@@ -7791,6 +7858,7 @@ export type Database = {
           atribuido_a?: string | null
           cadeira_atual_id?: string | null
           camada?: string
+          causa_corrigida_em?: string | null
           criado_em?: string
           criado_por?: string | null
           detalhe: string
@@ -7803,6 +7871,7 @@ export type Database = {
           motivo_id?: string | null
           nota_atendimento?: string | null
           numero?: string
+          origem_regra_slug?: string | null
           pausado_desde?: string | null
           pausado_total_min?: number
           pedido_id?: string | null
@@ -7823,6 +7892,7 @@ export type Database = {
           atribuido_a?: string | null
           cadeira_atual_id?: string | null
           camada?: string
+          causa_corrigida_em?: string | null
           criado_em?: string
           criado_por?: string | null
           detalhe?: string
@@ -7835,6 +7905,7 @@ export type Database = {
           motivo_id?: string | null
           nota_atendimento?: string | null
           numero?: string
+          origem_regra_slug?: string | null
           pausado_desde?: string | null
           pausado_total_min?: number
           pedido_id?: string | null
