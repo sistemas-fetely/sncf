@@ -1994,3 +1994,65 @@ export default function ConsignadoDetalhe() {
     </PageShell>
   );
 }
+
+/**
+ * Título de cobrança gerado pelo acerto (filho do rotativo).
+ * O rotativo já aparece líquido deste valor — quem paga é este título.
+ */
+function TituloDoAcerto({ tituloId }: { tituloId: string }) {
+  const q = useQuery({
+    queryKey: ["titulo-do-acerto", tituloId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("titulo_a_receber")
+        .select("id, numero_titulo, data_vencimento_atual, valor_bruto")
+        .eq("id", tituloId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as {
+        id: string;
+        numero_titulo: string | null;
+        data_vencimento_atual: string | null;
+        valor_bruto: number | null;
+      } | null;
+    },
+  });
+
+  if (q.isLoading) {
+    return (
+      <div className="rounded-md border p-3">
+        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (q.error) {
+    return (
+      <div className="rounded-md border border-destructive/40 p-3 text-xs text-destructive">
+        Falha ao carregar o título do acerto: {(q.error as Error).message}
+      </div>
+    );
+  }
+  if (!q.data) return null;
+
+  return (
+    <div className="space-y-1 rounded-md border p-3">
+      <p className="text-sm font-medium">Título de cobrança do acerto</p>
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <Link
+          to={urlTitulo(q.data.id)}
+          className="font-mono text-primary hover:underline"
+        >
+          {q.data.numero_titulo ?? "—"}
+        </Link>
+        <span className="text-muted-foreground">
+          vence {formatDateBR(q.data.data_vencimento_atual)} ·{" "}
+          {formatBRL(q.data.valor_bruto)}
+        </span>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Este é o título que o parceiro deve pagar. O rotativo já aparece líquido
+        deste valor.
+      </p>
+    </div>
+  );
+}
