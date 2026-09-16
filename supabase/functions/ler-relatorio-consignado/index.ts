@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
       periodo_fim: dataIso(extraido?.periodo_fim),
       itens,
       nome_arquivo: nome,
+      modelo_usado: modeloUsado,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
