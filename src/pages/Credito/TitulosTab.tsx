@@ -426,10 +426,13 @@ function LinhaTitulo({
           {t.eh_entrada && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Entrada</Badge>
           )}
+          <BadgeParcelasAcerto saldo={saldo} />
+          <BadgeAcerto saldo={saldo} />
         </div>
         <div className="text-xs text-muted-foreground">
           parcela {t.numero_parcela}/{t.total_parcelas}
         </div>
+        <LinhaTituloPai saldo={saldo} numeroPai={numeroPai} />
       </TableCell>
       <TableCell>
         {!aninhada && (
