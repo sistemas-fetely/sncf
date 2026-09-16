@@ -1636,6 +1636,154 @@ export default function ConsignadoDetalhe() {
             </div>
           )}
         </DialogContent>
-      </Dialog>    </PageShell>
+      </Dialog>
+
+      {/* Arbitrar limite — a RPC é guardada por acao.credito_decidir */}
+      <Dialog open={arbitrarAberto} onOpenChange={setArbitrarAberto}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Arbitrar limite da conta corrente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-limite">Limite (R$)</Label>
+              <Input
+                id="arb-limite"
+                type="number"
+                inputMode="decimal"
+                value={arbLimite}
+                onChange={(e) => setArbLimite(e.target.value)}
+                placeholder="0,00"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-validade">Validade</Label>
+              <Input id="arb-validade" type="date" value={arbValidade} onChange={(e) => setArbValidade(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="arb-parecer">Parecer</Label>
+              <Textarea id="arb-parecer" value={arbParecer} onChange={(e) => setArbParecer(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setArbitrarAberto(false)}>Cancelar</Button>
+            <Button disabled={!arbLimite || arbitrarLimite.isPending} onClick={() => arbitrarLimite.mutate()}>
+              {arbitrarLimite.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+              Arbitrar limite
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Acerto de primeira classe — detalhe, anexo e liquidação manual */}
+      <Dialog open={!!acertoAbertoId} onOpenChange={(o) => !o && setAcertoAbertoId(null)}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Acerto {acertoAberto?.numero ?? "—"}</DialogTitle>
+          </DialogHeader>
+          {acertoAberto && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <Badge variant={acertoAberto.status === "rascunho" ? "outline" : "secondary"} className="text-[10px]">
+                  {acertoAberto.status ?? "—"}
+                </Badge>
+                <span>Competência {formatDateBR(acertoAberto.competencia)}</span>
+                {(acertoAberto.periodo_inicio || acertoAberto.periodo_fim) && (
+                  <span>
+                    Período apurado {formatDateBR(acertoAberto.periodo_inicio)} — {formatDateBR(acertoAberto.periodo_fim)}
+                  </span>
+                )}
+                <span className="tabular-nums text-foreground">{formatBRL(acertoAberto.valor_total)}</span>
+              </div>
+
+              <div className="max-h-[45vh] overflow-auto rounded-md border">
+                {itensAcertoQ.isError ? <ErroBloco error={itensAcertoQ.error} /> : itensAcertoQ.isLoading ? <Carregando /> : (itensAcertoQ.data ?? []).length === 0 ? (
+                  <p className="p-6 text-center text-sm text-muted-foreground">Sem itens neste acerto.</p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Descrição</TableHead>
+                        <TableHead className="text-right">Qtd</TableHead>
+                        <TableHead className="text-right">Preço</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(itensAcertoQ.data ?? []).map((it) => (
+                        <TableRow key={it.id}>
+                          <TableCell className="font-mono text-xs">{it.sku ?? "—"}</TableCell>
+                          <TableCell className="text-sm">{it.descricao ?? "—"}</TableCell>
+                          <TableCell className="text-right tabular-nums">{num(it.quantidade)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatBRL(it.valor_unitario)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatBRL(it.valor_total)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </div>
+
+              <div className="space-y-2 rounded-md border p-3">
+                <p className="text-sm font-medium">Relatório do parceiro</p>
+                {acertoAberto.relatorio_path ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={baixarRelatorio.isPending}
+                    onClick={() => baixarRelatorio.mutate(acertoAberto.relatorio_path as string)}
+                  >
+                    {baixarRelatorio.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Baixar relatório
+                  </Button>
+                ) : (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Input
+                      type="file"
+                      accept=".pdf,.csv,.xls,.xlsx,application/pdf"
+                      className="w-auto"
+                      onChange={(e) => setArquivoAnexo(e.target.files?.[0] ?? null)}
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!arquivoAnexo || anexarRelatorio.isPending}
+                      onClick={() => anexarRelatorio.mutate()}
+                    >
+                      {anexarRelatorio.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                      Anexar
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {acertoAberto.status === "confirmado" && (
+                <div className="space-y-2 rounded-md border p-3">
+                  <p className="text-sm font-medium">Marcar liquidado</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    Caminho manual para quando o valor recebido não bateu exato.
+                  </p>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="liq-data">Data</Label>
+                      <Input id="liq-data" type="date" value={liqData} onChange={(e) => setLiqData(e.target.value)} className="w-auto" />
+                    </div>
+                    <div className="min-w-[14rem] flex-1 space-y-1.5">
+                      <Label htmlFor="liq-nota">Nota</Label>
+                      <Input id="liq-nota" value={liqNota} onChange={(e) => setLiqNota(e.target.value)} placeholder="opcional" />
+                    </div>
+                    <Button disabled={liquidarManual.isPending} onClick={() => liquidarManual.mutate()}>
+                      {liquidarManual.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Marcar liquidado
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </PageShell>
   );
 }
