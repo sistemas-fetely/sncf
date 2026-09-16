@@ -110,3 +110,7 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
   [functions.portal-representante]
     verify_jwt = false
 
+  [functions.ler-relatorio-consignado]
+    verify_jwt = true
+    [functions.ler-relatorio-consignado.runtime]
+      wall_clock_limit_sec = 400
