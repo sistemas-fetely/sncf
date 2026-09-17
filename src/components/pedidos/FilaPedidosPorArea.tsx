@@ -445,16 +445,9 @@ export function FilaPedidosPorArea({
   };
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState<PageSizeOption>(() => {
-    try {
-      const salvo = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
-      return (PAGE_SIZE_OPTIONS as readonly number[]).includes(salvo)
-        ? (salvo as PageSizeOption)
-        : DEFAULT_PAGE_SIZE;
-    } catch {
-      return DEFAULT_PAGE_SIZE;
-    }
-  });
+  const [pageSize, setPageSize] = useState<PageSizeOption>(() =>
+    lerTamanhoPaginaSalvo(PAGE_SIZE_STORAGE_KEY),
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -832,9 +825,6 @@ export function FilaPedidosPorArea({
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
-  const inicioRange = totalLinhas === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
-  const fimRange = Math.min(paginaAtual * pageSize, totalLinhas);
-  const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   if (isError) {
     return (
