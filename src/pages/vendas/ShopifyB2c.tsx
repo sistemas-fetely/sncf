@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AlertTriangle, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -20,6 +20,7 @@ import { PipelineB2c } from "@/components/vendas/PipelineB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
+import { CabecalhoOrdenavel, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
@@ -37,6 +38,21 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 const ABAS = ["fila", "dash", "carrinhos", "posvenda"] as const;
 type Aba = (typeof ABAS)[number];
+
+type ColunaB2c =
+  | "pedido" | "bling" | "data" | "cliente" | "valor"
+  | "estagio" | "dono" | "proxima_acao" | "financeiro" | "rastreio";
+
+type OrdenacaoB2c = { coluna: ColunaB2c; dir: DirecaoOrdenacao } | null;
+
+/** Primeiro clique: data e dinheiro descem (recente/maior primeiro), texto sobe. */
+const DIR_INICIAL_B2C: Record<ColunaB2c, DirecaoOrdenacao> = {
+  pedido: "desc", bling: "desc", data: "desc", cliente: "asc", valor: "desc",
+  estagio: "asc", dono: "asc", proxima_acao: "asc", financeiro: "desc", rastreio: "asc",
+};
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco do funil. */
+const ALTURA_CASA_HEADER = 64;
 
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
@@ -93,6 +109,31 @@ export default function ShopifyB2c() {
   const [alerta, setAlerta] = useState("todos");
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoB2c>(null);
+
+  const ordenarPor = (coluna: ColunaB2c) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_B2C[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem padrao da view (data do pedido, mais recente primeiro).
+      return invertida === DIR_INICIAL_B2C[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  // TOPO-COLADO-SE-MEDE: o cabecalho cola logo abaixo do funil, e a altura do
+  // funil muda (quebra de linha, card a mais). Mede em runtime, nao chuta.
+  const pipelineRef = useRef<HTMLDivElement>(null);
+  const [alturaPipeline, setAlturaPipeline] = useState(0);
+
+  useEffect(() => {
+    const el = pipelineRef.current;
+    if (!el) return;
+    const medir = () => setAlturaPipeline(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [abaEfetiva]);
 
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
   const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
@@ -188,6 +229,42 @@ export default function ShopifyB2c() {
     return r;
   }, [lista, incluirCancelados, estagioParam, uf, alerta, busca]);
 
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const ordenados = useMemo(() => {
+    if (!ordenacao) return filtrados;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: PedidoB2cRow): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "pedido": return p.order_name ?? null;
+        case "bling": return p.bling_pedido_numero ?? null;
+        case "data": {
+          const t = p.created_at_shopify ? Date.parse(p.created_at_shopify) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "cliente": return p.cliente ?? null;
+        case "valor": return Number(p.total ?? 0);
+        case "estagio": return p.estagio_ordem ?? null;
+        case "dono": return p.area_responsavel ?? null;
+        case "proxima_acao": return p.proxima_acao ?? null;
+        // Quanto mais pendencia, maior o numero — decrescente traz o buraco pra cima.
+        case "financeiro": return (p.tem_nf ? 0 : 2) + (p.tem_recebimento ? 0 : 1);
+        case "rastreio": return p.tracking_number ?? null;
+        default: return null;
+      }
+    };
+    return [...filtrados].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [filtrados, ordenacao]);
+
   const copiar = (v: string, label: string) => {
     void navigator.clipboard.writeText(v);
     toast.success(`${label} copiado.`);
@@ -200,7 +277,7 @@ export default function ShopifyB2c() {
         title="Loja · B2C"
         subtitle="Pedidos da loja Shopify. Pagamento vem resolvido na porta — o funil aqui é faturar, expedir, rastrear e entregar."
         // Exportação leva a base para fora: nível 3 (Coordenador) para cima — o componente se autoprotege.
-        actions={<ExportarB2cButton linhas={filtrados} />}
+        actions={<ExportarB2cButton linhas={ordenados} />}
       />
 
       {carregandoPermissoes ? (
@@ -229,9 +306,16 @@ export default function ShopifyB2c() {
             </AbaPermitida>
           </TabsList>
 
-        <TabsContent value="fila" className="space-y-4">
+        <TabsContent
+          value="fila"
+          className="space-y-4"
+          style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaPipeline}px` } as CSSProperties}
+        >
           <ConteudoAba slug="tela.b2c">
-          <div className="sticky top-14 z-20 -mx-6 border-b border-border bg-background px-6 py-2">
+          <div
+            ref={pipelineRef}
+            className="sticky top-16 z-20 -mx-6 border-b border-border bg-background px-6 py-2"
+          >
             <PipelineB2c
               estagioAtivo={estagioParam}
               onClickEstagio={(e) => setEstagio(e)}
@@ -295,6 +379,12 @@ export default function ShopifyB2c() {
             <span className="text-xs text-muted-foreground">
               {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""}
             </span>
+            {ordenacao && (
+              <span className="text-xs text-muted-foreground">
+                · ordenado por {ordenacao.coluna === "proxima_acao" ? "próxima ação" : ordenacao.coluna}{" "}
+                ({ordenacao.dir === "asc" ? "crescente" : "decrescente"})
+              </span>
+            )}
           </div>
 
           {isError && (
@@ -314,20 +404,19 @@ export default function ShopifyB2c() {
             <Card>
               <CardContent className="p-0">
                 <TooltipProvider>
-                  <div className="overflow-auto">
-                    <Table>
+                    <Table containerClassName="overflow-visible">
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Pedido</TableHead>
-                          <TableHead>Bling</TableHead>
-                          <TableHead>Data / Idade</TableHead>
-                          <TableHead>Cliente</TableHead>
-                          <TableHead className="text-right">Valor</TableHead>
-                          <TableHead>Estágio</TableHead>
-                          <TableHead>Dono</TableHead>
-                          <TableHead>Próxima ação</TableHead>
-                          <TableHead>Financeiro</TableHead>
-                          <TableHead>Rastreio</TableHead>
+                        <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
+                          <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao?.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+                          <CabecalhoOrdenavel rotulo="Bling" dir={ordenacao?.coluna === "bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("bling")} />
+                          <CabecalhoOrdenavel rotulo="Data / Idade" dir={ordenacao?.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+                          <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+                          <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+                          <CabecalhoOrdenavel rotulo="Estágio" dir={ordenacao?.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("estagio")} />
+                          <CabecalhoOrdenavel rotulo="Dono" dir={ordenacao?.coluna === "dono" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("dono")} />
+                          <CabecalhoOrdenavel rotulo="Próxima ação" dir={ordenacao?.coluna === "proxima_acao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("proxima_acao")} />
+                          <CabecalhoOrdenavel rotulo="Financeiro" dir={ordenacao?.coluna === "financeiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("financeiro")} />
+                          <CabecalhoOrdenavel rotulo="Rastreio" dir={ordenacao?.coluna === "rastreio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("rastreio")} />
                           <TableHead className="w-8" />
                         </TableRow>
                       </TableHeader>
@@ -345,7 +434,7 @@ export default function ShopifyB2c() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          filtrados.map((p, idx) => (
+                          ordenados.map((p, idx) => (
                             <TableRow
                               key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
                               onClick={() => setSelecionado(p)}
@@ -526,7 +615,6 @@ export default function ShopifyB2c() {
                         )}
                       </TableBody>
                     </Table>
-                  </div>
                 </TooltipProvider>
               </CardContent>
             </Card>
