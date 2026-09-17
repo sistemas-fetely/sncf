@@ -34,7 +34,11 @@ import {
   LINHA_CABECALHO_COLADO,
   type DirecaoOrdenacao,
 } from "@/components/tabela/CabecalhoOrdenavel";
-import { RodapePaginacao, lerTamanhoPaginaSalvo } from "@/components/tabela/RodapePaginacao";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import {
@@ -757,7 +761,7 @@ export default function Parceiros() {
                       tamanhoPagina={tamanhoPagina}
                       chavePreferencia={CHAVE_PAGINA_PARCEIROS}
                       onPagina={setPagina}
-                      onTamanhoPagina={setTamanhoPagina}
+                      onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
                     />
                   </>
                 )}
