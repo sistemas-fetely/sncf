@@ -42,6 +42,16 @@ import {
   somarSaldos,
 } from "@/components/financeiro/SaldoTitulo";
 import { cn } from "@/lib/utils";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
 import { BoletoImprimivelAcoes } from "@/components/credito/BoletoImprimivelAcoes";
