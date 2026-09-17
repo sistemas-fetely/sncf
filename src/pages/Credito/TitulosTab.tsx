@@ -1069,7 +1069,7 @@ export default function TitulosTab() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && agrupado && grupos.map((g) => {
+            {!isLoading && agrupado && gruposPagina.map((g) => {
               if (grupoEhUnitario(g)) {
                 const t0 = g.titulos[0];
                 const s0 = saldosPorTitulo.get(t0.id);
