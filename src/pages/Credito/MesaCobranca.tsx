@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card, CardContent } from "@/components/ui/card";
+import { LINHA_CABECALHO_SIMPLES } from "@/components/tabela/CabecalhoOrdenavel";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -557,7 +558,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                               key={chaveGrupo}
                               open={aberto}
                               onOpenChange={(o) => setGruposAbertos((p) => ({ ...p, [chaveGrupo]: o }))}
-                              className="rounded-md border"
+                              className="rounded-md border bg-card"
                             >
                               <div className="flex items-center gap-2 px-2 py-1.5">
                                 <CollapsibleTrigger asChild>
@@ -609,7 +610,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                 <div className="border-t px-2 pb-2">
                                   <Table>
                                     <TableHeader>
-                                      <TableRow className="text-[11px]">
+                                      <TableRow className={`text-[11px] ${LINHA_CABECALHO_SIMPLES}`}>
                                         <TableHead className="h-8">Título</TableHead>
                                         <TableHead className="h-8">Instrumento</TableHead>
                                         <TableHead className="h-8">NF</TableHead>
