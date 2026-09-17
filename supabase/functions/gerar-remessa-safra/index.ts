@@ -780,7 +780,7 @@ serve(async (req) => {
       .from("titulo_a_receber")
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
         reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq,
-        conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
+        conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, email_cobranca, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
       .in("boleto_status", ["pendente", "baixa_solicitada", "baixa_remessa_gerada"])
       .eq("tipo_pagamento", "boleto")
       .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)");
@@ -826,12 +826,20 @@ serve(async (req) => {
     }
 
     const erros: Array<{ titulo_id: string; numero_titulo: string; motivo: string }> = [];
+    // BANCO-CONFIRMA / HUMANO-COMUNICA: registrar boleto no Safra nao depende de
+    // e-mail — e-mail so importa na hora de ENTREGAR o boleto ao cliente. Falta de
+    // e-mail vira AVISO, nunca bloqueio de lote. Quem vigia isso e a fila
+    // EMAIL_BLOQUEADO da vw_cobranca_mesa (lastro_envio in ('sem_email','bloqueado')).
+    const avisos: Array<{ titulo_id: string; numero_titulo: string; motivo: string }> = [];
+    // deno-lint-ignore no-explicit-any
+    const temEmail = (p: any): boolean =>
+      !!(String(p?.email ?? "").trim() || String(p?.email_cobranca ?? "").trim());
     // deno-lint-ignore no-explicit-any
     for (const t of titulos as any[]) {
       const p = t.conta?.parceiro;
       if (!p) { erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Parceiro não encontrado" }); continue; }
       if (p.cadastro_incompleto) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Cadastro incompleto" });
-      if (!p.email) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "E-mail não cadastrado" });
+      if (!temEmail(p)) avisos.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Sem e-mail cadastrado — boleto registrado, entrega precisa de outro caminho" });
       if (valorEfetivo(t) <= 0) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Valor inválido" });
       const hojeISO = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
       if (vencEfetivo(t) < hojeISO) erros.push({ titulo_id: t.id, numero_titulo: t.numero_titulo, motivo: "Vencimento no passado" });
@@ -962,7 +970,7 @@ serve(async (req) => {
 
     return new Response(
       // deno-lint-ignore no-explicit-any
-      JSON.stringify({ ok: true, arquivo_conteudo: arquivoConteudo, arquivo_nome: arquivoNome, remessa_id: (remessa as any).id, nro_sequencial: nroSeq, qtd_titulos: titulos.length, valor_total: valorTotal }),
+      JSON.stringify({ ok: true, arquivo_conteudo: arquivoConteudo, arquivo_nome: arquivoNome, remessa_id: (remessa as any).id, nro_sequencial: nroSeq, qtd_titulos: titulos.length, valor_total: valorTotal, avisos, qtd_avisos: avisos.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 

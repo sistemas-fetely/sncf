@@ -73,6 +73,7 @@ import { hojeISO } from "@/lib/data";
 import { AlertaBaixaRejeitadaReemissao } from "@/components/financeiro/AlertaBaixaRejeitadaReemissao";
 import { AlertaBoletoRejeitadoEnviado } from "@/components/financeiro/AlertaBoletoRejeitadoEnviado";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { mensagemErroEdge } from "@/lib/financeiro/erroEdgeRemessa";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
 function diasDesde(iso: string | null | undefined): number | null {
@@ -99,7 +100,14 @@ type TitulosBoleto = {
   nosso_numero_seq: string | null;
   numero_parcela: number | null;
   total_parcelas: number | null;
-  conta: { parceiro: { razao_social: string | null } | null } | null;
+  conta: {
+    parceiro: {
+      razao_social: string | null;
+      email: string | null;
+      email_cobranca: string | null;
+      cadastro_incompleto: boolean | null;
+    } | null;
+  } | null;
   pedido: {
     id: string | null;
     id_externo: string | null;
@@ -260,6 +268,30 @@ function semAcento(v: string) {
   return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/**
+ * Impede registrar no banco. Checkbox desabilitado — o CNAB nao sai sem isso.
+ * Primeiro motivo que casar.
+ */
+function bloqueioEntrada(b: TitulosBoleto, hojeIso: string): string | null {
+  if (b.conta?.parceiro?.cadastro_incompleto === true)
+    return "Cadastro incompleto (endereço) — o CNAB precisa do endereço do sacado";
+  if (Number(b.valor_bruto ?? 0) <= 0) return "Valor inválido";
+  if (b.data_vencimento_atual && b.data_vencimento_atual < hojeIso) return "Vencimento no passado";
+  return null;
+}
+
+/**
+ * BANCO-CONFIRMA / HUMANO-COMUNICA: nao impede registrar — impede COMUNICAR depois.
+ * E-mail vazio no banco chega como string vazia, nao como null.
+ */
+function avisoEntrada(b: TitulosBoleto): string | null {
+  const p = b.conta?.parceiro;
+  const tem = !!(p?.email?.trim() || p?.email_cobranca?.trim());
+  return tem
+    ? null
+    : "Sem e-mail cadastrado — o boleto registra normalmente, mas não dá para enviar por e-mail depois";
+}
+
 function AcoesGrupoCliente({
   boletos,
   gerandoEntrada,
@@ -279,7 +311,7 @@ function AcoesGrupoCliente({
   const pendentesEntrada = boletos.filter(
     (b) =>
       b.boleto_status === "pendente" &&
-      (!b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso),
+      bloqueioEntrada(b, hojeIso) === null,
   );
   const registrados = boletos.filter((b) => b.boleto_status === "registrado");
 
@@ -378,7 +410,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       // Anotada como `string` de propósito: alarga o literal e evita TS2589 no select aninhado.
       // O resultado segue tipado à mão via `as unknown as TitulosBoleto[]` abaixo.
       const SELECT_BOLETOS: string =
-        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
+        "id, numero_titulo, status, data_vencimento_atual, valor_bruto, boleto_status, boleto_enviado_em, prorrogacao_nova_data, prorrogacao_solicitada_em, reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq, numero_parcela, total_parcelas, conta:contas_pagar_receber(parceiro:parceiros_comerciais(razao_social, email, email_cobranca, cadastro_incompleto)), pedido:pedidos(id, id_externo, faturado_em, condicao_solicitada)";
       const { data, error } = await supabase
         .from("titulo_a_receber")
         .select(SELECT_BOLETOS)
@@ -513,11 +545,28 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const set = new Set(escopoEntrada);
     return pendentesEntrada.filter((b) => set.has(b.id));
   }, [pendentesEntrada, escopoEntrada]);
-  const pendentesPassado = useMemo(
+  /** Títulos do escopo que NÃO podem ser registrados, com o motivo real. */
+  const bloqueadosEntrada = useMemo(
     () =>
-      entradaLista.filter(
-        (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
-      ),
+      entradaLista
+        .map((b) => ({ b, motivo: bloqueioEntrada(b, hojeIso) }))
+        .filter((x): x is { b: TitulosBoleto; motivo: string } => x.motivo !== null),
+    [entradaLista, hojeIso],
+  );
+  /** Motivos distintos com contagem — "Vencimento no passado (3) · ...". */
+  const resumoBloqueios = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const { motivo } of bloqueadosEntrada) {
+      const curto = motivo.split(" — ")[0];
+      contagem.set(curto, (contagem.get(curto) ?? 0) + 1);
+    }
+    return Array.from(contagem.entries())
+      .map(([m, n]) => `${m} (${n})`)
+      .join(" · ");
+  }, [bloqueadosEntrada]);
+  /** Registra, mas não dá para comunicar: sem e-mail. Só aviso. */
+  const avisadosEntrada = useMemo(
+    () => entradaLista.filter((b) => bloqueioEntrada(b, hojeIso) === null && avisoEntrada(b) !== null),
     [entradaLista, hojeIso],
   );
 
@@ -527,7 +576,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const set = escopo ? new Set(escopo) : null;
     const base = set ? pendentesEntrada.filter((b) => set.has(b.id)) : pendentesEntrada;
     const validos = base
-      .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+      .filter((b) => bloqueioEntrada(b, hojeIso) === null)
       .map((b) => b.id);
     setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
@@ -565,7 +614,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const idsSelecionaveis = useMemo(
     () =>
       entradaLista
-        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .filter((b) => bloqueioEntrada(b, hojeIso) === null)
         .map((b) => b.id),
     [entradaLista, hojeIso],
   );
@@ -612,7 +661,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     return ordem.map((k) => {
       const lista = map.get(k)!;
       const selecionaveis = lista
-        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .filter((b) => bloqueioEntrada(b, hojeIso) === null)
         .map((b) => b.id);
       const marcados = selecionaveis.filter((id) => selecionados.has(id));
       return {
@@ -752,7 +801,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
         body: { tipo: "baixa", titulo_ids: tituloIds },
       });
-      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de baixa");
+      if (error || !data?.ok) {
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de baixa"));
+      }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -782,10 +833,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         body: { tipo: "reemissao", titulo_ids: filaReemissao.map((b) => b.id) },
       });
       if (error || !data?.ok) {
-        const detalhe = Array.isArray(data?.erros)
-          ? data.erros.map((x: { numero_titulo?: string; motivo?: string }) => `${x.numero_titulo ?? "?"}: ${x.motivo ?? "?"}`).join(" · ")
-          : null;
-        throw new Error([data?.erro ?? error?.message ?? "Erro ao gerar remessa de reemissão", detalhe].filter(Boolean).join(" — "));
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de reemissão"));
       }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
@@ -815,7 +863,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
         body: { tipo: "prorrogacao" },
       });
-      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de prorrogação");
+      if (error || !data?.ok) {
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de prorrogação"));
+      }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -844,7 +894,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
         body: { tipo: "entrada", titulo_ids: ids },
       });
-      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
+      if (error || !data?.ok) {
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de entrada"));
+      }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -852,9 +904,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.download = data.arquivo_nome;
       a.click();
       URL.revokeObjectURL(url);
+      const qtdAvisos = Number(data.qtd_avisos ?? 0);
+      const descricaoEntrada = [
+        data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : null,
+        qtdAvisos > 0 ? `${qtdAvisos} sem e-mail — precisam de entrega por outro caminho.` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
       toast({
         title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
-        description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
+        description: descricaoEntrada || undefined,
       });
       fecharDialogEntrada();
       await revalidarTitulos();
@@ -1709,11 +1768,21 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             </DialogDescription>
           </DialogHeader>
 
-          {pendentesPassado.length > 0 && (
-            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning flex gap-2">
+          {bloqueadosEntrada.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex gap-2">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado ficaram fora da seleção — ajuste as datas para incluí-los em outra remessa.
+                <strong>{bloqueadosEntrada.length}</strong> título(s) não podem ser registrados e ficaram fora da seleção
+                {resumoBloqueios && <span className="block text-xs mt-0.5">{resumoBloqueios}</span>}
+              </div>
+            </div>
+          )}
+
+          {avisadosEntrada.length > 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning flex gap-2">
+              <Mail className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>{avisadosEntrada.length}</strong> título(s) sem e-mail cadastrado — vão ser registrados normalmente, mas o boleto vai precisar ser entregue por outro caminho.
               </div>
             </div>
           )}
@@ -1795,10 +1864,11 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       </TableCell>
                     </TableRow>
                     {g.boletos.map((b) => {
-                      const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                      const bloqueio = bloqueioEntrada(b, hojeIso);
+                      const aviso = bloqueio ? null : avisoEntrada(b);
                       const marcado = selecionados.has(b.id);
                       return (
-                        <TableRow key={b.id} className={passado ? "bg-destructive/10" : ""}>
+                        <TableRow key={b.id} className={bloqueio ? "bg-destructive/10" : ""}>
                           <TableCell className="pl-6">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1806,16 +1876,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   <Checkbox
                                     checked={marcado}
                                     onCheckedChange={() => toggleSelecionado(b.id)}
-                                    disabled={passado}
+                                    disabled={!!bloqueio}
                                     aria-label={`Selecionar ${b.numero_titulo}`}
                                   />
                                 </span>
                               </TooltipTrigger>
-                              {passado && (
-                                <TooltipContent>
-                                  Ajuste a data na lista para habilitar
-                                </TooltipContent>
-                              )}
+                              {bloqueio && <TooltipContent>{bloqueio}</TooltipContent>}
                             </Tooltip>
                           </TableCell>
                           <TableCell className="font-mono text-xs max-w-0">
@@ -1828,13 +1894,23 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[120px] ${passado ? "text-destructive font-medium" : ""}`}>
+                          <TableCell className={`w-[120px] ${bloqueio ? "text-destructive font-medium" : ""}`}>
                             <div className="flex flex-wrap items-center gap-1">
                               <span className="whitespace-nowrap">{formatDateBR(b.data_vencimento_atual)}</span>
-                              {passado && (
+                              {bloqueio && (
                                 <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px]">
-                                  Vencimento no passado
+                                  {bloqueio}
                                 </Badge>
+                              )}
+                              {aviso && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
+                                      sem e-mail
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{aviso}</TooltipContent>
+                                </Tooltip>
                               )}
                             </div>
                           </TableCell>
