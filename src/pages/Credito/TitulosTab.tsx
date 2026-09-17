@@ -1027,20 +1027,28 @@ export default function TitulosTab() {
       </div>
 
       {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border bg-card">
+        <Table containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow>
-              <TableHead>Título</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Pedido</TableHead>
-              <TableHead>NF</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Liquidação</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Instrumento</TableHead>
-              <TableHead>Situação</TableHead>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              {agrupado ? (
+                <TableHead>Título</TableHead>
+              ) : (
+                <CabecalhoOrdenavel rotulo="Título" dir={ordenacao?.coluna === "titulo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("titulo")} />
+              )}
+              <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+              <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao?.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+              <CabecalhoOrdenavel rotulo="NF" dir={ordenacao?.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
+              <CabecalhoOrdenavel rotulo="Tipo" dir={ordenacao?.coluna === "tipo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("tipo")} />
+              <CabecalhoOrdenavel rotulo="Vencimento" dir={ordenacao?.coluna === "vencimento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("vencimento")} />
+              {agrupado ? (
+                <TableHead>Liquidação</TableHead>
+              ) : (
+                <CabecalhoOrdenavel rotulo="Liquidação" dir={ordenacao?.coluna === "liquidacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("liquidacao")} />
+              )}
+              <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Instrumento" dir={ordenacao?.coluna === "instrumento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("instrumento")} />
+              <CabecalhoOrdenavel rotulo="Situação" dir={ordenacao?.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
             </TableRow>
           </TableHeader>
           <TableBody>
