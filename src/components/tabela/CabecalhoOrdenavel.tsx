@@ -80,3 +80,11 @@ export const LINHA_CABECALHO_COLADO =
  */
 export const LINHA_CABECALHO_COLADO_NIVEL2 =
   "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado-2,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:font-semibold [&>th]:text-foreground [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
+
+/**
+ * Cabecalho de tabela que NAO cola: mesma pele (muted + negrito + borda por
+ * inset shadow), sem sticky. Para tabela aninhada dentro de bloco, onde colar
+ * nao faz sentido — varias tabelas na mesma tela, cada uma com seu cabecalho.
+ */
+export const LINHA_CABECALHO_SIMPLES =
+  "bg-muted [&>th]:bg-muted [&>th]:font-semibold [&>th]:text-foreground [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
