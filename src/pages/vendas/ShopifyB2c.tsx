@@ -21,7 +21,7 @@ import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
-import { RodapePaginacao, lerTamanhoPaginaSalvo } from "@/components/tabela/RodapePaginacao";
+import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
@@ -645,7 +645,7 @@ export default function ShopifyB2c() {
                   tamanhoPagina={tamanhoPagina}
                   chavePreferencia={CHAVE_PAGINA_B2C}
                   onPagina={setPagina}
-                  onTamanhoPagina={setTamanhoPagina}
+                  onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
                 />
               </CardContent>
             </Card>
