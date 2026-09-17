@@ -711,6 +711,18 @@ export default function TitulosTab() {
     if (achado) setDetalhe(achado);
   }, [tituloDaUrl, titulos, detalhe?.id]);
 
+  // Trocar de modo com uma coluna que so existe na lista plana limparia a ordem
+  // sem avisar; melhor soltar a ordenacao explicitamente.
+  useEffect(() => {
+    if (agrupado && ordenacao && COLUNAS_SO_NA_LISTA_PLANA.includes(ordenacao.coluna)) {
+      setOrdenacao(null);
+    }
+  }, [agrupado, ordenacao]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, vencDe, vencAte, tipoFiltro, cardsAtivos, agrupado, ordenacao]);
+
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
 
