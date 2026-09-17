@@ -658,9 +658,7 @@ export default function Parceiros() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered
-                          .slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina)
-                          .map((p) => {
+                        {paginaItens.map((p) => {
                           const tipos = p.tipos || [];
                           const isForn = tipos.includes("fornecedor");
                           const isCli = tipos.includes("cliente");
