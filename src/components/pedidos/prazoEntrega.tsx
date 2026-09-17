@@ -162,7 +162,22 @@ export function BlocoPrazo({
         </TooltipProvider>
       )}
 
-      {previsao ? (
+      {semExpedicao ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-fit cursor-help">
+                <Selo className="bg-muted text-muted-foreground border-border">Encerra no faturamento</Selo>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[300px]">
+                {info.previsao_motivo_sem_data || "Pedido sem expedição — encerra no faturamento"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : previsao ? (
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-[11px] text-foreground">
             {retira ? "Disponível para retirada em " : "Previsão "}
