@@ -4,7 +4,7 @@
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -69,6 +69,9 @@ const DIR_INICIAL_ENTRADAS: Record<ColunaEntradas, DirecaoOrdenacao> = {
 };
 
 const CHAVE_PAGINA_ENTRADAS = "fetely:cliente:entradas:page-size";
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
 
 function AtribuirCliente({ entrada }: { entrada: EntradaReconhecer }) {
   const [open, setOpen] = useState(false);
@@ -160,6 +163,21 @@ export function EntradasReconhecerTab() {
     setPagina(1);
   }, [ordenacao]);
 
+  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
+  // altura deles muda (os cards quebram linha em tela menor). Mede, nao chuta.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+
+  useEffect(() => {
+    const el = kpisRef.current;
+    if (!el) return;
+    const medir = () => setAlturaKpis(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
   const total = useMemo(
     () => (entradas ?? []).reduce((s, e) => s + Number(e.valor ?? 0), 0),
     [entradas],
@@ -205,7 +223,10 @@ export function EntradasReconhecerTab() {
   );
 
   return (
-    <div className="space-y-3">
+    <div
+      className="space-y-3"
+      style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}
+    >
       <p className="text-[11px] text-muted-foreground leading-relaxed max-w-3xl">
         A varredura automática roda de hora em hora (documento do pagador, pagadores conhecidos e
         chaves de comprovante). O que aparece aqui é o que ela não reconheceu — um clique ensina o
@@ -220,7 +241,10 @@ export function EntradasReconhecerTab() {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div
+        ref={kpisRef}
+        className="sticky top-16 z-20 grid grid-cols-2 md:grid-cols-4 gap-3 bg-background py-2"
+      >
         <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Entradas na fila</p>
           <p className="text-sm font-medium">{isError ? "—" : (entradas ?? []).length}</p>
