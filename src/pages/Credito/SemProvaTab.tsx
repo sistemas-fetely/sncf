@@ -328,7 +328,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
+  if (isLoading || loadingCartao || loadingInstr || loadingNC || loadingComp) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
