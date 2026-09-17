@@ -833,10 +833,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         body: { tipo: "reemissao", titulo_ids: filaReemissao.map((b) => b.id) },
       });
       if (error || !data?.ok) {
-        const detalhe = Array.isArray(data?.erros)
-          ? data.erros.map((x: { numero_titulo?: string; motivo?: string }) => `${x.numero_titulo ?? "?"}: ${x.motivo ?? "?"}`).join(" · ")
-          : null;
-        throw new Error([data?.erro ?? error?.message ?? "Erro ao gerar remessa de reemissão", detalhe].filter(Boolean).join(" — "));
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de reemissão"));
       }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
