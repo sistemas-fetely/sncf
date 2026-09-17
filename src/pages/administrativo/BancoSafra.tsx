@@ -614,7 +614,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const idsSelecionaveis = useMemo(
     () =>
       entradaLista
-        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .filter((b) => bloqueioEntrada(b, hojeIso) === null)
         .map((b) => b.id),
     [entradaLista, hojeIso],
   );
