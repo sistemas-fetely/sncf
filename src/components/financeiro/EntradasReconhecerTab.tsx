@@ -4,7 +4,7 @@
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,16 @@ import {
   useEntradasReconhecer,
   type EntradaReconhecer,
 } from "@/hooks/financeiro/useContaCliente";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -47,6 +57,18 @@ function diasNaFila(iso: string) {
   const hoje = new Date(new Date().toLocaleDateString("en-CA") + "T12:00:00").getTime();
   return Math.max(0, Math.round((hoje - t) / 86400000));
 }
+
+type ColunaEntradas = "data" | "valor" | "pagador" | "documento" | "descricao" | "dias";
+
+type OrdenacaoEntradas = { coluna: ColunaEntradas; dir: DirecaoOrdenacao } | null;
+
+/** Dias na fila desce: quem espera mais aparece primeiro. */
+const DIR_INICIAL_ENTRADAS: Record<ColunaEntradas, DirecaoOrdenacao> = {
+  data: "desc", valor: "desc", pagador: "asc",
+  documento: "asc", descricao: "asc", dias: "desc",
+};
+
+const CHAVE_PAGINA_ENTRADAS = "fetely:cliente:entradas:page-size";
 
 function AtribuirCliente({ entrada }: { entrada: EntradaReconhecer }) {
   const [open, setOpen] = useState(false);
@@ -118,10 +140,68 @@ function AtribuirCliente({ entrada }: { entrada: EntradaReconhecer }) {
 
 export function EntradasReconhecerTab() {
   const { data: entradas, isLoading, isError, error } = useEntradasReconhecer();
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoEntradas>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_ENTRADAS),
+  );
+
+  const ordenarPor = (coluna: ColunaEntradas) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_ENTRADAS[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a view entrega.
+      return invertida === DIR_INICIAL_ENTRADAS[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  // Esta aba não tem busca — a página só reseta quando a ordem muda.
+  useEffect(() => {
+    setPagina(1);
+  }, [ordenacao]);
 
   const total = useMemo(
     () => (entradas ?? []).reduce((s, e) => s + Number(e.valor ?? 0), 0),
     [entradas],
+  );
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const ordenadas = useMemo(() => {
+    const base = entradas ?? [];
+    if (!ordenacao) return base;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (e: EntradaReconhecer): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "data": {
+          const t = Date.parse(e.data_transacao);
+          return Number.isNaN(t) ? null : t;
+        }
+        case "valor": return Number(e.valor ?? 0);
+        case "pagador": return e.contraparte_nome ?? null;
+        case "documento": return e.contraparte_documento ?? null;
+        case "descricao": return e.descricao ?? null;
+        case "dias": return diasNaFila(e.data_transacao);
+        default: return null;
+      }
+    };
+    return [...base].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [entradas, ordenacao]);
+
+  const totalPaginasEntradas = Math.max(1, Math.ceil(ordenadas.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasEntradas);
+  const paginaItens = ordenadas.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
   );
 
   return (
@@ -141,11 +221,11 @@ export function EntradasReconhecerTab() {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Entradas na fila</p>
           <p className="text-sm font-medium">{isError ? "—" : (entradas ?? []).length}</p>
         </div>
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Valor a reconhecer</p>
           <p className="text-sm font-medium text-warning">{isError ? "—" : formatBRL(total)}</p>
         </div>
@@ -158,28 +238,29 @@ export function EntradasReconhecerTab() {
           ))}
         </div>
       ) : (
-        <div className="rounded-md border border-border/60">
-          <Table>
+        <>
+        <div className="rounded-md border border-border/60 bg-card">
+          <Table containerClassName="overflow-visible">
             <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>Pagador</TableHead>
-                <TableHead>Documento</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead className="text-right">Dias na fila</TableHead>
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                <CabecalhoOrdenavel rotulo="Data" dir={ordenacao?.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+                <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+                <CabecalhoOrdenavel rotulo="Pagador" dir={ordenacao?.coluna === "pagador" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pagador")} />
+                <CabecalhoOrdenavel rotulo="Documento" dir={ordenacao?.coluna === "documento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("documento")} />
+                <CabecalhoOrdenavel rotulo="Descrição" dir={ordenacao?.coluna === "descricao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("descricao")} />
+                <CabecalhoOrdenavel rotulo="Dias na fila" className="text-right" alinharDireita dir={ordenacao?.coluna === "dias" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("dias")} />
                 <TableHead />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(entradas ?? []).length === 0 && (
+              {ordenadas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
                     Nada pendente — a varredura reconheceu tudo.
                   </TableCell>
                 </TableRow>
               )}
-              {(entradas ?? []).map((e) => {
+              {paginaItens.map((e) => {
                 const dias = diasNaFila(e.data_transacao);
                 return (
                   <TableRow key={e.id}>
@@ -212,6 +293,15 @@ export function EntradasReconhecerTab() {
             </TableBody>
           </Table>
         </div>
+        <RodapePaginacao
+          total={ordenadas.length}
+          pagina={paginaAtual}
+          tamanhoPagina={tamanhoPagina}
+          chavePreferencia={CHAVE_PAGINA_ENTRADAS}
+          onPagina={setPagina}
+          onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+        />
+        </>
       )}
     </div>
   );

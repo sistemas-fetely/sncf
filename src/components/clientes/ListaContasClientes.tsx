@@ -4,7 +4,7 @@
  * Usada em /cliente. Clicar numa linha abre /cliente/:id.
  * O trabalho de conciliação (entradas a reconhecer) vive em outra rota.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -15,7 +15,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -26,12 +25,35 @@ import { cn } from "@/lib/utils";
 import { useContasClienteSaldo } from "@/hooks/financeiro/useContaCliente";
 import { apelidoParceiro, nomeCanonico, parceiroCombina } from "@/lib/parceiros/nome";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
   const [a, m, d] = iso.slice(0, 10).split("-");
   return `${d}/${m}/${a}`;
 }
+
+type ColunaContas =
+  | "cliente" | "saldo" | "vencido" | "a_vencer" | "credito_futuro" | "ultima_mov" | "estado";
+
+type OrdenacaoContas = { coluna: ColunaContas; dir: DirecaoOrdenacao } | null;
+
+/** Saldo sobe porque asc traz o mais negativo primeiro — o maior devedor. */
+const DIR_INICIAL_CONTAS: Record<ColunaContas, DirecaoOrdenacao> = {
+  cliente: "asc", saldo: "asc", vencido: "desc", a_vencer: "desc",
+  credito_futuro: "desc", ultima_mov: "desc", estado: "desc",
+};
+
+const CHAVE_PAGINA_CONTAS = "fetely:cliente:contas:page-size";
 
 interface Props {
   /** o cabeçalho da tela é da página (que tem abas); a lista pode omiti-lo */
@@ -42,6 +64,24 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   const navigate = useNavigate();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
   const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoContas>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_CONTAS),
+  );
+
+  const ordenarPor = (coluna: ColunaContas) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_CONTAS[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a view entrega.
+      return invertida === DIR_INICIAL_CONTAS[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, ordenacao]);
 
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -50,6 +90,53 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
     // NOME-É-RAZÃO-SOCIAL: casa razão social, apelido e CNPJ.
     return base.filter((c) => parceiroCombina(t, c.razao_social, c.nome_fantasia, c.cnpj));
   }, [contas, busca]);
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const ordenadas = useMemo(() => {
+    if (!ordenacao) return filtradas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    // Gravidade do estado — mesma leitura que a coluna Estado ja comunica.
+    const gravidade = (c: (typeof filtradas)[number]) => {
+      const s = Number(c.saldo ?? 0);
+      if (Number(c.vencido_em_aberto ?? 0) > 0) return 3;
+      if (s < 0) return 2;
+      if (s > 0) return 1;
+      return 0;
+    };
+    const valorDe = (c: (typeof filtradas)[number]): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "cliente": return nomeCanonico(c.razao_social, "") || null;
+        case "saldo": return Number(c.saldo ?? 0);
+        case "vencido": return Number(c.vencido_em_aberto ?? 0);
+        case "a_vencer": return Number(c.a_vencer ?? 0);
+        case "credito_futuro": return Number(c.credito_futuro_boleto ?? 0);
+        case "ultima_mov": {
+          const t = c.ultima_movimentacao ? Date.parse(c.ultima_movimentacao) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "estado": return gravidade(c);
+        default: return null;
+      }
+    };
+    return [...filtradas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [filtradas, ordenacao]);
+
+  const totalPaginasContas = Math.max(1, Math.ceil(ordenadas.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasContas);
+  const paginaItens = ordenadas.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   const kpis = useMemo(() => {
     const base = contas ?? [];
@@ -97,23 +184,23 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Crédito a favor de clientes</p>
           <p className="text-sm font-medium text-success">
             {isError ? "—" : formatBRL(kpis.credito)}
           </p>
         </div>
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Clientes devendo</p>
           <p className="text-sm font-medium">{isError ? "—" : formatBRL(kpis.devendo)}</p>
         </div>
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
           <p className="text-sm font-medium text-destructive">
             {isError ? "—" : formatBRL(kpis.vencido)}
           </p>
         </div>
-        <div className="rounded-md border border-border/60 p-2.5">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Clientes</p>
           <p className="text-sm font-medium">{isError ? "—" : kpis.clientes}</p>
         </div>
@@ -136,28 +223,29 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
           ))}
         </div>
       ) : (
-        <div className="rounded-md border border-border/60">
-          <Table>
+        <>
+        <div className="rounded-md border border-border/60 bg-card">
+          <Table containerClassName="overflow-visible">
             <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Saldo</TableHead>
-                <TableHead className="text-right">Vencido em aberto</TableHead>
-                <TableHead className="text-right">A vencer</TableHead>
-                <TableHead className="text-right">Crédito futuro</TableHead>
-                <TableHead>Última movimentação</TableHead>
-                <TableHead>Estado</TableHead>
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+                <CabecalhoOrdenavel rotulo="Saldo" className="text-right" alinharDireita dir={ordenacao?.coluna === "saldo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("saldo")} />
+                <CabecalhoOrdenavel rotulo="Vencido em aberto" className="text-right" alinharDireita dir={ordenacao?.coluna === "vencido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("vencido")} />
+                <CabecalhoOrdenavel rotulo="A vencer" className="text-right" alinharDireita dir={ordenacao?.coluna === "a_vencer" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("a_vencer")} />
+                <CabecalhoOrdenavel rotulo="Crédito futuro" className="text-right" alinharDireita dir={ordenacao?.coluna === "credito_futuro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("credito_futuro")} />
+                <CabecalhoOrdenavel rotulo="Última movimentação" dir={ordenacao?.coluna === "ultima_mov" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("ultima_mov")} />
+                <CabecalhoOrdenavel rotulo="Estado" dir={ordenacao?.coluna === "estado" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("estado")} />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtradas.length === 0 && (
+              {ordenadas.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
                     Nenhum cliente com movimento em conta.
                   </TableCell>
                 </TableRow>
               )}
-              {filtradas.map((c) => {
+              {paginaItens.map((c) => {
                 const s = Number(c.saldo ?? 0);
                 const vencido = Number(c.vencido_em_aberto ?? 0) > 0;
                 return (
@@ -213,6 +301,15 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
             </TableBody>
           </Table>
         </div>
+        <RodapePaginacao
+          total={ordenadas.length}
+          pagina={paginaAtual}
+          tamanhoPagina={tamanhoPagina}
+          chavePreferencia={CHAVE_PAGINA_CONTAS}
+          onPagina={setPagina}
+          onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+        />
+        </>
       )}
     </div>
   );
