@@ -750,6 +750,15 @@ export default function Parceiros() {
                       </TableBody>
                     </Table>
                   </div>
+                    <RodapePaginacao
+                      total={filtered.length}
+                      pagina={pagina}
+                      tamanhoPagina={tamanhoPagina}
+                      chavePreferencia={CHAVE_PAGINA_PARCEIROS}
+                      onPagina={setPagina}
+                      onTamanhoPagina={setTamanhoPagina}
+                    />
+                  </>
                 )}
               </CardContent>
             </Card>
