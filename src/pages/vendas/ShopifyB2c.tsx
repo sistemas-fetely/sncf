@@ -23,11 +23,11 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
-  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
+  usePedidosB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 /**
@@ -37,7 +37,11 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
  * é faturar, expedir, rastrear e entregar.
  */
 
-const ABAS = ["fila", "dash", "carrinhos", "posvenda"] as const;
+// DESMONTE-ABAS-B2C (17/09/2026): Carrinhos e Pós-venda saíram — não davam
+// retorno à operação. O dado continua: shopify_checkouts alimenta
+// /vendas/shopify/checkouts e devolucao vive em Devoluções Fiscais.
+// Link salvo com ?aba=carrinhos cai em fila pela guarda abaixo.
+const ABAS = ["fila", "dash"] as const;
 type Aba = (typeof ABAS)[number];
 
 type ColunaB2c =
@@ -75,14 +79,10 @@ export default function ShopifyB2c() {
   // Guarda nominal por aba.
   const permFila = usePodeVerAba("tela.b2c");
   const permDash = usePodeVerAba("tela.dash_b2c");
-  const permCarrinhos = usePodeVerAba("tela.b2c_carrinhos");
-  const permPosVenda = usePodeVerAba("tela.b2c_pos_venda");
 
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
-    carrinhos: permCarrinhos,
-    posvenda: permPosVenda,
   };
 
   const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
@@ -140,8 +140,6 @@ export default function ShopifyB2c() {
   }, [abaEfetiva]);
 
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
-  const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
-  const { data: devolucoes, isLoading: carregandoDevolucoes } = useDevolucoesB2c();
   const {
     data: alertasDim,
     isError: alertasDimErro,
@@ -207,13 +205,6 @@ export default function ShopifyB2c() {
     return codigo.replace(/_/g, " ");
   }
 
-  const carrinhosResumo = useMemo(
-    () => ({
-      qtd: (carrinhos ?? []).length,
-      valor: (carrinhos ?? []).reduce((s, c) => s + Number(c.total_price ?? 0), 0),
-    }),
-    [carrinhos],
-  );
 
   const filtrados = useMemo(() => {
     let r = lista;
@@ -318,15 +309,6 @@ export default function ShopifyB2c() {
             <AbaPermitida slug="tela.dash_b2c">
               <TabsTrigger value="dash">Dash</TabsTrigger>
             </AbaPermitida>
-            <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-            <AbaPermitida slug="tela.b2c_carrinhos">
-              <TabsTrigger value="carrinhos">
-                Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
-              </TabsTrigger>
-            </AbaPermitida>
-            <AbaPermitida slug="tela.b2c_pos_venda">
-              <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
-            </AbaPermitida>
           </TabsList>
 
         <TabsContent
@@ -346,8 +328,6 @@ export default function ShopifyB2c() {
               incluirCancelados={incluirCancelados}
               onToggleCancelados={setIncluirCancelados}
               filaAtiva={filaAtiva}
-              carrinhos={carrinhosResumo}
-              onAbrirCarrinhos={() => setAba("carrinhos")}
             />
           </div>
 
