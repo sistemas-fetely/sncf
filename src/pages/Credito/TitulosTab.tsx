@@ -42,6 +42,16 @@ import {
   somarSaldos,
 } from "@/components/financeiro/SaldoTitulo";
 import { cn } from "@/lib/utils";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { BadgeBoletoStatus } from "@/components/credito/BadgeBoletoStatus";
 import { AvisoBoletosVivos, BoletoVigenteLinhas } from "@/components/credito/AvisoBoletosVivos";
 import { BoletoImprimivelAcoes } from "@/components/credito/BoletoImprimivelAcoes";
@@ -584,6 +594,47 @@ function LinhaGrupo({
   );
 }
 
+type ColunaTitulos =
+  | "titulo" | "cliente" | "pedido" | "nf" | "tipo"
+  | "vencimento" | "liquidacao" | "valor" | "instrumento" | "situacao";
+
+type OrdenacaoTitulos = { coluna: ColunaTitulos; dir: DirecaoOrdenacao } | null;
+
+/** Vencimento sobe (o mais proximo primeiro); dinheiro e liquidacao descem. */
+const DIR_INICIAL_TITULOS: Record<ColunaTitulos, DirecaoOrdenacao> = {
+  titulo: "asc", cliente: "asc", pedido: "asc", nf: "asc", tipo: "asc",
+  vencimento: "asc", liquidacao: "desc", valor: "desc",
+  instrumento: "asc", situacao: "asc",
+};
+
+/** Agrupado por pedido, estas duas colunas nao tem valor de grupo: a 1a mostra
+ *  "N parcelas de M" e a Liquidacao mostra "—". Ordenar por elas seria mentira. */
+const COLUNAS_SO_NA_LISTA_PLANA: ColunaTitulos[] = ["titulo", "liquidacao"];
+
+const CHAVE_PAGINA_TITULOS = "fetely:cobranca:titulos:page-size";
+
+/** VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos. */
+function compararOrdenavel(
+  va: string | number | null,
+  vb: string | number | null,
+  dir: number,
+): number {
+  if (va == null && vb == null) return 0;
+  if (va == null) return 1;
+  if (vb == null) return -1;
+  if (typeof va === "string" || typeof vb === "string") {
+    return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+  }
+  return (Number(va) - Number(vb)) * dir;
+}
+
+/** Data em milissegundos, ou null quando ausente/invalida. */
+function msDe(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
+}
+
 export default function TitulosTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -629,6 +680,21 @@ export default function TitulosTab() {
   const [agrupado, setAgrupado] = useState(true);
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoTitulos>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_TITULOS),
+  );
+
+  const ordenarPor = (coluna: ColunaTitulos) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_TITULOS[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a consulta entrega.
+      return invertida === DIR_INICIAL_TITULOS[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
   function toggleGrupo(chave: string) {
     setAbertos((prev) => {
       const next = new Set(prev);
@@ -644,6 +710,18 @@ export default function TitulosTab() {
     const achado = titulos.find((t) => t.id === tituloDaUrl);
     if (achado) setDetalhe(achado);
   }, [tituloDaUrl, titulos, detalhe?.id]);
+
+  // Trocar de modo com uma coluna que so existe na lista plana limparia a ordem
+  // sem avisar; melhor soltar a ordenacao explicitamente.
+  useEffect(() => {
+    if (agrupado && ordenacao && COLUNAS_SO_NA_LISTA_PLANA.includes(ordenacao.coluna)) {
+      setOrdenacao(null);
+    }
+  }, [agrupado, ordenacao]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, vencDe, vencAte, tipoFiltro, cardsAtivos, agrupado, ordenacao]);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
@@ -736,6 +814,62 @@ export default function TitulosTab() {
 
   /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
   const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
+
+  /* Lista plana: ordena TITULO pelo dado do titulo. */
+  const titulosOrdenados = useMemo(() => {
+    if (!ordenacao) return filtrados;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (t: TituloCobranca): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "titulo": return t.numero_titulo ?? null;
+        case "cliente": return t.parceiro_razao_social ?? null;
+        case "pedido": return t.pedido_id_externo ?? null;
+        case "nf": return t.nf_numero ?? null;
+        case "tipo": return tipoLabel(t.tipo_pagamento);
+        case "vencimento": return msDe(t.data_vencimento_atual);
+        // A mesma data que a celula mostra, na mesma ordem de precedencia.
+        case "liquidacao":
+          return msDe(
+            t.data_liquidacao_real ?? t.data_pago_efetiva ?? t.data_liquidacao_prevista,
+          );
+        case "valor": return Number(t.valor_efetivo ?? 0);
+        case "instrumento": return t.eixo_instrumento ?? null;
+        case "situacao": return t.eixo_recebimento ?? null;
+        default: return null;
+      }
+    };
+    return [...filtrados].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
+  }, [filtrados, ordenacao]);
+
+  /* Agrupado: ordena GRUPO pelo dado do grupo. */
+  const gruposOrdenados = useMemo(() => {
+    if (!ordenacao) return grupos;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (g: GrupoPedido): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "cliente": return g.cabeca.parceiro_razao_social ?? null;
+        case "pedido": return g.pedidoRef ?? null;
+        case "nf": return g.nfs[0] ?? null;
+        case "tipo": return g.formas.length ? tipoLabel(g.formas[0]) : null;
+        case "vencimento": return msDe(g.proximoVencimento);
+        case "valor": return Number(g.totalVisivel ?? 0);
+        case "instrumento": return g.instrumentoPrevalente ?? null;
+        case "situacao": return g.recebimentoPrevalente ?? null;
+        // titulo e liquidacao nao tem valor de grupo.
+        default: return null;
+      }
+    };
+    return [...grupos].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
+  }, [grupos, ordenacao]);
+
+  // Agrupado, a unidade paginada e o PEDIDO; na lista plana, o TITULO. Fatiar
+  // titulo dentro de grupo quebraria o grupo ao meio.
+  const totalUnidades = agrupado ? gruposOrdenados.length : titulosOrdenados.length;
+  const totalPaginasTitulos = Math.max(1, Math.ceil(totalUnidades / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasTitulos);
+  const inicio = (paginaAtual - 1) * tamanhoPagina;
+  const gruposPagina = gruposOrdenados.slice(inicio, inicio + tamanhoPagina);
+  const titulosPagina = titulosOrdenados.slice(inicio, inicio + tamanhoPagina);
 
   async function copiar(txt: string) {
     try {
@@ -893,20 +1027,28 @@ export default function TitulosTab() {
       </div>
 
       {/* Tabela */}
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border bg-card">
+        <Table containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow>
-              <TableHead>Título</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Pedido</TableHead>
-              <TableHead>NF</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Vencimento</TableHead>
-              <TableHead>Liquidação</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Instrumento</TableHead>
-              <TableHead>Situação</TableHead>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              {agrupado ? (
+                <TableHead>Título</TableHead>
+              ) : (
+                <CabecalhoOrdenavel rotulo="Título" dir={ordenacao?.coluna === "titulo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("titulo")} />
+              )}
+              <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+              <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao?.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+              <CabecalhoOrdenavel rotulo="NF" dir={ordenacao?.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
+              <CabecalhoOrdenavel rotulo="Tipo" dir={ordenacao?.coluna === "tipo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("tipo")} />
+              <CabecalhoOrdenavel rotulo="Vencimento" dir={ordenacao?.coluna === "vencimento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("vencimento")} />
+              {agrupado ? (
+                <TableHead>Liquidação</TableHead>
+              ) : (
+                <CabecalhoOrdenavel rotulo="Liquidação" dir={ordenacao?.coluna === "liquidacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("liquidacao")} />
+              )}
+              <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Instrumento" dir={ordenacao?.coluna === "instrumento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("instrumento")} />
+              <CabecalhoOrdenavel rotulo="Situação" dir={ordenacao?.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -927,7 +1069,7 @@ export default function TitulosTab() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && agrupado && grupos.map((g) => {
+            {!isLoading && agrupado && gruposPagina.map((g) => {
               if (grupoEhUnitario(g)) {
                 const t0 = g.titulos[0];
                 const s0 = saldosPorTitulo.get(t0.id);
@@ -968,7 +1110,7 @@ export default function TitulosTab() {
                 </Fragment>
               );
             })}
-            {!isLoading && !agrupado && filtrados.map((t) => {
+            {!isLoading && !agrupado && titulosPagina.map((t) => {
               const s = saldosPorTitulo.get(t.id);
               return (
                 <LinhaTitulo
@@ -984,6 +1126,15 @@ export default function TitulosTab() {
           </TableBody>
         </Table>
       </div>
+
+      <RodapePaginacao
+        total={totalUnidades}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_TITULOS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
 
       <p className="text-xs text-muted-foreground">
         {filtrados.length} título{filtrados.length !== 1 ? "s" : ""}
