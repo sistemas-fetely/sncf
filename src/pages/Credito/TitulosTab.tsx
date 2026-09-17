@@ -584,6 +584,47 @@ function LinhaGrupo({
   );
 }
 
+type ColunaTitulos =
+  | "titulo" | "cliente" | "pedido" | "nf" | "tipo"
+  | "vencimento" | "liquidacao" | "valor" | "instrumento" | "situacao";
+
+type OrdenacaoTitulos = { coluna: ColunaTitulos; dir: DirecaoOrdenacao } | null;
+
+/** Vencimento sobe (o mais proximo primeiro); dinheiro e liquidacao descem. */
+const DIR_INICIAL_TITULOS: Record<ColunaTitulos, DirecaoOrdenacao> = {
+  titulo: "asc", cliente: "asc", pedido: "asc", nf: "asc", tipo: "asc",
+  vencimento: "asc", liquidacao: "desc", valor: "desc",
+  instrumento: "asc", situacao: "asc",
+};
+
+/** Agrupado por pedido, estas duas colunas nao tem valor de grupo: a 1a mostra
+ *  "N parcelas de M" e a Liquidacao mostra "—". Ordenar por elas seria mentira. */
+const COLUNAS_SO_NA_LISTA_PLANA: ColunaTitulos[] = ["titulo", "liquidacao"];
+
+const CHAVE_PAGINA_TITULOS = "fetely:cobranca:titulos:page-size";
+
+/** VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos. */
+function compararOrdenavel(
+  va: string | number | null,
+  vb: string | number | null,
+  dir: number,
+): number {
+  if (va == null && vb == null) return 0;
+  if (va == null) return 1;
+  if (vb == null) return -1;
+  if (typeof va === "string" || typeof vb === "string") {
+    return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+  }
+  return (Number(va) - Number(vb)) * dir;
+}
+
+/** Data em milissegundos, ou null quando ausente/invalida. */
+function msDe(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? null : t;
+}
+
 export default function TitulosTab() {
   const navigate = useNavigate();
   const qc = useQueryClient();
