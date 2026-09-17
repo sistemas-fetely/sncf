@@ -1,4 +1,4 @@
-import { AlertTriangle, Inbox, Receipt, Clock, Package, FileText, Truck, PackageCheck, ShoppingCart } from "lucide-react";
+import { AlertTriangle, Inbox, Receipt, Clock, Package, FileText, Truck, PackageCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePipelineB2c } from "@/hooks/vendas/useB2c";
@@ -36,9 +36,6 @@ interface Props {
   onToggleCancelados?: (v: boolean) => void;
   /** Fila ativa — vem da MESMA lista que a tabela da aba Fila mostra. */
   filaAtiva?: { qtd: number; valor: number };
-  /** Carrinhos abandonados — vem da MESMA query da aba Carrinhos. */
-  carrinhos?: { qtd: number; valor: number };
-  onAbrirCarrinhos?: () => void;
 }
 
 export function PipelineB2c({
@@ -48,8 +45,6 @@ export function PipelineB2c({
   incluirCancelados = false,
   onToggleCancelados,
   filaAtiva,
-  carrinhos,
-  onAbrirCarrinhos,
 }: Props) {
   const { data, isLoading, isError, error } = usePipelineB2c();
 
@@ -159,29 +154,6 @@ export function PipelineB2c({
         );
       })}
 
-      {/* Divisor: daqui pra frente não é passo do fluxo */}
-      <div className="mx-1 w-px self-stretch bg-border" aria-hidden />
-
-      {/* Carrinhos abandonados */}
-      <button
-        type="button"
-        onClick={() => onAbrirCarrinhos?.()}
-        title="Checkouts sem conclusão. Clique para abrir a aba Carrinhos."
-        className={cn(
-          "flex w-[104px] shrink-0 flex-col items-center justify-center rounded-md border border-dashed bg-muted/40 py-2 px-2 text-muted-foreground transition-all duration-200",
-          "gold-border-hover focus-visible:outline-none",
-          (carrinhos?.qtd ?? 0) === 0 && "opacity-40",
-        )}
-      >
-        <ShoppingCart className="mb-0.5 h-4 w-4" />
-        <span className="text-[10px] font-medium uppercase leading-tight tracking-wide">
-          Carrinhos
-        </span>
-        <span className="text-[11px] font-medium tabular-nums">
-          {carrinhos?.qtd ?? 0} {(carrinhos?.qtd ?? 0) === 1 ? "carrinho" : "carrinhos"}
-        </span>
-        <span className="text-[10px] tabular-nums">{fmtBRL.format(carrinhos?.valor ?? 0)}</span>
-      </button>
     </div>
   );
 }

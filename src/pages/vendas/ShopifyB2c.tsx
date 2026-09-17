@@ -23,11 +23,11 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
-  usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
+  usePedidosB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 
 /**
@@ -37,7 +37,11 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
  * é faturar, expedir, rastrear e entregar.
  */
 
-const ABAS = ["fila", "dash", "carrinhos", "posvenda"] as const;
+// DESMONTE-ABAS-B2C (17/09/2026): Carrinhos e Pós-venda saíram — não davam
+// retorno à operação. O dado continua: shopify_checkouts alimenta
+// /vendas/shopify/checkouts e devolucao vive em Devoluções Fiscais.
+// Link salvo com ?aba=carrinhos cai em fila pela guarda abaixo.
+const ABAS = ["fila", "dash"] as const;
 type Aba = (typeof ABAS)[number];
 
 type ColunaB2c =
@@ -75,14 +79,10 @@ export default function ShopifyB2c() {
   // Guarda nominal por aba.
   const permFila = usePodeVerAba("tela.b2c");
   const permDash = usePodeVerAba("tela.dash_b2c");
-  const permCarrinhos = usePodeVerAba("tela.b2c_carrinhos");
-  const permPosVenda = usePodeVerAba("tela.b2c_pos_venda");
 
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
-    carrinhos: permCarrinhos,
-    posvenda: permPosVenda,
   };
 
   const carregandoPermissoes = ABAS.some((a) => permissoes[a].carregando);
@@ -140,8 +140,6 @@ export default function ShopifyB2c() {
   }, [abaEfetiva]);
 
   const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
-  const { data: carrinhos, isLoading: carregandoCarrinhos } = useCarrinhosAbandonados();
-  const { data: devolucoes, isLoading: carregandoDevolucoes } = useDevolucoesB2c();
   const {
     data: alertasDim,
     isError: alertasDimErro,
@@ -207,13 +205,6 @@ export default function ShopifyB2c() {
     return codigo.replace(/_/g, " ");
   }
 
-  const carrinhosResumo = useMemo(
-    () => ({
-      qtd: (carrinhos ?? []).length,
-      valor: (carrinhos ?? []).reduce((s, c) => s + Number(c.total_price ?? 0), 0),
-    }),
-    [carrinhos],
-  );
 
   const filtrados = useMemo(() => {
     let r = lista;
@@ -318,15 +309,6 @@ export default function ShopifyB2c() {
             <AbaPermitida slug="tela.dash_b2c">
               <TabsTrigger value="dash">Dash</TabsTrigger>
             </AbaPermitida>
-            <div className="w-px bg-border mx-1.5 self-stretch" aria-hidden />
-            <AbaPermitida slug="tela.b2c_carrinhos">
-              <TabsTrigger value="carrinhos">
-                Carrinhos{carrinhosResumo.qtd > 0 ? ` (${carrinhosResumo.qtd})` : ""}
-              </TabsTrigger>
-            </AbaPermitida>
-            <AbaPermitida slug="tela.b2c_pos_venda">
-              <TabsTrigger value="posvenda">Pós-venda</TabsTrigger>
-            </AbaPermitida>
           </TabsList>
 
         <TabsContent
@@ -346,8 +328,6 @@ export default function ShopifyB2c() {
               incluirCancelados={incluirCancelados}
               onToggleCancelados={setIncluirCancelados}
               filaAtiva={filaAtiva}
-              carrinhos={carrinhosResumo}
-              onAbrirCarrinhos={() => setAba("carrinhos")}
             />
           </div>
 
@@ -656,141 +636,6 @@ export default function ShopifyB2c() {
         <TabsContent value="dash">
           <ConteudoAba slug="tela.dash_b2c">
             <DashB2c pedidos={lista} isLoading={isLoading} />
-          </ConteudoAba>
-        </TabsContent>
-
-        <TabsContent value="carrinhos" className="space-y-3">
-          <ConteudoAba slug="tela.b2c_carrinhos">
-            <p className="text-xs text-muted-foreground">
-              {carrinhosResumo.qtd} carrinho(s) abandonado(s) · {formatBRL(carrinhosResumo.valor)} em jogo.
-            </p>
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>E-mail</TableHead>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Idade</TableHead>
-                      <TableHead>Checkout</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {carregandoCarrinhos ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="py-8 text-center">
-                          <Skeleton className="mx-auto h-4 w-32" />
-                        </TableCell>
-                      </TableRow>
-                    ) : (carrinhos ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
-                          Nenhum carrinho abandonado.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      (carrinhos ?? []).map((c) => {
-                        const idade = c.created_at_shopify
-                          ? Math.floor(
-                              (Date.now() - new Date(c.created_at_shopify).getTime()) / 86400000,
-                            )
-                          : null;
-                        return (
-                          <TableRow key={c.token}>
-                            <TableCell className="text-xs">{txt(c.email)}</TableCell>
-                            <TableCell className="text-right text-xs tabular-nums">
-                              {formatBRL(c.total_price)}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-xs">
-                              {formatDateBR(c.created_at_shopify)}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                              {idade != null ? `${idade} d` : "—"}
-                            </TableCell>
-                            <TableCell>
-                              {c.abandoned_checkout_url ? (
-                                <a
-                                  href={c.abandoned_checkout_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-gold"
-                                >
-                                  Abrir <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </ConteudoAba>
-        </TabsContent>
-
-        <TabsContent value="posvenda">
-          <ConteudoAba slug="tela.b2c_pos_venda">
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Número</TableHead>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Motivo</TableHead>
-                      <TableHead className="text-right">Crédito</TableHead>
-                      <TableHead>Data</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {carregandoDevolucoes ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="py-8 text-center">
-                          <Skeleton className="mx-auto h-4 w-32" />
-                        </TableCell>
-                      </TableRow>
-                    ) : (devolucoes ?? []).length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                          Nenhuma devolução da loja registrada.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      (devolucoes ?? []).map((d) => (
-                        <TableRow key={d.id}>
-                          <TableCell className="font-mono text-xs">{d.numero}</TableCell>
-                          <TableCell className="font-mono text-xs">
-                            {txt(d.shopify_pedido_id ?? d.pedido_id)}
-                          </TableCell>
-                          <TableCell>
-                            <Selo estado={d.status === "encerrada" ? "success" : "warning"}>{d.status}</Selo>
-                          </TableCell>
-                          <TableCell className="text-xs">{d.tipo}</TableCell>
-                          <TableCell className="max-w-[280px] text-xs">
-                            <span className="line-clamp-2">
-                              {txt(d.motivo_categoria)} · {d.motivo_texto}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right text-xs tabular-nums">
-                            {formatBRL(d.valor_credito)}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-xs">
-                            {formatDateBR(d.criado_em)}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
           </ConteudoAba>
         </TabsContent>
       </Tabs>

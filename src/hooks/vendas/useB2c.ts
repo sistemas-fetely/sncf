@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
  * FONTE-UNICA (Casa do B2C): todo contador de aba, card do pipeline e tabela
  * lê a MESMA view. Nada de derivar contagem de outro cache.
  * Pipeline -> vw_pipeline_b2c · Fila/Drawer -> vw_gestao_b2c_pedido
- * Carrinhos -> shopify_checkouts · Pós-venda -> devolucao (canal b2c)
  */
 
 export interface PipelineB2cRow {
@@ -160,61 +159,6 @@ export function useItensB2c(shopifyId: string | null) {
         .eq("pedido_id", shopifyId!);
       if (error) throw error;
       return (data ?? []) as ItemB2c[];
-    },
-  });
-}
-
-export interface CarrinhoB2c {
-  token: string;
-  email: string | null;
-  total_price: number | null;
-  created_at_shopify: string | null;
-  abandoned_checkout_url: string | null;
-}
-
-export function useCarrinhosAbandonados() {
-  return useQuery({
-    queryKey: ["b2c-carrinhos-abandonados"],
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<CarrinhoB2c[]> => {
-      const { data, error } = await supabase
-        .from("shopify_checkouts")
-        .select("token, email, total_price, created_at_shopify, abandoned_checkout_url")
-        .is("completed_at", null)
-        .order("created_at_shopify", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as CarrinhoB2c[];
-    },
-  });
-}
-
-export interface DevolucaoB2c {
-  id: string;
-  numero: string;
-  status: string;
-  tipo: string;
-  motivo_texto: string;
-  motivo_categoria: string | null;
-  valor_credito: number | null;
-  criado_em: string;
-  shopify_pedido_id: string | null;
-  pedido_id: string | null;
-}
-
-export function useDevolucoesB2c() {
-  return useQuery({
-    queryKey: ["b2c-devolucoes"],
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<DevolucaoB2c[]> => {
-      const { data, error } = await supabase
-        .from("devolucao")
-        .select(
-          "id, numero, status, tipo, motivo_texto, motivo_categoria, valor_credito, criado_em, shopify_pedido_id, pedido_id",
-        )
-        .eq("canal", "b2c")
-        .order("criado_em", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as DevolucaoB2c[];
     },
   });
 }
