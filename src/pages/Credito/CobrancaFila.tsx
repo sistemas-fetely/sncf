@@ -815,6 +815,23 @@ function CancelarRemessaDialog({
   );
 }
 
+type ColunaRemessa =
+  | "arquivo" | "gerada" | "enviada" | "titulos" | "valor" | "retorno" | "status";
+
+type OrdenacaoRemessa = { coluna: ColunaRemessa; dir: DirecaoOrdenacao } | null;
+
+const DIR_INICIAL_REMESSA: Record<ColunaRemessa, DirecaoOrdenacao> = {
+  arquivo: "asc", gerada: "desc", enviada: "desc",
+  titulos: "desc", valor: "desc", retorno: "desc", status: "desc",
+};
+
+/** O que exige acao nossa vem primeiro no decrescente. */
+const GRAVIDADE_REMESSA: Record<string, number> = {
+  com_rejeicoes: 4, gerada: 3, enviada: 2, processada: 1, cancelada: 0,
+};
+
+const CHAVE_PAGINA_REMESSAS = "fetely:cobranca:remessas-safra:page-size";
+
 function RemessasSafraTab() {
   const invalidarRecebivel = useInvalidarRecebivel();
   const [importarOpen, setImportarOpen] = useState(false);
@@ -826,6 +843,71 @@ function RemessasSafraTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
+
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoRemessa>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_REMESSAS),
+  );
+
+  const ordenarPor = (coluna: ColunaRemessa) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_REMESSA[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a consulta entrega.
+      return invertida === DIR_INICIAL_REMESSA[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [ordenacao]);
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
+  const ordenadas = useMemo(() => {
+    if (!ordenacao) return remessas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (r: (typeof remessas)[number]): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "arquivo": return r.arquivo_nome || null;
+        case "gerada": {
+          const t = r.gerado_em ? Date.parse(r.gerado_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "enviada": {
+          const t = r.enviada_em ? Date.parse(r.enviada_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "titulos": return Number(r.qtd_titulos ?? 0);
+        case "valor": return Number(r.valor_total ?? 0);
+        case "retorno": {
+          const t = r.retorno_processado_em ? Date.parse(r.retorno_processado_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "status": return GRAVIDADE_REMESSA[r.status] ?? 0;
+        default: return null;
+      }
+    };
+    return [...remessas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [remessas, ordenacao]);
+
+  const totalPaginasRemessas = Math.max(1, Math.ceil(ordenadas.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasRemessas);
+  // A linha expandida e irma da principal no mesmo Fragment: fatia ANTES do map.
+  const paginaItens = ordenadas.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   const toggleExpandida = (id: string) =>
     setExpandidas((prev) => {
