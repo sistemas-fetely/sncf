@@ -762,7 +762,7 @@ export default function Parceiros() {
                   </div>
                     <RodapePaginacao
                       total={filtered.length}
-                      pagina={pagina}
+                      pagina={paginaAtual}
                       tamanhoPagina={tamanhoPagina}
                       chavePreferencia={CHAVE_PAGINA_PARCEIROS}
                       onPagina={setPagina}
