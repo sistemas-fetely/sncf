@@ -545,11 +545,28 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const set = new Set(escopoEntrada);
     return pendentesEntrada.filter((b) => set.has(b.id));
   }, [pendentesEntrada, escopoEntrada]);
-  const pendentesPassado = useMemo(
+  /** Títulos do escopo que NÃO podem ser registrados, com o motivo real. */
+  const bloqueadosEntrada = useMemo(
     () =>
-      entradaLista.filter(
-        (b) => b.data_vencimento_atual && b.data_vencimento_atual < hojeIso,
-      ),
+      entradaLista
+        .map((b) => ({ b, motivo: bloqueioEntrada(b, hojeIso) }))
+        .filter((x): x is { b: TitulosBoleto; motivo: string } => x.motivo !== null),
+    [entradaLista, hojeIso],
+  );
+  /** Motivos distintos com contagem — "Vencimento no passado (3) · ...". */
+  const resumoBloqueios = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const { motivo } of bloqueadosEntrada) {
+      const curto = motivo.split(" — ")[0];
+      contagem.set(curto, (contagem.get(curto) ?? 0) + 1);
+    }
+    return Array.from(contagem.entries())
+      .map(([m, n]) => `${m} (${n})`)
+      .join(" · ");
+  }, [bloqueadosEntrada]);
+  /** Registra, mas não dá para comunicar: sem e-mail. Só aviso. */
+  const avisadosEntrada = useMemo(
+    () => entradaLista.filter((b) => bloqueioEntrada(b, hojeIso) === null && avisoEntrada(b) !== null),
     [entradaLista, hojeIso],
   );
 
