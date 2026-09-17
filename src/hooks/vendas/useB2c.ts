@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
  * FONTE-UNICA (Casa do B2C): todo contador de aba, card do pipeline e tabela
  * lê a MESMA view. Nada de derivar contagem de outro cache.
  * Pipeline -> vw_pipeline_b2c · Fila/Drawer -> vw_gestao_b2c_pedido
- * Carrinhos -> shopify_checkouts · Pós-venda -> devolucao (canal b2c)
  */
 
 export interface PipelineB2cRow {
