@@ -134,10 +134,6 @@ export default function Parceiros() {
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_PARCEIROS),
   );
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, filtroStatus, filtroGrupo, filtroIncompleto, tabAtiva, sort]);
-
   // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
   // altura dos KPIs muda (6 cards quebram linha em tela menor). Mede, nao chuta.
   const kpisRef = useRef<HTMLDivElement>(null);
