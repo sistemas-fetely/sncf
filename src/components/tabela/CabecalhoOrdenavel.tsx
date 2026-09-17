@@ -18,6 +18,7 @@ export function CabecalhoOrdenavel({
   onOrdenar,
   className,
   alinharDireita,
+  rowSpan,
 }: {
   rotulo: string;
   /** null = coluna inativa */
@@ -25,9 +26,12 @@ export function CabecalhoOrdenavel({
   onOrdenar: () => void;
   className?: string;
   alinharDireita?: boolean;
+  /** Cabecalho de dois andares: celula que ocupa as duas linhas (ex.: Parceiro). */
+  rowSpan?: number;
 }) {
   return (
     <TableHead
+      rowSpan={rowSpan}
       className={className}
       aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
     >
@@ -68,3 +72,11 @@ export function CabecalhoOrdenavel({
  */
 export const LINHA_CABECALHO_COLADO =
   "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:font-semibold [&>th]:text-foreground [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
+
+/**
+ * Segundo nivel de um cabecalho de dois andares: cola logo abaixo da linha de
+ * grupo, cuja altura a tela publica em `--fila-topo-colado-2`. A linha de grupo
+ * usa LINHA_CABECALHO_COLADO normalmente.
+ */
+export const LINHA_CABECALHO_COLADO_NIVEL2 =
+  "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado-2,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:font-semibold [&>th]:text-foreground [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
