@@ -309,6 +309,10 @@ export default function SemProvaTab() {
   const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
+  const { data: comprovantes = [], isLoading: loadingComp } = useComprovantePendenteFila();
+  const qc = useQueryClient();
+  const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
+  const totalComprovantes = comprovantes.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
 
   const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
   /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
