@@ -28,6 +28,11 @@ interface Props {
   id_externo: string;
   estagio: string;
   bling_id_destino: number | null;
+  /**
+   * EXPEDICAO-E-EIXO-DA-NATUREZA (17/09/2026): booleano da dimensão de natureza.
+   * false = mercadoria já está com o cliente, não há expedição a empurrar.
+   */
+  exige_expedicao?: boolean;
 }
 
 /**
@@ -35,7 +40,15 @@ interface Props {
  * A ENTIDADE remessa mora no rodapé (Vínculos); aqui vivem só as ações.
  * Elegibilidade idêntica à que o antigo card "Remessas" usava.
  */
-export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, bling_id_destino }: Props) {
+export function AcoesRemessa({
+  pedido_id,
+  parceiro_id,
+  id_externo,
+  estagio,
+  bling_id_destino,
+  exige_expedicao = true,
+}: Props) {
+  const MOTIVO_SEM_EXPEDICAO = "Natureza sem expedição: a mercadoria já está com o cliente";
   const { data: remessas, isLoading } = useRemessas(pedido_id);
   const enviar = useEnviarBling();
   const empurrarXpm = useEmpurrarXpm();
@@ -236,11 +249,13 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
           variant="outline"
           className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2"
           title={
-            temBloqueio
-              ? "Existem bloqueios antes do envio — resolva ou use o caminho de exceção"
-              : podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO
+            !exige_expedicao
+              ? MOTIVO_SEM_EXPEDICAO
+              : temBloqueio
+                ? "Existem bloqueios antes do envio — resolva ou use o caminho de exceção"
+                : podeEmpurrarXpmAcao ? `Empurrar ${id_externo} pra XPM` : MOTIVO_SEM_ACAO
           }
-          disabled={ocupado || !podeEmpurrarXpmAcao || temBloqueio}
+          disabled={ocupado || !podeEmpurrarXpmAcao || temBloqueio || !exige_expedicao}
           onClick={() => empurrarXpm.mutate({ pedido_id })}
         >
           {empurrarXpm.isPending ? (
@@ -251,7 +266,7 @@ export function AcoesRemessa({ pedido_id, parceiro_id, id_externo, estagio, blin
         </Button>
       )}
 
-      {!precisaSincronizar && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
+      {!precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
         <ForcarXpmEstoqueDialog
           pedidoId={pedido_id}
           idExterno={id_externo}

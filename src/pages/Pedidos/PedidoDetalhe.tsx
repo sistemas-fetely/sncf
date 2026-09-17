@@ -2954,6 +2954,7 @@ export default function PedidoDetalhe() {
                   id_externo={pedido.id_externo}
                   estagio={estagio ?? ""}
                   bling_id_destino={pedido.bling_id_destino}
+                  exige_expedicao={natureza?.exige_expedicao !== false}
                 />
               )}
               {!estagioFinal && estagio === "aguardando_estoque" && (

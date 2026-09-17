@@ -44,6 +44,7 @@ export function proveniencia(metodo: string | null): { rotulo: string; alerta: b
 
 const FONTE_ROTULO: Record<string, string> = {
   entrega_confirmada: "entrega confirmada",
+  sem_expedicao: "Encerra no faturamento",
   cte_previsao: "prazo do CT-e",
   cte_emissao_mais_tabela: "CT-e + tabela",
   expedicao_mais_tabela: "estimado pela expedição",
@@ -96,6 +97,15 @@ export function Selo({ children, className }: { children: ReactNode; className?:
 }
 
 /**
+ * EXPEDICAO-E-EIXO-DA-NATUREZA (17/09/2026): quem decide é o booleano da
+ * dimensão, que chega no front como `sem_expedicao` nas fontes da view.
+ * Nunca comparar `codigo` de natureza aqui (DIMENSÃO-VIA-TABELA).
+ */
+export function ehSemExpedicao(info: EntregaLinhaInfo): boolean {
+  return info.previsao_fonte === "sem_expedicao" || info.transito_fonte === "sem_expedicao";
+}
+
+/**
  * Bloco de prazo: meta e previsão empilhadas, nunca uma no lugar da outra.
  * `formato` controla só o comprimento das datas (coluna estreita usa "curta").
  */
@@ -111,12 +121,16 @@ export function BlocoPrazo({
   const previsao = fmt(info.previsao_entrega);
   const desvio = info.dias_vs_meta;
   const entregue = !!info.entregue_em || info.previsao_fonte === "entrega_confirmada";
-  const metaVencida = !entregue && jaPassou(info.data_entrega_prevista);
-  const previsaoVencida = !entregue && info.previsao_confianca !== "fato" && jaPassou(info.previsao_entrega);
+  // EXPEDICAO-E-EIXO-DA-NATUREZA: sem expedição não há entrega a prever — nem
+  // data, nem desvio, nem estilo de atraso. LIMBO-VISÍVEL > FATO-FALSO.
+  const semExpedicao = ehSemExpedicao(info);
+  const metaVencida = !entregue && !semExpedicao && jaPassou(info.data_entrega_prevista);
+  const previsaoVencida =
+    !entregue && !semExpedicao && info.previsao_confianca !== "fato" && jaPassou(info.previsao_entrega);
   const retira = info.previsao_fonte === "disponibilidade_retira";
   const fonte = rotuloFonte(info.previsao_fonte);
 
-  if (!meta && !previsao) {
+  if (!meta && !previsao && !semExpedicao) {
     return (
       <p className="text-[11px] text-muted-foreground/60 italic">
         {info.previsao_motivo_sem_data || "Sem previsão"}
@@ -148,7 +162,22 @@ export function BlocoPrazo({
         </TooltipProvider>
       )}
 
-      {previsao ? (
+      {semExpedicao ? (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="w-fit cursor-help">
+                <Selo className="bg-muted text-muted-foreground border-border">Encerra no faturamento</Selo>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[300px]">
+                {info.previsao_motivo_sem_data || "Pedido sem expedição — encerra no faturamento"}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : previsao ? (
         <div className="flex flex-wrap items-center gap-1">
           <span className="text-[11px] text-foreground">
             {retira ? "Disponível para retirada em " : "Previsão "}

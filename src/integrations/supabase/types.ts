@@ -30285,6 +30285,7 @@ export type Database = {
           desconto_pct: number | null
           dispensa_analise: boolean
           entra_receita: boolean
+          exige_expedicao: boolean
           forma_pagamento_default_id: string | null
           gera_despesa: boolean
           gera_titulo_receber: boolean
@@ -30303,6 +30304,7 @@ export type Database = {
           desconto_pct?: number | null
           dispensa_analise?: boolean
           entra_receita?: boolean
+          exige_expedicao?: boolean
           forma_pagamento_default_id?: string | null
           gera_despesa?: boolean
           gera_titulo_receber?: boolean
@@ -30321,6 +30323,7 @@ export type Database = {
           desconto_pct?: number | null
           dispensa_analise?: boolean
           entra_receita?: boolean
+          exige_expedicao?: boolean
           forma_pagamento_default_id?: string | null
           gera_despesa?: boolean
           gera_titulo_receber?: boolean
@@ -50153,9 +50156,11 @@ export type Database = {
           ativo: boolean
           created_at: string
           descricao: string | null
+          eixo: string
           id: string
           nome: string
           ordem: number
+          pai_slug: string | null
           slug: string
           updated_at: string
         }
@@ -50163,9 +50168,11 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           descricao?: string | null
+          eixo?: string
           id?: string
           nome: string
           ordem?: number
+          pai_slug?: string | null
           slug: string
           updated_at?: string
         }
@@ -50173,13 +50180,23 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           descricao?: string | null
+          eixo?: string
           id?: string
           nome?: string
           ordem?: number
+          pai_slug?: string | null
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sncf_modulo_pai_fk"
+            columns: ["pai_slug"]
+            isOneToOne: false
+            referencedRelation: "sncf_modulo"
+            referencedColumns: ["slug"]
+          },
+        ]
       }
       sncf_navegacao: {
         Row: {
