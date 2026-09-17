@@ -28,6 +28,11 @@ interface Props {
   id_externo: string;
   estagio: string;
   bling_id_destino: number | null;
+  /**
+   * EXPEDICAO-E-EIXO-DA-NATUREZA (17/09/2026): booleano da dimensão de natureza.
+   * false = mercadoria já está com o cliente, não há expedição a empurrar.
+   */
+  exige_expedicao?: boolean;
 }
 
 /**
