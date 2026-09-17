@@ -1581,7 +1581,7 @@ export default function CobrancaFila() {
             {
               value: "sem-prova",
               slug: "tela.cobranca",
-              label: `Problemas Cobrança${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}`,
+              label: `Problemas Cobrança${totalProblemasCobranca > 0 ? ` · ${totalProblemasCobranca}` : ""}`,
             },
 
             { value: "fila", slug: "tela.cobranca_fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
