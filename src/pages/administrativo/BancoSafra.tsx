@@ -268,6 +268,30 @@ function semAcento(v: string) {
   return v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
+/**
+ * Impede registrar no banco. Checkbox desabilitado — o CNAB nao sai sem isso.
+ * Primeiro motivo que casar.
+ */
+function bloqueioEntrada(b: TitulosBoleto, hojeIso: string): string | null {
+  if (b.conta?.parceiro?.cadastro_incompleto === true)
+    return "Cadastro incompleto (endereço) — o CNAB precisa do endereço do sacado";
+  if (Number(b.valor_bruto ?? 0) <= 0) return "Valor inválido";
+  if (b.data_vencimento_atual && b.data_vencimento_atual < hojeIso) return "Vencimento no passado";
+  return null;
+}
+
+/**
+ * BANCO-CONFIRMA / HUMANO-COMUNICA: nao impede registrar — impede COMUNICAR depois.
+ * E-mail vazio no banco chega como string vazia, nao como null.
+ */
+function avisoEntrada(b: TitulosBoleto): string | null {
+  const p = b.conta?.parceiro;
+  const tem = !!(p?.email?.trim() || p?.email_cobranca?.trim());
+  return tem
+    ? null
+    : "Sem e-mail cadastrado — o boleto registra normalmente, mas não dá para enviar por e-mail depois";
+}
+
 function AcoesGrupoCliente({
   boletos,
   gerandoEntrada,
