@@ -97,6 +97,15 @@ export function Selo({ children, className }: { children: ReactNode; className?:
 }
 
 /**
+ * EXPEDICAO-E-EIXO-DA-NATUREZA (17/09/2026): quem decide é o booleano da
+ * dimensão, que chega no front como `sem_expedicao` nas fontes da view.
+ * Nunca comparar `codigo` de natureza aqui (DIMENSÃO-VIA-TABELA).
+ */
+export function ehSemExpedicao(info: EntregaLinhaInfo): boolean {
+  return info.previsao_fonte === "sem_expedicao" || info.transito_fonte === "sem_expedicao";
+}
+
+/**
  * Bloco de prazo: meta e previsão empilhadas, nunca uma no lugar da outra.
  * `formato` controla só o comprimento das datas (coluna estreita usa "curta").
  */
