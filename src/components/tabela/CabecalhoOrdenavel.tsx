@@ -36,7 +36,7 @@ export function CabecalhoOrdenavel({
         onClick={onOrdenar}
         className={cn(
           "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
-          dir && "text-foreground font-medium",
+          dir && "text-foreground",
           alinharDireita && "w-full justify-end",
         )}
         title={
@@ -67,4 +67,4 @@ export function CabecalhoOrdenavel({
  * celula sticky. A borda inferior vai de inset shadow pelo mesmo motivo.
  */
 export const LINHA_CABECALHO_COLADO =
-  "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
+  "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:font-semibold [&>th]:text-foreground [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";
