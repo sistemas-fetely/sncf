@@ -154,6 +154,11 @@ export default function Parceiros() {
   const { temNivel } = useNivel();
 
   useEffect(() => {
+    setPagina(1);
+  }, [busca, filtroStatus, filtroGrupo, filtroIncompleto, tabAtiva, sort]);
+
+
+  useEffect(() => {
     if (!abrirParceiroId) return;
     let cancelado = false;
     (async () => {
