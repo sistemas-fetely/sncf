@@ -13,6 +13,11 @@ import {
   LINHA_CABECALHO_COLADO,
   LINHA_CABECALHO_COLADO_NIVEL2,
 } from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
@@ -94,6 +99,14 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoConsignado>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_CONSIGNADOS),
+  );
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, ordenacao]);
 
   const ordenarPor = (coluna: ColunaConsignado) => {
     setOrdenacao((atual) => {
