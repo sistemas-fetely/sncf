@@ -1758,11 +1758,21 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
             </DialogDescription>
           </DialogHeader>
 
-          {pendentesPassado.length > 0 && (
-            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning flex gap-2">
+          {bloqueadosEntrada.length > 0 && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive flex gap-2">
               <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
               <div>
-                <strong>{pendentesPassado.length}</strong> título(s) com vencimento no passado ficaram fora da seleção — ajuste as datas para incluí-los em outra remessa.
+                <strong>{bloqueadosEntrada.length}</strong> título(s) não podem ser registrados e ficaram fora da seleção
+                {resumoBloqueios && <span className="block text-xs mt-0.5">{resumoBloqueios}</span>}
+              </div>
+            </div>
+          )}
+
+          {avisadosEntrada.length > 0 && (
+            <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning flex gap-2">
+              <Mail className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <div>
+                <strong>{avisadosEntrada.length}</strong> título(s) sem e-mail cadastrado — vão ser registrados normalmente, mas o boleto vai precisar ser entregue por outro caminho.
               </div>
             </div>
           )}
