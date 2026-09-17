@@ -1256,6 +1256,15 @@ function PedidosCobrancaTab() {
           </TableBody>
         </Table>
       </div>
+
+      <RodapePaginacao
+        total={ordenados.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_MATERIALIZACAO}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
     </div>
   );
 }
