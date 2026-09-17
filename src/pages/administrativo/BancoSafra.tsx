@@ -894,7 +894,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       const { data, error } = await supabase.functions.invoke("gerar-remessa-safra", {
         body: { tipo: "entrada", titulo_ids: ids },
       });
-      if (error || !data?.ok) throw new Error(data?.erro ?? error?.message ?? "Erro ao gerar remessa de entrada");
+      if (error || !data?.ok) {
+        throw new Error(await mensagemErroEdge(data, error, "Erro ao gerar remessa de entrada"));
+      }
       const blob = new Blob([data.arquivo_conteudo], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
