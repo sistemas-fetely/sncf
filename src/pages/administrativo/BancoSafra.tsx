@@ -100,7 +100,14 @@ type TitulosBoleto = {
   nosso_numero_seq: string | null;
   numero_parcela: number | null;
   total_parcelas: number | null;
-  conta: { parceiro: { razao_social: string | null } | null } | null;
+  conta: {
+    parceiro: {
+      razao_social: string | null;
+      email: string | null;
+      email_cobranca: string | null;
+      cadastro_incompleto: boolean | null;
+    } | null;
+  } | null;
   pedido: {
     id: string | null;
     id_externo: string | null;
