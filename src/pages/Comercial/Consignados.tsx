@@ -13,6 +13,11 @@ import {
   LINHA_CABECALHO_COLADO,
   LINHA_CABECALHO_COLADO_NIVEL2,
 } from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
@@ -90,10 +95,20 @@ const DIR_INICIAL_CONSIGNADO: Record<ColunaConsignado, DirecaoOrdenacao> = {
 /** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
 const ALTURA_CASA_HEADER = 64;
 
+const CHAVE_PAGINA_CONSIGNADOS = "fetely:comercial:consignados:page-size";
+
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoConsignado>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_CONSIGNADOS),
+  );
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, ordenacao]);
 
   const ordenarPor = (coluna: ColunaConsignado) => {
     setOrdenacao((atual) => {
@@ -194,6 +209,13 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
     });
   }, [linhas, ordenacao, saldoPorParceiro, kpiPorParceiro]);
 
+  // Embutida em outra tela, a lista nao pagina: ela e um pedaco de outra pagina.
+  const totalPaginasConsignado = Math.max(1, Math.ceil(linhasOrdenadas.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasConsignado);
+  const itensVisiveis = embutido
+    ? linhasOrdenadas
+    : linhasOrdenadas.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
+
   const estiloTopo = {
     "--fila-topo-colado": topoColado != null ? `${topoColado}px` : undefined,
     "--fila-topo-colado-2": topoColado != null ? `${topoColado + alturaGrupo}px` : undefined,
@@ -282,7 +304,7 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhasOrdenadas.map((p) => {
+                  {itensVisiveis.map((p) => {
                     const cc = saldoPorParceiro.get(p.id);
                     const saldo = Number(cc?.saldo_devedor ?? 0);
                     const kpi = kpiPorParceiro.get(p.id);
@@ -353,6 +375,17 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
           )}
         </CardContent>
       </Card>
+
+      {!embutido && (
+        <RodapePaginacao
+          total={linhasOrdenadas.length}
+          pagina={paginaAtual}
+          tamanhoPagina={tamanhoPagina}
+          chavePreferencia={CHAVE_PAGINA_CONSIGNADOS}
+          onPagina={setPagina}
+          onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+        />
+      )}
     </>
   );
 
