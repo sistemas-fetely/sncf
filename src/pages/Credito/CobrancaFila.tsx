@@ -1,4 +1,14 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
