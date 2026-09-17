@@ -815,6 +815,62 @@ export default function TitulosTab() {
   /* Estágio 3: agrupamento por pedido. `universo` entra de novo só para contar os ocultos — os títulos do mesmo pedido que os filtros escondem. */
   const grupos = useMemo(() => agruparPorPedido(filtrados, universo), [filtrados, universo]);
 
+  /* Lista plana: ordena TITULO pelo dado do titulo. */
+  const titulosOrdenados = useMemo(() => {
+    if (!ordenacao) return filtrados;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (t: TituloCobranca): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "titulo": return t.numero_titulo ?? null;
+        case "cliente": return t.parceiro_razao_social ?? null;
+        case "pedido": return t.pedido_id_externo ?? null;
+        case "nf": return t.nf_numero ?? null;
+        case "tipo": return tipoLabel(t.tipo_pagamento);
+        case "vencimento": return msDe(t.data_vencimento_atual);
+        // A mesma data que a celula mostra, na mesma ordem de precedencia.
+        case "liquidacao":
+          return msDe(
+            t.data_liquidacao_real ?? t.data_pago_efetiva ?? t.data_liquidacao_prevista,
+          );
+        case "valor": return Number(t.valor_efetivo ?? 0);
+        case "instrumento": return t.eixo_instrumento ?? null;
+        case "situacao": return t.eixo_recebimento ?? null;
+        default: return null;
+      }
+    };
+    return [...filtrados].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
+  }, [filtrados, ordenacao]);
+
+  /* Agrupado: ordena GRUPO pelo dado do grupo. */
+  const gruposOrdenados = useMemo(() => {
+    if (!ordenacao) return grupos;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (g: GrupoPedido): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "cliente": return g.cabeca.parceiro_razao_social ?? null;
+        case "pedido": return g.pedidoRef ?? null;
+        case "nf": return g.nfs[0] ?? null;
+        case "tipo": return g.formas.length ? tipoLabel(g.formas[0]) : null;
+        case "vencimento": return msDe(g.proximoVencimento);
+        case "valor": return Number(g.totalVisivel ?? 0);
+        case "instrumento": return g.instrumentoPrevalente ?? null;
+        case "situacao": return g.recebimentoPrevalente ?? null;
+        // titulo e liquidacao nao tem valor de grupo.
+        default: return null;
+      }
+    };
+    return [...grupos].sort((a, b) => compararOrdenavel(valorDe(a), valorDe(b), dir));
+  }, [grupos, ordenacao]);
+
+  // Agrupado, a unidade paginada e o PEDIDO; na lista plana, o TITULO. Fatiar
+  // titulo dentro de grupo quebraria o grupo ao meio.
+  const totalUnidades = agrupado ? gruposOrdenados.length : titulosOrdenados.length;
+  const totalPaginasTitulos = Math.max(1, Math.ceil(totalUnidades / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasTitulos);
+  const inicio = (paginaAtual - 1) * tamanhoPagina;
+  const gruposPagina = gruposOrdenados.slice(inicio, inicio + tamanhoPagina);
+  const titulosPagina = titulosOrdenados.slice(inicio, inicio + tamanhoPagina);
+
   async function copiar(txt: string) {
     try {
       await navigator.clipboard.writeText(txt);
