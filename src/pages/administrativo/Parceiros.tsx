@@ -128,6 +128,31 @@ export default function Parceiros() {
       return invertida === DIR_INICIAL[coluna] ? ORDEM_PADRAO : { coluna, dir: invertida };
     });
   };
+
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_PARCEIROS),
+  );
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, filtroStatus, filtroGrupo, filtroIncompleto, tabAtiva, sort]);
+
+  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
+  // altura dos KPIs muda (6 cards quebram linha em tela menor). Mede, nao chuta.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+
+  useEffect(() => {
+    const el = kpisRef.current;
+    if (!el) return;
+    const medir = () => setAlturaKpis(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tabAtiva]);
+
   const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
