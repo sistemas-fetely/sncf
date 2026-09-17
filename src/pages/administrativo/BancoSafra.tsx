@@ -1884,13 +1884,23 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                               ) : null}
                             </div>
                           </TableCell>
-                          <TableCell className={`w-[120px] ${passado ? "text-destructive font-medium" : ""}`}>
+                          <TableCell className={`w-[120px] ${bloqueio ? "text-destructive font-medium" : ""}`}>
                             <div className="flex flex-wrap items-center gap-1">
                               <span className="whitespace-nowrap">{formatDateBR(b.data_vencimento_atual)}</span>
-                              {passado && (
+                              {bloqueio && (
                                 <Badge variant="outline" className="border-destructive/40 text-destructive text-[10px]">
-                                  Vencimento no passado
+                                  {bloqueio}
                                 </Badge>
+                              )}
+                              {aviso && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Badge variant="outline" className="border-warning/40 text-warning text-[10px]">
+                                      sem e-mail
+                                    </Badge>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{aviso}</TooltipContent>
+                                </Tooltip>
                               )}
                             </div>
                           </TableCell>
