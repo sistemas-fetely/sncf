@@ -826,6 +826,14 @@ serve(async (req) => {
     }
 
     const erros: Array<{ titulo_id: string; numero_titulo: string; motivo: string }> = [];
+    // BANCO-CONFIRMA / HUMANO-COMUNICA: registrar boleto no Safra nao depende de
+    // e-mail — e-mail so importa na hora de ENTREGAR o boleto ao cliente. Falta de
+    // e-mail vira AVISO, nunca bloqueio de lote. Quem vigia isso e a fila
+    // EMAIL_BLOQUEADO da vw_cobranca_mesa (lastro_envio in ('sem_email','bloqueado')).
+    const avisos: Array<{ titulo_id: string; numero_titulo: string; motivo: string }> = [];
+    // deno-lint-ignore no-explicit-any
+    const temEmail = (p: any): boolean =>
+      !!(String(p?.email ?? "").trim() || String(p?.email_cobranca ?? "").trim());
     // deno-lint-ignore no-explicit-any
     for (const t of titulos as any[]) {
       const p = t.conta?.parceiro;
