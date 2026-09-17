@@ -293,11 +293,33 @@ export default function Parceiros() {
     else if (filtroIncompleto === "sem_meio_pgto") list = list.filter((p) => !temMeioPagamento(p));
     else if (filtroIncompleto === "sem_centro_custo") list = list.filter((p) => !p.centro_custo_id);
 
-    if (!sort) return list;
-    const mult = sort.direction === "asc" ? 1 : -1;
-    const sortFn = (a: Parceiro, b: Parceiro) => {
-      let v: number;
-      switch (sort.column) {
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const valorDe = (p: Parceiro): string | number | null => {
+      switch (sort.coluna) {
+        case "cnpj": return p.cnpj || null;
+        case "tipo": return p.tipos?.[0] || null;
+        case "categoria":
+          return p.plano_contas_id ? categoriaNomeMap.get(p.plano_contas_id)?.nome ?? null : null;
+        case "centro_custo":
+          return p.centro_custo_id ? centroCustoNomeMap.get(p.centro_custo_id) ?? null : null;
+        case "meio_pgto": return Number(temMeioPagamento(p));
+        case "razao_social":
+        default: return p.razao_social || null;
+      }
+    };
+    return [...list].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
+
         case "cnpj":
           v = (a.cnpj || "").localeCompare(b.cnpj || "");
           break;
