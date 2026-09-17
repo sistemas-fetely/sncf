@@ -350,6 +350,13 @@ export default function Parceiros() {
     });
   }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
 
+  const totalPaginasParceiros = Math.max(1, Math.ceil(filtered.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasParceiros);
+  const paginaItens = filtered.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
+
   const handleOpenNew = () => {
     setEditing(null);
     setFormOpen(true);
@@ -651,9 +658,7 @@ export default function Parceiros() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered
-                          .slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina)
-                          .map((p) => {
+                        {paginaItens.map((p) => {
                           const tipos = p.tipos || [];
                           const isForn = tipos.includes("fornecedor");
                           const isCli = tipos.includes("cliente");
@@ -757,7 +762,7 @@ export default function Parceiros() {
                   </div>
                     <RodapePaginacao
                       total={filtered.length}
-                      pagina={pagina}
+                      pagina={paginaAtual}
                       tamanhoPagina={tamanhoPagina}
                       chavePreferencia={CHAVE_PAGINA_PARCEIROS}
                       onPagina={setPagina}
