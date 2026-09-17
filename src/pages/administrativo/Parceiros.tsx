@@ -603,33 +603,47 @@ export default function Parceiros() {
                     Nenhum parceiro encontrado.
                   </div>
                 ) : (
-                  <div className="border rounded-md overflow-x-auto">
-                    <Table>
+                  <div className="border rounded-md">
+                    <Table containerClassName="overflow-visible">
                       <TableHeader>
-                        <TableRow>
-                          <SortableTableHead column="razao_social" sort={sort} onSort={setSort}>
-                            Razão Social
-                          </SortableTableHead>
-                          <SortableTableHead column="cnpj" sort={sort} onSort={setSort}>
-                            CNPJ
-                          </SortableTableHead>
-                          <SortableTableHead column="tipo" sort={sort} onSort={setSort}>
-                            Tipo
-                          </SortableTableHead>
-                          <SortableTableHead column="categoria" sort={sort} onSort={setSort}>
-                            Categoria
-                          </SortableTableHead>
-                          <SortableTableHead column="centro_custo" sort={sort} onSort={setSort}>
-                            Centro de Custo
-                          </SortableTableHead>
-                          <SortableTableHead column="meio_pgto" sort={sort} onSort={setSort}>
-                            Meio de Pgto
-                          </SortableTableHead>
+                        <TableRow className={LINHA_CABECALHO_COLADO}>
+                          <CabecalhoOrdenavel
+                            rotulo="Razão Social"
+                            dir={sort.coluna === "razao_social" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("razao_social")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="CNPJ"
+                            dir={sort.coluna === "cnpj" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("cnpj")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Tipo"
+                            dir={sort.coluna === "tipo" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("tipo")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Categoria"
+                            dir={sort.coluna === "categoria" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("categoria")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Centro de Custo"
+                            dir={sort.coluna === "centro_custo" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("centro_custo")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Meio de Pgto"
+                            dir={sort.coluna === "meio_pgto" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("meio_pgto")}
+                          />
                           <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered.map((p) => {
+                        {filtered
+                          .slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina)
+                          .map((p) => {
                           const tipos = p.tipos || [];
                           const isForn = tipos.includes("fornecedor");
                           const isCli = tipos.includes("cliente");
