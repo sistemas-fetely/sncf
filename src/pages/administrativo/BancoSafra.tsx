@@ -73,6 +73,7 @@ import { hojeISO } from "@/lib/data";
 import { AlertaBaixaRejeitadaReemissao } from "@/components/financeiro/AlertaBaixaRejeitadaReemissao";
 import { AlertaBoletoRejeitadoEnviado } from "@/components/financeiro/AlertaBoletoRejeitadoEnviado";
 import { OPCOES_QUERY_RECEBIVEL, useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
+import { mensagemErroEdge } from "@/lib/financeiro/erroEdgeRemessa";
 
 /** Dias corridos desde uma data ISO (null se inválida). */
 function diasDesde(iso: string | null | undefined): number | null {
