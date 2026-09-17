@@ -20,7 +20,7 @@ import { PipelineB2c } from "@/components/vendas/PipelineB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
-import { CabecalhoOrdenavel, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
+import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
@@ -406,7 +406,7 @@ export default function ShopifyB2c() {
                 <TooltipProvider>
                     <Table containerClassName="overflow-visible">
                       <TableHeader>
-                        <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
+                        <TableRow className={LINHA_CABECALHO_COLADO}>
                           <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao?.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
                           <CabecalhoOrdenavel rotulo="Bling" dir={ordenacao?.coluna === "bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("bling")} />
                           <CabecalhoOrdenavel rotulo="Data / Idade" dir={ordenacao?.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
