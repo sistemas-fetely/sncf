@@ -970,7 +970,7 @@ serve(async (req) => {
 
     return new Response(
       // deno-lint-ignore no-explicit-any
-      JSON.stringify({ ok: true, arquivo_conteudo: arquivoConteudo, arquivo_nome: arquivoNome, remessa_id: (remessa as any).id, nro_sequencial: nroSeq, qtd_titulos: titulos.length, valor_total: valorTotal }),
+      JSON.stringify({ ok: true, arquivo_conteudo: arquivoConteudo, arquivo_nome: arquivoNome, remessa_id: (remessa as any).id, nro_sequencial: nroSeq, qtd_titulos: titulos.length, valor_total: valorTotal, avisos, qtd_avisos: avisos.length }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
