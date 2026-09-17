@@ -1,4 +1,14 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -805,6 +815,23 @@ function CancelarRemessaDialog({
   );
 }
 
+type ColunaRemessa =
+  | "arquivo" | "gerada" | "enviada" | "titulos" | "valor" | "retorno" | "status";
+
+type OrdenacaoRemessa = { coluna: ColunaRemessa; dir: DirecaoOrdenacao } | null;
+
+const DIR_INICIAL_REMESSA: Record<ColunaRemessa, DirecaoOrdenacao> = {
+  arquivo: "asc", gerada: "desc", enviada: "desc",
+  titulos: "desc", valor: "desc", retorno: "desc", status: "desc",
+};
+
+/** O que exige acao nossa vem primeiro no decrescente. */
+const GRAVIDADE_REMESSA: Record<string, number> = {
+  com_rejeicoes: 4, gerada: 3, enviada: 2, processada: 1, cancelada: 0,
+};
+
+const CHAVE_PAGINA_REMESSAS = "fetely:cobranca:remessas-safra:page-size";
+
 function RemessasSafraTab() {
   const invalidarRecebivel = useInvalidarRecebivel();
   const [importarOpen, setImportarOpen] = useState(false);
@@ -816,6 +843,71 @@ function RemessasSafraTab() {
   const qc = useQueryClient();
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
+
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoRemessa>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_REMESSAS),
+  );
+
+  const ordenarPor = (coluna: ColunaRemessa) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_REMESSA[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a consulta entrega.
+      return invertida === DIR_INICIAL_REMESSA[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [ordenacao]);
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
+  const ordenadas = useMemo(() => {
+    if (!ordenacao) return remessas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (r: (typeof remessas)[number]): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "arquivo": return r.arquivo_nome || null;
+        case "gerada": {
+          const t = r.gerado_em ? Date.parse(r.gerado_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "enviada": {
+          const t = r.enviada_em ? Date.parse(r.enviada_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "titulos": return Number(r.qtd_titulos ?? 0);
+        case "valor": return Number(r.valor_total ?? 0);
+        case "retorno": {
+          const t = r.retorno_processado_em ? Date.parse(r.retorno_processado_em) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "status": return GRAVIDADE_REMESSA[r.status] ?? 0;
+        default: return null;
+      }
+    };
+    return [...remessas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [remessas, ordenacao]);
+
+  const totalPaginasRemessas = Math.max(1, Math.ceil(ordenadas.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasRemessas);
+  // A linha expandida e irma da principal no mesmo Fragment: fatia ANTES do map.
+  const paginaItens = ordenadas.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   const toggleExpandida = (id: string) =>
     setExpandidas((prev) => {
@@ -901,18 +993,18 @@ function RemessasSafraTab() {
         </Button>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[960px]">
+      <div className="rounded-md border bg-card">
+        <Table className="min-w-[960px]" containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
               <TableHead className="w-8"></TableHead>
-              <TableHead>Arquivo</TableHead>
-              <TableHead>Gerada em</TableHead>
-              <TableHead>Enviada em</TableHead>
-              <TableHead className="text-right">Títulos</TableHead>
-              <TableHead className="text-right">Valor total</TableHead>
-              <TableHead>Retorno processado</TableHead>
-              <TableHead>Status</TableHead>
+              <CabecalhoOrdenavel rotulo="Arquivo" dir={ordenacao?.coluna === "arquivo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("arquivo")} />
+              <CabecalhoOrdenavel rotulo="Gerada em" dir={ordenacao?.coluna === "gerada" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("gerada")} />
+              <CabecalhoOrdenavel rotulo="Enviada em" dir={ordenacao?.coluna === "enviada" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("enviada")} />
+              <CabecalhoOrdenavel rotulo="Títulos" className="text-right" alinharDireita dir={ordenacao?.coluna === "titulos" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("titulos")} />
+              <CabecalhoOrdenavel rotulo="Valor total" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Retorno processado" dir={ordenacao?.coluna === "retorno" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("retorno")} />
+              <CabecalhoOrdenavel rotulo="Status" dir={ordenacao?.coluna === "status" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("status")} />
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
 
@@ -925,14 +1017,14 @@ function RemessasSafraTab() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && remessas.length === 0 && (
+            {!isLoading && ordenadas.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhuma remessa gerada ainda.
                 </TableCell>
               </TableRow>
             )}
-            {remessas.map((r) => {
+            {paginaItens.map((r) => {
               const s = statusMap[r.status] ?? statusMap.gerada;
               const esquecida =
                 r.status === "gerada" &&
@@ -1049,6 +1141,15 @@ function RemessasSafraTab() {
         </Table>
       </div>
 
+      <RodapePaginacao
+        total={ordenadas.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_REMESSAS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
+
       <ImportarRetornoModal
         open={importarOpen}
         onClose={() => setImportarOpen(false)}
@@ -1093,12 +1194,84 @@ function RemessasSafraTab() {
 
 // ─── Tab 1: Pedidos (comportamento original) ─────────────────────────────────
 
+type ColunaMaterializacao =
+  | "id_externo" | "cliente" | "valor" | "condicao" | "perfil" | "na_fila";
+
+type OrdenacaoMaterializacao = { coluna: ColunaMaterializacao; dir: DirecaoOrdenacao } | null;
+
+/** "Na fila" desce: quem espera ha mais tempo aparece primeiro. */
+const DIR_INICIAL_MATERIALIZACAO: Record<ColunaMaterializacao, DirecaoOrdenacao> = {
+  id_externo: "asc", cliente: "asc", valor: "desc",
+  condicao: "asc", perfil: "asc", na_fila: "desc",
+};
+
+const CHAVE_PAGINA_MATERIALIZACAO = "fetely:cobranca:fila-materializacao:page-size";
+
 function PedidosCobrancaTab() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const { data, isLoading } = useCobrancaFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
   const { data: linksFila } = useLinksPagamentoFila((data ?? []).map((p) => p.pedido_id));
+
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoMaterializacao>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_MATERIALIZACAO),
+  );
+
+  const ordenarPor = (coluna: ColunaMaterializacao) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna)
+        return { coluna, dir: DIR_INICIAL_MATERIALIZACAO[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a consulta entrega.
+      return invertida === DIR_INICIAL_MATERIALIZACAO[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, ordenacao]);
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
+  const ordenados = useMemo(() => {
+    const lista = data ?? [];
+    if (!ordenacao) return lista;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: (typeof lista)[number]): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "id_externo": return p.id_externo || null;
+        case "cliente": return p.parceiro_nome || null;
+        case "valor": return Number(p.valor_liquido ?? 0);
+        case "condicao": return p.condicao_solicitada || null;
+        case "perfil": return p.perfil_aplicado ?? null;
+        case "na_fila":
+          return p.estagio_atualizado_em
+            ? Date.now() - Date.parse(p.estagio_atualizado_em)
+            : null;
+        default: return null;
+      }
+    };
+    return [...lista].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [data, ordenacao]);
+
+  const totalPaginas = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const paginaItens = ordenados.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   return (
     <div className="space-y-4">
@@ -1116,16 +1289,16 @@ function PedidosCobrancaTab() {
         />
       </div>
 
-      <div className="rounded-md border">
-        <Table>
+      <div className="rounded-md border bg-card">
+        <Table containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow>
-              <TableHead>ID Externo</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-right">Valor</TableHead>
-              <TableHead>Condição</TableHead>
-              <TableHead>Perfil</TableHead>
-              <TableHead>Na fila</TableHead>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              <CabecalhoOrdenavel rotulo="ID Externo" dir={ordenacao?.coluna === "id_externo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("id_externo")} />
+              <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Condição" dir={ordenacao?.coluna === "condicao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("condicao")} />
+              <CabecalhoOrdenavel rotulo="Perfil" dir={ordenacao?.coluna === "perfil" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("perfil")} />
+              <CabecalhoOrdenavel rotulo="Na fila" dir={ordenacao?.coluna === "na_fila" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("na_fila")} />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1143,7 +1316,7 @@ function PedidosCobrancaTab() {
                 </TableCell>
               </TableRow>
             )}
-            {data?.map((p) => (
+            {paginaItens.map((p) => (
               <TableRow
                 key={p.pedido_id}
                 className="cursor-pointer hover:bg-muted/50"
@@ -1184,6 +1357,15 @@ function PedidosCobrancaTab() {
           </TableBody>
         </Table>
       </div>
+
+      <RodapePaginacao
+        total={ordenados.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_MATERIALIZACAO}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
     </div>
   );
 }
