@@ -1141,6 +1141,15 @@ function RemessasSafraTab() {
         </Table>
       </div>
 
+      <RodapePaginacao
+        total={ordenadas.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_REMESSAS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
+
       <ImportarRetornoModal
         open={importarOpen}
         onClose={() => setImportarOpen(false)}
