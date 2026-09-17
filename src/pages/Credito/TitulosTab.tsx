@@ -680,6 +680,21 @@ export default function TitulosTab() {
   const [agrupado, setAgrupado] = useState(true);
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoTitulos>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_TITULOS),
+  );
+
+  const ordenarPor = (coluna: ColunaTitulos) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_TITULOS[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem que a consulta entrega.
+      return invertida === DIR_INICIAL_TITULOS[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
   function toggleGrupo(chave: string) {
     setAbertos((prev) => {
       const next = new Set(prev);
