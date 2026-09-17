@@ -1403,20 +1403,6 @@ export default function CobrancaFila() {
   const [tabAtiva, setTabAtiva] = useAbaUrl("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
 
-  // TOPO-COLADO-SE-MEDE: o cabecalho das tabelas cola logo abaixo da barra de
-  // abas, cuja altura muda quando os rotulos quebram linha em tela menor.
-  const abasRef = useRef<HTMLDivElement>(null);
-  const [alturaAbas, setAlturaAbas] = useState(0);
-
-  useEffect(() => {
-    const el = abasRef.current;
-    if (!el) return;
-    const medir = () => setAlturaAbas(el.offsetHeight);
-    medir();
-    const ro = new ResizeObserver(medir);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [carregandoPermissoes, primeiraPermitida]);
 
 
   // Permissão por aba — primeira permitida vira o fallback quando a URL
