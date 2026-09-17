@@ -124,7 +124,7 @@ export function usePoliticaCoberturaFinanceira(estagio: string | null) {
       return {
         mostra_card: !!data.mostra_card,
         permite_liberar: !!data.permite_liberar,
-        modo: data.modo,
+        modo: data.modo as PoliticaCoberturaFinanceira["modo"],
         descricao: data.descricao ?? null,
       };
     },
@@ -199,14 +199,14 @@ export function useContaClienteCobertura(
     queryKey: [QK_CONTA_CLIENTE_COBERTURA, parceiroId, pedidoId ?? null],
     enabled: !!parceiroId,
     queryFn: async (): Promise<ContaClienteCobertura | null> => {
-      const params: Record<string, unknown> = { p_parceiro_id: parceiroId };
+      const params: { p_parceiro_id: string; p_pedido_id?: string } = { p_parceiro_id: parceiroId! };
       if (pedidoId) params.p_pedido_id = pedidoId;
       const { data, error } = await supabase.rpc(
         "fn_conta_cliente_cobertura",
         params,
       );
       if (error) throw error;
-      return (data ?? null) as ContaClienteCobertura | null;
+      return (data ?? null) as unknown as ContaClienteCobertura | null;
     },
   });
 }
@@ -263,7 +263,7 @@ export function useRegistrarRecebimentoCliente() {
       });
       if (error) throw error;
 
-      const res = (data ?? {}) as RegistrarRecebimentoResultado;
+      const res = (data ?? {}) as unknown as RegistrarRecebimentoResultado;
       if (!res.ok) throw new Error(res.erro || "O banco recusou o registro do recebimento.");
       return res;
     },
@@ -422,7 +422,7 @@ export function useAtribuirClienteExtrato() {
         p_user_id: sessao?.user?.id ?? null,
       });
       if (error) throw error;
-      const res = (data ?? {}) as AtribuirClienteResultado;
+      const res = (data ?? {}) as unknown as AtribuirClienteResultado;
       if (!res.ok) throw new Error(res.erro || "O banco recusou a atribuição.");
       return res;
     },
@@ -468,7 +468,7 @@ export function useLiberarPorCobertura() {
         p_user_id: sessao?.user?.id ?? null,
       });
       if (error) throw error;
-      return (data ?? {}) as LiberarCoberturaResultado;
+      return (data ?? {}) as unknown as LiberarCoberturaResultado;
     },
     onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_SALDO] });
