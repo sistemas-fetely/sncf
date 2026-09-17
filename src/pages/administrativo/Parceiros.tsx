@@ -320,36 +320,6 @@ export default function Parceiros() {
     });
   }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
 
-        case "cnpj":
-          v = (a.cnpj || "").localeCompare(b.cnpj || "");
-          break;
-        case "tipo":
-          v = (a.tipos?.[0] || "").localeCompare(b.tipos?.[0] || "");
-          break;
-        case "categoria": {
-          const aN = a.plano_contas_id ? categoriaNomeMap.get(a.plano_contas_id)?.nome || "" : "";
-          const bN = b.plano_contas_id ? categoriaNomeMap.get(b.plano_contas_id)?.nome || "" : "";
-          v = aN.localeCompare(bN, "pt-BR");
-          break;
-        }
-        case "centro_custo": {
-          const aN = a.centro_custo_id ? centroCustoNomeMap.get(a.centro_custo_id) || "" : "";
-          const bN = b.centro_custo_id ? centroCustoNomeMap.get(b.centro_custo_id) || "" : "";
-          v = aN.localeCompare(bN, "pt-BR");
-          break;
-        }
-        case "meio_pgto":
-          v = Number(temMeioPagamento(a)) - Number(temMeioPagamento(b));
-          break;
-        case "razao_social":
-        default:
-          v = a.razao_social.localeCompare(b.razao_social, "pt-BR");
-      }
-      return v * mult;
-    };
-    return [...list].sort(sortFn);
-  }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
-
   const handleOpenNew = () => {
     setEditing(null);
     setFormOpen(true);
