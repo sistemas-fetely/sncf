@@ -1127,6 +1127,15 @@ export default function TitulosTab() {
         </Table>
       </div>
 
+      <RodapePaginacao
+        total={totalUnidades}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_TITULOS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
+
       <p className="text-xs text-muted-foreground">
         {filtrados.length} título{filtrados.length !== 1 ? "s" : ""}
         {agrupado ? ` em ${grupos.length} pedido${grupos.length !== 1 ? "s" : ""}` : ""} · {formatBRL(totalFiltrado)}
