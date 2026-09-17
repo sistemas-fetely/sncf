@@ -15,7 +15,13 @@ export interface PedidoDetalhe {
   /** Histórico de análises do parceiro (alimenta badges de recepção: cliente novo, cooldown). */
   analisesAnteriores: Array<{ status_final: string | null; decidido_em: string | null }>;
   /** Dimensão de natureza de operação — flag que decide se a operação gera título a receber. */
-  natureza: { codigo: string | null; nome: string | null; gera_titulo_receber: boolean } | null;
+  natureza: {
+    codigo: string | null;
+    nome: string | null;
+    gera_titulo_receber: boolean;
+    /** EXPEDICAO-E-EIXO-DA-NATUREZA: false = mercadoria já está com o cliente. */
+    exige_expedicao: boolean;
+  } | null;
   /** Resultado cru de fn_pedido_natureza_alerta para o pedido de referência. */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   naturezaAlerta: any | null;
