@@ -608,6 +608,7 @@ export default function Parceiros() {
                     Nenhum parceiro encontrado.
                   </div>
                 ) : (
+                  <>
                   <div className="border rounded-md">
                     <Table containerClassName="overflow-visible">
                       <TableHeader>
