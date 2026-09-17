@@ -42057,6 +42057,33 @@ export type Database = {
         }
         Relationships: []
       }
+      politica_cobertura_financeira_estagio: {
+        Row: {
+          atualizado_em: string
+          descricao: string | null
+          estagio: string
+          modo: string
+          mostra_card: boolean
+          permite_liberar: boolean
+        }
+        Insert: {
+          atualizado_em?: string
+          descricao?: string | null
+          estagio: string
+          modo: string
+          mostra_card?: boolean
+          permite_liberar?: boolean
+        }
+        Update: {
+          atualizado_em?: string
+          descricao?: string | null
+          estagio?: string
+          modo?: string
+          mostra_card?: boolean
+          permite_liberar?: boolean
+        }
+        Relationships: []
+      }
       politica_reserva_estoque: {
         Row: {
           aguarda_produto: boolean
