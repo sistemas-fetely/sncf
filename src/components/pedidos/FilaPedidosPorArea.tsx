@@ -48,6 +48,7 @@ import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedid
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 
 import {
   EstagioBadge, FormatoIdade,
