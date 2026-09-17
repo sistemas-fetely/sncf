@@ -877,7 +877,43 @@ function ChamadoDetalheConteudo() {
                 </div>
               </CardContent>
             </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Solução encontrada e realizada</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {emAberto && podeEditar ? (
+                  <>
+                    <Textarea
+                      value={solucao}
+                      onChange={(e) => setSolucao(e.target.value)}
+                      rows={4}
+                      placeholder="O que foi encontrado e o que foi feito para resolver"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={salvarSolucao}
+                        disabled={salvandoSolucao}
+                      >
+                        {salvandoSolucao ? "Salvando..." : "Salvar solução"}
+                      </Button>
+                    </div>
+                  </>
+                ) : c.solucao ? (
+                  <p className="whitespace-pre-wrap text-sm">{c.solucao}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Ainda não escrita.</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  O solicitante lê esta solução. Escreva pensando nele.
+                </p>
+              </CardContent>
+            </Card>
           </div>
+
 
           {/* DIREITA — ações e trilha */}
           <div className="space-y-4">
