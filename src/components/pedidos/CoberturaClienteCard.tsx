@@ -64,8 +64,10 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
   const cobre = valorConhecido && total >= valor;
   const falta = Math.max(0, valor - total);
 
-  const estagioPermite = !!estagio && estagio !== "faturado" && estagio !== "cancelado";
-  const podeLiberar = !!pedidoId && estagioPermite && cobre && !empenhado;
+  // Política no comando: sem modo 'decisao' (ou enquanto ela carrega) o botão
+  // não existe — card em modo informativo/read-only.
+  const modoDecisao = politica?.modo === "decisao";
+  const podeLiberar = !!pedidoId && modoDecisao && politica.permite_liberar && cobre && !empenhado;
 
   async function liberarPorCobertura() {
     if (!pedidoId) return;
