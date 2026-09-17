@@ -93,6 +93,16 @@ const ALTURA_CASA_HEADER = 64;
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoConsignado>(null);
+
+  const ordenarPor = (coluna: ColunaConsignado) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_CONSIGNADO[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem da consulta (razao social).
+      return invertida === DIR_INICIAL_CONSIGNADO[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
   const parceirosQ = useParceirosConsignados();
   const contaQ = useContaCorrenteCliente();
   const kpiQ = useKpiConsignado();
@@ -118,6 +128,32 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
       (p.cnpj ?? "").replace(/\D/g, "").includes(termo.replace(/\D/g, ""))
     );
   }, [parceirosQ.data, busca]);
+
+  // TOPO-COLADO-SE-MEDE, duas vezes: os KPIs seguram o 1o nivel do cabecalho e
+  // a linha de grupo segura o 2o. Nenhuma das duas alturas e fixa.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const grupoRef = useRef<HTMLTableRowElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+  const [alturaGrupo, setAlturaGrupo] = useState(0);
+
+  useEffect(() => {
+    const alvos: [Element | null, (n: number) => void][] = [
+      [kpisRef.current, setAlturaKpis],
+      [grupoRef.current, setAlturaGrupo],
+    ];
+    const ro = new ResizeObserver(() => {
+      for (const [el, set] of alvos) if (el) set((el as HTMLElement).offsetHeight);
+    });
+    for (const [el, set] of alvos) {
+      if (!el) continue;
+      set((el as HTMLElement).offsetHeight);
+      ro.observe(el);
+    }
+    return () => ro.disconnect();
+  }, [parceirosQ.isLoading, linhas.length, embutido]);
+
+  // Embutida em outra tela, esta lista nao manda no topo: sem cola.
+  const topoColado = embutido ? undefined : ALTURA_CASA_HEADER + alturaKpis;
 
   const isError = parceirosQ.isError || contaQ.isError;
 
