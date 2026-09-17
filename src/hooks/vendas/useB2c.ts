@@ -163,8 +163,6 @@ export function useItensB2c(shopifyId: string | null) {
     },
   });
 }
-
-export interface CarrinhoB2c {
   token: string;
   email: string | null;
   total_price: number | null;
