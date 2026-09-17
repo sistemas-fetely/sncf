@@ -350,6 +350,13 @@ export default function Parceiros() {
     });
   }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
 
+  const totalPaginasParceiros = Math.max(1, Math.ceil(filtered.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasParceiros);
+  const paginaItens = filtered.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
+
   const handleOpenNew = () => {
     setEditing(null);
     setFormOpen(true);
