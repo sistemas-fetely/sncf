@@ -1,22 +1,53 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeiro/mesa-lastros";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
+import { supabase } from "@/integrations/supabase/client";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import {
   useSemProvaFila,
   useCartaoConciliarFila,
   useInstrumentoQuebradoFila,
   useNaoCobravelFila,
 } from "@/hooks/credito/useSemProvaFila";
+
+/**
+ * COMPROVANTE-PARADO-E-PROBLEMA-DE-COBRANCA: comprovante em status 'lido' é
+ * dinheiro declarado sem reconhecimento — primo direto do PAGO_SEM_PROVA (lá o
+ * título pagou sem prova; aqui a prova chegou e ninguém confirmou). Fonte:
+ * `vw_comprovante_pendente`. Exportada também para o contador da aba em
+ * CobrancaFila (BADGE-LÊ-A-MESMA-FONTE-DA-TELA): invalidar o prefixo
+ * ["comprovante-pendente-fila"] revalida tela e contagem.
+ */
+export function useComprovantePendenteFila() {
+  return useQuery({
+    queryKey: ["comprovante-pendente-fila"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_comprovante_pendente")
+        .select("*")
+        .order("idade_dias", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
 
 /**
  * Aba "Problemas Cobrança" — CARTÃO-NÃO-VENCE-PROVA-VENCE +
@@ -278,6 +309,10 @@ export default function SemProvaTab() {
   const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
+  const { data: comprovantes = [], isLoading: loadingComp } = useComprovantePendenteFila();
+  const qc = useQueryClient();
+  const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
+  const totalComprovantes = comprovantes.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
 
   const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
   /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
@@ -293,7 +328,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
+  if (isLoading || loadingCartao || loadingInstr || loadingNC || loadingComp) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
@@ -357,6 +392,93 @@ export default function SemProvaTab() {
           </Button>
         </div>
       )}
+
+      <section className="space-y-2">
+        <BlocoHeader
+          titulo="COMPROVANTE AGUARDANDO CONFIRMAÇÃO"
+          qtd={comprovantes.length}
+          total={totalComprovantes}
+          tom="warning"
+        />
+        {comprovantes.length === 0 ? (
+          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
+            Nenhum comprovante aguardando confirmação.
+          </div>
+        ) : (
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Meio</TableHead>
+                  <TableHead>Pagador</TableHead>
+                  <TableHead>Idade</TableHead>
+                  <TableHead>Destino</TableHead>
+                  <TableHead className="w-px" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {comprovantes.map((c) => {
+                  const idade = Number(c.idade_dias ?? 0);
+                  return (
+                    <TableRow key={c.comprovante_id}>
+                      <TableCell className="font-mono text-xs">{c.pedido_ref ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{c.cliente ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatBRL(Number(c.valor_lido ?? 0))}</TableCell>
+                      <TableCell className="text-xs uppercase">{c.tipo_lido ?? "—"}</TableCell>
+                      <TableCell className="text-xs">{c.pagador_lido ?? "—"}</TableCell>
+                      <TableCell
+                        className={cn(
+                          "text-xs tabular-nums",
+                          idade > 7 && "font-medium text-destructive",
+                        )}
+                      >
+                        {idade} d
+                      </TableCell>
+                      <TableCell>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px]",
+                                  c.tem_portao_pendente
+                                    ? "border-warning/40 text-warning"
+                                    : "border-border text-muted-foreground",
+                                )}
+                              >
+                                {c.tem_portao_pendente ? "Paga portão" : "Conta do cliente"}
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs text-xs">
+                              {c.tem_portao_pendente
+                                ? "Há um portão de pagamento pendente: confirmar o comprovante quita esse portão."
+                                : "Sem portão pendente: o dinheiro credita a conta do CNPJ e aloca contra os títulos em aberto."}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
+                        >
+                          Confirmar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
 
       {blocos.filter(({ classe }) => mostra(classe)).map(({ classe, rows }) => (
         <section key={classe} className="space-y-2">
@@ -463,6 +585,20 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
+      )}
+
+      {confirmarPedidoId && (
+        <ConfirmarPagamentoDialog
+          pedidoId={confirmarPedidoId}
+          aberto
+          aoFechar={() => {
+            setConfirmarPedidoId(null);
+            // BANCO-CONFIRMA/HUMANO-COMUNICA: ao sair do diálogo, revalida a
+            // fila da view (e, pelo mesmo prefixo, o contador da aba).
+            qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
+          }}
+          modo="mesa"
+        />
       )}
     </div>
   );
