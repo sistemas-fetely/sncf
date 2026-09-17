@@ -586,6 +586,20 @@ export default function SemProvaTab() {
         )}
       </section>
       )}
+
+      {confirmarPedidoId && (
+        <ConfirmarPagamentoDialog
+          pedidoId={confirmarPedidoId}
+          aberto
+          aoFechar={() => {
+            setConfirmarPedidoId(null);
+            // BANCO-CONFIRMA/HUMANO-COMUNICA: ao sair do diálogo, revalida a
+            // fila da view (e, pelo mesmo prefixo, o contador da aba).
+            qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
+          }}
+          modo="mesa"
+        />
+      )}
     </div>
   );
 }
