@@ -490,8 +490,13 @@ export default function Parceiros() {
         </TabsList>
 
         {(tabAtiva === "fornecedores" || tabAtiva === "clientes") && (
-          <TabsContent value={tabAtiva} className="space-y-6 mt-4" forceMount>
-            <div className="sticky top-0 z-10 bg-background pb-2 -mx-6 px-6 pt-2">
+          <TabsContent
+            value={tabAtiva}
+            className="space-y-6 mt-4"
+            forceMount
+            style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}
+          >
+            <div ref={kpisRef} className="sticky top-16 z-10 bg-background pb-2 -mx-6 px-6 pt-2">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <Card>
                   <CardHeader className="pb-2">
