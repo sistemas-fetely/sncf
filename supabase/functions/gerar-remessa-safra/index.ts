@@ -780,7 +780,7 @@ serve(async (req) => {
       .from("titulo_a_receber")
       .select(`id, numero_titulo, numero_parcela, total_parcelas, valor_bruto, data_vencimento_atual, boleto_status, tipo_pagamento,
         reemissao_nova_data, reemissao_novo_valor, nosso_numero_seq,
-        conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
+        conta:contas_pagar_receber(parceiro:parceiros_comerciais(id, razao_social, cnpj, cpf, email, email_cobranca, cadastro_incompleto, logradouro, numero, bairro, cep, cidade, uf))`)
       .in("boleto_status", ["pendente", "baixa_solicitada", "baixa_remessa_gerada"])
       .eq("tipo_pagamento", "boleto")
       .not("status", "in", "(pago,pago_com_atraso,pago_judicial,cancelado,cancelado_recuperacao)");
