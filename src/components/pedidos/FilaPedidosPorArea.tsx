@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
+import { Search, ExternalLink, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -48,6 +48,7 @@ import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedid
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 
 import {
   EstagioBadge, FormatoIdade,
@@ -86,24 +87,7 @@ const COBRANCA_GRAVIDADE: Record<string, number> = {
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const PAGE_SIZE_OPTIONS = [20, 50, 100, 200] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-const DEFAULT_PAGE_SIZE: PageSizeOption = 20;
 const PAGE_SIZE_STORAGE_KEY = "fetely:pedidos:fila:page-size";
-
-
-
-function buildPageRange(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "…")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) pages.push("…");
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-}
 
 interface Props {
   area: AreaPedido | "todas";
@@ -462,16 +446,9 @@ export function FilaPedidosPorArea({
   };
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
   const [pagina, setPagina] = useState(1);
-  const [pageSize, setPageSize] = useState<PageSizeOption>(() => {
-    try {
-      const salvo = Number(localStorage.getItem(PAGE_SIZE_STORAGE_KEY));
-      return (PAGE_SIZE_OPTIONS as readonly number[]).includes(salvo)
-        ? (salvo as PageSizeOption)
-        : DEFAULT_PAGE_SIZE;
-    } catch {
-      return DEFAULT_PAGE_SIZE;
-    }
-  });
+  const [pageSize, setPageSize] = useState<PageSizeOption>(() =>
+    lerTamanhoPaginaSalvo(PAGE_SIZE_STORAGE_KEY),
+  );
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -849,9 +826,6 @@ export function FilaPedidosPorArea({
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
-  const inicioRange = totalLinhas === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
-  const fimRange = Math.min(paginaAtual * pageSize, totalLinhas);
-  const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   if (isError) {
     return (
@@ -1011,7 +985,7 @@ export function FilaPedidosPorArea({
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" className="w-[200px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
               <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[56px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
@@ -1250,109 +1224,14 @@ export function FilaPedidosPorArea({
         </Table>
       </div>
 
-      <div className="sticky bottom-0 z-30 flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm bg-background border-t border-border shadow-[0_-2px_8px_-4px_hsl(var(--foreground)/0.1)]">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span>
-            {totalLinhas === 0
-              ? "Nenhum resultado"
-              : <>Mostrando <span className="font-medium text-foreground tabular-nums">{inicioRange}</span>–<span className="font-medium text-foreground tabular-nums">{fimRange}</span> de <span className="font-medium text-foreground tabular-nums">{totalLinhas}</span></>}
-          </span>
-          <span className="hidden sm:inline">·</span>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span>Por página:</span>
-            <Select
-              value={String(pageSize)}
-              onValueChange={(v) => {
-                const n = Number(v) as PageSizeOption;
-                setPageSize(n);
-                try {
-                  localStorage.setItem(PAGE_SIZE_STORAGE_KEY, String(n));
-                } catch {
-                  // modo privativo pode bloquear o storage — a troca vale só nesta sessão
-                }
-                setPagina(1);
-              }}
-            >
-              <SelectTrigger className="h-8 w-[110px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {totalPaginas > 1 && (
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual <= 1}
-              onClick={() => setPagina(1)}
-              aria-label="Primeira página"
-            >
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual <= 1}
-              onClick={() => setPagina((p) => Math.max(1, p - 1))}
-              aria-label="Página anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            {pageRange.map((p, idx) =>
-              p === "…" ? (
-                <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
-              ) : (
-                <Button
-                  key={p}
-                  variant={p === paginaAtual ? "default" : "outline"}
-                  size="sm"
-                  className={cn(
-                    "h-8 min-w-8 px-2 tabular-nums",
-                    p === paginaAtual && "pointer-events-none",
-                  )}
-                  onClick={() => setPagina(p)}
-                  aria-current={p === paginaAtual ? "page" : undefined}
-                >
-                  {p}
-                </Button>
-              ),
-            )}
-
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual >= totalPaginas}
-              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-              aria-label="Próxima página"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              disabled={paginaAtual >= totalPaginas}
-              onClick={() => setPagina(totalPaginas)}
-              aria-label="Última página"
-            >
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+      <RodapePaginacao
+        total={totalLinhas}
+        pagina={paginaAtual}
+        tamanhoPagina={pageSize}
+        chavePreferencia={PAGE_SIZE_STORAGE_KEY}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setPageSize(n as PageSizeOption)}
+      />
     </div>
   );
 }
