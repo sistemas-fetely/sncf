@@ -84,6 +84,53 @@ export const QK_CONTA_CLIENTE_LANC = "conta-cliente-lancamentos";
 export const QK_CONTA_CLIENTE_FUROS = "conta-cliente-furos";
 export const QK_CONTA_CLIENTE_COBERTURA = "conta-cliente-cobertura";
 
+/* ------------------------------------------------------------------------- *
+ * POLÍTICA DE COBERTURA FINANCEIRA — DIMENSÃO-VIA-TABELA.
+ *
+ * O card "Cobertura do cliente" não decide mais sozinho em que estágio aparece
+ * nem quando libera: quem decide é `politica_cobertura_financeira_estagio`.
+ * Fallback conservador: mostra o card, em modo informativo, sem liberar.
+ * ------------------------------------------------------------------------- */
+
+export interface PoliticaCoberturaFinanceira {
+  mostra_card: boolean;
+  permite_liberar: boolean;
+  modo: "decisao" | "informativo" | "oculto";
+  descricao: string | null;
+}
+
+const FALLBACK_POLITICA_COBERTURA: PoliticaCoberturaFinanceira = {
+  mostra_card: true,
+  permite_liberar: false,
+  modo: "informativo",
+  descricao: null,
+};
+
+/** Política do estágio para o card de cobertura. Dimensão — staleTime longo. */
+export function usePoliticaCoberturaFinanceira(estagio: string | null) {
+  return useQuery({
+    queryKey: ["politica-cobertura-financeira-estagio", estagio ?? null],
+    enabled: !!estagio,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<PoliticaCoberturaFinanceira> => {
+      if (!estagio) return FALLBACK_POLITICA_COBERTURA;
+      const { data, error } = await (supabase as any)
+        .from("politica_cobertura_financeira_estagio")
+        .select("mostra_card, permite_liberar, modo, descricao")
+        .eq("estagio", estagio)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) return FALLBACK_POLITICA_COBERTURA;
+      return {
+        mostra_card: !!data.mostra_card,
+        permite_liberar: !!data.permite_liberar,
+        modo: data.modo,
+        descricao: data.descricao ?? null,
+      };
+    },
+  });
+}
+
 /** Lista de saldos por cliente, ordenada por |saldo| desc. */
 export function useContasClienteSaldo() {
   return useQuery({

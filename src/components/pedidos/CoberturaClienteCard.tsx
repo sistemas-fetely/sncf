@@ -4,6 +4,9 @@
  * O pedido não é mais o dono do dinheiro: ele valida contra o saldo da conta do
  * cliente. O botão "Liberar por cobertura" é o CAMINHO NOVO — convive com o
  * portão antigo e não mexe nele.
+ *
+ * DIMENSÃO-VIA-TABELA: quando o card aparece e se libera não é decisão dele —
+ * quem decide é `politica_cobertura_financeira_estagio`, lida pelo estágio.
  */
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +15,7 @@ import { formatBRL } from "@/lib/format-currency";
 import {
   useContaClienteCobertura,
   useLiberarPorCobertura,
+  usePoliticaCoberturaFinanceira,
 } from "@/hooks/financeiro/useContaCliente";
 import { Selo } from "@/components/ui/selo";
 import { Button } from "@/components/ui/button";
@@ -27,10 +31,13 @@ interface Props {
 export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagio }: Props) {
   const { data: cob, isLoading, isError, error } = useContaClienteCobertura(parceiroId, pedidoId);
   const liberar = useLiberarPorCobertura();
+  const { data: politica } = usePoliticaCoberturaFinanceira(estagio ?? null);
   const [empenhado, setEmpenhado] = useState(false);
   const [rota, setRota] = useState<string | null>(null);
 
   if (!parceiroId) return null;
+
+  if (politica && (politica.modo === "oculto" || !politica.mostra_card)) return null;
 
   if (isLoading) {
     return (
@@ -57,8 +64,10 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
   const cobre = valorConhecido && total >= valor;
   const falta = Math.max(0, valor - total);
 
-  const estagioPermite = !!estagio && estagio !== "faturado" && estagio !== "cancelado";
-  const podeLiberar = !!pedidoId && estagioPermite && cobre && !empenhado;
+  // Política no comando: sem modo 'decisao' (ou enquanto ela carrega) o botão
+  // não existe — card em modo informativo/read-only.
+  const modoDecisao = politica?.modo === "decisao";
+  const podeLiberar = !!pedidoId && modoDecisao && politica.permite_liberar && cobre && !empenhado;
 
   async function liberarPorCobertura() {
     if (!pedidoId) return;
