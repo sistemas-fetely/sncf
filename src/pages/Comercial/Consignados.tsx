@@ -155,6 +155,51 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
   // Embutida em outra tela, esta lista nao manda no topo: sem cola.
   const topoColado = embutido ? undefined : ALTURA_CASA_HEADER + alturaKpis;
 
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const linhasOrdenadas = useMemo(() => {
+    if (!ordenacao) return linhas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: ParceiroConsignado): string | number | null => {
+      const cc = saldoPorParceiro.get(p.id);
+      const kpi = kpiPorParceiro.get(p.id);
+      const semCiclo = !kpi || num(kpi.n_ciclos) === 0;
+      switch (ordenacao.coluna) {
+        case "parceiro": return p.razao_social || null;
+        case "documentado": return cc?.documentado ?? null;
+        case "pago": return cc?.pago ?? null;
+        case "saldo": return cc?.saldo_devedor ?? null;
+        case "ultimo_pagamento": {
+          const t = cc?.ultimo_pagamento ? Date.parse(cc.ultimo_pagamento) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "giro": return kpi ? num(kpi.giro_pct) : null;
+        case "margem": return semCiclo ? null : num(kpi!.margem_pct);
+        case "capital_parado": return kpi ? num(kpi.capital_parado) : null;
+        case "ritmo": return semCiclo ? null : num(kpi!.ritmo_packs_semana);
+        case "meses": return semCiclo ? null : num(kpi!.semanas_para_escoar) / 4.345;
+        case "ciclos": return kpi ? num(kpi.n_ciclos) : null;
+        default: return null;
+      }
+    };
+    return [...linhas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [linhas, ordenacao, saldoPorParceiro, kpiPorParceiro]);
+
+  const estiloTopo = {
+    "--fila-topo-colado": topoColado != null ? `${topoColado}px` : undefined,
+    "--fila-topo-colado-2": topoColado != null ? `${topoColado + alturaGrupo}px` : undefined,
+  } as CSSProperties;
+
+
   const isError = parceirosQ.isError || contaQ.isError;
 
   const conteudo = (
