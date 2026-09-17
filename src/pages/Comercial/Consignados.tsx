@@ -375,6 +375,17 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
           )}
         </CardContent>
       </Card>
+
+      {!embutido && (
+        <RodapePaginacao
+          total={linhasOrdenadas.length}
+          pagina={paginaAtual}
+          tamanhoPagina={tamanhoPagina}
+          chavePreferencia={CHAVE_PAGINA_CONSIGNADOS}
+          onPagina={setPagina}
+          onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+        />
+      )}
     </>
   );
 
