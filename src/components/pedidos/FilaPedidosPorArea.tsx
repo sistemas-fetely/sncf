@@ -959,15 +959,10 @@ export function FilaPedidosPorArea({
       })()}
 
 
-      {(ordenacao.tipo === "coluna" ||
-        (ordenacao.tipo === "preset" && ordenacao.preset === "risco") ||
-        somenteRiscoAlto) && (
+      {(ordenacao.tipo === "coluna" || somenteRiscoAlto) && (
         <p className="text-xs text-muted-foreground">
           {ordenacao.tipo === "coluna" &&
             `Ordenado por ${COLUNA_ROTULO[ordenacao.coluna]} (${ordenacao.dir === "asc" ? "crescente" : "decrescente"}). Clique no cabeçalho até o ícone apagar para voltar ao padrão. `}
-          {ordenacao.tipo === "preset" &&
-            ordenacao.preset === "risco" &&
-            "Ordenado por risco (maior primeiro). "}
           {somenteRiscoAlto && "Mostrando apenas pedidos em risco alto."}
         </p>
       )}
