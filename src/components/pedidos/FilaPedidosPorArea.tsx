@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck, ArrowUp, ArrowDown, ArrowUpDown } from "lucide-react";
+import { Search, ExternalLink, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -47,6 +47,7 @@ import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastr
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
+import { CabecalhoOrdenavel } from "@/components/tabela/CabecalhoOrdenavel";
 
 import {
   EstagioBadge, FormatoIdade,
@@ -1001,15 +1002,15 @@ export function FilaPedidosPorArea({
         <Table className="table-fixed" containerClassName="overflow-visible">
           <TableHeader>
             <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-              <CabecalhoOrdenavel coluna="risco" rotulo="Risco" className="w-[56px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="pedido" rotulo="Pedido" className="w-[220px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="valor" rotulo="Valor" className="w-[150px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel rotulo="Risco" className="w-[56px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "risco" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("risco")} />
+              <CabecalhoOrdenavel rotulo="Pedido" className="w-[220px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("pedido")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="w-[150px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("valor")} />
               <TableHead className="w-[130px]">Pagamento</TableHead>
-              <CabecalhoOrdenavel coluna="estoque" rotulo="Estoque" className="w-[100px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="cobranca" rotulo="Cobrança" className="w-[130px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="estagio" rotulo="Estágio" className="w-[140px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="entrega" rotulo="Entrega" className="w-[200px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
-              <CabecalhoOrdenavel coluna="na_fase" rotulo="Na fase" className="w-[96px]" ordenacao={ordenacao} onOrdenar={alternarOrdenacaoColuna} />
+              <CabecalhoOrdenavel rotulo="Estoque" className="w-[100px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estoque" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estoque")} />
+              <CabecalhoOrdenavel rotulo="Cobrança" className="w-[130px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "cobranca" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("cobranca")} />
+              <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
+              <CabecalhoOrdenavel rotulo="Entrega" className="w-[200px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
+              <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
               <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
 
             </TableRow>
@@ -1911,42 +1912,3 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
 
 
 
-/** Cabecalho clicavel: 1o clique ordena, 2o inverte, 3o volta ao preset da fila. */
-function CabecalhoOrdenavel({
-  coluna, rotulo, className, ordenacao, onOrdenar,
-}: {
-  coluna: ColunaOrdenavel;
-  rotulo: string;
-  className?: string;
-  ordenacao: Ordenacao;
-  onOrdenar: (c: ColunaOrdenavel) => void;
-}) {
-  const ativa = ordenacao.tipo === "coluna" && ordenacao.coluna === coluna;
-  const dir = ativa ? ordenacao.dir : null;
-  return (
-    <TableHead className={className} aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}>
-      <button
-        type="button"
-        onClick={() => onOrdenar(coluna)}
-        className={cn(
-          "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
-          ativa && "text-foreground font-medium",
-        )}
-        title={
-          dir === "asc" ? "Crescente — clique para inverter"
-          : dir === "desc" ? "Decrescente — clique para voltar à ordenação padrão"
-          : `Ordenar por ${rotulo}`
-        }
-      >
-        {rotulo}
-        {dir === "asc" ? (
-          <ArrowUp className="h-3 w-3" />
-        ) : dir === "desc" ? (
-          <ArrowDown className="h-3 w-3" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
-        )}
-      </button>
-    </TableHead>
-  );
-}
