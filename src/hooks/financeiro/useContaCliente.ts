@@ -4,7 +4,6 @@
  * Doutrina: DINHEIRO-CREDITA-CONTA-PEDIDO-DEBITA-SALDO. Dinheiro pertence ao
  * CLIENTE (CNPJ), não ao pedido. Nenhum hook aqui aceita pedido_id — é de propósito.
  *
- * As views e RPCs novas ainda não estão nos types gerados, por isso as chamadas
  * passam por `supabase` — mesmo padrão de useNavegacaoPortao.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -351,7 +350,7 @@ export function useClientesBusca(termo: string) {
       if (t) q = q.or(`nome_fantasia.ilike.%${t}%,razao_social.ilike.%${t}%,cnpj.ilike.%${t}%`);
       const { data, error } = await q;
       if (error) throw error;
-      return ((data ?? []) as any[]).map((p) => ({
+      return (data ?? []).map((p) => ({
         id: p.id,
         // NOME-É-RAZÃO-SOCIAL: apelido só como complemento.
         nome: nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)"),
@@ -525,7 +524,7 @@ export function useCortesiasCliente(parceiroId?: string) {
           .select("id, razao_social, nome_fantasia")
           .in("id", ids);
         if (p.error) throw p.error;
-        for (const linha of (p.data ?? []) as any[]) {
+        for (const linha of p.data ?? []) {
           nomes.set(linha.id, nomeExibicao(linha.razao_social, linha.nome_fantasia, "(sem nome)"));
         }
       }
