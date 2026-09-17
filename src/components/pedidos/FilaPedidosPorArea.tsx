@@ -86,24 +86,7 @@ const COBRANCA_GRAVIDADE: Record<string, number> = {
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-const PAGE_SIZE_OPTIONS = [20, 50, 100, 200] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-const DEFAULT_PAGE_SIZE: PageSizeOption = 20;
 const PAGE_SIZE_STORAGE_KEY = "fetely:pedidos:fila:page-size";
-
-
-
-function buildPageRange(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "…")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) pages.push("…");
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-}
 
 interface Props {
   area: AreaPedido | "todas";
@@ -1011,7 +994,7 @@ export function FilaPedidosPorArea({
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" className="w-[200px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
               <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[56px] text-right text-[11px] font-normal text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[56px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
