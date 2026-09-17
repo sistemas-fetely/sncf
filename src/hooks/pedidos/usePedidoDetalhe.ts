@@ -117,7 +117,7 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
       if (naturezaId) {
         const { data: nat } = await sb
           .from("naturezas_operacao")
-          .select("codigo, nome, gera_titulo_receber")
+          .select("codigo, nome, gera_titulo_receber, exige_expedicao")
           .eq("id", naturezaId)
           .maybeSingle();
         if (nat) {
@@ -125,6 +125,7 @@ export function usePedidoDetalhe(pedidoId: string | undefined) {
             codigo: nat.codigo ?? null,
             nome: nat.nome ?? null,
             gera_titulo_receber: !!nat.gera_titulo_receber,
+            exige_expedicao: nat.exige_expedicao !== false,
           };
         }
       }
