@@ -993,18 +993,18 @@ function RemessasSafraTab() {
         </Button>
       </div>
 
-      <div className="rounded-md border overflow-x-auto">
-        <Table className="min-w-[960px]">
+      <div className="rounded-md border bg-card">
+        <Table className="min-w-[960px]" containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
               <TableHead className="w-8"></TableHead>
-              <TableHead>Arquivo</TableHead>
-              <TableHead>Gerada em</TableHead>
-              <TableHead>Enviada em</TableHead>
-              <TableHead className="text-right">Títulos</TableHead>
-              <TableHead className="text-right">Valor total</TableHead>
-              <TableHead>Retorno processado</TableHead>
-              <TableHead>Status</TableHead>
+              <CabecalhoOrdenavel rotulo="Arquivo" dir={ordenacao?.coluna === "arquivo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("arquivo")} />
+              <CabecalhoOrdenavel rotulo="Gerada em" dir={ordenacao?.coluna === "gerada" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("gerada")} />
+              <CabecalhoOrdenavel rotulo="Enviada em" dir={ordenacao?.coluna === "enviada" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("enviada")} />
+              <CabecalhoOrdenavel rotulo="Títulos" className="text-right" alinharDireita dir={ordenacao?.coluna === "titulos" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("titulos")} />
+              <CabecalhoOrdenavel rotulo="Valor total" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Retorno processado" dir={ordenacao?.coluna === "retorno" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("retorno")} />
+              <CabecalhoOrdenavel rotulo="Status" dir={ordenacao?.coluna === "status" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("status")} />
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
 
@@ -1017,14 +1017,14 @@ function RemessasSafraTab() {
                 </TableCell>
               </TableRow>
             )}
-            {!isLoading && remessas.length === 0 && (
+            {!isLoading && ordenadas.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   Nenhuma remessa gerada ainda.
                 </TableCell>
               </TableRow>
             )}
-            {remessas.map((r) => {
+            {paginaItens.map((r) => {
               const s = statusMap[r.status] ?? statusMap.gerada;
               const esquecida =
                 r.status === "gerada" &&
