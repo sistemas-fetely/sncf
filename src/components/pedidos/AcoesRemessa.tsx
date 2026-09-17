@@ -266,7 +266,7 @@ export function AcoesRemessa({
         </Button>
       )}
 
-      {!precisaSincronizar && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
+      {!precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
         <ForcarXpmEstoqueDialog
           pedidoId={pedido_id}
           idExterno={id_externo}
