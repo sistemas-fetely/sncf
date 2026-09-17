@@ -21,6 +21,7 @@ import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
+import { RodapePaginacao, lerTamanhoPaginaSalvo } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, useCarrinhosAbandonados, useDevolucoesB2c, usePedidoAlertaDim,
   type PedidoB2cRow, type AlertaDim,
@@ -265,6 +266,25 @@ export default function ShopifyB2c() {
     });
   }, [filtrados, ordenacao]);
 
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_B2C),
+  );
+
+  // Trocar a seleção joga o operador de volta pra primeira página — senão ele
+  // fica olhando uma página 7 que já não existe.
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, uf, alerta, estagioParam, incluirCancelados, ordenacao]);
+
+  const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasB2c);
+  const paginaItens = ordenados.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
+
+
   const copiar = (v: string, label: string) => {
     void navigator.clipboard.writeText(v);
     toast.success(`${label} copiado.`);
@@ -434,7 +454,7 @@ export default function ShopifyB2c() {
                             </TableCell>
                           </TableRow>
                         ) : (
-                          ordenados.map((p, idx) => (
+                          paginaItens.map((p, idx) => (
                             <TableRow
                               key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
                               onClick={() => setSelecionado(p)}
@@ -616,6 +636,14 @@ export default function ShopifyB2c() {
                       </TableBody>
                     </Table>
                 </TooltipProvider>
+                <RodapePaginacao
+                  total={ordenados.length}
+                  pagina={paginaAtual}
+                  tamanhoPagina={tamanhoPagina}
+                  chavePreferencia={CHAVE_PAGINA_B2C}
+                  onPagina={setPagina}
+                  onTamanhoPagina={setTamanhoPagina}
+                />
               </CardContent>
             </Card>
           )}
