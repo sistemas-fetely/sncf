@@ -1854,10 +1854,11 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                       </TableCell>
                     </TableRow>
                     {g.boletos.map((b) => {
-                      const passado = !!b.data_vencimento_atual && b.data_vencimento_atual < hojeIso;
+                      const bloqueio = bloqueioEntrada(b, hojeIso);
+                      const aviso = bloqueio ? null : avisoEntrada(b);
                       const marcado = selecionados.has(b.id);
                       return (
-                        <TableRow key={b.id} className={passado ? "bg-destructive/10" : ""}>
+                        <TableRow key={b.id} className={bloqueio ? "bg-destructive/10" : ""}>
                           <TableCell className="pl-6">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1865,16 +1866,12 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                   <Checkbox
                                     checked={marcado}
                                     onCheckedChange={() => toggleSelecionado(b.id)}
-                                    disabled={passado}
+                                    disabled={!!bloqueio}
                                     aria-label={`Selecionar ${b.numero_titulo}`}
                                   />
                                 </span>
                               </TooltipTrigger>
-                              {passado && (
-                                <TooltipContent>
-                                  Ajuste a data na lista para habilitar
-                                </TooltipContent>
-                              )}
+                              {bloqueio && <TooltipContent>{bloqueio}</TooltipContent>}
                             </Tooltip>
                           </TableCell>
                           <TableCell className="font-mono text-xs max-w-0">
