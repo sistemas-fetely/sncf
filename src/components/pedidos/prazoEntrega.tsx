@@ -44,6 +44,7 @@ export function proveniencia(metodo: string | null): { rotulo: string; alerta: b
 
 const FONTE_ROTULO: Record<string, string> = {
   entrega_confirmada: "entrega confirmada",
+  sem_expedicao: "Encerra no faturamento",
   cte_previsao: "prazo do CT-e",
   cte_emissao_mais_tabela: "CT-e + tabela",
   expedicao_mais_tabela: "estimado pela expedição",
@@ -111,12 +112,16 @@ export function BlocoPrazo({
   const previsao = fmt(info.previsao_entrega);
   const desvio = info.dias_vs_meta;
   const entregue = !!info.entregue_em || info.previsao_fonte === "entrega_confirmada";
-  const metaVencida = !entregue && jaPassou(info.data_entrega_prevista);
-  const previsaoVencida = !entregue && info.previsao_confianca !== "fato" && jaPassou(info.previsao_entrega);
+  // EXPEDICAO-E-EIXO-DA-NATUREZA: sem expedição não há entrega a prever — nem
+  // data, nem desvio, nem estilo de atraso. LIMBO-VISÍVEL > FATO-FALSO.
+  const semExpedicao = ehSemExpedicao(info);
+  const metaVencida = !entregue && !semExpedicao && jaPassou(info.data_entrega_prevista);
+  const previsaoVencida =
+    !entregue && !semExpedicao && info.previsao_confianca !== "fato" && jaPassou(info.previsao_entrega);
   const retira = info.previsao_fonte === "disponibilidade_retira";
   const fonte = rotuloFonte(info.previsao_fonte);
 
-  if (!meta && !previsao) {
+  if (!meta && !previsao && !semExpedicao) {
     return (
       <p className="text-[11px] text-muted-foreground/60 italic">
         {info.previsao_motivo_sem_data || "Sem previsão"}
