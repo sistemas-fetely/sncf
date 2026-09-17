@@ -4,7 +4,7 @@
  * Usada em /cliente. Clicar numa linha abre /cliente/:id.
  * O trabalho de conciliação (entradas a reconhecer) vive em outra rota.
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Users, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -55,6 +55,9 @@ const DIR_INICIAL_CONTAS: Record<ColunaContas, DirecaoOrdenacao> = {
 
 const CHAVE_PAGINA_CONTAS = "fetely:cliente:contas:page-size";
 
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
+
 interface Props {
   /** o cabeçalho da tela é da página (que tem abas); a lista pode omiti-lo */
   mostrarCabecalho?: boolean;
@@ -82,6 +85,21 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   useEffect(() => {
     setPagina(1);
   }, [busca, ordenacao]);
+
+  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
+  // altura deles muda (os cards quebram linha em tela menor). Mede, nao chuta.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+
+  useEffect(() => {
+    const el = kpisRef.current;
+    if (!el) return;
+    const medir = () => setAlturaKpis(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -153,7 +171,10 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   }, [contas]);
 
   return (
-    <div className="space-y-4">
+    <div
+      className="space-y-4"
+      style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}
+    >
       {mostrarCabecalho && (
       <PageHeader
         titulo="Conta Corrente Cliente"
@@ -183,7 +204,10 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div
+        ref={kpisRef}
+        className="sticky top-16 z-20 grid grid-cols-2 md:grid-cols-4 gap-3 bg-background py-2"
+      >
         <div className="rounded-md border border-border/60 bg-card p-2.5">
           <p className="text-[11px] text-muted-foreground">Crédito a favor de clientes</p>
           <p className="text-sm font-medium text-success">
