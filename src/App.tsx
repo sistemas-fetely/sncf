@@ -864,7 +864,7 @@ const App = () => (
             <Route path="/administrativo/compromissos" element={<Navigate to="/administrativo/contas-pagar" replace />} />
             {/* Entradas Recebidas e Aguardando Pagamento desmontados (23/08/2026):
                 adiantamento vive na aba da Cobrança; estágio do pedido, na Casa dos Pedidos */}
-            <Route path="/recebimento/entradas" element={<Navigate to="/recebimento/cobranca?aba=adiantamento" replace />} />
+            <Route path="/recebimento/entradas" element={<Navigate to="/cliente" replace />} />
             <Route path="/recebimento/aguardando-pagamento" element={<Navigate to="/pedidos" replace />} />
             {/* Destinos de Cadastro é do SOPs, não do Acervo (23/08/2026) */}
             <Route path="/acervo/destinos-cadastro" element={<Navigate to="/vendas/produto/estoque/destinos" replace />} />
