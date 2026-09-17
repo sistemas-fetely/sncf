@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CabecalhoOrdenavel,
   LINHA_CABECALHO_COLADO,
@@ -1393,12 +1393,17 @@ function CarregandoAba() {
   );
 }
 
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` da barra de abas. */
+const ALTURA_CASA_HEADER = 64;
+
 export default function CobrancaFila() {
   const { data: pedidos = [] } = useCobrancaFila();
   const { data: titulosCobranca = [] } = useTitulosCobranca();
   const { data: baixasPendentes } = useBaixasPendentes();
   const [tabAtiva, setTabAtiva] = useAbaUrl("mesa");
   const [subTabBanco, setSubTabBanco] = useState("remessas");
+
+
 
   // Permissão por aba — primeira permitida vira o fallback quando a URL
   // aponta para uma aba proibida (mesma solução do PedidosIndex).
@@ -1435,7 +1440,23 @@ export default function CobrancaFila() {
     if (abaEfetiva && abaEfetiva !== abaSolicitada) setTabAtiva(abaEfetiva);
   }, [carregandoPermissoes, abaEfetiva, abaSolicitada, setTabAtiva]);
 
+  // TOPO-COLADO-SE-MEDE: o cabecalho das tabelas cola logo abaixo da barra de
+  // abas, cuja altura muda quando os rotulos quebram linha em tela menor.
+  const abasRef = useRef<HTMLDivElement>(null);
+  const [alturaAbas, setAlturaAbas] = useState(0);
+
+  useEffect(() => {
+    const el = abasRef.current;
+    if (!el) return;
+    const medir = () => setAlturaAbas(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [carregandoPermissoes, primeiraPermitida]);
+
   const totalPedidos = pedidos.length;
+
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
@@ -1526,8 +1547,17 @@ export default function CobrancaFila() {
           Você não tem acesso a nenhuma aba desta tela.
         </div>
       ) : (
-      <Tabs value={abaEfetiva ?? abaSolicitada} onValueChange={setTabAtiva} className="space-y-4">
-        <TabsList className="bg-transparent border-b border-border rounded-none w-full justify-start h-auto p-0 gap-6">
+      <Tabs
+        value={abaEfetiva ?? abaSolicitada}
+        onValueChange={setTabAtiva}
+        className="space-y-4"
+        style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaAbas}px` } as CSSProperties}
+      >
+        <TabsList
+          ref={abasRef}
+          className="sticky top-16 z-30 -mx-6 w-[calc(100%+3rem)] justify-start gap-6 rounded-none border-b border-border bg-background px-6 pt-1 h-auto"
+        >
+
           {[
             { value: "mesa", slug: "tela.cobranca_mesa", label: `Mesa${totalAgirAgora > 0 ? ` · ${totalAgirAgora}` : ""}` },
             { value: "regua", slug: "tela.cobranca_regua", label: `Régua${totalReguaHoje > 0 ? ` · ${totalReguaHoje}` : ""}` },
