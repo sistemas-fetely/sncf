@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +29,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SortableTableHead, SortState } from "@/components/shared/SortableTableHead";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import {
@@ -68,6 +77,23 @@ type SortField =
   | "centro_custo"
   | "meio_pgto";
 
+type Ordenacao = { coluna: SortField; dir: DirecaoOrdenacao };
+
+const ORDEM_PADRAO: Ordenacao = { coluna: "razao_social", dir: "asc" };
+
+/** Primeiro clique: texto sobe; "meio de pgto" sobe porque asc traz o buraco primeiro. */
+const DIR_INICIAL: Record<SortField, DirecaoOrdenacao> = {
+  razao_social: "asc", cnpj: "asc", tipo: "asc",
+  categoria: "asc", centro_custo: "asc", meio_pgto: "asc",
+};
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
+
+/** Preferencia de tamanho de pagina desta lista. */
+const CHAVE_PAGINA_PARCEIROS = "fetely:parceiros:lista:page-size";
+
+
 export default function Parceiros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -96,13 +122,45 @@ export default function Parceiros() {
   const [editing, setEditing] = useState<Parceiro | null>(null);
   const [parceiroParaExcluir, setParceiroParaExcluir] = useState<Parceiro | null>(null);
   const [excluindo, setExcluindo] = useState(false);
-  const [sort, setSort] = useState<SortState<SortField> | null>({
-    column: "razao_social",
-    direction: "asc",
-  });
+  const [sort, setSort] = useState<Ordenacao>(ORDEM_PADRAO);
+
+  const ordenarPor = (coluna: SortField) => {
+    setSort((atual) => {
+      if (atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta ao padrao da tela (Razao Social crescente).
+      return invertida === DIR_INICIAL[coluna] ? ORDEM_PADRAO : { coluna, dir: invertida };
+    });
+  };
+
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_PARCEIROS),
+  );
+
+  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
+  // altura dos KPIs muda (6 cards quebram linha em tela menor). Mede, nao chuta.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+
+  useEffect(() => {
+    const el = kpisRef.current;
+    if (!el) return;
+    const medir = () => setAlturaKpis(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [tabAtiva]);
+
   const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, filtroStatus, filtroGrupo, filtroIncompleto, tabAtiva, sort]);
+
 
   useEffect(() => {
     if (!abrirParceiroId) return;
@@ -265,39 +323,31 @@ export default function Parceiros() {
     else if (filtroIncompleto === "sem_meio_pgto") list = list.filter((p) => !temMeioPagamento(p));
     else if (filtroIncompleto === "sem_centro_custo") list = list.filter((p) => !p.centro_custo_id);
 
-    if (!sort) return list;
-    const mult = sort.direction === "asc" ? 1 : -1;
-    const sortFn = (a: Parceiro, b: Parceiro) => {
-      let v: number;
-      switch (sort.column) {
-        case "cnpj":
-          v = (a.cnpj || "").localeCompare(b.cnpj || "");
-          break;
-        case "tipo":
-          v = (a.tipos?.[0] || "").localeCompare(b.tipos?.[0] || "");
-          break;
-        case "categoria": {
-          const aN = a.plano_contas_id ? categoriaNomeMap.get(a.plano_contas_id)?.nome || "" : "";
-          const bN = b.plano_contas_id ? categoriaNomeMap.get(b.plano_contas_id)?.nome || "" : "";
-          v = aN.localeCompare(bN, "pt-BR");
-          break;
-        }
-        case "centro_custo": {
-          const aN = a.centro_custo_id ? centroCustoNomeMap.get(a.centro_custo_id) || "" : "";
-          const bN = b.centro_custo_id ? centroCustoNomeMap.get(b.centro_custo_id) || "" : "";
-          v = aN.localeCompare(bN, "pt-BR");
-          break;
-        }
-        case "meio_pgto":
-          v = Number(temMeioPagamento(a)) - Number(temMeioPagamento(b));
-          break;
+    const dir = sort.dir === "asc" ? 1 : -1;
+    const valorDe = (p: Parceiro): string | number | null => {
+      switch (sort.coluna) {
+        case "cnpj": return p.cnpj || null;
+        case "tipo": return p.tipos?.[0] || null;
+        case "categoria":
+          return p.plano_contas_id ? categoriaNomeMap.get(p.plano_contas_id)?.nome ?? null : null;
+        case "centro_custo":
+          return p.centro_custo_id ? centroCustoNomeMap.get(p.centro_custo_id) ?? null : null;
+        case "meio_pgto": return Number(temMeioPagamento(p));
         case "razao_social":
-        default:
-          v = a.razao_social.localeCompare(b.razao_social, "pt-BR");
+        default: return p.razao_social || null;
       }
-      return v * mult;
     };
-    return [...list].sort(sortFn);
+    return [...list].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
   }, [data, filtroStatus, filtroGrupo, busca, tabAtiva, sort, categoriaNomeMap, centroCustoNomeMap, filtroIncompleto]);
 
   const handleOpenNew = () => {
@@ -444,8 +494,13 @@ export default function Parceiros() {
         </TabsList>
 
         {(tabAtiva === "fornecedores" || tabAtiva === "clientes") && (
-          <TabsContent value={tabAtiva} className="space-y-6 mt-4" forceMount>
-            <div className="sticky top-0 z-10 bg-background pb-2 -mx-6 px-6 pt-2">
+          <TabsContent
+            value={tabAtiva}
+            className="space-y-6 mt-4"
+            forceMount
+            style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}
+          >
+            <div ref={kpisRef} className="sticky top-16 z-10 bg-background pb-2 -mx-6 px-6 pt-2">
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
                 <Card>
                   <CardHeader className="pb-2">
@@ -557,33 +612,48 @@ export default function Parceiros() {
                     Nenhum parceiro encontrado.
                   </div>
                 ) : (
-                  <div className="border rounded-md overflow-x-auto">
-                    <Table>
+                  <>
+                  <div className="border rounded-md">
+                    <Table containerClassName="overflow-visible">
                       <TableHeader>
-                        <TableRow>
-                          <SortableTableHead column="razao_social" sort={sort} onSort={setSort}>
-                            Razão Social
-                          </SortableTableHead>
-                          <SortableTableHead column="cnpj" sort={sort} onSort={setSort}>
-                            CNPJ
-                          </SortableTableHead>
-                          <SortableTableHead column="tipo" sort={sort} onSort={setSort}>
-                            Tipo
-                          </SortableTableHead>
-                          <SortableTableHead column="categoria" sort={sort} onSort={setSort}>
-                            Categoria
-                          </SortableTableHead>
-                          <SortableTableHead column="centro_custo" sort={sort} onSort={setSort}>
-                            Centro de Custo
-                          </SortableTableHead>
-                          <SortableTableHead column="meio_pgto" sort={sort} onSort={setSort}>
-                            Meio de Pgto
-                          </SortableTableHead>
+                        <TableRow className={LINHA_CABECALHO_COLADO}>
+                          <CabecalhoOrdenavel
+                            rotulo="Razão Social"
+                            dir={sort.coluna === "razao_social" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("razao_social")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="CNPJ"
+                            dir={sort.coluna === "cnpj" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("cnpj")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Tipo"
+                            dir={sort.coluna === "tipo" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("tipo")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Categoria"
+                            dir={sort.coluna === "categoria" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("categoria")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Centro de Custo"
+                            dir={sort.coluna === "centro_custo" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("centro_custo")}
+                          />
+                          <CabecalhoOrdenavel
+                            rotulo="Meio de Pgto"
+                            dir={sort.coluna === "meio_pgto" ? sort.dir : null}
+                            onOrdenar={() => ordenarPor("meio_pgto")}
+                          />
                           <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered.map((p) => {
+                        {filtered
+                          .slice((pagina - 1) * tamanhoPagina, pagina * tamanhoPagina)
+                          .map((p) => {
                           const tipos = p.tipos || [];
                           const isForn = tipos.includes("fornecedor");
                           const isCli = tipos.includes("cliente");
@@ -685,6 +755,15 @@ export default function Parceiros() {
                       </TableBody>
                     </Table>
                   </div>
+                    <RodapePaginacao
+                      total={filtered.length}
+                      pagina={pagina}
+                      tamanhoPagina={tamanhoPagina}
+                      chavePreferencia={CHAVE_PAGINA_PARCEIROS}
+                      onPagina={setPagina}
+                      onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+                    />
+                  </>
                 )}
               </CardContent>
             </Card>
