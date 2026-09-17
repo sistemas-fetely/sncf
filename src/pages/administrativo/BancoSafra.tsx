@@ -576,7 +576,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     const set = escopo ? new Set(escopo) : null;
     const base = set ? pendentesEntrada.filter((b) => set.has(b.id)) : pendentesEntrada;
     const validos = base
-      .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+      .filter((b) => bloqueioEntrada(b, hojeIso) === null)
       .map((b) => b.id);
     setEscopoEntrada(escopo);
     setSelecionados(new Set(validos));
