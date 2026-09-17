@@ -55,6 +55,9 @@ const DIR_INICIAL_B2C: Record<ColunaB2c, DirecaoOrdenacao> = {
 /** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco do funil. */
 const ALTURA_CASA_HEADER = 64;
 
+/** Preferencia de tamanho de pagina desta fila (a Casa dos Pedidos tem a sua). */
+const CHAVE_PAGINA_B2C = "fetely:vendas:shopify:fila:page-size";
+
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
 }
