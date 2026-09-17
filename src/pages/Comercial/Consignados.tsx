@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  CabecalhoOrdenavel,
+  DirecaoOrdenacao,
+  LINHA_CABECALHO_COLADO,
+  LINHA_CABECALHO_COLADO_NIVEL2,
+} from "@/components/tabela/CabecalhoOrdenavel";
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
@@ -67,6 +73,22 @@ const num = (v: unknown) => Number(v ?? 0);
 const pct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 const qtd = (v: unknown) => num(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+
+type ColunaConsignado =
+  | "parceiro" | "documentado" | "pago" | "saldo" | "ultimo_pagamento"
+  | "giro" | "margem" | "capital_parado" | "ritmo" | "meses" | "ciclos";
+
+type OrdenacaoConsignado = { coluna: ColunaConsignado; dir: DirecaoOrdenacao } | null;
+
+/** Primeiro clique: nome sobe, data e numero descem. */
+const DIR_INICIAL_CONSIGNADO: Record<ColunaConsignado, DirecaoOrdenacao> = {
+  parceiro: "asc", documentado: "desc", pago: "desc", saldo: "desc",
+  ultimo_pagamento: "desc", giro: "desc", margem: "desc",
+  capital_parado: "desc", ritmo: "desc", meses: "desc", ciclos: "desc",
+};
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
 
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
