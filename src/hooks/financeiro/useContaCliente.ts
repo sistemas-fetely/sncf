@@ -4,8 +4,7 @@
  * Doutrina: DINHEIRO-CREDITA-CONTA-PEDIDO-DEBITA-SALDO. Dinheiro pertence ao
  * CLIENTE (CNPJ), não ao pedido. Nenhum hook aqui aceita pedido_id — é de propósito.
  *
- * As views e RPCs novas ainda não estão nos types gerados, por isso as chamadas
- * passam por `(supabase as any)` — mesmo padrão de useNavegacaoPortao.
+ * passam por `supabase` — mesmo padrão de useNavegacaoPortao.
  */
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,7 +113,7 @@ export function usePoliticaCoberturaFinanceira(estagio: string | null) {
     staleTime: 10 * 60 * 1000,
     queryFn: async (): Promise<PoliticaCoberturaFinanceira> => {
       if (!estagio) return FALLBACK_POLITICA_COBERTURA;
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("politica_cobertura_financeira_estagio")
         .select("mostra_card, permite_liberar, modo, descricao")
         .eq("estagio", estagio)
@@ -124,7 +123,7 @@ export function usePoliticaCoberturaFinanceira(estagio: string | null) {
       return {
         mostra_card: !!data.mostra_card,
         permite_liberar: !!data.permite_liberar,
-        modo: data.modo,
+        modo: data.modo as PoliticaCoberturaFinanceira["modo"],
         descricao: data.descricao ?? null,
       };
     },
@@ -136,7 +135,7 @@ export function useContasClienteSaldo() {
   return useQuery({
     queryKey: [QK_CONTA_CLIENTE_SALDO],
     queryFn: async (): Promise<ContaClienteSaldo[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vw_conta_cliente_saldo")
         .select("*");
       if (error) throw error;
@@ -154,7 +153,7 @@ export function useContaClienteLancamentos(parceiroId: string | null | undefined
     queryKey: [QK_CONTA_CLIENTE_LANC, parceiroId],
     enabled: !!parceiroId,
     queryFn: async (): Promise<ContaClienteLancamento[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vw_conta_cliente_lancamentos")
         .select(
           "parceiro_id, data, tipo, sinal, valor, ref, pedido_ref, vencimento, vencido_aberto, titulo_id, banco, meio, data_pagamento",
@@ -173,7 +172,7 @@ export function useContaClienteFuros(parceiroId: string | null | undefined) {
     queryKey: [QK_CONTA_CLIENTE_FUROS, parceiroId],
     enabled: !!parceiroId,
     queryFn: async (): Promise<ContaClienteFuro[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vw_conta_cliente_furos")
         .select("*")
         .eq("parceiro_id", parceiroId);
@@ -199,14 +198,14 @@ export function useContaClienteCobertura(
     queryKey: [QK_CONTA_CLIENTE_COBERTURA, parceiroId, pedidoId ?? null],
     enabled: !!parceiroId,
     queryFn: async (): Promise<ContaClienteCobertura | null> => {
-      const params: Record<string, unknown> = { p_parceiro_id: parceiroId };
+      const params: { p_parceiro_id: string; p_pedido_id?: string } = { p_parceiro_id: parceiroId! };
       if (pedidoId) params.p_pedido_id = pedidoId;
-      const { data, error } = await (supabase as any).rpc(
+      const { data, error } = await supabase.rpc(
         "fn_conta_cliente_cobertura",
         params,
       );
       if (error) throw error;
-      return (data ?? null) as ContaClienteCobertura | null;
+      return (data ?? null) as unknown as ContaClienteCobertura | null;
     },
   });
 }
@@ -249,7 +248,7 @@ export function useRegistrarRecebimentoCliente() {
     mutationFn: async (input: RegistrarRecebimentoInput): Promise<RegistrarRecebimentoResultado> => {
       const { data: sessao } = await supabase.auth.getUser();
 
-      const { data, error } = await (supabase as any).rpc("registrar_recebimento_cliente", {
+      const { data, error } = await supabase.rpc("registrar_recebimento_cliente", {
         p_parceiro_id: input.parceiro_id,
         p_valor: input.valor,
         p_data: input.data,
@@ -263,7 +262,7 @@ export function useRegistrarRecebimentoCliente() {
       });
       if (error) throw error;
 
-      const res = (data ?? {}) as RegistrarRecebimentoResultado;
+      const res = (data ?? {}) as unknown as RegistrarRecebimentoResultado;
       if (!res.ok) throw new Error(res.erro || "O banco recusou o registro do recebimento.");
       return res;
     },
@@ -342,7 +341,7 @@ export function useClientesBusca(termo: string) {
   return useQuery({
     queryKey: ["conta-cliente-parceiros-busca", t],
     queryFn: async (): Promise<ClienteOpcao[]> => {
-      let q = (supabase as any)
+      let q = supabase
         .from("parceiros_comerciais")
         .select("id, razao_social, nome_fantasia, cnpj")
         .eq("ativo", true)
@@ -351,7 +350,7 @@ export function useClientesBusca(termo: string) {
       if (t) q = q.or(`nome_fantasia.ilike.%${t}%,razao_social.ilike.%${t}%,cnpj.ilike.%${t}%`);
       const { data, error } = await q;
       if (error) throw error;
-      return ((data ?? []) as any[]).map((p) => ({
+      return (data ?? []).map((p) => ({
         id: p.id,
         // NOME-É-RAZÃO-SOCIAL: apelido só como complemento.
         nome: nomeExibicao(p.razao_social, p.nome_fantasia, "(sem nome)"),
@@ -382,7 +381,7 @@ export function useEntradasReconhecer() {
   return useQuery({
     queryKey: [QK_ENTRADAS_RECONHECER],
     queryFn: async (): Promise<EntradaReconhecer[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("movimentacoes_bancarias")
         .select("id, data_transacao, valor, contraparte_nome, contraparte_documento, descricao, tipo_meio")
         .eq("tipo", "credito")
@@ -415,14 +414,14 @@ export function useAtribuirClienteExtrato() {
       parceiro_id: string;
     }): Promise<AtribuirClienteResultado> => {
       const { data: sessao } = await supabase.auth.getUser();
-      const { data, error } = await (supabase as any).rpc("fn_extrato_atribuir_cliente", {
+      const { data, error } = await supabase.rpc("fn_extrato_atribuir_cliente", {
         p_movimentacao_id: input.movimentacao_id,
         p_parceiro_id: input.parceiro_id,
         p_nota: null,
         p_user_id: sessao?.user?.id ?? null,
       });
       if (error) throw error;
-      const res = (data ?? {}) as AtribuirClienteResultado;
+      const res = (data ?? {}) as unknown as AtribuirClienteResultado;
       if (!res.ok) throw new Error(res.erro || "O banco recusou a atribuição.");
       return res;
     },
@@ -463,12 +462,12 @@ export function useLiberarPorCobertura() {
       parceiro_id?: string | null;
     }): Promise<LiberarCoberturaResultado> => {
       const { data: sessao } = await supabase.auth.getUser();
-      const { data, error } = await (supabase as any).rpc("fn_pedido_liberar_por_cobertura", {
+      const { data, error } = await supabase.rpc("fn_pedido_liberar_por_cobertura", {
         p_pedido_id: input.pedido_id,
         p_user_id: sessao?.user?.id ?? null,
       });
       if (error) throw error;
-      return (data ?? {}) as LiberarCoberturaResultado;
+      return (data ?? {}) as unknown as LiberarCoberturaResultado;
     },
     onSuccess: (_res, input) => {
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_SALDO] });
@@ -507,7 +506,7 @@ export function useCortesiasCliente(parceiroId?: string) {
     enabled: !!parceiroId,
     queryKey: [QK_CONTA_CLIENTE_CORTESIAS, parceiroId],
     queryFn: async (): Promise<CortesiaCliente[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("vw_conta_cliente_cortesias")
         .select(
           "parceiro_id, tipo, origem_id, referencia, natureza, data, valor, situacao, qtd_itens, itens",
@@ -520,12 +519,12 @@ export function useCortesiasCliente(parceiroId?: string) {
       const ids = [...new Set(linhas.map((l) => l.parceiro_id).filter(Boolean))];
       const nomes = new Map<string, string>();
       if (ids.length) {
-        const p = await (supabase as any)
+        const p = await supabase
           .from("parceiros_comerciais")
           .select("id, razao_social, nome_fantasia")
           .in("id", ids);
         if (p.error) throw p.error;
-        for (const linha of (p.data ?? []) as any[]) {
+        for (const linha of p.data ?? []) {
           nomes.set(linha.id, nomeExibicao(linha.razao_social, linha.nome_fantasia, "(sem nome)"));
         }
       }
