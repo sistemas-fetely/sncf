@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  CabecalhoOrdenavel,
+  DirecaoOrdenacao,
+  LINHA_CABECALHO_COLADO,
+  LINHA_CABECALHO_COLADO_NIVEL2,
+} from "@/components/tabela/CabecalhoOrdenavel";
 import { Search, Loader2, AlertTriangle, ChevronRight } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
@@ -68,9 +74,35 @@ const pct = (v: number) =>
   `${v.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 const qtd = (v: unknown) => num(v).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
 
+type ColunaConsignado =
+  | "parceiro" | "documentado" | "pago" | "saldo" | "ultimo_pagamento"
+  | "giro" | "margem" | "capital_parado" | "ritmo" | "meses" | "ciclos";
+
+type OrdenacaoConsignado = { coluna: ColunaConsignado; dir: DirecaoOrdenacao } | null;
+
+/** Primeiro clique: nome sobe, data e numero descem. */
+const DIR_INICIAL_CONSIGNADO: Record<ColunaConsignado, DirecaoOrdenacao> = {
+  parceiro: "asc", documentado: "desc", pago: "desc", saldo: "desc",
+  ultimo_pagamento: "desc", giro: "desc", margem: "desc",
+  capital_parado: "desc", ritmo: "desc", meses: "desc", ciclos: "desc",
+};
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
+
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoConsignado>(null);
+
+  const ordenarPor = (coluna: ColunaConsignado) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_CONSIGNADO[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta a ordem da consulta (razao social).
+      return invertida === DIR_INICIAL_CONSIGNADO[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
   const parceirosQ = useParceirosConsignados();
   const contaQ = useContaCorrenteCliente();
   const kpiQ = useKpiConsignado();
@@ -97,6 +129,77 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
     );
   }, [parceirosQ.data, busca]);
 
+  // TOPO-COLADO-SE-MEDE, duas vezes: os KPIs seguram o 1o nivel do cabecalho e
+  // a linha de grupo segura o 2o. Nenhuma das duas alturas e fixa.
+  const kpisRef = useRef<HTMLDivElement>(null);
+  const grupoRef = useRef<HTMLTableRowElement>(null);
+  const [alturaKpis, setAlturaKpis] = useState(0);
+  const [alturaGrupo, setAlturaGrupo] = useState(0);
+
+  useEffect(() => {
+    const alvos: [Element | null, (n: number) => void][] = [
+      [kpisRef.current, setAlturaKpis],
+      [grupoRef.current, setAlturaGrupo],
+    ];
+    const ro = new ResizeObserver(() => {
+      for (const [el, set] of alvos) if (el) set((el as HTMLElement).offsetHeight);
+    });
+    for (const [el, set] of alvos) {
+      if (!el) continue;
+      set((el as HTMLElement).offsetHeight);
+      ro.observe(el);
+    }
+    return () => ro.disconnect();
+  }, [parceirosQ.isLoading, linhas.length, embutido]);
+
+  // Embutida em outra tela, esta lista nao manda no topo: sem cola.
+  const topoColado = embutido ? undefined : ALTURA_CASA_HEADER + alturaKpis;
+
+  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
+  const linhasOrdenadas = useMemo(() => {
+    if (!ordenacao) return linhas;
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: ParceiroConsignado): string | number | null => {
+      const cc = saldoPorParceiro.get(p.id);
+      const kpi = kpiPorParceiro.get(p.id);
+      const semCiclo = !kpi || num(kpi.n_ciclos) === 0;
+      switch (ordenacao.coluna) {
+        case "parceiro": return p.razao_social || null;
+        case "documentado": return cc?.documentado ?? null;
+        case "pago": return cc?.pago ?? null;
+        case "saldo": return cc?.saldo_devedor ?? null;
+        case "ultimo_pagamento": {
+          const t = cc?.ultimo_pagamento ? Date.parse(cc.ultimo_pagamento) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "giro": return kpi ? num(kpi.giro_pct) : null;
+        case "margem": return semCiclo ? null : num(kpi!.margem_pct);
+        case "capital_parado": return kpi ? num(kpi.capital_parado) : null;
+        case "ritmo": return semCiclo ? null : num(kpi!.ritmo_packs_semana);
+        case "meses": return semCiclo ? null : num(kpi!.semanas_para_escoar) / 4.345;
+        case "ciclos": return kpi ? num(kpi.n_ciclos) : null;
+        default: return null;
+      }
+    };
+    return [...linhas].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
+    });
+  }, [linhas, ordenacao, saldoPorParceiro, kpiPorParceiro]);
+
+  const estiloTopo = {
+    "--fila-topo-colado": topoColado != null ? `${topoColado}px` : undefined,
+    "--fila-topo-colado-2": topoColado != null ? `${topoColado + alturaGrupo}px` : undefined,
+  } as CSSProperties;
+
+
   const isError = parceirosQ.isError || contaQ.isError;
 
   const conteudo = (
@@ -119,7 +222,12 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
         </Card>
       )}
 
-      <PainelGeralConsignados />
+      <div
+        ref={kpisRef}
+        className={embutido ? undefined : "sticky top-16 z-20 -mx-6 bg-background px-6 py-2 md:-mx-8 md:px-8"}
+      >
+        <PainelGeralConsignados />
+      </div>
 
       <div className="relative max-w-sm mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -142,36 +250,39 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
               Nenhum parceiro em regime de conta corrente.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
+            <Table containerClassName="overflow-visible">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead rowSpan={2} className="align-bottom">
-                      Parceiro
-                    </TableHead>
-                    <TableHead colSpan={4} className="text-center border-b">
+                  <TableRow ref={grupoRef} className={LINHA_CABECALHO_COLADO}>
+                    <CabecalhoOrdenavel
+                      rotulo="Parceiro"
+                      rowSpan={2}
+                      className="align-bottom"
+                      dir={ordenacao?.coluna === "parceiro" ? ordenacao.dir : null}
+                      onOrdenar={() => ordenarPor("parceiro")}
+                    />
+                    <TableHead colSpan={4} className="text-center">
                       Dinheiro
                     </TableHead>
-                    <TableHead colSpan={6} className="text-center border-b">
+                    <TableHead colSpan={6} className="text-center">
                       Negócio
                     </TableHead>
                     <TableHead rowSpan={2} className="w-8" />
                   </TableRow>
-                  <TableRow>
-                    <TableHead className="text-right">Documentado</TableHead>
-                    <TableHead className="text-right">Pago</TableHead>
-                    <TableHead className="text-right">Saldo devedor</TableHead>
-                    <TableHead>Último pagamento</TableHead>
-                    <TableHead className="text-right">Giro %</TableHead>
-                    <TableHead className="text-right">Margem %</TableHead>
-                    <TableHead className="text-right">Capital parado</TableHead>
-                    <TableHead className="text-right">Ritmo/semana</TableHead>
-                    <TableHead className="text-right">Meses p/ escoar</TableHead>
-                    <TableHead className="text-right">Ciclos</TableHead>
+                  <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
+                    <CabecalhoOrdenavel rotulo="Documentado" className="text-right" alinharDireita dir={ordenacao?.coluna === "documentado" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("documentado")} />
+                    <CabecalhoOrdenavel rotulo="Pago" className="text-right" alinharDireita dir={ordenacao?.coluna === "pago" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pago")} />
+                    <CabecalhoOrdenavel rotulo="Saldo devedor" className="text-right" alinharDireita dir={ordenacao?.coluna === "saldo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("saldo")} />
+                    <CabecalhoOrdenavel rotulo="Último pagamento" dir={ordenacao?.coluna === "ultimo_pagamento" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("ultimo_pagamento")} />
+                    <CabecalhoOrdenavel rotulo="Giro %" className="text-right" alinharDireita dir={ordenacao?.coluna === "giro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("giro")} />
+                    <CabecalhoOrdenavel rotulo="Margem %" className="text-right" alinharDireita dir={ordenacao?.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("margem")} />
+                    <CabecalhoOrdenavel rotulo="Capital parado" className="text-right" alinharDireita dir={ordenacao?.coluna === "capital_parado" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("capital_parado")} />
+                    <CabecalhoOrdenavel rotulo="Ritmo/semana" className="text-right" alinharDireita dir={ordenacao?.coluna === "ritmo" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("ritmo")} />
+                    <CabecalhoOrdenavel rotulo="Meses p/ escoar" className="text-right" alinharDireita dir={ordenacao?.coluna === "meses" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("meses")} />
+                    <CabecalhoOrdenavel rotulo="Ciclos" className="text-right" alinharDireita dir={ordenacao?.coluna === "ciclos" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("ciclos")} />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhas.map((p) => {
+                  {linhasOrdenadas.map((p) => {
                     const cc = saldoPorParceiro.get(p.id);
                     const saldo = Number(cc?.saldo_devedor ?? 0);
                     const kpi = kpiPorParceiro.get(p.id);
@@ -239,13 +350,16 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
                   })}
                 </TableBody>
               </Table>
-            </div>
           )}
         </CardContent>
       </Card>
     </>
   );
 
-  if (embutido) return <div className="space-y-6">{conteudo}</div>;
-  return <PageShell className="md:p-8">{conteudo}</PageShell>;
+  if (embutido) return <div className="space-y-6" style={estiloTopo}>{conteudo}</div>;
+  return (
+    <PageShell className="md:p-8">
+      <div className="space-y-4" style={estiloTopo}>{conteudo}</div>
+    </PageShell>
+  );
 }
