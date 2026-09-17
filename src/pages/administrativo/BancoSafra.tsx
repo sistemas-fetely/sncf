@@ -311,7 +311,7 @@ function AcoesGrupoCliente({
   const pendentesEntrada = boletos.filter(
     (b) =>
       b.boleto_status === "pendente" &&
-      (!b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso),
+      bloqueioEntrada(b, hojeIso) === null,
   );
   const registrados = boletos.filter((b) => b.boleto_status === "registrado");
 
