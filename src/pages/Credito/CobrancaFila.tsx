@@ -1440,7 +1440,23 @@ export default function CobrancaFila() {
     if (abaEfetiva && abaEfetiva !== abaSolicitada) setTabAtiva(abaEfetiva);
   }, [carregandoPermissoes, abaEfetiva, abaSolicitada, setTabAtiva]);
 
+  // TOPO-COLADO-SE-MEDE: o cabecalho das tabelas cola logo abaixo da barra de
+  // abas, cuja altura muda quando os rotulos quebram linha em tela menor.
+  const abasRef = useRef<HTMLDivElement>(null);
+  const [alturaAbas, setAlturaAbas] = useState(0);
+
+  useEffect(() => {
+    const el = abasRef.current;
+    if (!el) return;
+    const medir = () => setAlturaAbas(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [carregandoPermissoes, primeiraPermitida]);
+
   const totalPedidos = pedidos.length;
+
   const totalTitulosAbertos = titulosCobranca.filter(
     (t) => t.status_gestao === "a_vencer" || t.status_gestao === "vence_hoje" || t.status_gestao === "atrasado",
   ).length;
