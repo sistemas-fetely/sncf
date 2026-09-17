@@ -1110,7 +1110,7 @@ export default function TitulosTab() {
                 </Fragment>
               );
             })}
-            {!isLoading && !agrupado && filtrados.map((t) => {
+            {!isLoading && !agrupado && titulosPagina.map((t) => {
               const s = saldosPorTitulo.get(t.id);
               return (
                 <LinhaTitulo
