@@ -661,7 +661,7 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     return ordem.map((k) => {
       const lista = map.get(k)!;
       const selecionaveis = lista
-        .filter((b) => !b.data_vencimento_atual || b.data_vencimento_atual >= hojeIso)
+        .filter((b) => bloqueioEntrada(b, hojeIso) === null)
         .map((b) => b.id);
       const marcados = selecionaveis.filter((id) => selecionados.has(id));
       return {
