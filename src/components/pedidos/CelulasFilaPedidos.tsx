@@ -2,7 +2,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
-import { BlocoPrazo, Selo, fmtDataCurta, proveniencia } from "@/components/pedidos/prazoEntrega";
+import { BlocoPrazo, Selo, ehSemExpedicao, fmtDataCurta, proveniencia } from "@/components/pedidos/prazoEntrega";
 import { nomeArquivoNf } from "@/lib/nf/nome-arquivo";
 
 /** Linha da NF na coluna Valor: faturamento é fato do dinheiro. */
@@ -80,6 +80,15 @@ function LinhaQuemEntrega({ info }: { info: EntregaLinhaInfoComApelido }) {
   const nome = info.transportadora_apelido || info.transportadora_nome;
   const prevista = info.estagio && ESTAGIOS_PREVISAO.has(info.estagio);
   const sufixo = prevista ? " (prevista)" : "";
+
+  // EXPEDICAO-E-EIXO-DA-NATUREZA: não há transportadora a cobrar nem a definir.
+  if (ehSemExpedicao(info)) {
+    return (
+      <div className="w-fit">
+        <Selo className="bg-muted text-muted-foreground border-border">Sem expedição</Selo>
+      </div>
+    );
+  }
 
   if (origem === "cliente_retira_ou_propria") {
     return (
