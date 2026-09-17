@@ -59,3 +59,12 @@ export function CabecalhoOrdenavel({
     </TableHead>
   );
 }
+
+/**
+ * Linha de cabecalho colada: fica logo abaixo do bloco colado de cima, cuja
+ * altura a tela publica em `--fila-topo-colado`. Fundo `muted` (§2: muted e
+ * cabecalho de tabela) pintado na propria celula — fundo de <tr> nao acompanha
+ * celula sticky. A borda inferior vai de inset shadow pelo mesmo motivo.
+ */
+export const LINHA_CABECALHO_COLADO =
+  "bg-muted [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-muted [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]";

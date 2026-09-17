@@ -47,7 +47,7 @@ import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastr
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
 import { Button } from "@/components/ui/button";
 import { BotaoSplitPedido } from "@/components/pedidos/BotaoSplitPedido";
-import { CabecalhoOrdenavel } from "@/components/tabela/CabecalhoOrdenavel";
+import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 
 import {
   EstagioBadge, FormatoIdade,
@@ -998,10 +998,10 @@ export function FilaPedidosPorArea({
         </p>
       )}
 
-      <div className="rounded-md border border-border">
+      <div className="rounded-md border border-border bg-card">
         <Table className="table-fixed" containerClassName="overflow-visible">
           <TableHeader>
-            <TableRow className="bg-card [&>th]:sticky [&>th]:top-[var(--fila-topo-colado,4rem)] [&>th]:z-10 [&>th]:bg-card [&>th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
+            <TableRow className={LINHA_CABECALHO_COLADO}>
               <CabecalhoOrdenavel rotulo="Risco" className="w-[56px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "risco" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("risco")} />
               <CabecalhoOrdenavel rotulo="Pedido" className="w-[220px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("pedido")} />
               <CabecalhoOrdenavel rotulo="Valor" className="w-[150px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("valor")} />
