@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { exportarParceirosXlsx, importarParceirosXlsx, type LookupMaps } from "@/lib/parceiros/excel-io";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +29,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { SortableTableHead, SortState } from "@/components/shared/SortableTableHead";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import { RodapePaginacao, lerTamanhoPaginaSalvo } from "@/components/tabela/RodapePaginacao";
 import { useCentrosCusto } from "@/hooks/financeiro/useCentrosCusto";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import {
@@ -68,6 +73,23 @@ type SortField =
   | "centro_custo"
   | "meio_pgto";
 
+type Ordenacao = { coluna: SortField; dir: DirecaoOrdenacao };
+
+const ORDEM_PADRAO: Ordenacao = { coluna: "razao_social", dir: "asc" };
+
+/** Primeiro clique: texto sobe; "meio de pgto" sobe porque asc traz o buraco primeiro. */
+const DIR_INICIAL: Record<SortField, DirecaoOrdenacao> = {
+  razao_social: "asc", cnpj: "asc", tipo: "asc",
+  categoria: "asc", centro_custo: "asc", meio_pgto: "asc",
+};
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const ALTURA_CASA_HEADER = 64;
+
+/** Preferencia de tamanho de pagina desta lista. */
+const CHAVE_PAGINA_PARCEIROS = "fetely:parceiros:lista:page-size";
+
+
 export default function Parceiros() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -96,10 +118,16 @@ export default function Parceiros() {
   const [editing, setEditing] = useState<Parceiro | null>(null);
   const [parceiroParaExcluir, setParceiroParaExcluir] = useState<Parceiro | null>(null);
   const [excluindo, setExcluindo] = useState(false);
-  const [sort, setSort] = useState<SortState<SortField> | null>({
-    column: "razao_social",
-    direction: "asc",
-  });
+  const [sort, setSort] = useState<Ordenacao>(ORDEM_PADRAO);
+
+  const ordenarPor = (coluna: SortField) => {
+    setSort((atual) => {
+      if (atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta ao padrao da tela (Razao Social crescente).
+      return invertida === DIR_INICIAL[coluna] ? ORDEM_PADRAO : { coluna, dir: invertida };
+    });
+  };
   const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
