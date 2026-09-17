@@ -904,9 +904,16 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       a.download = data.arquivo_nome;
       a.click();
       URL.revokeObjectURL(url);
+      const qtdAvisos = Number(data.qtd_avisos ?? 0);
+      const descricaoEntrada = [
+        data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : null,
+        qtdAvisos > 0 ? `${qtdAvisos} sem e-mail — precisam de entrega por outro caminho.` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
       toast({
         title: `Remessa de entrada gerada: ${data.qtd_titulos} boleto(s)`,
-        description: data.valor_total != null ? `Total: ${formatBRL(Number(data.valor_total))}` : undefined,
+        description: descricaoEntrada || undefined,
       });
       fecharDialogEntrada();
       await revalidarTitulos();
