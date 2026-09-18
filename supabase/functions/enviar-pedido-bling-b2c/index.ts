@@ -550,7 +550,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const { logradouro, numero } = separarNumero(ender?.address1 ?? null);
+        const { logradouro, numero } = separarNumero(limparTexto(ender?.address1));
+        const address2Limpo = limparTexto(ender?.address2);
+        // O checkout BR entrega address2 como "complemento, bairro" (medido no
+        // pedido Shopify 6723510665275). Divide na PRIMEIRA virgula; sem virgula,
+        // tudo vira complemento e o bairro fica ausente (cai no fallback abaixo).
+        const idxVirgula = address2Limpo.indexOf(",");
+        const complementoEndereco = idxVirgula >= 0 ? address2Limpo.slice(0, idxVirgula).trim() : address2Limpo;
+        const bairroEndereco = idxVirgula >= 0 ? address2Limpo.slice(idxVirgula + 1).trim() : "";
+        const municipioEndereco = limparTexto(ender?.city) || limparTexto(pedido.shipping_city);
         const contatoNovo = {
           nome: nomeCliente,
           // CPF = pessoa Fisica; CNPJ = Juridica. O tamanho do documento decide.
@@ -565,13 +573,13 @@ Deno.serve(async (req) => {
             geral: {
               endereco: logradouro,
               numero,
-              complemento: ender?.address2 ?? "",
-              // BAIRRO: o Shopify nao tem campo proprio. No checkout BR desta loja ele
-              // cai em `company`. Se em producao o bairro vier em `address2`, e aqui
-              // que se corrige — ATE LA, bairro vazio e melhor que bairro errado na NF.
-              bairro: ender?.company ?? "",
+              complemento: complementoEndereco,
+              // BAIRRO: o Shopify nao tem campo proprio e `company` chega sempre
+              // null; o checkout BR o entrega em address2 apos a virgula. Sem
+              // bairro, "Não informado" e o padrao da propria nativa.
+              bairro: bairroEndereco || "Não informado",
               cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
-              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              municipio: municipioEndereco,
               uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
             },
           },
