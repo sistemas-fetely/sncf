@@ -83,6 +83,7 @@ const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
 const ChegadaMercadoria = lazy(() => import("@/pages/logistica/ChegadaMercadoria"));
 const ChegadaMercadoriaDetalhe = lazy(() => import("@/pages/logistica/ChegadaMercadoriaDetalhe"));
+const ExpedicaoSp = lazy(() => import("@/pages/logistica/ExpedicaoSp"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
 const TesteEmailTemplate = lazy(() => import("@/pages/ti/TesteEmailTemplate"));
@@ -433,6 +434,13 @@ const App = () => (
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoria />} />
                 <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
+                {/* MESA-SP (frente-descida-b2c-split-sp): o briefing nomeia a tela
+                    como `/expedicao-sp`. Registramos as duas: a curta, que é a do
+                    briefing e a que vai no INSERT de `sncf_navegacao`, e a
+                    namespaced, que segue o padrão das demais telas de logística.
+                    Qual delas o menu vai usar é decisão da sessão do chat. */}
+                <Route path="/expedicao-sp" element={<ExpedicaoSp />} />
+                <Route path="/logistica/expedicao-sp" element={<ExpedicaoSp />} />
                 
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
