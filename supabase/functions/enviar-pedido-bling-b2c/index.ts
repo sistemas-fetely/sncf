@@ -23,7 +23,12 @@
 // Rate limit Bling: 3 req/s -> ~450ms entre chamadas.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import {
+  BLING_BASE,
+  ensureFreshToken,
+  makeBlingClient,
+  refreshAccessToken,
+} from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
 
 const corsHeaders = {
@@ -269,6 +274,30 @@ Deno.serve(async (req) => {
     const freshToken = await ensureFreshToken(supabase, cfg);
     const bling = makeBlingClient(supabase, cfg, freshToken);
     const shopify = await makeShopifyAdmin(supabase);
+
+    // PUT /contatos/{id} — o cliente compartilhado so tem get/post. Usado apenas
+    // para atualizar o endereco do contato pre-existente; falha nao bloqueia.
+    const putBling = async (endpoint: string, body: unknown): Promise<void> => {
+      const doFetch = (tk: string) =>
+        fetch(`${BLING_BASE}${endpoint}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${tk}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      let res = await doFetch(bling.currentToken());
+      if (res.status === 401) {
+        const novoToken = await refreshAccessToken(supabase, { ...cfg, access_token: bling.currentToken() });
+        res = await doFetch(novoToken);
+      }
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Bling PUT ${endpoint} ${res.status}: ${txt.slice(0, 300)}`);
+      }
+    };
 
     // DIMENSAO-VIA-TABELA: o modal de frete mora em `frete_tipos.mod_frete_nf`.
     // B2C da Fetely e CIF (remetente paga, frete embutido) — o codigo ativo na
@@ -549,6 +578,9 @@ Deno.serve(async (req) => {
           await falhar(`Falha ao consultar contato no Bling: ${(e as Error).message}`);
           continue;
         }
+        // Contato JA EXISTENTE no Bling: o id e reutilizado, mas o cadastro pode
+        // estar com endereco velho/sujo — e a NF puxa endereco do cadastro.
+        const contatoPreexistente = contatoId;
 
         const { logradouro, numero } = separarNumero(limparTexto(ender?.address1));
         const address2Limpo = limparTexto(ender?.address2);
@@ -605,6 +637,57 @@ Deno.serve(async (req) => {
             if (!contatoId) {
               await falhar("Bling aceitou o POST /contatos mas não devolveu id — contato não confirmado.");
               continue;
+            }
+          }
+        }
+
+        // Contato PRE-EXISTENTE: atualiza APENAS o endereco geral com o endereco
+        // de entrega do pedido atual (ja parseado e limpo). Nome, documento, tipo,
+        // indicadorIE, situacao, email e telefone seguem intactos — o payload e
+        // lido do Bling e reenviado como veio, com so o endereco.geral trocado.
+        // Falha NAO bloqueia o envio: o pedido leva a etiqueta correta de qualquer
+        // forma; o aviso fica registrado no `ultimo_erro` da fila (sem mudar status).
+        let avisoEndereco: string | null = null;
+        if (contatoPreexistente) {
+          if (dry) {
+            // Dry-run NAO faz PUT — zero efeito, como o padrao do dry.
+            console.log("[b2c-descida][dry] contato existente, endereco geral seria atualizado", {
+              shopify_pedido_id: item.shopify_pedido_id,
+              contato_id: contatoPreexistente,
+            });
+          } else {
+            try {
+              await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+              const atual = await bling.get(`/contatos/${contatoPreexistente}`);
+              const contatoAtual = ((atual?.data ?? atual ?? {}) as Record<string, unknown>);
+              const enderecoAtual = (contatoAtual.endereco ?? {}) as Record<string, unknown>;
+              await putBling(`/contatos/${contatoPreexistente}`, {
+                ...contatoAtual,
+                endereco: {
+                  ...enderecoAtual,
+                  geral: {
+                    endereco: logradouro,
+                    numero,
+                    complemento: complementoEndereco,
+                    bairro: bairroEndereco || "Não informado",
+                    cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
+                    municipio: municipioEndereco,
+                    uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
+                  },
+                },
+              });
+              console.log("[b2c-descida] endereco geral do contato atualizado", {
+                contato_id: contatoPreexistente,
+                shopify_pedido_id: item.shopify_pedido_id,
+              });
+            } catch (e) {
+              avisoEndereco =
+                `aviso: falha ao atualizar endereço do contato ${contatoPreexistente}: ${(e as Error).message}`;
+              console.warn("[b2c-descida]", avisoEndereco, { shopify_pedido_id: item.shopify_pedido_id });
+              await supabase
+                .from("bling_pedido_fila_b2c")
+                .update({ ultimo_erro: avisoEndereco.slice(0, 2000) })
+                .eq("id", item.id);
             }
           }
         }
@@ -763,7 +846,8 @@ Deno.serve(async (req) => {
             status: "enviado",
             bling_pedido_id: blingPedidoId,
             processado_em: new Date().toISOString(),
-            ultimo_erro: null,
+            // aviso de endereco (se houve) sobrevive ao sucesso — nao some no null.
+            ultimo_erro: avisoEndereco ?? null,
           })
           .eq("id", item.id);
         if (eOk) {
