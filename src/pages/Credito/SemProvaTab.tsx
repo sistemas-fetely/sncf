@@ -10,12 +10,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { formatBRL } from "@/lib/format-currency";
+import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeiro/mesa-lastros";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import {
   useSemProvaFila,
