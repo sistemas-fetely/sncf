@@ -172,7 +172,6 @@ const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImpor
 const ExtratoInbox = lazy(() => import("@/pages/administrativo/ExtratoInbox"));
 const RegrasInbox = lazy(() => import("@/pages/administrativo/RegrasInbox"));
 const ParesTransferencia = lazy(() => import("@/pages/administrativo/ParesTransferencia"));
-const ConciliacaoCartao = lazy(() => import("@/pages/administrativo/ConciliacaoCartao"));
 const ConciliacaoDespesas = lazy(() => import("@/pages/administrativo/ConciliacaoDespesas"));
 const ConciliacaoOrfaos = lazy(() => import("@/pages/administrativo/ConciliacaoOrfaos"));
 const Despesas = lazy(() => import("@/pages/administrativo/Despesas"));
@@ -193,6 +192,7 @@ const CobrancaFila = lazy(() => import("@/pages/Credito/CobrancaFila"));
 const MesaCobranca = lazy(() => import("@/pages/Credito/MesaCobranca"));
 const CobrancaDetalhe = lazy(() => import("@/pages/Credito/CobrancaDetalhe"));
 const RecebimentoLayout = lazy(() => import("@/pages/Recebimento/RecebimentoLayout"));
+const ConciliacaoRecebiveis = lazy(() => import("@/pages/Recebimento/ConciliacaoRecebiveis"));
 
 const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
@@ -363,6 +363,7 @@ const App = () => (
                 <Route index element={<Navigate to="/pedidos" replace />} />
               </Route>
               <Route path="/recebimento/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
+              <Route path="/recebimento/conciliacao" element={<ConciliacaoRecebiveis />} />
               <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
               <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
 
@@ -798,7 +799,7 @@ const App = () => (
                 <Route path="extrato-inbox" element={<ExtratoInbox />} />
                 <Route path="extrato-regras" element={<RegrasInbox />} />
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
-                <Route path="conciliacao-cartao" element={<ConciliacaoCartao />} />
+                <Route path="conciliacao-cartao" element={<Navigate to="/recebimento/conciliacao?aba=cartao" replace />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
                 <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
                 <Route path="despesas" element={<Despesas />} />

@@ -10,7 +10,7 @@
  * A lista de contas é o conteúdo base da tela e não tem gate próprio.
  */
 import { useEffect, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
 import { Plus, Users } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -18,24 +18,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePodeVerAba } from "@/components/AbaGate";
 import { ListaContasClientes } from "@/components/clientes/ListaContasClientes";
 import { RecebiveisPorClienteTab } from "@/components/clientes/RecebiveisPorClienteTab";
-import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
-const ABA_ENTRADAS = "tela.cliente_entradas";
 const ABA_RECEBIVEIS = "tela.cliente_recebiveis";
 
 export default function ClientesLista() {
   const [params, setParams] = useSearchParams();
 
-  const podeEntradas = usePodeVerAba(ABA_ENTRADAS);
   const podeRecebiveis = usePodeVerAba(ABA_RECEBIVEIS);
 
   const visiveis = useMemo(() => {
     const abas = [{ value: "contas", label: "Contas de clientes" }];
     if (podeRecebiveis.podeVer) abas.push({ value: "recebiveis", label: "Recebíveis" });
-    if (podeEntradas.podeVer) abas.push({ value: "entradas", label: "Entradas a reconhecer" });
     return abas;
-  }, [podeRecebiveis.podeVer, podeEntradas.podeVer]);
+  }, [podeRecebiveis.podeVer]);
 
   const abaUrl = params.get("aba");
   const abaAtiva = visiveis.find((a) => a.value === abaUrl)?.value ?? "contas";
@@ -54,6 +50,12 @@ export default function ClientesLista() {
     const next = new URLSearchParams(params);
     next.set("aba", valor);
     setParams(next, { replace: false });
+  }
+
+  // A aba "Entradas a reconhecer" mudou de casa: vive em Conciliação de
+  // Recebíveis. Link antigo salvo cai lá, sem quebrar.
+  if (abaUrl === "entradas") {
+    return <Navigate to="/recebimento/conciliacao?aba=entradas" replace />;
   }
 
   return (
@@ -86,12 +88,6 @@ export default function ClientesLista() {
         {podeRecebiveis.podeVer && (
           <TabsContent value="recebiveis" className="mt-4">
             <RecebiveisPorClienteTab />
-          </TabsContent>
-        )}
-
-        {podeEntradas.podeVer && (
-          <TabsContent value="entradas" className="mt-4">
-            <EntradasReconhecerTab />
           </TabsContent>
         )}
 

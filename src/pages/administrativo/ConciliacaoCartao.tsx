@@ -285,9 +285,36 @@ function AbaConciliarExtrato() {
   );
 }
 
-export default function ConciliacaoCartao() {
-  const [aba, setAba] = useAbaUrl("vincular");
+/**
+ * Conteúdo da Conciliação de Cartão, reutilizável fora da página antiga.
+ * `paramAba` escolhe o nome do query param das sub-abas internas — dentro da
+ * casa /recebimento/conciliacao (que já usa `?aba=`), a tela passa "sub".
+ */
+export function ConciliacaoCartaoConteudo({ paramAba = "aba" }: { paramAba?: string }) {
+  const [aba, setAba] = useAbaUrl("vincular", undefined, paramAba);
 
+  return (
+    <Tabs value={aba} onValueChange={setAba}>
+      <TabsList>
+        <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
+        <TabsTrigger value="automatica">Conciliação automática</TabsTrigger>
+        <TabsTrigger value="extrato">Conciliar extrato</TabsTrigger>
+      </TabsList>
+      <TabsContent value="vincular" className="mt-6 space-y-6">
+        <VendasSemPedido />
+        <AbaVincularVendas />
+      </TabsContent>
+      <TabsContent value="automatica" className="mt-6">
+        <ConciliacaoAutomatica />
+      </TabsContent>
+      <TabsContent value="extrato" className="mt-6">
+        <AbaConciliarExtrato />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+export default function ConciliacaoCartao() {
   return (
     <PageShell>
       <PageHeader
@@ -295,24 +322,7 @@ export default function ConciliacaoCartao() {
         icone={CreditCard}
         estado="SafraPay × OFX × títulos. Vincule a venda ao pedido e concilie o extrato."
       />
-
-      <Tabs value={aba} onValueChange={setAba}>
-        <TabsList>
-          <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
-          <TabsTrigger value="automatica">Conciliação automática</TabsTrigger>
-          <TabsTrigger value="extrato">Conciliar extrato</TabsTrigger>
-        </TabsList>
-        <TabsContent value="vincular" className="mt-6 space-y-6">
-          <VendasSemPedido />
-          <AbaVincularVendas />
-        </TabsContent>
-        <TabsContent value="automatica" className="mt-6">
-          <ConciliacaoAutomatica />
-        </TabsContent>
-        <TabsContent value="extrato" className="mt-6">
-          <AbaConciliarExtrato />
-        </TabsContent>
-      </Tabs>
+      <ConciliacaoCartaoConteudo />
     </PageShell>
   );
 }
