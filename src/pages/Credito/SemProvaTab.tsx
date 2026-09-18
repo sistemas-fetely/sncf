@@ -1,23 +1,16 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatBRL } from "@/lib/format-currency";
 import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeiro/mesa-lastros";
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
-import { supabase } from "@/integrations/supabase/client";
-import type { Database } from "@/integrations/supabase/types";
-import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import {
   useSemProvaFila,
   useCartaoConciliarFila,
@@ -25,38 +18,6 @@ import {
   useNaoCobravelFila,
 } from "@/hooks/credito/useSemProvaFila";
 
-/**
- * COMPROVANTE-PARADO-E-PROBLEMA-DE-COBRANCA: comprovante em status 'lido' é
- * dinheiro declarado sem reconhecimento — primo direto do PAGO_SEM_PROVA (lá o
- * título pagou sem prova; aqui a prova chegou e ninguém confirmou). Fonte:
- * `vw_comprovante_pendente`. Exportada também para o contador da aba em
- * CobrancaFila (BADGE-LÊ-A-MESMA-FONTE-DA-TELA): invalidar o prefixo
- * ["comprovante-pendente-fila"] revalida tela e contagem.
- */
-/**
- * B1-ANCORA-E-CNPJ (reforma-cobranca-360): a âncora do dinheiro é o CNPJ — o
- * pedido é só rastro de captura. A view expõe os títulos em aberto do cliente
- * para a linha de destino do dinheiro; o agrupamento por cliente acontece na
- * tela (a view é plana por comprovante).
- */
-type ComprovanteRow = Database["public"]["Views"]["vw_comprovante_pendente"]["Row"];
-
-export function useComprovantePendenteFila() {
-  return useQuery({
-    queryKey: ["comprovante-pendente-fila"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_comprovante_pendente")
-        .select("*")
-        .order("idade_dias", { ascending: false })
-        .limit(500);
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-}
 
 /**
  * Aba "Problemas Cobrança" — CARTÃO-NÃO-VENCE-PROVA-VENCE +
@@ -318,42 +279,6 @@ export default function SemProvaTab() {
   const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
-  const { data: comprovantes = [], isLoading: loadingComp } = useComprovantePendenteFila();
-  const qc = useQueryClient();
-  const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
-  const totalComprovantes = comprovantes.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
-
-  /**
-   * Agrupamento por CLIENTE (âncora = CNPJ). Clientes ordenados por soma de
-   * comprovantes desc; dentro do cliente, comprovantes por idade desc.
-   */
-  const gruposCliente = useMemo(() => {
-    const mapa = new Map<string, ComprovanteRow[]>();
-    for (const c of comprovantes) {
-      const chave = c.parceiro_id ?? c.cliente ?? "—";
-      const lista = mapa.get(chave) ?? [];
-      lista.push(c);
-      mapa.set(chave, lista);
-    }
-    return Array.from(mapa.values())
-      .map((linhas) => {
-        const somaValor = linhas.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
-        const qtdAbertos = Number(linhas[0]?.qtd_titulos_abertos ?? 0);
-        const valorAbertos = Number(linhas[0]?.valor_titulos_abertos ?? 0);
-        return {
-          nome: linhas[0]?.cliente ?? "—",
-          linhas: linhas
-            .slice()
-            .sort((a, b) => Number(b.idade_dias ?? 0) - Number(a.idade_dias ?? 0)),
-          qtd: linhas.length,
-          somaValor,
-          qtdAbertos,
-          valorAbertos,
-          excedente: somaValor - valorAbertos,
-        };
-      })
-      .sort((a, b) => b.somaValor - a.somaValor);
-  }, [comprovantes]);
 
   const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
   /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
@@ -369,7 +294,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao || loadingInstr || loadingNC || loadingComp) {
+  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
@@ -434,115 +359,6 @@ export default function SemProvaTab() {
         </div>
       )}
 
-      <section className="space-y-2">
-        <BlocoHeader
-          titulo="COMPROVANTE AGUARDANDO CONFIRMAÇÃO"
-          qtd={comprovantes.length}
-          total={totalComprovantes}
-          tom="warning"
-        />
-        {comprovantes.length === 0 ? (
-          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
-            Nenhum comprovante aguardando confirmação.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {gruposCliente.map((g) => (
-              <div key={g.nome} className="rounded-md border overflow-hidden">
-                <div className="bg-muted/40 border-b px-3 py-2 space-y-0.5">
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <p className="text-sm font-medium truncate">{g.nome}</p>
-                    <span className="text-xs tabular-nums text-muted-foreground">
-                      {g.qtd} comprovante{g.qtd === 1 ? "" : "s"} · {formatBRL(g.somaValor)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {g.qtdAbertos > 0
-                      ? `Cliente tem ${g.qtdAbertos} título${g.qtdAbertos === 1 ? "" : "s"} aberto${g.qtdAbertos === 1 ? "" : "s"} — ${formatBRL(g.valorAbertos)}`
-                      : "Sem títulos abertos — confirmação vira saldo na conta do cliente"}
-                  </p>
-                  {g.qtdAbertos > 0 && g.excedente > 0 && (
-                    <p className="text-xs font-medium text-warning">
-                      {formatBRL(g.excedente)} além dos títulos — excedente vira saldo
-                    </p>
-                  )}
-                </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-right">Valor</TableHead>
-                      <TableHead>Meio</TableHead>
-                      <TableHead>Pagador</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Idade</TableHead>
-                      <TableHead>Pedido</TableHead>
-                      <TableHead>Destino</TableHead>
-                      <TableHead className="w-px" />
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {g.linhas.map((c) => {
-                      const idade = Number(c.idade_dias ?? 0);
-                      return (
-                        <TableRow key={c.comprovante_id ?? c.pedido_id}>
-                          <TableCell className="text-right tabular-nums">{formatBRL(Number(c.valor_lido ?? 0))}</TableCell>
-                          <TableCell className="text-xs uppercase">{c.tipo_lido ?? "—"}</TableCell>
-                          <TableCell className="text-xs">{c.pagador_lido ?? "—"}</TableCell>
-                          <TableCell className="text-xs tabular-nums">{formatDateBR(c.data_lida)}</TableCell>
-                          <TableCell
-                            className={cn(
-                              "text-xs tabular-nums",
-                              idade > 7 && "font-medium text-destructive",
-                            )}
-                          >
-                            {idade} d
-                          </TableCell>
-                          {/* Rastro de captura, não protagonista (B1-ANCORA-E-CNPJ). */}
-                          <TableCell className="font-mono text-xs">{c.pedido_ref ?? "—"}</TableCell>
-                          <TableCell>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Badge
-                                    variant="outline"
-                                    className={cn(
-                                      "text-[10px]",
-                                      c.tem_portao_pendente
-                                        ? "border-warning/40 text-warning"
-                                        : "border-border text-muted-foreground",
-                                    )}
-                                  >
-                                    {c.tem_portao_pendente ? "Paga portão" : "Conta do cliente"}
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent className="max-w-xs text-xs">
-                                  {c.tem_portao_pendente
-                                    ? "Há um portão de pagamento pendente: confirmar o comprovante quita esse portão."
-                                    : "Sem portão pendente: o dinheiro credita a conta do CNPJ e aloca contra os títulos em aberto."}
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-7 text-xs"
-                              onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
-                            >
-                              Confirmar
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
 
       {blocos.filter(({ classe }) => mostra(classe)).map(({ classe, rows }) => (
         <section key={classe} className="space-y-2">
@@ -649,20 +465,6 @@ export default function SemProvaTab() {
           </div>
         )}
       </section>
-      )}
-
-      {confirmarPedidoId && (
-        <ConfirmarPagamentoDialog
-          pedidoId={confirmarPedidoId}
-          aberto
-          aoFechar={() => {
-            setConfirmarPedidoId(null);
-            // BANCO-CONFIRMA/HUMANO-COMUNICA: ao sair do diálogo, revalida a
-            // fila da view (e, pelo mesmo prefixo, o contador da aba).
-            qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
-          }}
-          modo="mesa"
-        />
       )}
     </div>
   );

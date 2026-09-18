@@ -1499,23 +1499,6 @@ export default function CobrancaFila() {
       (l.fila === "CONCILIAR" && l.instrumento === "cartao"),
   ).length;
 
-  // BADGE-LÊ-A-MESMA-FONTE-DA-TELA: comprovante parado em 'lido' é problema de
-  // cobrança (primo do PAGO_SEM_PROVA) e mora na mesma aba — o contador soma a
-  // contagem da `vw_comprovante_pendente`. Prefixo ["comprovante-pendente-fila"]
-  // é o mesmo da query da tela: uma invalidação só revalida os dois.
-  const { data: totalComprovantesPendentes = 0 } = useQuery({
-    queryKey: ["comprovante-pendente-fila", "count"],
-    staleTime: 30_000,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("vw_comprovante_pendente")
-        .select("*", { count: "exact", head: true });
-      if (error) throw error;
-      return count ?? 0;
-    },
-  });
-  const totalProblemasCobranca = totalSemProva + totalComprovantesPendentes;
-
 
   const tabTriggerCls =
     "rounded-none border-b-2 border-transparent bg-transparent px-1 pb-3 pt-1 text-muted-foreground data-[state=active]:text-gold data-[state=active]:border-gold data-[state=active]:shadow-none data-[state=active]:bg-transparent";
@@ -1581,7 +1564,7 @@ export default function CobrancaFila() {
             {
               value: "sem-prova",
               slug: "tela.cobranca",
-              label: `Problemas Cobrança${totalProblemasCobranca > 0 ? ` · ${totalProblemasCobranca}` : ""}`,
+              label: `Problemas Cobrança${totalSemProva > 0 ? ` · ${totalSemProva}` : ""}`,
             },
 
             { value: "fila", slug: "tela.cobranca_fila", label: `Fila${totalPedidos > 0 ? ` · ${totalPedidos}` : ""}` },
