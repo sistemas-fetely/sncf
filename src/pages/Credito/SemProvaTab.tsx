@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeir
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import {
   useSemProvaFila,
-  useCartaoConciliarFila,
   useInstrumentoQuebradoFila,
   useNaoCobravelFila,
 } from "@/hooks/credito/useSemProvaFila";
@@ -74,7 +73,6 @@ const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning" | "muted"> = {
   credito_atrasado: "warning",
 };
 
-const BLOCO_CARTAO = "AGUARDANDO LIQUIDAÇÃO DA ADQUIRENTE";
 const BLOCO_INSTRUMENTO = "INSTRUMENTO DE COBRANÇA QUEBRADO";
 const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
 
@@ -83,11 +81,10 @@ const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
  * Card sem bloco correspondente vira numero decorativo; bloco sem card vira
  * secao inalcancavel. Por isso a chave e a MESMA lista para os dois.
  */
-type ChaveFiltro = ProvaClasse | "instrumento" | "cartao" | "nao_cobravel";
+type ChaveFiltro = ProvaClasse | "instrumento" | "nao_cobravel";
 
-const ROTULO_CARD_EXTRA: Record<"instrumento" | "cartao" | "nao_cobravel", string> = {
+const ROTULO_CARD_EXTRA: Record<"instrumento" | "nao_cobravel", string> = {
   instrumento: "Instrumento quebrado",
-  cartao: "Aguardando adquirente",
   nao_cobravel: "Regime próprio",
 };
 
@@ -164,13 +161,7 @@ function CardResumo({
   );
 }
 
-function CardSemProva({
-  l, cartao,
-}: {
-  l: LinhaMesa;
-  /** Bloco da adquirente: data é liquidação prevista, nunca "vence"; sem badge de atraso. */
-  cartao?: boolean;
-}) {
+function CardSemProva({ l }: { l: LinhaMesa }) {
   const navigate = useNavigate();
   const razao = nomeCanonico(l.nome_exibicao ?? l.nome_canonico, "—");
   const apelido = apelidoParceiro(l.nome_exibicao ?? l.nome_canonico, l.apelido);
@@ -181,11 +172,7 @@ function CardSemProva({
     <div
       className={cn(
         "rounded-md border bg-card p-3 space-y-2",
-        cartao
-          ? "border-l-4 border-l-muted-foreground/40"
-          : grave
-            ? "border-l-4 border-l-destructive"
-            : "border-l-4 border-l-warning",
+        grave ? "border-l-4 border-l-destructive" : "border-l-4 border-l-warning",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -205,10 +192,10 @@ function CardSemProva({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className={cn("font-medium text-base", cartao ? "" : grave ? "text-destructive" : "text-warning")}>
+          <div className={cn("font-medium text-base", grave ? "text-destructive" : "text-warning")}>
             {formatBRL(Number(l.valor_atual ?? 0))}
           </div>
-          {!cartao && classe && (
+          {classe && (
             <Badge
               className={cn(
                 "text-[10px]",
@@ -224,7 +211,7 @@ function CardSemProva({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {cartao ? "liquidação prevista " : "vence "}
+        {"vence "}
         {fmtDataMesa(l.vencimento)}
         {l.instrumento ? ` · ${l.instrumento}` : ""}
         {l.estagio ? ` · ${l.estagio}` : ""}
