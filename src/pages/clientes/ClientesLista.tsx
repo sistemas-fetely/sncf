@@ -85,12 +85,6 @@ export default function ClientesLista() {
           </TabsContent>
         )}
 
-        {podeEntradas.podeVer && (
-          <TabsContent value="entradas" className="mt-4">
-            <EntradasReconhecerTab />
-          </TabsContent>
-        )}
-
       </Tabs>
     </div>
   );
