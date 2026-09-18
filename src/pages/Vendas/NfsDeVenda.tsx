@@ -1,5 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  CabecalhoOrdenavel, LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +73,30 @@ function getSituacaoBadge(n: NfEmitida) {
 
 const SITUACAO_OPTIONS = ["todas", "autorizada", "cancelada"] as const;
 
+type ColunaNf =
+  | "nf" | "data" | "parceiro" | "valor" | "frete"
+  | "pedido_bling" | "pedido" | "situacao";
+
+type OrdenacaoNf = { coluna: ColunaNf; dir: DirecaoOrdenacao };
+
+/** Padrao da tela: NF mais recente primeiro — a mesma ordem de hoje. */
+const ORDEM_PADRAO_NF: OrdenacaoNf = { coluna: "nf", dir: "desc" };
+
+/** Texto sobe; numero, data e dinheiro descem. */
+const DIR_INICIAL_NF: Record<ColunaNf, DirecaoOrdenacao> = {
+  nf: "desc", data: "desc", parceiro: "asc", valor: "desc",
+  frete: "desc", pedido_bling: "asc", pedido: "asc", situacao: "desc",
+};
+
+/** Gravidade fiscal: o que deu errado vem primeiro no decrescente. */
+const GRAVIDADE_SITUACAO: Record<string, number> = {
+  rejeitada: 4, denegada: 4, cancelada: 3,
+  bloqueada: 2, pendente: 2, registrada: 1,
+  autorizada: 0, emitida: 0,
+};
+
+const CHAVE_PAGINA_NFS = "fetely:vendas:nfs:page-size";
+
 function SkeletonRow() {
   return (
     <TableRow>
@@ -77,6 +108,7 @@ function SkeletonRow() {
       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
     </TableRow>
   );
 }
