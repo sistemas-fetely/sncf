@@ -275,6 +275,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Logistica do pedido (espelho da integracao nativa, medida no Bling 26907106696):
+    // transportadora Correios + servico PAC/SEDEX por shippingLine. Sem qualquer um
+    // destes na config o item da fila FAIL-LOUD — pedido sem transporte nao desce.
+    const cfgJson = (cfg.config ?? {}) as Record<string, unknown>;
+    const transportadoraContatoId = Number(cfgJson.b2c_transportadora_contato_id ?? 0);
+    const servicoPac = String(cfgJson.b2c_servico_pac ?? "").trim();
+    const servicoSedex = String(cfgJson.b2c_servico_sedex ?? "").trim();
+    const transporteCfgFaltando: string[] = [];
+    if (!Number.isFinite(transportadoraContatoId) || transportadoraContatoId <= 0) {
+      transporteCfgFaltando.push("b2c_transportadora_contato_id");
+    }
+    if (!servicoPac) transporteCfgFaltando.push("b2c_servico_pac");
+    if (!servicoSedex) transporteCfgFaltando.push("b2c_servico_sedex");
+
     for (const item of itensFila) {
       resultado.processados++;
       const tentativasAtuais = item.tentativas ?? 0;
