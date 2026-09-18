@@ -263,7 +263,6 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
 
 export default function SemProvaTab() {
   const { data: linhas = [], isLoading } = useSemProvaFila();
-  const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
@@ -281,7 +280,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
+  if (isLoading || loadingInstr || loadingNC) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
@@ -311,14 +310,6 @@ export default function SemProvaTab() {
           tom="destructive"
           ativo={filtro === "instrumento"}
           onClick={() => alternar("instrumento")}
-        />
-        <CardResumo
-          label={ROTULO_CARD_EXTRA.cartao}
-          qtd={cartao.length}
-          total={soma(cartao)}
-          tom="muted"
-          ativo={filtro === "cartao"}
-          onClick={() => alternar("cartao")}
         />
         <CardResumo
           label={ROTULO_CARD_EXTRA.nao_cobravel}
@@ -393,31 +384,6 @@ export default function SemProvaTab() {
               .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
               .map((l) => (
                 <CardSemProva key={l.titulo_id} l={l} />
-              ))}
-          </div>
-        )}
-      </section>
-      )}
-
-      {mostra("cartao") && (
-      <section className="space-y-2">
-        <BlocoHeader
-          titulo={BLOCO_CARTAO}
-          qtd={cartao.length}
-          total={soma(cartao)}
-          tom="muted"
-        />
-        {cartao.length === 0 ? (
-          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
-            Nenhum cartão aguardando liquidação da adquirente.
-          </div>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {cartao
-              .slice()
-              .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
-              .map((l) => (
-                <CardSemProva key={l.titulo_id} l={l} cartao />
               ))}
           </div>
         )}
