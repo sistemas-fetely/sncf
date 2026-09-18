@@ -494,6 +494,15 @@ function AbaNFs() {
         </Table>
       </div>
 
+      <RodapePaginacao
+        total={filtrados.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_NFS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
+
       <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
         <span>
           {filtrados.length} {filtrados.length === 1 ? "NF" : "NFs"}
