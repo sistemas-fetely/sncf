@@ -76,6 +76,17 @@ type Detalhe = {
 /** Mantem so digitos. CPF do checkout BR vem formatado ("123.456.789-00"). */
 const soDigitos = (v: unknown): string => String(v ?? "").replace(/\D/g, "");
 
+/** Remove caracteres invisiveis/formatadores Unicode (word joiner U+2060, zero-width
+ *  U+200B-200F, BOM U+FEFF, soft hyphen U+00AD, bidi U+202A-202E), colapsa espacos
+ *  multiplos e trim. O checkout BR entrega address1 com U+2060 antes do numero
+ *  (medido no pedido Shopify 6723510665275) e isso quebra o separador de numero.
+ *  Aplicar em TODO campo de texto de endereco/nome ANTES de qualquer parse. */
+const limparTexto = (v: unknown): string =>
+  String(v ?? "")
+    .replace(/[\u2060\u200B-\u200F\uFEFF\u00AD\u202A-\u202E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const arred2 = (n: number) => parseFloat(n.toFixed(2));
 
 // ── Shopify: dados que o espelho NAO tem ────────────────────────────────────
