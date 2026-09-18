@@ -95,6 +95,7 @@ query pedidoB2C($id: ID!) {
       firstName lastName name company phone
       address1 address2 city province provinceCode zip countryCodeV2
     }
+    shippingLine { title }
     billingAddress {
       firstName lastName name company phone
       address1 address2 city province provinceCode zip countryCodeV2
@@ -135,6 +136,7 @@ type PedidoShopifyApi = {
     } | null;
     shippingAddress: EnderecoShopify;
     billingAddress: EnderecoShopify;
+    shippingLine: { title: string | null } | null;
     localizationExtensions: {
       edges: { node: { key: string; purpose: string; title: string; value: string } }[];
     } | null;
