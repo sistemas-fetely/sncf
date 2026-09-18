@@ -23,7 +23,12 @@
 // Rate limit Bling: 3 req/s -> ~450ms entre chamadas.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import {
+  BLING_BASE,
+  ensureFreshToken,
+  makeBlingClient,
+  refreshAccessToken,
+} from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
 
 const corsHeaders = {
