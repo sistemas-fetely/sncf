@@ -1493,10 +1493,11 @@ export default function CobrancaFila() {
     "EMAIL_BLOQUEADO",
     "A_ENVIAR",
   ];
+  // F3 conciliacao-recebiveis: cartao INTEIRO saiu desta aba — o pago sem
+  // prova de cartao mora na Conciliacao -> Cartao, e o CONCILIAR/cartao
+  // tambem. O contador nao conta mais nenhum titulo de instrumento cartao.
   const totalSemProva = (mesaQ.data ?? []).filter(
-    (l) =>
-      FILAS_PROBLEMA_COBRANCA.includes(l.fila ?? "") ||
-      (l.fila === "CONCILIAR" && l.instrumento === "cartao"),
+    (l) => FILAS_PROBLEMA_COBRANCA.includes(l.fila ?? "") && l.instrumento !== "cartao",
   ).length;
 
 

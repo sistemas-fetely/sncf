@@ -173,7 +173,7 @@ export function useEnviarComprovanteCliente(parceiroId: string) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
-      toast.success("Comprovante lido pela IA — entrou na fila de confirmação da Cobrança (Problemas Cobrança).");
+      toast.success("Comprovante lido pela IA — entrou na fila de confirmação em Conciliação de Recebíveis → Entradas a reconhecer.");
     },
     onError: (e: Error) => {
       toast.error(e.message);
