@@ -1,5 +1,6 @@
-// bling-rastreio-sync: busca o codigo de rastreio SRO dos pedidos B2B em transporte
+// bling-rastreio-sync: busca o codigo de rastreio SRO dos pedidos em transporte
 // via Correios, lendo a etiqueta PDF gerada na integracao de logistica do Bling.
+// Fontes: B2B (pedido_remessa.bling_pedido_id) e B2C (bling_pedido_fila_b2c).
 //
 // Fluxo por pedido:
 //   1. GET /logisticas/etiquetas?formato=PDF&idsVendas[]={bling_pedido_id}
@@ -19,6 +20,8 @@ import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 const ESPERA_ENTRE_CHAMADAS_MS = 450;
 const LIMITE_PADRAO = 30; // guardrail de tempo de execucao (cada pedido ~1-3s)
+// Janela de estagios B2C elegiveis (faturamento -> entrega em curso)
+const ESTAGIOS_B2C_RASTREIO = ["em_separacao", "pre_faturamento", "faturado", "em_transporte"];
 
 const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -125,8 +128,51 @@ Deno.serve(async (req) => {
       .in("pedidos.transportadora_id", correiosIds);
     if (errRem) throw new Error(`erro ao buscar remessas: ${errRem.message}`);
 
+    // 2b. Fonte B2C: fila bling_pedido_fila_b2c — pedidos sem remessa, cujo
+    //     bling_pedido_id existe quando status='enviado'. O pedido interno B2C
+    //     casa por id_externo = 'SHP-' + order_name (sem '#'), formato gravado
+    //     por fn_nascer_pedido_b2c.
+    const fontes: { pedido_id: string; bling_pedido_id: string }[] = (remessas ?? [])
+      // deno-lint-ignore no-explicit-any -- consulta sem tipos gerados nas edges
+      .filter((r: any) => r.bling_pedido_id != null)
+      // deno-lint-ignore no-explicit-any
+      .map((r: any) => ({ pedido_id: r.pedido_id as string, bling_pedido_id: String(r.bling_pedido_id) }));
+
+    const { data: filaB2c, error: errFila } = await supabase
+      .from("bling_pedido_fila_b2c")
+      .select("shopify_pedido_id, order_name, bling_pedido_id")
+      .not("bling_pedido_id", "is", null);
+    if (errFila) throw new Error(`erro ao buscar fila B2C: ${errFila.message}`);
+
+    const b2cExternos = (filaB2c ?? [])
+      // deno-lint-ignore no-explicit-any
+      .filter((f: any) => !!f.bling_pedido_id && !!f.order_name)
+      // deno-lint-ignore no-explicit-any
+      .map((f: any) => ({
+        id_externo: `SHP-${String(f.order_name).replace(/#/g, "").trim()}`,
+        bling_pedido_id: String(f.bling_pedido_id),
+      }));
+    if (b2cExternos.length > 0) {
+      const { data: pedidosB2c, error: errB2c } = await supabase
+        .from("pedidos")
+        .select("id, id_externo")
+        .eq("canal", "B2C")
+        .in("estagio", ESTAGIOS_B2C_RASTREIO)
+        .in("id_externo", b2cExternos.map((f) => f.id_externo));
+      if (errB2c) throw new Error(`erro ao buscar pedidos B2C: ${errB2c.message}`);
+      const pedidoPorIdExterno = new Map<string, string>();
+      // deno-lint-ignore no-explicit-any
+      for (const p of pedidosB2c ?? []) {
+        if (p.id_externo) pedidoPorIdExterno.set(p.id_externo as string, p.id as string);
+      }
+      for (const f of b2cExternos) {
+        const pedidoId = pedidoPorIdExterno.get(f.id_externo);
+        if (pedidoId) fontes.push({ pedido_id: pedidoId, bling_pedido_id: f.bling_pedido_id });
+      }
+    }
+
     // 3. Excluir pedidos que ja tem rastreio registrado
-    const pedidoIds = [...new Set((remessas ?? []).map((r: { pedido_id: string }) => r.pedido_id))];
+    const pedidoIds = [...new Set(fontes.map((f) => f.pedido_id))];
     let jaResolvidos = new Set<string>();
     if (pedidoIds.length > 0) {
       const { data: rastreios, error: errRas } = await supabase
@@ -137,13 +183,14 @@ Deno.serve(async (req) => {
       jaResolvidos = new Set((rastreios ?? []).map((r: { pedido_id: string }) => r.pedido_id));
     }
 
-    // Agrupa bling_pedido_id por pedido (pedido pode ter mais de uma remessa)
+    // Agrupa bling_pedido_id por pedido, dedup por pedido_id (B2B pode ter mais
+    // de uma remessa; B2C entra uma vez) — nenhum pedido consultado duas vezes.
     const porPedido = new Map<string, string[]>();
-    for (const r of remessas ?? []) {
-      if (jaResolvidos.has(r.pedido_id)) continue;
-      const lista = porPedido.get(r.pedido_id) ?? [];
-      if (r.bling_pedido_id && !lista.includes(r.bling_pedido_id)) lista.push(r.bling_pedido_id);
-      porPedido.set(r.pedido_id, lista);
+    for (const f of fontes) {
+      if (jaResolvidos.has(f.pedido_id)) continue;
+      const lista = porPedido.get(f.pedido_id) ?? [];
+      if (!lista.includes(f.bling_pedido_id)) lista.push(f.bling_pedido_id);
+      porPedido.set(f.pedido_id, lista);
     }
 
     const pendentes = [...porPedido.entries()].slice(0, limite);
