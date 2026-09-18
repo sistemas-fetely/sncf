@@ -76,6 +76,17 @@ type Detalhe = {
 /** Mantem so digitos. CPF do checkout BR vem formatado ("123.456.789-00"). */
 const soDigitos = (v: unknown): string => String(v ?? "").replace(/\D/g, "");
 
+/** Remove caracteres invisiveis/formatadores Unicode (word joiner U+2060, zero-width
+ *  U+200B-200F, BOM U+FEFF, soft hyphen U+00AD, bidi U+202A-202E), colapsa espacos
+ *  multiplos e trim. O checkout BR entrega address1 com U+2060 antes do numero
+ *  (medido no pedido Shopify 6723510665275) e isso quebra o separador de numero.
+ *  Aplicar em TODO campo de texto de endereco/nome ANTES de qualquer parse. */
+const limparTexto = (v: unknown): string =>
+  String(v ?? "")
+    .replace(/[\u2060\u200B-\u200F\uFEFF\u00AD\u202A-\u202E]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const arred2 = (n: number) => parseFloat(n.toFixed(2));
 
 // ── Shopify: dados que o espelho NAO tem ────────────────────────────────────
@@ -160,11 +171,13 @@ function extrairDocumento(order: PedidoShopifyApi["order"]): string | null {
 /** Separa numero do logradouro quando o cliente digitou "Rua X, 123". O Bling tem
  *  campo `numero` proprio; mandar tudo em `endereco` sai errado na etiqueta e na NF. */
 function separarNumero(address1: string | null): { logradouro: string; numero: string } {
-  const bruto = String(address1 ?? "").trim();
+  const bruto = limparTexto(address1);
   if (!bruto) return { logradouro: "", numero: "S/N" };
   const m = bruto.match(/^(.*?)[,\s]+(\d+[A-Za-z]?)$/);
-  if (m) return { logradouro: m[1].trim(), numero: m[2].trim() };
-  return { logradouro: bruto, numero: "S/N" };
+  // Apos o split, sobras de virgula/espaco no fim do logradouro saem
+  // ("Avenida Brigadeiro Salema," -> "Avenida Brigadeiro Salema").
+  const logradouro = (m ? m[1] : bruto).replace(/[,\s]+$/, "").trim();
+  return { logradouro, numero: m ? m[2].trim() : "S/N" };
 }
 
 Deno.serve(async (req) => {
@@ -443,13 +456,17 @@ Deno.serve(async (req) => {
 
         const ender = order.shippingAddress ?? order.billingAddress;
         const nomeCliente =
-          (order.shippingAddress?.name ??
-            [order.shippingAddress?.firstName, order.shippingAddress?.lastName]
-              .filter(Boolean)
-              .join(" ") ??
-            "").trim() ||
-          (order.customer?.displayName ?? "").trim() ||
-          [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(" ").trim();
+          limparTexto(
+            order.shippingAddress?.name ??
+              [order.shippingAddress?.firstName, order.shippingAddress?.lastName]
+                .filter(Boolean)
+                .join(" ") ??
+              "",
+          ) ||
+          limparTexto(order.customer?.displayName) ||
+          limparTexto(
+            [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(" "),
+          );
         if (!nomeCliente) {
           await falhar("Pedido sem nome de cliente (shippingAddress/customer vazios) — contato no Bling ficaria sem nome.");
           continue;
@@ -533,7 +550,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const { logradouro, numero } = separarNumero(ender?.address1 ?? null);
+        const { logradouro, numero } = separarNumero(limparTexto(ender?.address1));
+        const address2Limpo = limparTexto(ender?.address2);
+        // O checkout BR entrega address2 como "complemento, bairro" (medido no
+        // pedido Shopify 6723510665275). Divide na PRIMEIRA virgula; sem virgula,
+        // tudo vira complemento e o bairro fica ausente (cai no fallback abaixo).
+        const idxVirgula = address2Limpo.indexOf(",");
+        const complementoEndereco = idxVirgula >= 0 ? address2Limpo.slice(0, idxVirgula).trim() : address2Limpo;
+        const bairroEndereco = idxVirgula >= 0 ? address2Limpo.slice(idxVirgula + 1).trim() : "";
+        const municipioEndereco = limparTexto(ender?.city) || limparTexto(pedido.shipping_city);
         const contatoNovo = {
           nome: nomeCliente,
           // CPF = pessoa Fisica; CNPJ = Juridica. O tamanho do documento decide.
@@ -548,13 +573,13 @@ Deno.serve(async (req) => {
             geral: {
               endereco: logradouro,
               numero,
-              complemento: ender?.address2 ?? "",
-              // BAIRRO: o Shopify nao tem campo proprio. No checkout BR desta loja ele
-              // cai em `company`. Se em producao o bairro vier em `address2`, e aqui
-              // que se corrige — ATE LA, bairro vazio e melhor que bairro errado na NF.
-              bairro: ender?.company ?? "",
+              complemento: complementoEndereco,
+              // BAIRRO: o Shopify nao tem campo proprio e `company` chega sempre
+              // null; o checkout BR o entrega em address2 apos a virgula. Sem
+              // bairro, "Não informado" e o padrao da propria nativa.
+              bairro: bairroEndereco || "Não informado",
               cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
-              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              municipio: municipioEndereco,
               uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
             },
           },
@@ -671,11 +696,12 @@ Deno.serve(async (req) => {
               nome: nomeCliente,
               endereco: logradouro,
               numero,
-              complemento: ender?.address2 ?? "",
-              // Shopify nao tem bairro — "Não informado" e o padrao da propria nativa.
-              bairro: "Não informado",
+              complemento: complementoEndereco,
+              // Bairro parseado do address2 (checkout BR); sem bairro, "Não
+              // informado" e o padrao da propria nativa.
+              bairro: bairroEndereco || "Não informado",
               cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
-              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              municipio: municipioEndereco,
               uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
               nomePais: "",
             },
