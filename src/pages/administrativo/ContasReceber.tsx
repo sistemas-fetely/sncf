@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/select";
 import { ArrowDownToLine, Inbox, ArrowUpDown, ArrowUp, ArrowDown, Download, ChevronDown, ChevronRight, Info, X, SearchX } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RecebiveisPorClienteTab } from "@/components/clientes/RecebiveisPorClienteTab";
+import { AbaPermitida, ConteudoAba } from "@/components/AbaGate";
 
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import * as XLSX from "xlsx";
@@ -419,6 +421,9 @@ export default function ContasReceber() {
           <TabsList>
             <TabsTrigger value="b2b">B2B</TabsTrigger>
             <TabsTrigger value="b2c">B2C</TabsTrigger>
+            <AbaPermitida slug="tela.cliente_recebiveis">
+              <TabsTrigger value="por-cliente">Por cliente</TabsTrigger>
+            </AbaPermitida>
           </TabsList>
           {/* Exportação leva a base para fora: nível 3 (Coordenador) para cima. */}
           {temNivel(3) && (
@@ -438,6 +443,11 @@ export default function ContasReceber() {
         </TabsContent>
         <TabsContent value="b2c" className="mt-4">
           <AbaB2C onRegistrarExport={setExportador} />
+        </TabsContent>
+        <TabsContent value="por-cliente" className="mt-4">
+          <ConteudoAba slug="tela.cliente_recebiveis">
+            <RecebiveisPorClienteTab />
+          </ConteudoAba>
         </TabsContent>
       </Tabs>
     </PageShell>
