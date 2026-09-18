@@ -17,21 +17,25 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePodeVerAba } from "@/components/AbaGate";
 import { ListaContasClientes } from "@/components/clientes/ListaContasClientes";
+import { RecebiveisPorClienteTab } from "@/components/clientes/RecebiveisPorClienteTab";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 const ABA_ENTRADAS = "tela.cliente_entradas";
+const ABA_RECEBIVEIS = "tela.cliente_recebiveis";
 
 export default function ClientesLista() {
   const [params, setParams] = useSearchParams();
 
   const podeEntradas = usePodeVerAba(ABA_ENTRADAS);
+  const podeRecebiveis = usePodeVerAba(ABA_RECEBIVEIS);
 
   const visiveis = useMemo(() => {
     const abas = [{ value: "contas", label: "Contas de clientes" }];
+    if (podeRecebiveis.podeVer) abas.push({ value: "recebiveis", label: "Recebíveis" });
     if (podeEntradas.podeVer) abas.push({ value: "entradas", label: "Entradas a reconhecer" });
     return abas;
-  }, [podeEntradas.podeVer]);
+  }, [podeRecebiveis.podeVer, podeEntradas.podeVer]);
 
   const abaUrl = params.get("aba");
   const abaAtiva = visiveis.find((a) => a.value === abaUrl)?.value ?? "contas";
@@ -78,6 +82,12 @@ export default function ClientesLista() {
         <TabsContent value="contas" className="mt-4">
           <ListaContasClientes mostrarCabecalho={false} />
         </TabsContent>
+
+        {podeRecebiveis.podeVer && (
+          <TabsContent value="recebiveis" className="mt-4">
+            <RecebiveisPorClienteTab />
+          </TabsContent>
+        )}
 
         {podeEntradas.podeVer && (
           <TabsContent value="entradas" className="mt-4">
