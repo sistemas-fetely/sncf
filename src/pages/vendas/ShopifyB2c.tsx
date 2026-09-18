@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Copy, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
@@ -69,6 +71,73 @@ function txt(v: string | null | undefined): string {
 function diasTexto(d: number | null): string {
   if (d == null) return "—";
   return `há ${d} d`;
+}
+
+// BADGE-LÊ-A-MESMA-FONTE-DA-TELA: o estado da descida ao Bling vem da MESMA
+// tabela que a descida automática escreve — bling_pedido_fila_b2c. O pedido
+// interno SNCF só nasce depois da NF; até lá, a fila é a verdade.
+const STATUS_FILA_SEM_ALERTA = new Set(["enviado", "pendente", "processando", "pausado"]);
+
+interface FilaBlingRow {
+  shopify_pedido_id: string;
+  status: string | null;
+  bling_pedido_id: string | null;
+  ultimo_erro: string | null;
+}
+
+/** Uma query só, pelos shopify_id dos pedidos listados. */
+function useFilaBlingB2c(shopifyIds: string[]) {
+  const chave = shopifyIds.join(",");
+  return useQuery({
+    queryKey: ["b2c-fila-bling", chave],
+    enabled: shopifyIds.length > 0,
+    staleTime: 30 * 1000,
+    queryFn: async (): Promise<FilaBlingRow[]> => {
+      const { data, error } = await supabase
+        .from("bling_pedido_fila_b2c")
+        .select("shopify_pedido_id, status, bling_pedido_id, ultimo_erro")
+        .in("shopify_pedido_id", shopifyIds);
+      if (error) throw error;
+      return (data ?? []) as FilaBlingRow[];
+    },
+  });
+}
+
+/** Linha da fila de descida — só faz sentido para pedido que ainda não nasceu no SNCF. */
+function filaDoPedido(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): FilaBlingRow | null {
+  if (!p.pedido_ausente || !p.shopify_id) return null;
+  return mapaFila.get(p.shopify_id) ?? null;
+}
+
+/** Fila em dia não é problema: alerta só com erro na descida ou sem linha na fila. */
+function alertaSuprimidoPorFila(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): boolean {
+  const f = filaDoPedido(p, mapaFila);
+  if (!f) return false;
+  return STATUS_FILA_SEM_ALERTA.has(f.status ?? "");
+}
+
+/** Próxima ação exibida — para pedido ausente, reflete o estado real da fila. */
+function proximaAcaoExibida(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): string | null {
+  const f = filaDoPedido(p, mapaFila);
+  if (!f) return p.proxima_acao;
+  switch (f.status) {
+    case "enviado":
+      return "No Bling — aguardando faturamento";
+    case "pendente":
+    case "processando":
+      return "Desce automático em até 10 min";
+    case "erro":
+      return f.ultimo_erro?.trim() || "Erro na descida ao Bling";
+    case "pausado":
+      return "Pausado (ver fila)";
+    default:
+      return p.proxima_acao;
+  }
+}
+
+function truncarErro(texto: string, max = 80): string {
+  const t = texto.trim();
+  return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
 export default function ShopifyB2c() {
@@ -161,6 +230,36 @@ export default function ShopifyB2c() {
   };
 
   const lista = useMemo(() => pedidos ?? [], [pedidos]);
+
+  // Fila de descida ao Bling — lida uma única vez pelos pedidos listados.
+  const shopifyIdsFila = useMemo(
+    () =>
+      Array.from(
+        new Set(lista.map((p) => p.shopify_id).filter((s): s is string => !!s)),
+      ),
+    [lista],
+  );
+  const { data: filaBling, isError: filaBlingErro, error: filaBlingErroObj } = useFilaBlingB2c(shopifyIdsFila);
+  const mapaFilaBling = useMemo(() => {
+    const m = new Map<string, FilaBlingRow>();
+    (filaBling ?? []).forEach((f) => m.set(f.shopify_pedido_id, f));
+    return m;
+  }, [filaBling]);
+
+  // Alertas do card do funil que deixam de contar: pedido ausente com a descida
+  // em dia (na fila ou já no Bling) não é problema — só erro ou fora da fila.
+  const reducaoAlerta = useMemo(() => {
+    const m: Record<string, number> = {};
+    let qualquer = false;
+    lista.forEach((p) => {
+      if (p.alerta && alertaSuprimidoPorFila(p, mapaFilaBling)) {
+        const estagio = p.estagio ?? "";
+        m[estagio] = (m[estagio] ?? 0) + 1;
+        qualquer = true;
+      }
+    });
+    return qualquer ? m : undefined;
+  }, [lista, mapaFilaBling]);
 
   const ufs = useMemo(() => {
     const set = new Set<string>();
@@ -328,6 +427,7 @@ export default function ShopifyB2c() {
               incluirCancelados={incluirCancelados}
               onToggleCancelados={setIncluirCancelados}
               filaAtiva={filaAtiva}
+              reducaoAlerta={reducaoAlerta}
             />
           </div>
 
@@ -403,6 +503,13 @@ export default function ShopifyB2c() {
             </div>
           )}
 
+          {filaBlingErro && (
+            <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              Fila de descida ao Bling não carregou. A coluna Bling e a próxima ação podem estar desatualizadas.{" "}
+              {(filaBlingErroObj as Error)?.message ?? "erro desconhecido"}
+            </div>
+          )}
+
           {!isError && (
             <Card>
               <CardContent className="p-0">
@@ -445,7 +552,7 @@ export default function ShopifyB2c() {
                             >
                               <TableCell className="whitespace-nowrap">
                                 <span className="font-mono text-xs">{txt(p.order_name)}</span>
-                                {p.alerta && (
+                                {p.alerta && !alertaSuprimidoPorFila(p, mapaFilaBling) && (
                                   <div className="mt-1">
                                     {p.bloqueio_motivo ? (
                                       <Tooltip>
@@ -478,40 +585,73 @@ export default function ShopifyB2c() {
                                 )}
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
-                                {p.bling_pedido_numero || p.nf_refs ? (
-                                  <div className="flex flex-col items-start gap-0.5">
-                                    {p.bling_pedido_numero && (
-                                      <button
-                                        type="button"
-                                        title="Copiar número do pedido Bling"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          copiar(p.bling_pedido_numero!, "Pedido Bling");
-                                        }}
-                                        className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
-                                      >
-                                        <span>#{p.bling_pedido_numero}</span>
-                                        <Copy className="h-3 w-3 text-muted-foreground" />
-                                      </button>
-                                    )}
-                                    {p.nf_refs && (
-                                      <button
-                                        type="button"
-                                        title="Copiar NF"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          copiar(p.nf_refs!, "NF");
-                                        }}
-                                        className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-gold"
-                                      >
-                                        <span>NF {p.nf_refs}</span>
-                                        <Copy className="h-3 w-3" />
-                                      </button>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                {(() => {
+                                  // Pedido sem nascer no SNCF: a fila de descida é a verdade.
+                                  const f = filaDoPedido(p, mapaFilaBling);
+                                  if (f && f.status !== "pausado") {
+                                    return (
+                                      <div className="flex flex-col items-start gap-0.5">
+                                        {f.status === "enviado" && f.bling_pedido_id && (
+                                          <button
+                                            type="button"
+                                            title="Copiar número do pedido Bling"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              copiar(f.bling_pedido_id!, "Pedido Bling");
+                                            }}
+                                            className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
+                                          >
+                                            <span>#{f.bling_pedido_id}</span>
+                                            <Copy className="h-3 w-3 text-muted-foreground" />
+                                          </button>
+                                        )}
+                                        {(f.status === "pendente" || f.status === "processando") && (
+                                          <span className="text-xs text-muted-foreground">na fila</span>
+                                        )}
+                                        {f.status === "erro" && (
+                                          <Selo estado="destructive">erro</Selo>
+                                        )}
+                                        {f.status === "enviado" && (
+                                          <Selo estado="success">No Bling</Selo>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  return p.bling_pedido_numero || p.nf_refs ? (
+                                    <div className="flex flex-col items-start gap-0.5">
+                                      {p.bling_pedido_numero && (
+                                        <button
+                                          type="button"
+                                          title="Copiar número do pedido Bling"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            copiar(p.bling_pedido_numero!, "Pedido Bling");
+                                          }}
+                                          className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
+                                        >
+                                          <span>#{p.bling_pedido_numero}</span>
+                                          <Copy className="h-3 w-3 text-muted-foreground" />
+                                        </button>
+                                      )}
+                                      {p.nf_refs && (
+                                        <button
+                                          type="button"
+                                          title="Copiar NF"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            copiar(p.nf_refs!, "NF");
+                                          }}
+                                          className="inline-flex items-center gap-1 font-mono text-xs text-muted-foreground transition-colors hover:text-gold"
+                                        >
+                                          <span>NF {p.nf_refs}</span>
+                                          <Copy className="h-3 w-3" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-xs">
                                 {fmtDataHora(p.created_at_shopify)}
@@ -541,8 +681,29 @@ export default function ShopifyB2c() {
                                 {txt(p.area_responsavel)}
                               </TableCell>
                               <TableCell className="min-w-[260px] text-xs">
-                                <span className="line-clamp-2">{txt(p.proxima_acao)}</span>
-                                {p.bloqueio_motivo && (
+                                {(() => {
+                                  const f = filaDoPedido(p, mapaFilaBling);
+                                  if (f?.status === "erro" && f.ultimo_erro?.trim()) {
+                                    return (
+                                      <span className="line-clamp-2 text-destructive" title={f.ultimo_erro}>
+                                        {truncarErro(f.ultimo_erro)}
+                                      </span>
+                                    );
+                                  }
+                                  if (f?.status === "pausado") {
+                                    return (
+                                      <span className="line-clamp-2 text-muted-foreground">
+                                        {proximaAcaoExibida(p, mapaFilaBling)}
+                                      </span>
+                                    );
+                                  }
+                                  return (
+                                    <span className="line-clamp-2">
+                                      {txt(proximaAcaoExibida(p, mapaFilaBling))}
+                                    </span>
+                                  );
+                                })()}
+                                {p.bloqueio_motivo && !alertaSuprimidoPorFila(p, mapaFilaBling) && (
                                   (() => {
                                     const partes = p.bloqueio_motivo
                                       .split(" · ")

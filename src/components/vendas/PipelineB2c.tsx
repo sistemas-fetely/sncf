@@ -36,6 +36,12 @@ interface Props {
   onToggleCancelados?: (v: boolean) => void;
   /** Fila ativa — vem da MESMA lista que a tabela da aba Fila mostra. */
   filaAtiva?: { qtd: number; valor: number };
+  /**
+   * BADGE-LÊ-A-MESMA-FONTE: quantos alertas por estágio devem deixar de contar —
+   * pedidos sem pedido interno SNCF cuja descida ao Bling está em dia (na fila
+   * ou já enviado) não são problema. Reduz o com_alerta da view, nunca aumenta.
+   */
+  reducaoAlerta?: Record<string, number>;
 }
 
 export function PipelineB2c({
@@ -45,6 +51,7 @@ export function PipelineB2c({
   incluirCancelados = false,
   onToggleCancelados,
   filaAtiva,
+  reducaoAlerta,
 }: Props) {
   const { data, isLoading, isError, error } = usePipelineB2c();
 
@@ -111,7 +118,7 @@ export function PipelineB2c({
       {/* Cards por estágio */}
       {fases.map((f) => {
         const qtd = Number(f.qtd ?? 0);
-        const alertas = Number(f.com_alerta ?? 0);
+        const alertas = Math.max(0, Number(f.com_alerta ?? 0) - (reducaoAlerta?.[f.estagio] ?? 0));
         const isAtivo = estagioAtivo === f.estagio;
         return (
           <button
