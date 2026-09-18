@@ -33,6 +33,10 @@ export function useSemProvaFila() {
         .from("vw_cobranca_mesa")
         .select("*")
         .eq("fila", "PAGO_SEM_PROVA")
+        // Cartão pago sem prova mora na Conciliação → Cartão (F3
+        // conciliacao-recebiveis): a resolução é a conciliação SafraPay/OFX,
+        // não ato humano por título.
+        .neq("instrumento", "cartao")
         .limit(1000);
       if (error) throw error;
       return (data ?? []) as LinhaMesa[];
@@ -78,26 +82,6 @@ export function useNaoCobravelFila() {
         .from("vw_cobranca_mesa")
         .select("*")
         .eq("fila", "NAO_COBRAVEL")
-        .limit(1000);
-      if (error) throw error;
-      return (data ?? []) as LinhaMesa[];
-    },
-  });
-}
-
-/** Cartão em conciliação — o que a Régua deixou de exibir. */
-export function useCartaoConciliarFila() {
-  return useQuery({
-    queryKey: ["cobranca-mesa", "cartao-conciliar"],
-    staleTime: 30_000,
-    refetchOnWindowFocus: true,
-    queryFn: async (): Promise<LinhaMesa[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_cobranca_mesa")
-        .select("*")
-        .eq("fila", "CONCILIAR")
-        .eq("instrumento", "cartao")
         .limit(1000);
       if (error) throw error;
       return (data ?? []) as LinhaMesa[];
