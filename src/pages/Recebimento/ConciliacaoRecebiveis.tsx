@@ -24,10 +24,14 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { ConciliacaoCartaoConteudo } from "@/pages/administrativo/ConciliacaoCartao";
+import { MesaConciliacaoConteudo } from "@/pages/administrativo/ConciliacaoMesa";
+import { ConciliacaoPorPedido } from "@/pages/administrativo/RecebimentosConciliar";
 
 const ABAS = [
   { value: "entradas", label: "Entradas a reconhecer", slug: "tela.cliente_entradas" },
-  { value: "cartao", label: "Conciliação de cartão", slug: "tela.fin_conciliacao" },
+  { value: "creditos", label: "Créditos do banco", slug: "tela.fin_concil_mesa" },
+  { value: "por-pedido", label: "Por pedido", slug: "tela.fin_receb_conciliar" },
+  { value: "cartao", label: "Cartão", slug: "tela.fin_conciliacao" },
 ] as const;
 
 type AbaValue = (typeof ABAS)[number]["value"];
