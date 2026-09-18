@@ -103672,6 +103672,17 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_comprovante_cliente: {
+        Args: {
+          p_bytes?: number
+          p_hash: string
+          p_leitura: Json
+          p_mime?: string
+          p_parceiro_id: string
+          p_storage_path: string
+        }
+        Returns: Json
+      }
       registrar_comprovante_pagamento: {
         Args: {
           p_bytes?: number
