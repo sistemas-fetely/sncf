@@ -498,6 +498,18 @@ export function ConfirmarPagamentoDialog({
           </div>
         </div>
 
+        {destinoQ.data && (
+          <p className="text-xs text-muted-foreground">
+            {destinoQ.data.tem_portao_pendente
+              ? "Este pagamento quita o portão deste pedido."
+              : `Sem portão pendente: o valor credita a conta de ${destinoQ.data.cliente ?? "—"} e será alocado contra ${destinoQ.data.qtd_titulos_abertos ?? 0} título(s) em aberto (${formatBRL(destinoQ.data.valor_titulos_abertos ?? 0)}).${
+                  (destinoQ.data.qtd_titulos_abertos ?? 0) === 0
+                    ? " …e ficará como saldo na conta do cliente."
+                    : ""
+                }`}
+          </p>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={aoFechar} disabled={enviando}>
             Cancelar
