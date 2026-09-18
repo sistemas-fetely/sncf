@@ -132,7 +132,18 @@ const META_CONFIANCA: Record<
   mesmo_cliente: { rotulo: "Mesmo cliente", tom: "warning" },
 };
 
-export default function ConciliacaoMesa() {
+/**
+ * MesaConciliacaoConteudo — conteúdo da Mesa de Conciliação sem casca.
+ *
+ * Mora na aba "Créditos do banco" de /recebimento/conciliacao (F2). Dentro da
+ * casa, `paramAba="sub"` para as sub-abas internas (extrato/cartão) não
+ * colidirem com o `?aba=` da casa.
+ */
+export function MesaConciliacaoConteudo({
+  paramAba = "aba",
+}: {
+  paramAba?: string;
+}) {
   const qc = useQueryClient();
   const [filtroConfianca, setFiltroConfianca] = useState<
     Exclude<Confianca, "sem_candidato"> | null
@@ -142,7 +153,7 @@ export default function ConciliacaoMesa() {
   const [ajuste, setAjuste] = useState("0");
   const [tituloAjuste, setTituloAjuste] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const [aba, setAba] = useAbaUrl("extrato");
+  const [aba, setAba] = useAbaUrl("extrato", undefined, paramAba);
   const [filtroCartao, setFiltroCartao] = useState<
     "fecha_no_centavo" | "quase_fecha" | null
   >(null);
@@ -372,12 +383,8 @@ export default function ConciliacaoMesa() {
   }, [selecionado]);
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Conciliação"
-        icone={Link2}
-        estado="O dinheiro de um lado, o título do outro — o sistema propõe, você decide."
-      />
+    <div className="space-y-4">
+
 
       <Tabs value={aba} onValueChange={setAba}>
         <TabsList>
@@ -931,6 +938,11 @@ export default function ConciliacaoMesa() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageShell>
+    </div>
   );
+}
+
+// Rota antiga viva: quem tem /administrativo/conciliacao-mesa salvo cai na casa.
+export default function ConciliacaoMesa() {
+  return <Navigate to="/recebimento/conciliacao?aba=creditos" replace />;
 }
