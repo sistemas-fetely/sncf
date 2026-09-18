@@ -83,6 +83,12 @@ export default function ClientesLista() {
           <ListaContasClientes mostrarCabecalho={false} />
         </TabsContent>
 
+        {podeRecebiveis.podeVer && (
+          <TabsContent value="recebiveis" className="mt-4">
+            <RecebiveisPorClienteTab />
+          </TabsContent>
+        )}
+
         {podeEntradas.podeVer && (
           <TabsContent value="entradas" className="mt-4">
             <EntradasReconhecerTab />
