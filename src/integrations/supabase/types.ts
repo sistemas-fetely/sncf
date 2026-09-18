@@ -3878,6 +3878,57 @@ export type Database = {
         }
         Relationships: []
       }
+      b2c_roteamento_regra: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          centro_id: string
+          criado_em: string
+          id: string
+          loja_bling_id: number
+          observacao: string | null
+          prefixo_cep: string | null
+          prioridade: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          centro_id: string
+          criado_em?: string
+          id?: string
+          loja_bling_id: number
+          observacao?: string | null
+          prefixo_cep?: string | null
+          prioridade?: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          centro_id?: string
+          criado_em?: string
+          id?: string
+          loja_bling_id?: number
+          observacao?: string | null
+          prefixo_cep?: string | null
+          prioridade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2c_roteamento_regra_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_roteamento_regra_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       backup_consumidor_orfao_20260915: {
         Row: {
           ativo: boolean | null
@@ -5989,6 +6040,79 @@ export type Database = {
           tentativa_em?: string
         }
         Relationships: []
+      }
+      bling_pedido_fila_b2c: {
+        Row: {
+          bling_pedido_id: string | null
+          centro_id_resolvido: string | null
+          criado_em: string
+          divergencia_tag: boolean
+          id: string
+          loja_bling_id_resolvida: number | null
+          order_name: string | null
+          processado_em: string | null
+          regra_id: string | null
+          shopify_pedido_id: string
+          status: string
+          tag_shopify: string | null
+          tentativas: number
+          ultimo_erro: string | null
+        }
+        Insert: {
+          bling_pedido_id?: string | null
+          centro_id_resolvido?: string | null
+          criado_em?: string
+          divergencia_tag?: boolean
+          id?: string
+          loja_bling_id_resolvida?: number | null
+          order_name?: string | null
+          processado_em?: string | null
+          regra_id?: string | null
+          shopify_pedido_id: string
+          status?: string
+          tag_shopify?: string | null
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Update: {
+          bling_pedido_id?: string | null
+          centro_id_resolvido?: string | null
+          criado_em?: string
+          divergencia_tag?: boolean
+          id?: string
+          loja_bling_id_resolvida?: number | null
+          order_name?: string | null
+          processado_em?: string | null
+          regra_id?: string | null
+          shopify_pedido_id?: string
+          status?: string
+          tag_shopify?: string | null
+          tentativas?: number
+          ultimo_erro?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_pedido_fila_b2c_centro_id_resolvido_fkey"
+            columns: ["centro_id_resolvido"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_b2c_centro_id_resolvido_fkey"
+            columns: ["centro_id_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_b2c_regra_id_fkey"
+            columns: ["regra_id"]
+            isOneToOne: false
+            referencedRelation: "b2c_roteamento_regra"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bling_planilha_stage: {
         Row: {
