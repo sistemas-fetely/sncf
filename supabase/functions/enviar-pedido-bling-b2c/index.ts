@@ -696,11 +696,12 @@ Deno.serve(async (req) => {
               nome: nomeCliente,
               endereco: logradouro,
               numero,
-              complemento: ender?.address2 ?? "",
-              // Shopify nao tem bairro — "Não informado" e o padrao da propria nativa.
-              bairro: "Não informado",
+              complemento: complementoEndereco,
+              // Bairro parseado do address2 (checkout BR); sem bairro, "Não
+              // informado" e o padrao da propria nativa.
+              bairro: bairroEndereco || "Não informado",
               cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
-              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              municipio: municipioEndereco,
               uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
               nomePais: "",
             },
