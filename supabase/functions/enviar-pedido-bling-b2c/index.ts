@@ -95,6 +95,7 @@ query pedidoB2C($id: ID!) {
       firstName lastName name company phone
       address1 address2 city province provinceCode zip countryCodeV2
     }
+    shippingLine { title }
     billingAddress {
       firstName lastName name company phone
       address1 address2 city province provinceCode zip countryCodeV2
@@ -135,6 +136,7 @@ type PedidoShopifyApi = {
     } | null;
     shippingAddress: EnderecoShopify;
     billingAddress: EnderecoShopify;
+    shippingLine: { title: string | null } | null;
     localizationExtensions: {
       edges: { node: { key: string; purpose: string; title: string; value: string } }[];
     } | null;
@@ -273,6 +275,20 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Logistica do pedido (espelho da integracao nativa, medida no Bling 26907106696):
+    // transportadora Correios + servico PAC/SEDEX por shippingLine. Sem qualquer um
+    // destes na config o item da fila FAIL-LOUD — pedido sem transporte nao desce.
+    const cfgJson = (cfg.config ?? {}) as Record<string, unknown>;
+    const transportadoraContatoId = Number(cfgJson.b2c_transportadora_contato_id ?? 0);
+    const servicoPac = String(cfgJson.b2c_servico_pac ?? "").trim();
+    const servicoSedex = String(cfgJson.b2c_servico_sedex ?? "").trim();
+    const transporteCfgFaltando: string[] = [];
+    if (!Number.isFinite(transportadoraContatoId) || transportadoraContatoId <= 0) {
+      transporteCfgFaltando.push("b2c_transportadora_contato_id");
+    }
+    if (!servicoPac) transporteCfgFaltando.push("b2c_servico_pac");
+    if (!servicoSedex) transporteCfgFaltando.push("b2c_servico_sedex");
+
     for (const item of itensFila) {
       resultado.processados++;
       const tentativasAtuais = item.tentativas ?? 0;
@@ -333,6 +349,15 @@ Deno.serve(async (req) => {
         if (!Number.isFinite(lojaId) || lojaId <= 0) {
           await falhar(
             "Fila sem `loja_bling_id_resolvida` — roteamento não resolvido; nada enviado ao Bling.",
+          );
+          continue;
+        }
+
+        // Transporte e obrigatorio: pedido que descer sem logistica Correios nao
+        // replica o padrao da integracao nativa e quebra a etiqueta depois.
+        if (transporteCfgFaltando.length > 0) {
+          await falhar(
+            `Config de transporte B2C ausente em integracoes_config (${transporteCfgFaltando.join(", ")}) — pedido NÃO enviado sem transporte.`,
           );
           continue;
         }
@@ -628,10 +653,32 @@ Deno.serve(async (req) => {
           totalProdutos: baseItens,
           total: totalPedido,
           transporte: {
-            // CIF: remetente paga. Transportadora NAO vai aqui — Correios entra na
-            // etiqueta (integracao de logistica), nao no cadastro do pedido.
+            // CIF: remetente paga. Transportadora + servico espelham a integracao
+            // nativa (medido no Bling 26907106696): o pedido ja nasce com a
+            // Logistica Correios preenchida.
             fretePorConta,
             ...(valorFrete > 0 ? { frete: valorFrete } : {}),
+            contato: { id: transportadoraContatoId },
+            volumes: [
+              {
+                servico:
+                  (order.shippingLine?.title ?? "").toUpperCase().includes("SEDEX")
+                    ? servicoSedex
+                    : servicoPac,
+              },
+            ],
+            etiqueta: {
+              nome: nomeCliente,
+              endereco: logradouro,
+              numero,
+              complemento: ender?.address2 ?? "",
+              // Shopify nao tem bairro — "Não informado" e o padrao da propria nativa.
+              bairro: "Não informado",
+              cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
+              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
+              nomePais: "",
+            },
           },
           observacoes: `Pedido ${pedido.order_name ?? item.order_name ?? ""} (Shopify ${item.shopify_pedido_id}) via SNCF`.trim(),
         };
