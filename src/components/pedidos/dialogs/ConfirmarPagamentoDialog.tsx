@@ -147,6 +147,21 @@ export function ConfirmarPagamentoDialog({
   const confirmarLinha = useConfirmarPagamentoLinha();
   const confirmarCartao = useConfirmarCartaoCapturado();
 
+  // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
+  const destinoQ = useQuery({
+    queryKey: ["comprovante-destino", comprovanteId],
+    enabled: aberto && !!comprovanteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_comprovante_pendente")
+        .select("tem_portao_pendente, qtd_titulos_abertos, valor_titulos_abertos, cliente")
+        .eq("comprovante_id", comprovanteId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   // GATE: modo mesa exige a ação da Mesa; modo SOPS exige declarar sem anexo OU,
   // com comprovante lido, a permissão de confirmar pagamento declarado.
   const semAnexoQ = usePermissaoAcaoOuSuperAdmin("acao.confirmar_pagamento_sem_anexo");
