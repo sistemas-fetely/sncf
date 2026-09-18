@@ -20,6 +20,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { CreditCard, Loader2, CheckCircle2, ChevronDown, ChevronRight, Link2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -285,6 +286,114 @@ function AbaConciliarExtrato() {
   );
 }
 
+/* ============ Faixa-resumo: pagos sem prova de cartão (F3 conciliacao-recebiveis) ============
+ * Estes títulos saíram de Problemas Cobrança: a resolução deles é a
+ * conciliação SafraPay/OFX em lote (sub-abas abaixo), não ato humano por
+ * título. Por isso a faixa é informativa — sem botão de ação por linha. */
+
+type LinhaCartaoSemProva = {
+  titulo_id: string;
+  numero_titulo: string | null;
+  nome_exibicao: string | null;
+  nome_canonico: string | null;
+  valor_atual: number | null;
+  vencimento: string | null;
+};
+
+function idadeDiasDesde(vencimento: string | null): number | null {
+  if (!vencimento) return null;
+  const ms = Date.now() - new Date(`${vencimento}T00:00:00`).getTime();
+  return Math.max(0, Math.floor(ms / 86_400_000));
+}
+
+function ResumoCartaoSemProva() {
+  const [aberto, setAberto] = useState(false);
+
+  const { data: linhas = [], isLoading } = useQuery({
+    queryKey: ["conciliacao-cartao", "pagos-sem-prova"],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("vw_cobranca_mesa")
+        .select("titulo_id, numero_titulo, nome_exibicao, nome_canonico, valor_atual, vencimento")
+        .eq("fila", "PAGO_SEM_PROVA")
+        .eq("instrumento", "cartao")
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as LinhaCartaoSemProva[];
+    },
+  });
+
+  const { total, idadeMax } = useMemo(() => {
+    let t = 0;
+    let m = 0;
+    for (const l of linhas) {
+      t += Number(l.valor_atual ?? 0);
+      m = Math.max(m, idadeDiasDesde(l.vencimento) ?? 0);
+    }
+    return { total: t, idadeMax: m };
+  }, [linhas]);
+
+  const ordenadas = useMemo(
+    () =>
+      [...linhas].sort(
+        (a, b) => (idadeDiasDesde(b.vencimento) ?? -1) - (idadeDiasDesde(a.vencimento) ?? -1),
+      ),
+    [linhas],
+  );
+
+  return (
+    <Collapsible open={aberto} onOpenChange={setAberto} className="rounded-md border bg-muted/40">
+      <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left">
+        <span className="text-sm font-medium">Aguardando conciliação — pagos sem prova</span>
+        <span className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+          {isLoading
+            ? "…"
+            : `${linhas.length} ${linhas.length === 1 ? "título" : "títulos"} · ${formatBRL(total)} · idade máx. ${idadeMax}d`}
+          {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        {linhas.length === 0 && !isLoading ? (
+          <p className="px-3 pb-3 text-xs text-muted-foreground">
+            Nenhum título de cartão pago sem prova.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Idade</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ordenadas.map((l) => {
+                const idade = idadeDiasDesde(l.vencimento);
+                return (
+                  <TableRow key={l.titulo_id}>
+                    <TableCell className="font-mono text-xs">{l.numero_titulo ?? "—"}</TableCell>
+                    <TableCell className="text-sm">
+                      {l.nome_exibicao ?? l.nome_canonico ?? "—"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatBRL(Number(l.valor_atual ?? 0))}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums text-xs text-muted-foreground">
+                      {idade === null ? "—" : `${idade}d`}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 /**
  * Conteúdo da Conciliação de Cartão, reutilizável fora da página antiga.
  * `paramAba` escolhe o nome do query param das sub-abas internas — dentro da
@@ -294,7 +403,9 @@ export function ConciliacaoCartaoConteudo({ paramAba = "aba" }: { paramAba?: str
   const [aba, setAba] = useAbaUrl("vincular", undefined, paramAba);
 
   return (
-    <Tabs value={aba} onValueChange={setAba}>
+    <div className="space-y-4">
+      <ResumoCartaoSemProva />
+      <Tabs value={aba} onValueChange={setAba}>
       <TabsList>
         <TabsTrigger value="vincular">Vincular vendas</TabsTrigger>
         <TabsTrigger value="automatica">Conciliação automática</TabsTrigger>
