@@ -147,6 +147,24 @@ function AbaNFs() {
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
   const [syncing, setSyncing] = useState(false);
   const { data: nfs = [], isLoading, isError, error, refetch } = useNfsEmitidas();
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoNf>(ORDEM_PADRAO_NF);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_NFS),
+  );
+
+  const ordenarPor = (coluna: ColunaNf) => {
+    setOrdenacao((atual) => {
+      if (atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_NF[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta ao padrao da tela (NF mais recente primeiro).
+      return invertida === DIR_INICIAL_NF[coluna] ? ORDEM_PADRAO_NF : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, situacaoFiltro, mesFiltro, ordenacao]);
 
   async function handleSincronizar() {
     setSyncing(true);
@@ -212,15 +230,48 @@ function AbaNFs() {
       const fantasiaText = n.parceiro?.nome_fantasia?.toLowerCase() ?? "";
       return nfText.includes(q) || parceiroText.includes(q) || fantasiaText.includes(q);
     });
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (n: NfEmitida): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "nf": {
+          const num = parseInt(n.numero ?? "", 10);
+          return Number.isNaN(num) ? null : num;
+        }
+        case "data": {
+          const t = n.data_emissao ? Date.parse(n.data_emissao) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "parceiro": return n.parceiro?.razao_social ?? null;
+        case "valor": return Number(n.valor_nota ?? 0);
+        // Frete zerado aparece como "—" na celula, entao e ausencia, nao zero.
+        case "frete": return n.valor_frete ? Number(n.valor_frete) : null;
+        case "pedido_bling":
+          return n.numero_pedido_loja || n.bling_pedido_venda_numero || null;
+        case "pedido": return n.pedido_ref ?? null;
+        case "situacao": return n.situacao ? GRAVIDADE_SITUACAO[n.situacao] ?? null : null;
+        default: return null;
+      }
+    };
+    // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
     return [...filtered].sort((a, b) => {
-      const na = parseInt(a.numero ?? "", 10);
-      const nb = parseInt(b.numero ?? "", 10);
-      const aNum = isNaN(na) ? 0 : na;
-      const bNum = isNaN(nb) ? 0 : nb;
-      if (bNum !== aNum) return bNum - aNum;
-      return (a.serie ?? "").localeCompare(b.serie ?? "") || (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
     });
-  }, [nfs, busca, situacaoFiltro, mesFiltro]);
+  }, [nfs, busca, situacaoFiltro, mesFiltro, ordenacao]);
+
+  const totalPaginasNf = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasNf);
+  const paginaItens = filtrados.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   const totalValor = useMemo(
     () => filtrados.reduce((sum, n) => sum + Number(n.valor_nota ?? 0), 0),
