@@ -536,6 +536,9 @@ export function EntradasReconhecerTab() {
       className="space-y-3"
       style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}
     >
+      <ComprovantesAguardandoBloco />
+
+
       <p className="text-[11px] text-muted-foreground leading-relaxed max-w-3xl">
         A varredura automática roda de hora em hora (documento do pagador, pagadores conhecidos e
         chaves de comprovante). O que aparece aqui é o que ela não reconheceu — um clique ensina o
