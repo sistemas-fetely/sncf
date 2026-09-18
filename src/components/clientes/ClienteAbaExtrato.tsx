@@ -187,9 +187,20 @@ export function ClienteAbaExtrato({
 }) {
   const lancamentos = useContaClienteLancamentos(parceiroId);
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const inputComprovanteRef = useRef<HTMLInputElement>(null);
+  const enviarComprovanteCliente = useEnviarComprovanteCliente(parceiroId);
 
   function alternar(chave: string) {
     setAbertos((prev) => ({ ...prev, [chave]: !prev[chave] }));
+  }
+
+  async function anexarComprovante(file: File) {
+    try {
+      // FAIL-LOUD: await de verdade; o erro sai no toast do hook.
+      await enviarComprovanteCliente.mutateAsync(file);
+    } catch {
+      /* toast já saiu */
+    }
   }
 
   return (
@@ -198,11 +209,38 @@ export function ClienteAbaExtrato({
         <p className="text-[11px] text-muted-foreground">
           Todo dinheiro entra na conta do CNPJ; o pedido debita o saldo.
         </p>
-        <RegistrarRecebimentoDialog parceiroId={parceiroId} parceiroNome={clienteNome}>
-          <Button size="sm" className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Registrar recebimento
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputComprovanteRef}
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void anexarComprovante(file);
+            }}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={enviarComprovanteCliente.isPending}
+            onClick={() => inputComprovanteRef.current?.click()}
+          >
+            {enviarComprovanteCliente.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Paperclip className="h-3.5 w-3.5" />
+            )}
+            Anexar comprovante
           </Button>
-        </RegistrarRecebimentoDialog>
+          <RegistrarRecebimentoDialog parceiroId={parceiroId} parceiroNome={clienteNome}>
+            <Button size="sm" className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Registrar recebimento
+            </Button>
+          </RegistrarRecebimentoDialog>
+        </div>
       </div>
 
       {lancamentos.isLoading && (
