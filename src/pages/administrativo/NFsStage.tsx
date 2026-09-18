@@ -414,7 +414,7 @@ export default function NFsStage() {
       const res = regerar ? await regerarResumoNFe(nf.id) : await gerarResumoNFe(nf.id);
       if (res.ok) {
         toast.success("Resumo NFe gerado e anexado");
-        qc.invalidateQueries({ queryKey: ["nfs_stage"] });
+        qc.invalidateQueries({ queryKey: ["nfs-stage"] });
         qc.invalidateQueries({ queryKey: ["documentos_envio_agrupados"] });
       } else {
         toast.error(`Falha na geração — registrado para revisão${res.erro ? `: ${res.erro}` : ""}`);
@@ -475,19 +475,31 @@ export default function NFsStage() {
 
   // Contagem de despesas vinculadas por stage (modelo N:1: nfs_stage.conta_pagar_id).
   // Como cada NF aponta no máximo para 1 CPR, a contagem aqui é 0 ou 1.
-  const { data: despesasPorStage = {} } = useQuery({
-    queryKey: ["despesas-por-stage", nfs?.length || 0],
-    enabled: (nfs?.length || 0) > 0,
-    queryFn: async () => {
-      const ids = (nfs || [])
+  //
+  // A chave leva os IDS das NFs parciais, nunca a QUANTIDADE de NFs. Com
+  // `nfs.length` na chave, lançar ou apagar uma despesa não mudava a chave — o
+  // número de NFs continua o mesmo —, o React Query servia o cache e o badge
+  // "Parcial (n/N)" ficava congelado. Quem mexe no vínculo NF↔despesa também
+  // invalida ["despesas-por-stage"], para o caso em que só o numerador muda e o
+  // conjunto de parciais continua igual.
+  const idsParciais = useMemo(
+    () =>
+      (nfs || [])
         .filter((n) => n.status === "parcial")
-        .map((n) => n.id);
-      if (ids.length === 0) return {} as Record<string, number>;
+        .map((n) => n.id)
+        .sort(),
+    [nfs],
+  );
+
+  const { data: despesasPorStage = {} } = useQuery({
+    queryKey: ["despesas-por-stage", idsParciais],
+    enabled: idsParciais.length > 0,
+    queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("nfs_stage")
         .select("id, conta_pagar_id")
-        .in("id", ids)
+        .in("id", idsParciais)
         .not("conta_pagar_id", "is", null);
       if (error) throw error;
       const counts: Record<string, number> = {};
@@ -804,6 +816,8 @@ export default function NFsStage() {
       );
       marcarResolvidasNaSessao([nf.id]);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Este caminho cria a conta a pagar e vincula à NF: mexe no numerador do badge.
+      qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error("Erro ao enviar para pagamento: " + msg);
