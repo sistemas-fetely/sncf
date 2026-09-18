@@ -275,6 +275,30 @@ Deno.serve(async (req) => {
     const bling = makeBlingClient(supabase, cfg, freshToken);
     const shopify = await makeShopifyAdmin(supabase);
 
+    // PUT /contatos/{id} — o cliente compartilhado so tem get/post. Usado apenas
+    // para atualizar o endereco do contato pre-existente; falha nao bloqueia.
+    const putBling = async (endpoint: string, body: unknown): Promise<void> => {
+      const doFetch = (tk: string) =>
+        fetch(`${BLING_BASE}${endpoint}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${tk}`,
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+      let res = await doFetch(bling.currentToken());
+      if (res.status === 401) {
+        const novoToken = await refreshAccessToken(supabase, { ...cfg, access_token: bling.currentToken() });
+        res = await doFetch(novoToken);
+      }
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`Bling PUT ${endpoint} ${res.status}: ${txt.slice(0, 300)}`);
+      }
+    };
+
     // DIMENSAO-VIA-TABELA: o modal de frete mora em `frete_tipos.mod_frete_nf`.
     // B2C da Fetely e CIF (remetente paga, frete embutido) — o codigo ativo na
     // dimensao e `CIF_ABSORVIDO`. Sem linha na dimensao, cai em 0 (CIF) e LOGA:
