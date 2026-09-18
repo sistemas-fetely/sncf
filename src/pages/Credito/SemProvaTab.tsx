@@ -33,6 +33,14 @@ import {
  * CobrancaFila (BADGE-LÊ-A-MESMA-FONTE-DA-TELA): invalidar o prefixo
  * ["comprovante-pendente-fila"] revalida tela e contagem.
  */
+/**
+ * B1-ANCORA-E-CNPJ (reforma-cobranca-360): a âncora do dinheiro é o CNPJ — o
+ * pedido é só rastro de captura. A view expõe os títulos em aberto do cliente
+ * para a linha de destino do dinheiro; o agrupamento por cliente acontece na
+ * tela (a view é plana por comprovante).
+ */
+type ComprovanteRow = Database["public"]["Views"]["vw_comprovante_pendente"]["Row"];
+
 export function useComprovantePendenteFila() {
   return useQuery({
     queryKey: ["comprovante-pendente-fila"],
