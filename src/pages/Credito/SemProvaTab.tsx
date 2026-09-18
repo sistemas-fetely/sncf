@@ -419,6 +419,14 @@ export default function SemProvaTab() {
         )}
       </section>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        Cartão pago sem prova mora na{" "}
+        <Link to="/recebimento/conciliacao?aba=cartao" className="underline underline-offset-2 hover:text-foreground">
+          Conciliação → Cartão
+        </Link>
+        .
+      </p>
     </div>
   );
 }
