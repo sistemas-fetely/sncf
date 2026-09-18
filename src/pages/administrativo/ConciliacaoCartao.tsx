@@ -421,7 +421,8 @@ export function ConciliacaoCartaoConteudo({ paramAba = "aba" }: { paramAba?: str
       <TabsContent value="extrato" className="mt-6">
         <AbaConciliarExtrato />
       </TabsContent>
-    </Tabs>
+      </Tabs>
+    </div>
   );
 }
 
