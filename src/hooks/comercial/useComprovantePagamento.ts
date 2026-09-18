@@ -164,7 +164,7 @@ export function useEnviarComprovanteCliente(parceiroId: string) {
         p_parceiro_id: parceiroId,
         p_storage_path: path,
         p_hash: hash,
-        p_leitura: lido as unknown as Record<string, unknown>,
+        p_leitura: lido as unknown as Json,
         p_mime: file.type || lido.mime || "application/octet-stream",
         p_bytes: file.size,
       });
