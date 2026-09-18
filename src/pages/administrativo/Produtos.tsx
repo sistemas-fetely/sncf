@@ -323,7 +323,10 @@ export default function Produtos() {
 
   return (
     <PageShell className="animate-casa-fade-in">
-      <div style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaFaixa}px` } as CSSProperties}>
+      <div
+        className="space-y-4"
+        style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaFaixa}px` } as CSSProperties}
+      >
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
