@@ -24,10 +24,14 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { ConciliacaoCartaoConteudo } from "@/pages/administrativo/ConciliacaoCartao";
+import { MesaConciliacaoConteudo } from "@/pages/administrativo/ConciliacaoMesa";
+import { ConciliacaoPorPedido } from "@/pages/administrativo/RecebimentosConciliar";
 
 const ABAS = [
   { value: "entradas", label: "Entradas a reconhecer", slug: "tela.cliente_entradas" },
-  { value: "cartao", label: "Conciliação de cartão", slug: "tela.fin_conciliacao" },
+  { value: "creditos", label: "Créditos do banco", slug: "tela.fin_concil_mesa" },
+  { value: "por-pedido", label: "Por pedido", slug: "tela.fin_receb_conciliar" },
+  { value: "cartao", label: "Cartão", slug: "tela.fin_conciliacao" },
 ] as const;
 
 type AbaValue = (typeof ABAS)[number]["value"];
@@ -36,13 +40,21 @@ export default function ConciliacaoRecebiveis() {
   const [aba, setAba] = useAbaUrl("entradas");
 
   const permEntradas = usePodeVerAba("tela.cliente_entradas");
+  const permCreditos = usePodeVerAba("tela.fin_concil_mesa");
+  const permPorPedido = usePodeVerAba("tela.fin_receb_conciliar");
   const permCartao = usePodeVerAba("tela.fin_conciliacao");
   const permissoes: Record<AbaValue, { podeVer: boolean; carregando: boolean }> = {
     entradas: permEntradas,
+    creditos: permCreditos,
+    "por-pedido": permPorPedido,
     cartao: permCartao,
   };
 
-  const carregandoPermissoes = permEntradas.carregando || permCartao.carregando;
+  const carregandoPermissoes =
+    permEntradas.carregando ||
+    permCreditos.carregando ||
+    permPorPedido.carregando ||
+    permCartao.carregando;
 
   // Primeira aba permitida vira o fallback quando a URL aponta para uma
   // aba que a pessoa não pode ver (padrão da CobrancaFila).
@@ -84,6 +96,20 @@ export default function ConciliacaoRecebiveis() {
           <TabsContent value="entradas" className="mt-4">
             <ConteudoAba slug="tela.cliente_entradas">
               <EntradasReconhecerTab />
+            </ConteudoAba>
+          </TabsContent>
+
+          <TabsContent value="creditos" className="mt-4">
+            <ConteudoAba slug="tela.fin_concil_mesa">
+              {/* paramAba="sub": as sub-abas extrato/cartão da Mesa não podem
+                  colidir com o ?aba= desta casa. */}
+              <MesaConciliacaoConteudo paramAba="sub" />
+            </ConteudoAba>
+          </TabsContent>
+
+          <TabsContent value="por-pedido" className="mt-4">
+            <ConteudoAba slug="tela.fin_receb_conciliar">
+              <ConciliacaoPorPedido />
             </ConteudoAba>
           </TabsContent>
 

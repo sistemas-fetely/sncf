@@ -785,16 +785,16 @@ const App = () => (
 
                 <Route path="fluxo-caixa" element={<FluxoCaixa />} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
-                <Route path="caixa-banco" element={<CaixaBanco />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/recebimento/conciliacao?aba=creditos" replace />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
-                <Route path="conciliacao-mesa" element={<ConciliacaoMesa />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/recebimento/conciliacao?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
-                <Route path="contas-receber" element={<ContasReceber />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/recebimento/conciliacao?aba=por-pedido" replace />} />
                 
-                <Route path="recebimentos-conciliar" element={<RecebimentosConciliar />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/recebimento/conciliacao?aba=por-pedido" replace />} />
                 <Route path="extrato-importacao" element={<ExtratoImportacao />} />
                 <Route path="extrato-inbox" element={<ExtratoInbox />} />
                 <Route path="extrato-regras" element={<RegrasInbox />} />

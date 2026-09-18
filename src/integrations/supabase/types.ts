@@ -101375,6 +101375,13 @@ export type Database = {
         Args: { p_linhas: Json; p_pedido_id: string }
         Returns: Json
       }
+      fn_b2c_batimento: {
+        Args: never
+        Returns: {
+          assinatura: string
+          total: number
+        }[]
+      }
       fn_b2c_faturado_vs_recebido: {
         Args: never
         Returns: {
