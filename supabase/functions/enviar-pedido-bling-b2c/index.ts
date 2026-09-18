@@ -456,13 +456,17 @@ Deno.serve(async (req) => {
 
         const ender = order.shippingAddress ?? order.billingAddress;
         const nomeCliente =
-          (order.shippingAddress?.name ??
-            [order.shippingAddress?.firstName, order.shippingAddress?.lastName]
-              .filter(Boolean)
-              .join(" ") ??
-            "").trim() ||
-          (order.customer?.displayName ?? "").trim() ||
-          [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(" ").trim();
+          limparTexto(
+            order.shippingAddress?.name ??
+              [order.shippingAddress?.firstName, order.shippingAddress?.lastName]
+                .filter(Boolean)
+                .join(" ") ??
+              "",
+          ) ||
+          limparTexto(order.customer?.displayName) ||
+          limparTexto(
+            [order.customer?.firstName, order.customer?.lastName].filter(Boolean).join(" "),
+          );
         if (!nomeCliente) {
           await falhar("Pedido sem nome de cliente (shippingAddress/customer vazios) — contato no Bling ficaria sem nome.");
           continue;
