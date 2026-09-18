@@ -16,8 +16,10 @@
     --popover: 36 50% 97%;
     --popover-foreground: 30 22% 14%;
 
-    /* Ouro Fetély */
-    --primary: 43 58% 39%;          /* ~#9F7E2A ouro escuro */
+    /* Ouro Fetély — escurecido de 39% para 31% em 18/09/2026: a 39% o par
+       primary/primary-foreground do botão dava 3.65:1, abaixo de 4.5:1.
+       O ouro claro de marca continua intacto em --gold e no tema escuro. */
+    --primary: 43 58% 31%;          /* #7D6321 ouro escuro */
     --primary-foreground: 36 50% 96%;
     --secondary: 36 35% 84%;        /* #E5D8C5 surface-2 */
     --secondary-foreground: 30 22% 14%;
@@ -28,17 +30,22 @@
     --accent: 43 35% 75%;
     --accent-foreground: 30 22% 14%;
 
-    /* Status */
-    --destructive: 4 55% 41%;       /* #A33A30 terroso, não red shadcn */
+    /* Status
+       REGRA: o token base é PREENCHIMENTO (com seu -foreground em cima).
+       Para TEXTO sobre tint (bg-x/10..15) use sempre a variante -strong.
+       Todos os pares abaixo passam 4.5:1 — ver README do design system. */
+    --destructive: 4 55% 41%;       /* #A2372F terroso, não red shadcn */
     --destructive-foreground: 36 50% 96%;
-    --success: 150 33% 36%;         /* #3D7A5C verde Fetély */
+    --destructive-strong: 4 55% 34%;
+    --success: 150 33% 32%;         /* #376D52 verde Fetély */
     --success-foreground: 36 50% 96%;
-    --warning: 38 70% 41%;          /* #B07A20 âmbar Fetély */
+    --success-strong: 150 33% 26%;
+    --warning: 38 70% 34%;          /* #93671A âmbar Fetély */
     --warning-foreground: 36 50% 96%;
-    --info: 200 50% 40%;
+    --warning-strong: 38 75% 26%;
+    --info: 200 50% 36%;
     --info-foreground: 36 50% 96%;
     --info-strong: 200 55% 24%;
-    --warning-strong: 38 75% 26%;
 
 
     /* Compatibilidade com componentes legados (admin/sidebar/chart) */
@@ -51,21 +58,24 @@
     --border: 35 22% 78%;
     --input: 35 22% 78%;
     --input-background: 36 50% 97%;
-    --ring: 43 58% 39%;
+    --ring: 43 58% 31%;
     --radius: 0.375rem;             /* 6px — Thomer default */
 
     /* Sidebar legacy (light variant) */
     --sidebar-background: 36 50% 94%;
     --sidebar-foreground: 30 22% 18%;
-    --sidebar-primary: 43 58% 39%;
+    --sidebar-primary: 43 58% 31%;
     --sidebar-primary-foreground: 36 50% 96%;
     --sidebar-accent: 36 35% 84%;
     --sidebar-accent-foreground: 30 22% 14%;
     --sidebar-border: 35 22% 80%;
-    --sidebar-ring: 43 58% 39%;
+    --sidebar-ring: 43 58% 31%;
     --sidebar-muted: 36 12% 50%;
+    /* Marcador do item ativo. Era #F4A7B9 escrito à mão em sidebar-fetely.css:
+       1.7:1 sobre o sidebar claro. Agora é token, escurecido no claro. */
+    --sidebar-marcador: 347 76% 47%;
 
-    --chart-1: 43 58% 39%;
+    --chart-1: 43 58% 31%;
     --chart-2: 30 30% 35%;
     --chart-3: 150 25% 40%;
     --chart-4: 38 50% 50%;
@@ -102,16 +112,22 @@
     --accent: 0 0% 12%;
     --accent-foreground: 36 38% 93%;
 
-    --destructive: 4 55% 45%;
-    --destructive-foreground: 36 38% 96%;
-    --success: 150 30% 42%;
-    --success-foreground: 36 38% 96%;
+    /* Status — mesma regra do tema claro: base = preenchimento, -strong = texto.
+       No escuro as cores de status são CLARAS, então o -foreground de todas é
+       tinta preta. destructive subiu de 45% para 60% (dava 2.91:1 como texto)
+       e success de 42% para 50%. */
+    --destructive: 4 55% 60%;
+    --destructive-foreground: 0 0% 4%;
+    --destructive-strong: 4 55% 70%;
+    --success: 150 30% 50%;
+    --success-foreground: 0 0% 4%;
+    --success-strong: 150 30% 62%;
     --warning: 38 65% 50%;
     --warning-foreground: 0 0% 4%;
-    --info: 200 50% 50%;
+    --warning-strong: 38 70% 75%;
+    --info: 200 50% 54%;
     --info-foreground: 0 0% 4%;
     --info-strong: 200 60% 78%;
-    --warning-strong: 38 70% 75%;
 
 
     --admin: 350 60% 50%;
@@ -133,6 +149,7 @@
     --sidebar-border: 0 0% 16%;
     --sidebar-ring: 45 53% 55%;
     --sidebar-muted: 42 13% 50%;
+    --sidebar-marcador: 347 76% 80%;  /* #F4A7B9 — 9.7:1 sobre o sidebar escuro */
 
     --chart-1: 45 53% 55%;
     --chart-2: 36 30% 60%;

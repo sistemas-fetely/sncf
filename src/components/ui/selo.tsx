@@ -10,11 +10,17 @@ import { cn } from "@/lib/utils";
  */
 export type EstadoSelo = "success" | "warning" | "destructive" | "info" | "muted";
 
+/**
+ * Fundo na cor base a 15%, texto na variante -strong.
+ * O texto NAO pode usar a cor base: sobre o proprio tint de 15% ela rende
+ * entre 2.6:1 e 4.1:1 conforme o tema. Com -strong todos os cinco estados
+ * passam 4.5:1 nos dois temas.
+ */
 const ESTILOS: Record<EstadoSelo, string> = {
-  success: "bg-success/15 text-success",
-  warning: "bg-warning/15 text-warning",
-  destructive: "bg-destructive/15 text-destructive",
-  info: "bg-info/15 text-info",
+  success: "bg-success/15 text-success-strong",
+  warning: "bg-warning/15 text-warning-strong",
+  destructive: "bg-destructive/15 text-destructive-strong",
+  info: "bg-info/15 text-info-strong",
   muted: "bg-muted text-muted-foreground",
 };
 
