@@ -35,10 +35,12 @@ export default {
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
+          strong: "hsl(var(--destructive-strong))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          strong: "hsl(var(--success-strong))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
@@ -83,6 +85,7 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
           muted: "hsl(var(--sidebar-muted))",
+          marcador: "hsl(var(--sidebar-marcador))",
         },
         chart: {
           "1": "hsl(var(--chart-1))",
