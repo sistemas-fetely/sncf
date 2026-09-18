@@ -578,6 +578,9 @@ Deno.serve(async (req) => {
           await falhar(`Falha ao consultar contato no Bling: ${(e as Error).message}`);
           continue;
         }
+        // Contato JA EXISTENTE no Bling: o id e reutilizado, mas o cadastro pode
+        // estar com endereco velho/sujo — e a NF puxa endereco do cadastro.
+        const contatoPreexistente = contatoId;
 
         const { logradouro, numero } = separarNumero(limparTexto(ender?.address1));
         const address2Limpo = limparTexto(ender?.address2);
