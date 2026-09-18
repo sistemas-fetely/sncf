@@ -323,6 +323,38 @@ export default function SemProvaTab() {
   const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
   const totalComprovantes = comprovantes.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
 
+  /**
+   * Agrupamento por CLIENTE (âncora = CNPJ). Clientes ordenados por soma de
+   * comprovantes desc; dentro do cliente, comprovantes por idade desc.
+   */
+  const gruposCliente = useMemo(() => {
+    const mapa = new Map<string, ComprovanteRow[]>();
+    for (const c of comprovantes) {
+      const chave = c.parceiro_id ?? c.cliente ?? "—";
+      const lista = mapa.get(chave) ?? [];
+      lista.push(c);
+      mapa.set(chave, lista);
+    }
+    return Array.from(mapa.values())
+      .map((linhas) => {
+        const somaValor = linhas.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
+        const qtdAbertos = Number(linhas[0]?.qtd_titulos_abertos ?? 0);
+        const valorAbertos = Number(linhas[0]?.valor_titulos_abertos ?? 0);
+        return {
+          nome: linhas[0]?.cliente ?? "—",
+          linhas: linhas
+            .slice()
+            .sort((a, b) => Number(b.idade_dias ?? 0) - Number(a.idade_dias ?? 0)),
+          qtd: linhas.length,
+          somaValor,
+          qtdAbertos,
+          valorAbertos,
+          excedente: somaValor - valorAbertos,
+        };
+      })
+      .sort((a, b) => b.somaValor - a.somaValor);
+  }, [comprovantes]);
+
   const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
   /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
   const alternar = (k: ChaveFiltro) => setFiltro((atual) => (atual === k ? null : k));
