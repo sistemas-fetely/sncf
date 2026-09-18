@@ -128,6 +128,58 @@ export function useEnviarComprovante(pedidoId: string) {
   });
 }
 
+/**
+ * Comprovante avulso, direto no cliente (PIX que chega por WhatsApp, sem pedido).
+ * Mesma leitura pela IA; o registro fica pendente na fila da Cobrança.
+ */
+export function useEnviarComprovanteCliente(parceiroId: string) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const hash = await sha256Hex(file);
+      const path = `cliente/${parceiroId}/${hash}.${extensaoDe(file)}`;
+
+      const { error: erroUpload } = await supabase.storage
+        .from("comprovantes-pagamento")
+        .upload(path, file, { contentType: file.type || undefined, upsert: true });
+      if (erroUpload) throw erroUpload;
+
+      const { data: leitura, error: erroFn } = await supabase.functions.invoke(
+        "ler-comprovante-pagamento",
+        { body: { storage_path: path } },
+      );
+      if (erroFn) {
+        const detalhe =
+          (leitura as { error?: string } | null)?.error ?? erroFn.message ?? "falha ao ler o comprovante";
+        throw new Error(detalhe);
+      }
+      const lido = leitura as LeituraComprovante & { error?: string };
+      if (!lido || lido.error) {
+        throw new Error(lido?.error || "A IA não devolveu a leitura do comprovante.");
+      }
+
+      const { data, error } = await supabase.rpc("registrar_comprovante_cliente", {
+        p_parceiro_id: parceiroId,
+        p_storage_path: path,
+        p_hash: hash,
+        p_leitura: lido as unknown as Record<string, unknown>,
+        p_mime: file.type || lido.mime || "application/octet-stream",
+        p_bytes: file.size,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
+      toast.success("Comprovante lido pela IA — entrou na fila de confirmação da Cobrança (Problemas Cobrança).");
+    },
+    onError: (e: Error) => {
+      toast.error(e.message);
+    },
+  });
+}
+
 interface ConfirmarArgs {
   comprovante_id: string;
   tipo: string;
