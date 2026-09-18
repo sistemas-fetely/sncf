@@ -1,5 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from "react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
@@ -20,11 +20,19 @@ import {
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
-import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import {
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   RefreshCw, Search, AlertTriangle, XCircle,
 } from "lucide-react";
+import {
+  CabecalhoOrdenavel,
+  LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao,
+  lerTamanhoPaginaSalvo,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { nomeExibicao } from "@/lib/parceiros/nome";
@@ -105,31 +113,33 @@ interface CarteiraResumo {
   cobertura_abaixo_30d: number | null;
 }
 
-type Col =
-  | "sku" | "nome" | "vendido" | "receita" | "custo"
+type ColunaProduto =
+  | "sku" | "nome" | "curva" | "vendido" | "receita" | "custo"
   | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital";
+
+type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
 // ─────────────────────────────────────────────────────────────
 // Constantes / helpers
 // ─────────────────────────────────────────────────────────────
 
-const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 60;
-const FOOTER_RESERVE = 80;
+/** Padrao da tela: quem fatura mais primeiro. */
+const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" };
 
-function buildPageRange(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "…")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) pages.push("…");
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-}
+/** Texto sobe; numero desce. Curva sobe: A primeiro. */
+const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
+  sku: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
+  custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  cobertura: "desc", capital: "desc",
+};
+
+/** Ordem de negocio da curva — nao alfabetica. */
+const ORDEM_CURVA: Record<string, number> = { A: 0, B: 1, C: 2, sem_venda: 3 };
+
+const CHAVE_PAGINA_PRODUTOS = "fetely:produtos:cockpit:page-size";
+
+/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` da faixa de carteira. */
+const ALTURA_CASA_HEADER = 64;
 
 function formatNum(n: number | null | undefined, digits = 0) {
   const v = Number(n ?? 0);
@@ -182,29 +192,25 @@ export default function Produtos() {
   const [estoqueFiltro, setEstoqueFiltro] = useState("todos");
   const [margemFiltro, setMargemFiltro] = useState("todas");
   const [alertaFiltro, setAlertaFiltro] = useState("todos");
-  const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "receita", direction: "desc",
-  });
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
   const [pagina, setPagina] = useState(1);
-  const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
-  const [autoPageSize, setAutoPageSize] = useState<number>(20);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_PRODUTOS),
+  );
   const [skuAberto, setSkuAberto] = useState<string | null>(null);
-  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
-  const pageSize = pageSizeOpt === "auto" ? autoPageSize : pageSizeOpt;
 
-  useLayoutEffect(() => {
-    function recompute() {
-      const el = tableWrapperRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top;
-      const available = window.innerHeight - top - FOOTER_RESERVE;
-      const rows = Math.max(5, Math.floor((available - 48) / ROW_HEIGHT));
-      setAutoPageSize(rows);
-    }
-    recompute();
-    window.addEventListener("resize", recompute);
-    return () => window.removeEventListener("resize", recompute);
-  }, []);
+  const ordenarColuna = (coluna: ColunaProduto) => {
+    setOrdenacao((atual) => {
+      if (atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_PRODUTO[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta ao padrao da tela (receita, maior primeiro).
+      return invertida === DIR_INICIAL_PRODUTO[coluna] ? ORDEM_PADRAO_PRODUTO : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [ordenacao]);
 
   const resumoQuery = useQuery({
     queryKey: ["vw_produto_carteira_resumo"],
@@ -257,26 +263,39 @@ export default function Produtos() {
         p.nome_comercial?.toLowerCase().includes(q)
       );
     });
-    return ordenarPor<CockpitRow, Col>(base, sort, {
-      sku: (p) => p.sku,
-      nome: (p) => p.nome_comercial ?? "",
-      vendido: (p) => Number(p.un_vendidas ?? 0),
-      receita: (p) => Number(p.receita ?? 0),
-      custo: (p) => (p.custo == null ? Number.NEGATIVE_INFINITY : Number(p.custo)),
-      mb2b: (p) => (p.resultado_pct_b2b == null ? Number.NEGATIVE_INFINITY : Number(p.resultado_pct_b2b)),
-      mb2c: (p) => (p.resultado_pct_b2c == null ? Number.NEGATIVE_INFINITY : Number(p.resultado_pct_b2c)),
-      virtual: (p) => Number(p.estoque_virtual ?? 0),
-      cobertura: (p) => (p.cobertura_dias == null ? Number.NEGATIVE_INFINITY : Number(p.cobertura_dias)),
-      capital: (p) => (p.capital_parado == null ? Number.NEGATIVE_INFINITY : Number(p.capital_parado)),
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (p: CockpitRow): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "sku": return p.sku || null;
+        case "nome": return p.nome_comercial ?? null;
+        case "curva": return p.curva ? ORDEM_CURVA[p.curva] ?? null : null;
+        case "vendido": return Number(p.un_vendidas ?? 0);
+        case "receita": return Number(p.receita ?? 0);
+        case "custo": return p.custo == null ? null : Number(p.custo);
+        case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
+        case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
+        case "virtual": return Number(p.estoque_virtual ?? 0);
+        case "cobertura": return p.cobertura_dias == null ? null : Number(p.cobertura_dias);
+        case "capital": return p.capital_parado == null ? null : Number(p.capital_parado);
+        default: return null;
+      }
+    };
+    return [...base].sort((a, b) => {
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
     });
-  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, alertaFiltro, sort]);
+  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, alertaFiltro, ordenacao]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = filtrados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
-  const inicioRange = filtrados.length === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
-  const fimRange = Math.min(paginaAtual * pageSize, filtrados.length);
-  const pageRange = buildPageRange(paginaAtual, totalPaginas);
+  const pageItems = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
 
   function handleAtualizar() {
     cockpitQuery.refetch();
@@ -285,10 +304,26 @@ export default function Produtos() {
 
   const resumo = resumoQuery.data;
 
+  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo da faixa, e a
+  // altura dela muda (7 cards quebram linha em tela menor). Mede, nao chuta.
+  const faixaRef = useRef<HTMLDivElement>(null);
+  const [alturaFaixa, setAlturaFaixa] = useState(0);
+
+  useEffect(() => {
+    const el = faixaRef.current;
+    if (!el) return;
+    const medir = () => setAlturaFaixa(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [resumoQuery.isLoading, resumo]);
+
   const totalCols = 12;
 
   return (
     <PageShell className="animate-casa-fade-in">
+      <div style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaFaixa}px` } as CSSProperties}>
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
@@ -312,7 +347,7 @@ export default function Produtos() {
       />
 
       {/* NÍVEL 1 — Faixa de carteira */}
-      <FaixaCarteira resumo={resumo} isLoading={resumoQuery.isLoading} />
+      <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
 
       {resumo && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-6 text-xs text-muted-foreground">
@@ -434,22 +469,22 @@ export default function Produtos() {
       </div>
 
       {/* Tabela */}
-      <div ref={tableWrapperRef} className="rounded-md border bg-card">
+      <div className="rounded-md border bg-card">
         <TooltipProvider delayDuration={200}>
-          <Table>
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-              <TableRow>
-                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[120px]">SKU</SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
-                <TableHead className="w-[100px]">Curva</TableHead>
-                <SortableTableHead column="vendido" sort={sort} onSort={setSort} align="right" className="w-[100px]">Vendido</SortableTableHead>
-                <SortableTableHead column="receita" sort={sort} onSort={setSort} align="right" className="w-[120px]">Receita</SortableTableHead>
-                <SortableTableHead column="custo" sort={sort} onSort={setSort} align="right" className="w-[130px]">Custo</SortableTableHead>
-                <SortableTableHead column="mb2b" sort={sort} onSort={setSort} align="right" className="w-[100px]">MB B2B</SortableTableHead>
-                <SortableTableHead column="mb2c" sort={sort} onSort={setSort} align="right" className="w-[100px]">MB B2C</SortableTableHead>
-                <SortableTableHead column="virtual" sort={sort} onSort={setSort} align="right" className="w-[110px]">Virtual</SortableTableHead>
-                <SortableTableHead column="cobertura" sort={sort} onSort={setSort} align="right" className="w-[100px]">Cobertura</SortableTableHead>
-                <SortableTableHead column="capital" sort={sort} onSort={setSort} align="right" className="w-[110px]">Capital</SortableTableHead>
+          <Table containerClassName="overflow-visible">
+            <TableHeader>
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                <CabecalhoOrdenavel rotulo="SKU" className="w-[120px]" dir={ordenacao.coluna === "sku" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("sku")} />
+                <CabecalhoOrdenavel rotulo="Produto" dir={ordenacao.coluna === "nome" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("nome")} />
+                <CabecalhoOrdenavel rotulo="Curva" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
+                <CabecalhoOrdenavel rotulo="Vendido" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
+                <CabecalhoOrdenavel rotulo="Receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
+                <CabecalhoOrdenavel rotulo="Custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
+                <CabecalhoOrdenavel rotulo="MB B2B" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
+                <CabecalhoOrdenavel rotulo="MB B2C" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
+                <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
+                <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
+                <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
                 <TableHead className="w-[90px]">Alertas</TableHead>
               </TableRow>
             </TableHeader>
@@ -618,71 +653,14 @@ export default function Produtos() {
         </TooltipProvider>
       </div>
 
-      {/* Paginação */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mt-4 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span>
-            {filtrados.length === 0
-              ? "Nenhum resultado"
-              : <>Mostrando <span className="font-medium text-foreground tabular-nums">{inicioRange}</span>–<span className="font-medium text-foreground tabular-nums">{fimRange}</span> de <span className="font-medium text-foreground tabular-nums">{filtrados.length}</span></>}
-          </span>
-          <span className="hidden sm:inline">·</span>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span>Por página:</span>
-            <Select
-              value={String(pageSizeOpt)}
-              onValueChange={(v) => {
-                setPageSizeOpt(v === "auto" ? "auto" : (Number(v) as PageSizeOption));
-                setPagina(1);
-              }}
-            >
-              <FilterSelectTrigger className="h-8 w-[110px]">
-                <SelectValue />
-              </FilterSelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n === "auto" ? `Auto (${autoPageSize})` : n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {totalPaginas > 1 && (
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina(1)} aria-label="Primeira página">
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina((p) => Math.max(1, p - 1))} aria-label="Página anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {pageRange.map((p, idx) =>
-              p === "…" ? (
-                <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
-              ) : (
-                <Button
-                  key={p}
-                  variant={p === paginaAtual ? "default" : "outline"}
-                  size="sm"
-                  className={cn("h-8 min-w-8 px-2 tabular-nums", p === paginaAtual && "pointer-events-none")}
-                  onClick={() => setPagina(p)}
-                  aria-current={p === paginaAtual ? "page" : undefined}
-                >
-                  {p}
-                </Button>
-              ),
-            )}
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} aria-label="Próxima página">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina(totalPaginas)} aria-label="Última página">
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+      <RodapePaginacao
+        total={filtrados.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_PRODUTOS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
 
       {/* NÍVEL 3 — Painel do SKU */}
       <PainelSku
@@ -691,6 +669,7 @@ export default function Produtos() {
         onClose={() => setSkuAberto(null)}
         onInvalidate={() => qc.invalidateQueries({ queryKey: ["vw_produto_cockpit"] })}
       />
+      </div>
     </PageShell>
   );
 }
@@ -724,10 +703,18 @@ function FaixaBloco({
   );
 }
 
-function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | undefined; isLoading: boolean }) {
+function FaixaCarteira({
+  resumo,
+  isLoading,
+  refBloco,
+}: {
+  resumo: CarteiraResumo | null | undefined;
+  isLoading: boolean;
+  refBloco?: Ref<HTMLDivElement>;
+}) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-4">
+      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
         {Array.from({ length: 7 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
@@ -744,7 +731,7 @@ function FaixaCarteira({ resumo, isLoading }: { resumo: CarteiraResumo | null | 
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3 mb-4">
+    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
