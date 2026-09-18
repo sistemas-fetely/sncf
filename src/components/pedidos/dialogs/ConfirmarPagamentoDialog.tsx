@@ -12,7 +12,9 @@
  * `confirmar_portao_pago` nao e chamada em lugar nenhum: esta aposentada.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2, Paperclip } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -144,6 +146,21 @@ export function ConfirmarPagamentoDialog({
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
   const confirmarLinha = useConfirmarPagamentoLinha();
   const confirmarCartao = useConfirmarCartaoCapturado();
+
+  // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
+  const destinoQ = useQuery({
+    queryKey: ["comprovante-destino", comprovanteId],
+    enabled: aberto && !!comprovanteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vw_comprovante_pendente")
+        .select("tem_portao_pendente, qtd_titulos_abertos, valor_titulos_abertos, cliente")
+        .eq("comprovante_id", comprovanteId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
 
   // GATE: modo mesa exige a ação da Mesa; modo SOPS exige declarar sem anexo OU,
   // com comprovante lido, a permissão de confirmar pagamento declarado.
@@ -480,6 +497,18 @@ export function ConfirmarPagamentoDialog({
             />
           </div>
         </div>
+
+        {destinoQ.data && (
+          <p className="text-xs text-muted-foreground">
+            {destinoQ.data.tem_portao_pendente
+              ? "Este pagamento quita o portão deste pedido."
+              : `Sem portão pendente: o valor credita a conta de ${destinoQ.data.cliente ?? "—"} e será alocado contra ${destinoQ.data.qtd_titulos_abertos ?? 0} título(s) em aberto (${formatBRL(destinoQ.data.valor_titulos_abertos ?? 0)}).${
+                  (destinoQ.data.qtd_titulos_abertos ?? 0) === 0
+                    ? " …e ficará como saldo na conta do cliente."
+                    : ""
+                }`}
+          </p>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={aoFechar} disabled={enviando}>

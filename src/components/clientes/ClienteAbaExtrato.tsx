@@ -6,9 +6,9 @@
  * `estorno_conta` na view) expandem e mostram onde o dinheiro foi alocado
  * (`conta_cliente_alocacao` → título). A leitura é sob demanda, ao expandir.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
   useContaClienteLancamentos,
   type ContaClienteLancamento,
 } from "@/hooks/financeiro/useContaCliente";
+import { useEnviarComprovanteCliente } from "@/hooks/comercial/useComprovantePagamento";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 function dataBR(iso: string | null | undefined) {
@@ -186,9 +187,20 @@ export function ClienteAbaExtrato({
 }) {
   const lancamentos = useContaClienteLancamentos(parceiroId);
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
+  const inputComprovanteRef = useRef<HTMLInputElement>(null);
+  const enviarComprovanteCliente = useEnviarComprovanteCliente(parceiroId);
 
   function alternar(chave: string) {
     setAbertos((prev) => ({ ...prev, [chave]: !prev[chave] }));
+  }
+
+  async function anexarComprovante(file: File) {
+    try {
+      // FAIL-LOUD: await de verdade; o erro sai no toast do hook.
+      await enviarComprovanteCliente.mutateAsync(file);
+    } catch {
+      /* toast já saiu */
+    }
   }
 
   return (
@@ -197,11 +209,38 @@ export function ClienteAbaExtrato({
         <p className="text-[11px] text-muted-foreground">
           Todo dinheiro entra na conta do CNPJ; o pedido debita o saldo.
         </p>
-        <RegistrarRecebimentoDialog parceiroId={parceiroId} parceiroNome={clienteNome}>
-          <Button size="sm" className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" /> Registrar recebimento
+        <div className="flex items-center gap-2">
+          <input
+            ref={inputComprovanteRef}
+            type="file"
+            accept="image/*,application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (file) void anexarComprovante(file);
+            }}
+          />
+          <Button
+            size="sm"
+            variant="outline"
+            className="gap-1.5"
+            disabled={enviarComprovanteCliente.isPending}
+            onClick={() => inputComprovanteRef.current?.click()}
+          >
+            {enviarComprovanteCliente.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Paperclip className="h-3.5 w-3.5" />
+            )}
+            Anexar comprovante
           </Button>
-        </RegistrarRecebimentoDialog>
+          <RegistrarRecebimentoDialog parceiroId={parceiroId} parceiroNome={clienteNome}>
+            <Button size="sm" className="gap-1.5">
+              <Plus className="h-3.5 w-3.5" /> Registrar recebimento
+            </Button>
+          </RegistrarRecebimentoDialog>
+        </div>
       </div>
 
       {lancamentos.isLoading && (
