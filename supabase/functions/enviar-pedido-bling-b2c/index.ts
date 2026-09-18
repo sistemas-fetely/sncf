@@ -653,10 +653,32 @@ Deno.serve(async (req) => {
           totalProdutos: baseItens,
           total: totalPedido,
           transporte: {
-            // CIF: remetente paga. Transportadora NAO vai aqui — Correios entra na
-            // etiqueta (integracao de logistica), nao no cadastro do pedido.
+            // CIF: remetente paga. Transportadora + servico espelham a integracao
+            // nativa (medido no Bling 26907106696): o pedido ja nasce com a
+            // Logistica Correios preenchida.
             fretePorConta,
             ...(valorFrete > 0 ? { frete: valorFrete } : {}),
+            contato: { id: transportadoraContatoId },
+            volumes: [
+              {
+                servico:
+                  (order.shippingLine?.title ?? "").toUpperCase().includes("SEDEX")
+                    ? servicoSedex
+                    : servicoPac,
+              },
+            ],
+            etiqueta: {
+              nome: nomeCliente,
+              endereco: logradouro,
+              numero,
+              complemento: ender?.address2 ?? "",
+              // Shopify nao tem bairro — "Não informado" e o padrao da propria nativa.
+              bairro: "Não informado",
+              cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
+              municipio: ender?.city ?? pedido.shipping_city ?? "",
+              uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
+              nomePais: "",
+            },
           },
           observacoes: `Pedido ${pedido.order_name ?? item.order_name ?? ""} (Shopify ${item.shopify_pedido_id}) via SNCF`.trim(),
         };
