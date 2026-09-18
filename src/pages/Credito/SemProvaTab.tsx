@@ -446,77 +446,100 @@ export default function SemProvaTab() {
             Nenhum comprovante aguardando confirmação.
           </div>
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>Meio</TableHead>
-                  <TableHead>Pagador</TableHead>
-                  <TableHead>Idade</TableHead>
-                  <TableHead>Destino</TableHead>
-                  <TableHead className="w-px" />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {comprovantes.map((c) => {
-                  const idade = Number(c.idade_dias ?? 0);
-                  return (
-                    <TableRow key={c.comprovante_id}>
-                      <TableCell className="font-mono text-xs">{c.pedido_ref ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{c.cliente ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatBRL(Number(c.valor_lido ?? 0))}</TableCell>
-                      <TableCell className="text-xs uppercase">{c.tipo_lido ?? "—"}</TableCell>
-                      <TableCell className="text-xs">{c.pagador_lido ?? "—"}</TableCell>
-                      <TableCell
-                        className={cn(
-                          "text-xs tabular-nums",
-                          idade > 7 && "font-medium text-destructive",
-                        )}
-                      >
-                        {idade} d
-                      </TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px]",
-                                  c.tem_portao_pendente
-                                    ? "border-warning/40 text-warning"
-                                    : "border-border text-muted-foreground",
-                                )}
-                              >
-                                {c.tem_portao_pendente ? "Paga portão" : "Conta do cliente"}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {c.tem_portao_pendente
-                                ? "Há um portão de pagamento pendente: confirmar o comprovante quita esse portão."
-                                : "Sem portão pendente: o dinheiro credita a conta do CNPJ e aloca contra os títulos em aberto."}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 text-xs"
-                          onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
-                        >
-                          Confirmar
-                        </Button>
-                      </TableCell>
+          <div className="space-y-2">
+            {gruposCliente.map((g) => (
+              <div key={g.nome} className="rounded-md border overflow-hidden">
+                <div className="bg-muted/40 border-b px-3 py-2 space-y-0.5">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <p className="text-sm font-medium truncate">{g.nome}</p>
+                    <span className="text-xs tabular-nums text-muted-foreground">
+                      {g.qtd} comprovante{g.qtd === 1 ? "" : "s"} · {formatBRL(g.somaValor)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {g.qtdAbertos > 0
+                      ? `Cliente tem ${g.qtdAbertos} título${g.qtdAbertos === 1 ? "" : "s"} aberto${g.qtdAbertos === 1 ? "" : "s"} — ${formatBRL(g.valorAbertos)}`
+                      : "Sem títulos abertos — confirmação vira saldo na conta do cliente"}
+                  </p>
+                  {g.qtdAbertos > 0 && g.excedente > 0 && (
+                    <p className="text-xs font-medium text-warning">
+                      {formatBRL(g.excedente)} além dos títulos — excedente vira saldo
+                    </p>
+                  )}
+                </div>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead>Meio</TableHead>
+                      <TableHead>Pagador</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Idade</TableHead>
+                      <TableHead>Pedido</TableHead>
+                      <TableHead>Destino</TableHead>
+                      <TableHead className="w-px" />
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {g.linhas.map((c) => {
+                      const idade = Number(c.idade_dias ?? 0);
+                      return (
+                        <TableRow key={c.comprovante_id ?? c.pedido_id}>
+                          <TableCell className="text-right tabular-nums">{formatBRL(Number(c.valor_lido ?? 0))}</TableCell>
+                          <TableCell className="text-xs uppercase">{c.tipo_lido ?? "—"}</TableCell>
+                          <TableCell className="text-xs">{c.pagador_lido ?? "—"}</TableCell>
+                          <TableCell className="text-xs tabular-nums">{formatDateBR(c.data_lida)}</TableCell>
+                          <TableCell
+                            className={cn(
+                              "text-xs tabular-nums",
+                              idade > 7 && "font-medium text-destructive",
+                            )}
+                          >
+                            {idade} d
+                          </TableCell>
+                          {/* Rastro de captura, não protagonista (B1-ANCORA-E-CNPJ). */}
+                          <TableCell className="font-mono text-xs">{c.pedido_ref ?? "—"}</TableCell>
+                          <TableCell>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "text-[10px]",
+                                      c.tem_portao_pendente
+                                        ? "border-warning/40 text-warning"
+                                        : "border-border text-muted-foreground",
+                                    )}
+                                  >
+                                    {c.tem_portao_pendente ? "Paga portão" : "Conta do cliente"}
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-xs">
+                                  {c.tem_portao_pendente
+                                    ? "Há um portão de pagamento pendente: confirmar o comprovante quita esse portão."
+                                    : "Sem portão pendente: o dinheiro credita a conta do CNPJ e aloca contra os títulos em aberto."}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
+                            >
+                              Confirmar
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ))}
           </div>
         )}
       </section>
