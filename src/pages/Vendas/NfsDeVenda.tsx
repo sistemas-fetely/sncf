@@ -1,5 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  CabecalhoOrdenavel, LINHA_CABECALHO_COLADO,
+  type DirecaoOrdenacao,
+} from "@/components/tabela/CabecalhoOrdenavel";
+import {
+  RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Badge } from "@/components/ui/badge";
@@ -66,6 +73,30 @@ function getSituacaoBadge(n: NfEmitida) {
 
 const SITUACAO_OPTIONS = ["todas", "autorizada", "cancelada"] as const;
 
+type ColunaNf =
+  | "nf" | "data" | "parceiro" | "valor" | "frete"
+  | "pedido_bling" | "pedido" | "situacao";
+
+type OrdenacaoNf = { coluna: ColunaNf; dir: DirecaoOrdenacao };
+
+/** Padrao da tela: NF mais recente primeiro — a mesma ordem de hoje. */
+const ORDEM_PADRAO_NF: OrdenacaoNf = { coluna: "nf", dir: "desc" };
+
+/** Texto sobe; numero, data e dinheiro descem. */
+const DIR_INICIAL_NF: Record<ColunaNf, DirecaoOrdenacao> = {
+  nf: "desc", data: "desc", parceiro: "asc", valor: "desc",
+  frete: "desc", pedido_bling: "asc", pedido: "asc", situacao: "desc",
+};
+
+/** Gravidade fiscal: o que deu errado vem primeiro no decrescente. */
+const GRAVIDADE_SITUACAO: Record<string, number> = {
+  rejeitada: 4, denegada: 4, cancelada: 3,
+  bloqueada: 2, pendente: 2, registrada: 1,
+  autorizada: 0, emitida: 0,
+};
+
+const CHAVE_PAGINA_NFS = "fetely:vendas:nfs:page-size";
+
 function SkeletonRow() {
   return (
     <TableRow>
@@ -77,6 +108,7 @@ function SkeletonRow() {
       <TableCell><Skeleton className="h-4 w-28" /></TableCell>
       <TableCell><Skeleton className="h-4 w-20" /></TableCell>
       <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+      <TableCell><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
     </TableRow>
   );
 }
@@ -115,6 +147,24 @@ function AbaNFs() {
   const [mesFiltro, setMesFiltro] = useState<string>("todos");
   const [syncing, setSyncing] = useState(false);
   const { data: nfs = [], isLoading, isError, error, refetch } = useNfsEmitidas();
+  const [ordenacao, setOrdenacao] = useState<OrdenacaoNf>(ORDEM_PADRAO_NF);
+  const [pagina, setPagina] = useState(1);
+  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
+    lerTamanhoPaginaSalvo(CHAVE_PAGINA_NFS),
+  );
+
+  const ordenarPor = (coluna: ColunaNf) => {
+    setOrdenacao((atual) => {
+      if (atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_NF[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      // Fechou o ciclo: volta ao padrao da tela (NF mais recente primeiro).
+      return invertida === DIR_INICIAL_NF[coluna] ? ORDEM_PADRAO_NF : { coluna, dir: invertida };
+    });
+  };
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, situacaoFiltro, mesFiltro, ordenacao]);
 
   async function handleSincronizar() {
     setSyncing(true);
@@ -180,15 +230,48 @@ function AbaNFs() {
       const fantasiaText = n.parceiro?.nome_fantasia?.toLowerCase() ?? "";
       return nfText.includes(q) || parceiroText.includes(q) || fantasiaText.includes(q);
     });
+    const dir = ordenacao.dir === "asc" ? 1 : -1;
+    const valorDe = (n: NfEmitida): string | number | null => {
+      switch (ordenacao.coluna) {
+        case "nf": {
+          const num = parseInt(n.numero ?? "", 10);
+          return Number.isNaN(num) ? null : num;
+        }
+        case "data": {
+          const t = n.data_emissao ? Date.parse(n.data_emissao) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "parceiro": return n.parceiro?.razao_social ?? null;
+        case "valor": return Number(n.valor_nota ?? 0);
+        // Frete zerado aparece como "—" na celula, entao e ausencia, nao zero.
+        case "frete": return n.valor_frete ? Number(n.valor_frete) : null;
+        case "pedido_bling":
+          return n.numero_pedido_loja || n.bling_pedido_venda_numero || null;
+        case "pedido": return n.pedido_ref ?? null;
+        case "situacao": return n.situacao ? GRAVIDADE_SITUACAO[n.situacao] ?? null : null;
+        default: return null;
+      }
+    };
+    // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
     return [...filtered].sort((a, b) => {
-      const na = parseInt(a.numero ?? "", 10);
-      const nb = parseInt(b.numero ?? "", 10);
-      const aNum = isNaN(na) ? 0 : na;
-      const bNum = isNaN(nb) ? 0 : nb;
-      if (bNum !== aNum) return bNum - aNum;
-      return (a.serie ?? "").localeCompare(b.serie ?? "") || (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
+      const va = valorDe(a);
+      const vb = valorDe(b);
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;
+      if (vb == null) return -1;
+      if (typeof va === "string" || typeof vb === "string") {
+        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+      }
+      return (Number(va) - Number(vb)) * dir;
     });
-  }, [nfs, busca, situacaoFiltro, mesFiltro]);
+  }, [nfs, busca, situacaoFiltro, mesFiltro, ordenacao]);
+
+  const totalPaginasNf = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginasNf);
+  const paginaItens = filtrados.slice(
+    (paginaAtual - 1) * tamanhoPagina,
+    paginaAtual * tamanhoPagina,
+  );
 
   const totalValor = useMemo(
     () => filtrados.reduce((sum, n) => sum + Number(n.valor_nota ?? 0), 0),
@@ -262,17 +345,17 @@ function AbaNFs() {
       </div>
 
       <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-            <TableRow>
-              <TableHead className="w-[110px]">NF</TableHead>
-              <TableHead className="w-[120px]">Data</TableHead>
-              <TableHead>Parceiro</TableHead>
-              <TableHead className="w-[140px] text-right">Valor</TableHead>
-              <TableHead className="w-[120px] text-right">Frete</TableHead>
-              <TableHead className="w-[140px]">Nº Pedido (Bling)</TableHead>
-              <TableHead className="w-[140px]">Pedido</TableHead>
-              <TableHead className="w-[120px]">Situação</TableHead>
+        <Table containerClassName="overflow-visible">
+          <TableHeader>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              <CabecalhoOrdenavel rotulo="NF" className="w-[110px]" dir={ordenacao.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
+              <CabecalhoOrdenavel rotulo="Data" className="w-[120px]" dir={ordenacao.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+              <CabecalhoOrdenavel rotulo="Parceiro" dir={ordenacao.coluna === "parceiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("parceiro")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="w-[140px] text-right" alinharDireita dir={ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Frete" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "frete" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("frete")} />
+              <CabecalhoOrdenavel rotulo="Nº Pedido (Bling)" className="w-[140px]" dir={ordenacao.coluna === "pedido_bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido_bling")} />
+              <CabecalhoOrdenavel rotulo="Pedido" className="w-[140px]" dir={ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+              <CabecalhoOrdenavel rotulo="Situação" className="w-[120px]" dir={ordenacao.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -301,7 +384,7 @@ function AbaNFs() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtrados.map((n) => (
+              paginaItens.map((n) => (
                 <TableRow key={n.id}>
                   <TableCell className="font-mono text-xs">
                     {n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? "—")}
@@ -410,6 +493,15 @@ function AbaNFs() {
           </TableBody>
         </Table>
       </div>
+
+      <RodapePaginacao
+        total={filtrados.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanhoPagina}
+        chavePreferencia={CHAVE_PAGINA_NFS}
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+      />
 
       <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
         <span>
