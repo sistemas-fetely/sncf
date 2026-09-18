@@ -353,6 +353,15 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // Transporte e obrigatorio: pedido que descer sem logistica Correios nao
+        // replica o padrao da integracao nativa e quebra a etiqueta depois.
+        if (transporteCfgFaltando.length > 0) {
+          await falhar(
+            `Config de transporte B2C ausente em integracoes_config (${transporteCfgFaltando.join(", ")}) — pedido NÃO enviado sem transporte.`,
+          );
+          continue;
+        }
+
         // 2. Espelho do pedido + itens
         const { data: pedido, error: ePed } = await supabase
           .from("shopify_pedidos")
