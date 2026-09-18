@@ -6,9 +6,9 @@
  * `estorno_conta` na view) expandem e mostram onde o dinheiro foi alocado
  * (`conta_cliente_alocacao` → título). A leitura é sob demanda, ao expandir.
  */
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,6 +25,7 @@ import {
   useContaClienteLancamentos,
   type ContaClienteLancamento,
 } from "@/hooks/financeiro/useContaCliente";
+import { useEnviarComprovanteCliente } from "@/hooks/comercial/useComprovantePagamento";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 function dataBR(iso: string | null | undefined) {
