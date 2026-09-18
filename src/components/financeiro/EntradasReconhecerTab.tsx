@@ -141,6 +141,307 @@ function AtribuirCliente({ entrada }: { entrada: EntradaReconhecer }) {
   );
 }
 
+/**
+ * COMPROVANTE-E-DINHEIRO-CHEGANDO: prova que chegou com dono conhecido é irmã
+ * de Entrada a Reconhecer — não defeito de título. Fonte: `vw_comprovante_pendente`
+ * (plana por comprovante; o agrupamento por cliente acontece aqui).
+ *
+ * CARTAO-E-CAPTURA-UNICA: linha de cartão não confirma por aqui — fecha em
+ * `confirmar_cartao_capturado`, e a RPC de comprovante recusa de propósito.
+ */
+type ComprovanteRow = Database["public"]["Views"]["vw_comprovante_pendente"]["Row"];
+
+type ColunaComprovante = "valor" | "meio" | "pagador" | "data" | "idade";
+
+const DIR_INICIAL_COMPROVANTE: Record<ColunaComprovante, DirecaoOrdenacao> = {
+  valor: "desc", meio: "asc", pagador: "asc", data: "desc", idade: "desc",
+};
+
+function ehCartao(tipo: string | null | undefined) {
+  return (tipo ?? "").toLowerCase().includes("cart");
+}
+
+function ComprovantesAguardandoBloco() {
+  const qc = useQueryClient();
+  const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
+  const [ordenacao, setOrdenacao] = useState<{ coluna: ColunaComprovante; dir: DirecaoOrdenacao } | null>(null);
+
+  const { data: comprovantes = [], isLoading, isError, error } = useQuery({
+    queryKey: ["comprovante-pendente-fila"],
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
+    queryFn: async () => {
+      const { data, error: erro } = await supabase
+        .from("vw_comprovante_pendente")
+        .select("*")
+        .order("idade_dias", { ascending: false })
+        .limit(500);
+      if (erro) throw erro;
+      return data ?? [];
+    },
+  });
+
+  const ordenarPor = (coluna: ColunaComprovante) => {
+    setOrdenacao((atual) => {
+      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_COMPROVANTE[coluna] };
+      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
+      return invertida === DIR_INICIAL_COMPROVANTE[coluna] ? null : { coluna, dir: invertida };
+    });
+  };
+
+  const grupos = useMemo(() => {
+    const mapa = new Map<string, ComprovanteRow[]>();
+    for (const c of comprovantes) {
+      const chave = c.parceiro_id ?? c.cliente ?? "—";
+      const lista = mapa.get(chave) ?? [];
+      lista.push(c);
+      mapa.set(chave, lista);
+    }
+
+    const valorDe = (c: ComprovanteRow): string | number | null => {
+      switch (ordenacao?.coluna) {
+        case "valor": return Number(c.valor_lido ?? 0);
+        case "meio": return c.tipo_lido ?? null;
+        case "pagador": return c.pagador_lido ?? null;
+        case "data": {
+          const t = c.data_lida ? Date.parse(String(c.data_lida)) : NaN;
+          return Number.isNaN(t) ? null : t;
+        }
+        case "idade": return c.idade_dias == null ? null : Number(c.idade_dias);
+        default: return null;
+      }
+    };
+
+    // VAZIO-VAI-PRO-FIM: célula sem dado nunca ganha primeiro lugar.
+    const ordenar = (linhas: ComprovanteRow[]) => {
+      if (!ordenacao) {
+        return linhas.slice().sort((a, b) => Number(b.idade_dias ?? 0) - Number(a.idade_dias ?? 0));
+      }
+      const dir = ordenacao.dir === "asc" ? 1 : -1;
+      return linhas.slice().sort((a, b) => {
+        const va = valorDe(a);
+        const vb = valorDe(b);
+        if (va == null && vb == null) return 0;
+        if (va == null) return 1;
+        if (vb == null) return -1;
+        if (typeof va === "string" || typeof vb === "string") {
+          return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
+        }
+        return (Number(va) - Number(vb)) * dir;
+      });
+    };
+
+    return Array.from(mapa.entries())
+      .map(([chave, linhas]) => {
+        const somaValor = linhas.reduce((acc, c) => acc + Number(c.valor_lido ?? 0), 0);
+        const qtdAbertos = Number(linhas[0]?.qtd_titulos_abertos ?? 0);
+        const valorAbertos = Number(linhas[0]?.valor_titulos_abertos ?? 0);
+        // Mesmo valor + mesma data no mesmo cliente: conferir antes de confirmar.
+        const contagem = new Map<string, number>();
+        for (const c of linhas) {
+          const k = `${Number(c.valor_lido ?? 0)}|${String(c.data_lida ?? "")}`;
+          contagem.set(k, (contagem.get(k) ?? 0) + 1);
+        }
+        return {
+          chave,
+          nome: linhas[0]?.cliente ?? "—",
+          linhas: ordenar(linhas),
+          qtd: linhas.length,
+          somaValor,
+          qtdAbertos,
+          valorAbertos,
+          excedente: somaValor - valorAbertos,
+          duplicada: (c: ComprovanteRow) =>
+            (contagem.get(`${Number(c.valor_lido ?? 0)}|${String(c.data_lida ?? "")}`) ?? 0) > 1,
+        };
+      })
+      .sort((a, b) => b.somaValor - a.somaValor);
+  }, [comprovantes, ordenacao]);
+
+  return (
+    <section className="space-y-2">
+      <div className="space-y-0.5">
+        <h3 className="text-sm font-medium">Comprovantes aguardando confirmação</h3>
+        <p className="text-[11px] text-muted-foreground leading-relaxed max-w-3xl">
+          Prova que chegou com dono conhecido. Confirmar credita a conta do cliente e aloca nos
+          títulos abertos.
+        </p>
+      </div>
+
+      {isError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Não foi possível carregar os comprovantes</AlertTitle>
+          <AlertDescription>{(error as any)?.message ?? "Erro desconhecido."}</AlertDescription>
+        </Alert>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-9 w-full" />
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-md border border-border/60 bg-card">
+          <Table>
+            <TableHeader>
+              <TableRow className={LINHA_CABECALHO_SIMPLES}>
+                <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+                <CabecalhoOrdenavel rotulo="Meio" dir={ordenacao?.coluna === "meio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("meio")} />
+                <CabecalhoOrdenavel rotulo="Pagador" dir={ordenacao?.coluna === "pagador" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pagador")} />
+                <CabecalhoOrdenavel rotulo="Data" dir={ordenacao?.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+                <CabecalhoOrdenavel rotulo="Idade" className="text-right" alinharDireita dir={ordenacao?.coluna === "idade" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("idade")} />
+                <TableHead>Pedido</TableHead>
+                <TableHead>Destino</TableHead>
+                <TableHead className="w-px" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {grupos.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
+                    Nenhum comprovante aguardando confirmação.
+                  </TableCell>
+                </TableRow>
+              )}
+              {grupos.map((g) => (
+                <Fragment key={g.chave}>
+                  <TableRow className="bg-muted/40 hover:bg-muted/40">
+                    <TableCell colSpan={8} className="py-2">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="text-sm font-medium truncate">{g.nome}</span>
+                        <span className="text-xs tabular-nums text-muted-foreground">
+                          {g.qtd} comprovante{g.qtd === 1 ? "" : "s"} · {formatBRL(g.somaValor)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {g.qtdAbertos > 0
+                          ? `${g.qtdAbertos} título${g.qtdAbertos === 1 ? "" : "s"} aberto${g.qtdAbertos === 1 ? "" : "s"} — ${formatBRL(g.valorAbertos)}`
+                          : "Sem títulos abertos — vira saldo"}
+                      </p>
+                      {g.qtdAbertos > 0 && g.excedente > 0 && (
+                        <p className="text-[11px] text-muted-foreground">
+                          {formatBRL(g.excedente)} acima dos títulos — excedente vira saldo
+                        </p>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  {g.linhas.map((c) => {
+                    const idade = Number(c.idade_dias ?? 0);
+                    const cartao = ehCartao(c.tipo_lido);
+                    return (
+                      <TableRow key={c.comprovante_id ?? `${g.chave}-${c.pedido_id}`}>
+                        <TableCell className="text-right text-xs tabular-nums font-medium">
+                          {formatBRL(Number(c.valor_lido ?? 0))}
+                        </TableCell>
+                        <TableCell className="text-xs uppercase">{c.tipo_lido ?? "—"}</TableCell>
+                        <TableCell className="text-xs">
+                          <span>{c.pagador_lido ?? "—"}</span>
+                          {g.duplicada(c) && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="ml-1.5 border-warning/40 text-warning text-[10px]">
+                                    Possível duplicidade
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs text-xs">
+                                  Mesmo valor e mesma data para o mesmo cliente — conferir antes de
+                                  confirmar.
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums">{dataBR(c.data_lida)}</TableCell>
+                        <TableCell
+                          className={cn(
+                            "text-right text-xs tabular-nums",
+                            idade > 20
+                              ? "font-medium text-destructive"
+                              : idade > 7
+                                ? "font-medium text-warning"
+                                : "",
+                          )}
+                        >
+                          {idade} d
+                        </TableCell>
+                        {/* Pedido é rastro de captura, não protagonista. */}
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          {c.pedido_ref ?? "—"}
+                        </TableCell>
+                        <TableCell>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-[10px]",
+                                    c.tem_portao_pendente
+                                      ? "border-warning/40 text-warning"
+                                      : "border-border text-muted-foreground",
+                                  )}
+                                >
+                                  {c.tem_portao_pendente ? "Paga portão" : "Conta do cliente"}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs text-xs">
+                                {c.tem_portao_pendente
+                                  ? "Há um portão de pagamento pendente: confirmar o comprovante quita esse portão."
+                                  : "Sem portão pendente: o dinheiro credita a conta do CNPJ e aloca contra os títulos em aberto."}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {cartao ? (
+                            <Badge variant="outline" className="border-border text-muted-foreground text-[10px]">
+                              {c.pedido_id ? (
+                                <Link to={`/pedidos/${c.pedido_id}`} className="hover:underline">
+                                  Fecha na captura do cartão
+                                </Link>
+                              ) : (
+                                "Fecha na captura do cartão"
+                              )}
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
+                            >
+                              Confirmar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {confirmarPedidoId && (
+        <ConfirmarPagamentoDialog
+          pedidoId={confirmarPedidoId}
+          aberto
+          aoFechar={() => {
+            setConfirmarPedidoId(null);
+            qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
+          }}
+          modo="mesa"
+        />
+      )}
+    </section>
+  );
+}
+
 export function EntradasReconhecerTab() {
   const { data: entradas, isLoading, isError, error } = useEntradasReconhecer();
   const [ordenacao, setOrdenacao] = useState<OrdenacaoEntradas>(null);
