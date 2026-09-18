@@ -49259,6 +49259,7 @@ export type Database = {
           shopify_id: string
           subtotal: number
           subtotal_original: number | null
+          tags: string | null
           total: number
           total_original: number | null
           tracking_company: string | null
@@ -49292,6 +49293,7 @@ export type Database = {
           shopify_id: string
           subtotal?: number
           subtotal_original?: number | null
+          tags?: string | null
           total?: number
           total_original?: number | null
           tracking_company?: string | null
@@ -49325,6 +49327,7 @@ export type Database = {
           shopify_id?: string
           subtotal?: number
           subtotal_original?: number | null
+          tags?: string | null
           total?: number
           total_original?: number | null
           tracking_company?: string | null
