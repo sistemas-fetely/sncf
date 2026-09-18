@@ -3878,6 +3878,74 @@ export type Database = {
         }
         Relationships: []
       }
+      b2c_modal_entrega: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          exige_etiqueta_correios: boolean
+          id: string
+          nome: string
+          tem_rastreio_automatico: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          exige_etiqueta_correios?: boolean
+          id?: string
+          nome: string
+          tem_rastreio_automatico?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          exige_etiqueta_correios?: boolean
+          id?: string
+          nome?: string
+          tem_rastreio_automatico?: boolean
+        }
+        Relationships: []
+      }
+      b2c_modal_regra: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          modal_codigo: string
+          observacao: string | null
+          prefixo_cep: string | null
+          prioridade: number
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          modal_codigo: string
+          observacao?: string | null
+          prefixo_cep?: string | null
+          prioridade?: number
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          modal_codigo?: string
+          observacao?: string | null
+          prefixo_cep?: string | null
+          prioridade?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2c_modal_regra_modal_codigo_fkey"
+            columns: ["modal_codigo"]
+            isOneToOne: false
+            referencedRelation: "b2c_modal_entrega"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       b2c_roteamento_regra: {
         Row: {
           ativo: boolean
@@ -7588,6 +7656,7 @@ export type Database = {
       centro_distribuicao: {
         Row: {
           ativo: boolean
+          cnpj_emitente: string | null
           codigo: string
           contabil: boolean
           criado_em: string
@@ -7602,6 +7671,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cnpj_emitente?: string | null
           codigo: string
           contabil?: boolean
           criado_em?: string
@@ -7616,6 +7686,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cnpj_emitente?: string | null
           codigo?: string
           contabil?: boolean
           criado_em?: string
@@ -102182,6 +102253,29 @@ export type Database = {
         Returns: {
           pessoa_id: string
         }[]
+      }
+      fn_mesa_sp_despachar: {
+        Args: { p_modal: string; p_pedido_id: string; p_referencia?: string }
+        Returns: Json
+      }
+      fn_mesa_sp_embalar: {
+        Args: {
+          p_modal: string
+          p_pedido_id: string
+          p_peso_kg: number
+          p_volumes: number
+        }
+        Returns: Json
+      }
+      fn_mesa_sp_puxar_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_mesa_sp_registrar_conferencia: {
+        Args: {
+          p_itens: Json
+          p_motivo?: string
+          p_ok: boolean
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       fn_mesa_ver_como: {
         Args: { _pessoa_id: string }

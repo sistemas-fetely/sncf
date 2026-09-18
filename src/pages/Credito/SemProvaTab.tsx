@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ import { fmtDataMesa, seloEntrega, seloInstrumento, Selo } from "@/lib/financeir
 import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 import {
   useSemProvaFila,
-  useCartaoConciliarFila,
   useInstrumentoQuebradoFila,
   useNaoCobravelFila,
 } from "@/hooks/credito/useSemProvaFila";
@@ -74,7 +73,6 @@ const TOM_BLOCO: Record<ProvaClasse, "destructive" | "warning" | "muted"> = {
   credito_atrasado: "warning",
 };
 
-const BLOCO_CARTAO = "AGUARDANDO LIQUIDAÇÃO DA ADQUIRENTE";
 const BLOCO_INSTRUMENTO = "INSTRUMENTO DE COBRANÇA QUEBRADO";
 const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
 
@@ -83,11 +81,10 @@ const BLOCO_NAO_COBRAVEL = "REGIME PRÓPRIO — NÃO ENTRA NA RÉGUA";
  * Card sem bloco correspondente vira numero decorativo; bloco sem card vira
  * secao inalcancavel. Por isso a chave e a MESMA lista para os dois.
  */
-type ChaveFiltro = ProvaClasse | "instrumento" | "cartao" | "nao_cobravel";
+type ChaveFiltro = ProvaClasse | "instrumento" | "nao_cobravel";
 
-const ROTULO_CARD_EXTRA: Record<"instrumento" | "cartao" | "nao_cobravel", string> = {
+const ROTULO_CARD_EXTRA: Record<"instrumento" | "nao_cobravel", string> = {
   instrumento: "Instrumento quebrado",
-  cartao: "Aguardando adquirente",
   nao_cobravel: "Regime próprio",
 };
 
@@ -164,13 +161,7 @@ function CardResumo({
   );
 }
 
-function CardSemProva({
-  l, cartao,
-}: {
-  l: LinhaMesa;
-  /** Bloco da adquirente: data é liquidação prevista, nunca "vence"; sem badge de atraso. */
-  cartao?: boolean;
-}) {
+function CardSemProva({ l }: { l: LinhaMesa }) {
   const navigate = useNavigate();
   const razao = nomeCanonico(l.nome_exibicao ?? l.nome_canonico, "—");
   const apelido = apelidoParceiro(l.nome_exibicao ?? l.nome_canonico, l.apelido);
@@ -181,11 +172,7 @@ function CardSemProva({
     <div
       className={cn(
         "rounded-md border bg-card p-3 space-y-2",
-        cartao
-          ? "border-l-4 border-l-muted-foreground/40"
-          : grave
-            ? "border-l-4 border-l-destructive"
-            : "border-l-4 border-l-warning",
+        grave ? "border-l-4 border-l-destructive" : "border-l-4 border-l-warning",
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -205,10 +192,10 @@ function CardSemProva({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <div className={cn("font-medium text-base", cartao ? "" : grave ? "text-destructive" : "text-warning")}>
+          <div className={cn("font-medium text-base", grave ? "text-destructive" : "text-warning")}>
             {formatBRL(Number(l.valor_atual ?? 0))}
           </div>
-          {!cartao && classe && (
+          {classe && (
             <Badge
               className={cn(
                 "text-[10px]",
@@ -224,7 +211,7 @@ function CardSemProva({
       </div>
 
       <p className="text-xs text-muted-foreground">
-        {cartao ? "liquidação prevista " : "vence "}
+        {"vence "}
         {fmtDataMesa(l.vencimento)}
         {l.instrumento ? ` · ${l.instrumento}` : ""}
         {l.estagio ? ` · ${l.estagio}` : ""}
@@ -276,7 +263,6 @@ function CardSemProva({
 
 export default function SemProvaTab() {
   const { data: linhas = [], isLoading } = useSemProvaFila();
-  const { data: cartao = [], isLoading: loadingCartao } = useCartaoConciliarFila();
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
@@ -294,7 +280,7 @@ export default function SemProvaTab() {
     }));
   }, [linhas]);
 
-  if (isLoading || loadingCartao || loadingInstr || loadingNC) {
+  if (isLoading || loadingInstr || loadingNC) {
     return (
       <div className="space-y-2">
         <Skeleton className="h-16 w-full" />
@@ -324,14 +310,6 @@ export default function SemProvaTab() {
           tom="destructive"
           ativo={filtro === "instrumento"}
           onClick={() => alternar("instrumento")}
-        />
-        <CardResumo
-          label={ROTULO_CARD_EXTRA.cartao}
-          qtd={cartao.length}
-          total={soma(cartao)}
-          tom="muted"
-          ativo={filtro === "cartao"}
-          onClick={() => alternar("cartao")}
         />
         <CardResumo
           label={ROTULO_CARD_EXTRA.nao_cobravel}
@@ -412,31 +390,6 @@ export default function SemProvaTab() {
       </section>
       )}
 
-      {mostra("cartao") && (
-      <section className="space-y-2">
-        <BlocoHeader
-          titulo={BLOCO_CARTAO}
-          qtd={cartao.length}
-          total={soma(cartao)}
-          tom="muted"
-        />
-        {cartao.length === 0 ? (
-          <div className="rounded-md border border-dashed px-3 py-3 text-xs text-muted-foreground">
-            Nenhum cartão aguardando liquidação da adquirente.
-          </div>
-        ) : (
-          <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-            {cartao
-              .slice()
-              .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0))
-              .map((l) => (
-                <CardSemProva key={l.titulo_id} l={l} cartao />
-              ))}
-          </div>
-        )}
-      </section>
-      )}
-
       {mostra("nao_cobravel") && (
       <section className="space-y-2">
         <BlocoHeader
@@ -466,6 +419,14 @@ export default function SemProvaTab() {
         )}
       </section>
       )}
+
+      <p className="text-xs text-muted-foreground">
+        Cartão pago sem prova mora na{" "}
+        <Link to="/recebimento/conciliacao?aba=cartao" className="underline underline-offset-2 hover:text-foreground">
+          Conciliação → Cartão
+        </Link>
+        .
+      </p>
     </div>
   );
 }
