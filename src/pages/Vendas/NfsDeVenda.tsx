@@ -345,17 +345,17 @@ function AbaNFs() {
       </div>
 
       <div className="rounded-md border bg-card">
-        <Table>
-          <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-            <TableRow>
-              <TableHead className="w-[110px]">NF</TableHead>
-              <TableHead className="w-[120px]">Data</TableHead>
-              <TableHead>Parceiro</TableHead>
-              <TableHead className="w-[140px] text-right">Valor</TableHead>
-              <TableHead className="w-[120px] text-right">Frete</TableHead>
-              <TableHead className="w-[140px]">Nº Pedido (Bling)</TableHead>
-              <TableHead className="w-[140px]">Pedido</TableHead>
-              <TableHead className="w-[120px]">Situação</TableHead>
+        <Table containerClassName="overflow-visible">
+          <TableHeader>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              <CabecalhoOrdenavel rotulo="NF" className="w-[110px]" dir={ordenacao.coluna === "nf" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("nf")} />
+              <CabecalhoOrdenavel rotulo="Data" className="w-[120px]" dir={ordenacao.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
+              <CabecalhoOrdenavel rotulo="Parceiro" dir={ordenacao.coluna === "parceiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("parceiro")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="w-[140px] text-right" alinharDireita dir={ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
+              <CabecalhoOrdenavel rotulo="Frete" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "frete" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("frete")} />
+              <CabecalhoOrdenavel rotulo="Nº Pedido (Bling)" className="w-[140px]" dir={ordenacao.coluna === "pedido_bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido_bling")} />
+              <CabecalhoOrdenavel rotulo="Pedido" className="w-[140px]" dir={ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
+              <CabecalhoOrdenavel rotulo="Situação" className="w-[120px]" dir={ordenacao.coluna === "situacao" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("situacao")} />
               <TableHead className="w-[100px] text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -384,7 +384,7 @@ function AbaNFs() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtrados.map((n) => (
+              paginaItens.map((n) => (
                 <TableRow key={n.id}>
                   <TableCell className="font-mono text-xs">
                     {n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? "—")}
