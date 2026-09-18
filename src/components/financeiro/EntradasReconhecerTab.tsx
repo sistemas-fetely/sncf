@@ -4,9 +4,16 @@
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { Link } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -38,6 +45,7 @@ import {
 import {
   CabecalhoOrdenavel,
   LINHA_CABECALHO_COLADO,
+  LINHA_CABECALHO_SIMPLES,
   type DirecaoOrdenacao,
 } from "@/components/tabela/CabecalhoOrdenavel";
 import {
