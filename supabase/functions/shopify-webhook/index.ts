@@ -424,6 +424,7 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
       shipping_city: str(addr.city),
       shipping_province: str(addr.province),
       shipping_zip: str(addr.zip),
+      tags: str(order.tags),
       updated_at: new Date().toISOString(),
     };
 
