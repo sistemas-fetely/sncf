@@ -10949,6 +10949,7 @@ export type Database = {
           movimentacao_id: string | null
           pagador_documento_lido: string | null
           pagador_lido: string | null
+          parceiro_id: string | null
           payload_ia: Json | null
           pedido_id: string | null
           provisao_id: string | null
@@ -10983,6 +10984,7 @@ export type Database = {
           movimentacao_id?: string | null
           pagador_documento_lido?: string | null
           pagador_lido?: string | null
+          parceiro_id?: string | null
           payload_ia?: Json | null
           pedido_id?: string | null
           provisao_id?: string | null
@@ -11017,6 +11019,7 @@ export type Database = {
           movimentacao_id?: string | null
           pagador_documento_lido?: string | null
           pagador_lido?: string | null
+          parceiro_id?: string | null
           payload_ia?: Json | null
           pedido_id?: string | null
           provisao_id?: string | null
@@ -11265,6 +11268,90 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_sugestao_baixa_extrato"
             referencedColumns: ["mov_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "comprovante_pagamento_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
           },
           {
             foreignKeyName: "comprovante_pagamento_pedido_id_fkey"
@@ -69034,11 +69121,14 @@ export type Database = {
           estagio: string | null
           idade_dias: number | null
           pagador_lido: string | null
+          parceiro_id: string | null
           pedido_id: string | null
           pedido_ref: string | null
+          qtd_titulos_abertos: number | null
           tem_portao_pendente: boolean | null
           tipo_lido: string | null
           valor_lido: number | null
+          valor_titulos_abertos: number | null
         }
         Relationships: [
           {
@@ -95051,14 +95141,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
