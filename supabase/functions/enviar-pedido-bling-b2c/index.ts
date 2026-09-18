@@ -91,7 +91,6 @@ query pedidoB2C($id: ID!) {
     name
     email
     phone
-    customer { firstName lastName displayName email phone }
     shippingAddress {
       firstName lastName name company phone
       address1 address2 city province provinceCode zip countryCodeV2
