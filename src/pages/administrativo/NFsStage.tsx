@@ -473,8 +473,18 @@ export default function NFsStage() {
     },
   });
 
-  // Contagem de despesas vinculadas por stage (modelo N:1: nfs_stage.conta_pagar_id).
-  // Como cada NF aponta no máximo para 1 CPR, a contagem aqui é 0 ou 1.
+  // Numerador do badge "Parcial (n/N)".
+  //
+  // Conta CPRs que apontam para a NF (`contas_pagar_receber.nf_stage_id`), que é
+  // EXATAMENTE o que `recalcular_status_nf_stage` faz no servidor para decidir
+  // entre nao_vinculada / parcial / vinculada:
+  //
+  //     SELECT COUNT(*) FROM contas_pagar_receber WHERE nf_stage_id = p_stage_id
+  //
+  // Antes esta query lia o outro lado do vínculo, `nfs_stage.conta_pagar_id`, que
+  // é 0 ou 1 por construção — uma NF aponta para no máximo uma CPR. O numerador
+  // nunca passava de 1 enquanto o denominador é a quantidade de boletos: o badge
+  // era incapaz de mostrar "2/3", e discordava do status calculado pelo servidor.
   //
   // A chave leva os IDS das NFs parciais, nunca a QUANTIDADE de NFs. Com
   // `nfs.length` na chave, lançar ou apagar uma despesa não mudava a chave — o
@@ -497,14 +507,15 @@ export default function NFsStage() {
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("nfs_stage")
-        .select("id, conta_pagar_id")
-        .in("id", idsParciais)
-        .not("conta_pagar_id", "is", null);
+        .from("contas_pagar_receber")
+        .select("nf_stage_id")
+        .in("nf_stage_id", idsParciais);
       if (error) throw error;
+      // Sem filtro de status, de propósito: recalcular_status_nf_stage também não
+      // filtra. Badge e status precisam contar a mesma coisa.
       const counts: Record<string, number> = {};
       for (const row of data || []) {
-        const k = (row as { id: string }).id;
+        const k = (row as { nf_stage_id: string }).nf_stage_id;
         counts[k] = (counts[k] || 0) + 1;
       }
       return counts;
