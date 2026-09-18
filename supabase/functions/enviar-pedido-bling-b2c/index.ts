@@ -846,7 +846,8 @@ Deno.serve(async (req) => {
             status: "enviado",
             bling_pedido_id: blingPedidoId,
             processado_em: new Date().toISOString(),
-            ultimo_erro: null,
+            // aviso de endereco (se houve) sobrevive ao sucesso — nao some no null.
+            ultimo_erro: avisoEndereco ?? null,
           })
           .eq("id", item.id);
         if (eOk) {
