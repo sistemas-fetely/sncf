@@ -641,6 +641,57 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Contato PRE-EXISTENTE: atualiza APENAS o endereco geral com o endereco
+        // de entrega do pedido atual (ja parseado e limpo). Nome, documento, tipo,
+        // indicadorIE, situacao, email e telefone seguem intactos — o payload e
+        // lido do Bling e reenviado como veio, com so o endereco.geral trocado.
+        // Falha NAO bloqueia o envio: o pedido leva a etiqueta correta de qualquer
+        // forma; o aviso fica registrado no `ultimo_erro` da fila (sem mudar status).
+        let avisoEndereco: string | null = null;
+        if (contatoPreexistente) {
+          if (dry) {
+            // Dry-run NAO faz PUT — zero efeito, como o padrao do dry.
+            console.log("[b2c-descida][dry] contato existente, endereco geral seria atualizado", {
+              shopify_pedido_id: item.shopify_pedido_id,
+              contato_id: contatoPreexistente,
+            });
+          } else {
+            try {
+              await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+              const atual = await bling.get(`/contatos/${contatoPreexistente}`);
+              const contatoAtual = ((atual?.data ?? atual ?? {}) as Record<string, unknown>);
+              const enderecoAtual = (contatoAtual.endereco ?? {}) as Record<string, unknown>;
+              await putBling(`/contatos/${contatoPreexistente}`, {
+                ...contatoAtual,
+                endereco: {
+                  ...enderecoAtual,
+                  geral: {
+                    endereco: logradouro,
+                    numero,
+                    complemento: complementoEndereco,
+                    bairro: bairroEndereco || "Não informado",
+                    cep: soDigitos(ender?.zip ?? pedido.shipping_zip),
+                    municipio: municipioEndereco,
+                    uf: (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().slice(0, 2),
+                  },
+                },
+              });
+              console.log("[b2c-descida] endereco geral do contato atualizado", {
+                contato_id: contatoPreexistente,
+                shopify_pedido_id: item.shopify_pedido_id,
+              });
+            } catch (e) {
+              avisoEndereco =
+                `aviso: falha ao atualizar endereço do contato ${contatoPreexistente}: ${(e as Error).message}`;
+              console.warn("[b2c-descida]", avisoEndereco, { shopify_pedido_id: item.shopify_pedido_id });
+              await supabase
+                .from("bling_pedido_fila_b2c")
+                .update({ ultimo_erro: avisoEndereco.slice(0, 2000) })
+                .eq("id", item.id);
+            }
+          }
+        }
+
         // 6. Valores. `total` e `shipping_cost` sao a verdade vigente do espelho
         //    (pos-edicao). A base dos itens e `total - frete` para que
         //    totalProdutos + frete feche EXATAMENTE com o total — a mesma regra do B2B.
