@@ -171,11 +171,13 @@ function extrairDocumento(order: PedidoShopifyApi["order"]): string | null {
 /** Separa numero do logradouro quando o cliente digitou "Rua X, 123". O Bling tem
  *  campo `numero` proprio; mandar tudo em `endereco` sai errado na etiqueta e na NF. */
 function separarNumero(address1: string | null): { logradouro: string; numero: string } {
-  const bruto = String(address1 ?? "").trim();
+  const bruto = limparTexto(address1);
   if (!bruto) return { logradouro: "", numero: "S/N" };
   const m = bruto.match(/^(.*?)[,\s]+(\d+[A-Za-z]?)$/);
-  if (m) return { logradouro: m[1].trim(), numero: m[2].trim() };
-  return { logradouro: bruto, numero: "S/N" };
+  // Apos o split, sobras de virgula/espaco no fim do logradouro saem
+  // ("Avenida Brigadeiro Salema," -> "Avenida Brigadeiro Salema").
+  const logradouro = (m ? m[1] : bruto).replace(/[,\s]+$/, "").trim();
+  return { logradouro, numero: m ? m[2].trim() : "S/N" };
 }
 
 Deno.serve(async (req) => {
