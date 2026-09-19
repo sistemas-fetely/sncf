@@ -79,61 +79,30 @@ function diasTexto(d: number | null): string {
   return `há ${d} d`;
 }
 
-// BADGE-LÊ-A-MESMA-FONTE-DA-TELA: o estado da descida ao Bling vem da MESMA
-// tabela que a descida automática escreve — bling_pedido_fila_b2c. O pedido
-// interno SNCF só nasce depois da NF; até lá, a fila é a verdade.
-const STATUS_FILA_SEM_ALERTA = new Set(["enviado", "pendente", "processando", "pausado"]);
-
-interface FilaBlingRow {
-  shopify_pedido_id: string;
-  status: string | null;
-  bling_pedido_id: string | null;
-  ultimo_erro: string | null;
-}
-
-/** Uma query só, pelos shopify_id dos pedidos listados. */
-function useFilaBlingB2c(shopifyIds: string[]) {
-  const chave = shopifyIds.join(",");
-  return useQuery({
-    queryKey: ["b2c-fila-bling", chave],
-    enabled: shopifyIds.length > 0,
-    staleTime: 30 * 1000,
-    queryFn: async (): Promise<FilaBlingRow[]> => {
-      const { data, error } = await supabase
-        .from("bling_pedido_fila_b2c")
-        .select("shopify_pedido_id, status, bling_pedido_id, ultimo_erro")
-        .in("shopify_pedido_id", shopifyIds);
-      if (error) throw error;
-      return (data ?? []) as FilaBlingRow[];
-    },
-  });
-}
-
-/** Linha da fila de descida — só faz sentido para pedido que ainda não nasceu no SNCF. */
-function filaDoPedido(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): FilaBlingRow | null {
-  if (!p.pedido_ausente || !p.shopify_id) return null;
-  return mapaFila.get(p.shopify_id) ?? null;
-}
+// BADGE-LÊ-A-MESMA-FONTE-DA-TELA: o estado da descida ao Bling vem da PRÓPRIA
+// view da tela (colunas fila_*). Sem query paralela à tabela da fila.
+const STATUS_FILA_SEM_ALERTA = new Set([
+  "aguardando_destino", "enviado", "pendente", "processando", "pausado",
+]);
 
 /** Fila em dia não é problema: alerta só com erro na descida ou sem linha na fila. */
-function alertaSuprimidoPorFila(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): boolean {
-  const f = filaDoPedido(p, mapaFila);
-  if (!f) return false;
-  return STATUS_FILA_SEM_ALERTA.has(f.status ?? "");
+function alertaSuprimidoPorFila(p: PedidoB2cRow): boolean {
+  if (!p.fila_status) return false;
+  return STATUS_FILA_SEM_ALERTA.has(p.fila_status);
 }
 
-/** Próxima ação exibida — para pedido ausente, reflete o estado real da fila. */
-function proximaAcaoExibida(p: PedidoB2cRow, mapaFila: Map<string, FilaBlingRow>): string | null {
-  const f = filaDoPedido(p, mapaFila);
-  if (!f) return p.proxima_acao;
-  switch (f.status) {
+/** Próxima ação exibida — reflete o estado real da descida ao Bling. */
+function proximaAcaoExibida(p: PedidoB2cRow): string | null {
+  switch (p.fila_status) {
+    case "aguardando_destino":
+      return "Escolha o CD para liberar a descida";
     case "enviado":
       return "No Bling — aguardando faturamento";
     case "pendente":
     case "processando":
       return "Desce automático em até 10 min";
     case "erro":
-      return f.ultimo_erro?.trim() || "Erro na descida ao Bling";
+      return p.fila_ultimo_erro?.trim() || "Erro na descida ao Bling";
     case "pausado":
       return "Pausado (ver fila)";
     default:
