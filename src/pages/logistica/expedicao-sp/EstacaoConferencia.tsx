@@ -111,10 +111,11 @@ function LinhaItem({
           tamanho={48}
         />
         <div className="min-w-0">
-        <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
-        <p className="font-mono text-xs text-muted-foreground">
-          {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
-        </p>
+          <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
+          <p className="font-mono text-xs text-muted-foreground">
+            {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
+          </p>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {modo === "conferir" ? (
