@@ -60,7 +60,7 @@ export function SeletorVinculoTarefa({
           if (tipoGravado !== "nenhum") onChange(VAZIO);
         }}
       >
-        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+        <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="nenhum">Nenhum</SelectItem>
           <SelectItem value="pedidos">Pedido</SelectItem>

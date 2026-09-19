@@ -16,7 +16,7 @@ import {
   useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarValorCampo, useSubtarefas,
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
-import { Campo, PRIORIDADE_ROTULO, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
+import { Campo, PRIORIDADE_ROTULO, RotuloCampo, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
 import { SeletorVinculoTarefa } from "./SeletorVinculoTarefa";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
@@ -33,10 +33,11 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
   useEffect(() => setEstimativa(tarefa.estimativa_horas?.toString() ?? ""), [tarefa.estimativa_horas]);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
+    // FAIXA-DE-PROPRIEDADES: preencher acontece no topo, campo largo, sem rolagem.
+    <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       <Campo rotulo="Status">
         <Select value={tarefa.status} onValueChange={(v) => salvar.mutate({ status: v as TarefaStatus })}>
-          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             {(statusDim ?? []).map((s) => (
               <SelectItem key={s.codigo} value={s.codigo}>{s.nome}</SelectItem>
@@ -47,7 +48,7 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
 
       <Campo rotulo="Prioridade">
         <Select value={tarefa.prioridade} onValueChange={(v) => salvar.mutate({ prioridade: v as TarefaPrioridade })}>
-          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
             {Object.entries(PRIORIDADE_ROTULO).map(([k, v]) => (
               <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -56,14 +57,10 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
         </Select>
       </Campo>
 
-      <Campo rotulo="Responsável (R)">
-        <SeletorPessoa valor={tarefa.responsavel_id} onChange={(id) => salvar.mutate({ responsavel_id: id })} />
-      </Campo>
-
       {/* Subtarefa não tem endereço próprio: projeto e seção são sempre os da mãe
           (o banco sobrescreve), então nem aparecem como campo editável. */}
       {tarefa.parent_id ? (
-        <div className="col-span-2 rounded border border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+        <div className="col-span-2 rounded border xl:col-span-4 border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
           Esta é uma subtarefa: projeto e seção acompanham a tarefa-mãe e não são
           editáveis aqui.
         </div>
@@ -77,7 +74,7 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
                 salvar.mutate({ projeto_id: v === SEM_VALOR ? null : v, secao_id: null })
               }
             >
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM_VALOR}>— sem projeto —</SelectItem>
                 {(projetos ?? []).map((p) => (
@@ -93,7 +90,7 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
               disabled={!tarefa.projeto_id}
               onValueChange={(v) => salvar.mutate({ secao_id: v === SEM_VALOR ? null : v })}
             >
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM_VALOR}>— sem seção —</SelectItem>
                 {(secoes ?? []).map((s) => (
@@ -107,28 +104,28 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
 
       <Campo rotulo="Data de início">
         <Input
-          type="date" className="h-8 text-sm" value={tarefa.data_inicio ?? ""}
+          type="date" className="h-9 text-sm" value={tarefa.data_inicio ?? ""}
           onChange={(e) => salvar.mutate({ data_inicio: e.target.value || null })}
         />
       </Campo>
 
       <Campo rotulo="Data limite">
         <Input
-          type="date" className="h-8 text-sm" value={tarefa.data_limite ?? ""}
+          type="date" className="h-9 text-sm" value={tarefa.data_limite ?? ""}
           onChange={(e) => salvar.mutate({ data_limite: e.target.value || null })}
         />
       </Campo>
 
       <Campo rotulo="Hora limite">
         <Input
-          type="time" className="h-8 text-sm" value={tarefa.hora_limite?.slice(0, 5) ?? ""}
+          type="time" className="h-9 text-sm" value={tarefa.hora_limite?.slice(0, 5) ?? ""}
           onChange={(e) => salvar.mutate({ hora_limite: e.target.value || null })}
         />
       </Campo>
 
       <Campo rotulo="Estimativa (horas)">
         <Input
-          type="number" step="0.25" min="0" className="h-8 text-sm" value={estimativa}
+          type="number" step="0.25" min="0" className="h-9 text-sm" value={estimativa}
           onChange={(e) => setEstimativa(e.target.value)}
           onBlur={() =>
             salvar.mutate({ estimativa_horas: estimativa === "" ? null : Number(estimativa) })
@@ -240,7 +237,7 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
         }}
       >
         <Input
-          className="h-8 text-sm" placeholder="Nova subtarefa" value={titulo}
+          className="h-9 text-sm" placeholder="Nova subtarefa" value={titulo}
           onChange={(e) => setTitulo(e.target.value)}
         />
         <Button type="submit" size="sm" variant="outline" disabled={criar.isPending || !titulo.trim()}>
@@ -271,9 +268,7 @@ export function BlocoRaci({ tarefa }: { tarefa: TarefaDetalhe }) {
     <Secao titulo="Responsabilidades (RACI)">
       <div className="space-y-3">
         <div className="space-y-1">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            R — Executa
-          </span>
+          <RotuloCampo>R — Executa</RotuloCampo>
           {/* R é o campo responsavel_id; o banco espelha em tarefas_papeis */}
           <SeletorPessoa valor={tarefa.responsavel_id} onChange={(id) => salvar.mutate({ responsavel_id: id })} />
         </div>
@@ -282,9 +277,7 @@ export function BlocoRaci({ tarefa }: { tarefa: TarefaDetalhe }) {
           const linhas = doPapel(papel);
           return (
             <div key={papel} className="space-y-1">
-              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {rotulo}
-              </span>
+              <RotuloCampo>{rotulo}</RotuloCampo>
               <div className="flex flex-wrap gap-1">
                 {linhas.map((l) => (
                   <Badge key={l.user_id} variant="secondary" className="gap-1">
@@ -299,14 +292,12 @@ export function BlocoRaci({ tarefa }: { tarefa: TarefaDetalhe }) {
                 ))}
                 {linhas.length === 0 && <span className="text-xs text-muted-foreground">ninguém</span>}
               </div>
-              {(!unico || linhas.length === 0 || true) && (
-                <SeletorPessoa
-                  valor={unico ? (linhas[0]?.user_id ?? null) : null}
-                  permiteVazio={false}
-                  placeholder={unico ? "Escolher pessoa" : "Adicionar pessoa"}
-                  onChange={(id) => id && adicionar.mutate({ userId: id, papel })}
-                />
-              )}
+              <SeletorPessoa
+                valor={unico ? (linhas[0]?.user_id ?? null) : null}
+                permiteVazio={false}
+                placeholder={unico ? "Escolher pessoa" : "Adicionar pessoa"}
+                onChange={(id) => id && adicionar.mutate({ userId: id, papel })}
+              />
             </div>
           );
         })}
@@ -347,7 +338,7 @@ export function BlocoEtiquetas({ tarefa }: { tarefa: TarefaDetalhe }) {
       <div className="flex flex-wrap items-center gap-2">
         {disponiveis.length > 0 && (
           <Select value="" onValueChange={(v) => vincular.mutate(v)}>
-            <SelectTrigger className="h-8 w-44 text-sm"><SelectValue placeholder="Aplicar existente" /></SelectTrigger>
+            <SelectTrigger className="h-9 w-44 text-sm"><SelectValue placeholder="Aplicar existente" /></SelectTrigger>
             <SelectContent>
               {disponiveis.map((e) => (
                 <SelectItem key={e.id} value={e.nome}>{e.nome}</SelectItem>
@@ -363,7 +354,7 @@ export function BlocoEtiquetas({ tarefa }: { tarefa: TarefaDetalhe }) {
           }}
         >
           <Input
-            className="h-8 w-40 text-sm" placeholder="Criar etiqueta" value={nova}
+            className="h-9 w-40 text-sm" placeholder="Criar etiqueta" value={nova}
             onChange={(e) => setNova(e.target.value)}
           />
           <Button type="submit" size="sm" variant="outline" disabled={!nova.trim() || vincular.isPending}>
@@ -409,7 +400,7 @@ function ValorCampo({
   if (campo.tipo === "selecao") {
     return (
       <Select value={typeof valor === "string" ? valor : SEM_VALOR} onValueChange={(v) => salvar(v === SEM_VALOR ? null : v)}>
-        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Escolher" /></SelectTrigger>
+        <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Escolher" /></SelectTrigger>
         <SelectContent>
           <SelectItem value={SEM_VALOR}>— vazio —</SelectItem>
           {opcoes.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
@@ -440,7 +431,7 @@ function ValorCampo({
   const tipoInput = campo.tipo === "data" ? "date" : campo.tipo === "numero" || campo.tipo === "moeda" ? "number" : "text";
   return (
     <Input
-      type={tipoInput} className="h-8 text-sm" value={texto}
+      type={tipoInput} className="h-9 text-sm" value={texto}
       step={campo.tipo === "moeda" ? "0.01" : undefined}
       onChange={(e) => setTexto(e.target.value)}
       onBlur={() => {
@@ -460,7 +451,7 @@ export function BlocoCamposPersonalizados({ tarefa }: { tarefa: TarefaDetalhe })
 
   return (
     <Secao titulo="Campos personalizados">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {campos.map((c) => (
           <Campo key={c.campo_id} rotulo={c.nome + (c.obrigatorio ? " *" : "")}>
             <ValorCampo

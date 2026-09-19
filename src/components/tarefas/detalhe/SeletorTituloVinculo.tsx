@@ -40,7 +40,7 @@ export function SeletorTituloVinculo({ tituloId, onChange, disabled }: Props) {
           variant="outline"
           role="combobox"
           disabled={disabled}
-          className="h-8 w-full min-w-0 justify-between text-sm font-normal"
+          className="h-9 w-full min-w-0 justify-between text-sm font-normal"
         >
           <span className="truncate">
             {tituloId ? (atual?.codigo ?? "Título vinculado") : "Escolha o título"}

@@ -113,6 +113,7 @@ const RecorrenciasTarefas = lazy(() => import("@/pages/tarefas/Recorrencias"));
 const TemplatesTarefas = lazy(() => import("@/pages/tarefas/Templates"));
 const NotificacoesPreferencias = lazy(() => import("@/pages/tarefas/NotificacoesPreferencias"));
 const FilaProcessos = lazy(() => import("@/pages/tarefas/FilaProcessos"));
+const TarefaPagina = lazy(() => import("@/pages/tarefas/TarefaPagina"));
 
 const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
@@ -535,6 +536,8 @@ const App = () => (
                 <Route path="/tarefas/templates" element={<TemplatesTarefas />} />
                 <Route path="/tarefas/notificacoes" element={<NotificacoesPreferencias />} />
                 <Route path="/tarefas/fila" element={<FilaProcessos />} />
+                {/* FICHA-DA-TAREFA: a tarefa tem página própria. */}
+                <Route path="/tarefas/:id" element={<TarefaPagina />} />
                 <Route element={<GestaoLayout />}>
                   <Route path="/tarefas/gestao" element={<GestaoSalas />} />
                   <Route path="/tarefas/gestao/sala/:salaId" element={<GestaoSalaDetalhe />} />

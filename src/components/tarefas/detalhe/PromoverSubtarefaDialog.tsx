@@ -57,7 +57,7 @@ export function PromoverSubtarefaDialog({ aberto, onOpenChange, subtarefa }: Pro
                 setSecaoId(null);
               }}
             >
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sem projeto" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM_VALOR}>— sem projeto —</SelectItem>
                 {(projetos ?? []).map((p) => (
@@ -73,7 +73,7 @@ export function PromoverSubtarefaDialog({ aberto, onOpenChange, subtarefa }: Pro
               disabled={!projetoId}
               onValueChange={(v) => setSecaoId(v === SEM_VALOR ? null : v)}
             >
-              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Sem seção" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value={SEM_VALOR}>— sem seção —</SelectItem>
                 {(secoes ?? []).map((s) => (

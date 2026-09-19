@@ -31,7 +31,7 @@ export function SeletorPedidoVinculo({ pedidoId, onChange, disabled }: Props) {
             variant="outline"
             role="combobox"
             disabled={disabled}
-            className="h-8 min-w-0 flex-1 justify-between text-sm font-normal"
+            className="h-9 min-w-0 flex-1 justify-between text-sm font-normal"
           >
             <span className="truncate">
               {pedidoId ? (atual?.codigo ?? "Pedido vinculado") : "Sem pedido vinculado"}
@@ -96,7 +96,7 @@ export function SeletorPedidoVinculo({ pedidoId, onChange, disabled }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0"
+          className="h-9 w-8 shrink-0"
           aria-label="Tirar o vínculo com o pedido"
           onClick={() => onChange(null)}
         >
