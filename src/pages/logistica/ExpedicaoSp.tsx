@@ -356,7 +356,8 @@ function LinhaPedido({
 }: {
   pedido: PedidoMesa;
   ativo: boolean;
-  rotulo: string;
+  /** Opcional: quando a linha já vive num grupo de estação, o rótulo é o grupo. */
+  rotulo?: string;
   onSelecionar: () => void;
 }) {
   return (
@@ -370,7 +371,8 @@ function LinhaPedido({
     >
       <span className="block truncate text-sm">{pedido.id_externo}</span>
       <span className="block truncate text-xs text-muted-foreground">
-        {pedido.cliente_nome_snapshot ?? "cliente sem nome"} · {rotulo}
+        {pedido.cliente_nome_snapshot ?? "cliente sem nome"}
+        {rotulo ? ` · ${rotulo}` : ""}
       </span>
     </button>
   );
