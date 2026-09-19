@@ -17,7 +17,7 @@ import {
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
 import { Campo, RotuloCampo, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
-import { PontoUrgente, PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
+import { OPCOES_PRIORIDADE, PontoUrgente } from "@/lib/tarefas/prioridade";
 import { SeletorVinculoTarefa } from "./SeletorVinculoTarefa";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
