@@ -364,7 +364,7 @@ const App = () => (
                 <Route index element={<Navigate to="/pedidos" replace />} />
               </Route>
               <Route path="/recebimento/cobranca/:pedidoId" element={<CobrancaDetalhe />} />
-              <Route path="/recebimento/conciliacao" element={<ConciliacaoRecebiveis />} />
+              <Route path="/recebimento/conciliacao" element={<ConciliacaoRecebiveisRedirect />} />
               <Route path="/credito/regras-cadencia" element={<RegrasCadencia />} />
               <Route path="/credito/regua-etapas" element={<ReguaEtapas />} />
 
@@ -798,7 +798,7 @@ const App = () => (
                 <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
-                <Route path="conciliacao" element={<Conciliacao />} />
+                <Route path="conciliacao" element={<ConciliacaoRecebiveis />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
                 <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
                 
