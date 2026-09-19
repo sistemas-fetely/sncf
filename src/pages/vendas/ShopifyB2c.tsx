@@ -54,13 +54,13 @@ type Aba = (typeof ABAS)[number];
 
 type ColunaB2c =
   | "pedido" | "bling" | "data" | "cliente" | "valor"
-  | "estagio" | "dono" | "proxima_acao" | "financeiro" | "rastreio";
+  | "cd" | "estagio" | "dono" | "proxima_acao" | "financeiro" | "rastreio";
 
 type OrdenacaoB2c = { coluna: ColunaB2c; dir: DirecaoOrdenacao } | null;
 
 /** Primeiro clique: data e dinheiro descem (recente/maior primeiro), texto sobe. */
 const DIR_INICIAL_B2C: Record<ColunaB2c, DirecaoOrdenacao> = {
-  pedido: "desc", bling: "desc", data: "desc", cliente: "asc", valor: "desc",
+  pedido: "desc", bling: "desc", data: "desc", cliente: "asc", cd: "asc", valor: "desc",
   estagio: "asc", dono: "asc", proxima_acao: "asc", financeiro: "desc", rastreio: "asc",
 };
 
@@ -405,6 +405,7 @@ export default function ShopifyB2c() {
           return Number.isNaN(t) ? null : t;
         }
         case "cliente": return p.cliente ?? null;
+        case "cd": return p.cd_efetivo_codigo ?? null;
         case "valor": return Number(p.total ?? 0);
         case "estagio": return p.estagio_ordem ?? null;
         case "dono": return p.area_responsavel ?? null;
@@ -606,10 +607,33 @@ export default function ShopifyB2c() {
                     <Table containerClassName="overflow-visible">
                       <TableHeader>
                         <TableRow className={LINHA_CABECALHO_COLADO}>
+                          <TableHead className="w-8">
+                            {aguardandoDestino.length > 0 && (
+                              <Checkbox
+                                checked={
+                                  pedidosMarcados.length > 0 &&
+                                  pedidosMarcados.length === aguardandoDestino.length
+                                }
+                                aria-label="Marcar todos aguardando destino"
+                                onCheckedChange={(v) =>
+                                  setMarcados(
+                                    v
+                                      ? new Set(
+                                          aguardandoDestino
+                                            .map((p) => p.shopify_id)
+                                            .filter((x): x is string => !!x),
+                                        )
+                                      : new Set(),
+                                  )
+                                }
+                              />
+                            )}
+                          </TableHead>
                           <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao?.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("pedido")} />
                           <CabecalhoOrdenavel rotulo="Bling" dir={ordenacao?.coluna === "bling" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("bling")} />
                           <CabecalhoOrdenavel rotulo="Data / Idade" dir={ordenacao?.coluna === "data" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("data")} />
                           <CabecalhoOrdenavel rotulo="Cliente" dir={ordenacao?.coluna === "cliente" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cliente")} />
+                          <CabecalhoOrdenavel rotulo="CD" dir={ordenacao?.coluna === "cd" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("cd")} />
                           <CabecalhoOrdenavel rotulo="Valor" className="text-right" alinharDireita dir={ordenacao?.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("valor")} />
                           <CabecalhoOrdenavel rotulo="Estágio" dir={ordenacao?.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("estagio")} />
                           <CabecalhoOrdenavel rotulo="Dono" dir={ordenacao?.coluna === "dono" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("dono")} />
@@ -622,13 +646,13 @@ export default function ShopifyB2c() {
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="py-8 text-center">
+                            <TableCell colSpan={13} className="py-8 text-center">
                               <Skeleton className="mx-auto h-4 w-32" />
                             </TableCell>
                           </TableRow>
                         ) : filtrados.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
+                            <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
                               Nenhum pedido nesta seleção.
                             </TableCell>
                           </TableRow>
@@ -637,11 +661,31 @@ export default function ShopifyB2c() {
                             <TableRow
                               key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
                               onClick={() => setSelecionado(p)}
-                              className="cursor-pointer"
+                              className={
+                                Number(p.horas_aguardando_cd ?? 0) > 2
+                                  ? "cursor-pointer bg-warning/5"
+                                  : "cursor-pointer"
+                              }
                             >
+                              <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                                {p.fila_status === "aguardando_destino" && p.shopify_id && (
+                                  <Checkbox
+                                    checked={marcados.has(p.shopify_id)}
+                                    aria-label={`Marcar pedido ${p.order_name ?? ""}`}
+                                    onCheckedChange={(v) =>
+                                      setMarcados((atual) => {
+                                        const next = new Set(atual);
+                                        if (v) next.add(p.shopify_id!);
+                                        else next.delete(p.shopify_id!);
+                                        return next;
+                                      })
+                                    }
+                                  />
+                                )}
+                              </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 <span className="font-mono text-xs">{txt(p.order_name)}</span>
-                                {p.alerta && !alertaSuprimidoPorFila(p, mapaFilaBling) && (
+                                {p.alerta && !alertaSuprimidoPorFila(p) && (
                                   <div className="mt-1">
                                     {p.bloqueio_motivo ? (
                                       <Tooltip>
@@ -675,9 +719,11 @@ export default function ShopifyB2c() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 {(() => {
-                                  // Pedido sem nascer no SNCF: a fila de descida é a verdade.
-                                  const f = filaDoPedido(p, mapaFilaBling);
-                                  if (f && f.status !== "pausado") {
+                                  // A view já traz o estado da descida (colunas fila_*).
+                                  const f = p.pedido_ausente
+                                    ? { status: p.fila_status, bling_pedido_id: p.fila_bling_pedido_id }
+                                    : null;
+                                  if (f?.status && f.status !== "pausado") {
                                     return (
                                       <div className="flex flex-col items-start gap-0.5">
                                         {f.status === "enviado" && f.bling_pedido_id && (
@@ -696,6 +742,11 @@ export default function ShopifyB2c() {
                                         )}
                                         {(f.status === "pendente" || f.status === "processando") && (
                                           <span className="text-xs text-muted-foreground">na fila</span>
+                                        )}
+                                        {f.status === "aguardando_destino" && (
+                                          <span className="text-xs text-muted-foreground">
+                                            aguardando escolha do CD
+                                          </span>
                                         )}
                                         {f.status === "erro" && (
                                           <Selo estado="destructive">erro</Selo>
@@ -753,6 +804,9 @@ export default function ShopifyB2c() {
                                   {p.shipping_province ? `/${p.shipping_province}` : ""}
                                 </div>
                               </TableCell>
+                              <TableCell className="whitespace-nowrap">
+                                <CelulaCdEfetivo pedido={p} />
+                              </TableCell>
                               <TableCell className="whitespace-nowrap text-right text-xs tabular-nums">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
@@ -771,28 +825,37 @@ export default function ShopifyB2c() {
                               </TableCell>
                               <TableCell className="min-w-[260px] text-xs">
                                 {(() => {
-                                  const f = filaDoPedido(p, mapaFilaBling);
-                                  if (f?.status === "erro" && f.ultimo_erro?.trim()) {
+                                  if (p.fila_status === "aguardando_destino") {
                                     return (
-                                      <span className="line-clamp-2 text-destructive" title={f.ultimo_erro}>
-                                        {truncarErro(f.ultimo_erro)}
+                                      <EscolhaCdCelula
+                                        pedido={p}
+                                        centros={centros}
+                                        processando={gravandoCd}
+                                        onEscolher={(ped, c) => pedirEscolha([ped], c)}
+                                      />
+                                    );
+                                  }
+                                  if (p.fila_status === "erro" && p.fila_ultimo_erro?.trim()) {
+                                    return (
+                                      <span className="line-clamp-2 text-destructive" title={p.fila_ultimo_erro}>
+                                        {truncarErro(p.fila_ultimo_erro)}
                                       </span>
                                     );
                                   }
-                                  if (f?.status === "pausado") {
+                                  if (p.fila_status === "pausado") {
                                     return (
                                       <span className="line-clamp-2 text-muted-foreground">
-                                        {proximaAcaoExibida(p, mapaFilaBling)}
+                                        {proximaAcaoExibida(p)}
                                       </span>
                                     );
                                   }
                                   return (
                                     <span className="line-clamp-2">
-                                      {txt(proximaAcaoExibida(p, mapaFilaBling))}
+                                      {txt(proximaAcaoExibida(p))}
                                     </span>
                                   );
                                 })()}
-                                {p.bloqueio_motivo && !alertaSuprimidoPorFila(p, mapaFilaBling) && (
+                                {p.bloqueio_motivo && !alertaSuprimidoPorFila(p) && (
                                   (() => {
                                     const partes = p.bloqueio_motivo
                                       .split(" · ")
@@ -890,6 +953,17 @@ export default function ShopifyB2c() {
         </TabsContent>
       </Tabs>
       )}
+
+      <ConfirmaCdDivergente
+        open={confirmacao !== null}
+        onOpenChange={(v) => !v && setConfirmacao(null)}
+        sugeridoNome={confirmacao?.sugeridoNome ?? null}
+        escolhidoNome={confirmacao ? nomeCurtoCd(confirmacao.centro) : null}
+        onConfirmar={() => {
+          if (confirmacao) void escolherCd(confirmacao.pedidos, confirmacao.centro);
+          setConfirmacao(null);
+        }}
+      />
 
       <PedidoB2cDrawer
         pedido={selecionado}
