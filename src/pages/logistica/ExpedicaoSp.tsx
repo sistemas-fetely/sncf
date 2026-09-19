@@ -82,12 +82,17 @@ export default function ExpedicaoSp() {
   }, [pedidos, eventosPorPedido, emConferencia]);
 
   const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
-  const naMesa = pedidos.filter((p) => p.estagio !== ESTAGIO_FILA);
+  const naMesa = pedidos.filter((p) => {
+    const estacao = estacaoDe.get(p.id);
+    return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem";
+  });
+  const aguardandoColeta = pedidos.filter((p) => estacaoDe.get(p.id) === "despacho");
 
   /** Pedidos da mesa agrupados por estação, na ordem da bancada. */
   const gruposMesa = useMemo(
     () =>
       ESTACOES
+        .filter((estacao) => estacao !== "despacho")
         .map((estacao) => ({ estacao, doGrupo: naMesa.filter((p) => estacaoDe.get(p.id) === estacao) }))
         .filter(({ doGrupo }) => doGrupo.length > 0),
     [naMesa, estacaoDe],
@@ -96,8 +101,8 @@ export default function ExpedicaoSp() {
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
-    setSelecionadoId(naMesa[0]?.id ?? fila[0]?.id ?? null);
-  }, [pedidos, naMesa, fila, selecionadoId]);
+    setSelecionadoId(naMesa[0]?.id ?? aguardandoColeta[0]?.id ?? fila[0]?.id ?? null);
+  }, [pedidos, naMesa, aguardandoColeta, fila, selecionadoId]);
 
   const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
   const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
@@ -120,8 +125,7 @@ export default function ExpedicaoSp() {
    */
   const gruposColeta = useMemo<GrupoColeta[]>(() => {
     const porModal = new Map<string, GrupoColeta>();
-    for (const p of naMesa) {
-      if (estacaoDe.get(p.id) !== "despacho") continue;
+    for (const p of aguardandoColeta) {
       const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
       if (!emb) continue;
       const codigo = emb.modal ?? "SEM_MODAL";
@@ -146,7 +150,7 @@ export default function ExpedicaoSp() {
     const grupos = [...porModal.values()];
     for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
     return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
-  }, [naMesa, estacaoDe, eventosPorPedido, modaisQ.data]);
+  }, [aguardandoColeta, eventosPorPedido, modaisQ.data]);
 
   /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
   const contadores = useMemo(() => {
@@ -187,7 +191,7 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${aguardandoColeta.length} aguardando coleta`
         }
       />
 
@@ -269,6 +273,50 @@ export default function ExpedicaoSp() {
                               ativo={p.id === selecionadoId}
                               onSelecionar={() => setSelecionadoId(p.id)}
                             />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm font-medium">
+                Aguardando coleta · {aguardandoColeta.length}
+              </p>
+              {aguardandoColeta.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma caixa aguardando coleta.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {gruposColeta.map((grupo) => (
+                    <div key={grupo.modalCodigo} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {grupo.modalNome} · {grupo.caixas.length}
+                      </p>
+                      <ul className="space-y-2">
+                        {grupo.caixas.map((caixa) => (
+                          <li key={caixa.pedido_id}>
+                            <button
+                              type="button"
+                              onClick={() => setSelecionadoId(caixa.pedido_id)}
+                              className={cn(
+                                "w-full rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent",
+                                caixa.pedido_id === selecionadoId && "border-primary bg-accent",
+                              )}
+                            >
+                              <span className="block truncate text-sm">
+                                {caixa.id_externo} · {caixa.cliente}
+                              </span>
+                              <span className="block truncate text-xs text-muted-foreground">
+                                {medidasColeta(caixa.volumes, caixa.peso_kg)} · {esperaColeta(caixa.embaladoEm)}
+                              </span>
+                            </button>
                           </li>
                         ))}
                       </ul>
@@ -390,6 +438,20 @@ export default function ExpedicaoSp() {
       </div>
     </PageShell>
   );
+}
+
+function esperaColeta(iso: string): string {
+  const minutos = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutos < 60) return `há ${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  if (horas < 24) return `há ${horas}h`;
+  return `há ${Math.floor(horas / 24)}d`;
+}
+
+function medidasColeta(volumes: number | null, pesoKg: number | null): string {
+  const partes = [volumes != null ? `${volumes} vol.` : "volumes não registrados"];
+  if (pesoKg != null) partes.push(`${pesoKg} kg`);
+  return partes.join(" · ");
 }
 
 function LinhaPedido({
