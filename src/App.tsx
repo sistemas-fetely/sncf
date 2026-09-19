@@ -793,21 +793,21 @@ const App = () => (
 
                 <Route path="fluxo-caixa" element={<FluxoCaixa />} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
-                <Route path="conciliacao-mesa" element={<Navigate to="/recebimento/conciliacao?aba=creditos" replace />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
-                <Route path="conciliacao-mesa" element={<Navigate to="/recebimento/conciliacao?aba=creditos" replace />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
                 <Route path="conciliacao" element={<Conciliacao />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
-                <Route path="recebimentos-conciliar" element={<Navigate to="/recebimento/conciliacao?aba=por-cliente" replace />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
                 
-                <Route path="recebimentos-conciliar" element={<Navigate to="/recebimento/conciliacao?aba=por-cliente" replace />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
                 <Route path="extrato-importacao" element={<ExtratoImportacao />} />
                 <Route path="extrato-inbox" element={<ExtratoInbox />} />
                 <Route path="extrato-regras" element={<RegrasInbox />} />
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
-                <Route path="conciliacao-cartao" element={<Navigate to="/recebimento/conciliacao?aba=cartao" replace />} />
+                <Route path="conciliacao-cartao" element={<Navigate to="/administrativo/conciliacao?aba=cartao" replace />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
                 <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
                 <Route path="despesas" element={<Despesas />} />
