@@ -44,6 +44,40 @@ function tocarAlerta() {
   }
 }
 
+/** Linha de item — mesma nos dois blocos; o estado (ok/realce) muda só a classe. */
+function LinhaItem({ item, feito, realce }: { item: ItemPedidoMesa; feito: number; realce: boolean }) {
+  const ok = feito >= item.quantidade;
+  return (
+    <li
+      className={cn(
+        "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-all duration-700",
+        ok && "border-success/40 bg-success/10 opacity-80",
+        realce && "border-success bg-success/20 opacity-100 ring-2 ring-success/60",
+      )}
+    >
+      <div className="min-w-0">
+        <p className="truncate text-sm">{item.descricao}</p>
+        <p className="font-mono text-xs text-muted-foreground">
+          {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <span className="text-sm tabular-nums">
+          {feito} / {item.quantidade}
+        </span>
+        {ok ? (
+          <Selo estado="success">
+            <Check className="mr-1 h-3 w-3" aria-hidden="true" />
+            ok
+          </Selo>
+        ) : (
+          <Selo estado="warning">falta {item.quantidade - feito}</Selo>
+        )}
+      </div>
+    </li>
+  );
+}
+
 interface Props {
   pedidoId: string;
   itens: ItemPedidoMesa[];
@@ -61,6 +95,11 @@ export function EstacaoConferencia({
   const [alerta, setAlerta] = useState<string | null>(null);
   const [dialogDivergencia, setDialogDivergencia] = useState(false);
   const [motivo, setMotivo] = useState("");
+  /** Item que ACABOU de completar — realce de ~1,5s para o operador vê-lo descer. */
+  const [realce, setRealce] = useState<string | null>(null);
+  /** Ordem de conclusão — quem completou por último fica no topo dos conferidos. */
+  const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
+  const timerRealce = useRef<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   /** Trava de disparo único: a conferência OK é automática ao completar. */
@@ -72,8 +111,17 @@ export function EstacaoConferencia({
     setBuffer("");
     setAlerta(null);
     setMotivo("");
+    setRealce(null);
+    setOrdemConferidos([]);
+    if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+    timerRealce.current = null;
     jaRegistrou.current = false;
   }, [pedidoId]);
+
+  // A tela desmonta com o realce pendente: o timeout não pode disparar depois.
+  useEffect(() => () => {
+    if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+  }, []);
 
   const focar = useCallback(() => {
     if (dialogDivergencia) return; // o diálogo precisa do foco dele
@@ -132,7 +180,14 @@ export function EstacaoConferencia({
     }
 
     setAlerta(null);
+    const novo = (bipados[alvo.id] ?? 0) + 1;
     setBipados((atual) => ({ ...atual, [alvo.id]: (atual[alvo.id] ?? 0) + 1 }));
+    if (novo >= alvo.quantidade) {
+      setOrdemConferidos((ordem) => [...ordem, alvo.id]);
+      setRealce(alvo.id);
+      if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+      timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
+    }
   }
 
   function confirmarDivergencia() {
@@ -156,6 +211,16 @@ export function EstacaoConferencia({
 
   const totalEsperado = itens.reduce((s, i) => s + i.quantidade, 0);
   const totalBipado = itens.reduce((s, i) => s + Math.min(bipados[i.id] ?? 0, i.quantidade), 0);
+
+  // Bloco de cima: quem falta, com bipe parcial primeiro (o operador volta ao
+  // que estava fazendo). Bloco de baixo: quem completou, último no topo.
+  const aConferir = itens
+    .filter((i) => (bipados[i.id] ?? 0) < i.quantidade)
+    .sort((a, b) => (bipados[b.id] ?? 0) - (bipados[a.id] ?? 0));
+  const ordemIdx = new Map(ordemConferidos.map((id, idx) => [id, idx]));
+  const conferidos = itens
+    .filter((i) => (bipados[i.id] ?? 0) >= i.quantidade)
+    .sort((a, b) => (ordemIdx.get(b.id) ?? -1) - (ordemIdx.get(a.id) ?? -1));
 
   return (
     <Card onClick={focar}>
@@ -202,41 +267,31 @@ export function EstacaoConferencia({
           )}
         </div>
 
-        <ul className="space-y-2">
-          {itens.map((i) => {
-            const feito = bipados[i.id] ?? 0;
-            const ok = feito >= i.quantidade;
-            return (
-              <li
-                key={i.id}
-                className={cn(
-                  "flex items-center justify-between gap-3 rounded-md border px-3 py-2",
-                  ok && "border-success/40 bg-success/10",
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm">{i.descricao}</p>
-                  <p className="font-mono text-xs text-muted-foreground">
-                    {i.sku ?? "sem SKU"} · {i.ean ?? "sem EAN"}
-                  </p>
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-sm tabular-nums">
-                    {feito} / {i.quantidade}
-                  </span>
-                  {ok ? (
-                    <Selo estado="success">
-                      <Check className="mr-1 h-3 w-3" aria-hidden="true" />
-                      ok
-                    </Selo>
-                  ) : (
-                    <Selo estado="warning">falta {i.quantidade - feito}</Selo>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+        {aConferir.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              A conferir · {aConferir.length}
+            </h3>
+            <ul className="space-y-2">
+              {aConferir.map((i) => (
+                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={false} />
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {conferidos.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Conferidos · {conferidos.length}
+            </h3>
+            <ul className="space-y-2">
+              {conferidos.map((i) => (
+                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={realce === i.id} />
+              ))}
+            </ul>
+          </section>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setDialogDivergencia(true)} disabled={registrando}>
