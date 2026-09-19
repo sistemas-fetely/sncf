@@ -101739,6 +101739,10 @@ export type Database = {
           total: number
         }[]
       }
+      fn_b2c_desfazer_escolha_cd: {
+        Args: { p_shopify_id: string }
+        Returns: Json
+      }
       fn_b2c_escolher_cd: {
         Args: { p_centro_codigo: string; p_shopify_id: string }
         Returns: Json
