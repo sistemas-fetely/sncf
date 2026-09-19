@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import {
   cepDoEndereco, modalSugerido,
-  type ItemChecklistEmbalagem, type ModalEntrega, type ModalRegra,
+  type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 
 /**
@@ -26,6 +26,7 @@ import {
  */
 interface Props {
   enderecoEntrega: unknown;
+  itens: ItemPedidoMesa[];
   modais: ModalEntrega[];
   regras: ModalRegra[];
   checklist: ItemChecklistEmbalagem[];
@@ -35,7 +36,7 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, modais, regras, checklist, salvando, onEmbalar,
+  enderecoEntrega, itens, modais, regras, checklist, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
@@ -84,6 +85,37 @@ export function EstacaoEmbalagem({
   return (
     <Card>
       <CardContent className="space-y-4 p-4">
+        {itens.length > 0 && (
+          <div className="rounded-md border border-border bg-muted/40 p-4">
+            <div className="flex items-start gap-2.5">
+              <PackageOpen className="mt-1 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Conteúdo da caixa</p>
+                <div className="mt-1 flex items-baseline gap-2">
+                  <span className="text-3xl font-semibold leading-none tabular-nums">
+                    {itens.reduce((total, item) => total + item.quantidade, 0)}
+                  </span>
+                  <span className="text-sm text-muted-foreground">peças</span>
+                  <span className="text-xs text-muted-foreground">· {itens.length} linha(s)</span>
+                </div>
+                <ul className="mt-3 space-y-1">
+                  {itens.map((item) => (
+                    <li key={item.id} className="flex items-baseline gap-2 text-sm">
+                      <span className="shrink-0 font-medium tabular-nums">{item.quantidade} ×</span>
+                      <span className="min-w-0 truncate">{item.descricao}</span>
+                      {item.sku && (
+                        <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
+                          {item.sku}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-peso">Peso real (kg)</Label>
