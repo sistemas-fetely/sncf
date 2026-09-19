@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, Loader2, ScanBarcode } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Package, ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Selo } from "@/components/ui/selo";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { normalizarCodigo, type ItemConferido, type ItemPedidoMesa } from "./tipos";
+import { normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
 
 /**
  * Estação 3 — Conferência por bipagem.
@@ -46,6 +46,39 @@ function tocarAlerta() {
 }
 
 /**
+ * Foto do produto — CONFERÊNCIA VISUAL, nunca critério de aceite (quem valida
+ * é o EAN). Sem foto ou falha de rede: placeholder neutro com pacote — nunca
+ * um quadrado quebrado na frente do operador.
+ */
+function FotoItem({
+  imagem, descricao, tamanho,
+}: { imagem: ImagemProdutoMesa | undefined; descricao: string; tamanho: number }) {
+  const [quebrou, setQuebrou] = useState(false);
+  const url = imagem && !quebrou ? imagem.imagem_url : null;
+  if (!url) {
+    return (
+      <span
+        className="flex shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground"
+        style={{ width: tamanho, height: tamanho }}
+        aria-hidden="true"
+      >
+        <Package style={{ width: tamanho * 0.4, height: tamanho * 0.4 }} />
+      </span>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={descricao}
+      loading="lazy"
+      onError={() => setQuebrou(true)}
+      className="shrink-0 rounded-md border border-border object-cover"
+      style={{ width: tamanho, height: tamanho }}
+    />
+  );
+}
+
+/**
  * Linha de item — a unidade de trabalho do operador é a PEÇA, não o SKU.
  * O mesmo SKU pode aparecer nos dois blocos ao mesmo tempo: o bloco de cima
  * mostra o que AINDA FALTA (quantidade pendente), o de baixo o que JÁ FOI
@@ -53,8 +86,14 @@ function tocarAlerta() {
  * não é ok, é info.
  */
 function LinhaItem({
-  item, quantidade, modo, realce,
-}: { item: ItemPedidoMesa; quantidade: number; modo: "conferir" | "conferido"; realce: boolean }) {
+  item, quantidade, modo, realce, imagens,
+}: {
+  item: ItemPedidoMesa;
+  quantidade: number;
+  modo: "conferir" | "conferido";
+  realce: boolean;
+  imagens: Map<string, ImagemProdutoMesa>;
+}) {
   const ok = modo === "conferido" && quantidade >= item.quantidade;
   return (
     <li
@@ -65,11 +104,18 @@ function LinhaItem({
         realce && "border-success bg-success/20 opacity-100 ring-2 ring-success/60",
       )}
     >
-      <div className="min-w-0">
-        <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
-        <p className="font-mono text-xs text-muted-foreground">
-          {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
-        </p>
+      <div className="flex min-w-0 items-center gap-3">
+        <FotoItem
+          imagem={item.sku ? imagens.get(item.sku) : undefined}
+          descricao={item.descricao}
+          tamanho={48}
+        />
+        <div className="min-w-0">
+          <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
+          <p className="font-mono text-xs text-muted-foreground">
+            {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
+          </p>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {modo === "conferir" ? (
@@ -95,6 +141,8 @@ function LinhaItem({
 interface Props {
   pedidoId: string;
   itens: ItemPedidoMesa[];
+  /** Fotos por SKU (`vw_produto_imagem`) — conferência visual, nunca aceite. */
+  imagens: Map<string, ImagemProdutoMesa>;
   carregando: boolean;
   registrando: boolean;
   onRegistrar: (itens: ItemConferido[], ok: boolean, motivo: string | null) => void;
@@ -102,7 +150,7 @@ interface Props {
 }
 
 export function EstacaoConferencia({
-  pedidoId, itens, carregando, registrando, onRegistrar, onVoltarSeparacao,
+  pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao,
 }: Props) {
   const [bipados, setBipados] = useState<Record<string, number>>({});
   const [buffer, setBuffer] = useState("");
@@ -111,9 +159,16 @@ export function EstacaoConferencia({
   const [motivo, setMotivo] = useState("");
   /** Item que ACABOU de receber um bipe — realce de ~1,5s no bloco Conferidos. */
   const [realce, setRealce] = useState<string | null>(null);
+  /**
+   * Item do último bipe ACEITO — vira o painel de confirmação visual (~3s):
+   * é o instante em que o operador olha para a peça na mão. Bipe recusado
+   * não mexe aqui (o alerta de erro segue como está).
+   */
+  const [ultimoBipe, setUltimoBipe] = useState<ItemPedidoMesa | null>(null);
   /** Ordem de bipe — o último bipado fica no topo dos conferidos. */
   const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
   const timerRealce = useRef<number | null>(null);
+  const timerBipe = useRef<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   /** Trava de disparo único: a conferência OK é automática ao completar. */
@@ -126,15 +181,19 @@ export function EstacaoConferencia({
     setAlerta(null);
     setMotivo("");
     setRealce(null);
+    setUltimoBipe(null);
     setOrdemConferidos([]);
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
     timerRealce.current = null;
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
+    timerBipe.current = null;
     jaRegistrou.current = false;
   }, [pedidoId]);
 
   // A tela desmonta com o realce pendente: o timeout não pode disparar depois.
   useEffect(() => () => {
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
   }, []);
 
   const focar = useCallback(() => {
@@ -201,6 +260,11 @@ export function EstacaoConferencia({
     setRealce(alvo.id);
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
     timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
+    // Confirmação visual do bipe: foto grande por ~3s — o instante de olhar
+    // para a peça na mão e confrontar cor e estampa com a tela.
+    setUltimoBipe(alvo);
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
+    timerBipe.current = window.setTimeout(() => setUltimoBipe(null), 3000);
   }
 
   function confirmarDivergencia() {
@@ -285,6 +349,30 @@ export function EstacaoConferencia({
           )}
         </div>
 
+        {/* Confirmação visual do último bipe aceito (~3s): o operador confronta
+            a foto com a peça na mão. É reforço visual — quem valida é o EAN. */}
+        {ultimoBipe && (
+          <div
+            className="flex items-center gap-4 rounded-lg border border-success/40 bg-success/5 p-3"
+            aria-live="polite"
+          >
+            <FotoItem
+              imagem={ultimoBipe.sku ? imagens.get(ultimoBipe.sku) : undefined}
+              descricao={ultimoBipe.descricao}
+              tamanho={200}
+            />
+            <div className="min-w-0">
+              <p className="text-base font-medium leading-snug">{ultimoBipe.descricao}</p>
+              <p className="font-mono text-sm text-muted-foreground">
+                {ultimoBipe.sku ?? "sem SKU"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Confira cor e estampa com a peça na mão.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Painéis: as duas zonas da bancada. O de cima é o trabalho; o de
             baixo, tintado de verde, é o que já desceu. Separador entre eles
             deixa a descida explícita. */}
@@ -308,6 +396,7 @@ export function EstacaoConferencia({
                     quantidade={i.quantidade - (bipados[i.id] ?? 0)}
                     modo="conferir"
                     realce={false}
+                    imagens={imagens}
                   />
                 ))}
               </ul>
@@ -335,6 +424,7 @@ export function EstacaoConferencia({
                     quantidade={bipados[i.id] ?? 0}
                     modo="conferido"
                     realce={realce === i.id}
+                    imagens={imagens}
                   />
                 ))}
               </ul>
