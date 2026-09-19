@@ -374,6 +374,7 @@ export default function ExpedicaoSp() {
                 <EstacaoSeparacao
                   itens={itensQ.data ?? []}
                   carregando={itensQ.isLoading}
+                  pedido={selecionado}
                   onConcluir={() => marcarEmConferencia(selecionado.id, true)}
                 />
               )}
