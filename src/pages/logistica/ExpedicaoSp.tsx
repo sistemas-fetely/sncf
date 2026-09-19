@@ -111,6 +111,9 @@ export default function ExpedicaoSp() {
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
 
   const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
+  const caixasQ = useCaixasSugeridas(
+    selecionado && estacaoSelecionada === "embalagem" ? selecionado.id : null,
+  );
 
   const puxar = usePuxarPedido();
   const conferir = useRegistrarConferencia();
@@ -406,14 +409,18 @@ export default function ExpedicaoSp() {
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
                   checklist={checklistQ.data ?? []}
+                  caixas={caixasQ.data ?? []}
+                  carregandoCaixas={caixasQ.isLoading}
+                  erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
                   salvando={embalar.isPending}
-                  onEmbalar={(pesoKg, volumes, modal, checklist) =>
+                  onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo) =>
                     embalar.mutate({
                       p_pedido_id: selecionado.id,
                       p_peso_kg: pesoKg,
                       p_volumes: volumes,
                       p_modal: modal,
                       p_checklist: checklist,
+                      p_caixa_codigo: caixaCodigo,
                     })
                   }
                 />

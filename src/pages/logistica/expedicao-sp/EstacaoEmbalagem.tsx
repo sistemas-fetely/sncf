@@ -287,7 +287,7 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados])}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados], caixa)}
             disabled={!podeSalvar || salvando}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
