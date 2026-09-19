@@ -774,6 +774,11 @@ export default function ShopifyB2c() {
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
                                 {(() => {
+                                  // NÚMERO-CURTO (19/09/2026): a fila do Bling carrega o
+                                  // número curto (ex.: 596), casado no hook por
+                                  // shopify_pedido_id. O id interno (ex.: 26914201352) é a
+                                  // chave da API — fica na linha secundária, para suporte.
+                                  const numeroFila = p.fila_bling_pedido_numero;
                                   // A view já traz o estado da descida (colunas fila_*).
                                   const f = p.pedido_ausente
                                     ? { status: p.fila_status, bling_pedido_id: p.fila_bling_pedido_id }
@@ -781,19 +786,42 @@ export default function ShopifyB2c() {
                                   if (f?.status && f.status !== "pausado") {
                                     return (
                                       <div className="flex flex-col items-start gap-0.5">
-                                        {f.status === "enviado" && f.bling_pedido_id && (
+                                        {numeroFila && (
                                           <button
                                             type="button"
                                             title="Copiar número do pedido Bling"
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              copiar(f.bling_pedido_id!, "Pedido Bling");
+                                              copiar(numeroFila, "Pedido Bling");
                                             }}
                                             className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
                                           >
-                                            <span>#{f.bling_pedido_id}</span>
+                                            <span>#{numeroFila}</span>
                                             <Copy className="h-3 w-3 text-muted-foreground" />
                                           </button>
+                                        )}
+                                        {!numeroFila && f.status === "enviado" && f.bling_pedido_id && (
+                                          <button
+                                            type="button"
+                                            title="Copiar id interno do pedido no Bling (chave da API)"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              copiar(f.bling_pedido_id!, "Id Bling");
+                                            }}
+                                            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-gold"
+                                          >
+                                            <span className="text-[10px] uppercase">id</span>
+                                            <span className="font-mono">#{f.bling_pedido_id}</span>
+                                            <Copy className="h-3 w-3" />
+                                          </button>
+                                        )}
+                                        {numeroFila && f.bling_pedido_id && (
+                                          <span
+                                            className="inline-flex items-center gap-1 font-mono text-[10px] text-muted-foreground"
+                                            title="Id interno no Bling — chave da API, para suporte"
+                                          >
+                                            id {f.bling_pedido_id}
+                                          </span>
                                         )}
                                         {(f.status === "pendente" || f.status === "processando") && (
                                           <span className="text-xs text-muted-foreground">na fila</span>
@@ -812,19 +840,23 @@ export default function ShopifyB2c() {
                                       </div>
                                     );
                                   }
-                                  return p.bling_pedido_numero || p.nf_refs ? (
+                                  // Espelho (pedidos antigos): o número curto chegava pelo
+                                  // pedidos_venda — a fila manda quando tem os dois.
+                                  const numeroEspelho =
+                                    p.fila_bling_pedido_numero ?? p.bling_pedido_numero;
+                                  return numeroEspelho || p.nf_refs ? (
                                     <div className="flex flex-col items-start gap-0.5">
-                                      {p.bling_pedido_numero && (
+                                      {numeroEspelho && (
                                         <button
                                           type="button"
                                           title="Copiar número do pedido Bling"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            copiar(p.bling_pedido_numero!, "Pedido Bling");
+                                            copiar(numeroEspelho, "Pedido Bling");
                                           }}
                                           className="inline-flex items-center gap-1 font-mono text-xs transition-colors hover:text-gold"
                                         >
-                                          <span>#{p.bling_pedido_numero}</span>
+                                          <span>#{numeroEspelho}</span>
                                           <Copy className="h-3 w-3 text-muted-foreground" />
                                         </button>
                                       )}
