@@ -158,6 +158,14 @@ export default function ShopifyB2c() {
   const [incluirCancelados, setIncluirCancelados] = useState(false);
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
   const [ordenacao, setOrdenacao] = useState<OrdenacaoB2c>(null);
+  const [cdFiltro, setCdFiltro] = useState("todos");
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [gravandoCd, setGravandoCd] = useState(false);
+  const [confirmacao, setConfirmacao] = useState<{
+    pedidos: PedidoB2cRow[];
+    centro: CentroB2c;
+    sugeridoNome: string | null;
+  } | null>(null);
 
   const ordenarPor = (coluna: ColunaB2c) => {
     setOrdenacao((atual) => {
