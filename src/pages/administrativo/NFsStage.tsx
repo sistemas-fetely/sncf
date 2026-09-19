@@ -414,7 +414,7 @@ export default function NFsStage() {
       const res = regerar ? await regerarResumoNFe(nf.id) : await gerarResumoNFe(nf.id);
       if (res.ok) {
         toast.success("Resumo NFe gerado e anexado");
-        qc.invalidateQueries({ queryKey: ["nfs_stage"] });
+        qc.invalidateQueries({ queryKey: ["nfs-stage"] });
         qc.invalidateQueries({ queryKey: ["documentos_envio_agrupados"] });
       } else {
         toast.error(`Falha na geração — registrado para revisão${res.erro ? `: ${res.erro}` : ""}`);
@@ -473,26 +473,49 @@ export default function NFsStage() {
     },
   });
 
-  // Contagem de despesas vinculadas por stage (modelo N:1: nfs_stage.conta_pagar_id).
-  // Como cada NF aponta no máximo para 1 CPR, a contagem aqui é 0 ou 1.
-  const { data: despesasPorStage = {} } = useQuery({
-    queryKey: ["despesas-por-stage", nfs?.length || 0],
-    enabled: (nfs?.length || 0) > 0,
-    queryFn: async () => {
-      const ids = (nfs || [])
+  // Numerador do badge "Parcial (n/N)".
+  //
+  // Conta CPRs que apontam para a NF (`contas_pagar_receber.nf_stage_id`), que é
+  // EXATAMENTE o que `recalcular_status_nf_stage` faz no servidor para decidir
+  // entre nao_vinculada / parcial / vinculada:
+  //
+  //     SELECT COUNT(*) FROM contas_pagar_receber WHERE nf_stage_id = p_stage_id
+  //
+  // Antes esta query lia o outro lado do vínculo, `nfs_stage.conta_pagar_id`, que
+  // é 0 ou 1 por construção — uma NF aponta para no máximo uma CPR. O numerador
+  // nunca passava de 1 enquanto o denominador é a quantidade de boletos: o badge
+  // era incapaz de mostrar "2/3", e discordava do status calculado pelo servidor.
+  //
+  // A chave leva os IDS das NFs parciais, nunca a QUANTIDADE de NFs. Com
+  // `nfs.length` na chave, lançar ou apagar uma despesa não mudava a chave — o
+  // número de NFs continua o mesmo —, o React Query servia o cache e o badge
+  // "Parcial (n/N)" ficava congelado. Quem mexe no vínculo NF↔despesa também
+  // invalida ["despesas-por-stage"], para o caso em que só o numerador muda e o
+  // conjunto de parciais continua igual.
+  const idsParciais = useMemo(
+    () =>
+      (nfs || [])
         .filter((n) => n.status === "parcial")
-        .map((n) => n.id);
-      if (ids.length === 0) return {} as Record<string, number>;
+        .map((n) => n.id)
+        .sort(),
+    [nfs],
+  );
+
+  const { data: despesasPorStage = {} } = useQuery({
+    queryKey: ["despesas-por-stage", idsParciais],
+    enabled: idsParciais.length > 0,
+    queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("nfs_stage")
-        .select("id, conta_pagar_id")
-        .in("id", ids)
-        .not("conta_pagar_id", "is", null);
+        .from("contas_pagar_receber")
+        .select("nf_stage_id")
+        .in("nf_stage_id", idsParciais);
       if (error) throw error;
+      // Sem filtro de status, de propósito: recalcular_status_nf_stage também não
+      // filtra. Badge e status precisam contar a mesma coisa.
       const counts: Record<string, number> = {};
       for (const row of data || []) {
-        const k = (row as { id: string }).id;
+        const k = (row as { nf_stage_id: string }).nf_stage_id;
         counts[k] = (counts[k] || 0) + 1;
       }
       return counts;
@@ -804,6 +827,8 @@ export default function NFsStage() {
       );
       marcarResolvidasNaSessao([nf.id]);
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Este caminho cria a conta a pagar e vincula à NF: mexe no numerador do badge.
+      qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       toast.error("Erro ao enviar para pagamento: " + msg);
