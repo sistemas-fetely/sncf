@@ -83,6 +83,9 @@ export function EstacaoDespacho({
   const exigeReferencia = escolhido != null && !escolhido.tem_rastreio_automatico;
   const podeDespachar =
     modal !== "" && (!exigeReferencia || referencia.trim() !== "");
+  const temRastreioAutomatico = escolhido?.tem_rastreio_automatico === true;
+
+  if (gruposColeta.length === 0 && temRastreioAutomatico) return null;
 
   return (
     <div className="space-y-4">
@@ -147,50 +150,50 @@ export function EstacaoDespacho({
         </Card>
       )}
 
-      <Card>
-        <CardContent className="space-y-4 p-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="mesa-sp-despacho-modal">Modal</Label>
-              <Select value={modal} onValueChange={setModal}>
-                <SelectTrigger id="mesa-sp-despacho-modal">
-                  <SelectValue placeholder="Escolher modal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {modais.map((m) => (
-                    <SelectItem key={m.codigo} value={m.codigo}>
-                      {m.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      {!temRastreioAutomatico && (
+        <Card>
+          <CardContent className="space-y-4 p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="mesa-sp-despacho-modal">Modal</Label>
+                <Select value={modal} onValueChange={setModal}>
+                  <SelectTrigger id="mesa-sp-despacho-modal">
+                    <SelectValue placeholder="Escolher modal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modais.map((m) => (
+                      <SelectItem key={m.codigo} value={m.codigo}>
+                        {m.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {exigeReferencia && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="mesa-sp-referencia">Referência do despacho</Label>
+                  <Input
+                    id="mesa-sp-referencia"
+                    value={referencia}
+                    onChange={(e) => setReferencia(e.target.value)}
+                    placeholder="ID da corrida (Lalamove) ou nome do portador"
+                  />
+                </div>
+              )}
             </div>
 
-            {exigeReferencia && (
-              <div className="space-y-1.5">
-                <Label htmlFor="mesa-sp-referencia">Referência do despacho</Label>
-                <Input
-                  id="mesa-sp-referencia"
-                  value={referencia}
-                  onChange={(e) => setReferencia(e.target.value)}
-                  placeholder="ID da corrida (Lalamove) ou nome do portador"
-                />
-              </div>
-            )}
-          </div>
+            <p className="text-xs text-muted-foreground">
+              Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify.
+            </p>
 
-          <p className="text-xs text-muted-foreground">
-            {exigeReferencia
-              ? "Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify."
-              : "Modal com rastreio automático: o código vem da varredura dos Correios, não daqui."}
-          </p>
-
-          <Button onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando}>
-            {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
-            Despachar
-          </Button>
-        </CardContent>
-      </Card>
+            <Button onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando}>
+              {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
+              Despachar
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
