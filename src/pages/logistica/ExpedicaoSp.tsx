@@ -1,0 +1,360 @@
+import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, Inbox, Loader2, PackageCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
+import { Selo } from "@/components/ui/selo";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { PageShell } from "@/components/layout/PageShell";
+import { cn } from "@/lib/utils";
+import { fmtDataHora } from "@/lib/data";
+import { formatError } from "@/lib/format-error";
+import { formatBRL } from "@/lib/format-currency";
+import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
+import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
+import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
+import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
+import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
+import {
+  ESTACOES, ESTAGIO_FILA, EVENTO_EMBALADO, ROTULO_ESTACAO,
+  estacaoBase, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
+} from "./expedicao-sp/tipos";
+import {
+  useDespachar, useEmbalar, useEventosMesaSp, useItensPedidoMesa, useModaisEntrega,
+  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
+} from "./expedicao-sp/useMesaSp";
+
+/**
+ * Mesa de Expedição SP — frente `frente-descida-b2c-split-sp`.
+ *
+ * Operação real: ~10 pedidos/dia, UM operador, uma bancada. Por isso a tela é
+ * uma só e o pedido a atravessa: Fila → Separação → Conferência → Embalagem →
+ * Despacho. Nada de navegar entre telas com a caixa na mão.
+ *
+ * FONTE-ÚNICA: estágio macro é `pedidos.estagio`; a sub-estação é derivada do
+ * último evento `mesa_*` que as RPCs gravaram. A tela não guarda status próprio
+ * — o único estado local é a navegação Separação → Conferência, que não existe
+ * no banco porque não é transição, é gesto de tela.
+ */
+
+/** Qual modal a embalagem registrou — o despacho começa por ele. */
+function modalDoEmbalado(eventos: EventoMesa[]): string | null {
+  const embalado = [...eventos]
+    .filter((e) => e.tipo_evento === EVENTO_EMBALADO)
+    .sort((a, b) => a.criado_em.localeCompare(b.criado_em))
+    .at(-1);
+  const meta = embalado?.metadata;
+  if (!meta || typeof meta !== "object") return null;
+  const modal = (meta as Record<string, unknown>).modal;
+  return typeof modal === "string" && modal.trim() !== "" ? modal : null;
+}
+
+export default function ExpedicaoSp() {
+  const pedidosQ = usePedidosMesaSp();
+  const pedidos = useMemo(() => pedidosQ.data ?? [], [pedidosQ.data]);
+  const eventosQ = useEventosMesaSp(pedidos.map((p) => p.id));
+  const modaisQ = useModaisEntrega();
+  const regrasQ = useRegrasModal();
+
+  const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
+  /**
+   * Pedidos que o operador levou da Separação para a Conferência. Vive só aqui:
+   * a conferência não tem evento de entrada, e inventar um seria inventar status.
+   */
+  const [emConferencia, setEmConferencia] = useState<Set<string>>(new Set());
+
+  const eventosPorPedido = useMemo(() => {
+    const mapa = new Map<string, EventoMesa[]>();
+    for (const e of eventosQ.data ?? []) {
+      const lista = mapa.get(e.pedido_id);
+      if (lista) lista.push(e);
+      else mapa.set(e.pedido_id, [e]);
+    }
+    return mapa;
+  }, [eventosQ.data]);
+
+  /** Estação de cada pedido: base do banco + o avanço local para conferência. */
+  const estacaoDe = useMemo(() => {
+    const mapa = new Map<string, Estacao>();
+    for (const p of pedidos) {
+      const base = estacaoBase(p.estagio, eventosPorPedido.get(p.id) ?? []);
+      if (base === "despachado") continue; // saiu da mesa
+      mapa.set(p.id, base === "separacao" && emConferencia.has(p.id) ? "conferencia" : base);
+    }
+    return mapa;
+  }, [pedidos, eventosPorPedido, emConferencia]);
+
+  const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
+  const naMesa = pedidos.filter((p) => p.estagio !== ESTAGIO_FILA);
+
+  // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
+  useEffect(() => {
+    if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
+    setSelecionadoId(naMesa[0]?.id ?? fila[0]?.id ?? null);
+  }, [pedidos, naMesa, fila, selecionadoId]);
+
+  const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
+  const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
+  const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
+
+  const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
+
+  const puxar = usePuxarPedido();
+  const conferir = useRegistrarConferencia();
+  const embalar = useEmbalar();
+  const despachar = useDespachar();
+
+  /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
+  const contadores = useMemo(() => {
+    const base: Record<Estacao, number> = {
+      fila: 0, separacao: 0, conferencia: 0, embalagem: 0, despacho: 0,
+    };
+    for (const estacao of estacaoDe.values()) base[estacao] += 1;
+    return base;
+  }, [estacaoDe]);
+
+  function marcarEmConferencia(pedidoId: string, entrar: boolean) {
+    setEmConferencia((atual) => {
+      const proximo = new Set(atual);
+      if (entrar) proximo.add(pedidoId);
+      else proximo.delete(pedidoId);
+      return proximo;
+    });
+  }
+
+  function registrarConferencia(itens: ItemConferido[], ok: boolean, motivo: string | null) {
+    if (!selecionado) return;
+    const pedidoId = selecionado.id;
+    conferir.mutate(
+      { p_pedido_id: pedidoId, p_itens: itens, p_ok: ok, p_motivo: motivo },
+      // Conferência OK leva o pedido para a Embalagem (evento novo manda). O
+      // avanço local sai de cena nos dois casos: quem responde agora é o banco.
+      { onSuccess: () => marcarEmConferencia(pedidoId, false) },
+    );
+  }
+
+  const erro = pedidosQ.error ?? eventosQ.error ?? modaisQ.error ?? regrasQ.error;
+
+  return (
+    <PageShell variant="dados">
+      <PageHeader
+        icone={PackageCheck}
+        titulo="Mesa de Expedição SP"
+        estado={
+          pedidosQ.isLoading
+            ? "Carregando a bancada…"
+            : `${fila.length} na fila · ${naMesa.length} na mesa`
+        }
+      />
+
+      {/* Contadores por estação: o operador vê a bancada inteira de um olhar. */}
+      <div className="flex flex-wrap gap-2">
+        {ESTACOES.map((e) => (
+          <Selo key={e} estado={contadores[e] > 0 ? "info" : "muted"}>
+            {ROTULO_ESTACAO[e]} · {contadores[e]}
+          </Selo>
+        ))}
+      </div>
+
+      {erro && (
+        <div className="flex items-start gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          {formatError(erro)}
+        </div>
+      )}
+
+      <div className="grid gap-4 lg:grid-cols-12">
+        {/* ── Coluna 1: fila de entrada e pedidos já na bancada ───────────── */}
+        <div className="space-y-4 lg:col-span-3">
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm font-medium">Fila · {fila.length}</p>
+
+              {pedidosQ.isLoading ? (
+                <Skeleton className="h-16 w-full" />
+              ) : fila.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhum pedido aguardando — pedidos da matriz SP aparecem aqui.
+                </p>
+              ) : (
+                <>
+                  <ul className="space-y-2">
+                    {fila.map((p) => (
+                      <li key={p.id}>
+                        <LinhaPedido
+                          pedido={p}
+                          ativo={p.id === selecionadoId}
+                          rotulo="na fila"
+                          onSelecionar={() => setSelecionadoId(p.id)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    className="w-full"
+                    onClick={() => puxar.mutate({ p_pedido_id: fila[0].id })}
+                    disabled={puxar.isPending}
+                  >
+                    {puxar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+                    Puxar próximo
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm font-medium">Na mesa · {naMesa.length}</p>
+              {naMesa.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Bancada livre. Puxe o próximo da fila para começar.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {naMesa.map((p) => (
+                    <li key={p.id}>
+                      <LinhaPedido
+                        pedido={p}
+                        ativo={p.id === selecionadoId}
+                        rotulo={ROTULO_ESTACAO[estacaoDe.get(p.id) ?? "separacao"]}
+                        onSelecionar={() => setSelecionadoId(p.id)}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── Coluna 2: a estação do pedido selecionado ───────────────────── */}
+        <div className="space-y-4 lg:col-span-6">
+          {!selecionado ? (
+            <EstadoVazio
+              icone={Inbox}
+              titulo="Bancada vazia"
+              mensagem="Nenhum pedido aguardando — pedidos da matriz SP aparecem aqui assim que a bifurcação B2C ligar."
+            />
+          ) : (
+            <>
+              <Card>
+                <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">
+                      {selecionado.id_externo} · {selecionado.cliente_nome_snapshot ?? "cliente sem nome"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatBRL(selecionado.valor_liquido)} · recebido {fmtDataHora(selecionado.recebido_em)}
+                    </p>
+                  </div>
+                  <Selo estado="info">{ROTULO_ESTACAO[estacaoSelecionada]}</Selo>
+                </CardContent>
+              </Card>
+
+              {estacaoSelecionada === "fila" && (
+                <Card>
+                  <CardContent className="space-y-3 p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Pedido roteado para a Mesa SP, ainda em pré-separação. Puxar
+                      leva o estágio para “em separação” e abre a picking list.
+                    </p>
+                    <Button
+                      onClick={() => puxar.mutate({ p_pedido_id: selecionado.id })}
+                      disabled={puxar.isPending}
+                    >
+                      {puxar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+                      Puxar este pedido
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {estacaoSelecionada === "separacao" && (
+                <EstacaoSeparacao
+                  itens={itensQ.data ?? []}
+                  carregando={itensQ.isLoading}
+                  onConcluir={() => marcarEmConferencia(selecionado.id, true)}
+                />
+              )}
+
+              {estacaoSelecionada === "conferencia" && (
+                <EstacaoConferencia
+                  pedidoId={selecionado.id}
+                  itens={itensQ.data ?? []}
+                  carregando={itensQ.isLoading}
+                  registrando={conferir.isPending}
+                  onRegistrar={registrarConferencia}
+                  onVoltarSeparacao={() => marcarEmConferencia(selecionado.id, false)}
+                />
+              )}
+
+              {estacaoSelecionada === "embalagem" && (
+                <EstacaoEmbalagem
+                  enderecoEntrega={selecionado.endereco_entrega}
+                  modais={modaisQ.data ?? []}
+                  regras={regrasQ.data ?? []}
+                  salvando={embalar.isPending}
+                  onEmbalar={(pesoKg, volumes, modal) =>
+                    embalar.mutate({
+                      p_pedido_id: selecionado.id,
+                      p_peso_kg: pesoKg,
+                      p_volumes: volumes,
+                      p_modal: modal,
+                    })
+                  }
+                />
+              )}
+
+              {estacaoSelecionada === "despacho" && (
+                <EstacaoDespacho
+                  modais={modaisQ.data ?? []}
+                  modalEmbalado={modalDoEmbalado(eventosSelecionado)}
+                  despachando={despachar.isPending}
+                  onDespachar={(modal, referencia) =>
+                    despachar.mutate({
+                      p_pedido_id: selecionado.id,
+                      p_modal: modal,
+                      p_referencia: referencia,
+                    })
+                  }
+                />
+              )}
+            </>
+          )}
+        </div>
+
+        {/* ── Coluna 3: trilha do pedido ──────────────────────────────────── */}
+        <div className="lg:col-span-3">
+          {selecionado && <TrilhaPedido eventos={eventosSelecionado} />}
+        </div>
+      </div>
+    </PageShell>
+  );
+}
+
+function LinhaPedido({
+  pedido, ativo, rotulo, onSelecionar,
+}: {
+  pedido: PedidoMesa;
+  ativo: boolean;
+  rotulo: string;
+  onSelecionar: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelecionar}
+      className={cn(
+        "w-full rounded-md border px-3 py-2 text-left transition-colors hover:bg-accent",
+        ativo && "border-primary bg-accent",
+      )}
+    >
+      <span className="block truncate text-sm">{pedido.id_externo}</span>
+      <span className="block truncate text-xs text-muted-foreground">
+        {pedido.cliente_nome_snapshot ?? "cliente sem nome"} · {rotulo}
+      </span>
+    </button>
+  );
+}

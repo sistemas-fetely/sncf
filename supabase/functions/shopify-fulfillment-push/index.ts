@@ -6,6 +6,14 @@
 // desligada. O Shopify nao acompanha Correios sozinho: quem sabe o rastreio e o
 // SNCF (`pedido_rastreamento`), e e dele que o cliente self-service e notificado.
 //
+// DUAS FONTES (F3, multimodal):
+//   1. Correios — `pedido_rastreamento.codigo_rastreio` (a original, intocada).
+//   2. Mesa SP  — evento `mesa_despachado` com `metadata->>'modal'` em
+//      (LALAMOVE, MOTOBOY). Esses pedidos NUNCA terao SRO, entao sem esta
+//      segunda perna o Shopify nunca saberia que sairam e o cliente nunca
+//      receberia o e-mail de envio.
+// A ponte para o Shopify e a mesma nas duas; o que muda e o `trackingInfo`.
+//
 // Ligacao pedido interno -> pedido Shopify:
 //   pedido_rastreamento.pedido_id -> nfs_emitidas.pedido_venda_id
 //   -> nfs_emitidas.numero_pedido_loja (= `numeroLoja` que a descida gravou no Bling,
@@ -40,15 +48,45 @@ const ESPERA_ENTRE_CHAMADAS_MS = 250; // folga contra o custo por ponto da Admin
 const TRANSPORTADORA_PADRAO = "Correios";
 const URL_RASTREIO_PADRAO = "https://rastreamento.correios.com.br/app/index.php?objeto={codigo}";
 
+// ── Fulfillment multimodal (F3) ────────────────────────────────────────────
+// A Mesa de Expedicao SP despacha por modal que os Correios nao cobrem. Esses
+// pedidos nunca vao aparecer em `pedido_rastreamento` (nao tem SRO), entao o
+// Shopify jamais saberia que sairam. Segunda fonte, mesma edge, mesmo dedup.
+//
+// A dimensao `b2c_modal_entrega` e a autoridade sobre quais modais existem; aqui
+// listamos apenas os que esta edge sabe traduzir para `trackingInfo`. Modal novo
+// na dimensao NAO passa a ser empurrado sozinho — e decisao de codigo, nao de
+// cadastro, porque cada um precisa de um rotulo de transportadora proprio.
+const MODAIS_MULTIMODAIS = ["LALAMOVE", "MOTOBOY"] as const;
+type ModalMultimodal = (typeof MODAIS_MULTIMODAIS)[number];
+
+// Rotulos que o cliente le no e-mail do Shopify. Nao saem de
+// `b2c_modal_entrega.nome` de proposito: "Motoboy proprio" e nome interno de
+// operacao; para quem comprou, quem entrega e a Fetely.
+const TRANSPORTADORA_POR_MODAL: Record<ModalMultimodal, string> = {
+  LALAMOVE: "Lalamove",
+  MOTOBOY: "Entrega Fetély",
+};
+
+const EVENTO_MESA_DESPACHADO = "mesa_despachado";
+const ESTAGIO_EM_TRANSPORTE = "em_transporte";
+
 const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // deno-lint-ignore no-explicit-any -- cliente supabase-js sem tipos gerados nas edges
 type Supa = any;
 
+/** De onde o candidato veio — decide dedup e formato do `trackingInfo`. */
+type Fonte = "correios" | "mesa_sp";
+
 type Candidato = {
   pedido_id: string;
   shopify_pedido_id: string;
   order_name: string | null;
+  fonte: Fonte;
+  /** CORREIOS para a fonte antiga; o modal da mesa para a nova. */
+  modal: string;
+  /** SRO (Correios) ou referencia da corrida (Lalamove). Vazio no Motoboy. */
   codigo_rastreio: string;
   servico: string | null;
 };
@@ -57,11 +95,19 @@ type Detalhe = {
   pedido_id: string;
   shopify_pedido_id: string;
   order_name: string | null;
+  fonte: Fonte;
+  modal: string;
   codigo_rastreio: string;
   resultado: "criado" | "ja_existia" | "sem_fulfillment_order" | "erro" | "dry";
   fulfillment_id?: string | null;
   erro?: string | null;
 };
+
+/** `trackingInfo` do fulfillment: campo ausente e diferente de campo vazio. */
+type TrackingInfo = { company: string; number?: string; url?: string };
+
+/** A referencia da Lalamove as vezes e o proprio link da corrida. */
+const ehLink = (v: string): boolean => /^https?:\/\//i.test(v);
 
 const QUERY_PEDIDO = `
 query pedidoFulfillment($id: ID!) {
@@ -195,7 +241,7 @@ Deno.serve(async (req) => {
     }
     if (pedidoParaShopify.size === 0) return json({ sucesso: true, ...resultado });
 
-    // ── 3. Rastreio registrado no SNCF ──────────────────────────────────────
+    // ── 3a. Rastreio Correios registrado no SNCF (fonte original) ───────────
     const { data: rastreios, error: eRas } = await supabase
       .from("pedido_rastreamento")
       .select("pedido_id, codigo_rastreio, servico, atualizado_em")
@@ -217,10 +263,77 @@ Deno.serve(async (req) => {
         pedido_id: interno,
         shopify_pedido_id: shopifyId,
         order_name: abertos.get(shopifyId) ?? null,
+        fonte: "correios",
+        modal: "CORREIOS",
         codigo_rastreio: codigo,
         servico: r.servico ?? null,
       });
       if (candidatos.length >= lote) break;
+    }
+
+    // ── 3b. Despachos multimodais da Mesa SP (fonte nova) ───────────────────
+    // A verdade e o evento `mesa_despachado` que a RPC `fn_mesa_sp_despachar`
+    // grava: `metadata->>'modal'` diz por onde saiu e `metadata->>'referencia'`
+    // e o que o cliente consegue usar (id da corrida / nome do portador).
+    //
+    // O corte por lote sobra do passo 3a de proposito: Correios tem precedencia
+    // por ser o volume da casa. Com ~5 pedidos/dia no B2C e lote 25, as duas
+    // fontes cabem juntas — o comentario existe para quando isso deixar de valer.
+    const restante = lote - candidatos.length;
+    if (restante > 0) {
+      const idsPonte = [...pedidoParaShopify.keys()].filter((id) => !vistos.has(id));
+      if (idsPonte.length > 0) {
+        // So pedido B2C que ainda esta em transporte: despacho revertido ou
+        // pedido ja entregue nao tem fulfillment novo a criar.
+        const { data: pedidosB2c, error: ePedB2c } = await supabase
+          .from("pedidos")
+          .select("id")
+          .in("id", idsPonte)
+          .eq("canal", "B2C")
+          .eq("estagio", ESTAGIO_EM_TRANSPORTE);
+        if (ePedB2c) throw new Error(`ler pedidos B2C em transporte: ${ePedB2c.message}`);
+
+        const emTransporte = (pedidosB2c ?? []).map((p: { id: string }) => String(p.id));
+        if (emTransporte.length > 0) {
+          const { data: despachos, error: eDesp } = await supabase
+            .from("pedido_eventos")
+            .select("pedido_id, metadata, criado_em")
+            .eq("tipo_evento", EVENTO_MESA_DESPACHADO)
+            .in("pedido_id", emTransporte)
+            .order("criado_em", { ascending: false });
+          if (eDesp) throw new Error(`ler despachos da Mesa SP: ${eDesp.message}`);
+
+          for (const d of despachos ?? []) {
+            const interno = String(d.pedido_id);
+            if (vistos.has(interno)) continue;
+            // MARCA ANTES DE DECIDIR: a lista vem do mais novo para o mais
+            // velho e SO O ULTIMO DESPACHO VALE. Sem esta linha aqui, um pedido
+            // redespachado por Correios cairia no `mesa_despachado` anterior de
+            // Lalamove e criaria fulfillment com a transportadora errada.
+            vistos.add(interno);
+
+            const meta = (d.metadata ?? {}) as Record<string, unknown>;
+            const modal = String(meta.modal ?? "").trim().toUpperCase();
+            if (!(MODAIS_MULTIMODAIS as readonly string[]).includes(modal)) continue;
+
+            const referencia = String(meta.referencia ?? "").trim();
+            // A RPC ja exige referencia para modal sem rastreio automatico; se
+            // ela faltar aqui, o Motoboy segue (fulfillment simples de "enviado")
+            // e a Lalamove tambem — sem number, mas notificando o cliente.
+            const shopifyId = pedidoParaShopify.get(interno)!;
+            candidatos.push({
+              pedido_id: interno,
+              shopify_pedido_id: shopifyId,
+              order_name: abertos.get(shopifyId) ?? null,
+              fonte: "mesa_sp",
+              modal,
+              codigo_rastreio: modal === "LALAMOVE" ? referencia : "",
+              servico: null,
+            });
+            if (candidatos.length >= lote) break;
+          }
+        }
+      }
     }
 
     resultado.candidatos = candidatos.length;
@@ -231,13 +344,20 @@ Deno.serve(async (req) => {
       .from("shopify_fulfillments")
       .select("order_id, tracking_number, status")
       .in("order_id", candidatos.map((c) => c.shopify_pedido_id));
+    const fulfVivos = (fulfEspelho ?? []).filter(
+      (f: { status?: string | null }) => String(f.status ?? "").toLowerCase() !== "cancelled",
+    );
     const jaNoEspelho = new Set(
-      (fulfEspelho ?? [])
-        .filter((f: { status?: string | null }) => String(f.status ?? "").toLowerCase() !== "cancelled")
-        .map(
-          (f: { order_id?: string | null; tracking_number?: string | null }) =>
-            `${String(f.order_id ?? "")}|${normalizarRastreio(f.tracking_number)}`,
-        ),
+      fulfVivos.map(
+        (f: { order_id?: string | null; tracking_number?: string | null }) =>
+          `${String(f.order_id ?? "")}|${normalizarRastreio(f.tracking_number)}`,
+      ),
+    );
+    // Dedup da fonte multimodal: o Motoboy nao tem numero de rastreio para
+    // comparar, entao a chave e o PEDIDO. Um pedido da Mesa SP sai uma vez —
+    // qualquer fulfillment vivo nele ja e a prova de que a subida aconteceu.
+    const pedidoJaFulfillado = new Set(
+      fulfVivos.map((f: { order_id?: string | null }) => String(f.order_id ?? "")),
     );
 
     // ── 5. Configuracao de rotulo/URL (DIMENSAO-VIA-TABELA, com queda honesta) ─
@@ -253,6 +373,26 @@ Deno.serve(async (req) => {
     // pagina oficial de rastreio, basta trocar a chave — sem mexer nesta edge.
     const templateUrl = String(cfg.b2c_rastreio_url_template ?? "").trim() || URL_RASTREIO_PADRAO;
 
+    /** `trackingInfo` de cada fonte. Correios permanece exatamente como estava. */
+    const trackingDe = (c: Candidato): TrackingInfo => {
+      if (c.fonte === "correios") {
+        return {
+          number: c.codigo_rastreio,
+          company: transportadora,
+          url: templateUrl.replace("{codigo}", encodeURIComponent(c.codigo_rastreio)),
+        };
+      }
+      const company = TRANSPORTADORA_POR_MODAL[c.modal as ModalMultimodal];
+      // Motoboy: fulfillment simples de "enviado" — sem number, sem URL.
+      // Inventar um codigo so para preencher campo viraria rastreio que nao rastreia.
+      if (!c.codigo_rastreio) return { company };
+      // Lalamove: a referencia e o numero. Quando ela ja e um link, vai tambem
+      // como URL, para o cliente clicar em vez de copiar.
+      return ehLink(c.codigo_rastreio)
+        ? { company, number: c.codigo_rastreio, url: c.codigo_rastreio }
+        : { company, number: c.codigo_rastreio };
+    };
+
     const shopify = await makeShopifyAdmin(supabase);
     // Descoberta do nome da mutation: feita uma vez por execucao, na primeira criacao.
     let mutation: string | null = null;
@@ -263,7 +403,10 @@ Deno.serve(async (req) => {
       };
 
       try {
-        if (jaNoEspelho.has(`${c.shopify_pedido_id}|${c.codigo_rastreio}`)) {
+        const preFiltrado = c.fonte === "correios"
+          ? jaNoEspelho.has(`${c.shopify_pedido_id}|${c.codigo_rastreio}`)
+          : pedidoJaFulfillado.has(c.shopify_pedido_id);
+        if (preFiltrado) {
           resultado.ja_existiam++;
           detalhe({ ...c, resultado: "ja_existia" });
           continue;
@@ -290,12 +433,17 @@ Deno.serve(async (req) => {
           throw new Error(`Pedido ${c.shopify_pedido_id} não encontrado na Admin API.`);
         }
 
-        // IDEMPOTENCIA (autoridade): fulfillment vivo com este rastreio -> pula.
-        const jaTem = (order.fulfillments ?? []).some(
-          (f) =>
-            String(f.status ?? "").toUpperCase() !== "CANCELLED" &&
-            (f.trackingInfo ?? []).some((t) => normalizarRastreio(t?.number) === c.codigo_rastreio),
+        // IDEMPOTENCIA (autoridade): a API do Shopify decide, nao o espelho.
+        // Correios compara pelo rastreio (um pedido pode ter mais de um objeto);
+        // a Mesa SP compara pelo pedido, porque o Motoboy nao tem numero.
+        const vivos = (order.fulfillments ?? []).filter(
+          (f) => String(f.status ?? "").toUpperCase() !== "CANCELLED",
         );
+        const jaTem = c.fonte === "correios"
+          ? vivos.some((f) =>
+            (f.trackingInfo ?? []).some((t) => normalizarRastreio(t?.number) === c.codigo_rastreio)
+          )
+          : vivos.length > 0;
         if (jaTem) {
           resultado.ja_existiam++;
           detalhe({ ...c, resultado: "ja_existia" });
@@ -317,11 +465,7 @@ Deno.serve(async (req) => {
           // fulfillment order). Fulfillment parcial e caso que o B2C nao tem hoje;
           // inventar a quebra por linha seria dado fabricado.
           lineItemsByFulfillmentOrder: fos.map((fo) => ({ fulfillmentOrderId: fo.id })),
-          trackingInfo: {
-            number: c.codigo_rastreio,
-            company: transportadora,
-            url: templateUrl.replace("{codigo}", encodeURIComponent(c.codigo_rastreio)),
-          },
+          trackingInfo: trackingDe(c),
           // O cliente e self-service: o e-mail do Shopify com o rastreio e a
           // notificacao que a nativa fazia e que precisa continuar existindo.
           notifyCustomer: true,
@@ -386,6 +530,8 @@ Deno.serve(async (req) => {
           pedido_id: c.pedido_id,
           shopify_pedido_id: c.shopify_pedido_id,
           order_name: c.order_name ?? order.name,
+          fonte: c.fonte,
+          modal: c.modal,
           codigo_rastreio: c.codigo_rastreio,
           fulfillment_id: criado.id,
         });
@@ -398,6 +544,8 @@ Deno.serve(async (req) => {
         console.error("[fulfillment-push] falha", {
           pedido_id: c.pedido_id,
           shopify_pedido_id: c.shopify_pedido_id,
+          fonte: c.fonte,
+          modal: c.modal,
           codigo_rastreio: c.codigo_rastreio,
           erro: msg,
         });
