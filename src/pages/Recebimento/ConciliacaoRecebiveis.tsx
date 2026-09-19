@@ -46,7 +46,7 @@ export default function ConciliacaoRecebiveis() {
   const permissoes: Record<AbaValue, { podeVer: boolean; carregando: boolean }> = {
     entradas: permEntradas,
     creditos: permCreditos,
-    "por-pedido": permPorPedido,
+    "por-cliente": permPorPedido,
     cartao: permCartao,
   };
 
@@ -107,9 +107,9 @@ export default function ConciliacaoRecebiveis() {
             </ConteudoAba>
           </TabsContent>
 
-          <TabsContent value="por-pedido" className="mt-4">
+          <TabsContent value="por-cliente" className="mt-4">
             <ConteudoAba slug="tela.fin_receb_conciliar">
-              <ConciliacaoPorPedido />
+              <ConciliacaoPorCliente />
             </ConteudoAba>
           </TabsContent>
 
