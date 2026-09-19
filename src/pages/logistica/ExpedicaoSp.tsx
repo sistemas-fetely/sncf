@@ -221,18 +221,26 @@ export default function ExpedicaoSp() {
                   Bancada livre. Puxe o próximo da fila para começar.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {naMesa.map((p) => (
-                    <li key={p.id}>
-                      <LinhaPedido
-                        pedido={p}
-                        ativo={p.id === selecionadoId}
-                        rotulo={ROTULO_ESTACAO[estacaoDe.get(p.id) ?? "separacao"]}
-                        onSelecionar={() => setSelecionadoId(p.id)}
-                      />
-                    </li>
+                <div className="space-y-3">
+                  {gruposMesa.map(({ estacao, doGrupo }) => (
+                    <div key={estacao} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {ROTULO_ESTACAO[estacao]} · {doGrupo.length}
+                      </p>
+                      <ul className="space-y-2">
+                        {doGrupo.map((p) => (
+                          <li key={p.id}>
+                            <LinhaPedido
+                              pedido={p}
+                              ativo={p.id === selecionadoId}
+                              onSelecionar={() => setSelecionadoId(p.id)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </CardContent>
           </Card>
