@@ -27,6 +27,7 @@ const supabaseMesa = supabase as unknown as SupabaseClient;
 export const CHAVE_PEDIDOS_MESA = ["mesa-sp", "pedidos"] as const;
 export const CHAVE_EVENTOS_MESA = ["mesa-sp", "eventos"] as const;
 export const CHAVE_IDENTIDADES_MESA = ["mesa-sp", "identidades"] as const;
+export const CHAVE_MARCACOES_MESA = ["mesa-sp", "marcacoes-embalagem"] as const;
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -219,6 +220,49 @@ export function useChecklistEmbalagem() {
         .order("ordem", { ascending: true });
       if (error) throw new Error(`ler checklist de embalagem: ${mensagemErro(error)}`);
       return (data ?? []) as ItemChecklistEmbalagem[];
+    },
+  });
+}
+
+/**
+ * Marcações da rotina JÁ GRAVADAS para este pedido (`b2c_embalagem_marcacao`).
+ * A rotina atravessa dois sistemas (o operador sai para o Bling e volta), então
+ * a marcação é ato persistido — não estado de tela. Devolve os `item_id`.
+ */
+export function useMarcacoesEmbalagem(pedidoId: string | null) {
+  return useQuery({
+    queryKey: [...CHAVE_MARCACOES_MESA, pedidoId],
+    enabled: !!pedidoId,
+    staleTime: 0,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabaseMesa
+        .from("b2c_embalagem_marcacao")
+        .select("item_id")
+        .eq("pedido_id", pedidoId);
+      if (error) throw new Error(`ler marcações da rotina: ${mensagemErro(error)}`);
+      return ((data ?? []) as { item_id: string }[]).map((m) => m.item_id);
+    },
+  });
+}
+
+/**
+ * Marca/desmarca um item da rotina. Sem toast de sucesso: o gesto é miúdo e
+ * repetido — o retorno é o próprio check gravado. Falha sobe INTEIRA (FAIL-LOUD)
+ * e a tela volta ao estado anterior porque a verdade é a query do banco.
+ */
+export function useMarcarRotina() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { p_pedido_id: string; p_item_id: string; p_marcado: boolean }) => {
+      const { error } = await supabaseMesa.rpc("fn_mesa_sp_marcar_rotina", args);
+      if (error) throw new Error(mensagemErro(error));
+      return args;
+    },
+    onSuccess: (args) => {
+      void qc.invalidateQueries({ queryKey: [...CHAVE_MARCACOES_MESA, args.p_pedido_id] });
+    },
+    onError: (e: unknown) => {
+      toast.error(mensagemErro(e));
     },
   });
 }
