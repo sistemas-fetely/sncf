@@ -144,7 +144,7 @@ export default function CalendarioTarefas() {
                     onClick={() => abrirTarefa(t.id)}
                     className={cn(
                       "w-full rounded-md border border-l-4 px-2 py-1.5 text-left text-sm",
-                      COR_PRIORIDADE[t.prioridade]
+                      PRIORIDADE_BORDA[t.prioridade]
                     )}
                   >
                     <span className="line-clamp-2">{t.titulo}</span>
@@ -202,7 +202,7 @@ export default function CalendarioTarefas() {
                       onClick={() => abrirTarefa(t.id)}
                       className={cn(
                         "cursor-pointer truncate rounded border border-l-[3px] px-1 py-0.5 text-[11px]",
-                        COR_PRIORIDADE[t.prioridade]
+                        PRIORIDADE_BORDA[t.prioridade]
                       )}
                       title={t.titulo}
                     >
