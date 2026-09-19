@@ -219,7 +219,7 @@ export function EstacaoEmbalagem({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={trocarModal}>
+            <Select value={modal} onValueChange={setModal}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>
