@@ -346,13 +346,15 @@ export default function ExpedicaoSp() {
                   enderecoEntrega={selecionado.endereco_entrega}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
+                  checklist={checklistQ.data ?? []}
                   salvando={embalar.isPending}
-                  onEmbalar={(pesoKg, volumes, modal) =>
+                  onEmbalar={(pesoKg, volumes, modal, checklist) =>
                     embalar.mutate({
                       p_pedido_id: selecionado.id,
                       p_peso_kg: pesoKg,
                       p_volumes: volumes,
                       p_modal: modal,
+                      p_checklist: checklist,
                     })
                   }
                 />
