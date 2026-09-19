@@ -276,7 +276,7 @@ export function parseQuickAdd(entrada: string, agora: Date = new Date()): QuickA
     const e = m.index + m[0].length;
     if (!livre(s, e) || prioridade) continue;
     prioridade = PRIORIDADES[m[1]];
-    push("prioridade", s, e, ROTULO_PRIORIDADE[prioridade]);
+    push("prioridade", s, e, PRIORIDADE_ROTULO[prioridade]);
   }
 
   /* 2. prefixos # @ + / — o valor vai até o próximo espaço */
@@ -388,7 +388,7 @@ export function descreverPreview(r: QuickAddResult, agora: Date = new Date()): s
     partes.push(`para ${quando}${r.horaLimite ? ` às ${r.horaLimite.slice(0, 5)}` : ""}`);
   }
 
-  if (r.prioridade) partes.push(`prioridade ${ROTULO_PRIORIDADE[r.prioridade].toLowerCase()}`);
+  if (r.prioridade) partes.push(`prioridade ${PRIORIDADE_ROTULO[r.prioridade].toLowerCase()}`);
   if (r.etiquetas.length) partes.push(`etiquetas: ${r.etiquetas.join(", ")}`);
 
   return partes.join(" · ");
