@@ -811,6 +811,9 @@ Deno.serve(async (req) => {
         // 7. POST no Bling
         await dormir(ESPERA_ENTRE_CHAMADAS_MS);
         let blingPedidoId: number | null = null;
+        // Número CURTO do pedido no Bling (ex.: 596) — é o que a Eva e a tela do
+        // Bling usam; o POST devolve só o id interno (ex.: 26914201352).
+        let blingPedidoNumero: string | null = null;
         try {
           const resp = await bling.post("/pedidos/vendas", payload);
           blingPedidoId = Number(resp?.data?.id ?? resp?.id ?? 0) || null;
@@ -819,6 +822,35 @@ Deno.serve(async (req) => {
             await falhar("Bling respondeu sem id de pedido — envio não confirmado.", resp);
             continue;
           }
+
+          // Número curto: GET /pedidos/vendas/{id} para ler `numero`. O pedido JÁ
+          // EXISTE no Bling — esta busca NÃO PODE derrubar a descida. Qualquer
+          // falha (HTTP, parse, `numero` ausente) é silenciosa: loga e segue com
+          // só o `bling_pedido_id`. Nada de marcar erro na fila nem reprocessar —
+          // repetir o POST criaria duplicata.
+          try {
+            await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+            const detalheResp = await bling.get(`/pedidos/vendas/${blingPedidoId}`);
+            const numeroCurto = (detalheResp?.data ?? detalheResp ?? {})?.numero;
+            if (numeroCurto != null && String(numeroCurto).trim() !== "") {
+              blingPedidoNumero = String(numeroCurto).trim();
+            } else {
+              console.error("[b2c-descida] pedido criado mas Bling não devolveu `numero`", {
+                fila_id: item.id,
+                shopify_pedido_id: item.shopify_pedido_id,
+                bling_pedido_id: blingPedidoId,
+                resposta: detalheResp,
+              });
+            }
+          } catch (eNumero) {
+            console.error("[b2c-descida] falha ao buscar número curto do pedido — descida segue", {
+              fila_id: item.id,
+              shopify_pedido_id: item.shopify_pedido_id,
+              bling_pedido_id: blingPedidoId,
+              erro: (eNumero as Error).message ?? String(eNumero),
+            });
+          }
+
           // LOG: `bling_envios_log.pedido_id` e NOT NULL e aponta para `pedidos.id`
           // (pedido INTERNO), que no B2C so nasce DEPOIS, pela NF. Por isso o registro
           // do envio B2C fica no console + na propria fila. Ver aviso no PR.
@@ -831,6 +863,7 @@ Deno.serve(async (req) => {
             regra_id: item.regra_id,
             contato_id: contatoId,
             bling_pedido_id: blingPedidoId,
+            bling_pedido_numero: blingPedidoNumero,
             total: totalPedido,
             itens: blingItens.length,
             duracao_ms: Date.now() - t0,
