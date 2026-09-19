@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, PackageOpen } from "lucide-react";
+import { Box, Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   cepDoEndereco, modalSugerido,
-  type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
+  type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 
 /**
@@ -30,8 +31,12 @@ interface Props {
   modais: ModalEntrega[];
   regras: ModalRegra[];
   checklist: ItemChecklistEmbalagem[];
+  caixas: CaixaSugerida[];
+  carregandoCaixas: boolean;
+  /** Mensagem real da RPC de sugestão, quando falhou. Não trava o registro. */
+  erroCaixas: string | null;
   salvando: boolean;
-  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[]) => void;
+  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null) => void;
 }
 
 
