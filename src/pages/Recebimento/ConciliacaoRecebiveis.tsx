@@ -37,7 +37,10 @@ const ABAS = [
 type AbaValue = (typeof ABAS)[number]["value"];
 
 export default function ConciliacaoRecebiveis() {
-  const [aba, setAba] = useAbaUrl("entradas");
+  const [abaUrl, setAba] = useAbaUrl("entradas");
+  // Link salvo com a aba antiga "por-pedido" cai em "por-cliente".
+  const aba = abaUrl === "por-pedido" ? "por-cliente" : abaUrl;
+
 
   const permEntradas = usePodeVerAba("tela.cliente_entradas");
   const permCreditos = usePodeVerAba("tela.fin_concil_mesa");
