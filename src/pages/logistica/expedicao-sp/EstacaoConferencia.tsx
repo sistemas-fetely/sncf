@@ -60,20 +60,23 @@ function LinhaItem({
     <li
       className={cn(
         "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-all duration-700",
-        ok && "border-success/40 bg-success/10 opacity-80",
+        modo === "conferido" && !realce && "opacity-75",
+        ok && "border-success/40 bg-success/10",
         realce && "border-success bg-success/20 opacity-100 ring-2 ring-success/60",
       )}
     >
       <div className="min-w-0">
-        <p className="truncate text-sm">{item.descricao}</p>
+        <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
         <p className="font-mono text-xs text-muted-foreground">
           {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="text-sm tabular-nums">{quantidade}</span>
         {modo === "conferir" ? (
-          quantidade < item.quantidade && <Selo estado="warning">falta {quantidade}</Selo>
+          // A coluna da direita nunca é um número cru: o que falta é rótulo.
+          <Selo estado="warning">
+            falta {quantidade} {quantidade === 1 ? "peça" : "peças"}
+          </Selo>
         ) : ok ? (
           <Selo estado="success">
             <Check className="mr-1 h-3 w-3" aria-hidden="true" />
