@@ -625,7 +625,6 @@ export function BoardProjeto({ projetoId }: Props) {
                                 >
                                   {f.titulo}
                                 </button>
-                                {f.prioridade === "urgente" && <PontoUrgente label="Urgente" />}
                               </div>
                             ))}
                           </div>
