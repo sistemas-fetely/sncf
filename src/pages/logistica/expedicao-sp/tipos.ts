@@ -68,6 +68,18 @@ export interface ItemPedidoMesa {
   ean: string | null;
 }
 
+/**
+ * Foto de conferência visual (`vw_produto_imagem`). `fonte` diz de onde a URL
+ * veio: 'variante' (cor certa, a prioridade), 'produto' (principal) ou
+ * 'galeria'. A foto é CONFERÊNCIA VISUAL, nunca critério de aceite — quem
+ * valida a peça continua sendo o EAN.
+ */
+export interface ImagemProdutoMesa {
+  sku: string;
+  imagem_url: string;
+  fonte: "variante" | "produto" | "galeria";
+}
+
 export interface ModalEntrega {
   codigo: string;
   nome: string;

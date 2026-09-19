@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import {
   ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
   type CaixaSugerida, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
-  type ModalEntrega, type ModalRegra, type PedidoMesa,
+  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa,
 } from "./tipos";
 
 /**
