@@ -25,19 +25,22 @@ import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
 import { EntradasReconhecerTab } from "@/components/financeiro/EntradasReconhecerTab";
 import { ConciliacaoCartaoConteudo } from "@/pages/administrativo/ConciliacaoCartao";
 import { MesaConciliacaoConteudo } from "@/pages/administrativo/ConciliacaoMesa";
-import { ConciliacaoPorPedido } from "@/pages/administrativo/RecebimentosConciliar";
+import { ConciliacaoPorCliente } from "@/components/financeiro/ConciliacaoPorCliente";
 
 const ABAS = [
   { value: "entradas", label: "Entradas a reconhecer", slug: "tela.cliente_entradas" },
   { value: "creditos", label: "Créditos do banco", slug: "tela.fin_concil_mesa" },
-  { value: "por-pedido", label: "Por pedido", slug: "tela.fin_receb_conciliar" },
+  { value: "por-cliente", label: "Por cliente", slug: "tela.fin_receb_conciliar" },
   { value: "cartao", label: "Cartão", slug: "tela.fin_conciliacao" },
 ] as const;
 
 type AbaValue = (typeof ABAS)[number]["value"];
 
 export default function ConciliacaoRecebiveis() {
-  const [aba, setAba] = useAbaUrl("entradas");
+  const [abaUrl, setAba] = useAbaUrl("entradas");
+  // Link salvo com a aba antiga "por-pedido" cai em "por-cliente".
+  const aba = abaUrl === "por-pedido" ? "por-cliente" : abaUrl;
+
 
   const permEntradas = usePodeVerAba("tela.cliente_entradas");
   const permCreditos = usePodeVerAba("tela.fin_concil_mesa");
@@ -46,7 +49,7 @@ export default function ConciliacaoRecebiveis() {
   const permissoes: Record<AbaValue, { podeVer: boolean; carregando: boolean }> = {
     entradas: permEntradas,
     creditos: permCreditos,
-    "por-pedido": permPorPedido,
+    "por-cliente": permPorPedido,
     cartao: permCartao,
   };
 
@@ -107,9 +110,9 @@ export default function ConciliacaoRecebiveis() {
             </ConteudoAba>
           </TabsContent>
 
-          <TabsContent value="por-pedido" className="mt-4">
+          <TabsContent value="por-cliente" className="mt-4">
             <ConteudoAba slug="tela.fin_receb_conciliar">
-              <ConciliacaoPorPedido />
+              <ConciliacaoPorCliente />
             </ConteudoAba>
           </TabsContent>
 
