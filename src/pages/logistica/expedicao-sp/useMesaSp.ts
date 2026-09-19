@@ -213,7 +213,7 @@ export function useChecklistEmbalagem() {
     queryFn: async (): Promise<ItemChecklistEmbalagem[]> => {
       const { data, error } = await supabaseMesa
         .from("b2c_embalagem_checklist")
-        .select("modal_codigo, ordem, rotulo, obrigatorio, observacao")
+        .select("id, modal_codigo, ordem, rotulo, obrigatorio, observacao")
         .eq("ativo", true)
         .order("modal_codigo", { ascending: true })
         .order("ordem", { ascending: true });
