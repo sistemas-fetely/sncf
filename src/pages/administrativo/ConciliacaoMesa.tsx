@@ -134,7 +134,7 @@ const META_CONFIANCA: Record<
 /**
  * MesaConciliacaoConteudo — conteúdo da Mesa de Conciliação sem casca.
  *
- * Mora na aba "Créditos do banco" de /administrativo/conciliacao (F2). Dentro da
+ * Mora na aba "Créditos do banco" de /administrativo/conciliacao-recebiveis (F2). Dentro da
  * casa, `paramAba="sub"` para as sub-abas internas (extrato/cartão) não
  * colidirem com o `?aba=` da casa.
  */
@@ -943,5 +943,5 @@ export function MesaConciliacaoConteudo({
 
 // Rota antiga viva: quem tem /administrativo/conciliacao-mesa salvo cai na casa.
 export default function ConciliacaoMesa() {
-  return <Navigate to="/administrativo/conciliacao?aba=creditos" replace />;
+  return <Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />;
 }

@@ -166,6 +166,7 @@ const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
 const ConciliacaoMesa = lazy(() => import("@/pages/administrativo/ConciliacaoMesa"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
 const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
+const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
@@ -294,11 +295,11 @@ function ChegadaMercadoriaRedirect() {
   return <Navigate to={"/logistica/chegada-mercadoria" + location.search} replace />;
 }
 
-// CONCILIACAO-MORA-EM-FINANCAS (19/09/2026): /recebimento/conciliacao → /administrativo/conciliacao
+// CONCILIACAO-MORA-EM-FINANCAS (19/09/2026): /recebimento/conciliacao → /administrativo/conciliacao-recebiveis
 // Preserva a query string (?aba=/&sub=) para links salvos caírem na aba certa.
 function ConciliacaoRecebiveisRedirect() {
   const location = useLocation();
-  return <Navigate to={"/administrativo/conciliacao" + location.search} replace />;
+  return <Navigate to={"/administrativo/conciliacao-recebiveis" + location.search} replace />;
 }
 function ChegadaMercadoriaIdRedirect() {
   const { id } = useParams();
@@ -799,21 +800,22 @@ const App = () => (
 
                 <Route path="fluxo-caixa" element={<FluxoCaixa />} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
-                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />} />
                 <Route path="banco-safra" element={<BancoSafra />} />
-                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
+                <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
-                <Route path="conciliacao" element={<ConciliacaoRecebiveis />} />
+                <Route path="conciliacao" element={<Conciliacao />} />
+                <Route path="conciliacao-recebiveis" element={<ConciliacaoRecebiveis />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
-                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=por-cliente" replace />} />
                 
-                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
+                <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=por-cliente" replace />} />
                 <Route path="extrato-importacao" element={<ExtratoImportacao />} />
                 <Route path="extrato-inbox" element={<ExtratoInbox />} />
                 <Route path="extrato-regras" element={<RegrasInbox />} />
                 <Route path="extrato-pares" element={<ParesTransferencia />} />
-                <Route path="conciliacao-cartao" element={<Navigate to="/administrativo/conciliacao?aba=cartao" replace />} />
+                <Route path="conciliacao-cartao" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=cartao" replace />} />
                 <Route path="conciliacao-despesas" element={<ConciliacaoDespesas />} />
                 <Route path="conciliacao/orfaos" element={<ConciliacaoOrfaos />} />
                 <Route path="despesas" element={<Despesas />} />
