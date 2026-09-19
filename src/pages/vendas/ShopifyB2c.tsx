@@ -18,7 +18,13 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PipelineB2c } from "@/components/vendas/PipelineB2c";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { PipelineB2c, type ContagemEstagio } from "@/components/vendas/PipelineB2c";
+import {
+  BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c, nomeCurtoCd,
+} from "@/components/vendas/EscolhaCdB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
