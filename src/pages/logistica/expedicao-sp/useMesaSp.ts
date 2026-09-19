@@ -292,6 +292,12 @@ export function useEmbalar() {
     p_modal: string;
     /** Rótulos marcados na bancada. A RPC recusa se faltar item obrigatório. */
     p_checklist: string[];
+    /**
+     * Caixa escolhida pelo operador (`b2c_embalagem_caixa.codigo`). Opcional:
+     * null = embalagem registrada sem caixa informada. A RPC recusa código
+     * inexistente, mas aceita caixa diferente da sugerida — escolha é humana.
+     */
+    p_caixa_codigo: string | null;
   }>("fn_mesa_sp_embalar", () => "Embalagem registrada.");
 }
 
