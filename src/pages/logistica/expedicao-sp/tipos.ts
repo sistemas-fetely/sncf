@@ -81,6 +81,8 @@ export interface ModalEntrega {
  * obrigatório — a tela só antecipa essa recusa (DIMENSÃO-VIA-TABELA).
  */
 export interface ItemChecklistEmbalagem {
+  /** Chave do item no banco — é por ela que a marcação é persistida. */
+  id: string;
   modal_codigo: string;
   ordem: number;
   rotulo: string;

@@ -22,8 +22,9 @@ import {
  * manda: a sugestão é ponto de partida, não trava.
  *
  * O aviso fixo sobre etiqueta deu lugar à ROTINA DO MODAL (`b2c_embalagem_checklist`):
- * a lista é do banco, muda com o modal e as marcações zeram na troca — rotina de
- * outro modal é outra rotina, não continuação da anterior.
+ * a lista é do banco, muda com o modal, e a MARCAÇÃO TAMBÉM É DO BANCO
+ * (`b2c_embalagem_marcacao`) — a rotina atravessa o Bling, então marcar é ato
+ * gravado, não estado de tela: o operador sai, volta e encontra o que marcou.
  */
 interface Props {
   enderecoEntrega: unknown;
@@ -31,6 +32,11 @@ interface Props {
   modais: ModalEntrega[];
   regras: ModalRegra[];
   checklist: ItemChecklistEmbalagem[];
+  /** `id` dos itens de rotina JÁ marcados no banco para este pedido. */
+  marcados: string[];
+  /** Item cuja marcação está em voo — o checkbox dele espera o banco. */
+  marcandoItemId: string | null;
+  onAlternarMarcacao: (itemId: string, marcado: boolean) => void;
   caixas: CaixaSugerida[];
   carregandoCaixas: boolean;
   /** Mensagem real da RPC de sugestão, quando falhou. Não trava o registro. */
@@ -41,13 +47,16 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, itens, modais, regras, checklist, caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
+  enderecoEntrega, itens, modais, regras, checklist,
+  marcados, marcandoItemId, onAlternarMarcacao,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
-  const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [caixa, setCaixa] = useState<string | null>(null);
+
+  const marcadosSet = useMemo(() => new Set(marcados), [marcados]);
 
   const sugeridaCodigo = caixas.find((c) => c.sugerida)?.codigo ?? null;
 
@@ -80,26 +89,13 @@ export function EstacaoEmbalagem({
 
   const pesoNum = Number(peso.replace(",", "."));
   const volumesNum = Number.parseInt(volumes, 10);
-  const faltando = itensDoModal.filter((i) => i.obrigatorio && !marcados.has(i.rotulo));
+  const faltando = itensDoModal.filter((i) => i.obrigatorio && !marcadosSet.has(i.id));
+  const rotulosMarcados = itensDoModal.filter((i) => marcadosSet.has(i.id)).map((i) => i.rotulo);
   const podeSalvar =
     Number.isFinite(pesoNum) && pesoNum > 0 &&
     Number.isFinite(volumesNum) && volumesNum >= 1 &&
     modal !== "" &&
     faltando.length === 0;
-
-  function trocarModal(codigo: string) {
-    setModal(codigo);
-    setMarcados(new Set());
-  }
-
-  function alternar(rotulo: string, marcado: boolean) {
-    setMarcados((atual) => {
-      const proximo = new Set(atual);
-      if (marcado) proximo.add(rotulo);
-      else proximo.delete(rotulo);
-      return proximo;
-    });
-  }
 
   return (
     <Card>
@@ -223,7 +219,7 @@ export function EstacaoEmbalagem({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={trocarModal}>
+            <Select value={modal} onValueChange={setModal}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>
@@ -257,14 +253,15 @@ export function EstacaoEmbalagem({
             ) : (
               <ul className="space-y-2">
                 {itensDoModal.map((item) => {
-                  const id = `mesa-sp-check-${item.modal_codigo}-${item.ordem}`;
+                  const id = `mesa-sp-check-${item.id}`;
                   return (
-                    <li key={id} className="flex items-start gap-2">
+                    <li key={item.id} className="flex items-start gap-2">
                       <Checkbox
                         id={id}
                         className="mt-0.5"
-                        checked={marcados.has(item.rotulo)}
-                        onCheckedChange={(v) => alternar(item.rotulo, v === true)}
+                        checked={marcadosSet.has(item.id)}
+                        disabled={marcandoItemId === item.id}
+                        onCheckedChange={(v) => onAlternarMarcacao(item.id, v === true)}
                       />
                       <div className="min-w-0 space-y-0.5">
                         <Label htmlFor={id} className="block text-sm font-normal leading-snug">
@@ -287,7 +284,7 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados], caixa)}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa)}
             disabled={!podeSalvar || salvando}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}

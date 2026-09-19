@@ -24,8 +24,8 @@ import {
 } from "./expedicao-sp/tipos";
 import {
   useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
-  useIdentidadesMesaSp, useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
-  useRegistrarConferencia, useRegrasModal,
+  useIdentidadesMesaSp, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
+  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
@@ -121,6 +121,10 @@ export default function ExpedicaoSp() {
   const despachar = useDespachar();
   const despacharLote = useDespacharLote();
   const checklistQ = useChecklistEmbalagem();
+  // Marcação da rotina é ato gravado: a lista vem do banco DESTE pedido, então
+  // trocar de pedido já traz a rotina dele — não há estado de tela para zerar.
+  const marcacoesQ = useMarcacoesEmbalagem(selecionado?.id ?? null);
+  const marcarRotina = useMarcarRotina();
 
   /**
    * Fila de coleta: TODA a mesa em despacho, agrupada pelo modal que a embalagem
@@ -409,6 +413,15 @@ export default function ExpedicaoSp() {
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
                   checklist={checklistQ.data ?? []}
+                  marcados={marcacoesQ.data ?? []}
+                  marcandoItemId={marcarRotina.isPending ? marcarRotina.variables?.p_item_id ?? null : null}
+                  onAlternarMarcacao={(itemId, marcado) =>
+                    marcarRotina.mutate({
+                      p_pedido_id: selecionado.id,
+                      p_item_id: itemId,
+                      p_marcado: marcado,
+                    })
+                  }
                   caixas={caixasQ.data ?? []}
                   carregandoCaixas={caixasQ.isLoading}
                   erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
