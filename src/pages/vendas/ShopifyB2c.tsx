@@ -99,6 +99,11 @@ function proximaAcaoExibida(p: PedidoB2cRow): string | null {
     case "enviado":
       return "No Bling — aguardando faturamento";
     case "pendente":
+      // Próxima ação com autor: o humano escolheu o CD; a descida é consequência.
+      if (p.cd_escolhido_codigo) {
+        return `${abreviarCd(p.cd_escolhido_codigo, p.cd_escolhido_nome)} escolhido · descendo ao Bling`;
+      }
+      return "Desce automático em até 10 min";
     case "processando":
       return "Desce automático em até 10 min";
     case "erro":
