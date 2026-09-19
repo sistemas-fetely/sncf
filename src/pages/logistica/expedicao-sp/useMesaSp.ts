@@ -305,6 +305,8 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       // mostrando a estação anterior até o staleTime vencer.
       void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+      // A embalagem apaga as marcações no próprio banco: a tela só relê.
+      void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
     },
     onError: (e: unknown) => {
       toast.error(mensagemErro(e));
