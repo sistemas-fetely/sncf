@@ -15,7 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
@@ -24,12 +24,6 @@ import type { TarefaComPapel } from "@/hooks/tarefas/useMinhasTarefasPapel";
 import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
 import { useTarefasBloqueadas } from "@/hooks/tarefas/useTarefaBloqueio";
 
-const PRIORIDADE_CLASSE: Record<string, string> = {
-  urgente: "border-destructive/40 bg-destructive/10 text-destructive",
-  alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning/10 text-warning",
-  baixa: "border-border bg-muted text-muted-foreground",
-};
 
 function dataCurta(iso: string | null): string | null {
   if (!iso) return null;
