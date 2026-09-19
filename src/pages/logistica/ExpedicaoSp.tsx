@@ -88,6 +88,15 @@ export default function ExpedicaoSp() {
   const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
   const naMesa = pedidos.filter((p) => p.estagio !== ESTAGIO_FILA);
 
+  /** Pedidos da mesa agrupados por estação, na ordem da bancada. */
+  const gruposMesa = useMemo(
+    () =>
+      ESTACOES
+        .map((estacao) => ({ estacao, doGrupo: naMesa.filter((p) => estacaoDe.get(p.id) === estacao) }))
+        .filter(({ doGrupo }) => doGrupo.length > 0),
+    [naMesa, estacaoDe],
+  );
+
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
