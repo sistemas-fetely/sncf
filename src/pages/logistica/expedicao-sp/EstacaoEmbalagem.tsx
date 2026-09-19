@@ -1,16 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, PackageOpen } from "lucide-react";
+import { Box, Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
   cepDoEndereco, modalSugerido,
-  type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
+  type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 
 /**
@@ -30,21 +31,39 @@ interface Props {
   modais: ModalEntrega[];
   regras: ModalRegra[];
   checklist: ItemChecklistEmbalagem[];
+  caixas: CaixaSugerida[];
+  carregandoCaixas: boolean;
+  /** Mensagem real da RPC de sugestão, quando falhou. Não trava o registro. */
+  erroCaixas: string | null;
   salvando: boolean;
-  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[]) => void;
+  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null) => void;
 }
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, itens, modais, regras, checklist, salvando, onEmbalar,
+  enderecoEntrega, itens, modais, regras, checklist, caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [caixa, setCaixa] = useState<string | null>(null);
+
+  const sugeridaCodigo = caixas.find((c) => c.sugerida)?.codigo ?? null;
+
+  // A sugerida vem pré-selecionada uma vez; depois disso a escolha é do operador
+  // (SISTEMA SUGERE / HUMANO DECIDE) — recalcular por cima seria roubo de foco.
+  useEffect(() => {
+    if (caixa !== null || !sugeridaCodigo) return;
+    setCaixa(sugeridaCodigo);
+  }, [sugeridaCodigo, caixa]);
 
   const cep = cepDoEndereco(enderecoEntrega);
   const sugerido = modalSugerido(cep, regras);
+
+  const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
+  const caixaDiferenteDaSugerida =
+    caixa !== null && sugeridaCodigo !== null && caixa !== sugeridaCodigo;
 
   // A sugestão preenche uma vez, quando as dimensões chegam. Depois disso quem
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
@@ -115,6 +134,72 @@ export function EstacaoEmbalagem({
             </div>
           </div>
         )}
+
+        {erroCaixas && (
+          <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            Não foi possível sugerir caixas agora ({erroCaixas}). O registro da embalagem segue normal sem sugestão.
+          </p>
+        )}
+
+        {!erroCaixas && !carregandoCaixas && caixas.length > 0 && (
+          <div className="rounded-md border border-border bg-muted/40 p-4">
+            <div className="flex items-center gap-2.5">
+              <Box className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <p className="text-sm font-medium">Caixa sugerida</p>
+              {caixaDiferenteDaSugerida && (
+                <span className="text-xs text-muted-foreground">· diferente da sugerida</span>
+              )}
+            </div>
+
+            {nenhumaCabe ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Nenhuma caixa cadastrada comporta este pedido — escolha a embalagem na bancada e registre normalmente.
+              </p>
+            ) : (
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {caixas.map((c) => {
+                  const selecionadaCaixa = caixa === c.codigo;
+                  return (
+                    <button
+                      key={c.codigo}
+                      type="button"
+                      disabled={!c.cabe}
+                      onClick={() => setCaixa(c.codigo)}
+                      aria-pressed={selecionadaCaixa}
+                      className={cn(
+                        "rounded-md border p-3 text-left transition-colors",
+                        c.cabe
+                          ? selecionadaCaixa
+                            ? "border-success bg-success/10"
+                            : "border-border bg-card hover:border-foreground/30"
+                          : "cursor-not-allowed border-border bg-muted/30 opacity-60",
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-sm font-semibold">{c.codigo}</span>
+                        <span className="truncate text-xs text-muted-foreground">{c.nome}</span>
+                        {c.sugerida && (
+                          <span className="ml-auto shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
+                            Sugerida
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{c.medidas}</p>
+                      {c.cabe ? (
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          ocupa {Math.round(c.ocupacao_pct)}% da caixa
+                        </p>
+                      ) : (
+                        <p className="mt-0.5 text-xs text-muted-foreground">{c.motivo ?? "não cabe"}</p>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
 
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-1.5">
@@ -202,7 +287,7 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados])}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados], caixa)}
             disabled={!podeSalvar || salvando}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}

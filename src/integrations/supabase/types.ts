@@ -3871,6 +3871,51 @@ export type Database = {
         }
         Relationships: []
       }
+      b2c_embalagem_caixa: {
+        Row: {
+          altura_cm: number
+          aproveitamento: number
+          ativo: boolean
+          codigo: string
+          codigo_compra: string | null
+          comprimento_cm: number
+          criado_em: string
+          id: string
+          largura_cm: number
+          nome: string
+          observacao: string | null
+          ordem: number
+        }
+        Insert: {
+          altura_cm: number
+          aproveitamento?: number
+          ativo?: boolean
+          codigo: string
+          codigo_compra?: string | null
+          comprimento_cm: number
+          criado_em?: string
+          id?: string
+          largura_cm: number
+          nome: string
+          observacao?: string | null
+          ordem?: number
+        }
+        Update: {
+          altura_cm?: number
+          aproveitamento?: number
+          ativo?: boolean
+          codigo?: string
+          codigo_compra?: string | null
+          comprimento_cm?: number
+          criado_em?: string
+          id?: string
+          largura_cm?: number
+          nome?: string
+          observacao?: string | null
+          ordem?: number
+        }
+        Relationships: []
+      }
       b2c_embalagem_checklist: {
         Row: {
           ativo: boolean
@@ -102230,6 +102275,19 @@ export type Database = {
           pessoa_id: string
         }[]
       }
+      fn_mesa_sp_caixas_sugeridas: {
+        Args: { p_pedido_id: string }
+        Returns: {
+          cabe: boolean
+          codigo: string
+          medidas: string
+          motivo: string
+          nome: string
+          ocupacao_pct: number
+          sugerida: boolean
+          volume_util_cm3: number
+        }[]
+      }
       fn_mesa_sp_despachar: {
         Args: { p_modal: string; p_pedido_id: string; p_referencia?: string }
         Returns: Json
@@ -102250,6 +102308,17 @@ export type Database = {
           }
         | {
             Args: {
+              p_checklist?: Json
+              p_modal: string
+              p_pedido_id: string
+              p_peso_kg: number
+              p_volumes: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_caixa_codigo?: string
               p_checklist?: Json
               p_modal: string
               p_pedido_id: string
