@@ -51,8 +51,8 @@ export function BlocoCampos({ tarefa }: { tarefa: TarefaDetalhe }) {
         <Select value={tarefa.prioridade} onValueChange={(v) => salvar.mutate({ prioridade: v as TarefaPrioridade })}>
           <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {Object.entries(PRIORIDADE_ROTULO).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
+            {OPCOES_PRIORIDADE.map((o) => (
+              <SelectItem key={o.valor} value={o.valor}>{o.rotulo}</SelectItem>
             ))}
           </SelectContent>
         </Select>
