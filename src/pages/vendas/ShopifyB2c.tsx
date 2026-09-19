@@ -272,6 +272,66 @@ export default function ShopifyB2c() {
     return codigo.replace(/_/g, " ");
   }
 
+  // DIMENSÃO-VIA-TABELA: os CDs do B2C vêm de centro_distribuicao.
+  const {
+    data: centrosData,
+    isError: centrosErro,
+    error: centrosErroObj,
+  } = useCentrosB2c();
+  const centros = useMemo(() => centrosData ?? [], [centrosData]);
+
+  const qc = useQueryClient();
+
+  /** Grava a escolha do CD e libera a descida. FAIL-LOUD: erro do banco no toast. */
+  async function escolherCd(pedidos: PedidoB2cRow[], centro: CentroB2c) {
+    const alvos = pedidos.filter((p) => !!p.shopify_id);
+    if (alvos.length === 0) return;
+    setGravandoCd(true);
+    let ok = 0;
+    const falhas: string[] = [];
+    try {
+      for (const p of alvos) {
+        const { error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
+          p_shopify_id: p.shopify_id!,
+          p_centro_codigo: centro.codigo,
+        });
+        if (erroRpc) falhas.push(`${p.order_name ?? p.shopify_id}: ${erroRpc.message}`);
+        else ok += 1;
+      }
+    } finally {
+      setGravandoCd(false);
+      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+    }
+    if (falhas.length > 0) {
+      toast.error(
+        `${falhas.length} pedido(s) não foram enviados para ${nomeCurtoCd(centro)}.`,
+        { description: falhas.slice(0, 6).join(" · ") },
+      );
+    }
+    if (ok > 0) {
+      toast.success(
+        alvos.length === 1
+          ? `Pedido enviado para ${nomeCurtoCd(centro)}. Desce ao Bling em até 10 min.`
+          : `${ok} pedido(s) enviados para ${nomeCurtoCd(centro)}.`,
+      );
+      setMarcados(new Set());
+    }
+  }
+
+  /** Divergir da sugestão pede confirmação, nunca bloqueia. */
+  function pedirEscolha(pedidos: PedidoB2cRow[], centro: CentroB2c) {
+    const divergentes = pedidos.filter(
+      (p) => p.cd_sugerido && p.cd_sugerido !== centro.codigo,
+    );
+    if (divergentes.length > 0) {
+      const sug = centros.find((c) => c.codigo === divergentes[0].cd_sugerido);
+      setConfirmacao({ pedidos, centro, sugeridoNome: sug ? nomeCurtoCd(sug) : divergentes[0].cd_sugerido });
+      return;
+    }
+    void escolherCd(pedidos, centro);
+  }
+
 
   const filtrados = useMemo(() => {
     let r = lista;
@@ -279,6 +339,8 @@ export default function ShopifyB2c() {
     if (estagioParam) r = r.filter((p) => p.estagio === estagioParam);
     if (uf !== "todas") r = r.filter((p) => p.shipping_province === uf);
     if (alerta !== "todos") r = r.filter((p) => p.alerta === alerta);
+    // Toggle de CD: Total não filtra; pedido sem CD efetivo só aparece em Total.
+    if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
     const q = busca.trim().toLowerCase();
     if (q) {
       r = r.filter(
@@ -289,7 +351,46 @@ export default function ShopifyB2c() {
       );
     }
     return r;
-  }, [lista, incluirCancelados, estagioParam, uf, alerta, busca]);
+  }, [lista, incluirCancelados, estagioParam, uf, alerta, busca, cdFiltro]);
+
+  // Funil respeita o toggle de CD: com filtro ativo, conta a MESMA lista que a
+  // tabela mostra (ignorando só o filtro de fase); em Total, a view manda.
+  const listaDoCd = useMemo(() => {
+    let r = lista;
+    if (!incluirCancelados) r = r.filter((p) => p.estagio !== "cancelado");
+    if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
+    return r;
+  }, [lista, incluirCancelados, cdFiltro]);
+
+  const contagensPorEstagio = useMemo(() => {
+    if (cdFiltro === "todos") return null;
+    const m: Record<string, ContagemEstagio> = {};
+    listaDoCd.forEach((p) => {
+      const e = p.estagio ?? "";
+      const atual = m[e] ?? { qtd: 0, valor: 0, alerta: 0 };
+      atual.qtd += 1;
+      atual.valor += Number(p.total ?? 0);
+      if (p.alerta && !alertaSuprimidoPorFila(p)) atual.alerta += 1;
+      m[e] = atual;
+    });
+    return m;
+  }, [cdFiltro, listaDoCd]);
+
+  const alertaSemCd = useMemo(
+    () => listaDoCd.filter((p) => p.alerta_sem_cd).length,
+    [listaDoCd],
+  );
+
+  /** Pedidos da página que ainda esperam destino — base da ação em lote. */
+  const aguardandoDestino = useMemo(
+    () => listaDoCd.filter((p) => p.fila_status === "aguardando_destino"),
+    [listaDoCd],
+  );
+
+  const pedidosMarcados = useMemo(
+    () => aguardandoDestino.filter((p) => p.shopify_id && marcados.has(p.shopify_id)),
+    [aguardandoDestino, marcados],
+  );
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
   const ordenados = useMemo(() => {
@@ -336,7 +437,7 @@ export default function ShopifyB2c() {
   // fica olhando uma página 7 que já não existe.
   useEffect(() => {
     setPagina(1);
-  }, [busca, uf, alerta, estagioParam, incluirCancelados, ordenacao]);
+  }, [busca, uf, alerta, estagioParam, incluirCancelados, ordenacao, cdFiltro]);
 
   const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasB2c);
@@ -386,16 +487,16 @@ export default function ShopifyB2c() {
           <ConteudoAba slug="tela.b2c">
           <div
             ref={pipelineRef}
-            className="sticky top-16 z-20 -mx-6 border-b border-border bg-background px-6 py-2"
+            className="sticky top-16 z-20 -mx-6 space-y-2 border-b border-border bg-background px-6 py-2"
           >
+            <ToggleCdB2c centros={centros} valor={cdFiltro} onChange={setCdFiltro} />
             <PipelineB2c
               estagioAtivo={estagioParam}
               onClickEstagio={(e) => setEstagio(e)}
               onLimparFiltro={() => setEstagio(null)}
-              incluirCancelados={incluirCancelados}
-              onToggleCancelados={setIncluirCancelados}
-              filaAtiva={filaAtiva}
               reducaoAlerta={reducaoAlerta}
+              contagens={contagensPorEstagio}
+              alertaSemCd={alertaSemCd}
             />
           </div>
 
@@ -447,8 +548,19 @@ export default function ShopifyB2c() {
                 ))}
               </SelectContent>
             </Select>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="b2c-cancelados"
+                checked={incluirCancelados}
+                onCheckedChange={setIncluirCancelados}
+              />
+              <Label htmlFor="b2c-cancelados" className="text-xs text-muted-foreground">
+                Incluir cancelados
+              </Label>
+            </div>
             <span className="text-xs text-muted-foreground">
-              {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""}
+              {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""} · {filaAtiva.qtd} em
+              andamento ({formatBRL(filaAtiva.valor)})
             </span>
             {ordenacao && (
               <span className="text-xs text-muted-foreground">
@@ -471,12 +583,21 @@ export default function ShopifyB2c() {
             </div>
           )}
 
-          {filaBlingErro && (
+          {centrosErro && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              Fila de descida ao Bling não carregou. A coluna Bling e a próxima ação podem estar desatualizadas.{" "}
-              {(filaBlingErroObj as Error)?.message ?? "erro desconhecido"}
+              Centros de distribuição não carregaram. Sem eles não é possível escolher o CD nem
+              filtrar a tela.{" "}
+              {(centrosErroObj as Error)?.message ?? "erro desconhecido"}
             </div>
           )}
+
+          <BarraLoteCd
+            qtd={pedidosMarcados.length}
+            centros={centros}
+            processando={gravandoCd}
+            onEnviar={(c) => pedirEscolha(pedidosMarcados, c)}
+            onLimpar={() => setMarcados(new Set())}
+          />
 
           {!isError && (
             <Card>
