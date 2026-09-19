@@ -122,8 +122,9 @@ export function useIdentidadesMesaSp(pedidoIds: string[]) {
  * Picking list do pedido: itens + EAN.
  * O EAN não mora em `pedido_itens` — vem do espelho `sncf_produtos` pelo SKU,
  * que é a fonte canônica de cadastro (cobertura hoje: 100% dos SKUs do B2C).
- * Foto de produto ficou de fora: `produtos.imagem_url` está vazia no banco
- * inteiro, então não havia caminho barato que o briefing pedia.
+ * Foto de produto NÃO mora aqui: ela vem de `vw_produto_imagem` pelo hook
+ * `useImagensProdutosMesa` (a view resolve variante → produto → galeria), e
+ * entra na conferência como conferência visual, nunca como dado do item.
  */
 export function useItensPedidoMesa(pedidoId: string | null) {
   return useQuery({
@@ -160,6 +161,37 @@ export function useItensPedidoMesa(pedidoId: string | null) {
         quantidade: i.quantidade,
         ean: i.sku ? eanPorSku.get(i.sku) ?? null : null,
       }));
+    },
+  });
+}
+
+/**
+ * Fotos de conferência visual dos SKUs pedidos (`vw_produto_imagem`). A view já
+ * resolve a prioridade variante → produto → galeria, então aqui é uma leitura
+ * por `in`. FOTO-NÃO-É-CAMINHO-CRÍTICO: se a leitura falhar, a estação segue
+ * sem fotos e sem erro na cara do operador — por isso o erro vira mapa vazio
+ * com aviso no console, nunca throw.
+ */
+export function useImagensProdutosMesa(skus: string[]) {
+  const chave = [...new Set(skus)].sort().join(",");
+  return useQuery({
+    queryKey: ["mesa-sp", "imagens-produtos", chave],
+    enabled: chave !== "",
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, ImagemProdutoMesa>> => {
+      const { data, error } = await supabaseMesa
+        .from("vw_produto_imagem")
+        .select("sku, imagem_url, fonte")
+        .in("sku", [...new Set(skus)]);
+      if (error) {
+        console.warn(`fotos dos produtos indisponíveis: ${mensagemErro(error)}`);
+        return new Map();
+      }
+      const mapa = new Map<string, ImagemProdutoMesa>();
+      for (const linha of (data ?? []) as ImagemProdutoMesa[]) {
+        if (linha.sku && linha.imagem_url) mapa.set(linha.sku, linha);
+      }
+      return mapa;
     },
   });
 }
