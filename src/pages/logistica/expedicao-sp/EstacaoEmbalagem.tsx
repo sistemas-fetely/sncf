@@ -1,13 +1,17 @@
-import { useEffect, useState } from "react";
-import { Info, Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { cepDoEndereco, modalSugerido, type ModalEntrega, type ModalRegra } from "./tipos";
+import {
+  cepDoEndereco, modalSugerido,
+  type ItemChecklistEmbalagem, type ModalEntrega, type ModalRegra,
+} from "./tipos";
 
 /**
  * Estação 4 — Embalagem. Peso REAL e volumes reais: a RPC recusa peso <= 0
@@ -15,19 +19,29 @@ import { cepDoEndereco, modalSugerido, type ModalEntrega, type ModalRegra } from
  *
  * O modal vem sugerido pela regra de CEP (`b2c_modal_regra`), mas o operador
  * manda: a sugestão é ponto de partida, não trava.
+ *
+ * O aviso fixo sobre etiqueta deu lugar à ROTINA DO MODAL (`b2c_embalagem_checklist`):
+ * a lista é do banco, muda com o modal e as marcações zeram na troca — rotina de
+ * outro modal é outra rotina, não continuação da anterior.
  */
 interface Props {
   enderecoEntrega: unknown;
   modais: ModalEntrega[];
   regras: ModalRegra[];
+  checklist: ItemChecklistEmbalagem[];
   salvando: boolean;
-  onEmbalar: (pesoKg: number, volumes: number, modal: string) => void;
+  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[]) => void;
 }
 
-export function EstacaoEmbalagem({ enderecoEntrega, modais, regras, salvando, onEmbalar }: Props) {
+const URL_BLING = "https://www.bling.com.br/b/vendas.pedidos.php";
+
+export function EstacaoEmbalagem({
+  enderecoEntrega, modais, regras, checklist, salvando, onEmbalar,
+}: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
 
   const cep = cepDoEndereco(enderecoEntrega);
   const sugerido = modalSugerido(cep, regras);
@@ -40,13 +54,33 @@ export function EstacaoEmbalagem({ enderecoEntrega, modais, regras, salvando, on
     setModal(sugerido);
   }, [sugerido, modais, modal]);
 
-  const escolhido = modais.find((m) => m.codigo === modal) ?? null;
+  const itensDoModal = useMemo(
+    () => checklist.filter((i) => i.modal_codigo === modal),
+    [checklist, modal],
+  );
+
   const pesoNum = Number(peso.replace(",", "."));
   const volumesNum = Number.parseInt(volumes, 10);
+  const faltando = itensDoModal.filter((i) => i.obrigatorio && !marcados.has(i.rotulo));
   const podeSalvar =
     Number.isFinite(pesoNum) && pesoNum > 0 &&
     Number.isFinite(volumesNum) && volumesNum >= 1 &&
-    modal !== "";
+    modal !== "" &&
+    faltando.length === 0;
+
+  function trocarModal(codigo: string) {
+    setModal(codigo);
+    setMarcados(new Set());
+  }
+
+  function alternar(rotulo: string, marcado: boolean) {
+    setMarcados((atual) => {
+      const proximo = new Set(atual);
+      if (marcado) proximo.add(rotulo);
+      else proximo.delete(rotulo);
+      return proximo;
+    });
+  }
 
   return (
     <Card>
@@ -73,7 +107,7 @@ export function EstacaoEmbalagem({ enderecoEntrega, modais, regras, salvando, on
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={setModal}>
+            <Select value={modal} onValueChange={trocarModal}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>
@@ -94,31 +128,75 @@ export function EstacaoEmbalagem({ enderecoEntrega, modais, regras, salvando, on
             : "Pedido sem CEP legível no endereço de entrega — a sugestão caiu na regra default."}
         </p>
 
-        {escolhido?.exige_etiqueta_correios && (
-          <div className="flex items-start gap-2 rounded-md bg-info/15 px-3 py-2 text-sm text-info-strong">
-            <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-            <span>
-              Gerar etiqueta no Bling antes de despachar.{" "}
-              <a
-                className="underline underline-offset-4"
-                href="https://www.bling.com.br/b/vendas.pedidos.php"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Abrir Bling
-              </a>{" "}
-              — v1 manual: o rastreio volta sozinho pela varredura dos Correios.
-            </span>
+        {modal !== "" && (
+          <div className="space-y-2 rounded-md border border-border p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Rotina de {modais.find((m) => m.codigo === modal)?.nome ?? modal}
+            </p>
+
+            {itensDoModal.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Este modal não tem rotina cadastrada — nada a marcar antes de registrar.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {itensDoModal.map((item) => {
+                  const id = `mesa-sp-check-${item.modal_codigo}-${item.ordem}`;
+                  const mencionaBling = item.rotulo.toLowerCase().includes("bling");
+                  return (
+                    <li key={id} className="flex items-start gap-2">
+                      <Checkbox
+                        id={id}
+                        className="mt-0.5"
+                        checked={marcados.has(item.rotulo)}
+                        onCheckedChange={(v) => alternar(item.rotulo, v === true)}
+                      />
+                      <div className="min-w-0 space-y-0.5">
+                        <Label htmlFor={id} className="block text-sm font-normal leading-snug">
+                          {item.rotulo}
+                          {!item.obrigatorio && (
+                            <span className="text-xs text-muted-foreground"> · opcional</span>
+                          )}
+                          {mencionaBling && (
+                            <>
+                              {" "}
+                              <a
+                                className="text-xs underline underline-offset-4"
+                                href={URL_BLING}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Abrir Bling
+                              </a>
+                            </>
+                          )}
+                        </Label>
+                        {item.observacao && (
+                          <p className="text-xs text-muted-foreground">{item.observacao}</p>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         )}
 
-        <Button
-          onClick={() => onEmbalar(pesoNum, volumesNum, modal)}
-          disabled={!podeSalvar || salvando}
-        >
-          {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
-          Registrar embalagem
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados])}
+            disabled={!podeSalvar || salvando}
+          >
+            {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
+            Registrar embalagem
+          </Button>
+          {faltando.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              Faltam {faltando.length} item(ns) da rotina.
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

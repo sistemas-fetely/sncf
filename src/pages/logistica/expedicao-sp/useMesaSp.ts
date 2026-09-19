@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
-  type EventoMesa, type ItemConferido, type ItemPedidoMesa,
+  type EventoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ModalEntrega, type ModalRegra, type PedidoMesa,
 } from "./tipos";
 
@@ -156,6 +156,28 @@ export function useModaisEntrega() {
   });
 }
 
+/**
+ * Rotina de bancada por modal. Uma consulta só para todos os modais: a lista é
+ * pequena e o operador troca de modal no meio do gesto — buscar por modal
+ * deixaria a lista piscar a cada troca.
+ */
+export function useChecklistEmbalagem() {
+  return useQuery({
+    queryKey: ["mesa-sp", "checklist-embalagem"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<ItemChecklistEmbalagem[]> => {
+      const { data, error } = await supabaseMesa
+        .from("b2c_embalagem_checklist")
+        .select("modal_codigo, ordem, rotulo, obrigatorio, observacao")
+        .eq("ativo", true)
+        .order("modal_codigo", { ascending: true })
+        .order("ordem", { ascending: true });
+      if (error) throw new Error(`ler checklist de embalagem: ${mensagemErro(error)}`);
+      return (data ?? []) as ItemChecklistEmbalagem[];
+    },
+  });
+}
+
 /** Regras de CEP → modal. A resolução (prefixo mais longo) mora em `tipos.ts`. */
 export function useRegrasModal() {
   return useQuery({
@@ -223,7 +245,57 @@ export function useEmbalar() {
     p_peso_kg: number;
     p_volumes: number;
     p_modal: string;
+    /** Rótulos marcados na bancada. A RPC recusa se faltar item obrigatório. */
+    p_checklist: string[];
   }>("fn_mesa_sp_embalar", () => "Embalagem registrada.");
+}
+
+interface FalhaDespachoLote {
+  pedido_id: string;
+  id_externo: string | null;
+  erro: string;
+}
+
+interface ResultadoDespachoLote {
+  modal: string;
+  despachados: number;
+  falhas: FalhaDespachoLote[];
+  total: number;
+}
+
+/**
+ * Coleta do dia: o Correios não busca um pedido, busca as caixas. A RPC despacha
+ * o lote e devolve as falhas item a item — nenhuma é escondida (FAIL-LOUD): o
+ * sucesso parcial vira dois toasts, o da contagem e o das falhas nomeadas.
+ */
+export function useDespacharLote() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { p_modal: string; p_pedido_ids: string[] }) => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_despachar_lote", args);
+      if (error) throw new Error(mensagemErro(error));
+      return data as unknown as ResultadoDespachoLote;
+    },
+    onSuccess: (r) => {
+      const falhas = r?.falhas ?? [];
+      if ((r?.despachados ?? 0) > 0) {
+        toast.success(
+          `${r.despachados} de ${r.total} pedido(s) despachado(s) — ${r.modal} coletou.`,
+        );
+      }
+      if (falhas.length > 0) {
+        toast.error(
+          `${falhas.length} pedido(s) não despacharam:\n` +
+            falhas.map((f) => `${f.id_externo ?? f.pedido_id}: ${f.erro}`).join("\n"),
+        );
+      }
+      void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+    },
+    onError: (e: unknown) => {
+      toast.error(mensagemErro(e));
+    },
+  });
 }
 
 export function useDespachar() {

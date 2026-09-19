@@ -16,13 +16,16 @@ import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
+import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
-  ESTACOES, ESTAGIO_FILA, EVENTO_EMBALADO, ROTULO_ESTACAO,
-  estacaoBase, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
+  ESTACOES, ESTAGIO_FILA, ROTULO_ESTACAO,
+  embalagemDoPedido, estacaoBase,
+  type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useDespachar, useEmbalar, useEventosMesaSp, useItensPedidoMesa, useModaisEntrega,
-  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
+  useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
+  useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
+  useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
@@ -40,14 +43,7 @@ import {
 
 /** Qual modal a embalagem registrou — o despacho começa por ele. */
 function modalDoEmbalado(eventos: EventoMesa[]): string | null {
-  const embalado = [...eventos]
-    .filter((e) => e.tipo_evento === EVENTO_EMBALADO)
-    .sort((a, b) => a.criado_em.localeCompare(b.criado_em))
-    .at(-1);
-  const meta = embalado?.metadata;
-  if (!meta || typeof meta !== "object") return null;
-  const modal = (meta as Record<string, unknown>).modal;
-  return typeof modal === "string" && modal.trim() !== "" ? modal : null;
+  return embalagemDoPedido(eventos)?.modal ?? null;
 }
 
 export default function ExpedicaoSp() {
@@ -113,6 +109,44 @@ export default function ExpedicaoSp() {
   const conferir = useRegistrarConferencia();
   const embalar = useEmbalar();
   const despachar = useDespachar();
+  const despacharLote = useDespacharLote();
+  const checklistQ = useChecklistEmbalagem();
+
+  /**
+   * Fila de coleta: TODA a mesa em despacho, agrupada pelo modal que a embalagem
+   * registrou. O Correios não busca um pedido, busca as caixas do dia — por isso
+   * a lista não é a do pedido selecionado. Modal desconhecido na dimensão fica
+   * num grupo próprio, sem lote: caixa invisível seria pior que caixa estranha.
+   */
+  const gruposColeta = useMemo<GrupoColeta[]>(() => {
+    const porModal = new Map<string, GrupoColeta>();
+    for (const p of naMesa) {
+      if (estacaoDe.get(p.id) !== "despacho") continue;
+      const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
+      if (!emb) continue;
+      const codigo = emb.modal ?? "SEM_MODAL";
+      const dim = (modaisQ.data ?? []).find((m) => m.codigo === codigo) ?? null;
+      const grupo = porModal.get(codigo) ?? {
+        modalCodigo: codigo,
+        modalNome: dim?.nome ?? (emb.modal ?? "Modal não registrado"),
+        temRastreioAutomatico: dim?.tem_rastreio_automatico ?? false,
+        caixas: [],
+      };
+      grupo.caixas.push({
+        pedido_id: p.id,
+        id_externo: p.id_externo,
+        cliente: p.cliente_nome_snapshot ?? "cliente sem nome",
+        volumes: emb.volumes,
+        peso_kg: emb.peso_kg,
+        embaladoEm: emb.criado_em,
+      });
+      porModal.set(codigo, grupo);
+    }
+    // Quem espera mais tempo primeiro, dentro do grupo e entre grupos.
+    const grupos = [...porModal.values()];
+    for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
+    return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
+  }, [naMesa, estacaoDe, eventosPorPedido, modaisQ.data]);
 
   /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
   const contadores = useMemo(() => {
@@ -312,13 +346,15 @@ export default function ExpedicaoSp() {
                   enderecoEntrega={selecionado.endereco_entrega}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
+                  checklist={checklistQ.data ?? []}
                   salvando={embalar.isPending}
-                  onEmbalar={(pesoKg, volumes, modal) =>
+                  onEmbalar={(pesoKg, volumes, modal, checklist) =>
                     embalar.mutate({
                       p_pedido_id: selecionado.id,
                       p_peso_kg: pesoKg,
                       p_volumes: volumes,
                       p_modal: modal,
+                      p_checklist: checklist,
                     })
                   }
                 />
@@ -335,6 +371,11 @@ export default function ExpedicaoSp() {
                       p_modal: modal,
                       p_referencia: referencia,
                     })
+                  }
+                  gruposColeta={gruposColeta}
+                  despachandoLote={despacharLote.isPending}
+                  onDespacharLote={(modalCodigo, pedidoIds) =>
+                    despacharLote.mutate({ p_modal: modalCodigo, p_pedido_ids: pedidoIds })
                   }
                 />
               )}

@@ -67,6 +67,52 @@ export interface ModalEntrega {
   exige_etiqueta_correios: boolean;
 }
 
+/**
+ * Rotina de bancada por modal (`b2c_embalagem_checklist`). A lista NÃO é fixa no
+ * código: cada modal tem a sua, e a RPC recusa a embalagem quando falta item
+ * obrigatório — a tela só antecipa essa recusa (DIMENSÃO-VIA-TABELA).
+ */
+export interface ItemChecklistEmbalagem {
+  modal_codigo: string;
+  ordem: number;
+  rotulo: string;
+  obrigatorio: boolean;
+  observacao: string | null;
+}
+
+/** O que a embalagem registrou — lido do metadata do evento `mesa_embalado`. */
+export interface EmbalagemRegistrada {
+  modal: string | null;
+  peso_kg: number | null;
+  volumes: number | null;
+  /** Quando a caixa ficou pronta — é daqui que sai a espera pela coleta. */
+  criado_em: string;
+}
+
+/**
+ * Último `mesa_embalado` do pedido. Null = pedido que ainda não foi embalado
+ * (ou evento sem metadata legível: mostramos o que der, nunca um número chutado).
+ */
+export function embalagemDoPedido(eventos: EventoMesa[]): EmbalagemRegistrada | null {
+  const embalado = [...eventos]
+    .filter((e) => e.tipo_evento === EVENTO_EMBALADO)
+    .sort((a, b) => a.criado_em.localeCompare(b.criado_em))
+    .at(-1);
+  if (!embalado) return null;
+
+  const meta = (embalado.metadata && typeof embalado.metadata === "object"
+    ? embalado.metadata
+    : {}) as Record<string, unknown>;
+  const numero = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+
+  return {
+    modal: typeof meta.modal === "string" && meta.modal.trim() !== "" ? meta.modal : null,
+    peso_kg: numero(meta.peso_kg),
+    volumes: numero(meta.volumes),
+    criado_em: embalado.criado_em,
+  };
+}
+
 export interface ModalRegra {
   prefixo_cep: string | null;
   modal_codigo: string;
