@@ -23,7 +23,7 @@ import {
   type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
+  useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
   useIdentidadesMesaSp, useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
   useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
