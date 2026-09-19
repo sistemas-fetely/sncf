@@ -14,9 +14,11 @@ export function useStatusRotulo(): (codigo: string) => string {
 }
 
 
-export const PRIORIDADE_ROTULO: Record<string, string> = {
-  baixa: "Baixa", media: "Média", alta: "Alta", urgente: "Urgente",
-};
+/**
+ * Prioridade tem UMA fonte: `src/lib/tarefas/prioridade`. Aqui fica só o
+ * reexport, para os call sites antigos não se partirem — nada de segundo mapa.
+ */
+export { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
 
 /**
  * FICHA-DA-TAREFA (19/09/2026): rótulo em 12px sentence case. O uppercase miúdo

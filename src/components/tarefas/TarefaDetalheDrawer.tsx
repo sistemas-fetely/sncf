@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/command";
 import { useTarefaHistorico, useRegistrarHistorico, type HistoricoEntry } from "@/hooks/useTarefaHistorico";
 import { cn } from "@/lib/utils";
+import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 
 export interface TarefaDrawer {
   id: string;
@@ -262,14 +263,9 @@ export function TarefaDetalheDrawer({ tarefa, open, onOpenChange, onAtualizada, 
                   Atrasada{diasAtraso > 0 ? ` há ${diasAtraso} dia(s)` : ""}
                 </Badge>
               )}
-              {tarefa.prioridade === "urgente" && (
-                <Badge variant="destructive" className="gap-1">
-                  <Flag className="h-3 w-3" /> Urgente
-                </Badge>
-              )}
-              {tarefa.prioridade === "alta" && (
-                <Badge className="bg-warning hover:bg-warning/90 gap-1">
-                  <Flag className="h-3 w-3" /> Alta
+              {mostrarSeloPrioridade(tarefa.prioridade) && (
+                <Badge variant="outline" className={cn("gap-1", PRIORIDADE_CLASSE[tarefa.prioridade])}>
+                  <Flag className="h-3 w-3" /> {PRIORIDADE_ROTULO[tarefa.prioridade] ?? tarefa.prioridade}
                 </Badge>
               )}
             </div>

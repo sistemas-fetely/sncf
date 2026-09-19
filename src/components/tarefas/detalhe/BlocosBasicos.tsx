@@ -16,7 +16,8 @@ import {
   useMutarPapel, usePapeisTarefa, useSalvarCampoTarefa, useSalvarValorCampo, useSubtarefas,
   useValoresCampos, type CampoPersonalizado, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
-import { Campo, PRIORIDADE_ROTULO, RotuloCampo, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
+import { Campo, RotuloCampo, Secao, SEM_VALOR, SeletorPessoa, useNomePessoa, useStatusRotulo } from "./comuns";
+import { PontoUrgente, PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
 import { SeletorVinculoTarefa } from "./SeletorVinculoTarefa";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
@@ -189,6 +190,7 @@ export function BlocoSubtarefas({ tarefa }: { tarefa: TarefaDetalhe }) {
       <div className="space-y-1">
         {lista.map((t) => (
           <div key={t.id} className="flex items-center gap-2 rounded border border-border/60 px-2 py-1.5 text-sm">
+            {t.prioridade === "urgente" && <PontoUrgente className="mt-0" label="Urgente" />}
             <Badge variant="outline" className="text-[10px]">{rotuloStatus(t.status)}</Badge>
             <span className={t.status === "concluida" ? "line-through text-muted-foreground" : ""}>
               {t.titulo}

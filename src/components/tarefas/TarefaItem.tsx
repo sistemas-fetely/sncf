@@ -20,18 +20,9 @@ import { useStatusRotulo } from "@/components/tarefas/detalhe/comuns";
 import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
 import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
 import { useTarefasBloqueadas } from "@/hooks/tarefas/useTarefaBloqueio";
+import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 
 
-const PRIORIDADE_CLASSE: Record<TarefaPrioridade, string> = {
-  urgente: "border-destructive/40 bg-destructive/10 text-destructive",
-  alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning/10 text-warning",
-  baixa: "border-border bg-muted text-muted-foreground",
-};
-
-const PRIORIDADE_ROTULO: Record<TarefaPrioridade, string> = {
-  urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa",
-};
 
 function isoLocal(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -115,9 +106,11 @@ export function TarefaItem({
             {tarefa.titulo}
           </span>
           {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
-          <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
-            {PRIORIDADE_ROTULO[tarefa.prioridade]}
-          </Badge>
+          {mostrarSeloPrioridade(tarefa.prioridade) && (
+            <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
+              {PRIORIDADE_ROTULO[tarefa.prioridade]}
+            </Badge>
+          )}
           <LinkOrigemTarefa acaoUrl={tarefa.acao_url} />
           {projeto && (
             <span className="text-[11px] text-muted-foreground" style={{ color: projeto.cor || undefined }}>
