@@ -253,14 +253,15 @@ export function EstacaoEmbalagem({
             ) : (
               <ul className="space-y-2">
                 {itensDoModal.map((item) => {
-                  const id = `mesa-sp-check-${item.modal_codigo}-${item.ordem}`;
+                  const id = `mesa-sp-check-${item.id}`;
                   return (
-                    <li key={id} className="flex items-start gap-2">
+                    <li key={item.id} className="flex items-start gap-2">
                       <Checkbox
                         id={id}
                         className="mt-0.5"
-                        checked={marcados.has(item.rotulo)}
-                        onCheckedChange={(v) => alternar(item.rotulo, v === true)}
+                        checked={marcadosSet.has(item.id)}
+                        disabled={marcandoItemId === item.id}
+                        onCheckedChange={(v) => onAlternarMarcacao(item.id, v === true)}
                       />
                       <div className="min-w-0 space-y-0.5">
                         <Label htmlFor={id} className="block text-sm font-normal leading-snug">
@@ -283,7 +284,7 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, [...marcados], caixa)}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa)}
             disabled={!podeSalvar || salvando}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
