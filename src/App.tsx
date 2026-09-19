@@ -805,7 +805,8 @@ const App = () => (
                 <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao?aba=creditos" replace />} />
                 <Route path="caixa-banco/contas" element={<ContasBancarias />} />
                 <Route path="caixa-banco/contas/:contaId" element={<ExtratoConta />} />
-                <Route path="conciliacao" element={<ConciliacaoRecebiveis />} />
+                <Route path="conciliacao" element={<Conciliacao />} />
+                <Route path="conciliacao-recebiveis" element={<ConciliacaoRecebiveis />} />
                 <Route path="regras-ofx" element={<RegrasOFX />} />
                 <Route path="recebimentos-conciliar" element={<Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />} />
                 
