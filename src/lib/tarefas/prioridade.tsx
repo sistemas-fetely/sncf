@@ -35,6 +35,27 @@ export function mostrarSeloPrioridade(p: string): boolean {
 }
 
 /**
+ * Borda lateral de leitura (calendário e afins). Borda é ACENTO DE LEITURA,
+ * não selo: `media` e `baixa` ficam NEUTRAS (`border-l-border`) e só
+ * urgente/alta acentuam — coerente com a regra de que média é o silêncio.
+ */
+export const PRIORIDADE_BORDA: Record<string, string> = {
+  urgente: "border-l-destructive",
+  alta: "border-l-warning",
+  media: "border-l-border",
+  baixa: "border-l-border",
+};
+
+/**
+ * A escala fechada, do mais crítico ao menos. SELETORES montam as opções
+ * daqui — e nos seletores a "Média" aparece normalmente: a regra de esconder
+ * vale só para o SELO de leitura, nunca para o campo de escolha.
+ */
+export const PRIORIDADES = ["urgente", "alta", "media", "baixa"] as const;
+export type PrioridadeTarefa = (typeof PRIORIDADES)[number];
+export const OPCOES_PRIORIDADE = PRIORIDADES.map((v) => ({ valor: v, rotulo: PRIORIDADE_ROTULO[v] }));
+
+/**
  * Ponto de 6px que carrega o sinal de URGENTE sem pintar o texto — na lista de
  * passos e dentro do chip fechado, para o sinal atravessar o card colapsado.
  *

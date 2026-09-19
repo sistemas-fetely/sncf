@@ -22,18 +22,8 @@ import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 
 const TODOS = "__todos__";
 
-/**
- * Borda do cartão no calendário — obedece a mesma regra da fonte única
- * (`src/lib/tarefas/prioridade`): `media` é o default da coluna e não recebe
- * cor, para o mês não virar um mar amarelo. Aqui é borda, não selo, por isso o
- * mapa é local; os rótulos continuam vindo da fonte única.
- */
-const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
-  urgente: "border-l-destructive bg-destructive/10 text-destructive",
-  alta: "border-l-warning bg-warning/10 text-warning",
-  media: "border-l-border bg-card text-foreground",
-  baixa: "border-l-border bg-muted text-muted-foreground",
-};
+// A borda lateral do cartão vem da fonte única (`PRIORIDADE_BORDA`): média e
+// baixa ficam neutras, só urgente/alta acentuam — o mês não vira mar amarelo.
 
 function iso(d: Date): string {
   return format(d, "yyyy-MM-dd");
