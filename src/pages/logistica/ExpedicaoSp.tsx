@@ -16,13 +16,16 @@ import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
+import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
-  ESTACOES, ESTAGIO_FILA, EVENTO_EMBALADO, ROTULO_ESTACAO,
-  estacaoBase, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
+  ESTACOES, ESTAGIO_FILA, ROTULO_ESTACAO,
+  embalagemDoPedido, estacaoBase,
+  type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useDespachar, useEmbalar, useEventosMesaSp, useItensPedidoMesa, useModaisEntrega,
-  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
+  useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
+  useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
+  useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
