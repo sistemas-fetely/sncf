@@ -89,26 +89,13 @@ export function EstacaoEmbalagem({
 
   const pesoNum = Number(peso.replace(",", "."));
   const volumesNum = Number.parseInt(volumes, 10);
-  const faltando = itensDoModal.filter((i) => i.obrigatorio && !marcados.has(i.rotulo));
+  const faltando = itensDoModal.filter((i) => i.obrigatorio && !marcadosSet.has(i.id));
+  const rotulosMarcados = itensDoModal.filter((i) => marcadosSet.has(i.id)).map((i) => i.rotulo);
   const podeSalvar =
     Number.isFinite(pesoNum) && pesoNum > 0 &&
     Number.isFinite(volumesNum) && volumesNum >= 1 &&
     modal !== "" &&
     faltando.length === 0;
-
-  function trocarModal(codigo: string) {
-    setModal(codigo);
-    setMarcados(new Set());
-  }
-
-  function alternar(rotulo: string, marcado: boolean) {
-    setMarcados((atual) => {
-      const proximo = new Set(atual);
-      if (marcado) proximo.add(rotulo);
-      else proximo.delete(rotulo);
-      return proximo;
-    });
-  }
 
   return (
     <Card>
