@@ -211,13 +211,13 @@ export function BlocoTempo({ tarefa }: { tarefa: TarefaDetalhe }) {
           );
         }}
       >
-        <Input type="date" className="h-8 w-36 text-sm" value={data} onChange={(e) => setData(e.target.value)} />
+        <Input type="date" className="h-9 w-36 text-sm" value={data} onChange={(e) => setData(e.target.value)} />
         <Input
-          type="number" step="0.25" min="0" placeholder="horas" className="h-8 w-24 text-sm"
+          type="number" step="0.25" min="0" placeholder="horas" className="h-9 w-24 text-sm"
           value={horas} onChange={(e) => setHoras(e.target.value)}
         />
         <Input
-          className="h-8 flex-1 text-sm" placeholder="descrição (opcional)"
+          className="h-9 flex-1 text-sm" placeholder="descrição (opcional)"
           value={descricao} onChange={(e) => setDescricao(e.target.value)}
         />
         <Button type="submit" size="sm" variant="outline" disabled={!Number(horas) || criar.isPending}>
@@ -254,7 +254,7 @@ export function BlocoAnexos({ tarefa }: { tarefa: TarefaDetalhe }) {
         {(anexos ?? []).length === 0 && <p className="text-xs text-muted-foreground">Sem anexos.</p>}
       </div>
       <Input
-        type="file" className="h-8 text-sm" disabled={enviar.isPending}
+        type="file" className="h-9 text-sm" disabled={enviar.isPending}
         onChange={(e) => {
           const arquivo = e.target.files?.[0];
           if (arquivo) enviar.mutate(arquivo, { onSuccess: () => { e.target.value = ""; } });

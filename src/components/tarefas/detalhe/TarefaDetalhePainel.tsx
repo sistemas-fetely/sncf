@@ -1,36 +1,21 @@
-import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useProjetos } from "@/hooks/tarefas/useTarefasCatalogos";
-import { LinkOrigemTarefa } from "@/components/tarefas/LinkOrigemTarefa";
 import { SeloBloqueio } from "@/components/tarefas/SeloBloqueio";
 import { useBloqueioTarefa } from "@/hooks/tarefas/useTarefaBloqueio";
-import { useStatusRotulo } from "./comuns";
-import {
-  useDecidirAprovacao, useSalvarCampoTarefa, useTarefaDetalhe,
-  type TarefaDetalhe,
-} from "@/hooks/tarefas/useTarefaDetalhe";
-import {
-  BlocoCampos, BlocoCamposPersonalizados, BlocoDescricao, BlocoEtiquetas, BlocoRaci, BlocoSubtarefas,
-} from "./BlocosBasicos";
-import {
-  BlocoAnexos, BlocoComentarios, BlocoDependencias, BlocoHistorico, BlocoTempo,
-} from "./BlocosExtras";
+import { useNomePessoa, useStatusRotulo } from "./comuns";
+import { useSubtarefas, useTarefaDetalhe } from "@/hooks/tarefas/useTarefaDetalhe";
 
-/** Fallback genérico para link de origem. Novos módulos entram aqui quando existirem. */
-function resolverLinkOrigem(tarefa: TarefaDetalhe): string | null {
-  if (tarefa.acao_url) return tarefa.acao_url;
-  if (tarefa.modulo_origem === "pedidos" && tarefa.entidade_origem_id) {
-    return `/pedidos/${tarefa.entidade_origem_id}`;
-  }
-  return null;
-}
+/**
+ * FICHA-DA-TAREFA (19/09/2026): a edição mora em /tarefas/:id. Este painel é
+ * PEEK DE LEITURA — espiada rápida onde a tarefa é acessório de outro módulo
+ * (ficha do pedido, título, notificação). Quem edita, abre a página.
+ * Ele não é mais montado globalmente: cada superfície monta com estado local.
+ */
 
 interface Props {
   tarefaId: string | null;
@@ -38,11 +23,10 @@ interface Props {
   onOpenChange: (v: boolean) => void;
 }
 
-/** Painel autocontido: recebe só o id e busca todo o resto. */
 export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
   return (
     <Sheet open={aberto} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-md">
         {tarefaId ? <Conteudo tarefaId={tarefaId} /> : null}
       </SheetContent>
     </Sheet>
@@ -52,20 +36,17 @@ export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
 function Conteudo({ tarefaId }: { tarefaId: string }) {
   const { data: tarefa, isLoading, error } = useTarefaDetalhe(tarefaId);
   const { data: projetos } = useProjetos();
-  const rotuloStatus = useStatusRotulo();
-  const salvar = useSalvarCampoTarefa(tarefaId);
-  const navigate = useNavigate();
+  const { data: filhas } = useSubtarefas(tarefaId);
   const { data: bloqueio } = useBloqueioTarefa(tarefaId);
-  const [titulo, setTitulo] = useState("");
-
-  useEffect(() => setTitulo(tarefa?.titulo ?? ""), [tarefa?.titulo]);
+  const rotuloStatus = useStatusRotulo();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
       <div className="space-y-3 py-4">
         <Skeleton className="h-8 w-2/3" />
+        <Skeleton className="h-20 w-full" />
         <Skeleton className="h-24 w-full" />
-        <Skeleton className="h-40 w-full" />
       </div>
     );
   }
@@ -78,101 +59,69 @@ function Conteudo({ tarefaId }: { tarefaId: string }) {
   }
 
   const projeto = projetos?.find((p) => p.id === tarefa.projeto_id);
-
-  const linkOrigem = resolverLinkOrigem(tarefa);
-
-  const salvarTitulo = () => {
-    const t = titulo.trim();
-    if (!t || t === tarefa.titulo) return setTitulo(tarefa.titulo);
-    salvar.mutate({ titulo: t });
-  };
+  const lista = filhas ?? [];
+  const feitas = lista.filter((t) => t.status === "concluida").length;
 
   return (
-    <div className="space-y-4 pb-10">
+    <div className="space-y-4 pb-8">
       <SheetHeader className="space-y-2 text-left">
-        <SheetTitle className="sr-only">Detalhe da tarefa</SheetTitle>
-        <Input
-          value={titulo}
-          onChange={(e) => setTitulo(e.target.value)}
-          onBlur={salvarTitulo}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-            if (e.key === "Escape") setTitulo(tarefa.titulo);
-          }}
-          className="h-auto border-transparent px-1 text-lg font-medium shadow-none focus-visible:border-input"
-        />
-        <div className="flex flex-wrap items-center gap-2 px-1">
-          {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
-          <span className="text-xs text-muted-foreground" style={{ color: projeto?.cor || undefined }}>
-            {projeto ? `#${projeto.nome}` : "Sem projeto"}
+        <SheetTitle className="text-lg font-medium">{tarefa.titulo}</SheetTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+            style={
+              projeto?.cor
+                ? { backgroundColor: `${projeto.cor}26`, color: projeto.cor }
+                : undefined
+            }
+          >
+            {projeto ? projeto.nome : "Sem projeto"}
           </span>
+          {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
           {tarefa.tipo_tarefa !== "tarefa" && (
             <Badge variant="outline" className="text-[10px]">
               {tarefa.tipo_tarefa === "marco" ? "Marco" : "Aprovação"}
             </Badge>
           )}
-          <LinkOrigemTarefa acaoUrl={linkOrigem} moduloOrigem={tarefa.modulo_origem} />
-          {linkOrigem && (
-            <Button size="sm" variant="outline" onClick={() => navigate(linkOrigem)}>
-              <ExternalLink className="mr-1 h-3.5 w-3.5" /> Abrir origem
-            </Button>
-          )}
         </div>
       </SheetHeader>
 
-      {tarefa.tipo_tarefa === "aprovacao" && <BlocoAprovacao tarefaId={tarefaId} statusAtual={tarefa.aprovacao_status} />}
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-border bg-card p-4 text-sm">
+        <div className="space-y-1">
+          <span className="block text-xs text-muted-foreground">Status</span>
+          <span>{rotuloStatus(tarefa.status)}</span>
+        </div>
+        <div className="space-y-1">
+          <span className="block text-xs text-muted-foreground">Data limite</span>
+          <span>{tarefa.data_limite ?? "—"}</span>
+        </div>
+        <div className="col-span-2 space-y-1">
+          <span className="block text-xs text-muted-foreground">Responsável</span>
+          <NomeResponsavel id={tarefa.responsavel_id} />
+        </div>
+      </div>
 
-      {tarefa.motivo_estado && (
-        <div className="rounded-lg border border-border bg-muted/40 p-3">
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            Motivo · {rotuloStatus(tarefa.status)}
-          </p>
-          <p className="mt-1 text-sm">{tarefa.motivo_estado}</p>
+      <div className="space-y-2 rounded-lg border border-border bg-card p-4">
+        <h3 className="text-[15px] font-medium">Descrição</h3>
+        <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+          {tarefa.descricao?.trim() || "Sem descrição."}
+        </p>
+      </div>
+
+      {lista.length > 0 && (
+        <div className="rounded-lg border border-border bg-card p-4 text-sm">
+          Subtarefas: {feitas}/{lista.length} concluídas
         </div>
       )}
 
-      <BlocoCampos tarefa={tarefa} />
-      <BlocoDescricao tarefa={tarefa} />
-      <BlocoSubtarefas tarefa={tarefa} />
-      <BlocoRaci tarefa={tarefa} />
-      <BlocoEtiquetas tarefa={tarefa} />
-      <BlocoCamposPersonalizados tarefa={tarefa} />
-      <BlocoDependencias tarefa={tarefa} />
-      <BlocoTempo tarefa={tarefa} />
-      <BlocoAnexos tarefa={tarefa} />
-      <BlocoComentarios tarefa={tarefa} />
-      <BlocoHistorico tarefa={tarefa} />
+      <Button variant="outline" className="w-full" onClick={() => navigate(`/tarefas/${tarefaId}`)}>
+        <ExternalLink className="mr-1 h-4 w-4" /> Abrir tarefa
+      </Button>
     </div>
   );
 }
 
-function BlocoAprovacao({ tarefaId, statusAtual }: { tarefaId: string; statusAtual: string | null }) {
-  const decidir = useDecidirAprovacao(tarefaId);
-  const [comentario, setComentario] = useState("");
-
-  return (
-    <div className="space-y-2 rounded-lg border border-warning/40 bg-warning/10 p-3">
-      <p className="text-sm font-medium">
-        Aprovação {statusAtual ? `· ${statusAtual}` : "· pendente"}
-      </p>
-      <Textarea
-        rows={2} placeholder="Comentário da decisão (opcional)"
-        value={comentario} onChange={(e) => setComentario(e.target.value)}
-      />
-      <div className="flex gap-2">
-        <Button
-          size="sm" disabled={decidir.isPending}
-          onClick={() => decidir.mutate({ decisao: "aprovada", comentario })}
-        >
-          Aprovar
-        </Button>
-        <Button
-          size="sm" variant="destructive" disabled={decidir.isPending}
-          onClick={() => decidir.mutate({ decisao: "rejeitada", comentario })}
-        >
-          Rejeitar
-        </Button>
-      </div>
-    </div>
-  );
+function NomeResponsavel({ id }: { id: string | null }) {
+  const nome = useNomePessoa();
+  return <span>{nome(id)}</span>;
 }

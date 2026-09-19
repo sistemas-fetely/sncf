@@ -34,7 +34,7 @@ export function SeletorTarefaDependencia({ tarefaId, jaLigados, onEscolher, disa
           size="sm"
           role="combobox"
           disabled={disabled}
-          className="h-8 justify-between text-sm font-normal"
+          className="h-9 justify-between text-sm font-normal"
         >
           <Plus className="mr-1 h-3.5 w-3.5" /> Adicionar dependência
           <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
