@@ -527,7 +527,7 @@ export function BoardProjeto({ projetoId }: Props) {
 
 
                         <div className="flex flex-wrap items-center gap-1.5">
-                          {t.prioridade !== "media" && (
+                          {mostrarSeloPrioridade(t.prioridade) && (
                             <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
                               {PRIORIDADE_ROTULO[t.prioridade]}
                             </Badge>
@@ -552,6 +552,7 @@ export function BoardProjeto({ projetoId }: Props) {
                                   >
                                     {passosUrgentes > 0 && (
                                       <PontoUrgente
+                                        className="mt-0"
                                         label={passosUrgentes === 1 ? "1 passo urgente" : `${passosUrgentes} passos urgentes`}
                                       />
                                     )}
