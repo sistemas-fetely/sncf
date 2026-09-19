@@ -397,7 +397,7 @@ function ResumoCartaoSemProva() {
 /**
  * Conteúdo da Conciliação de Cartão, reutilizável fora da página antiga.
  * `paramAba` escolhe o nome do query param das sub-abas internas — dentro da
- * casa /administrativo/conciliacao (que já usa `?aba=`), a tela passa "sub".
+ * casa /administrativo/conciliacao-recebiveis (que já usa `?aba=`), a tela passa "sub".
  */
 export function ConciliacaoCartaoConteudo({ paramAba = "aba" }: { paramAba?: string }) {
   const [aba, setAba] = useAbaUrl("vincular", undefined, paramAba);
