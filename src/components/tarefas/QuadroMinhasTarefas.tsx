@@ -15,7 +15,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
+import { PontoUrgente, PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
@@ -346,6 +346,7 @@ export function QuadroMinhasTarefas({
                                 })
                               }
                             />
+                            {f.prioridade === "urgente" && <PontoUrgente label="Urgente" />}
                             <button
                               type="button"
                               onClick={() => abrirTarefa(f.id)}
