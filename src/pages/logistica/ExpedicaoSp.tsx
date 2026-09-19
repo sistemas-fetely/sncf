@@ -24,8 +24,8 @@ import {
 } from "./expedicao-sp/tipos";
 import {
   useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
-  useIdentidadesMesaSp, useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
-  useRegistrarConferencia, useRegrasModal,
+  useIdentidadesMesaSp, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
+  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
