@@ -6,6 +6,10 @@ Marca brasileira de celebração e lifestyle. Vende artigos para festa e mesa (v
 Filtro universal: "Isso tornaria um momento mais especial?" — vale para produto, código, tela, e-mail.
 Frase síntese: "Gesto não se delega pro ChatGPT."
 
+## Sistema Visual
+Antes de criar ou alterar qualquer tela, leia `docs/sistema-visual.md`. Ele tem as regras de cor, tipografia, espaçamento, os componentes que já existem e as regras numeradas §3 a §14. Os valores dos tokens vivem em `src/index.css`, que é a fonte da verdade.
+Regra que mais se erra: token base de status é PREENCHIMENTO; para TEXTO sobre tint use a variante `-strong`.
+
 ## Bateria de Testes — Delta v10 (PENDENTE)
 Estes 5 cenários precisam ser testados em produção (people-fetely.lovable.app) antes de avançar qualquer sprint novo.
 
