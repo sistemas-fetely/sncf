@@ -33,7 +33,6 @@ interface Props {
   onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[]) => void;
 }
 
-const URL_BLING = "https://www.bling.com.br/b/vendas.pedidos.php";
 
 export function EstacaoEmbalagem({
   enderecoEntrega, modais, regras, checklist, salvando, onEmbalar,
@@ -142,7 +141,6 @@ export function EstacaoEmbalagem({
               <ul className="space-y-2">
                 {itensDoModal.map((item) => {
                   const id = `mesa-sp-check-${item.modal_codigo}-${item.ordem}`;
-                  const mencionaBling = item.rotulo.toLowerCase().includes("bling");
                   return (
                     <li key={id} className="flex items-start gap-2">
                       <Checkbox
@@ -156,19 +154,6 @@ export function EstacaoEmbalagem({
                           {item.rotulo}
                           {!item.obrigatorio && (
                             <span className="text-xs text-muted-foreground"> · opcional</span>
-                          )}
-                          {mencionaBling && (
-                            <>
-                              {" "}
-                              <a
-                                className="text-xs underline underline-offset-4"
-                                href={URL_BLING}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Abrir Bling
-                              </a>
-                            </>
                           )}
                         </Label>
                         {item.observacao && (
