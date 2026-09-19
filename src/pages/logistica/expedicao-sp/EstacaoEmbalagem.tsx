@@ -22,8 +22,9 @@ import {
  * manda: a sugestão é ponto de partida, não trava.
  *
  * O aviso fixo sobre etiqueta deu lugar à ROTINA DO MODAL (`b2c_embalagem_checklist`):
- * a lista é do banco, muda com o modal e as marcações zeram na troca — rotina de
- * outro modal é outra rotina, não continuação da anterior.
+ * a lista é do banco, muda com o modal, e a MARCAÇÃO TAMBÉM É DO BANCO
+ * (`b2c_embalagem_marcacao`) — a rotina atravessa o Bling, então marcar é ato
+ * gravado, não estado de tela: o operador sai, volta e encontra o que marcou.
  */
 interface Props {
   enderecoEntrega: unknown;
@@ -31,6 +32,11 @@ interface Props {
   modais: ModalEntrega[];
   regras: ModalRegra[];
   checklist: ItemChecklistEmbalagem[];
+  /** `id` dos itens de rotina JÁ marcados no banco para este pedido. */
+  marcados: string[];
+  /** Item cuja marcação está em voo — o checkbox dele espera o banco. */
+  marcandoItemId: string | null;
+  onAlternarMarcacao: (itemId: string, marcado: boolean) => void;
   caixas: CaixaSugerida[];
   carregandoCaixas: boolean;
   /** Mensagem real da RPC de sugestão, quando falhou. Não trava o registro. */
@@ -41,13 +47,16 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, itens, modais, regras, checklist, caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
+  enderecoEntrega, itens, modais, regras, checklist,
+  marcados, marcandoItemId, onAlternarMarcacao,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
-  const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [caixa, setCaixa] = useState<string | null>(null);
+
+  const marcadosSet = useMemo(() => new Set(marcados), [marcados]);
 
   const sugeridaCodigo = caixas.find((c) => c.sugerida)?.codigo ?? null;
 

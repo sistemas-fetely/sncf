@@ -336,7 +336,10 @@ export function useEmbalar() {
     p_peso_kg: number;
     p_volumes: number;
     p_modal: string;
-    /** Rótulos marcados na bancada. A RPC recusa se faltar item obrigatório. */
+    /**
+     * Rótulos marcados na bancada — mantido por COMPATIBILIDADE. A trava real é
+     * o banco: a RPC lê `b2c_embalagem_marcacao` e recusa item obrigatório em falta.
+     */
     p_checklist: string[];
     /**
      * Caixa escolhida pelo operador (`b2c_embalagem_caixa.codigo`). Opcional:
