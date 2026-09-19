@@ -24,7 +24,7 @@ import {
 } from "./expedicao-sp/tipos";
 import {
   useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
-  useIdentidadesMesaSp, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
+  useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
   usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
@@ -111,6 +111,10 @@ export default function ExpedicaoSp() {
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
 
   const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
+  // Fotos de conferência visual por SKU — se a leitura falhar, a mesa segue sem fotos.
+  const imagensQ = useImagensProdutosMesa(
+    (itensQ.data ?? []).map((i) => i.sku).filter((s): s is string => !!s),
+  );
   const caixasQ = useCaixasSugeridas(
     selecionado && estacaoSelecionada === "embalagem" ? selecionado.id : null,
   );
@@ -399,7 +403,7 @@ export default function ExpedicaoSp() {
                 <EstacaoConferencia
                   pedidoId={selecionado.id}
                   itens={itensQ.data ?? []}
-                  carregando={itensQ.isLoading}
+                  imagens={imagensQ.data ?? new Map()}
                   registrando={conferir.isPending}
                   onRegistrar={registrarConferencia}
                   onVoltarSeparacao={() => marcarEmConferencia(selecionado.id, false)}
