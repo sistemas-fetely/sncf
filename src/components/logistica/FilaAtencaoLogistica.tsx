@@ -50,6 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
 import { formatBRL } from "@/lib/format-currency";
 import {
   useLogisticaFilaAtencao,

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/command";
 import { useTarefaHistorico, useRegistrarHistorico, type HistoricoEntry } from "@/hooks/useTarefaHistorico";
 import { cn } from "@/lib/utils";
+import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 
 export interface TarefaDrawer {
   id: string;
