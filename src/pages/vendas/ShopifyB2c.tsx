@@ -293,7 +293,7 @@ export default function ShopifyB2c() {
     const alvos = pedidos.filter((p) => !!p.shopify_id);
     if (alvos.length === 0) return;
     setGravandoCd(true);
-    let ok = 0;
+    const sucessos: PedidoB2cRow[] = [];
     const falhas: string[] = [];
     try {
       for (const p of alvos) {
@@ -302,7 +302,7 @@ export default function ShopifyB2c() {
           p_centro_codigo: centro.codigo,
         });
         if (erroRpc) falhas.push(`${p.order_name ?? p.shopify_id}: ${erroRpc.message}`);
-        else ok += 1;
+        else sucessos.push(p);
       }
     } finally {
       setGravandoCd(false);
@@ -315,13 +315,62 @@ export default function ShopifyB2c() {
         { description: falhas.slice(0, 6).join(" · ") },
       );
     }
-    if (ok > 0) {
+    if (sucessos.length > 0) {
       toast.success(
         alvos.length === 1
           ? `Pedido enviado para ${nomeCurtoCd(centro)}. Desce ao Bling em até 10 min.`
-          : `${ok} pedido(s) enviados para ${nomeCurtoCd(centro)}.`,
+          : `${sucessos.length} pedido(s) enviados para ${nomeCurtoCd(centro)}.`,
+        {
+          duration: 10_000,
+          action: {
+            label: "Desfazer",
+            onClick: () => void desfazerEscolha(sucessos),
+          },
+        },
       );
       setMarcados(new Set());
+    }
+  }
+
+  /**
+   * DESFAZER-LOGO-DEPOIS: o banco só aceita enquanto a fila está pendente.
+   * Sem otimismo: a tela só muda depois da confirmação; recusa vira toast
+   * destrutivo com a mensagem real do banco.
+   */
+  async function desfazerEscolha(pedidos: PedidoB2cRow[]) {
+    const alvos = pedidos.filter((p) => !!p.shopify_id);
+    if (alvos.length === 0) return;
+    setGravandoCd(true);
+    let ok = 0;
+    const falhas: string[] = [];
+    try {
+      for (const p of alvos) {
+        try {
+          await desfazerEscolhaCd(p.shopify_id!);
+          ok += 1;
+        } catch (e) {
+          falhas.push(`${p.order_name ?? p.shopify_id}: ${e instanceof Error ? e.message : String(e)}`);
+        }
+      }
+    } finally {
+      setGravandoCd(false);
+      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+    }
+    if (falhas.length > 0) {
+      toast.error(
+        alvos.length === 1
+          ? "Não foi possível desfazer a escolha."
+          : `${falhas.length} escolha(s) não foram desfeitas.`,
+        { description: falhas.slice(0, 6).join(" · ") },
+      );
+    }
+    if (ok > 0) {
+      toast.success(
+        alvos.length === 1
+          ? `Escolha desfeita — ${alvos[0].order_name ?? "o pedido"} voltou a aguardar CD.`
+          : `${ok} escolha(s) desfeita(s) — pedidos aguardando CD de novo.`,
+      );
     }
   }
 
