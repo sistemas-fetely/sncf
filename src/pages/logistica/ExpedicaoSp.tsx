@@ -109,6 +109,44 @@ export default function ExpedicaoSp() {
   const conferir = useRegistrarConferencia();
   const embalar = useEmbalar();
   const despachar = useDespachar();
+  const despacharLote = useDespacharLote();
+  const checklistQ = useChecklistEmbalagem();
+
+  /**
+   * Fila de coleta: TODA a mesa em despacho, agrupada pelo modal que a embalagem
+   * registrou. O Correios não busca um pedido, busca as caixas do dia — por isso
+   * a lista não é a do pedido selecionado. Modal desconhecido na dimensão fica
+   * num grupo próprio, sem lote: caixa invisível seria pior que caixa estranha.
+   */
+  const gruposColeta = useMemo<GrupoColeta[]>(() => {
+    const porModal = new Map<string, GrupoColeta>();
+    for (const p of naMesa) {
+      if (estacaoDe.get(p.id) !== "despacho") continue;
+      const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
+      if (!emb) continue;
+      const codigo = emb.modal ?? "SEM_MODAL";
+      const dim = (modaisQ.data ?? []).find((m) => m.codigo === codigo) ?? null;
+      const grupo = porModal.get(codigo) ?? {
+        modalCodigo: codigo,
+        modalNome: dim?.nome ?? (emb.modal ?? "Modal não registrado"),
+        temRastreioAutomatico: dim?.tem_rastreio_automatico ?? false,
+        caixas: [],
+      };
+      grupo.caixas.push({
+        pedido_id: p.id,
+        id_externo: p.id_externo,
+        cliente: p.cliente_nome_snapshot ?? "cliente sem nome",
+        volumes: emb.volumes,
+        peso_kg: emb.peso_kg,
+        embaladoEm: emb.criado_em,
+      });
+      porModal.set(codigo, grupo);
+    }
+    // Quem espera mais tempo primeiro, dentro do grupo e entre grupos.
+    const grupos = [...porModal.values()];
+    for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
+    return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
+  }, [naMesa, estacaoDe, eventosPorPedido, modaisQ.data]);
 
   /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
   const contadores = useMemo(() => {
