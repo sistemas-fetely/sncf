@@ -91228,6 +91228,15 @@ export type Database = {
           },
         ]
       }
+      vw_produto_imagem: {
+        Row: {
+          fonte: string | null
+          imagem_url: string | null
+          produto_shopify_id: string | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_produto_mesa_fase: {
         Row: {
           cod_cadastro: string | null
@@ -95787,14 +95796,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
