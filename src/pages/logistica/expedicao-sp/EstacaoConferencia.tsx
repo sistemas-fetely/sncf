@@ -349,6 +349,30 @@ export function EstacaoConferencia({
           )}
         </div>
 
+        {/* Confirmação visual do último bipe aceito (~3s): o operador confronta
+            a foto com a peça na mão. É reforço visual — quem valida é o EAN. */}
+        {ultimoBipe && (
+          <div
+            className="flex items-center gap-4 rounded-lg border border-success/40 bg-success/5 p-3"
+            aria-live="polite"
+          >
+            <FotoItem
+              imagem={ultimoBipe.sku ? imagens.get(ultimoBipe.sku) : undefined}
+              descricao={ultimoBipe.descricao}
+              tamanho={200}
+            />
+            <div className="min-w-0">
+              <p className="text-base font-medium leading-snug">{ultimoBipe.descricao}</p>
+              <p className="font-mono text-sm text-muted-foreground">
+                {ultimoBipe.sku ?? "sem SKU"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Confira cor e estampa com a peça na mão.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Painéis: as duas zonas da bancada. O de cima é o trabalho; o de
             baixo, tintado de verde, é o que já desceu. Separador entre eles
             deixa a descida explícita. */}
@@ -372,6 +396,7 @@ export function EstacaoConferencia({
                     quantidade={i.quantidade - (bipados[i.id] ?? 0)}
                     modo="conferir"
                     realce={false}
+                    imagens={imagens}
                   />
                 ))}
               </ul>
@@ -399,6 +424,7 @@ export function EstacaoConferencia({
                     quantidade={bipados[i.id] ?? 0}
                     modo="conferido"
                     realce={realce === i.id}
+                    imagens={imagens}
                   />
                 ))}
               </ul>
