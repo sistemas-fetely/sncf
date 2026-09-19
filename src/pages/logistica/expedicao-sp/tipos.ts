@@ -42,6 +42,14 @@ export interface PedidoMesa {
   endereco_entrega: unknown;
 }
 
+/** Identidades do mesmo pedido nos sistemas usados pela operação B2C. */
+export interface IdentidadesPedidoMesa {
+  pedido_id: string;
+  order_name: string | null;
+  bling_pedido_numero: string | null;
+  nf_refs: string | null;
+}
+
 export interface EventoMesa {
   id: string;
   pedido_id: string;

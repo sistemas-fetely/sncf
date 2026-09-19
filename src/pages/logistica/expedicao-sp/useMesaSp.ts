@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
-  type EventoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ModalEntrega, type ModalRegra, type PedidoMesa,
 } from "./tipos";
 
@@ -26,6 +26,7 @@ const supabaseMesa = supabase as unknown as SupabaseClient;
 
 export const CHAVE_PEDIDOS_MESA = ["mesa-sp", "pedidos"] as const;
 export const CHAVE_EVENTOS_MESA = ["mesa-sp", "eventos"] as const;
+export const CHAVE_IDENTIDADES_MESA = ["mesa-sp", "identidades"] as const;
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -89,6 +90,29 @@ export function useEventosMesaSp(pedidoIds: string[]) {
         .order("criado_em", { ascending: true });
       if (error) throw new Error(`ler eventos da mesa: ${mensagemErro(error)}`);
       return (data ?? []) as EventoMesa[];
+    },
+  });
+}
+
+/** Identidades externas dos pedidos listados, lidas em uma única consulta à visão B2C. */
+export function useIdentidadesMesaSp(pedidoIds: string[]) {
+  const chave = [...pedidoIds].sort().join(",");
+  return useQuery({
+    queryKey: [...CHAVE_IDENTIDADES_MESA, chave],
+    enabled: pedidoIds.length > 0,
+    staleTime: 15 * 1000,
+    queryFn: async (): Promise<Map<string, IdentidadesPedidoMesa>> => {
+      const { data, error } = await supabaseMesa
+        .from("vw_gestao_b2c_pedido")
+        .select("pedido_id, order_name, bling_pedido_numero, nf_refs")
+        .in("pedido_id", pedidoIds);
+      if (error) throw new Error(`ler identidades dos pedidos: ${mensagemErro(error)}`);
+
+      const mapa = new Map<string, IdentidadesPedidoMesa>();
+      for (const linha of (data ?? []) as IdentidadesPedidoMesa[]) {
+        if (linha.pedido_id) mapa.set(linha.pedido_id, linha);
+      }
+      return mapa;
     },
   });
 }

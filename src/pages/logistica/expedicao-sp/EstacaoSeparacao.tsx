@@ -6,7 +6,7 @@ import { Selo } from "@/components/ui/selo";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import type { ItemPedidoMesa, PedidoMesa } from "./tipos";
+import type { IdentidadesPedidoMesa, ItemPedidoMesa, PedidoMesa } from "./tipos";
 
 /**
  * Estação 2 — Separação. Picking list puro: o que pegar da prateleira.
@@ -21,6 +21,7 @@ interface Props {
   itens: ItemPedidoMesa[];
   carregando: boolean;
   pedido: PedidoMesa | null;
+  identidades?: IdentidadesPedidoMesa;
   onConcluir: () => void;
 }
 
@@ -47,8 +48,12 @@ function hojePtBr(): string {
   }).format(new Date());
 }
 
-export function EstacaoSeparacao({ itens, carregando, pedido, onConcluir }: Props) {
+export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onConcluir }: Props) {
   const totalPecas = itens.reduce((s, i) => s + i.quantidade, 0);
+  const identidadesPapel = [
+    identidades?.bling_pedido_numero ? `Bling ${identidades.bling_pedido_numero}` : null,
+    identidades?.nf_refs ? `NF ${identidades.nf_refs}` : null,
+  ].filter((valor): valor is string => Boolean(valor));
 
   if (carregando) {
     return (
@@ -111,6 +116,11 @@ export function EstacaoSeparacao({ itens, carregando, pedido, onConcluir }: Prop
           >
             {pedido?.id_externo ?? "—"}
           </p>
+         {identidadesPapel.length > 0 && (
+           <p style={{ fontSize: "16pt", lineHeight: 1.3, margin: "0 0 6mm" }}>
+             {identidadesPapel.join("  ·  ")}
+           </p>
+         )}
         </div>
         <div style={{ borderBottom: "2px dashed #000", marginBottom: "10mm" }} />
 
@@ -158,6 +168,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, onConcluir }: Prop
         </table>
         <p style={{ marginTop: "8mm", fontSize: "9pt", color: "#000" }}>
           Pedido {pedido?.id_externo ?? "—"} · {itens.length} {itens.length === 1 ? "linha" : "linhas"} · {totalPecas} peças
+         {identidadesPapel.length > 0 ? ` · ${identidadesPapel.join(" · ")}` : ""}
         </p>
       </div>
 
