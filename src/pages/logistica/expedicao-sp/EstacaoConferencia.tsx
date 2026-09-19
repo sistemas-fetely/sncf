@@ -44,9 +44,17 @@ function tocarAlerta() {
   }
 }
 
-/** Linha de item — mesma nos dois blocos; o estado (ok/realce) muda só a classe. */
-function LinhaItem({ item, feito, realce }: { item: ItemPedidoMesa; feito: number; realce: boolean }) {
-  const ok = feito >= item.quantidade;
+/**
+ * Linha de item — a unidade de trabalho do operador é a PEÇA, não o SKU.
+ * O mesmo SKU pode aparecer nos dois blocos ao mesmo tempo: o bloco de cima
+ * mostra o que AINDA FALTA (quantidade pendente), o de baixo o que JÁ FOI
+ * bipado (quantidade conferida). O selo "ok" é só de quem completou — parcial
+ * não é ok, é info.
+ */
+function LinhaItem({
+  item, quantidade, modo, realce,
+}: { item: ItemPedidoMesa; quantidade: number; modo: "conferir" | "conferido"; realce: boolean }) {
+  const ok = modo === "conferido" && quantidade >= item.quantidade;
   return (
     <li
       className={cn(
@@ -62,16 +70,18 @@ function LinhaItem({ item, feito, realce }: { item: ItemPedidoMesa; feito: numbe
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="text-sm tabular-nums">
-          {feito} / {item.quantidade}
-        </span>
-        {ok ? (
+        <span className="text-sm tabular-nums">{quantidade}</span>
+        {modo === "conferir" ? (
+          quantidade < item.quantidade && <Selo estado="warning">falta {quantidade}</Selo>
+        ) : ok ? (
           <Selo estado="success">
             <Check className="mr-1 h-3 w-3" aria-hidden="true" />
             ok
           </Selo>
         ) : (
-          <Selo estado="warning">falta {item.quantidade - feito}</Selo>
+          <Selo estado="info">
+            {quantidade} {quantidade === 1 ? "conferida" : "conferidas"}
+          </Selo>
         )}
       </div>
     </li>
@@ -95,9 +105,9 @@ export function EstacaoConferencia({
   const [alerta, setAlerta] = useState<string | null>(null);
   const [dialogDivergencia, setDialogDivergencia] = useState(false);
   const [motivo, setMotivo] = useState("");
-  /** Item que ACABOU de completar — realce de ~1,5s para o operador vê-lo descer. */
+  /** Item que ACABOU de receber um bipe — realce de ~1,5s no bloco Conferidos. */
   const [realce, setRealce] = useState<string | null>(null);
-  /** Ordem de conclusão — quem completou por último fica no topo dos conferidos. */
+  /** Ordem de bipe — o último bipado fica no topo dos conferidos. */
   const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
   const timerRealce = useRef<number | null>(null);
 
