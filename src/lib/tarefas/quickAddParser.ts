@@ -219,24 +219,11 @@ const PRIORIDADES: Record<string, Prioridade> = {
   "1": "urgente", "2": "alta", "3": "media", "4": "baixa",
 };
 
-const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
-  urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa",
-};
-
-/**
- * ÚNICO ponto do código com a lista de prioridades.
- * Espelha o CHECK de `tarefas.prioridade` (baixa | media | alta | urgente):
- * o valor gravado vai SEM acento; o rótulo é só interface.
- * Não existe dimensão em tabela para prioridade hoje — o lugar certo seria
- * uma `tarefa_prioridade_dim`, como já é feito para status e tipo de execução.
- * Se essa tabela for criada, troque esta constante por um hook de catálogo.
- */
-export const OPCOES_PRIORIDADE: Array<{ valor: Prioridade; rotulo: string }> = [
-  { valor: "urgente", rotulo: ROTULO_PRIORIDADE.urgente },
-  { valor: "alta", rotulo: ROTULO_PRIORIDADE.alta },
-  { valor: "media", rotulo: ROTULO_PRIORIDADE.media },
-  { valor: "baixa", rotulo: ROTULO_PRIORIDADE.baixa },
-];
+// Rótulos e a lista de opções vêm da FONTE ÚNICA (`src/lib/tarefas/prioridade`)
+// — reexportados aqui para não quebrar quem já importava do parser. A escala
+// espelha o CHECK de `tarefas.prioridade` (baixa | media | alta | urgente):
+// o valor gravado vai SEM acento; o rótulo é só interface.
+export { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 
 /** resolve o texto digitado depois do `!`; null quando não é prioridade conhecida */
 export function casarPrioridade(termo: string | null | undefined): Prioridade | null {

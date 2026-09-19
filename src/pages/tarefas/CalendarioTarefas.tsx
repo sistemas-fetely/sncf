@@ -18,7 +18,8 @@ import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalo
 import {
   useReagendarNoCalendario, useTarefasCalendario, type FiltroCalendario,
 } from "@/hooks/tarefas/useTarefasCalendario";
-import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
+import type { Tarefa } from "@/hooks/tarefas/useTarefas";
+import { PRIORIDADE_BORDA } from "@/lib/tarefas/prioridade";
 
 const TODOS = "__todos__";
 
