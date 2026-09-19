@@ -277,9 +277,11 @@ export function QuadroMinhasTarefas({
                       {bloqueadas?.get(t.id)?.bloqueada && (
                         <SeloBloqueio abertos={bloqueadas.get(t.id)!.bloqueadores_abertos} />
                       )}
-                      <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
-                        {PRIORIDADE_ROTULO[t.prioridade]}
-                      </Badge>
+                      {mostrarSeloPrioridade(t.prioridade) && (
+                        <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
+                          {PRIORIDADE_ROTULO[t.prioridade]}
+                        </Badge>
+                      )}
                       {agruparPor === "projeto" ? (
                         <Badge variant="outline" className="text-[10px] text-muted-foreground">
                           {rotulo(statusExibido)}

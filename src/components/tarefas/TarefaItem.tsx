@@ -106,9 +106,11 @@ export function TarefaItem({
             {tarefa.titulo}
           </span>
           {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
-          <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
-            {PRIORIDADE_ROTULO[tarefa.prioridade]}
-          </Badge>
+          {mostrarSeloPrioridade(tarefa.prioridade) && (
+            <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[tarefa.prioridade])}>
+              {PRIORIDADE_ROTULO[tarefa.prioridade]}
+            </Badge>
+          )}
           <LinkOrigemTarefa acaoUrl={tarefa.acao_url} />
           {projeto && (
             <span className="text-[11px] text-muted-foreground" style={{ color: projeto.cor || undefined }}>
