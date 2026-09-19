@@ -404,6 +404,7 @@ export default function ExpedicaoSp() {
                   pedidoId={selecionado.id}
                   itens={itensQ.data ?? []}
                   imagens={imagensQ.data ?? new Map()}
+                  carregando={itensQ.isLoading}
                   registrando={conferir.isPending}
                   onRegistrar={registrarConferencia}
                   onVoltarSeparacao={() => marcarEmConferencia(selecionado.id, false)}
