@@ -6538,6 +6538,7 @@ export type Database = {
       bling_pedido_fila_b2c: {
         Row: {
           bling_pedido_id: string | null
+          bling_pedido_numero: string | null
           cd_cep_codigo: string | null
           cd_escolhido_em: string | null
           cd_escolhido_por: string | null
@@ -6558,6 +6559,7 @@ export type Database = {
         }
         Insert: {
           bling_pedido_id?: string | null
+          bling_pedido_numero?: string | null
           cd_cep_codigo?: string | null
           cd_escolhido_em?: string | null
           cd_escolhido_por?: string | null
@@ -6578,6 +6580,7 @@ export type Database = {
         }
         Update: {
           bling_pedido_id?: string | null
+          bling_pedido_numero?: string | null
           cd_cep_codigo?: string | null
           cd_escolhido_em?: string | null
           cd_escolhido_por?: string | null
