@@ -88,6 +88,15 @@ export default function ExpedicaoSp() {
   const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
   const naMesa = pedidos.filter((p) => p.estagio !== ESTAGIO_FILA);
 
+  /** Pedidos da mesa agrupados por estação, na ordem da bancada. */
+  const gruposMesa = useMemo(
+    () =>
+      ESTACOES
+        .map((estacao) => ({ estacao, doGrupo: naMesa.filter((p) => estacaoDe.get(p.id) === estacao) }))
+        .filter(({ doGrupo }) => doGrupo.length > 0),
+    [naMesa, estacaoDe],
+  );
+
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
@@ -212,18 +221,26 @@ export default function ExpedicaoSp() {
                   Bancada livre. Puxe o próximo da fila para começar.
                 </p>
               ) : (
-                <ul className="space-y-2">
-                  {naMesa.map((p) => (
-                    <li key={p.id}>
-                      <LinhaPedido
-                        pedido={p}
-                        ativo={p.id === selecionadoId}
-                        rotulo={ROTULO_ESTACAO[estacaoDe.get(p.id) ?? "separacao"]}
-                        onSelecionar={() => setSelecionadoId(p.id)}
-                      />
-                    </li>
+                <div className="space-y-3">
+                  {gruposMesa.map(({ estacao, doGrupo }) => (
+                    <div key={estacao} className="space-y-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        {ROTULO_ESTACAO[estacao]} · {doGrupo.length}
+                      </p>
+                      <ul className="space-y-2">
+                        {doGrupo.map((p) => (
+                          <li key={p.id}>
+                            <LinhaPedido
+                              pedido={p}
+                              ativo={p.id === selecionadoId}
+                              onSelecionar={() => setSelecionadoId(p.id)}
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   ))}
-                </ul>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -339,7 +356,8 @@ function LinhaPedido({
 }: {
   pedido: PedidoMesa;
   ativo: boolean;
-  rotulo: string;
+  /** Opcional: quando a linha já vive num grupo de estação, o rótulo é o grupo. */
+  rotulo?: string;
   onSelecionar: () => void;
 }) {
   return (
@@ -353,7 +371,8 @@ function LinhaPedido({
     >
       <span className="block truncate text-sm">{pedido.id_externo}</span>
       <span className="block truncate text-xs text-muted-foreground">
-        {pedido.cliente_nome_snapshot ?? "cliente sem nome"} · {rotulo}
+        {pedido.cliente_nome_snapshot ?? "cliente sem nome"}
+        {rotulo ? ` · ${rotulo}` : ""}
       </span>
     </button>
   );
