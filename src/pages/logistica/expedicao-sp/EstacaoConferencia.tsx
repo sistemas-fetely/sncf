@@ -46,6 +46,39 @@ function tocarAlerta() {
 }
 
 /**
+ * Foto do produto — CONFERÊNCIA VISUAL, nunca critério de aceite (quem valida
+ * é o EAN). Sem foto ou falha de rede: placeholder neutro com pacote — nunca
+ * um quadrado quebrado na frente do operador.
+ */
+function FotoItem({
+  imagem, descricao, tamanho,
+}: { imagem: ImagemProdutoMesa | undefined; descricao: string; tamanho: number }) {
+  const [quebrou, setQuebrou] = useState(false);
+  const url = imagem && !quebrou ? imagem.imagem_url : null;
+  if (!url) {
+    return (
+      <span
+        className="flex shrink-0 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground"
+        style={{ width: tamanho, height: tamanho }}
+        aria-hidden="true"
+      >
+        <Package style={{ width: tamanho * 0.4, height: tamanho * 0.4 }} />
+      </span>
+    );
+  }
+  return (
+    <img
+      src={url}
+      alt={descricao}
+      loading="lazy"
+      onError={() => setQuebrou(true)}
+      className="shrink-0 rounded-md border border-border object-cover"
+      style={{ width: tamanho, height: tamanho }}
+    />
+  );
+}
+
+/**
  * Linha de item — a unidade de trabalho do operador é a PEÇA, não o SKU.
  * O mesmo SKU pode aparecer nos dois blocos ao mesmo tempo: o bloco de cima
  * mostra o que AINDA FALTA (quantidade pendente), o de baixo o que JÁ FOI
@@ -53,8 +86,14 @@ function tocarAlerta() {
  * não é ok, é info.
  */
 function LinhaItem({
-  item, quantidade, modo, realce,
-}: { item: ItemPedidoMesa; quantidade: number; modo: "conferir" | "conferido"; realce: boolean }) {
+  item, quantidade, modo, realce, imagens,
+}: {
+  item: ItemPedidoMesa;
+  quantidade: number;
+  modo: "conferir" | "conferido";
+  realce: boolean;
+  imagens: Map<string, ImagemProdutoMesa>;
+}) {
   const ok = modo === "conferido" && quantidade >= item.quantidade;
   return (
     <li
@@ -65,7 +104,13 @@ function LinhaItem({
         realce && "border-success bg-success/20 opacity-100 ring-2 ring-success/60",
       )}
     >
-      <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <FotoItem
+          imagem={item.sku ? imagens.get(item.sku) : undefined}
+          descricao={item.descricao}
+          tamanho={48}
+        />
+        <div className="min-w-0">
         <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
         <p className="font-mono text-xs text-muted-foreground">
           {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
