@@ -22748,6 +22748,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -26464,6 +26471,109 @@ export type Database = {
         }
         Relationships: []
       }
+      importacao_conteiner: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          id: number
+          numero_conteiner: string | null
+          observacao: string | null
+          pedido_id: number
+          quantidade: number
+          tipo_id: number
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: number
+          numero_conteiner?: string | null
+          observacao?: string | null
+          pedido_id: number
+          quantidade?: number
+          tipo_id: number
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          id?: number
+          numero_conteiner?: string | null
+          observacao?: string | null
+          pedido_id?: number
+          quantidade?: number
+          tipo_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compra_pedido_identidade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_conteiner_tipo_id_fkey"
+            columns: ["tipo_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_conteiner_tipo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      importacao_conteiner_tipo: {
+        Row: {
+          ativo: boolean
+          cbm_nominal: number | null
+          codigo: string
+          criado_em: string
+          descricao: string
+          id: number
+        }
+        Insert: {
+          ativo?: boolean
+          cbm_nominal?: number | null
+          codigo: string
+          criado_em?: string
+          descricao: string
+          id?: number
+        }
+        Update: {
+          ativo?: boolean
+          cbm_nominal?: number | null
+          codigo?: string
+          criado_em?: string
+          descricao?: string
+          id?: number
+        }
+        Relationships: []
+      }
       importacao_divergencia_preco: {
         Row: {
           criado_em: string
@@ -26860,6 +26970,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -27131,6 +27248,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
             referencedColumns: ["sku"]
           },
           {
@@ -27855,6 +27979,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -27971,6 +28102,7 @@ export type Database = {
           numero_proforma: string | null
           observacao: string | null
           pedido_agregado: string | null
+          porto_chegada_id: number | null
           prazo_entrega_acordado: string | null
           processo_ref: string | null
           qtd_kits: number | null
@@ -28005,6 +28137,7 @@ export type Database = {
           numero_proforma?: string | null
           observacao?: string | null
           pedido_agregado?: string | null
+          porto_chegada_id?: number | null
           prazo_entrega_acordado?: string | null
           processo_ref?: string | null
           qtd_kits?: number | null
@@ -28039,6 +28172,7 @@ export type Database = {
           numero_proforma?: string | null
           observacao?: string | null
           pedido_agregado?: string | null
+          porto_chegada_id?: number | null
           prazo_entrega_acordado?: string | null
           processo_ref?: string | null
           qtd_kits?: number | null
@@ -28160,6 +28294,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "compra_modalidade"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "importacao_pedido_porto_chegada_id_fkey"
+            columns: ["porto_chegada_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_porto"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "importacao_pedido_status_id_fkey"
@@ -28303,6 +28444,36 @@ export type Database = {
           },
         ]
       }
+      importacao_porto: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          id: number
+          nome: string
+          pais: string
+          uf: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          id?: number
+          nome: string
+          pais?: string
+          uf?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          id?: number
+          nome?: string
+          pais?: string
+          uf?: string | null
+        }
+        Relationships: []
+      }
       importacao_romaneio_stage: {
         Row: {
           codigo_nf: string | null
@@ -28399,6 +28570,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
             referencedColumns: ["sku"]
           },
           {
@@ -51008,6 +51186,7 @@ export type Database = {
           dun: string | null
           ean: string | null
           estampa: string | null
+          familia: string | null
           fase: string | null
           grupo: string | null
           largura_cm: number | null
@@ -51027,6 +51206,7 @@ export type Database = {
           preco_custo: number | null
           preco_varejo: number | null
           profundidade_cm: number | null
+          qtd_kit: number | null
           sku: string
           tamanho_numero: string | null
           tipo: string | null
@@ -51047,6 +51227,7 @@ export type Database = {
           dun?: string | null
           ean?: string | null
           estampa?: string | null
+          familia?: string | null
           fase?: string | null
           grupo?: string | null
           largura_cm?: number | null
@@ -51066,6 +51247,7 @@ export type Database = {
           preco_custo?: number | null
           preco_varejo?: number | null
           profundidade_cm?: number | null
+          qtd_kit?: number | null
           sku: string
           tamanho_numero?: string | null
           tipo?: string | null
@@ -51086,6 +51268,7 @@ export type Database = {
           dun?: string | null
           ean?: string | null
           estampa?: string | null
+          familia?: string | null
           fase?: string | null
           grupo?: string | null
           largura_cm?: number | null
@@ -51105,6 +51288,7 @@ export type Database = {
           preco_custo?: number | null
           preco_varejo?: number | null
           profundidade_cm?: number | null
+          qtd_kit?: number | null
           sku?: string
           tamanho_numero?: string | null
           tipo?: string | null
@@ -63629,6 +63813,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -69646,6 +69837,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
             referencedColumns: ["sku"]
           },
           {
@@ -78557,6 +78755,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -80464,6 +80669,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -80611,6 +80823,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
             referencedColumns: ["sku"]
           },
           {
@@ -85175,14 +85394,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -91242,6 +91461,7 @@ export type Database = {
       }
       vw_produto_mesa_fase: {
         Row: {
+          campos_fora_do_espelho: string[] | null
           cod_cadastro: string | null
           colecao: string | null
           donos_pendencia: string[] | null
@@ -91250,11 +91470,14 @@ export type Database = {
           fase: string | null
           fase_nome: string | null
           fase_ordem: number | null
+          ficha_completa: boolean | null
           grupo: string | null
           nome_comercial: string | null
           nome_operacional: string | null
           pronto_proxima_fase: boolean | null
           proxima_fase: string | null
+          qtd_falta_atual: number | null
+          qtd_falta_proxima: number | null
           saldo_disponivel: number | null
           sku: string | null
           sugestao: string | null
@@ -91273,6 +91496,121 @@ export type Database = {
             columns: ["grupo"]
             isOneToOne: false
             referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
+      vw_produto_mesa_lista: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          atualizado_em: string | null
+          campos_fora_do_espelho: string[] | null
+          categoria: string | null
+          cest: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          cor: string | null
+          cor_nome: string | null
+          departamento: string | null
+          descricao_produto: string | null
+          donos_pendencia: string[] | null
+          dun: string | null
+          ean: string | null
+          estampa: string | null
+          falta_fase_atual: string[] | null
+          falta_proxima_fase: string[] | null
+          familia: string | null
+          fase: string | null
+          fase_nome: string | null
+          fase_ordem: number | null
+          ficha_completa: boolean | null
+          grupo: string | null
+          largura_cm: number | null
+          linha: string | null
+          marca: string | null
+          material: string | null
+          material_descritivo: string | null
+          multiplos: number | null
+          ncm: string | null
+          nome_comercial: string | null
+          nome_completo: string | null
+          nome_operacional: string | null
+          origem_fisc: string | null
+          origem_prod: string | null
+          peso_g: number | null
+          preco_atacado: number | null
+          preco_custo: number | null
+          preco_varejo: number | null
+          profundidade_cm: number | null
+          pronto_proxima_fase: boolean | null
+          proxima_fase: string | null
+          qtd_falta_atual: number | null
+          qtd_falta_proxima: number | null
+          qtd_kit: number | null
+          saldo_disponivel: number | null
+          sku: string | null
+          sugestao: string | null
+          tamanho_numero: string | null
+          tem_bling: boolean | null
+          tipo: string | null
+          tipo_embalagem: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_embalagem"
+            columns: ["tipo_embalagem"]
+            isOneToOne: false
+            referencedRelation: "produto_embalagem_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_linha"
+            columns: ["linha"]
+            isOneToOne: false
+            referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_material"
+            columns: ["material"]
+            isOneToOne: false
+            referencedRelation: "produto_material_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "fk_produto_origem_prod"
+            columns: ["origem_prod"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_prod_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_tipo"
+            columns: ["tipo"]
+            isOneToOne: false
+            referencedRelation: "produto_tipo_dim"
             referencedColumns: ["rotulo"]
           },
         ]
@@ -95799,14 +96137,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -99885,6 +100223,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_resultado_produto"
             referencedColumns: ["sku"]
           },
@@ -102808,6 +103153,7 @@ export type Database = {
       fn_nome_do_usuario: { Args: { p_user?: string }; Returns: string }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
+      fn_normaliza_rocabella_ref: { Args: { p_ref: string }; Returns: string }
       fn_normaliza_vendedor: { Args: { p_texto: string }; Returns: string }
       fn_normalizar_codigo_fornecedor: {
         Args: { p_codigo: string }
