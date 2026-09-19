@@ -372,6 +372,11 @@ export default function ExpedicaoSp() {
                       p_referencia: referencia,
                     })
                   }
+                  gruposColeta={gruposColeta}
+                  despachandoLote={despacharLote.isPending}
+                  onDespacharLote={(modalCodigo, pedidoIds) =>
+                    despacharLote.mutate({ p_modal: modalCodigo, p_pedido_ids: pedidoIds })
+                  }
                 />
               )}
             </>
