@@ -284,11 +284,17 @@ export function EstacaoConferencia({
         {aConferir.length > 0 && (
           <section className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              A conferir · {aConferir.length}
+              A conferir · {pecasAConferir} {pecasAConferir === 1 ? "peça" : "peças"}
             </h3>
             <ul className="space-y-2">
               {aConferir.map((i) => (
-                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={false} />
+                <LinhaItem
+                  key={i.id}
+                  item={i}
+                  quantidade={i.quantidade - (bipados[i.id] ?? 0)}
+                  modo="conferir"
+                  realce={false}
+                />
               ))}
             </ul>
           </section>
@@ -297,11 +303,17 @@ export function EstacaoConferencia({
         {conferidos.length > 0 && (
           <section className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Conferidos · {conferidos.length}
+              Conferidos · {pecasConferidas} {pecasConferidas === 1 ? "peça" : "peças"}
             </h3>
             <ul className="space-y-2">
               {conferidos.map((i) => (
-                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={realce === i.id} />
+                <LinhaItem
+                  key={i.id}
+                  item={i}
+                  quantidade={bipados[i.id] ?? 0}
+                  modo="conferido"
+                  realce={realce === i.id}
+                />
               ))}
             </ul>
           </section>
