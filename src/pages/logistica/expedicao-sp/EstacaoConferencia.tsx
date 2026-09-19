@@ -141,6 +141,8 @@ function LinhaItem({
 interface Props {
   pedidoId: string;
   itens: ItemPedidoMesa[];
+  /** Fotos por SKU (`vw_produto_imagem`) — conferência visual, nunca aceite. */
+  imagens: Map<string, ImagemProdutoMesa>;
   carregando: boolean;
   registrando: boolean;
   onRegistrar: (itens: ItemConferido[], ok: boolean, motivo: string | null) => void;
@@ -148,7 +150,7 @@ interface Props {
 }
 
 export function EstacaoConferencia({
-  pedidoId, itens, carregando, registrando, onRegistrar, onVoltarSeparacao,
+  pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao,
 }: Props) {
   const [bipados, setBipados] = useState<Record<string, number>>({});
   const [buffer, setBuffer] = useState("");
@@ -157,6 +159,12 @@ export function EstacaoConferencia({
   const [motivo, setMotivo] = useState("");
   /** Item que ACABOU de receber um bipe — realce de ~1,5s no bloco Conferidos. */
   const [realce, setRealce] = useState<string | null>(null);
+  /**
+   * Item do último bipe ACEITO — vira o painel de confirmação visual (~3s):
+   * é o instante em que o operador olha para a peça na mão. Bipe recusado
+   * não mexe aqui (o alerta de erro segue como está).
+   */
+  const [ultimoBipe, setUltimoBipe] = useState<ItemPedidoMesa | null>(null);
   /** Ordem de bipe — o último bipado fica no topo dos conferidos. */
   const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
   const timerRealce = useRef<number | null>(null);
