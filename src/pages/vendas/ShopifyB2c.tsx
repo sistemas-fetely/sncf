@@ -31,8 +31,8 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
-  usePedidosB2c, usePedidoAlertaDim,
-  type PedidoB2cRow, type AlertaDim,
+  usePedidosB2c, usePedidoAlertaDim, useCentrosB2c,
+  type PedidoB2cRow, type AlertaDim, type CentroB2c,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
