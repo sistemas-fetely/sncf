@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Check, Loader2, ScanBarcode } from "lucide-react";
+import { AlertTriangle, Check, Loader2, Package, ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { Selo } from "@/components/ui/selo";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { normalizarCodigo, type ItemConferido, type ItemPedidoMesa } from "./tipos";
+import { normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
 
 /**
  * Estação 3 — Conferência por bipagem.
