@@ -136,6 +136,25 @@ export interface ItemConferido {
 }
 
 /**
+ * Linha de `fn_mesa_sp_caixas_sugeridas`: cada caixa real (`b2c_embalagem_caixa`)
+ * avaliada contra ESTE pedido. SISTEMA SUGERE / HUMANO DECIDE — a que não cabe
+ * chega com `motivo`, a menor que serve chega com `sugerida = true`, e a palavra
+ * final continua do operador (a RPC de embalar não recusa caixa diferente).
+ */
+export interface CaixaSugerida {
+  codigo: string;
+  nome: string;
+  /** Texto pronto do banco, ex.: "35 x 35 x 16 cm". */
+  medidas: string;
+  volume_util_cm3: number;
+  cabe: boolean;
+  motivo: string | null;
+  sugerida: boolean;
+  /** Quanto do volume útil o pedido ocupa, 0–100. */
+  ocupacao_pct: number;
+}
+
+/**
  * Estação BASE do pedido, lida só dos fatos gravados no banco.
  *
  * A conferência não tem evento de "entrada" (a RPC só grava o desfecho), então

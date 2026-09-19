@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
-  type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type CaixaSugerida, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ModalEntrega, type ModalRegra, type PedidoMesa,
 } from "./tipos";
 
