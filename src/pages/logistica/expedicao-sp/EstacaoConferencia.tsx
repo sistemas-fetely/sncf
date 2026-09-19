@@ -168,6 +168,7 @@ export function EstacaoConferencia({
   /** Ordem de bipe — o último bipado fica no topo dos conferidos. */
   const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
   const timerRealce = useRef<number | null>(null);
+  const timerBipe = useRef<number | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   /** Trava de disparo único: a conferência OK é automática ao completar. */
@@ -180,15 +181,19 @@ export function EstacaoConferencia({
     setAlerta(null);
     setMotivo("");
     setRealce(null);
+    setUltimoBipe(null);
     setOrdemConferidos([]);
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
     timerRealce.current = null;
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
+    timerBipe.current = null;
     jaRegistrou.current = false;
   }, [pedidoId]);
 
   // A tela desmonta com o realce pendente: o timeout não pode disparar depois.
   useEffect(() => () => {
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
   }, []);
 
   const focar = useCallback(() => {
@@ -255,6 +260,11 @@ export function EstacaoConferencia({
     setRealce(alvo.id);
     if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
     timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
+    // Confirmação visual do bipe: foto grande por ~3s — o instante de olhar
+    // para a peça na mão e confrontar cor e estampa com a tela.
+    setUltimoBipe(alvo);
+    if (timerBipe.current !== null) window.clearTimeout(timerBipe.current);
+    timerBipe.current = window.setTimeout(() => setUltimoBipe(null), 3000);
   }
 
   function confirmarDivergencia() {
