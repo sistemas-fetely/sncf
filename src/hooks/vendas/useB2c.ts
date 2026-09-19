@@ -99,6 +99,10 @@ export interface PedidoB2cRow {
   // BADGE-LÊ-A-MESMA-FONTE-DA-TELA, sem query paralela à tabela da fila.
   fila_status: string | null;
   fila_bling_pedido_id: string | null;
+  // NÚMERO-CURTO-DA-FILA (19/09/2026): a edge grava o número curto do Bling
+  // (ex.: 596) em bling_pedido_fila_b2c.bling_pedido_numero. A view não expõe
+  // essa coluna — o hook casa direto com a tabela por shopify_pedido_id.
+  fila_bling_pedido_numero: string | null;
   fila_tentativas: number | null;
   fila_ultimo_erro: string | null;
   tag_shopify: string | null;
@@ -132,7 +136,31 @@ export function usePedidosB2c() {
         .select(CAMPOS_PEDIDO)
         .order("data_pedido", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as PedidoB2cRow[];
+      const rows = (data ?? []) as PedidoB2cRow[];
+      // NÚMERO-CURTO-DA-FILA: a view não expõe bling_pedido_numero da fila —
+      // consulta complementar por shopify_pedido_id e casamento em memória.
+      // FAIL-LOUD: erro na consulta complementar derruba a query como um todo.
+      const ids = rows
+        .map((r) => r.shopify_id)
+        .filter((x): x is string => !!x);
+      if (ids.length > 0) {
+        const { data: filaNumeros, error: erroFila } = await supabase
+          .from("bling_pedido_fila_b2c")
+          .select("shopify_pedido_id, bling_pedido_numero")
+          .in("shopify_pedido_id", ids)
+          .not("bling_pedido_numero", "is", null);
+        if (erroFila) throw erroFila;
+        const mapa = new Map(
+          (filaNumeros ?? []).map((r) => [
+            r.shopify_pedido_id as string,
+            r.bling_pedido_numero as string,
+          ]),
+        );
+        for (const r of rows) {
+          r.fila_bling_pedido_numero = (r.shopify_id && mapa.get(r.shopify_id)) || null;
+        }
+      }
+      return rows;
     },
   });
 }
