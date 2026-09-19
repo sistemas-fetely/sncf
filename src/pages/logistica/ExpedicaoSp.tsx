@@ -24,7 +24,7 @@ import {
 } from "./expedicao-sp/tipos";
 import {
   useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
-  useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
+  useIdentidadesMesaSp, useItensPedidoMesa, useModaisEntrega, usePedidosMesaSp, usePuxarPedido,
   useRegistrarConferencia, useRegrasModal,
 } from "./expedicao-sp/useMesaSp";
 
@@ -50,6 +50,7 @@ export default function ExpedicaoSp() {
   const pedidosQ = usePedidosMesaSp();
   const pedidos = useMemo(() => pedidosQ.data ?? [], [pedidosQ.data]);
   const eventosQ = useEventosMesaSp(pedidos.map((p) => p.id));
+  const identidadesQ = useIdentidadesMesaSp(pedidos.map((p) => p.id));
   const modaisQ = useModaisEntrega();
   const regrasQ = useRegrasModal();
 
@@ -105,6 +106,7 @@ export default function ExpedicaoSp() {
   }, [pedidos, naMesa, aguardandoColeta, fila, selecionadoId]);
 
   const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
+  const identidadesSelecionado = selecionado ? identidadesQ.data?.get(selecionado.id) : undefined;
   const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
 
@@ -181,7 +183,7 @@ export default function ExpedicaoSp() {
     );
   }
 
-  const erro = pedidosQ.error ?? eventosQ.error ?? modaisQ.error ?? regrasQ.error;
+  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error;
 
   return (
     <PageShell variant="dados">
@@ -342,8 +344,14 @@ export default function ExpedicaoSp() {
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">
-                      {selecionado.id_externo} · {selecionado.cliente_nome_snapshot ?? "cliente sem nome"}
+                       {selecionado.cliente_nome_snapshot ?? "cliente sem nome"}
                     </p>
+                     <IdentidadesPedido
+                       sncf={selecionado.id_externo}
+                       bling={identidadesSelecionado?.bling_pedido_numero}
+                       nf={identidadesSelecionado?.nf_refs}
+                       loja={identidadesSelecionado?.order_name}
+                     />
                     <p className="text-xs text-muted-foreground">
                       {formatBRL(selecionado.valor_liquido)} · recebido {fmtDataHora(selecionado.recebido_em)}
                     </p>
@@ -375,6 +383,7 @@ export default function ExpedicaoSp() {
                   itens={itensQ.data ?? []}
                   carregando={itensQ.isLoading}
                   pedido={selecionado}
+                   identidades={identidadesSelecionado}
                   onConcluir={() => marcarEmConferencia(selecionado.id, true)}
                 />
               )}
@@ -438,6 +447,33 @@ export default function ExpedicaoSp() {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+function IdentidadesPedido({
+  sncf, bling, nf, loja,
+}: {
+  sncf: string;
+  bling?: string | null;
+  nf?: string | null;
+  loja?: string | null;
+}) {
+  const partes = [
+    { rotulo: "SNCF", valor: sncf },
+    { rotulo: "Bling", valor: bling },
+    { rotulo: "NF", valor: nf },
+    { rotulo: "Loja", valor: loja },
+  ].filter((item): item is { rotulo: string; valor: string } => Boolean(item.valor));
+
+  return (
+    <p className="flex flex-wrap items-center gap-x-1 text-xs text-muted-foreground">
+      {partes.map((item, indice) => (
+        <span key={item.rotulo}>
+          {indice > 0 && <span aria-hidden="true">· </span>}
+          {item.rotulo} <span className="font-mono">{item.valor}</span>
+        </span>
+      ))}
+    </p>
   );
 }
 
