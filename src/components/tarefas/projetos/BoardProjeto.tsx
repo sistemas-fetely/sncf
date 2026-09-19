@@ -614,6 +614,7 @@ export function BoardProjeto({ projetoId }: Props) {
                                     })
                                   }
                                 />
+                                {f.prioridade === "urgente" && <PontoUrgente label="Urgente" />}
                                 <button
                                   type="button"
                                   onClick={() => abrirTarefa(f.id)}
