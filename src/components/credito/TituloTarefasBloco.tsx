@@ -112,13 +112,10 @@ export function TituloTarefasBloco({ tituloId }: Props) {
                     >
                       {rotuloStatus(t.status)}
                     </Badge>
-                    {t.prioridade && (
+                    {t.prioridade && mostrarSeloPrioridade(t.prioridade) && (
                       <Badge
                         variant="outline"
-                        className={cn(
-                          "text-[10px] py-0",
-                          PRIORIDADE_CLASSE[t.prioridade] ?? PRIORIDADE_CLASSE.media,
-                        )}
+                        className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[t.prioridade])}
                       >
                         {PRIORIDADE_ROTULO[t.prioridade] ?? t.prioridade}
                       </Badge>
