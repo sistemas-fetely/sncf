@@ -878,6 +878,9 @@ Deno.serve(async (req) => {
           .update({
             status: "enviado",
             bling_pedido_id: blingPedidoId,
+            // Número curto do Bling (pode vir null se a busca silenciosa falhou —
+            // a descida não depende dele).
+            bling_pedido_numero: blingPedidoNumero,
             processado_em: new Date().toISOString(),
             // aviso de endereco (se houve) sobrevive ao sucesso — nao some no null.
             ultimo_erro: avisoEndereco ?? null,
@@ -889,6 +892,7 @@ Deno.serve(async (req) => {
           console.error("[b2c-descida] pedido criado no Bling mas fila não atualizou", {
             fila_id: item.id,
             bling_pedido_id: blingPedidoId,
+            bling_pedido_numero: blingPedidoNumero,
             erro: eOk.message,
           });
         }
@@ -900,6 +904,7 @@ Deno.serve(async (req) => {
           order_name: item.order_name,
           resultado: "enviado",
           bling_pedido_id: blingPedidoId,
+          bling_pedido_numero: blingPedidoNumero,
         });
       } catch (e) {
         await falhar((e as Error).message ?? String(e));
