@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Selo } from "@/components/ui/selo";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -59,20 +60,23 @@ function LinhaItem({
     <li
       className={cn(
         "flex items-center justify-between gap-3 rounded-md border px-3 py-2 transition-all duration-700",
-        ok && "border-success/40 bg-success/10 opacity-80",
+        modo === "conferido" && !realce && "opacity-75",
+        ok && "border-success/40 bg-success/10",
         realce && "border-success bg-success/20 opacity-100 ring-2 ring-success/60",
       )}
     >
       <div className="min-w-0">
-        <p className="truncate text-sm">{item.descricao}</p>
+        <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
         <p className="font-mono text-xs text-muted-foreground">
           {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="text-sm tabular-nums">{quantidade}</span>
         {modo === "conferir" ? (
-          quantidade < item.quantidade && <Selo estado="warning">falta {quantidade}</Selo>
+          // A coluna da direita nunca é um número cru: o que falta é rótulo.
+          <Selo estado="warning">
+            falta {quantidade} {quantidade === 1 ? "peça" : "peças"}
+          </Selo>
         ) : ok ? (
           <Selo estado="success">
             <Check className="mr-1 h-3 w-3" aria-hidden="true" />
@@ -281,43 +285,62 @@ export function EstacaoConferencia({
           )}
         </div>
 
-        {aConferir.length > 0 && (
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              A conferir · {pecasAConferir} {pecasAConferir === 1 ? "peça" : "peças"}
-            </h3>
-            <ul className="space-y-2">
-              {aConferir.map((i) => (
-                <LinhaItem
-                  key={i.id}
-                  item={i}
-                  quantidade={i.quantidade - (bipados[i.id] ?? 0)}
-                  modo="conferir"
-                  realce={false}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
+        {/* Painéis: as duas zonas da bancada. O de cima é o trabalho; o de
+            baixo, tintado de verde, é o que já desceu. Separador entre eles
+            deixa a descida explícita. */}
+        <div className="space-y-6">
+          {aConferir.length > 0 && (
+            <section className="rounded-lg border border-border bg-muted/40 p-3 sm:p-4">
+              <header className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <ScanBarcode className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <h3 className="text-xs font-medium uppercase tracking-wide">A conferir</h3>
+                </div>
+                <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-muted-foreground">
+                  {pecasAConferir} {pecasAConferir === 1 ? "peça" : "peças"}
+                </span>
+              </header>
+              <ul className="space-y-2">
+                {aConferir.map((i) => (
+                  <LinhaItem
+                    key={i.id}
+                    item={i}
+                    quantidade={i.quantidade - (bipados[i.id] ?? 0)}
+                    modo="conferir"
+                    realce={false}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
 
-        {conferidos.length > 0 && (
-          <section className="space-y-2">
-            <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Conferidos · {pecasConferidas} {pecasConferidas === 1 ? "peça" : "peças"}
-            </h3>
-            <ul className="space-y-2">
-              {conferidos.map((i) => (
-                <LinhaItem
-                  key={i.id}
-                  item={i}
-                  quantidade={bipados[i.id] ?? 0}
-                  modo="conferido"
-                  realce={realce === i.id}
-                />
-              ))}
-            </ul>
-          </section>
-        )}
+          {aConferir.length > 0 && conferidos.length > 0 && <Separator />}
+
+          {conferidos.length > 0 && (
+            <section className="rounded-lg border border-success/30 bg-success/5 p-3 sm:p-4">
+              <header className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-success-strong">
+                  <Check className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <h3 className="text-xs font-medium uppercase tracking-wide">Conferidos</h3>
+                </div>
+                <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium tabular-nums text-success-strong">
+                  {pecasConferidas} {pecasConferidas === 1 ? "peça" : "peças"}
+                </span>
+              </header>
+              <ul className="space-y-2">
+                {conferidos.map((i) => (
+                  <LinhaItem
+                    key={i.id}
+                    item={i}
+                    quantidade={bipados[i.id] ?? 0}
+                    modo="conferido"
+                    realce={realce === i.id}
+                  />
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <Button variant="outline" onClick={() => setDialogDivergencia(true)} disabled={registrando}>
