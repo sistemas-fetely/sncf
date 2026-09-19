@@ -16,6 +16,7 @@ import {
 } from "@/hooks/tarefas/useRecorrencias";
 import { useTemplates, useTemplateItens } from "@/hooks/tarefas/useTemplates";
 import { DIAS_SEMANA_CURTO, MESES_NOME, dataBR, textoRecorrencia } from "@/lib/tarefas/recorrenciaTexto";
+import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 
 
 const SEM_VALOR = "__nenhum__";

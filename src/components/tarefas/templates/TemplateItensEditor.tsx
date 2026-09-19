@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { usePessoasSistema } from "@/hooks/tarefas/useTarefasCatalogos";
+import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 import {
   useExcluirTemplateItem, useSalvarTemplateItem, useTemplateItens, type TemplateItem,
 } from "@/hooks/tarefas/useTemplates";
