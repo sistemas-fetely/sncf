@@ -190,14 +190,13 @@ export function EstacaoConferencia({
     }
 
     setAlerta(null);
-    const novo = (bipados[alvo.id] ?? 0) + 1;
     setBipados((atual) => ({ ...atual, [alvo.id]: (atual[alvo.id] ?? 0) + 1 }));
-    if (novo >= alvo.quantidade) {
-      setOrdemConferidos((ordem) => [...ordem, alvo.id]);
-      setRealce(alvo.id);
-      if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
-      timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
-    }
+    // CADA bipe move o item para o topo dos conferidos e acende o realce —
+    // a peça bipada aparece no bloco de baixo na hora, não só ao completar.
+    setOrdemConferidos((ordem) => [...ordem.filter((id) => id !== alvo.id), alvo.id]);
+    setRealce(alvo.id);
+    if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+    timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
   }
 
   function confirmarDivergencia() {
@@ -222,15 +221,20 @@ export function EstacaoConferencia({
   const totalEsperado = itens.reduce((s, i) => s + i.quantidade, 0);
   const totalBipado = itens.reduce((s, i) => s + Math.min(bipados[i.id] ?? 0, i.quantidade), 0);
 
-  // Bloco de cima: quem falta, com bipe parcial primeiro (o operador volta ao
-  // que estava fazendo). Bloco de baixo: quem completou, último no topo.
+  // Bloco de cima: o que AINDA FALTA de cada SKU (bipe parcial primeiro — o
+  // operador volta ao que estava fazendo). Bloco de baixo: o que JÁ FOI
+  // bipado de cada SKU, último bipe no topo. O mesmo SKU pode estar nos dois.
   const aConferir = itens
     .filter((i) => (bipados[i.id] ?? 0) < i.quantidade)
     .sort((a, b) => (bipados[b.id] ?? 0) - (bipados[a.id] ?? 0));
   const ordemIdx = new Map(ordemConferidos.map((id, idx) => [id, idx]));
   const conferidos = itens
-    .filter((i) => (bipados[i.id] ?? 0) >= i.quantidade)
+    .filter((i) => (bipados[i.id] ?? 0) > 0)
     .sort((a, b) => (ordemIdx.get(b.id) ?? -1) - (ordemIdx.get(a.id) ?? -1));
+
+  // Contadores em PEÇAS, não em linhas: a bancada conta peça.
+  const pecasAConferir = aConferir.reduce((s, i) => s + i.quantidade - (bipados[i.id] ?? 0), 0);
+  const pecasConferidas = conferidos.reduce((s, i) => s + (bipados[i.id] ?? 0), 0);
 
   return (
     <Card onClick={focar}>
