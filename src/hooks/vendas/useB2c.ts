@@ -94,6 +94,29 @@ export interface PedidoB2cRow {
   bloqueio_tentativas: number | null;
   bloqueio_em: string | null;
   pedido_ausente: boolean | null;
+  // ENTRADA-B2C-POR-FASES (19/09/2026): a descida ao Bling só acontece depois
+  // que o humano escolhe o CD. A fila e a escolha vêm na própria view —
+  // BADGE-LÊ-A-MESMA-FONTE-DA-TELA, sem query paralela à tabela da fila.
+  fila_status: string | null;
+  fila_bling_pedido_id: string | null;
+  fila_tentativas: number | null;
+  fila_ultimo_erro: string | null;
+  tag_shopify: string | null;
+  cd_sugerido: string | null;
+  cd_cep_codigo: string | null;
+  cd_escolhido_codigo: string | null;
+  cd_escolhido_nome: string | null;
+  cd_cnpj_emitente: string | null;
+  cd_escolhido_em: string | null;
+  cd_escolhido_por: string | null;
+  divergencia_tag: boolean | null;
+  divergencia_cep_tag: boolean | null;
+  divergencia_fiscal: boolean | null;
+  horas_aguardando_cd: number | null;
+  alerta_sem_cd: boolean | null;
+  cd_efetivo_codigo: string | null;
+  cd_efetivo_nome: string | null;
+  cd_efetivo_fonte: string | null;
 }
 
 const CAMPOS_PEDIDO =
