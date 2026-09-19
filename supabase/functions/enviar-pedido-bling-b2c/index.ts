@@ -73,6 +73,7 @@ type Detalhe = {
   order_name: string | null;
   resultado: "enviado" | "erro" | "dry";
   bling_pedido_id?: number | null;
+  bling_pedido_numero?: string | null;
   erro?: string | null;
   // deno-lint-ignore no-explicit-any -- payload montado para conferencia no dry-run
   payload?: any;
