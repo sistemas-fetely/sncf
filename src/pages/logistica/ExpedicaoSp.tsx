@@ -43,14 +43,7 @@ import {
 
 /** Qual modal a embalagem registrou — o despacho começa por ele. */
 function modalDoEmbalado(eventos: EventoMesa[]): string | null {
-  const embalado = [...eventos]
-    .filter((e) => e.tipo_evento === EVENTO_EMBALADO)
-    .sort((a, b) => a.criado_em.localeCompare(b.criado_em))
-    .at(-1);
-  const meta = embalado?.metadata;
-  if (!meta || typeof meta !== "object") return null;
-  const modal = (meta as Record<string, unknown>).modal;
-  return typeof modal === "string" && modal.trim() !== "" ? modal : null;
+  return embalagemDoPedido(eventos)?.modal ?? null;
 }
 
 export default function ExpedicaoSp() {
