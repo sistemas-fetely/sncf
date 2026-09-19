@@ -18,22 +18,13 @@ import { usePessoasSistema, useProjetos } from "@/hooks/tarefas/useTarefasCatalo
 import {
   useReagendarNoCalendario, useTarefasCalendario, type FiltroCalendario,
 } from "@/hooks/tarefas/useTarefasCalendario";
-import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
+import type { Tarefa } from "@/hooks/tarefas/useTarefas";
+import { PRIORIDADE_BORDA } from "@/lib/tarefas/prioridade";
 
 const TODOS = "__todos__";
 
-/**
- * Borda do cartão no calendário — obedece a mesma regra da fonte única
- * (`src/lib/tarefas/prioridade`): `media` é o default da coluna e não recebe
- * cor, para o mês não virar um mar amarelo. Aqui é borda, não selo, por isso o
- * mapa é local; os rótulos continuam vindo da fonte única.
- */
-const COR_PRIORIDADE: Record<TarefaPrioridade, string> = {
-  urgente: "border-l-destructive bg-destructive/10 text-destructive",
-  alta: "border-l-warning bg-warning/10 text-warning",
-  media: "border-l-border bg-card text-foreground",
-  baixa: "border-l-border bg-muted text-muted-foreground",
-};
+// A borda lateral do cartão vem da fonte única (`PRIORIDADE_BORDA`): média e
+// baixa ficam neutras, só urgente/alta acentuam — o mês não vira mar amarelo.
 
 function iso(d: Date): string {
   return format(d, "yyyy-MM-dd");
@@ -154,7 +145,7 @@ export default function CalendarioTarefas() {
                     onClick={() => abrirTarefa(t.id)}
                     className={cn(
                       "w-full rounded-md border border-l-4 px-2 py-1.5 text-left text-sm",
-                      COR_PRIORIDADE[t.prioridade]
+                      PRIORIDADE_BORDA[t.prioridade]
                     )}
                   >
                     <span className="line-clamp-2">{t.titulo}</span>
@@ -212,7 +203,7 @@ export default function CalendarioTarefas() {
                       onClick={() => abrirTarefa(t.id)}
                       className={cn(
                         "cursor-pointer truncate rounded border border-l-[3px] px-1 py-0.5 text-[11px]",
-                        COR_PRIORIDADE[t.prioridade]
+                        PRIORIDADE_BORDA[t.prioridade]
                       )}
                       title={t.titulo}
                     >

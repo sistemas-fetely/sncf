@@ -18,12 +18,10 @@ import {
 } from "@/hooks/tarefas/useTarefasDoTime";
 import type { Tarefa, TarefaPrioridade } from "@/hooks/tarefas/useTarefas";
 import { idsDeContainer, semContainers } from "@/lib/tarefas/containers";
-import { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
+import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 
-/** rótulos vêm da fonte única — o filtro só escolhe a ordem de exibição */
-const PRIORIDADES: { valor: TarefaPrioridade; rotulo: string }[] = (
-  ["urgente", "alta", "media", "baixa"] as TarefaPrioridade[]
-).map((valor) => ({ valor, rotulo: PRIORIDADE_ROTULO[valor] ?? valor }));
+/** opções e rótulos vêm da fonte única — o filtro não monta lista própria */
+const PRIORIDADES = OPCOES_PRIORIDADE;
 
 function hojeISO(): string {
   const d = new Date();

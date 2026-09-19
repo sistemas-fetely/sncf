@@ -10,6 +10,8 @@
  * (é vira e + acento combinante) e quebraria o realce.
  */
 
+import { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
+
 export type TokenTipo =
   | "projeto" | "responsavel" | "etiqueta" | "secao"
   | "prioridade" | "data" | "hora";
@@ -219,24 +221,11 @@ const PRIORIDADES: Record<string, Prioridade> = {
   "1": "urgente", "2": "alta", "3": "media", "4": "baixa",
 };
 
-const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
-  urgente: "Urgente", alta: "Alta", media: "Média", baixa: "Baixa",
-};
-
-/**
- * ÚNICO ponto do código com a lista de prioridades.
- * Espelha o CHECK de `tarefas.prioridade` (baixa | media | alta | urgente):
- * o valor gravado vai SEM acento; o rótulo é só interface.
- * Não existe dimensão em tabela para prioridade hoje — o lugar certo seria
- * uma `tarefa_prioridade_dim`, como já é feito para status e tipo de execução.
- * Se essa tabela for criada, troque esta constante por um hook de catálogo.
- */
-export const OPCOES_PRIORIDADE: Array<{ valor: Prioridade; rotulo: string }> = [
-  { valor: "urgente", rotulo: ROTULO_PRIORIDADE.urgente },
-  { valor: "alta", rotulo: ROTULO_PRIORIDADE.alta },
-  { valor: "media", rotulo: ROTULO_PRIORIDADE.media },
-  { valor: "baixa", rotulo: ROTULO_PRIORIDADE.baixa },
-];
+// Rótulos e a lista de opções vêm da FONTE ÚNICA (`src/lib/tarefas/prioridade`)
+// — reexportados aqui para não quebrar quem já importava do parser. A escala
+// espelha o CHECK de `tarefas.prioridade` (baixa | media | alta | urgente):
+// o valor gravado vai SEM acento; o rótulo é só interface.
+export { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 
 /** resolve o texto digitado depois do `!`; null quando não é prioridade conhecida */
 export function casarPrioridade(termo: string | null | undefined): Prioridade | null {
@@ -289,7 +278,7 @@ export function parseQuickAdd(entrada: string, agora: Date = new Date()): QuickA
     const e = m.index + m[0].length;
     if (!livre(s, e) || prioridade) continue;
     prioridade = PRIORIDADES[m[1]];
-    push("prioridade", s, e, ROTULO_PRIORIDADE[prioridade]);
+    push("prioridade", s, e, PRIORIDADE_ROTULO[prioridade]);
   }
 
   /* 2. prefixos # @ + / — o valor vai até o próximo espaço */
@@ -401,7 +390,7 @@ export function descreverPreview(r: QuickAddResult, agora: Date = new Date()): s
     partes.push(`para ${quando}${r.horaLimite ? ` às ${r.horaLimite.slice(0, 5)}` : ""}`);
   }
 
-  if (r.prioridade) partes.push(`prioridade ${ROTULO_PRIORIDADE[r.prioridade].toLowerCase()}`);
+  if (r.prioridade) partes.push(`prioridade ${PRIORIDADE_ROTULO[r.prioridade].toLowerCase()}`);
   if (r.etiquetas.length) partes.push(`etiquetas: ${r.etiquetas.join(", ")}`);
 
   return partes.join(" · ");

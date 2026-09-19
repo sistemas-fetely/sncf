@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { SeletorPessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { SeletorPessoa } from "@/components/tarefas/detalhe/comuns";
+import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import { useSecoesProjeto, usePodeGerenciarProjeto } from "@/hooks/tarefas/useProjetosTarefas";
 import { useEtiquetas } from "@/hooks/tarefas/useTarefasCatalogos";
@@ -20,7 +21,7 @@ import {
 
 const GATILHOS = Object.keys(GATILHO_ROTULO) as GatilhoTipo[];
 const ACOES = Object.keys(ACAO_ROTULO) as AcaoTipo[];
-const PRIORIDADES = Object.keys(PRIORIDADE_ROTULO);
+const PRIORIDADES = OPCOES_PRIORIDADE;
 
 interface Props {
   projetoId: string;
@@ -70,7 +71,7 @@ export function AutomacoesProjeto({ projetoId }: Props) {
         <Select value={valor ?? ""} onValueChange={onChange}>
           <SelectTrigger className="h-8 w-48"><SelectValue placeholder="Prioridade" /></SelectTrigger>
           <SelectContent>
-            {PRIORIDADES.map((p) => <SelectItem key={p} value={p}>{PRIORIDADE_ROTULO[p]}</SelectItem>)}
+            {PRIORIDADES.map((o) => <SelectItem key={o.valor} value={o.valor}>{o.rotulo}</SelectItem>)}
           </SelectContent>
         </Select>
       );
