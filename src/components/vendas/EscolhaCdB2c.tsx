@@ -1,8 +1,6 @@
-import { useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Selo } from "@/components/ui/selo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog,
@@ -236,11 +234,3 @@ export function ToggleCdB2c({ centros, valor, onChange }: ToggleProps) {
     </div>
   );
 }
-
-/** Estado de fila em texto — a view é a única fonte. */
-export function useEstadoSeloFila() {
-  const [x] = useState(0);
-  return x;
-}
-
-export { Selo };
