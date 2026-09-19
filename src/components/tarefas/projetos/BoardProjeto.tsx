@@ -544,9 +544,11 @@ export function BoardProjeto({ projetoId }: Props) {
 
 
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
-                            {PRIORIDADE_ROTULO[t.prioridade]}
-                          </Badge>
+                          {t.prioridade !== "media" && (
+                            <Badge variant="outline" className={cn("text-[10px]", PRIORIDADE_CLASSE[t.prioridade])}>
+                              {PRIORIDADE_ROTULO[t.prioridade]}
+                            </Badge>
+                          )}
                           <LinkOrigemTarefa acaoUrl={t.acao_url} />
                           {limite && (
                             <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
@@ -565,6 +567,11 @@ export function BoardProjeto({ projetoId }: Props) {
                                     }}
                                     className="flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] text-muted-foreground transition hover:bg-muted"
                                   >
+                                    {passosUrgentes > 0 && (
+                                      <PontoUrgente
+                                        label={passosUrgentes === 1 ? "1 passo urgente" : `${passosUrgentes} passos urgentes`}
+                                      />
+                                    )}
                                     <ListChecks className="h-3 w-3" />
                                     {feitas}/{filhas.length}
                                     {passosVisiveis ? (
@@ -575,6 +582,12 @@ export function BoardProjeto({ projetoId }: Props) {
                                   </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
+                                  {passosUrgentes > 0 && (
+                                    <>
+                                      {passosUrgentes === 1 ? "1 passo urgente" : `${passosUrgentes} passos urgentes`}
+                                      {" · "}
+                                    </>
+                                  )}
                                   {passosVisiveis ? "Esconder os passos" : "Ver os passos desta tarefa"}
                                 </TooltipContent>
                               </Tooltip>
@@ -611,6 +624,7 @@ export function BoardProjeto({ projetoId }: Props) {
                                 >
                                   {f.titulo}
                                 </button>
+                                {f.prioridade === "urgente" && <PontoUrgente label="Urgente" />}
                               </div>
                             ))}
                           </div>
