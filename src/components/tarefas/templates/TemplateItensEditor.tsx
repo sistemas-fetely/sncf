@@ -122,10 +122,9 @@ export function TemplateItensEditor({ templateId }: Props) {
           <Select value={prioridade} onValueChange={setPrioridade}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="baixa">Baixa</SelectItem>
-              <SelectItem value="media">Média</SelectItem>
-              <SelectItem value="alta">Alta</SelectItem>
-              <SelectItem value="urgente">Urgente</SelectItem>
+              {OPCOES_PRIORIDADE.map((o) => (
+                <SelectItem key={o.valor} value={o.valor}>{o.rotulo}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

@@ -313,10 +313,9 @@ export function RecorrenciaDialog({ aberto, onOpenChange, regra }: Props) {
               <Select value={f.prioridade} onValueChange={(v) => setF({ ...f, prioridade: v })}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="baixa">Baixa</SelectItem>
-                  <SelectItem value="media">Média</SelectItem>
-                  <SelectItem value="alta">Alta</SelectItem>
-                  <SelectItem value="urgente">Urgente</SelectItem>
+                  {OPCOES_PRIORIDADE.map((o) => (
+                    <SelectItem key={o.valor} value={o.valor}>{o.rotulo}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

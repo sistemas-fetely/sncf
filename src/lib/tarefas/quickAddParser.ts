@@ -10,6 +10,8 @@
  * (é vira e + acento combinante) e quebraria o realce.
  */
 
+import { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
+
 export type TokenTipo =
   | "projeto" | "responsavel" | "etiqueta" | "secao"
   | "prioridade" | "data" | "hora";
