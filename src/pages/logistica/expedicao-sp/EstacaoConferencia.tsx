@@ -44,9 +44,17 @@ function tocarAlerta() {
   }
 }
 
-/** Linha de item — mesma nos dois blocos; o estado (ok/realce) muda só a classe. */
-function LinhaItem({ item, feito, realce }: { item: ItemPedidoMesa; feito: number; realce: boolean }) {
-  const ok = feito >= item.quantidade;
+/**
+ * Linha de item — a unidade de trabalho do operador é a PEÇA, não o SKU.
+ * O mesmo SKU pode aparecer nos dois blocos ao mesmo tempo: o bloco de cima
+ * mostra o que AINDA FALTA (quantidade pendente), o de baixo o que JÁ FOI
+ * bipado (quantidade conferida). O selo "ok" é só de quem completou — parcial
+ * não é ok, é info.
+ */
+function LinhaItem({
+  item, quantidade, modo, realce,
+}: { item: ItemPedidoMesa; quantidade: number; modo: "conferir" | "conferido"; realce: boolean }) {
+  const ok = modo === "conferido" && quantidade >= item.quantidade;
   return (
     <li
       className={cn(
@@ -62,16 +70,18 @@ function LinhaItem({ item, feito, realce }: { item: ItemPedidoMesa; feito: numbe
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <span className="text-sm tabular-nums">
-          {feito} / {item.quantidade}
-        </span>
-        {ok ? (
+        <span className="text-sm tabular-nums">{quantidade}</span>
+        {modo === "conferir" ? (
+          quantidade < item.quantidade && <Selo estado="warning">falta {quantidade}</Selo>
+        ) : ok ? (
           <Selo estado="success">
             <Check className="mr-1 h-3 w-3" aria-hidden="true" />
             ok
           </Selo>
         ) : (
-          <Selo estado="warning">falta {item.quantidade - feito}</Selo>
+          <Selo estado="info">
+            {quantidade} {quantidade === 1 ? "conferida" : "conferidas"}
+          </Selo>
         )}
       </div>
     </li>
@@ -95,9 +105,9 @@ export function EstacaoConferencia({
   const [alerta, setAlerta] = useState<string | null>(null);
   const [dialogDivergencia, setDialogDivergencia] = useState(false);
   const [motivo, setMotivo] = useState("");
-  /** Item que ACABOU de completar — realce de ~1,5s para o operador vê-lo descer. */
+  /** Item que ACABOU de receber um bipe — realce de ~1,5s no bloco Conferidos. */
   const [realce, setRealce] = useState<string | null>(null);
-  /** Ordem de conclusão — quem completou por último fica no topo dos conferidos. */
+  /** Ordem de bipe — o último bipado fica no topo dos conferidos. */
   const [ordemConferidos, setOrdemConferidos] = useState<string[]>([]);
   const timerRealce = useRef<number | null>(null);
 
@@ -180,14 +190,13 @@ export function EstacaoConferencia({
     }
 
     setAlerta(null);
-    const novo = (bipados[alvo.id] ?? 0) + 1;
     setBipados((atual) => ({ ...atual, [alvo.id]: (atual[alvo.id] ?? 0) + 1 }));
-    if (novo >= alvo.quantidade) {
-      setOrdemConferidos((ordem) => [...ordem, alvo.id]);
-      setRealce(alvo.id);
-      if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
-      timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
-    }
+    // CADA bipe move o item para o topo dos conferidos e acende o realce —
+    // a peça bipada aparece no bloco de baixo na hora, não só ao completar.
+    setOrdemConferidos((ordem) => [...ordem.filter((id) => id !== alvo.id), alvo.id]);
+    setRealce(alvo.id);
+    if (timerRealce.current !== null) window.clearTimeout(timerRealce.current);
+    timerRealce.current = window.setTimeout(() => setRealce(null), 1500);
   }
 
   function confirmarDivergencia() {
@@ -212,15 +221,20 @@ export function EstacaoConferencia({
   const totalEsperado = itens.reduce((s, i) => s + i.quantidade, 0);
   const totalBipado = itens.reduce((s, i) => s + Math.min(bipados[i.id] ?? 0, i.quantidade), 0);
 
-  // Bloco de cima: quem falta, com bipe parcial primeiro (o operador volta ao
-  // que estava fazendo). Bloco de baixo: quem completou, último no topo.
+  // Bloco de cima: o que AINDA FALTA de cada SKU (bipe parcial primeiro — o
+  // operador volta ao que estava fazendo). Bloco de baixo: o que JÁ FOI
+  // bipado de cada SKU, último bipe no topo. O mesmo SKU pode estar nos dois.
   const aConferir = itens
     .filter((i) => (bipados[i.id] ?? 0) < i.quantidade)
     .sort((a, b) => (bipados[b.id] ?? 0) - (bipados[a.id] ?? 0));
   const ordemIdx = new Map(ordemConferidos.map((id, idx) => [id, idx]));
   const conferidos = itens
-    .filter((i) => (bipados[i.id] ?? 0) >= i.quantidade)
+    .filter((i) => (bipados[i.id] ?? 0) > 0)
     .sort((a, b) => (ordemIdx.get(b.id) ?? -1) - (ordemIdx.get(a.id) ?? -1));
+
+  // Contadores em PEÇAS, não em linhas: a bancada conta peça.
+  const pecasAConferir = aConferir.reduce((s, i) => s + i.quantidade - (bipados[i.id] ?? 0), 0);
+  const pecasConferidas = conferidos.reduce((s, i) => s + (bipados[i.id] ?? 0), 0);
 
   return (
     <Card onClick={focar}>
@@ -270,11 +284,17 @@ export function EstacaoConferencia({
         {aConferir.length > 0 && (
           <section className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              A conferir · {aConferir.length}
+              A conferir · {pecasAConferir} {pecasAConferir === 1 ? "peça" : "peças"}
             </h3>
             <ul className="space-y-2">
               {aConferir.map((i) => (
-                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={false} />
+                <LinhaItem
+                  key={i.id}
+                  item={i}
+                  quantidade={i.quantidade - (bipados[i.id] ?? 0)}
+                  modo="conferir"
+                  realce={false}
+                />
               ))}
             </ul>
           </section>
@@ -283,11 +303,17 @@ export function EstacaoConferencia({
         {conferidos.length > 0 && (
           <section className="space-y-2">
             <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Conferidos · {conferidos.length}
+              Conferidos · {pecasConferidas} {pecasConferidas === 1 ? "peça" : "peças"}
             </h3>
             <ul className="space-y-2">
               {conferidos.map((i) => (
-                <LinhaItem key={i.id} item={i} feito={bipados[i.id] ?? 0} realce={realce === i.id} />
+                <LinhaItem
+                  key={i.id}
+                  item={i}
+                  quantidade={bipados[i.id] ?? 0}
+                  modo="conferido"
+                  realce={realce === i.id}
+                />
               ))}
             </ul>
           </section>
