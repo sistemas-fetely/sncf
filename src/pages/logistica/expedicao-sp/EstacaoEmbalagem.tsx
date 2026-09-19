@@ -41,15 +41,29 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, itens, modais, regras, checklist, salvando, onEmbalar,
+  enderecoEntrega, itens, modais, regras, checklist, caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [caixa, setCaixa] = useState<string | null>(null);
+
+  const sugeridaCodigo = caixas.find((c) => c.sugerida)?.codigo ?? null;
+
+  // A sugerida vem pré-selecionada uma vez; depois disso a escolha é do operador
+  // (SISTEMA SUGERE / HUMANO DECIDE) — recalcular por cima seria roubo de foco.
+  useEffect(() => {
+    if (caixa !== null || !sugeridaCodigo) return;
+    setCaixa(sugeridaCodigo);
+  }, [sugeridaCodigo, caixa]);
 
   const cep = cepDoEndereco(enderecoEntrega);
   const sugerido = modalSugerido(cep, regras);
+
+  const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
+  const caixaDiferenteDaSugerida =
+    caixa !== null && sugeridaCodigo !== null && caixa !== sugeridaCodigo;
 
   // A sugestão preenche uma vez, quando as dimensões chegam. Depois disso quem
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
