@@ -83,12 +83,6 @@ function nomeComApelido(canonico: string | null, apelido: string | null): string
   return canonico?.trim() || "—";
 }
 
-const PRIORIDADE_ROTULO: Record<PedidoTarefaPrioridade, string> = {
-  baixa: "Baixa",
-  media: "Média",
-  alta: "Alta",
-  urgente: "Urgente",
-};
 
 function DialogNovaTarefa({
   linha,

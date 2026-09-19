@@ -56,19 +56,6 @@ const STATUS_CLASSE: Record<PedidoTarefaStatus, string> = {
   cancelada: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
-const PRIORIDADE_ROTULO: Record<PedidoTarefaPrioridade, string> = {
-  baixa: "Baixa",
-  media: "Média",
-  alta: "Alta",
-  urgente: "Urgente",
-};
-
-const PRIORIDADE_CLASSE: Record<PedidoTarefaPrioridade, string> = {
-  urgente: "border-destructive/40 bg-destructive/10 text-destructive",
-  alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning/10 text-warning",
-  baixa: "border-border bg-muted text-muted-foreground",
-};
 
 const fmtData = (s: string | null) =>
   s ? format(parseISO(s), "dd/MM/yyyy", { locale: ptBR }) : null;
@@ -175,9 +162,11 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
                       <Badge variant="outline" className={cn("text-[10px] py-0", STATUS_CLASSE[t.status])}>
                         {STATUS_ROTULO[t.status]}
                       </Badge>
-                      <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[t.prioridade])}>
-                        {PRIORIDADE_ROTULO[t.prioridade]}
-                      </Badge>
+                      {mostrarSeloPrioridade(t.prioridade) && (
+                        <Badge variant="outline" className={cn("text-[10px] py-0", PRIORIDADE_CLASSE[t.prioridade])}>
+                          {PRIORIDADE_ROTULO[t.prioridade]}
+                        </Badge>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
                       {t.responsavel_nome && (
