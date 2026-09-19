@@ -141,7 +141,6 @@ export function EstacaoEmbalagem({
               <ul className="space-y-2">
                 {itensDoModal.map((item) => {
                   const id = `mesa-sp-check-${item.modal_codigo}-${item.ordem}`;
-                  const mencionaBling = item.rotulo.toLowerCase().includes("bling");
                   return (
                     <li key={id} className="flex items-start gap-2">
                       <Checkbox
@@ -155,19 +154,6 @@ export function EstacaoEmbalagem({
                           {item.rotulo}
                           {!item.obrigatorio && (
                             <span className="text-xs text-muted-foreground"> · opcional</span>
-                          )}
-                          {mencionaBling && (
-                            <>
-                              {" "}
-                              <a
-                                className="text-xs underline underline-offset-4"
-                                href={URL_BLING}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Abrir Bling
-                              </a>
-                            </>
                           )}
                         </Label>
                         {item.observacao && (
