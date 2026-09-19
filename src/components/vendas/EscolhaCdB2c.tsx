@@ -43,19 +43,53 @@ interface CelulaProps {
   onEscolher: (pedido: PedidoB2cRow, centro: CentroB2c) => void;
 }
 
+/**
+ * A tag do Shopify é decisão de fora da nossa casa: entra no selo como está,
+ * sem interpretação. CD-SP é a única que a casa conhece — qualquer outra tag
+ * aparece crua. Sem tag nenhuma, a sugestão veio do padrão.
+ */
+function tagDoPedido(pedido: PedidoB2cRow): string | null {
+  const bruta = pedido.tag_shopify?.trim();
+  if (!bruta) return null;
+  const segmentos = bruta
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return segmentos.find((s) => s.toUpperCase().startsWith("CD-")) ?? bruta;
+}
+
+/** Selo pequeno da fonte da sugestão — tom de info, monoespaçado: veio de fora. */
+function SeloTag({ tag }: { tag: string }) {
+  return (
+    <span className="rounded border border-info/40 bg-info/10 px-1.5 py-px font-mono text-[10px] leading-4 text-info-strong">
+      {tag.startsWith("CD-") ? `tag ${tag}` : tag}
+    </span>
+  );
+}
+
 /** Célula de "Próxima ação" para pedido parado aguardando o destino. */
 export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: CelulaProps) {
   const sugerido = pedido.cd_sugerido;
   const sugeridoCentro = centros.find((c) => c.codigo === sugerido);
-  const veioDaTag = !!pedido.tag_shopify;
+  const siglaSugerido = abreviarCd(sugerido, sugeridoCentro?.nome);
+  const tag = tagDoPedido(pedido);
 
   return (
     <div className="space-y-1">
-      <div className="text-xs text-muted-foreground">
-        {sugeridoCentro
-          ? `Sugerido: ${nomeCurtoCd(sugeridoCentro)}${veioDaTag ? " (tag)" : ""}`
-          : "Escolha o CD para liberar a descida"}
-      </div>
+      {sugerido ? (
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          <span className="text-foreground/80">Sugerido: {siglaSugerido}</span>
+          {tag ? (
+            <SeloTag tag={tag} />
+          ) : (
+            <span className="text-muted-foreground">· sem tag (padrão)</span>
+          )}
+        </div>
+      ) : (
+        <div className="text-xs text-muted-foreground">
+          Escolha o CD para liberar a descida
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-1">
         {centros.map((c) => {
           const ehSugerido = c.codigo === sugerido;
@@ -79,7 +113,9 @@ export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: Ce
         })}
       </div>
       {pedido.divergencia_cep_tag && (
-        <div className="text-[11px] text-warning-strong">tag e CEP discordam</div>
+        <div className="text-[11px] text-warning">
+          tag sugere {abreviarCd(pedido.cd_sugerido)} · CEP sugere {abreviarCd(pedido.cd_cep_codigo)}
+        </div>
       )}
       {Number(pedido.horas_aguardando_cd ?? 0) > 2 && (
         <div className="text-[11px] text-warning-strong">
