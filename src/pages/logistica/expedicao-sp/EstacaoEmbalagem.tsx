@@ -33,7 +33,6 @@ interface Props {
   onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[]) => void;
 }
 
-const URL_BLING = "https://www.bling.com.br/b/vendas.pedidos.php";
 
 export function EstacaoEmbalagem({
   enderecoEntrega, modais, regras, checklist, salvando, onEmbalar,
