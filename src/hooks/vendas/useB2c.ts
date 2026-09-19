@@ -187,6 +187,21 @@ export function useItensB2c(shopifyId: string | null) {
 }
 
 /**
+ * Desfaz a escolha do CD enquanto a fila está pendente (antes do cron levar
+ * ao Bling). FAIL-LOUD: lança Error com a mensagem real do banco.
+ */
+export async function desfazerEscolhaCd(shopifyId: string): Promise<void> {
+  const { data, error } = await supabase.rpc("fn_b2c_desfazer_escolha_cd", {
+    p_shopify_id: shopifyId,
+  });
+  if (error) throw new Error(error.message);
+  const r = data as { ok?: boolean; status?: string } | null;
+  if (r && r.ok === false) {
+    throw new Error(`A escolha não pôde ser desfeita (fila: ${r.status ?? "desconhecida"}).`);
+  }
+}
+
+/**
  * DIMENSÃO-VIA-TABELA: os CDs válidos para o B2C são os que têm loja no Bling.
  * Nunca lista fixa no código.
  */
