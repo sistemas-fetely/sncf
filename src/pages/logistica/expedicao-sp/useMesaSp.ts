@@ -181,6 +181,27 @@ export function useModaisEntrega() {
 }
 
 /**
+ * Caixas reais avaliadas contra o pedido selecionado (`fn_mesa_sp_caixas_sugeridas`).
+ * A RPC devolve UMA linha por caixa, já com `cabe`, `motivo` e a `sugerida`
+ * (a menor que serve). Falha aqui NÃO trava a embalagem: quem chama decide
+ * mostrar o erro em faixa discreta e seguir sem sugestão.
+ */
+export function useCaixasSugeridas(pedidoId: string | null) {
+  return useQuery({
+    queryKey: ["mesa-sp", "caixas-sugeridas", pedidoId],
+    enabled: !!pedidoId,
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<CaixaSugerida[]> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_caixas_sugeridas", {
+        p_pedido_id: pedidoId,
+      });
+      if (error) throw new Error(`sugerir caixas: ${mensagemErro(error)}`);
+      return (data ?? []) as CaixaSugerida[];
+    },
+  });
+}
+
+/**
  * Rotina de bancada por modal. Uma consulta só para todos os modais: a lista é
  * pequena e o operador troca de modal no meio do gesto — buscar por modal
  * deixaria a lista piscar a cada troca.
