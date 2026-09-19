@@ -77,12 +77,26 @@ function BotaoConcluir({ concluida, onClick, className, ariaLabel }: BotaoConclu
   );
 }
 
+/**
+ * Prioridade é dado cadastral, não estado (§4): selo só quando foge do default.
+ * Ausência de selo = média (o default da coluna) — o card fica mais quieto.
+ */
 const PRIORIDADE_CLASSE: Record<string, string> = {
   urgente: "border-destructive/40 bg-destructive/10 text-destructive",
   alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning/10 text-warning",
   baixa: "border-border bg-muted text-muted-foreground",
 };
+
+/** ponto de 6px que carrega o sinal de urgente através do card fechado */
+function PontoUrgente({ label }: { label: string }) {
+  return (
+    <span
+      className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
+      title={label}
+      aria-label={label}
+    />
+  );
+}
 
 function iniciais(nome: string): string {
   return nome.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
@@ -444,6 +458,7 @@ export function BoardProjeto({ projetoId }: Props) {
                     const limite = dataCurta(t.data_limite);
                     const filhas = filhasPorMae.get(t.id) ?? [];
                     const feitas = filhas.filter((f) => f.status === "concluida").length;
+                    const passosUrgentes = filhas.filter((f) => f.prioridade === "urgente").length;
                     const passosVisiveis = !!passosAbertos[t.id];
                     const container = filhas.length > 0;
                     const statusDoCard = statusExibido(t);
