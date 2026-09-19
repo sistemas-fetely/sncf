@@ -156,6 +156,28 @@ export function useModaisEntrega() {
   });
 }
 
+/**
+ * Rotina de bancada por modal. Uma consulta só para todos os modais: a lista é
+ * pequena e o operador troca de modal no meio do gesto — buscar por modal
+ * deixaria a lista piscar a cada troca.
+ */
+export function useChecklistEmbalagem() {
+  return useQuery({
+    queryKey: ["mesa-sp", "checklist-embalagem"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<ItemChecklistEmbalagem[]> => {
+      const { data, error } = await supabaseMesa
+        .from("b2c_embalagem_checklist")
+        .select("modal_codigo, ordem, rotulo, obrigatorio, observacao")
+        .eq("ativo", true)
+        .order("modal_codigo", { ascending: true })
+        .order("ordem", { ascending: true });
+      if (error) throw new Error(`ler checklist de embalagem: ${mensagemErro(error)}`);
+      return (data ?? []) as ItemChecklistEmbalagem[];
+    },
+  });
+}
+
 /** Regras de CEP → modal. A resolução (prefixo mais longo) mora em `tipos.ts`. */
 export function useRegrasModal() {
   return useQuery({
