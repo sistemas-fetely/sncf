@@ -4,18 +4,13 @@ import { AlertCircle, CalendarClock, ListTodo, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useStatusRotulo, PRIORIDADE_ROTULO, useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { useStatusRotulo, useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import { useTarefasDoTitulo } from "@/hooks/cobranca/useTarefasDoTitulo";
 import { cn } from "@/lib/utils";
 
-const PRIORIDADE_CLASSE: Record<string, string> = {
-  urgente: "border-destructive/40 bg-destructive/10 text-destructive",
-  alta: "border-warning/40 bg-warning/10 text-warning",
-  media: "border-warning/40 bg-warning/10 text-warning",
-  baixa: "border-border bg-muted text-muted-foreground",
-};
 
 function fmtData(s: string | null) {
   return s ? format(parseISO(s), "dd/MM/yyyy", { locale: ptBR }) : null;
