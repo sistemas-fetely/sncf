@@ -402,6 +402,7 @@ export default function ExpedicaoSp() {
               {estacaoSelecionada === "embalagem" && (
                 <EstacaoEmbalagem
                   enderecoEntrega={selecionado.endereco_entrega}
+                  itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
                   checklist={checklistQ.data ?? []}
