@@ -214,35 +214,20 @@ export default function ShopifyB2c() {
 
   const lista = useMemo(() => pedidos ?? [], [pedidos]);
 
-  // Fila de descida ao Bling — lida uma única vez pelos pedidos listados.
-  const shopifyIdsFila = useMemo(
-    () =>
-      Array.from(
-        new Set(lista.map((p) => p.shopify_id).filter((s): s is string => !!s)),
-      ),
-    [lista],
-  );
-  const { data: filaBling, isError: filaBlingErro, error: filaBlingErroObj } = useFilaBlingB2c(shopifyIdsFila);
-  const mapaFilaBling = useMemo(() => {
-    const m = new Map<string, FilaBlingRow>();
-    (filaBling ?? []).forEach((f) => m.set(f.shopify_pedido_id, f));
-    return m;
-  }, [filaBling]);
-
-  // Alertas do card do funil que deixam de contar: pedido ausente com a descida
-  // em dia (na fila ou já no Bling) não é problema — só erro ou fora da fila.
+  // Alertas do card do funil que deixam de contar: pedido com a descida em dia
+  // (aguardando destino, na fila ou já no Bling) não é problema — só erro.
   const reducaoAlerta = useMemo(() => {
     const m: Record<string, number> = {};
     let qualquer = false;
     lista.forEach((p) => {
-      if (p.alerta && alertaSuprimidoPorFila(p, mapaFilaBling)) {
+      if (p.alerta && alertaSuprimidoPorFila(p)) {
         const estagio = p.estagio ?? "";
         m[estagio] = (m[estagio] ?? 0) + 1;
         qualquer = true;
       }
     });
     return qualquer ? m : undefined;
-  }, [lista, mapaFilaBling]);
+  }, [lista]);
 
   const ufs = useMemo(() => {
     const set = new Set<string>();
