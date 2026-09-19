@@ -6105,6 +6105,10 @@ export type Database = {
       bling_pedido_fila_b2c: {
         Row: {
           bling_pedido_id: string | null
+          cd_cep_codigo: string | null
+          cd_escolhido_em: string | null
+          cd_escolhido_por: string | null
+          cd_sugerido: string | null
           centro_id_resolvido: string | null
           criado_em: string
           divergencia_tag: boolean
@@ -6121,6 +6125,10 @@ export type Database = {
         }
         Insert: {
           bling_pedido_id?: string | null
+          cd_cep_codigo?: string | null
+          cd_escolhido_em?: string | null
+          cd_escolhido_por?: string | null
+          cd_sugerido?: string | null
           centro_id_resolvido?: string | null
           criado_em?: string
           divergencia_tag?: boolean
@@ -6137,6 +6145,10 @@ export type Database = {
         }
         Update: {
           bling_pedido_id?: string | null
+          cd_cep_codigo?: string | null
+          cd_escolhido_em?: string | null
+          cd_escolhido_por?: string | null
+          cd_sugerido?: string | null
           centro_id_resolvido?: string | null
           criado_em?: string
           divergencia_tag?: boolean
@@ -7654,6 +7666,7 @@ export type Database = {
           contabil: boolean
           criado_em: string
           id: string
+          loja_bling_id: number | null
           nome: string
           ordem: number
           parceiro_id: string | null
@@ -7669,6 +7682,7 @@ export type Database = {
           contabil?: boolean
           criado_em?: string
           id?: string
+          loja_bling_id?: number | null
           nome: string
           ordem?: number
           parceiro_id?: string | null
@@ -7684,6 +7698,7 @@ export type Database = {
           contabil?: boolean
           criado_em?: string
           id?: string
+          loja_bling_id?: number | null
           nome?: string
           ordem?: number
           parceiro_id?: string | null
@@ -79576,12 +79591,23 @@ export type Database = {
       vw_gestao_b2c_pedido: {
         Row: {
           alerta: string | null
+          alerta_sem_cd: boolean | null
           area_responsavel: string | null
           bling_pedido_numero: string | null
           bloqueio_em: string | null
           bloqueio_motivo: string | null
           bloqueio_tentativas: number | null
           cancelled_at: string | null
+          cd_cep_codigo: string | null
+          cd_cnpj_emitente: string | null
+          cd_efetivo_codigo: string | null
+          cd_efetivo_fonte: string | null
+          cd_efetivo_nome: string | null
+          cd_escolhido_codigo: string | null
+          cd_escolhido_em: string | null
+          cd_escolhido_nome: string | null
+          cd_escolhido_por: string | null
+          cd_sugerido: string | null
           cliente: string | null
           coerencia_status: string | null
           created_at_shopify: string | null
@@ -79589,6 +79615,9 @@ export type Database = {
           delta_bruto_vs_faturado: number | null
           dias_no_estagio: number | null
           discount_amount: number | null
+          divergencia_cep_tag: boolean | null
+          divergencia_fiscal: boolean | null
+          divergencia_tag: boolean | null
           eh_final: boolean | null
           entrega_declarada_em: string | null
           entrega_fonte: string | null
@@ -79596,10 +79625,15 @@ export type Database = {
           estagio: string | null
           estagio_ordem: number | null
           estagio_rotulo: string | null
+          fila_bling_pedido_id: string | null
+          fila_status: string | null
+          fila_tentativas: number | null
+          fila_ultimo_erro: string | null
           financial_status: string | null
           frete_sla_dias: number | null
           fulfilled_at: string | null
           fulfillment_status: string | null
+          horas_aguardando_cd: number | null
           horas_xpm: number | null
           id_externo: string | null
           liquido_mp: number | null
@@ -79631,6 +79665,7 @@ export type Database = {
           shopify_id: string | null
           situacao_financeira: string | null
           subtotal: number | null
+          tag_shopify: string | null
           taxa_mp: number | null
           tem_nf: boolean | null
           tem_recebimento: boolean | null
@@ -95319,14 +95354,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -101270,6 +101305,10 @@ export type Database = {
           assinatura: string
           total: number
         }[]
+      }
+      fn_b2c_escolher_cd: {
+        Args: { p_centro_codigo: string; p_shopify_id: string }
+        Returns: Json
       }
       fn_b2c_faturado_vs_recebido: {
         Args: never

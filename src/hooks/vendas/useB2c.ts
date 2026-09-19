@@ -94,10 +94,33 @@ export interface PedidoB2cRow {
   bloqueio_tentativas: number | null;
   bloqueio_em: string | null;
   pedido_ausente: boolean | null;
+  // ENTRADA-B2C-POR-FASES (19/09/2026): a descida ao Bling só acontece depois
+  // que o humano escolhe o CD. A fila e a escolha vêm na própria view —
+  // BADGE-LÊ-A-MESMA-FONTE-DA-TELA, sem query paralela à tabela da fila.
+  fila_status: string | null;
+  fila_bling_pedido_id: string | null;
+  fila_tentativas: number | null;
+  fila_ultimo_erro: string | null;
+  tag_shopify: string | null;
+  cd_sugerido: string | null;
+  cd_cep_codigo: string | null;
+  cd_escolhido_codigo: string | null;
+  cd_escolhido_nome: string | null;
+  cd_cnpj_emitente: string | null;
+  cd_escolhido_em: string | null;
+  cd_escolhido_por: string | null;
+  divergencia_tag: boolean | null;
+  divergencia_cep_tag: boolean | null;
+  divergencia_fiscal: boolean | null;
+  horas_aguardando_cd: number | null;
+  alerta_sem_cd: boolean | null;
+  cd_efetivo_codigo: string | null;
+  cd_efetivo_nome: string | null;
+  cd_efetivo_fonte: string | null;
 }
 
 const CAMPOS_PEDIDO =
-  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente";
+  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte";
 
 export function usePedidosB2c() {
   return useQuery({
@@ -159,6 +182,34 @@ export function useItensB2c(shopifyId: string | null) {
         .eq("pedido_id", shopifyId!);
       if (error) throw error;
       return (data ?? []) as ItemB2c[];
+    },
+  });
+}
+
+/**
+ * DIMENSÃO-VIA-TABELA: os CDs válidos para o B2C são os que têm loja no Bling.
+ * Nunca lista fixa no código.
+ */
+export interface CentroB2c {
+  codigo: string;
+  nome: string;
+  loja_bling_id: number | null;
+  cnpj_emitente: string | null;
+}
+
+export function useCentrosB2c() {
+  return useQuery({
+    queryKey: ["b2c-centros"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<CentroB2c[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, nome, loja_bling_id, cnpj_emitente")
+        .eq("ativo", true)
+        .not("loja_bling_id", "is", null)
+        .order("codigo", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as CentroB2c[];
     },
   });
 }
