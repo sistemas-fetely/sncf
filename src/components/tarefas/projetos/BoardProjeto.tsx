@@ -22,7 +22,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { useNomePessoa, PRIORIDADE_ROTULO } from "@/components/tarefas/detalhe/comuns";
+import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import {
+  PontoUrgente, PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade,
+} from "@/lib/tarefas/prioridade";
 import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
@@ -77,26 +80,6 @@ function BotaoConcluir({ concluida, onClick, className, ariaLabel }: BotaoConclu
   );
 }
 
-/**
- * Prioridade é dado cadastral, não estado (§4): selo só quando foge do default.
- * Ausência de selo = média (o default da coluna) — o card fica mais quieto.
- */
-const PRIORIDADE_CLASSE: Record<string, string> = {
-  urgente: "border-destructive/40 bg-destructive/10 text-destructive",
-  alta: "border-warning/40 bg-warning/10 text-warning",
-  baixa: "border-border bg-muted text-muted-foreground",
-};
-
-/** ponto de 6px que carrega o sinal de urgente através do card fechado */
-function PontoUrgente({ label }: { label: string }) {
-  return (
-    <span
-      className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
-      title={label}
-      aria-label={label}
-    />
-  );
-}
 
 function iniciais(nome: string): string {
   return nome.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
