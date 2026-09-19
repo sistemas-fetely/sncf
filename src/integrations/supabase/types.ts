@@ -3871,6 +3871,47 @@ export type Database = {
         }
         Relationships: []
       }
+      b2c_embalagem_checklist: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: string
+          modal_codigo: string
+          obrigatorio: boolean
+          observacao: string | null
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          modal_codigo: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: string
+          modal_codigo?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2c_embalagem_checklist_modal_codigo_fkey"
+            columns: ["modal_codigo"]
+            isOneToOne: false
+            referencedRelation: "b2c_modal_entrega"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       b2c_modal_entrega: {
         Row: {
           ativo: boolean
@@ -102193,15 +102234,30 @@ export type Database = {
         Args: { p_modal: string; p_pedido_id: string; p_referencia?: string }
         Returns: Json
       }
-      fn_mesa_sp_embalar: {
-        Args: {
-          p_modal: string
-          p_pedido_id: string
-          p_peso_kg: number
-          p_volumes: number
-        }
+      fn_mesa_sp_despachar_lote: {
+        Args: { p_modal: string; p_pedido_ids: string[] }
         Returns: Json
       }
+      fn_mesa_sp_embalar:
+        | {
+            Args: {
+              p_modal: string
+              p_pedido_id: string
+              p_peso_kg: number
+              p_volumes: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_checklist?: Json
+              p_modal: string
+              p_pedido_id: string
+              p_peso_kg: number
+              p_volumes: number
+            }
+            Returns: Json
+          }
       fn_mesa_sp_puxar_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       fn_mesa_sp_registrar_conferencia: {
         Args: {
