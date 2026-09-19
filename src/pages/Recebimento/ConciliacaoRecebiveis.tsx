@@ -1,5 +1,5 @@
 /**
- * /recebimento/conciliacao — CONCILIAÇÃO DE RECEBÍVEIS.
+ * /administrativo/conciliacao — CONCILIAÇÃO DE RECEBÍVEIS.
  *
  * Casa nova da frente conciliacao-recebiveis (F1). Dinheiro que entrou:
  * de quem é (Entradas a reconhecer), contra o quê, com que prova

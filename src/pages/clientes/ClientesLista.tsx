@@ -55,7 +55,7 @@ export default function ClientesLista() {
   // A aba "Entradas a reconhecer" mudou de casa: vive em Conciliação de
   // Recebíveis. Link antigo salvo cai lá, sem quebrar.
   if (abaUrl === "entradas") {
-    return <Navigate to="/recebimento/conciliacao?aba=entradas" replace />;
+    return <Navigate to="/administrativo/conciliacao?aba=entradas" replace />;
   }
 
   return (

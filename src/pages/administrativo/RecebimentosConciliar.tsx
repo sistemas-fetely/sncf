@@ -1,5 +1,5 @@
 /**
- * Conciliação de recebimento — fundida na casa /recebimento/conciliacao.
+ * Conciliação de recebimento — fundida na casa /administrativo/conciliacao.
  *
  * A antiga aba "Por pedido" morreu: o recebível é lido no eixo canônico
  * CLIENTE → TÍTULOS → PROVA (aba "Por cliente"). O pedido é rastro.
@@ -9,5 +9,5 @@ import { Navigate } from "react-router-dom";
 
 // Rota antiga viva: link salvo cai na casa nova, na aba certa.
 export default function RecebimentosConciliar() {
-  return <Navigate to="/recebimento/conciliacao?aba=por-cliente" replace />;
+  return <Navigate to="/administrativo/conciliacao?aba=por-cliente" replace />;
 }
