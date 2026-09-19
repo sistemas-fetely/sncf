@@ -166,7 +166,6 @@ const BancoSafra = lazy(() => import("@/pages/administrativo/BancoSafra"));
 const ConciliacaoMesa = lazy(() => import("@/pages/administrativo/ConciliacaoMesa"));
 const ContasBancarias = lazy(() => import("@/pages/administrativo/ContasBancarias"));
 const ExtratoConta = lazy(() => import("@/pages/administrativo/ExtratoConta"));
-const Conciliacao = lazy(() => import("@/pages/administrativo/Conciliacao"));
 const RegrasOFX = lazy(() => import("@/pages/administrativo/RegrasOFX"));
 const DashboardFinanceiro = lazy(() => import("@/pages/administrativo/DashboardFinanceiro"));
 const ExtratoImportacao = lazy(() => import("@/pages/administrativo/ExtratoImportacao"));
@@ -293,6 +292,13 @@ function RedirectToPessoasNovo() {
 function ChegadaMercadoriaRedirect() {
   const location = useLocation();
   return <Navigate to={"/logistica/chegada-mercadoria" + location.search} replace />;
+}
+
+// CONCILIACAO-MORA-EM-FINANCAS (19/09/2026): /recebimento/conciliacao → /administrativo/conciliacao
+// Preserva a query string (?aba=/&sub=) para links salvos caírem na aba certa.
+function ConciliacaoRecebiveisRedirect() {
+  const location = useLocation();
+  return <Navigate to={"/administrativo/conciliacao" + location.search} replace />;
 }
 function ChegadaMercadoriaIdRedirect() {
   const { id } = useParams();
