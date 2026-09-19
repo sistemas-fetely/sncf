@@ -185,3 +185,31 @@ export function useItensB2c(shopifyId: string | null) {
     },
   });
 }
+
+/**
+ * DIMENSÃO-VIA-TABELA: os CDs válidos para o B2C são os que têm loja no Bling.
+ * Nunca lista fixa no código.
+ */
+export interface CentroB2c {
+  codigo: string;
+  nome: string;
+  loja_bling_id: number | null;
+  cnpj_emitente: string | null;
+}
+
+export function useCentrosB2c() {
+  return useQuery({
+    queryKey: ["b2c-centros"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<CentroB2c[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, nome, loja_bling_id, cnpj_emitente")
+        .eq("ativo", true)
+        .not("loja_bling_id", "is", null)
+        .order("codigo", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as CentroB2c[];
+    },
+  });
+}
