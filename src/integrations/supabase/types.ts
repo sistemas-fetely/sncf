@@ -22781,6 +22781,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -27018,6 +27025,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -27296,6 +27310,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
           {
@@ -28027,6 +28048,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -28618,6 +28646,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
           {
@@ -43658,6 +43693,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      preco_faixa_desconto: {
+        Row: {
+          ativo: boolean
+          base: string
+          ordem: number
+          percentual: number
+          rotulo: string
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          base?: string
+          ordem: number
+          percentual: number
+          rotulo: string
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          base?: string
+          ordem?: number
+          percentual?: number
+          rotulo?: string
+          slug?: string
+        }
+        Relationships: []
+      }
+      preco_regra_validacao: {
+        Row: {
+          ativo: boolean
+          descricao: string
+          nome: string
+          ordem: number
+          severidade: string
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao: string
+          nome: string
+          ordem: number
+          severidade: string
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string
+          nome?: string
+          ordem?: number
+          severidade?: string
+          slug?: string
+        }
+        Relationships: []
       }
       processo_abrangencia_dim: {
         Row: {
@@ -63900,6 +63989,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -69931,6 +70027,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
           {
@@ -78849,6 +78952,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -80763,6 +80873,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
             referencedColumns: ["sku"]
           },
@@ -80917,6 +81034,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
           {
@@ -84569,14 +84693,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -87058,14 +87182,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -91206,6 +91330,44 @@ export type Database = {
           vinculo_id: string | null
         }
         Relationships: []
+      }
+      vw_preco_espelho: {
+        Row: {
+          alertas: string[] | null
+          atacado_maior_desconto: number | null
+          atualizado_em: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          cor_nome: string | null
+          escada: Json | null
+          fase: string | null
+          grupo: string | null
+          margem_atacado_pct: number | null
+          nome_comercial: string | null
+          preco_atacado: number | null
+          preco_custo: number | null
+          preco_varejo: number | null
+          qtd_alertas: number | null
+          sku: string | null
+          tem_critico: string | null
+          varejo_sobre_atacado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
       }
       vw_previsao_recebimentos: {
         Row: {
@@ -96259,14 +96421,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -100311,6 +100473,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
           {
