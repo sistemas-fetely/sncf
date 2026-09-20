@@ -85,13 +85,15 @@ function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
 const fmtNum = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
 
+type SeloSistema = { letra: string; nome: string; presente: boolean; diverge?: boolean };
+
 /** Selo B/S/X de presença por sistema. Presente = verde; ausente = vermelho (ausência é informação). */
 function SelosSistemas({ linha }: { linha: Linha }) {
-  const presencas = ([
+  const presencas: SeloSistema[] = [
     { letra: "B", nome: "Bling", presente: linha.cod_bling != null && String(linha.cod_bling).trim() !== "" },
     { letra: "S", nome: "Shopify", presente: linha.cod_shopify != null && String(linha.cod_shopify).trim() !== "", diverge: linha.shopify_sku_diverge === true },
     { letra: "X", nome: "XPM", presente: linha.cod_xpm != null && String(linha.cod_xpm).trim() !== "" },
-  ] as const);
+  ];
   return (
     <div className="flex items-center gap-1">
       {presencas.map((s) => (
@@ -600,11 +602,11 @@ export default function MesaProduto() {
   };
 
   /** Presença nos três sistemas, lida dos códigos de origem (não de tem_bling). */
-  const presencaSistemas = (l: Linha) => ([
+  const presencaSistemas = (l: Linha): SeloSistema[] => [
     { letra: "B", nome: "Bling", presente: l.cod_bling != null && String(l.cod_bling).trim() !== "" },
     { letra: "S", nome: "Shopify", presente: l.cod_shopify != null && String(l.cod_shopify).trim() !== "", diverge: l.shopify_sku_diverge === true },
     { letra: "X", nome: "XPM", presente: l.cod_xpm != null && String(l.cod_xpm).trim() !== "" },
-  ] as const);
+  ];
 
   const textoSelos = (l: Linha) =>
     presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
