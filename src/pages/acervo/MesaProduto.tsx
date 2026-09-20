@@ -354,7 +354,7 @@ export default function MesaProduto() {
       m.set(k, (m.get(k) ?? 0) + 1);
     }
     return { total: base.length, porCodigo: m };
-  }, [linhas, aba]);
+  }, [linhas, aba, concLinhas]);
 
   const recorte = useMemo(() => {
     const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
