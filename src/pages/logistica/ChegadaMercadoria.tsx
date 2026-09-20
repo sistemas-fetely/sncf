@@ -19,6 +19,7 @@ interface AbaMercadoria {
 // Container de abas para o domínio "Compra de Mercadoria" (importacao_pedido).
 // Abas novas podem ser acrescentadas apenas estendendo o array ABAS.
 const ABAS: AbaMercadoria[] = [
+  { value: "embarques", label: "Embarques", render: () => <EmbarquesTab /> },
   {
     value: "acompanhamento",
     label: "Acompanhamento",
