@@ -704,12 +704,17 @@ export default function MesaProduto() {
             );
           }
           const diverge = c.key === "cod_shopify" && l.shopify_sku_diverge === true;
+          const span = (
+            <span className={`${diverge ? "font-medium text-warning" : ""} break-words whitespace-pre-wrap`}>
+              {texto}
+            </span>
+          );
+          // Cód. Bling é o nome do produto — precisa ser lido inteiro, sem truncar.
+          if (c.key === "cod_bling") return span;
           return (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span
-                  className={`block max-w-[180px] truncate ${diverge ? "font-medium text-warning" : ""}`}
-                >
+                <span className={`block max-w-[180px] truncate ${diverge ? "font-medium text-warning" : ""}`}>
                   {texto}
                 </span>
               </TooltipTrigger>
@@ -990,7 +995,7 @@ export default function MesaProduto() {
                           )}
                         </TableHead>
                       ))}
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="w-px text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1001,30 +1006,42 @@ export default function MesaProduto() {
                             {celula(l, c)}
                           </TableCell>
                         ))}
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
+                        <TableCell className="text-center">
+                          <div className="flex items-center justify-center gap-1">
                             {(l.fase === "ativo" || l.fase === "pre_venda") && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={emAcao === l.sku}
-                                onClick={() => agir(l.sku, "inativo")}
-                              >
-                                <Ban className="mr-1.5 h-3.5 w-3.5" />
-                                Descontinuar
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    aria-label="Descontinuar"
+                                    disabled={emAcao === l.sku}
+                                    onClick={() => agir(l.sku, "inativo")}
+                                  >
+                                    <Ban className="h-3.5 w-3.5" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Descontinuar</TooltipContent>
+                              </Tooltip>
                             )}
                             {l.sugestao === "pronto_para_ativo" && (
-                              <Button
-                                size="sm"
-                                disabled={emAcao === l.sku}
-                                onClick={() => agir(l.sku, "ativo")}
-                              >
-                                {emAcao === l.sku
-                                  ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                                  : <ArrowUpCircle className="mr-1.5 h-3.5 w-3.5" />}
-                                Promover para Ativo
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    aria-label="Promover para Ativo"
+                                    disabled={emAcao === l.sku}
+                                    onClick={() => agir(l.sku, "ativo")}
+                                  >
+                                    {emAcao === l.sku
+                                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                      : <ArrowUpCircle className="h-3.5 w-3.5" />}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Promover para Ativo</TooltipContent>
+                              </Tooltip>
                             )}
                           </div>
                         </TableCell>
