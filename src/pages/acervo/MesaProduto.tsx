@@ -619,6 +619,55 @@ export default function MesaProduto() {
     }
   }
 
+  // Rodapé de paginação compartilhado pelas abas (Mesa e Conciliação).
+  const rodape = (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+      <span>
+        Mostrando{" "}
+        <span className="font-medium text-foreground tabular-nums">
+          {recorteAtivo.length === 0 ? 0 : (paginaAtual - 1) * tamanho + 1}–{Math.min(paginaAtual * tamanho, recorteAtivo.length)}
+        </span>{" "}
+        de <span className="font-medium text-foreground tabular-nums">{recorteAtivo.length}</span>
+      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {TAMANHOS.map((n) => (
+            <Button
+              key={n}
+              size="sm"
+              variant={n === tamanho ? "default" : "outline"}
+              className="h-8 px-2 tabular-nums"
+              onClick={() => setTamanho(n)}
+            >
+              {n}
+            </Button>
+          ))}
+        </div>
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          disabled={paginaAtual <= 1}
+          onClick={() => setPagina(paginaAtual - 1)}
+          aria-label="Página anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="tabular-nums">{paginaAtual} / {totalPaginas}</span>
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          disabled={paginaAtual >= totalPaginas}
+          onClick={() => setPagina(paginaAtual + 1)}
+          aria-label="Próxima página"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={200}>
     <PageShell>
