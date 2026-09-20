@@ -169,6 +169,7 @@ export default function MesaProduto() {
   const [ordem,setOrdem]=useState({coluna:"cod_cadastro",dir:"asc" as "asc"|"desc"}); const [pagina,setPagina]=useState(1); const [tamanho,setTamanho]=useState<number>(()=>lerTamanhoPaginaSalvo("mesa-produto-tamanho-pagina"));
   const [expandido,setExpandido]=useState<string|null>(null); const [emAcao,setEmAcao]=useState<string|null>(null);
   const [confirmSaldo,setConfirmSaldo]=useState<{sku:string;saldo:number}|null>(null); const [faltando,setFaltando]=useState<{sku:string;campos:string[]}|null>(null); const [erroFop,setErroFop]=useState<{sku:string;corpo:string}|null>(null);
+  const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
 
   const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_mesa_lista" as never).select("*").order("cod_cadastro");if(error)throw error;return(data??[]) as Linha[];}});
   const conc=useQuery({queryKey:["mesa-produto-conciliacao"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
