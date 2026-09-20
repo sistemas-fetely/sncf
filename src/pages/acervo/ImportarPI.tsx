@@ -35,6 +35,10 @@ import {
 } from "@/lib/pi/lerPlanilhaPI";
 import { gravarLotePI } from "@/lib/pi/gravarLotePI";
 import { devolverPlanilhaPI, type PreenchimentoLinha } from "@/lib/pi/devolverPlanilhaPI";
+import {
+  gerarPlanilhaPreenchida,
+  nomeArquivoPlanilhaPreenchida,
+} from "@/lib/pi/planilhaPreenchidaPI";
 
 
 const IGNORAR = "— ignorar —";
@@ -45,6 +49,7 @@ const CAMPOS_IDENTIDADE = ["sku", "cod_cadastro", "ean"];
 
 type LinhaStage = {
   linha_num: number;
+  bruto: Record<string, unknown> | null;
   sku: string | null;
   cod_cadastro: string | null;
   ean: string | null;
@@ -52,6 +57,15 @@ type LinhaStage = {
   inner_qtd: number | null;
   estado: string | null;
   motivo: string | null;
+};
+
+type LotePI = {
+  id: string;
+  fornecedor: string | null;
+  pi_numero: string | null;
+  estado: string | null;
+  total_linhas: number | null;
+  atualizado_em: string | null;
 };
 
 const ORDEM_ESTADOS = ["reconhecido", "a_alocar", "erro", "ignorado"] as const;
@@ -153,6 +167,10 @@ export default function ImportarPI() {
   const [baixando, setBaixando] = useState(false);
   const [colunasCriadas, setColunasCriadas] = useState<string[] | null>(null);
   const [baixou, setBaixou] = useState(false);
+
+  // passo 8 — planilha preenchida (devolutiva pós-efetivação)
+  const [baixandoPreenchida, setBaixandoPreenchida] = useState(false);
+
 
 
   const sinonimosQuery = useQuery({
@@ -329,13 +347,31 @@ export default function ImportarPI() {
     queryFn: async (): Promise<LinhaStage[]> => {
       const { data, error } = await supabase
         .from("pi_import_stage")
-        .select("linha_num, sku, cod_cadastro, ean, dun, inner_qtd, estado, motivo")
+        .select("linha_num, bruto, sku, cod_cadastro, ean, dun, inner_qtd, estado, motivo")
         .eq("lote_id", loteId!)
         .order("linha_num");
       if (error) throw new Error(error.message);
       return (data ?? []) as LinhaStage[];
     },
   });
+
+  // cabeçalho do lote — alimenta o bloco da planilha preenchida (passo 8)
+  const loteQuery = useQuery({
+    queryKey: ["pi-import-lote", loteId],
+    enabled: !!loteId,
+    queryFn: async (): Promise<LotePI | null> => {
+      const { data, error } = await supabase
+        .from("pi_import_lote")
+        .select("id, fornecedor, pi_numero, estado, total_linhas, atualizado_em")
+        .eq("id", loteId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as LotePI | null;
+    },
+  });
+  const lote = loteQuery.data ?? null;
+  const loteEfetivado = lote?.estado === "efetivado" || efetivado !== null;
+
 
   const linhasStage = stageQuery.data ?? [];
   // a alocação de código deixou de ser chamada pela tela: fn_pi_efetivar_lote aloca.
@@ -397,6 +433,7 @@ export default function ImportarPI() {
         setPrevia(null);
         setRegistroResultado(null);
         await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
+        await queryClient.invalidateQueries({ queryKey: ["pi-import-lote", loteId] });
         toast.success(`Cartório efetivado — ${r.produtos?.length ?? 0} produto(s) prontos para nascer`);
       }
     } catch (e) {
@@ -483,6 +520,46 @@ export default function ImportarPI() {
       setBaixando(false);
     }
   }
+
+  // ---------- PASSO 8 — PLANILHA PREENCHIDA (devolutiva pós-efetivação) ----------
+  // Montada do ESTÁGIO (pi_import_stage.bruto), não do arquivo original: o ciclo
+  // pode fechar dias depois, sem o arquivo no navegador. Rótulos originais intactos.
+  async function baixarPreenchida() {
+    if (!loteId) return;
+    setBaixandoPreenchida(true);
+    try {
+      if (linhasStage.length === 0) throw new Error("Lote sem linhas no estágio");
+      const blob = await gerarPlanilhaPreenchida(
+        linhasStage.map((l) => ({
+          bruto: l.bruto,
+          cod_cadastro: l.cod_cadastro,
+          ean: l.ean,
+          dun: l.dun,
+          inner_qtd: l.inner_qtd,
+          estado: l.estado,
+        })),
+      );
+      const nomeArquivo = nomeArquivoPlanilhaPreenchida({
+        piNumero: lote?.pi_numero ?? (piNumero.trim() || null),
+        fornecedor: lote?.fornecedor ?? (fornecedor.trim() || null),
+        loteId,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${linhasStage.length} linha(s) exportada(s) em ${nomeArquivo}`);
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setBaixandoPreenchida(false);
+    }
+  }
+
 
 
   return (
@@ -1114,7 +1191,62 @@ export default function ImportarPI() {
           </CardContent>
         </Card>
       )}
+      {/* PASSO 8 — PLANILHA PREENCHIDA */}
+      {loteId && contagens && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">8. Planilha preenchida</CardTitle>
+            <CardDescription>
+              Devolutiva ao fornecedor com os códigos que nasceram. Colunas originais da PI
+              intactas, seguidas de Cód. Cadastro, EAN-13, DUN-14, Inner e Situação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="text-xs text-muted-foreground">Fornecedor</div>
+                <div className="font-medium">{lote?.fornecedor || fornecedor || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Número da PI</div>
+                <div className="font-medium">{lote?.pi_numero || piNumero || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Linhas</div>
+                <div className="font-medium">{lote?.total_linhas ?? linhasStage.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Efetivado em</div>
+                <div className="font-medium">
+                  {loteEfetivado && lote?.atualizado_em
+                    ? new Date(lote.atualizado_em).toLocaleDateString("pt-BR")
+                    : "—"}
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={baixarPreenchida}
+              disabled={!loteEfetivado || baixandoPreenchida || linhasStage.length === 0}
+            >
+              {baixandoPreenchida ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Baixar planilha preenchida
+            </Button>
+
+            {!loteEfetivado && (
+              <p className="text-xs text-muted-foreground">
+                Disponível depois de efetivar no cartório.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </PageShell>
+
   );
 }
 
