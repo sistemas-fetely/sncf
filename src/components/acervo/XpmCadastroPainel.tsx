@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle, Eye, Loader2, Send, Wrench } from "lucide-react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const TETO_SKUS = 10;
 
@@ -70,6 +71,14 @@ export function XpmCadastroPainel() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [payloads, setPayloads] = useState<ResultadoSku[]>([]);
   const [resultados, setResultados] = useState<ResultadoSku[]>([]);
+
+  // Guarda de escrita: cadastrar/corrigir no XPM exige a ação nomeada.
+  // Enquanto a verificação carrega, os botões ficam travados — default seguro.
+  const { permitido: podeCadastrarXpm, carregando: carregandoPermissao } =
+    usePermissaoAcaoOuSuperAdmin("acao.cadastrar_produto_xpm");
+  const tituloSemPermissao = carregandoPermissao
+    ? "Verificando permissão…"
+    : "Requer a permissão “Cadastrar produto no XPM” (acao.cadastrar_produto_xpm)";
 
   const { data: linhas, isLoading, isError, error } = useQuery({
     queryKey: ["xpm-cadastro-divergencia"],
