@@ -23,6 +23,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 
 
 import {
@@ -122,7 +123,7 @@ function badgeEstado(estado: string | null): "default" | "secondary" | "destruct
 function msgErro(e: unknown): string {
   const restrito = mensagemErroTermoRestrito(e);
   if (restrito) return restrito;
-  return e instanceof Error ? e.message : String(e);
+  return formatError(e);
 }
 
 function chaveColuna(nome: string, i: number): string {
@@ -251,7 +252,7 @@ export default function ImportarPI() {
       }
       toast.success(`${nomeSeguro} lido — ${as.length} aba(s)`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(msgErro(e));
     } finally {
       setLendo(false);
     }
@@ -598,7 +599,7 @@ export default function ImportarPI() {
         <Alert variant="destructive">
           <AlertDescription>
             Falha ao carregar os sinônimos de coluna:{" "}
-            {sinonimosQuery.error instanceof Error ? sinonimosQuery.error.message : "erro desconhecido"}
+            {formatError(sinonimosQuery.error)}
           </AlertDescription>
         </Alert>
       )}
@@ -884,7 +885,7 @@ export default function ImportarPI() {
                 {ORDEM_ESTADOS.filter((e) => contagens[e] !== undefined).map((e) => (
                   <div key={e} className="rounded-md border p-4">
                     <div className="text-xs text-muted-foreground">{e}</div>
-                    <div className="text-2xl font-semibold">{contagens[e]}</div>
+                    <div className="text-2xl font-medium">{contagens[e]}</div>
                   </div>
                 ))}
               </div>

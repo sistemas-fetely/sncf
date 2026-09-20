@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 
 export type TermoRestrito = {
   padrao: string;
@@ -92,7 +93,7 @@ export function mascararMatriz(
 }
 
 export function mensagemErroTermoRestrito(erro: unknown): string | null {
-  const mensagem = erro instanceof Error ? erro.message : String(erro);
+  const mensagem = formatError(erro);
   return /TERMO\s+RESTRITO/i.test(mensagem)
     ? "A planilha contém termo sigiloso que não pôde ser mascarado. Remova esse conteúdo do arquivo e tente novamente."
     : null;
