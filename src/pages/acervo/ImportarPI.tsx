@@ -338,7 +338,7 @@ export default function ImportarPI() {
   });
 
   const linhasStage = stageQuery.data ?? [];
-  const aAlocar = linhasStage.filter((l) => l.estado === "a_alocar");
+  // a alocação de código deixou de ser chamada pela tela: fn_pi_efetivar_lote aloca.
   // paraFop foi removido: o conjunto que nasce no FOP agora vem de fn_pi_efetivar_lote.
   const comCodigo = linhasStage.filter((l) => l.cod_cadastro || l.ean || l.dun);
 
