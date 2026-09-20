@@ -599,6 +599,41 @@ export default function MesaProduto() {
           return <span className="text-muted-foreground">—</span>;
         }
         const texto = String(v);
+        // Colunas de identidade nos sistemas de origem: nulo é informação —
+        // significa que o produto não existe naquele sistema.
+        if (c.key === "cod_bling" || c.key === "cod_shopify" || c.key === "cod_xpm") {
+          const onde = c.key === "cod_bling" ? "Bling" : c.key === "cod_shopify" ? "Shopify" : "XPM";
+          if (texto.trim() === "") {
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-muted-foreground">—</span>
+                </TooltipTrigger>
+                <TooltipContent>não encontrado no {onde}</TooltipContent>
+              </Tooltip>
+            );
+          }
+          const diverge = c.key === "cod_shopify" && l.shopify_sku_diverge === true;
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={`block max-w-[180px] truncate ${diverge ? "font-medium text-warning" : ""}`}
+                >
+                  {texto}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs break-all">
+                {texto}
+                {diverge && (
+                  <div className="mt-1 text-warning">
+                    SKU diferente do nosso — casado pelo código de barras.
+                  </div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
         if (c.key === "cod_cadastro") {
           const fora = Array.isArray(l.campos_fora_do_espelho) ? l.campos_fora_do_espelho : [];
           return (
