@@ -90,7 +90,7 @@ const SISTEMAS = [
 ] as const;
 
 const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
+  "foto_url", "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "grupo", "colecao", "qtd_falta_atual", "falta_fase_atual",
   "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
 ];
@@ -147,6 +147,14 @@ function csvCelula(v: unknown): string {
   if (v === null || v === undefined) return "";
   const s = Array.isArray(v) ? v.join("; ") : String(v);
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function MiniFoto({ url, exata, nome, onAmpliar }: { url: string | null; exata: boolean; nome: string; onAmpliar: (url: string, nome: string) => void }) {
+  const [quebrada, setQuebrada] = useState(false);
+  if (!url || quebrada) return <Tooltip><TooltipTrigger asChild><span className="flex h-9 w-9 items-center justify-center rounded border border-dashed border-border text-muted-foreground/50" aria-label="Sem foto"><ImageOff className="h-4 w-4" /></span></TooltipTrigger><TooltipContent>sem foto</TooltipContent></Tooltip>;
+  const botao = <button type="button" onClick={() => onAmpliar(url, nome)} aria-label={`Ampliar foto de ${nome}`} className={cn("block h-9 w-9 overflow-hidden rounded border", exata ? "border-border" : "border-dashed border-muted-foreground/60")}><img src={url} alt={nome} loading="lazy" onError={() => setQuebrada(true)} className={cn("h-full w-full object-cover", !exata && "opacity-70")} /></button>;
+  if (exata) return botao;
+  return <Tooltip><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent>foto da coleção — este produto não tem foto própria</TooltipContent></Tooltip>;
 }
 
 function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:string; opcoes:{valor:string;rotulo:string;contagem:number}[]; selecionados:string[]; onChange:(v:string[])=>void }) {
