@@ -644,6 +644,16 @@ export default function ShopifyB2c() {
                 Incluir cancelados
               </Label>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="b2c-nao-pagos"
+                checked={incluirNaoPagos}
+                onCheckedChange={setIncluirNaoPagos}
+              />
+              <Label htmlFor="b2c-nao-pagos" className="text-xs text-muted-foreground">
+                Incluir não pagos
+              </Label>
+            </div>
             <span className="text-xs text-muted-foreground">
               {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""} · {filaAtiva.qtd} em
               andamento ({formatBRL(filaAtiva.valor)})
