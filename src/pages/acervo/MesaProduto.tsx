@@ -4,7 +4,7 @@
 // classifica, não recalcula pendência e não deduz fase: só conta, recorta,
 // ordena e mostra. A promoção e a descontinuação continuam passando pela edge
 // function promover-fase-produto, que é quem manda no FOP (mestre do dado).
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -628,11 +628,11 @@ export default function MesaProduto() {
         estado={
           lista.isLoading
             ? "Carregando fila…"
-            : `${recorte.length} de ${linhas.length} produtos · aba ${abaLabel} · fase ${faseLabel}`
+            : `${recorteAtivo.length} de ${ehConc ? concLinhas.length : linhas.length} produtos · aba ${abaLabel} · fase ${faseLabel}`
         }
         acoes={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
+            <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorteAtivo.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Exportar CSV
             </Button>
