@@ -22437,6 +22437,114 @@ export type Database = {
         }
         Relationships: []
       }
+      fop_preco_historico: {
+        Row: {
+          acao: string | null
+          alterado_por_nome: string
+          cod_cadastro: string | null
+          criado_em: string
+          espelhado_em: string
+          id: string
+          nome_comercial: string | null
+          observacao: string | null
+          preco_atacado_anterior: number | null
+          preco_atacado_novo: number | null
+          preco_varejo_anterior: number | null
+          preco_varejo_novo: number | null
+          product_id: string
+          sku: string | null
+          variacao_atacado_percent: number | null
+          variacao_varejo_percent: number | null
+        }
+        Insert: {
+          acao?: string | null
+          alterado_por_nome?: string
+          cod_cadastro?: string | null
+          criado_em: string
+          espelhado_em?: string
+          id: string
+          nome_comercial?: string | null
+          observacao?: string | null
+          preco_atacado_anterior?: number | null
+          preco_atacado_novo?: number | null
+          preco_varejo_anterior?: number | null
+          preco_varejo_novo?: number | null
+          product_id: string
+          sku?: string | null
+          variacao_atacado_percent?: number | null
+          variacao_varejo_percent?: number | null
+        }
+        Update: {
+          acao?: string | null
+          alterado_por_nome?: string
+          cod_cadastro?: string | null
+          criado_em?: string
+          espelhado_em?: string
+          id?: string
+          nome_comercial?: string | null
+          observacao?: string | null
+          preco_atacado_anterior?: number | null
+          preco_atacado_novo?: number | null
+          preco_varejo_anterior?: number | null
+          preco_varejo_novo?: number | null
+          product_id?: string
+          sku?: string | null
+          variacao_atacado_percent?: number | null
+          variacao_varejo_percent?: number | null
+        }
+        Relationships: []
+      }
+      fop_preco_vigencia: {
+        Row: {
+          ativo: boolean
+          cod_cadastro: string | null
+          created_at: string | null
+          criado_por_nome: string
+          espelhado_em: string
+          id: string
+          observacao: string | null
+          preco_atacado: number | null
+          preco_varejo: number | null
+          product_id: string
+          sku: string | null
+          updated_at: string | null
+          vigencia_fim: string | null
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cod_cadastro?: string | null
+          created_at?: string | null
+          criado_por_nome?: string
+          espelhado_em?: string
+          id: string
+          observacao?: string | null
+          preco_atacado?: number | null
+          preco_varejo?: number | null
+          product_id: string
+          sku?: string | null
+          updated_at?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cod_cadastro?: string | null
+          created_at?: string | null
+          criado_por_nome?: string
+          espelhado_em?: string
+          id?: string
+          observacao?: string | null
+          preco_atacado?: number | null
+          preco_varejo?: number | null
+          product_id?: string
+          sku?: string | null
+          updated_at?: string | null
+          vigencia_fim?: string | null
+          vigencia_inicio?: string | null
+        }
+        Relationships: []
+      }
       formas_pagamento: {
         Row: {
           ativo: boolean | null
@@ -26544,12 +26652,11 @@ export type Database = {
           atualizado_em: string
           cbm: number | null
           criado_em: string
-          embarque_id: number | null
+          embarque_id: number
           id: number
           lacre: string | null
           numero_conteiner: string | null
           observacao: string | null
-          pedido_id: number
           peso_bruto: number | null
           peso_liquido: number | null
           qtd_caixas: number | null
@@ -26560,12 +26667,11 @@ export type Database = {
           atualizado_em?: string
           cbm?: number | null
           criado_em?: string
-          embarque_id?: number | null
+          embarque_id: number
           id?: number
           lacre?: string | null
           numero_conteiner?: string | null
           observacao?: string | null
-          pedido_id: number
           peso_bruto?: number | null
           peso_liquido?: number | null
           qtd_caixas?: number | null
@@ -26576,12 +26682,11 @@ export type Database = {
           atualizado_em?: string
           cbm?: number | null
           criado_em?: string
-          embarque_id?: number | null
+          embarque_id?: number
           id?: number
           lacre?: string | null
           numero_conteiner?: string | null
           observacao?: string | null
-          pedido_id?: number
           peso_bruto?: number | null
           peso_liquido?: number | null
           qtd_caixas?: number | null
@@ -26595,41 +26700,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_embarque"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "importacao_pedido"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_compra_pedido_identidade"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_compras_pendencias"
-            referencedColumns: ["pedido_id"]
-          },
-          {
-            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_pedido_detalhe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "importacao_conteiner_pedido_id_fkey"
-            columns: ["pedido_id"]
-            isOneToOne: false
-            referencedRelation: "vw_importacao_saldo_pedido"
-            referencedColumns: ["pedido_id"]
           },
           {
             foreignKeyName: "importacao_conteiner_tipo_id_fkey"
