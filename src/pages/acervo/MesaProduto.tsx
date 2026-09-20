@@ -379,7 +379,49 @@ export default function MesaProduto() {
     });
   }, [porFase, aba, busca, ordem]);
 
-  useEffect(() => { setPagina(1); }, [aba, fase, busca, tamanho]);
+  // ---- Recorte da aba Conciliação ----
+  // filtroDiv: "todas" | "criticas" | slug de divergência
+  const [filtroDiv, setFiltroDiv] = useState<string>("todas");
+  const [expandido, setExpandido] = useState<string | null>(null);
+
+  const concContagemSlugs = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of concBase) {
+      for (const s of l.divergencias ?? []) m.set(s, (m.get(s) ?? 0) + 1);
+    }
+    return [...m.entries()]
+      .map(([slug, n]) => ({ slug, n, sev: sevDoSlug(slug) }))
+      .sort((a, b) => (a.sev === b.sev ? b.n - a.n : a.sev === "critico" ? -1 : 1));
+  }, [concBase]);
+
+  const concCriticas = useMemo(
+    () => concBase.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico")).length,
+    [concBase],
+  );
+
+  const concRecorte = useMemo(() => {
+    let base = concBase;
+    if (filtroDiv === "criticas") {
+      base = base.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico"));
+    } else if (filtroDiv !== "todas") {
+      base = base.filter((l) => (l.divergencias ?? []).includes(filtroDiv));
+    }
+    const q = busca.trim().toLowerCase();
+    if (q) {
+      base = base.filter((l) =>
+        [l.cod_cadastro, l.sku, l.nome_comercial, l.ean]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)),
+      );
+    }
+    return [...base].sort((a, b) => {
+      const d = (b.qtd_divergencias ?? 0) - (a.qtd_divergencias ?? 0);
+      if (d !== 0) return d;
+      return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
+    });
+  }, [concBase, filtroDiv, busca]);
+
+  useEffect(() => { setPagina(1); setExpandido(null); }, [aba, fase, busca, tamanho, filtroDiv]);
 
   const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
