@@ -312,17 +312,40 @@ export default function MesaProduto() {
     [linhas, fase],
   );
 
+  // Conciliação: mesmo filtro de fase da Mesa, sobre a view própria.
+  const porFaseConc = useMemo(
+    () => (fase === "todas" ? concLinhas : concLinhas.filter((l) => (l.fase ?? "sem_fase") === fase)),
+    [concLinhas, fase],
+  );
+  const concBase = useMemo(
+    () => porFaseConc.filter((l) => (l.qtd_divergencias ?? 0) > 0),
+    [porFaseConc],
+  );
+
   const contagemAba = useMemo(() => {
     const c = {} as Record<AbaId, number>;
     for (const a of ABAS) {
-      c[a.id] = a.sugestao === null
-        ? porFase.length
-        : porFase.filter((l) => l.sugestao === a.sugestao).length;
+      if (a.id === "conciliacao") {
+        c[a.id] = concBase.length;
+      } else {
+        c[a.id] = a.sugestao === null
+          ? porFase.length
+          : porFase.filter((l) => l.sugestao === a.sugestao).length;
+      }
     }
     return c;
-  }, [porFase]);
+  }, [porFase, concBase]);
 
   const contagemFase = useMemo(() => {
+    if (aba === "conciliacao") {
+      const base = concLinhas.filter((l) => (l.qtd_divergencias ?? 0) > 0);
+      const m = new Map<string, number>();
+      for (const l of base) {
+        const k = l.fase ?? "sem_fase";
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+      return { total: base.length, porCodigo: m };
+    }
     const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
     const base = sug === null ? linhas : linhas.filter((l) => l.sugestao === sug);
     const m = new Map<string, number>();
