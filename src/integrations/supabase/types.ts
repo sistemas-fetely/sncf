@@ -22419,6 +22419,45 @@ export type Database = {
         }
         Relationships: []
       }
+      fop_foto: {
+        Row: {
+          categoria: string | null
+          colecao: string | null
+          cor: string | null
+          created_at: string | null
+          espelhado_em: string
+          id: string
+          kind: string
+          path: string | null
+          updated_at: string | null
+          url: string
+        }
+        Insert: {
+          categoria?: string | null
+          colecao?: string | null
+          cor?: string | null
+          created_at?: string | null
+          espelhado_em?: string
+          id: string
+          kind: string
+          path?: string | null
+          updated_at?: string | null
+          url: string
+        }
+        Update: {
+          categoria?: string | null
+          colecao?: string | null
+          cor?: string | null
+          created_at?: string | null
+          espelhado_em?: string
+          id?: string
+          kind?: string
+          path?: string | null
+          updated_at?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
       fop_grupos: {
         Row: {
           criado_em: string | null
