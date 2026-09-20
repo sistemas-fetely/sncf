@@ -27593,6 +27593,191 @@ export type Database = {
           },
         ]
       }
+      importacao_linha_lote: {
+        Row: {
+          arquivo_nome: string | null
+          atualizado_em: string
+          criado_em: string
+          criado_por: string | null
+          estado: string
+          formato: string | null
+          fornecedor: string | null
+          id: string
+          linha_cabecalho: number | null
+          mapeamento: Json | null
+          modo: string
+          observacao: string | null
+          pedido_id: number
+          pi_numero: string | null
+          total_linhas: number | null
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          estado?: string
+          formato?: string | null
+          fornecedor?: string | null
+          id?: string
+          linha_cabecalho?: number | null
+          mapeamento?: Json | null
+          modo?: string
+          observacao?: string | null
+          pedido_id: number
+          pi_numero?: string | null
+          total_linhas?: number | null
+        }
+        Update: {
+          arquivo_nome?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          criado_por?: string | null
+          estado?: string
+          formato?: string | null
+          fornecedor?: string | null
+          id?: string
+          linha_cabecalho?: number | null
+          mapeamento?: Json | null
+          modo?: string
+          observacao?: string | null
+          pedido_id?: number
+          pi_numero?: string | null
+          total_linhas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_linha_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compra_pedido_identidade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_linha_lote_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+        ]
+      }
+      importacao_linha_stage: {
+        Row: {
+          bruto: Json | null
+          cbm_caixa_master: number | null
+          cbm_total: number | null
+          cod_cadastro: string | null
+          colecao: string | null
+          criado_em: string
+          custo_fob_kit: number | null
+          custo_fob_total: number | null
+          custo_setup: number | null
+          descricao: string | null
+          ean: string | null
+          estado: string
+          grupo_produto: string | null
+          id: string
+          linha_num: number
+          lote_id: string
+          motivo: string | null
+          qtd_inner_master: number | null
+          qtd_kits: number | null
+          qtd_kits_inner: number | null
+          qtd_kits_master: number | null
+          qtd_und_kit: number | null
+          ref_item: string | null
+          ref_pi: string | null
+          sku: string | null
+          total_caixas_master: number | null
+        }
+        Insert: {
+          bruto?: Json | null
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          cod_cadastro?: string | null
+          colecao?: string | null
+          criado_em?: string
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          descricao?: string | null
+          ean?: string | null
+          estado?: string
+          grupo_produto?: string | null
+          id?: string
+          linha_num: number
+          lote_id: string
+          motivo?: string | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_master?: number | null
+        }
+        Update: {
+          bruto?: Json | null
+          cbm_caixa_master?: number | null
+          cbm_total?: number | null
+          cod_cadastro?: string | null
+          colecao?: string | null
+          criado_em?: string
+          custo_fob_kit?: number | null
+          custo_fob_total?: number | null
+          custo_setup?: number | null
+          descricao?: string | null
+          ean?: string | null
+          estado?: string
+          grupo_produto?: string | null
+          id?: string
+          linha_num?: number
+          lote_id?: string
+          motivo?: string | null
+          qtd_inner_master?: number | null
+          qtd_kits?: number | null
+          qtd_kits_inner?: number | null
+          qtd_kits_master?: number | null
+          qtd_und_kit?: number | null
+          ref_item?: string | null
+          ref_pi?: string | null
+          sku?: string | null
+          total_caixas_master?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_linha_stage_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_linha_lote"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       importacao_nf: {
         Row: {
           atualizado_em: string
@@ -45104,6 +45289,51 @@ export type Database = {
           ordem?: number
           rotulo?: string
           variantes?: string[]
+        }
+        Relationships: []
+      }
+      produto_conferencia_fisica: {
+        Row: {
+          campo: string
+          cod_cadastro: string
+          conferido: boolean
+          conferido_em: string | null
+          conferido_por: string | null
+          criado_em: string
+          detalhe: string
+          id: number
+          regra: string
+          sku: string | null
+          valor_de: string | null
+          valor_para: string | null
+        }
+        Insert: {
+          campo: string
+          cod_cadastro: string
+          conferido?: boolean
+          conferido_em?: string | null
+          conferido_por?: string | null
+          criado_em?: string
+          detalhe: string
+          id?: number
+          regra: string
+          sku?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
+        }
+        Update: {
+          campo?: string
+          cod_cadastro?: string
+          conferido?: boolean
+          conferido_em?: string | null
+          conferido_por?: string | null
+          criado_em?: string
+          detalhe?: string
+          id?: number
+          regra?: string
+          sku?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
         }
         Relationships: []
       }
@@ -103364,6 +103594,10 @@ export type Database = {
         Returns: number
       }
       fn_ie_valida: { Args: { p_ie: string; p_uf?: string }; Returns: boolean }
+      fn_importacao_completar_cabecalho: {
+        Args: { p_pedido_id: number }
+        Returns: Json
+      }
       fn_importar_cobertura_cep: {
         Args: { p_ceps: Json; p_tabela_id: string }
         Returns: Json
@@ -103426,6 +103660,11 @@ export type Database = {
           p_movimentacao_id: string
           p_nota?: string
         }
+        Returns: Json
+      }
+      fn_linha_conferir_lote: { Args: { p_lote_id: string }; Returns: Json }
+      fn_linha_efetivar_lote: {
+        Args: { p_dry_run?: boolean; p_lote_id: string; p_motivo: string }
         Returns: Json
       }
       fn_liquido_pedido: {
