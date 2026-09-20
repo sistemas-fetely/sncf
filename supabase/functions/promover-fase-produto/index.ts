@@ -1,6 +1,6 @@
 // Ato humano de mudar a fase do produto.
 // O SNCF decide (portoes de ficha, saldo, um degrau por vez); o FOP e o mestre do dado.
-// Nenhum caminho devolve ok sem o PATCH no FOP ter dado certo.
+// Nenhum caminho devolve ok sem o FOP ter aceitado (POST no endpoint inbound sincronizar-catalogo).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -57,34 +57,49 @@ serve(async (req) => {
       }
       const dryRun = body?.dry_run !== false;
 
-      const { data: fopKeyPi, error: errVault } = await supabase.rpc("get_vault_secret", {
-        p_name: "FOP_SERVICE_ROLE_KEY",
+      // Transporte: endpoint inbound do FOP (ja autentica) — a chave de servico
+      // do REST nunca foi preenchida (placeholder de template). Token compartilhado
+      // do vault, nunca do env. O julgamento dos itens continua sendo do cartorio;
+      // aqui so repassa a resposta.
+      const { data: fopToken, error: errVault } = await supabase.rpc("get_vault_secret", {
+        p_name: "FOP_INBOUND_TOKEN",
       });
-      if (errVault || !fopKeyPi) {
+      if (errVault || !fopToken) {
         console.error("[promover-fase-produto] registrar_pi: vault falhou", errVault);
         throw new Error(
-          `FOP_SERVICE_ROLE_KEY indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
+          `FOP_INBOUND_TOKEN indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
         );
       }
 
-      const respPi = await fetch(`${FOP_URL}/rest/v1/rpc/fn_registrar_produtos_cartorio`, {
+      const respPi = await fetch(`${FOP_URL}/functions/v1/sincronizar-catalogo`, {
         method: "POST",
         headers: {
-          apikey: fopKeyPi,
-          Authorization: `Bearer ${fopKeyPi}`,
+          Authorization: `Bearer ${fopToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ p_itens: itens, p_dry_run: dryRun }),
+        body: JSON.stringify({ modo: "registrar_pi", itens, dry_run: dryRun }),
       });
 
-      const j = await respPi.json().catch(() => ({}));
-      if (!respPi.ok) {
-        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, j);
-        throw new Error(`fn_registrar_produtos_cartorio: HTTP ${respPi.status} ${JSON.stringify(j)}`);
+      const corpoPi = await respPi.text();
+      let j: Record<string, unknown> = {};
+      try {
+        j = JSON.parse(corpoPi) as Record<string, unknown>;
+      } catch {
+        j = {};
+      }
+      if (respPi.status === 401) {
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou o token inbound", corpoPi);
+        throw new Error("O token de entrada do FOP foi recusado — configuração a revisar, não é erro do cadastro.");
+      }
+      if (!respPi.ok || j.ok !== true) {
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, corpoPi);
+        throw new Error(
+          `registrar_pi no FOP: HTTP ${respPi.status} ${typeof j.erro_banco === "string" ? j.erro_banco : corpoPi}`,
+        );
       }
 
       console.log("[promover-fase-produto] registrar_pi ok", { itens: itens.length, dryRun });
-      return json({ ok: true, tipo: "registrar_pi", resultado: j });
+      return json({ ok: true, tipo: "registrar_pi", resultado: j.resultado ?? j });
     }
 
     const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
@@ -166,34 +181,70 @@ serve(async (req) => {
 
     // 6) Regressao (ordem menor) e sempre livre.
 
-    // 7) Escrita no mestre: FOP
-    const { data: fopKey } = await supabase.rpc("get_vault_secret", {
-      p_name: "FOP_SERVICE_ROLE_KEY",
+    // 7) Escrita no mestre: FOP, via endpoint inbound que ja autentica.
+    //    As regras de fase continuam todas aqui — o FOP e so o braco de escrita.
+    const { data: fopToken, error: errVault } = await supabase.rpc("get_vault_secret", {
+      p_name: "FOP_INBOUND_TOKEN",
     });
-    if (!fopKey) {
-      console.error("[promover-fase-produto] FOP_SERVICE_ROLE_KEY ausente no vault");
-      return json({ ok: false, erro: "FOP_SERVICE_ROLE_KEY não configurado no vault" }, 500);
+    if (errVault || !fopToken) {
+      console.error("[promover-fase-produto] vault falhou", errVault);
+      return json(
+        {
+          ok: false,
+          erro: `FOP_INBOUND_TOKEN indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
+        },
+        500,
+      );
     }
 
-    const respFop = await fetch(
-      `${FOP_URL}/rest/v1/products?sku=eq.${encodeURIComponent(sku)}`,
-      {
-        method: "PATCH",
-        headers: {
-          apikey: fopKey,
-          Authorization: `Bearer ${fopKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify({ fase: faseDestino }),
+    const respFop = await fetch(`${FOP_URL}/functions/v1/sincronizar-catalogo`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${fopToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        modo: "promover_fase",
+        sku,
+        fase: faseDestino,
+        motivo: "promoção pela Mesa do Produto",
+      }),
+    });
 
-    if (!respFop.ok) {
-      // O corpo do FOP e a mensagem da trigger de la (lista os campos faltando): devolve na integra.
-      const corpo = await respFop.text();
-      console.error("[promover-fase-produto] FOP recusou", respFop.status, corpo);
-      return json({ ok: false, erro: "FOP recusou a mudança de fase", fop_status: respFop.status, fop_body: corpo }, 502);
+    const corpoFop = await respFop.text();
+    let fopJson: Record<string, unknown> | null = null;
+    try {
+      fopJson = JSON.parse(corpoFop) as Record<string, unknown>;
+    } catch {
+      fopJson = null;
+    }
+
+    if (respFop.status === 401) {
+      // Falha de configuracao (token recusado), nao do usuario.
+      console.error("[promover-fase-produto] FOP recusou o token inbound", corpoFop);
+      return json(
+        { ok: false, erro: "O token de entrada do FOP foi recusado — configuração a revisar, não é erro do cadastro.", fop_status: 401, fop_body: corpoFop },
+        502,
+      );
+    }
+
+    if (respFop.status === 404) {
+      console.error("[promover-fase-produto] produto nao encontrado no FOP", corpoFop);
+      return json({ ok: false, erro: "Produto não encontrado no FOP", fop_body: corpoFop }, 404);
+    }
+
+    if (!respFop.ok || fopJson?.ok !== true) {
+      // 502 do FOP traz erro_banco da gate_fase (lista os campos faltando): devolve CRU.
+      console.error("[promover-fase-produto] FOP recusou", respFop.status, corpoFop);
+      return json(
+        {
+          ok: false,
+          erro: "FOP recusou a mudança de fase",
+          fop_status: respFop.status,
+          fop_body: typeof fopJson?.erro_banco === "string" ? fopJson.erro_banco : corpoFop,
+        },
+        502,
+      );
     }
 
     console.log("[promover-fase-produto] FOP aceitou", sku, faseDestino);
