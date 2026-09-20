@@ -276,7 +276,19 @@ export default function MesaProduto() {
     },
   });
 
+  const conc = useQuery({
+    queryKey: ["mesa-produto-conciliacao"],
+    queryFn: async (): Promise<ConcLinha[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_produto_conciliacao")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as ConcLinha[];
+    },
+  });
+
   const linhas = lista.data ?? [];
+  const concLinhas = conc.data ?? [];
 
   // Fases vindas da própria view (rótulo de fase_nome, ordem de fase_ordem).
   const fases = useMemo(() => {
