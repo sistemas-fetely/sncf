@@ -6,6 +6,7 @@ import CadastroPedidoCompra from "@/pages/logistica/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/logistica/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
+import EmbarquesTab from "@/components/compras/EmbarquesTab";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -18,6 +19,7 @@ interface AbaMercadoria {
 // Container de abas para o domínio "Compra de Mercadoria" (importacao_pedido).
 // Abas novas podem ser acrescentadas apenas estendendo o array ABAS.
 const ABAS: AbaMercadoria[] = [
+  { value: "embarques", label: "Embarques", render: () => <EmbarquesTab /> },
   {
     value: "acompanhamento",
     label: "Acompanhamento",
