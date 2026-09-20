@@ -100,6 +100,19 @@ function hojeIso(): string {
 const Travessao = () => <span className="text-muted-foreground">—</span>;
 
 export default function TabelaPreco() {
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") ?? "tabela";
+  const mudarAba = useCallback(
+    (v: string) => {
+      setParams((prev) => {
+        const prox = new URLSearchParams(prev);
+        if (v === "tabela") prox.delete("aba");
+        else prox.set("aba", v);
+        return prox;
+      }, { replace: true });
+    },
+    [setParams],
+  );
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
   const [grupo, setGrupo] = useState("todos");
