@@ -66,6 +66,11 @@ export default function NomesBling() {
   const [simulado, setSimulado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
 
+  // Guarda de escrita: renomear no Bling exige a ação nomeada. Enquanto a
+  // verificação carrega, o botão fica travado — default seguro é bloqueado.
+  const { permitido: podeRenomear, carregando: carregandoPermissao } =
+    usePermissaoAcaoOuSuperAdmin("acao.renomear_produto_bling");
+
   // ---- Bloco 1: situação (view instantânea) ----
   const situacao = useQuery({
     queryKey: ["nomes-bling-situacao"],
@@ -288,11 +293,23 @@ export default function NomesBling() {
             </Button>
             <Button
               variant="destructive"
-              disabled={rodando || !simulado || !resultado}
+              disabled={rodando || !simulado || !resultado || !podeRenomear}
+              title={
+                !podeRenomear
+                  ? carregandoPermissao
+                    ? "Verificando permissão…"
+                    : "Requer a permissão “Renomear produto no Bling” (acao.renomear_produto_bling)"
+                  : undefined
+              }
               onClick={() => setConfirmar(true)}
             >
               Aplicar no Bling
             </Button>
+            {!podeRenomear && !carregandoPermissao && (
+              <span className="text-xs text-muted-foreground">
+                Sem a permissão “Renomear produto no Bling” — a simulação segue liberada, a escrita não.
+              </span>
+            )}
           </div>
 
           {rodando && (
