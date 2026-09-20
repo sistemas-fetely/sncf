@@ -278,7 +278,11 @@ function resumoConteineres(cs: ConteinerRow[], tipos: DimTipo[]): string {
   for (const [tipoId, qtd] of porTipo) {
     const tipo = tipos.find((t) => t.id === tipoId);
     // Tipo indefinido aparece explicitamente: nunca inventar tamanho.
-    partes.push(tipo ? `${qtd}x${tipo.codigo}` : `${qtd}x (tipo não informado)`);
+    partes.push(
+      tipo && !ehTipoIndefinido(tipo.codigo)
+        ? `${qtd}x${tipo.codigo}`
+        : `${qtd}x (tipo não informado)`,
+    );
   }
   return partes.join(" · ");
 }
