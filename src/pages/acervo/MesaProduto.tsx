@@ -1,220 +1,59 @@
-// Mesa do Produto — a fila de quem cuida do ciclo de vida do produto.
-// FONTE ÚNICA: a view vw_produto_mesa_lista (1 linha por SKU) já traz
-// classificação (coluna `sugestao`), fase e a ficha inteira. O frontend NÃO
-// classifica, não recalcula pendência e não deduz fase: só conta, recorta,
-// ordena e mostra. A promoção e a descontinuação continuam passando pela edge
-// function promover-fase-produto, que é quem manda no FOP (mestre do dado).
-import { useMemo, useState, useEffect, Fragment } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Loader2, RefreshCw, ArrowUpCircle, AlertTriangle, PackageX, Search, Ban,
-  Check, X, Columns3, Download, ChevronLeft, ChevronRight, ChevronDown, ArrowUp, ArrowDown, ArrowUpDown,
+  AlertTriangle, ArrowDown, ArrowUp, ArrowUpCircle, ArrowUpDown, Ban, Check,
+  ChevronDown, ChevronLeft, ChevronRight, Columns3, Download, GripVertical,
+  PackageX, RefreshCw, Search, X,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageShell } from "@/components/layout/PageShell";
+
+import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { PageShell } from "@/components/layout/PageShell";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Popover, PopoverContent, PopoverTrigger,
-} from "@/components/ui/popover";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { fmtData, fmtDataHora } from "@/lib/data";
 
-type Linha = Record<string, any> & {
-  sku: string;
-  cod_cadastro: string | null;
-  nome_comercial: string | null;
-  nome_operacional: string | null;
-  fase: string | null;
-  fase_nome: string | null;
-  fase_ordem: number | null;
-  sugestao: string | null;
-  tem_bling: boolean | null;
-  saldo_disponivel: number | null;
-  falta_fase_atual: string[] | null;
-  falta_proxima_fase: string[] | null;
-  donos_pendencia: string[] | null;
-  campos_fora_do_espelho: string[] | null;
-  qtd_falta_atual: number | null;
-  qtd_falta_proxima: number | null;
-  atualizado_em: string | null;
+type Linha = Record<string, unknown> & {
+  sku: string; cod_cadastro: string | null; nome_comercial: string | null;
+  fase: string | null; fase_nome: string | null; fase_ordem: number | null;
+  sugestao: string | null; campos_fora_do_espelho: string[] | null;
+  falta_fase_atual: string[] | null; falta_proxima_fase: string[] | null;
+  qtd_falta_atual: number | null; qtd_falta_proxima: number | null;
 };
 
-type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos" | "conciliacao";
+type ConcLinha = {
+  sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null;
+  grupo: string | null; fase: string | null; ean: string | null; dun: string | null;
+  ncm: string | null; peso_g: number | null; qtd_kit: number | null; multiplos: number | null;
+  preco_varejo: number | null; atualizado_em: string | null; cartorio_estado: string | null;
+  cartorio_inner: number | null; cartorio_sku: string | null; bling_codigo: string | null;
+  bling_gtin: string | null; bling_ncm: string | null; bling_ativo: boolean | null;
+  bling_preco: number | null; bling_n_linhas: number | null; xpm_codigo: string | null;
+  xpm_ean: string | null; xpm_ncm: string | null; xpm_peso_kg: number | null;
+  tem_ficha_bling: boolean | null; divergencias: string[] | null; qtd_divergencias: number | null;
+  existe_bling: boolean | null; existe_xpm: boolean | null;
+};
 
-const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
-  { id: "todos", label: "Todos", sugestao: null },
-  { id: "prontos", label: "Prontos para promover", sugestao: "pronto_para_ativo" },
-  { id: "falta_ficha", label: "Falta ficha no Bling", sugestao: "falta_ficha_bling" },
-  { id: "bloqueados", label: "Bloqueados", sugestao: "bloqueado" },
-  { id: "ativo_sem_bling", label: "Ativo sem Bling", sugestao: "ativo_sem_bling" },
-  { id: "furo", label: "Furo em produto ativo", sugestao: "ativo_com_furo" },
-  // A última aba não recorta por `sugestao`: lê vw_produto_conciliacao.
-  { id: "conciliacao", label: "Conciliação", sugestao: null },
-];
+type LinhaUnida = Linha & Partial<ConcLinha>;
+type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias";
+type ColDef = { key: string; rotulo: string; tipo: TipoCol; direita?: boolean };
+type ErroFuncao = { status: number; corpo: Record<string, unknown> };
+type Indicador = "prontos" | "bloqueados" | "furo" | "divergencia" | null;
+type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
 
-const ABAS_VALIDAS = new Set<AbaId>(ABAS.map((a) => a.id));
-
-function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
-  if (aba === "todos") return linhas;
-  const sugestao = ABAS.find((item) => item.id === aba)?.sugestao;
-  return sugestao ? linhas.filter((linha) => linha.sugestao === sugestao) : [];
-}
-
-const fmtNum = (v: number | null | undefined) =>
-  typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
-
-type SeloSistema = { letra: string; nome: string; presente: boolean; diverge?: boolean };
-
-/** Selo B/S/X de presença por sistema. Presente = verde; ausente = vermelho (ausência é informação). */
-function SelosSistemas({ linha }: { linha: Linha }) {
-  const presencas: SeloSistema[] = [
-    { letra: "B", nome: "Bling", presente: linha.cod_bling != null && String(linha.cod_bling).trim() !== "" },
-    { letra: "S", nome: "Shopify", presente: linha.cod_shopify != null && String(linha.cod_shopify).trim() !== "", diverge: linha.shopify_sku_diverge === true },
-    { letra: "X", nome: "XPM", presente: linha.cod_xpm != null && String(linha.cod_xpm).trim() !== "" },
-  ];
-  return (
-    <div className="flex items-center gap-1">
-      {presencas.map((s) => (
-        <Tooltip key={s.letra}>
-          <TooltipTrigger asChild>
-            <span
-              aria-label={s.nome}
-              className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-semibold ${
-                s.presente
-                  ? s.diverge
-                    ? "border-warning/40 bg-warning/10 text-warning"
-                    : "border-success/40 bg-success/10 text-success"
-                  : "border-destructive/40 bg-destructive/10 text-destructive"
-              }`}
-            >
-              {s.letra}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>
-            {s.presente
-              ? s.diverge
-                ? `${s.nome}: presente, mas com SKU diferente do nosso`
-                : `${s.nome}: presente`
-              : `${s.nome}: não encontrado`}
-          </TooltipContent>
-        </Tooltip>
-      ))}
-    </div>
-  );
-}
-
-type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora" | "selos";
-
-type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
-
-/**
- * As colunas da view. Pendências separadas em duas perguntas:
- * "a ficha está completa para a fase em que ele está?" (Falta agora) e
- * "ele pode avançar?" (Falta p/ promover).
- */
-const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
-  "nome_comercial", "fase_nome", "grupo", "colecao",
-  "qtd_falta_atual", "falta_fase_atual", "qtd_falta_proxima", "falta_proxima_fase",
-  "saldo_disponivel", "atualizado_em",
-];
-
-const COLUNAS: ColDef[] = [
-  { key: "cod_cadastro", rotulo: "Cód. Cadastro", tipo: "texto" },
-  { key: "sku", rotulo: "Cód. SKU", tipo: "texto" },
-  { key: "cod_bling", rotulo: "Cód. Bling", tipo: "texto" },
-  { key: "cod_shopify", rotulo: "Cód. Shopify", tipo: "texto" },
-  { key: "cod_xpm", rotulo: "Cód. XPM", tipo: "texto" },
-  { key: "sistemas", rotulo: "Sistemas", tipo: "selos" },
-  { key: "nome_comercial", rotulo: "Nome comercial", tipo: "texto" },
-  { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
-  { key: "grupo", rotulo: "Grupo", tipo: "texto" },
-  { key: "colecao", rotulo: "Coleção", tipo: "texto" },
-  { key: "qtd_falta_atual", rotulo: "Falta agora (qtd)", tipo: "num", alinharDireita: true },
-  { key: "falta_fase_atual", rotulo: "Falta agora", tipo: "chips" },
-  { key: "qtd_falta_proxima", rotulo: "Falta p/ promover (qtd)", tipo: "num", alinharDireita: true },
-  { key: "falta_proxima_fase", rotulo: "Falta p/ promover", tipo: "chips" },
-  // Desligada por padrão: `tem_bling` vem da ficha em bling_produtos_cache,
-  // origem diferente do Cód. Bling (que vem do produto em produtos).
-  { key: "tem_bling", rotulo: "Ficha no Bling", tipo: "bool" },
-  { key: "saldo_disponivel", rotulo: "Saldo disponível", tipo: "num", alinharDireita: true },
-  { key: "atualizado_em", rotulo: "Atualizado em", tipo: "datahora" },
-  // opcionais
-  { key: "nome_operacional", rotulo: "Nome operacional", tipo: "texto" },
-  { key: "nome_completo", rotulo: "Nome completo", tipo: "texto" },
-  { key: "fase", rotulo: "Fase (código)", tipo: "texto" },
-  { key: "fase_ordem", rotulo: "Ordem da fase", tipo: "num", alinharDireita: true },
-  { key: "proxima_fase", rotulo: "Próxima fase", tipo: "texto" },
-  { key: "sugestao", rotulo: "Sugestão", tipo: "texto" },
-  { key: "donos_pendencia", rotulo: "Quem resolve", tipo: "chips" },
-  { key: "campos_fora_do_espelho", rotulo: "Campos fora do espelho", tipo: "chips" },
-  { key: "ficha_completa", rotulo: "Ficha completa", tipo: "bool" },
-  { key: "pronto_proxima_fase", rotulo: "Pronto p/ próxima fase", tipo: "bool" },
-  { key: "ativo", rotulo: "Ativo", tipo: "bool" },
-  { key: "ean", rotulo: "EAN", tipo: "texto" },
-  { key: "dun", rotulo: "DUN", tipo: "texto" },
-  { key: "ncm", rotulo: "NCM", tipo: "texto" },
-  { key: "cest", rotulo: "CEST", tipo: "texto" },
-  { key: "peso_g", rotulo: "Peso (g)", tipo: "num", alinharDireita: true },
-  { key: "altura_cm", rotulo: "Altura (cm)", tipo: "num", alinharDireita: true },
-  { key: "largura_cm", rotulo: "Largura (cm)", tipo: "num", alinharDireita: true },
-  { key: "profundidade_cm", rotulo: "Profundidade (cm)", tipo: "num", alinharDireita: true },
-  { key: "material", rotulo: "Material", tipo: "texto" },
-  { key: "material_descritivo", rotulo: "Material descritivo", tipo: "texto" },
-  { key: "tipo_embalagem", rotulo: "Tipo de embalagem", tipo: "texto" },
-  { key: "origem_fisc", rotulo: "Origem fiscal", tipo: "texto" },
-  { key: "origem_prod", rotulo: "Origem de produção", tipo: "texto" },
-  { key: "preco_atacado", rotulo: "Preço atacado", tipo: "num", alinharDireita: true },
-  { key: "preco_varejo", rotulo: "Preço varejo", tipo: "num", alinharDireita: true },
-  { key: "preco_custo", rotulo: "Preço custo", tipo: "num", alinharDireita: true },
-  { key: "multiplos", rotulo: "Múltiplos", tipo: "num", alinharDireita: true },
-  { key: "qtd_kit", rotulo: "Qtd kit", tipo: "num", alinharDireita: true },
-  { key: "familia", rotulo: "Família", tipo: "texto" },
-  { key: "tipo", rotulo: "Tipo", tipo: "texto" },
-  { key: "marca", rotulo: "Marca", tipo: "texto" },
-  { key: "linha", rotulo: "Linha", tipo: "texto" },
-  { key: "cor", rotulo: "Cor (código)", tipo: "texto" },
-  { key: "cor_nome", rotulo: "Cor", tipo: "texto" },
-  { key: "estampa", rotulo: "Estampa", tipo: "texto" },
-  { key: "tamanho_numero", rotulo: "Tamanho / número", tipo: "texto" },
-  { key: "departamento", rotulo: "Departamento", tipo: "texto" },
-  { key: "categoria", rotulo: "Categoria", tipo: "texto" },
-  { key: "descricao_produto", rotulo: "Descrição do produto", tipo: "texto" },
-];
-
-const ORDENAVEIS = new Set([
-  "cod_cadastro", "sku", "nome_comercial", "fase_ordem", "qtd_falta_proxima", "atualizado_em",
-]);
-
-const TAMANHOS = [50, 100, 200, 500];
-
-// ================= Conciliação (aba própria) =================
-// Fonte: view vw_produto_conciliacao (1 linha por SKU). Compara o cadastro do
-// SNCF com Bling, XPM e o cartório. Não existe tabela de regras: o dicionário
-// das divergências vive AQUI, e só aqui. Slug novo na view sem rótulo aparece
-// cru — nunca escondido.
 type SevDiv = "critico" | "atencao";
 const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string }> = {
   sem_cartorio: { rotulo: "Sem registro no cartório", sev: "critico", explicacao: "Produto existe mas o código não está no cartório." },
@@ -238,1151 +77,146 @@ const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string 
 const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
 const rotuloDoSlug = (slug: string) => DIC_DIV[slug]?.rotulo ?? slug;
 
-type ConcLinha = {
-  cod_cadastro: string | null;
-  sku: string;
-  nome_comercial: string | null;
-  colecao: string | null;
-  grupo: string | null;
-  fase: string | null;
-  ean: string | null;
-  dun: string | null;
-  ncm: string | null;
-  peso_g: number | null;
-  qtd_kit: number | null;
-  multiplos: number | null;
-  preco_varejo: number | null;
-  atualizado_em: string | null;
-  cartorio_estado: string | null;
-  cartorio_inner: number | null;
-  cartorio_sku: string | null;
-  bling_codigo: string | null;
-  bling_gtin: string | null;
-  bling_ncm: string | null;
-  bling_ativo: boolean | null;
-  bling_preco: number | null;
-  bling_n_linhas: number | null;
-  xpm_codigo: string | null;
-  xpm_ean: string | null;
-  xpm_ncm: string | null;
-  xpm_peso_kg: number | null;
-  tem_ficha_bling: boolean | null;
-  divergencias: string[] | null;
-  qtd_divergencias: number | null;
-  existe_bling: boolean | null;
-  existe_xpm: boolean | null;
-};
+const SITUACOES = [
+  ["pronto_para_ativo", "Prontos para promover"], ["falta_ficha_bling", "Falta ficha no Bling"],
+  ["bloqueado", "Bloqueados"], ["ativo_sem_bling", "Ativo sem Bling"],
+  ["ativo_com_furo", "Furo em ativo"], ["__sem__", "Sem situação"],
+] as const;
+const SISTEMAS = [
+  ["sem_bling", "Sem Bling"], ["sem_shopify", "Sem Shopify"],
+  ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"],
+] as const;
 
-/** Erro estruturado devolvido pela edge function (409/422/502). */
-type ErroFuncao = { status: number; corpo: any };
-
-async function chamarPromocao(payload: Record<string, unknown>): Promise<any> {
-  const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
-    body: payload,
-  });
-
+const COLUNAS_PADRAO = [
+  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
+  "nome_comercial", "fase_nome", "grupo", "colecao", "qtd_falta_atual", "falta_fase_atual",
+  "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
+];
+const COLUNAS: ColDef[] = [
+  { key:"cod_cadastro",rotulo:"Cód. Cadastro",tipo:"texto" }, { key:"sku",rotulo:"Cód. SKU",tipo:"texto" },
+  { key:"cod_bling",rotulo:"Cód. Bling",tipo:"texto" }, { key:"cod_shopify",rotulo:"Cód. Shopify",tipo:"texto" },
+  { key:"cod_xpm",rotulo:"Cód. XPM",tipo:"texto" }, { key:"sistemas",rotulo:"Sistemas",tipo:"selos" },
+  { key:"nome_comercial",rotulo:"Nome comercial",tipo:"texto" }, { key:"fase_nome",rotulo:"Fase",tipo:"fase" },
+  { key:"grupo",rotulo:"Grupo",tipo:"texto" }, { key:"colecao",rotulo:"Coleção",tipo:"texto" },
+  { key:"qtd_falta_atual",rotulo:"Falta agora (qtd)",tipo:"num",direita:true }, { key:"falta_fase_atual",rotulo:"Falta agora",tipo:"chips" },
+  { key:"qtd_falta_proxima",rotulo:"Falta p/ promover (qtd)",tipo:"num",direita:true }, { key:"falta_proxima_fase",rotulo:"Falta p/ promover",tipo:"chips" },
+  { key:"tem_bling",rotulo:"Ficha no Bling",tipo:"bool" }, { key:"saldo_disponivel",rotulo:"Saldo disponível",tipo:"num",direita:true },
+  { key:"atualizado_em",rotulo:"Atualizado em",tipo:"datahora" }, { key:"nome_operacional",rotulo:"Nome operacional",tipo:"texto" },
+  { key:"nome_completo",rotulo:"Nome completo",tipo:"texto" }, { key:"fase",rotulo:"Fase (código)",tipo:"texto" },
+  { key:"fase_ordem",rotulo:"Ordem da fase",tipo:"num",direita:true }, { key:"proxima_fase",rotulo:"Próxima fase",tipo:"texto" },
+  { key:"sugestao",rotulo:"Sugestão",tipo:"texto" }, { key:"donos_pendencia",rotulo:"Quem resolve",tipo:"chips" },
+  { key:"campos_fora_do_espelho",rotulo:"Campos fora do espelho",tipo:"chips" }, { key:"ficha_completa",rotulo:"Ficha completa",tipo:"bool" },
+  { key:"pronto_proxima_fase",rotulo:"Pronto p/ próxima fase",tipo:"bool" }, { key:"ativo",rotulo:"Ativo",tipo:"bool" },
+  { key:"ean",rotulo:"EAN",tipo:"texto" }, { key:"dun",rotulo:"DUN",tipo:"texto" }, { key:"ncm",rotulo:"NCM",tipo:"texto" },
+  { key:"cest",rotulo:"CEST",tipo:"texto" }, { key:"peso_g",rotulo:"Peso (g)",tipo:"num",direita:true },
+  { key:"altura_cm",rotulo:"Altura (cm)",tipo:"num",direita:true }, { key:"largura_cm",rotulo:"Largura (cm)",tipo:"num",direita:true },
+  { key:"profundidade_cm",rotulo:"Profundidade (cm)",tipo:"num",direita:true }, { key:"material",rotulo:"Material",tipo:"texto" },
+  { key:"material_descritivo",rotulo:"Material descritivo",tipo:"texto" }, { key:"tipo_embalagem",rotulo:"Tipo de embalagem",tipo:"texto" },
+  { key:"origem_fisc",rotulo:"Origem fiscal",tipo:"texto" }, { key:"origem_prod",rotulo:"Origem de produção",tipo:"texto" },
+  { key:"preco_atacado",rotulo:"Preço atacado",tipo:"num",direita:true }, { key:"preco_varejo",rotulo:"Preço varejo",tipo:"num",direita:true },
+  { key:"preco_custo",rotulo:"Preço custo",tipo:"num",direita:true }, { key:"multiplos",rotulo:"Múltiplos",tipo:"num",direita:true },
+  { key:"qtd_kit",rotulo:"Qtd kit",tipo:"num",direita:true }, { key:"familia",rotulo:"Família",tipo:"texto" },
+  { key:"tipo",rotulo:"Tipo",tipo:"texto" }, { key:"marca",rotulo:"Marca",tipo:"texto" }, { key:"linha",rotulo:"Linha",tipo:"texto" },
+  { key:"cor",rotulo:"Cor (código)",tipo:"texto" }, { key:"cor_nome",rotulo:"Cor",tipo:"texto" }, { key:"estampa",rotulo:"Estampa",tipo:"texto" },
+  { key:"tamanho_numero",rotulo:"Tamanho / número",tipo:"texto" }, { key:"departamento",rotulo:"Departamento",tipo:"texto" },
+  { key:"categoria",rotulo:"Categoria",tipo:"texto" }, { key:"descricao_produto",rotulo:"Descrição do produto",tipo:"texto" },
+  { key:"qtd_divergencias",rotulo:"Divergências (qtd)",tipo:"num",direita:true }, { key:"divergencias",rotulo:"Divergências",tipo:"divergencias" },
+];
+const ORDENAVEIS = new Set(["cod_cadastro","sku","nome_comercial","fase_ordem","qtd_falta_atual","qtd_falta_proxima","qtd_divergencias","atualizado_em"]);
+const TAMANHOS = [50,100,200,500];
+const fmtNum = (v: number | null | undefined) => typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
+const temValor = (v: unknown) => v !== null && v !== undefined && String(v).trim() !== "";
+async function chamarPromocao(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke("promover-fase-produto", { body: payload });
   if (error) {
-    const resp = (error as any)?.context as Response | undefined;
+    const resp = (error as { context?: Response })?.context;
     if (resp && typeof resp.json === "function") {
-      let corpo: any = null;
-      try {
-        corpo = await resp.json();
-      } catch (_) {
-        try { corpo = { erro: await resp.text() }; } catch (_e) { corpo = null; }
-      }
+      let corpo: Record<string, unknown> = {};
+      try { corpo = await resp.json(); } catch (_) { try { corpo = { erro: await resp.text() }; } catch (_e) { corpo = null; } }
       throw { status: resp.status, corpo } as ErroFuncao;
     }
     throw { status: 0, corpo: { erro: error.message } } as ErroFuncao;
   }
-
-  if (!data || data.ok !== true) {
-    throw { status: 0, corpo: data ?? { erro: "Resposta vazia da função" } } as ErroFuncao;
-  }
-  return data;
+  if (!data || data.ok !== true) throw { status: 0, corpo: data ?? { erro: "Resposta vazia da função" } } as ErroFuncao;
+  return data as Record<string, unknown>;
 }
 
 function csvCelula(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = Array.isArray(v) ? v.join(" | ") : String(v);
+  const s = Array.isArray(v) ? v.join("; ") : String(v);
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:string; opcoes:{valor:string;rotulo:string;contagem:number}[]; selecionados:string[]; onChange:(v:string[])=>void }) {
+  return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length>0&&<Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger><PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{opcoes.map(o=><Button key={o.valor} variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal" onClick={()=>onChange(selecionados.includes(o.valor)?selecionados.filter(v=>v!==o.valor):[...selecionados,o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border",selecionados.includes(o.valor)&&"border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor)&&<Check className="h-3 w-3"/>}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>{selecionados.length>0&&<Button variant="ghost" size="sm" className="mt-1 w-full" onClick={()=>onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
+}
+
 export default function MesaProduto() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const abaParam = searchParams.get("aba");
-  const aba: AbaId = abaParam && ABAS_VALIDAS.has(abaParam as AbaId) ? abaParam as AbaId : "todos";
-  const [fase, setFase] = useState<string>("todas");
-  const [busca, setBusca] = useState("");
-  const [emAcao, setEmAcao] = useState<string | null>(null);
-  const [visiveis, setVisiveis] = useState<string[]>(COLUNAS_PADRAO);
-  const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({
-    coluna: "cod_cadastro", dir: "asc",
-  });
-  const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(100);
+  const [busca,setBusca]=useState(""); const [situacoes,setSituacoes]=useState<string[]>([]); const [fasesSel,setFasesSel]=useState<string[]>([]);
+  const [colecoes,setColecoes]=useState<string[]>([]); const [grupos,setGrupos]=useState<string[]>([]); const [sistemas,setSistemas]=useState<string[]>([]);
+  const [indicador,setIndicador]=useState<Indicador>(null); const [visiveis,setVisiveis]=useState<string[]>(COLUNAS_PADRAO);
+  const [ordemColunas,setOrdemColunas]=useState<string[]>(COLUNAS.map(c=>c.key)); const [arrastando,setArrastando]=useState<string|null>(null);
+  const [ordem,setOrdem]=useState({coluna:"cod_cadastro",dir:"asc" as "asc"|"desc"}); const [pagina,setPagina]=useState(1); const [tamanho,setTamanho]=useState(100);
+  const [expandido,setExpandido]=useState<string|null>(null); const [emAcao,setEmAcao]=useState<string|null>(null);
+  const [confirmSaldo,setConfirmSaldo]=useState<{sku:string;saldo:number}|null>(null); const [faltando,setFaltando]=useState<{sku:string;campos:string[]}|null>(null); const [erroFop,setErroFop]=useState<{sku:string;corpo:string}|null>(null);
 
-  // Diálogos de erro / confirmação
-  const [confirmSaldo, setConfirmSaldo] = useState<{ sku: string; saldo: number } | null>(null);
-  const [faltando, setFaltando] = useState<{ sku: string; campos: string[] } | null>(null);
-  const [erroFop, setErroFop] = useState<{ sku: string; corpo: string } | null>(null);
+  const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_mesa_lista" as never).select("*").order("cod_cadastro");if(error)throw error;return(data??[]) as Linha[];}});
+  const conc=useQuery({queryKey:["mesa-produto-conciliacao"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
+  const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes"],queryFn:async()=>{const slugs=SITUACOES.filter(([slug])=>slug!=="__sem__").map(([slug])=>slug);const respostas=await Promise.all(slugs.map(async slug=>{const {data,error}=await supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug);if(error)throw error;return(data??[]) as {sku:string;sugestao:string|null}[];}));return respostas.flat();}});
+  const linhas=useMemo(()=>{const mapa=new Map((conc.data??[]).map(c=>[c.sku,c]));const sugestaoPorSku=new Map((sugestoes.data??[]).map(l=>[l.sku,l.sugestao]));return(lista.data??[]).map(l=>{const unida={...l,...(mapa.get(l.sku)??{})} as LinhaUnida;const sugestaoRecebida=sugestaoPorSku.get(l.sku)??l.sugestao;if(unida.fase!=="ativo")return{...unida,sugestao:sugestaoRecebida};if(!temValor(unida.cod_bling))return{...unida,sugestao:"ativo_sem_bling"};if((unida.qtd_falta_atual??0)>0)return{...unida,sugestao:"ativo_com_furo"};return{...unida,sugestao:null};}) as LinhaUnida[];},[lista.data,conc.data,sugestoes.data]);
+  const carregando=lista.isLoading||conc.isLoading||sugestoes.isLoading; const erro=lista.error??conc.error??sugestoes.error;
+  const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
+  const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
 
-  const lista = useQuery({
-    queryKey: ["mesa-produto-lista"],
-    queryFn: async (): Promise<Linha[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_mesa_lista")
-        .select("*")
-        .order("cod_cadastro", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as Linha[];
-    },
-  });
-
-  const conc = useQuery({
-    queryKey: ["mesa-produto-conciliacao"],
-    queryFn: async (): Promise<ConcLinha[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_conciliacao")
-        .select("*");
-      if (error) throw error;
-      return (data ?? []) as ConcLinha[];
-    },
-  });
-
-  const linhas = lista.data ?? [];
-  const concLinhas = conc.data ?? [];
-
-  // Fases vindas da própria view (rótulo de fase_nome, ordem de fase_ordem).
-  const fases = useMemo(() => {
-    const mapa = new Map<string, { codigo: string; nome: string; ordem: number }>();
-    for (const l of linhas) {
-      const codigo = l.fase ?? "sem_fase";
-      if (!mapa.has(codigo)) {
-        mapa.set(codigo, {
-          codigo,
-          nome: l.fase_nome ?? codigo,
-          ordem: typeof l.fase_ordem === "number" ? l.fase_ordem : 999,
-        });
-      }
-    }
-    return [...mapa.values()].sort((a, b) => a.ordem - b.ordem);
-  }, [linhas]);
-
-  // Contagem por aba: direto sobre `sugestao` da view (cruzada com a fase escolhida).
-  const porFase = useMemo(
-    () => (fase === "todas" ? linhas : linhas.filter((l) => (l.fase ?? "sem_fase") === fase)),
-    [linhas, fase],
-  );
-
-  // Conciliação: mesmo filtro de fase da Mesa, sobre a view própria.
-  const porFaseConc = useMemo(
-    () => (fase === "todas" ? concLinhas : concLinhas.filter((l) => (l.fase ?? "sem_fase") === fase)),
-    [concLinhas, fase],
-  );
-  const concBase = useMemo(
-    () => porFaseConc.filter((l) => (l.qtd_divergencias ?? 0) > 0),
-    [porFaseConc],
-  );
-
-  const contagemAba = useMemo(() => {
-    const c = {} as Record<AbaId, number>;
-    for (const a of ABAS) {
-      if (a.id === "conciliacao") {
-        c[a.id] = concBase.length;
-      } else {
-        c[a.id] = linhasDaAba(porFase, a.id).length;
-      }
-    }
-    return c;
-  }, [porFase, concBase]);
-
-  const contagemFase = useMemo(() => {
-    if (aba === "conciliacao") {
-      const base = concLinhas.filter((l) => (l.qtd_divergencias ?? 0) > 0);
-      const m = new Map<string, number>();
-      for (const l of base) {
-        const k = l.fase ?? "sem_fase";
-        m.set(k, (m.get(k) ?? 0) + 1);
-      }
-      return { total: base.length, porCodigo: m };
-    }
-    const base = linhasDaAba(linhas, aba);
-    const m = new Map<string, number>();
-    for (const l of base) {
-      const k = l.fase ?? "sem_fase";
-      m.set(k, (m.get(k) ?? 0) + 1);
-    }
-    return { total: base.length, porCodigo: m };
-  }, [linhas, aba, concLinhas]);
-
-  const recorte = useMemo(() => {
-    let base = linhasDaAba(porFase, aba);
-    const q = busca.trim().toLowerCase();
-    if (q) {
-      base = base.filter((l) =>
-        [l.cod_cadastro, l.sku, l.nome_comercial, l.ean]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
-      );
-    }
-    const mult = ordem.dir === "asc" ? 1 : -1;
-    return [...base].sort((a, b) => {
-      const va = a[ordem.coluna];
-      const vb = b[ordem.coluna];
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "number" && typeof vb === "number") return (va - vb) * mult;
-      return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
-    });
-  }, [porFase, aba, busca, ordem]);
-
-  // ---- Recorte da aba Conciliação ----
-  // filtroDiv: "todas" | "criticas" | slug de divergência
-  const [filtroDiv, setFiltroDiv] = useState<string>("todas");
-  const [expandido, setExpandido] = useState<string | null>(null);
-
-  const concContagemSlugs = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const l of concBase) {
-      for (const s of l.divergencias ?? []) m.set(s, (m.get(s) ?? 0) + 1);
-    }
-    return [...m.entries()]
-      .map(([slug, n]) => ({ slug, n, sev: sevDoSlug(slug) }))
-      .sort((a, b) => (a.sev === b.sev ? b.n - a.n : a.sev === "critico" ? -1 : 1));
-  }, [concBase]);
-
-  const concCriticas = useMemo(
-    () => concBase.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico")).length,
-    [concBase],
-  );
-
-  const concRecorte = useMemo(() => {
-    let base = concBase;
-    if (filtroDiv === "criticas") {
-      base = base.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico"));
-    } else if (filtroDiv !== "todas") {
-      base = base.filter((l) => (l.divergencias ?? []).includes(filtroDiv));
-    }
-    const q = busca.trim().toLowerCase();
-    if (q) {
-      base = base.filter((l) =>
-        [l.cod_cadastro, l.sku, l.nome_comercial, l.ean]
-          .filter(Boolean)
-          .some((v) => String(v).toLowerCase().includes(q)),
-      );
-    }
-    return [...base].sort((a, b) => {
-      const d = (b.qtd_divergencias ?? 0) - (a.qtd_divergencias ?? 0);
-      if (d !== 0) return d;
-      return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
-    });
-  }, [concBase, filtroDiv, busca]);
-
-  useEffect(() => { setPagina(1); setExpandido(null); }, [aba, fase, busca, tamanho, filtroDiv]);
-
-  const ehConc = aba === "conciliacao";
-  const recorteAtivo: unknown[] = ehConc ? concRecorte : recorte;
-  const totalPaginas = Math.max(1, Math.ceil(recorteAtivo.length / tamanho));
-  const paginaAtual = Math.min(pagina, totalPaginas);
-  const visivelNaPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
-  const visivelConc = concRecorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
-
-  const colunasVisiveis = COLUNAS.filter((c) => visiveis.includes(c.key));
-  const abaLabel = ABAS.find((a) => a.id === aba)?.label ?? "";
-  const faseLabel = fase === "todas" ? "Todas" : (fases.find((f) => f.codigo === fase)?.nome ?? fase);
-
-  function alternarColuna(key: string) {
-    setVisiveis((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
+  function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
+    const q=busca.trim().toLocaleLowerCase("pt-BR"); if(q&&![l.cod_cadastro,l.sku,l.nome_comercial,l.ean].filter(temValor).some(v=>String(v).toLocaleLowerCase("pt-BR").includes(q)))return false;
+    if(ignorar!=="situacao"&&situacoes.length&&!situacoes.includes(l.sugestao??"__sem__"))return false;
+    if(ignorar!=="fase"&&fasesSel.length&&!fasesSel.includes(l.fase??"__sem__"))return false;
+    if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
+    if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
+    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>s==="sem_bling"?!temValor(l.cod_bling):s==="sem_shopify"?!temValor(l.cod_shopify):s==="sem_xpm"?!temValor(l.cod_xpm):(l.qtd_divergencias??0)>0))return false;
+    if(!semIndicador&&indicador){if(indicador==="divergencia"&&(l.qtd_divergencias??0)<=0)return false;const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(indicador!=="divergencia"&&l.sugestao!==slug)return false;}
+    return true;
   }
+  const recorte=(()=>{const base=linhas.filter(l=>aplica(l));const mult=ordem.dir==="asc"?1:-1;return [...base].sort((a,b)=>{const va=a[ordem.coluna],vb=b[ordem.coluna];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;if(typeof va==="number"&&typeof vb==="number")return(va-vb)*mult;return String(va).localeCompare(String(vb),"pt-BR",{numeric:true})*mult;});})();
+  useEffect(()=>{setPagina(1);setExpandido(null);},[busca,situacoes,fasesSel,colecoes,grupos,sistemas,indicador,tamanho]);
+  const conta=(pred:(l:LinhaUnida)=>boolean,ignorar?:GrupoFiltro)=>linhas.filter(l=>aplica(l,ignorar,true)&&pred(l)).length;
+  const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo")},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado")},{id:"furo" as Indicador,label:"Furo em ativo",n:conta(l=>l.sugestao==="ativo_com_furo")},{id:"divergencia" as Indicador,label:"Com divergência",n:conta(l=>(l.qtd_divergencias??0)>0)}];
+  const facet=(grupo:GrupoFiltro,ops:{valor:string;rotulo:string}[],pred:(l:LinhaUnida,v:string)=>boolean)=>ops.map(o=>({...o,contagem:linhas.filter(l=>aplica(l,grupo)&&pred(l,o.valor)).length}));
+  const filtrosAtivos=(busca?1:0)+situacoes.length+fasesSel.length+colecoes.length+grupos.length+sistemas.length+(indicador?1:0);
+  const colunasVisiveis=ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c&&visiveis.includes(c.key));
+  const paginas=Math.max(1,Math.ceil(recorte.length/tamanho)),paginaAtual=Math.min(pagina,paginas),paginaLinhas=recorte.slice((paginaAtual-1)*tamanho,paginaAtual*tamanho);
+  const estado=`${recorte.length} produtos · ${recorte.filter(l=>l.sugestao==="bloqueado").length} bloqueados · ${recorte.filter(l=>l.sugestao==="ativo_com_furo").length} com furo`;
 
-  function ordenar(key: string) {
-    if (!ORDENAVEIS.has(key)) return;
-    setOrdem((o) =>
-      o.coluna === key
-        ? { coluna: key, dir: o.dir === "asc" ? "desc" : "asc" }
-        : { coluna: key, dir: "asc" },
-    );
-  }
+  function limpar(){setBusca("");setSituacoes([]);setFasesSel([]);setColecoes([]);setGrupos([]);setSistemas([]);setIndicador(null);}
+  function ordenar(key:string){if(!ORDENAVEIS.has(key))return;setOrdem(o=>o.coluna===key?{coluna:key,dir:o.dir==="asc"?"desc":"asc"}:{coluna:key,dir:"asc"});}
+  function mover(destino:string){if(!arrastando||arrastando===destino||["cod_cadastro","sku"].includes(arrastando))return;setOrdemColunas(atual=>{const n=atual.filter(k=>k!==arrastando);const i=n.indexOf(destino);n.splice(Math.max(2,i),0,arrastando);return n;});setArrastando(null);}
+  function exportar(){const cab=colunasVisiveis.map(c=>csvCelula(c.rotulo)).join(";");const corpo=recorte.map(l=>colunasVisiveis.map(c=>csvCelula(c.key==="sistemas"?`B:${temValor(l.cod_bling)?"sim":"não"};S:${temValor(l.cod_shopify)?"sim":"não"};X:${temValor(l.cod_xpm)?"sim":"não"}`:c.key==="divergencias"?(l.divergencias??[]).map(rotuloDoSlug).join("; "):l[c.key])).join(";")).join("\n");const url=URL.createObjectURL(new Blob(["\uFEFF"+cab+"\n"+corpo],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download=`mesa-produto-${fmtData(new Date(),"").split("/").reverse().join("-")}.csv`;a.click();URL.revokeObjectURL(url);}
+  function tratarErro(sku:string,e:unknown){const err=e as ErroFuncao,corpo=err?.corpo??{};if(err?.status===409){setConfirmSaldo({sku,saldo:Number(corpo.saldo_disponivel??0)});return;}if(err?.status===422){setFaltando({sku,campos:Array.isArray(corpo.campos_faltando)?corpo.campos_faltando.map(String):[]});return;}if(err?.status===502){setErroFop({sku,corpo:typeof corpo.fop_body==="string"?corpo.fop_body:JSON.stringify(corpo.fop_body??corpo,null,2)});return;}toast.error(`Falha em ${sku}`,{description:typeof corpo.erro==="string"?corpo.erro:"Erro sem detalhe."});}
+  async function agir(sku:string,faseDestino:string,confirmarSaldo=false){setEmAcao(sku);try{const r=await chamarPromocao({sku,fase_destino:faseDestino,...(confirmarSaldo?{confirmar_saldo:true}:{})});toast.success(`${String(r.cod_cadastro??sku)} — ${String(r.de??"?")} → ${String(r.para??"?")}`,{description:"Fase gravada no FOP e espelhada aqui."});await lista.refetch();}catch(e){tratarErro(sku,e);}finally{setEmAcao(null);}}
+  const ultima=(l:LinhaUnida)=>!l.proxima_fase||String(l.proxima_fase).toLowerCase()==="inativo";
+  const chips=(itens:string[]|null|undefined)=><div className="flex flex-wrap gap-1">{!itens?.length?<span className="text-muted-foreground">—</span>:<>{itens.slice(0,3).map(x=><Badge key={x} variant="outline" className="font-normal">{x}</Badge>)}{itens.length>3&&<Badge variant="outline" className="font-normal">+{itens.length-3}</Badge>}</>}</div>;
+  const chipsDivergencia=(itens:string[]|null|undefined)=><div className="flex flex-wrap gap-1">{!itens?.length?<span className="text-muted-foreground">—</span>:<>{itens.slice(0,3).map(slug=><Tooltip key={slug}><TooltipTrigger asChild><Badge variant="outline" className="font-normal">{rotuloDoSlug(slug)}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{DIC_DIV[slug]?.explicacao??slug}</TooltipContent></Tooltip>)}{itens.length>3&&<Tooltip><TooltipTrigger asChild><Badge variant="outline" className="font-normal">+{itens.length-3}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{itens.slice(3).map(rotuloDoSlug).join(" · ")}</TooltipContent></Tooltip>}</>}</div>;
+  const selos=(l:LinhaUnida)=><div className="flex gap-1">{[["B","Bling",temValor(l.cod_bling),false],["S","Shopify",temValor(l.cod_shopify),l.shopify_sku_diverge===true],["X","XPM",temValor(l.cod_xpm),false]].map(([letra,nome,ok,div])=><Tooltip key={String(letra)}><TooltipTrigger asChild><span className={cn("inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-medium",ok?(div?"border-warning/40 bg-warning/10 text-warning-strong":"border-success/40 bg-success/10 text-success-strong"):"border-destructive/40 bg-destructive/10 text-destructive-strong")}>{String(letra)}</span></TooltipTrigger><TooltipContent>{nome}: {ok?(div?"presente, mas com SKU diferente do nosso":"presente"):"não encontrado"}</TooltipContent></Tooltip>)}</div>;
+  function celula(l:LinhaUnida,c:ColDef){const v=l[c.key];if(c.tipo==="selos")return selos(l);if(c.tipo==="fase")return <Badge>{String(v??l.fase??"—")}</Badge>;if(c.tipo==="chips"){if(c.key==="falta_proxima_fase"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;return chips(Array.isArray(v)?v.map(String):null);}if(c.tipo==="divergencias")return chipsDivergencia(l.divergencias);if(c.tipo==="bool")return v==null?<span className="text-muted-foreground">—</span>:v?<Check className="h-4 w-4 text-success"/>:<X className="h-4 w-4 text-destructive"/>;if(c.tipo==="datahora")return <span className="text-muted-foreground">{fmtDataHora(typeof v==="string"?v:null)}</span>;if(c.tipo==="num"){if(c.key==="qtd_falta_proxima"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;return v==null?<span className="text-muted-foreground">—</span>:<span className={cn("tabular-nums",c.key==="qtd_falta_atual"&&Number(v)>0&&l.fase==="ativo"&&"text-warning-strong",c.key==="qtd_falta_proxima"&&Number(v)===0&&"text-success-strong")}>{fmtNum(Number(v))}</span>;}if(!temValor(v)){const nome=c.key==="cod_bling"?"Bling":c.key==="cod_shopify"?"Shopify":c.key==="cod_xpm"?"XPM":null;return nome?<Tooltip><TooltipTrigger><span className="text-muted-foreground">—</span></TooltipTrigger><TooltipContent>não encontrado no {nome}</TooltipContent></Tooltip>:<span className="text-muted-foreground">—</span>;}const texto=String(v);if(c.key==="cod_cadastro")return <div className="flex items-center gap-1"><Link to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`} className="font-medium hover:underline">{texto}</Link>{(l.campos_fora_do_espelho??[]).length>0&&<Tooltip><TooltipTrigger><AlertTriangle className="h-3.5 w-3.5 text-warning"/></TooltipTrigger><TooltipContent className="max-w-xs">campo exigido pela matriz que não existe na tabela do SNCF: {(l.campos_fora_do_espelho??[]).join(", ")}</TooltipContent></Tooltip>}</div>;if(c.key==="cod_bling")return <span className="block min-w-56 whitespace-normal">{texto}</span>;if(c.key==="cod_shopify"||c.key==="cod_xpm")return <span className={cn("block max-w-44 truncate",c.key==="cod_shopify"&&l.shopify_sku_diverge&&"text-warning-strong")}>{texto}</span>;return <span>{texto}</span>;}
 
-  function exportarCsvConciliacao() {
-    const cab = ["Código", "SKU", "Nome comercial", "Fase", "Cartório", "Bling", "XPM", "Divergências (qtd)", "Divergências"];
-    const simNao = (v: boolean | null) => (v === null || v === undefined ? "" : v ? "sim" : "não");
-    const corpo = concRecorte.map((l) => [
-      l.cod_cadastro, l.sku, l.nome_comercial, l.fase,
-      l.cartorio_estado ? "sim" : "não",
-      simNao(l.existe_bling), simNao(l.existe_xpm),
-      l.qtd_divergencias ?? 0,
-      (l.divergencias ?? []).map(rotuloDoSlug).join("; "),
-    ].map(csvCelula).join(";")).join("\n");
-    const conteudo = "\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo;
-    const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `mesa-produto-conciliacao-${fmtData(new Date(), "").split("/").reverse().join("-")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function exportarCsv() {
-    if (aba === "conciliacao") {
-      exportarCsvConciliacao();
-      return;
-    }
-    const cols = colunasVisiveis;
-    const cabecalho = cols.map((c) => csvCelula(c.rotulo)).join(";");
-    const corpo = recorte
-      .map((l) => cols.map((c) => csvCelula(c.tipo === "selos" ? textoSelos(l) : l[c.key])).join(";"))
-      .join("\n");
-    const conteudo = "\uFEFF" + cabecalho + "\n" + corpo;
-    const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `mesa-produto-${aba}-${fmtData(new Date(), "").split("/").reverse().join("-")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function tratarErro(sku: string, e: unknown) {
-    const err = e as ErroFuncao;
-    const corpo = err?.corpo ?? {};
-    if (err?.status === 409) {
-      setConfirmSaldo({ sku, saldo: Number(corpo.saldo_disponivel ?? 0) });
-      return;
-    }
-    if (err?.status === 422) {
-      setFaltando({ sku, campos: Array.isArray(corpo.campos_faltando) ? corpo.campos_faltando : [] });
-      return;
-    }
-    if (err?.status === 502) {
-      const bruto = typeof corpo.fop_body === "string"
-        ? corpo.fop_body
-        : JSON.stringify(corpo.fop_body ?? corpo, null, 2);
-      setErroFop({ sku, corpo: bruto });
-      return;
-    }
-    toast.error(`Falha em ${sku}`, { description: corpo?.erro ?? "Erro sem detalhe." });
-  }
-
-  async function agir(sku: string, faseDestino: string, confirmarSaldo = false) {
-    setEmAcao(sku);
-    try {
-      const r = await chamarPromocao({
-        sku,
-        fase_destino: faseDestino,
-        ...(confirmarSaldo ? { confirmar_saldo: true } : {}),
-      });
-      toast.success(`${r.cod_cadastro ?? sku} — ${r.de ?? "?"} → ${r.para}`, {
-        description: "Fase gravada no FOP e espelhada aqui.",
-      });
-      await lista.refetch();
-    } catch (e) {
-      tratarErro(sku, e);
-    } finally {
-      setEmAcao(null);
-    }
-  }
-
-  const Chips = ({ itens, variante = "outline" as const }: { itens: string[] | null; variante?: "outline" | "secondary" }) => {
-    if (!itens || itens.length === 0) return <span className="text-xs text-muted-foreground">—</span>;
-    const primeiros = itens.slice(0, 3);
-    const resto = itens.length - primeiros.length;
-    return (
-      <div className="flex flex-wrap items-center gap-1">
-        {primeiros.map((c) => (
-          <Badge key={c} variant={variante} className="text-[11px] font-normal">{c}</Badge>
-        ))}
-        {resto > 0 && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="secondary" className="text-[11px] font-normal">+{resto}</Badge>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">{itens.slice(3).join(", ")}</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-    );
-  };
-
-  /** Presença nos três sistemas, lida dos códigos de origem (não de tem_bling). */
-  const presencaSistemas = (l: Linha): SeloSistema[] => [
-    { letra: "B", nome: "Bling", presente: l.cod_bling != null && String(l.cod_bling).trim() !== "" },
-    { letra: "S", nome: "Shopify", presente: l.cod_shopify != null && String(l.cod_shopify).trim() !== "", diverge: l.shopify_sku_diverge === true },
-    { letra: "X", nome: "XPM", presente: l.cod_xpm != null && String(l.cod_xpm).trim() !== "" },
-  ];
-
-  const textoSelos = (l: Linha) =>
-    presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
-
-  /** Última fase: próxima é inativo ou inexistente. Descontinuar é ação, não promoção. */
-  const ultimaFase = (l: Linha) => {
-    const p = l.proxima_fase;
-    return p == null || String(p).trim() === "" || String(p).toLowerCase() === "inativo";
-  };
-
-  const TravessaoUltimaFase = () => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="text-muted-foreground">—</span>
-      </TooltipTrigger>
-      <TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent>
-    </Tooltip>
-  );
-
-  function celula(l: Linha, c: ColDef) {
-    const v = l[c.key];
-    switch (c.tipo) {
-      case "selos":
-        return <SelosSistemas linha={l} />;
-      case "chips":
-        if (c.key === "falta_proxima_fase" && ultimaFase(l)) return <TravessaoUltimaFase />;
-        return <Chips itens={Array.isArray(v) ? v : null} variante={c.key === "donos_pendencia" ? "secondary" : "outline"} />;
-      case "badge":
-        return <Badge variant="outline">{v ?? l.fase ?? "—"}</Badge>;
-      case "bool":
-        if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>;
-        return (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="inline-flex">
-                {v
-                  ? <Check className="h-4 w-4 text-success" />
-                  : <X className="h-4 w-4 text-destructive" />}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent>
-              {c.key === "tem_bling"
-                ? (v ? "Com ficha no Bling" : "Sem ficha no Bling")
-                : (v ? "Sim" : "Não")}
-            </TooltipContent>
-          </Tooltip>
-        );
-      case "num": {
-        if (c.key === "qtd_falta_proxima" && ultimaFase(l)) return <TravessaoUltimaFase />;
-        if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>;
-        // Furo de ficha: produto vendendo com cadastro incompleto.
-        if (c.key === "qtd_falta_atual" && Number(v) > 0 && l.fase === "ativo") {
-          return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="font-medium text-warning tabular-nums">{fmtNum(Number(v))}</span>
-              </TooltipTrigger>
-              <TooltipContent>produto ativo com ficha incompleta</TooltipContent>
-            </Tooltip>
-          );
-        }
-        const zeroPositivo = c.key === "qtd_falta_proxima" && Number(v) === 0;
-        return (
-          <span className={zeroPositivo ? "font-medium text-success" : "tabular-nums"}>
-            {fmtNum(Number(v))}
-          </span>
-        );
-      }
-      case "data":
-        return <span className="text-sm">{fmtData(v)}</span>;
-      case "datahora":
-        return <span className="text-sm text-muted-foreground">{fmtDataHora(v)}</span>;
-      default: {
-        if (v === null || v === undefined || String(v).trim() === "") {
-          return <span className="text-muted-foreground">—</span>;
-        }
-        const texto = String(v);
-        // Colunas de identidade nos sistemas de origem: nulo é informação —
-        // significa que o produto não existe naquele sistema.
-        if (c.key === "cod_bling" || c.key === "cod_shopify" || c.key === "cod_xpm") {
-          const onde = c.key === "cod_bling" ? "Bling" : c.key === "cod_shopify" ? "Shopify" : "XPM";
-          if (texto.trim() === "") {
-            return (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-muted-foreground">—</span>
-                </TooltipTrigger>
-                <TooltipContent>não encontrado no {onde}</TooltipContent>
-              </Tooltip>
-            );
-          }
-          const diverge = c.key === "cod_shopify" && l.shopify_sku_diverge === true;
-          const span = (
-            <span className={`${diverge ? "font-medium text-warning" : ""} break-words whitespace-pre-wrap`}>
-              {texto}
-            </span>
-          );
-          // Cód. Bling é o nome do produto — precisa ser lido inteiro, sem truncar.
-          if (c.key === "cod_bling") return span;
-          return (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className={`block max-w-[180px] truncate ${diverge ? "font-medium text-warning" : ""}`}>
-                  {texto}
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs break-all">
-                {texto}
-                {diverge && (
-                  <div className="mt-1 text-warning">
-                    SKU diferente do nosso — casado pelo código de barras.
-                  </div>
-                )}
-              </TooltipContent>
-            </Tooltip>
-          );
-        }
-        if (c.key === "cod_cadastro") {
-          const fora = Array.isArray(l.campos_fora_do_espelho) ? l.campos_fora_do_espelho : [];
-          return (
-            <div className="flex items-center gap-1.5">
-              <Link
-                to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`}
-                className="font-medium tracking-tight underline-offset-2 hover:underline"
-              >
-                {texto}
-              </Link>
-              {fora.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="inline-flex">
-                      <AlertTriangle className="h-3.5 w-3.5 text-warning" />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs">
-                    campo exigido pela matriz que não existe na tabela do SNCF: {fora.join(", ")}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          );
-        }
-        return <span className="text-sm">{texto}</span>;
-      }
-    }
-  }
-
-  // Rodapé de paginação compartilhado pelas abas (Mesa e Conciliação).
-  const rodape = (
-    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-      <span>
-        Mostrando{" "}
-        <span className="font-medium text-foreground tabular-nums">
-          {recorteAtivo.length === 0 ? 0 : (paginaAtual - 1) * tamanho + 1}–{Math.min(paginaAtual * tamanho, recorteAtivo.length)}
-        </span>{" "}
-        de <span className="font-medium text-foreground tabular-nums">{recorteAtivo.length}</span>
-      </span>
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1">
-          {TAMANHOS.map((n) => (
-            <Button
-              key={n}
-              size="sm"
-              variant={n === tamanho ? "default" : "outline"}
-              className="h-8 px-2 tabular-nums"
-              onClick={() => setTamanho(n)}
-            >
-              {n}
-            </Button>
-          ))}
-        </div>
-        <Button
-          size="icon"
-          variant="outline"
-          className="h-8 w-8"
-          disabled={paginaAtual <= 1}
-          onClick={() => setPagina(paginaAtual - 1)}
-          aria-label="Página anterior"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <span className="tabular-nums">{paginaAtual} / {totalPaginas}</span>
-        <Button
-          size="icon"
-          variant="outline"
-          className="h-8 w-8"
-          disabled={paginaAtual >= totalPaginas}
-          onClick={() => setPagina(paginaAtual + 1)}
-          aria-label="Próxima página"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
-
-  return (
-    <TooltipProvider delayDuration={200}>
-    <PageShell>
-      <PageHeader
-        titulo="Mesa do Produto"
-        icone={PackageX}
-        estado={
-          lista.isLoading
-            ? "Carregando fila…"
-            : `${recorteAtivo.length} de ${ehConc ? concLinhas.length : linhas.length} produtos · aba ${abaLabel} · fase ${faseLabel}`
-        }
-        acoes={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorteAtivo.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportar CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => lista.refetch()} disabled={lista.isFetching}>
-              {lista.isFetching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Atualizar
-            </Button>
-          </div>
-        }
-      />
-
-      {lista.isError && (
-        <Card className="border-destructive">
-          <CardContent className="flex items-center gap-2 py-4 text-sm text-destructive">
-            <AlertTriangle className="h-4 w-4" />
-            Falha ao ler a fila: {(lista.error as Error)?.message}
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Fila por situação</CardTitle>
-          <CardDescription>
-            Cada aba é um recorte da mesma leitura. O código de cadastro é o código de conversa.
-          </CardDescription>
-
-          {/* Filtro de fase — interseção com a aba, sempre visível */}
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <span className="text-xs font-medium text-muted-foreground">Fase</span>
-            <ToggleGroup
-              type="single"
-              value={fase}
-              onValueChange={(v) => v && setFase(v)}
-              className="flex-wrap justify-start"
-            >
-              <ToggleGroupItem value="todas" size="sm" className="gap-1.5 text-xs">
-                Todas
-                <Badge variant="secondary" className="text-[10px]">{contagemFase.total}</Badge>
-              </ToggleGroupItem>
-              {fases.map((f) => (
-                <ToggleGroupItem key={f.codigo} value={f.codigo} size="sm" className="gap-1.5 text-xs">
-                  {f.nome}
-                  <Badge variant="secondary" className="text-[10px]">
-                    {contagemFase.porCodigo.get(f.codigo) ?? 0}
-                  </Badge>
-                </ToggleGroupItem>
-              ))}
-            </ToggleGroup>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 pt-2">
-            <div className="relative w-full max-w-md">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="pl-9"
-                placeholder="Buscar por código de cadastro, SKU ou nome"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Columns3 className="mr-2 h-4 w-4" />
-                  Colunas ({colunasVisiveis.length})
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-72 p-0">
-                <div className="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground">
-                  <span>Colunas da view</span>
-                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setVisiveis(COLUNAS_PADRAO)}>
-                    Padrão
-                  </Button>
-                </div>
-                <ScrollArea className="h-80">
-                  <div className="space-y-1 p-2">
-                    {COLUNAS.map((c) => (
-                      <label
-                        key={c.key}
-                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                      >
-                        <Checkbox
-                          checked={visiveis.includes(c.key)}
-                          onCheckedChange={() => alternarColuna(c.key)}
-                        />
-                        <span className="truncate">{c.rotulo}</span>
-                      </label>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </PopoverContent>
-            </Popover>
-          </div>
-        </CardHeader>
-
-        <CardContent>
-          <Tabs
-            value={aba}
-            onValueChange={(v) => {
-              const proxima = new URLSearchParams(searchParams);
-              if (v === "todos") proxima.delete("aba");
-              else proxima.set("aba", v);
-              setSearchParams(proxima, { replace: true });
-            }}
-          >
-            <TabsList className="mb-4 flex-wrap">
-              {ABAS.map((a) => (
-                <TabsTrigger key={a.id} value={a.id} className="gap-2">
-                  {a.label}
-                  <Badge variant="secondary" className="text-[11px]">{contagemAba[a.id] ?? 0}</Badge>
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-
-          {aba === "falta_ficha" && (
-            <p className="mb-3 text-sm text-muted-foreground">
-              Sem cadastro no Bling o produto não emite nota fiscal. A criação do cadastro
-              virá numa próxima entrega; por ora esta aba só mostra quem está nessa situação.
-            </p>
-          )}
-          {aba === "furo" && (
-            <p className="mb-3 text-sm text-muted-foreground">
-              Produto que já fatura, mas tem campo obrigatório da própria fase vazio.
-            </p>
-          )}
-
-          {lista.isLoading ? (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-            </div>
-          ) : recorte.length === 0 ? (
-            <div className="py-10 text-center text-sm text-muted-foreground">
-              Nenhum produto neste recorte.
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      {colunasVisiveis.map((c) => (
-                        <TableHead
-                          key={c.key}
-                          className={c.alinharDireita ? "text-right" : undefined}
-                          aria-sort={
-                            ordem.coluna === c.key
-                              ? (ordem.dir === "asc" ? "ascending" : "descending")
-                              : "none"
-                          }
-                        >
-                          {ORDENAVEIS.has(c.key) ? (
-                            <button
-                              type="button"
-                              onClick={() => ordenar(c.key)}
-                              className="group inline-flex items-center gap-1 hover:text-foreground"
-                            >
-                              {c.rotulo}
-                              {ordem.coluna !== c.key ? (
-                                <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
-                              ) : ordem.dir === "asc" ? (
-                                <ArrowUp className="h-3 w-3" />
-                              ) : (
-                                <ArrowDown className="h-3 w-3" />
-                              )}
-                            </button>
-                          ) : (
-                            c.rotulo
-                          )}
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-px text-center">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visivelNaPagina.map((l) => (
-                      <TableRow key={l.sku}>
-                        {colunasVisiveis.map((c) => (
-                          <TableCell key={c.key} className={c.alinharDireita ? "text-right" : undefined}>
-                            {celula(l, c)}
-                          </TableCell>
-                        ))}
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            {(l.fase === "ativo" || l.fase === "pre_venda") && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8"
-                                    aria-label="Descontinuar"
-                                    disabled={emAcao === l.sku}
-                                    onClick={() => agir(l.sku, "inativo")}
-                                  >
-                                    <Ban className="h-3.5 w-3.5" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Descontinuar</TooltipContent>
-                              </Tooltip>
-                            )}
-                            {l.sugestao === "pronto_para_ativo" && (
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    size="icon"
-                                    className="h-8 w-8"
-                                    aria-label="Promover para Ativo"
-                                    disabled={emAcao === l.sku}
-                                    onClick={() => agir(l.sku, "ativo")}
-                                  >
-                                    {emAcao === l.sku
-                                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                      : <ArrowUpCircle className="h-3.5 w-3.5" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Promover para Ativo</TooltipContent>
-                              </Tooltip>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {rodape}
-            </>
-          )}
-
-          {/* ================= Aba Conciliação ================= */}
-          {ehConc && (
-            conc.isLoading ? (
-              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
-              </div>
-            ) : conc.isError ? (
-              <Card className="border-destructive">
-                <CardContent className="flex items-center gap-2 py-4 text-sm text-destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  Falha ao ler a conciliação: {(conc.error as Error)?.message}
-                </CardContent>
-              </Card>
-            ) : (
-              <>
-                <p className="mb-3 text-sm text-muted-foreground">
-                  Compara o cadastro do SNCF com Bling, XPM e o cartório de códigos.
-                  Esta aba aponta; corrigir é pela Ficha do Produto ou pelo dono do sistema de origem.
-                </p>
-
-                {/* Resumo clicável */}
-                <div className="mb-3 flex flex-wrap items-center gap-1.5">
-                  <Button
-                    size="sm"
-                    variant={filtroDiv === "todas" ? "default" : "outline"}
-                    className="h-8 gap-1.5 text-xs"
-                    onClick={() => setFiltroDiv("todas")}
-                  >
-                    Com divergência
-                    <Badge variant="secondary" className="text-[10px]">{concBase.length}</Badge>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant={filtroDiv === "criticas" ? "default" : "outline"}
-                    className="h-8 gap-1.5 text-xs"
-                    onClick={() => setFiltroDiv("criticas")}
-                  >
-                    Críticas
-                    <Badge variant="secondary" className="text-[10px]">{concCriticas}</Badge>
-                  </Button>
-                  {concContagemSlugs.map((s) => (
-                    <Button
-                      key={s.slug}
-                      size="sm"
-                      variant={filtroDiv === s.slug ? "default" : "outline"}
-                      className="h-8 gap-1.5 text-xs"
-                      onClick={() => setFiltroDiv(s.slug)}
-                    >
-                      {rotuloDoSlug(s.slug)}
-                      <Badge variant="secondary" className="text-[10px]">{s.n}</Badge>
-                    </Button>
-                  ))}
-                </div>
-
-                {concRecorte.length === 0 ? (
-                  <div className="py-10 text-center text-sm text-muted-foreground">
-                    Nenhum produto com divergência neste recorte.
-                  </div>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto rounded-md border">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Código</TableHead>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Nome comercial</TableHead>
-                            <TableHead>Fase</TableHead>
-                            <TableHead>Cartório · Bling · XPM</TableHead>
-                            <TableHead className="text-right">Divergências</TableHead>
-                            <TableHead>Quais</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {visivelConc.map((l) => {
-                            const divs = l.divergencias ?? [];
-                            const presencas: { nome: string; ok: boolean | null }[] = [
-                              { nome: "Cartório", ok: l.cartorio_estado != null },
-                              { nome: "Bling", ok: l.existe_bling },
-                              { nome: "XPM", ok: l.existe_xpm },
-                            ];
-                            return (
-                              <Fragment key={l.sku}>
-                                <TableRow
-                                  className="cursor-pointer"
-                                  onClick={() => setExpandido((e) => (e === l.sku ? null : l.sku))}
-                                >
-                                  <TableCell>
-                                    <div className="flex items-center gap-1.5">
-                                      {expandido === l.sku
-                                        ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                                        : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-                                      {l.cod_cadastro ? (
-                                        <Link
-                                          to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`}
-                                          className="font-medium tracking-tight underline-offset-2 hover:underline"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {l.cod_cadastro}
-                                        </Link>
-                                      ) : (
-                                        <span className="text-muted-foreground">—</span>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-sm">{l.sku}</TableCell>
-                                  <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
-                                  <TableCell><Badge variant="outline">{l.fase ?? "—"}</Badge></TableCell>
-                                  <TableCell>
-                                    <div className="flex items-center gap-2">
-                                      {presencas.map((p) => (
-                                        <Tooltip key={p.nome}>
-                                          <TooltipTrigger asChild>
-                                            <span className="inline-flex items-center gap-1">
-                                              {p.ok
-                                                ? <Check className="h-4 w-4 text-success" />
-                                                : <X className="h-4 w-4 text-destructive" />}
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent>{p.nome}: {p.ok ? "presente" : "ausente"}</TooltipContent>
-                                        </Tooltip>
-                                      ))}
-                                    </div>
-                                  </TableCell>
-                                  <TableCell className="text-right tabular-nums">{l.qtd_divergencias ?? 0}</TableCell>
-                                  <TableCell>
-                                    <div className="flex flex-wrap items-center gap-1">
-                                      {divs.slice(0, 3).map((s) => (
-                                        <Tooltip key={s}>
-                                          <TooltipTrigger asChild>
-                                            <span className="inline-flex">
-                                              <Badge
-                                                variant={sevDoSlug(s) === "critico" ? "destructive" : "outline"}
-                                                className={sevDoSlug(s) === "critico" ? "text-[11px] font-normal" : "border-warning/60 text-[11px] font-normal text-warning"}
-                                              >
-                                                {rotuloDoSlug(s)}
-                                              </Badge>
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent className="max-w-xs">
-                                            {DIC_DIV[s]?.explicacao ?? `Divergência sem rótulo no dicionário: ${s}`}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      ))}
-                                      {divs.length > 3 && (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span className="inline-flex">
-                                              <Badge variant="secondary" className="text-[11px] font-normal">+{divs.length - 3}</Badge>
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent className="max-w-xs">
-                                            {divs.slice(3).map(rotuloDoSlug).join(", ")}
-                                          </TooltipContent>
-                                        </Tooltip>
-                                      )}
-                                    </div>
-                                  </TableCell>
-                                </TableRow>
-                                {expandido === l.sku && (
-                                  <TableRow>
-                                    <TableCell colSpan={7} className="bg-muted/30 p-4">
-                                      <DeParaConciliacao l={l} />
-                                    </TableCell>
-                                  </TableRow>
-                                )}
-                              </Fragment>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                    {rodape}
-                  </>
-                )}
-              </>
-            )
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 409 — saldo em estoque na descontinuação */}
-      <AlertDialog open={!!confirmSaldo} onOpenChange={(o) => !o && setConfirmSaldo(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Descontinuar com saldo em estoque?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>
-                  O produto <strong>{confirmSaldo?.sku}</strong> ainda tem saldo disponível.
-                  Descontinuar não apaga o saldo — ele passa a ser queima.
-                </p>
-                <div className="rounded-md border bg-muted/40 p-3 text-center">
-                  <div className="text-xs uppercase text-muted-foreground">Saldo disponível</div>
-                  <div className="text-2xl font-semibold">{fmtNum(confirmSaldo?.saldo ?? 0)}</div>
-                </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                const sku = confirmSaldo?.sku;
-                setConfirmSaldo(null);
-                if (sku) agir(sku, "inativo", true);
-              }}
-            >
-              Descontinuar mesmo assim
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* 422 — campos faltando */}
-      <Dialog open={!!faltando} onOpenChange={(o) => !o && setFaltando(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Ficha incompleta</DialogTitle>
-            <DialogDescription>
-              O produto <strong>{faltando?.sku}</strong> não pode avançar de fase enquanto
-              estes campos estiverem vazios:
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-wrap gap-1.5">
-            {(faltando?.campos ?? []).length === 0 ? (
-              <span className="text-sm text-muted-foreground">A função não detalhou os campos.</span>
-            ) : (
-              faltando!.campos.map((c) => (
-                <Badge key={c} variant="outline">{c}</Badge>
-              ))
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFaltando(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 502 — resposta bruta do FOP */}
-      <Dialog open={!!erroFop} onOpenChange={(o) => !o && setErroFop(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              O FOP recusou a mudança
-            </DialogTitle>
-            <DialogDescription>
-              Resposta na íntegra da trava do banco do FOP para <strong>{erroFop?.sku}</strong>.
-            </DialogDescription>
-          </DialogHeader>
-          <pre className="max-h-80 overflow-auto rounded-md border bg-muted/40 p-3 text-xs whitespace-pre-wrap break-words">
-            {erroFop?.corpo}
-          </pre>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setErroFop(null)}>Fechar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </PageShell>
-    </TooltipProvider>
-  );
+  const fixa=(key:string,cab=false)=>key==="cod_cadastro"?cn("sticky left-0 z-20 min-w-28",cab?"bg-muted":"bg-card"):key==="sku"?cn("sticky left-28 z-20 min-w-32 border-r",cab?"bg-muted":"bg-card"):"";
+  return <TooltipProvider delayDuration={200}><PageShell><PageHeader titulo="Mesa do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
+  {erro&&<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os produtos. Atualize a página para tentar novamente. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
+  <section className="grid grid-cols-2 gap-2 lg:grid-cols-5" aria-label="Indicadores">{carregando?Array.from({length:5}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=><Button key={c.label} variant="outline" className={cn("h-20 items-start justify-center border p-3 text-left",indicador===c.id&&"border-primary bg-primary/5")} onClick={()=>setIndicador(indicador===c.id?null:c.id)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span></span></Button>)}</section>
+  <section className="flex flex-wrap items-center gap-2 border-y py-3"><div className="relative min-w-64 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={busca} onChange={e=>setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU, nome ou EAN"/></div>
+  <FiltroFacetado label="Situação" selecionados={situacoes} onChange={setSituacoes} opcoes={facet("situacao",SITUACOES.map(([valor,rotulo])=>({valor,rotulo})),(l,v)=>(l.sugestao??"__sem__")===v)}/>
+  <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facet("fase",fases.map(({valor,rotulo})=>({valor,rotulo})),(l,v)=>(l.fase??"__sem__")===v)}/>
+  <FiltroFacetado label="Coleção" selecionados={colecoes} onChange={setColecoes} opcoes={facet("colecao",valores("colecao").map(v=>({valor:v,rotulo:v})),(l,v)=>l.colecao===v)}/>
+  <FiltroFacetado label="Grupo" selecionados={grupos} onChange={setGrupos} opcoes={facet("grupo",valores("grupo").map(v=>({valor:v,rotulo:v})),(l,v)=>l.grupo===v)}/>
+  <FiltroFacetado label="Sistemas" selecionados={sistemas} onChange={setSistemas} opcoes={facet("sistemas",SISTEMAS.map(([valor,rotulo])=>({valor,rotulo})),(l,v)=>v==="sem_bling"?!temValor(l.cod_bling):v==="sem_shopify"?!temValor(l.cod_shopify):v==="sem_xpm"?!temValor(l.cod_xpm):(l.qtd_divergencias??0)>0)}/>
+  <Popover><PopoverTrigger asChild><Button variant="outline" size="sm"><Columns3 className="mr-2 h-4 w-4"/>Colunas ({colunasVisiveis.length})</Button></PopoverTrigger><PopoverContent align="end" className="w-80 p-0"><div className="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground"><span>Arraste para reordenar</span><Button variant="ghost" size="sm" onClick={()=>{setVisiveis(COLUNAS_PADRAO);setOrdemColunas(COLUNAS.map(c=>c.key));}}>Padrão</Button></div><ScrollArea className="h-96"><div className="p-2">{ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c).map(c=>{const fixaId=["cod_cadastro","sku"].includes(c.key);return <div key={c.key} draggable={!fixaId} onDragStart={()=>setArrastando(c.key)} onDragOver={e=>e.preventDefault()} onDrop={()=>mover(c.key)} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted"><GripVertical className={cn("h-4 w-4 text-muted-foreground",fixaId&&"opacity-30")}/><Checkbox checked={visiveis.includes(c.key)} disabled={fixaId} onCheckedChange={()=>setVisiveis(v=>v.includes(c.key)?v.filter(x=>x!==c.key):[...v,c.key])}/><span className="truncate text-sm">{c.rotulo}</span></div>})}</div></ScrollArea></PopoverContent></Popover>
+  {filtrosAtivos>0&&<Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros ({filtrosAtivos})</Button>}</section>
+  {carregando?<div className="space-y-2">{Array.from({length:8}).map((_,i)=><Skeleton key={i} className="h-11 w-full"/>)}</div>:recorte.length===0?<div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhum produto neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>:<><div className="relative overflow-x-auto rounded-md border"><Table className="text-xs"><TableHeader><TableRow className="bg-muted">{colunasVisiveis.map(c=><TableHead key={c.key} className={cn("whitespace-nowrap font-medium",c.direita&&"text-right",fixa(c.key,true))} aria-sort={ordem.coluna===c.key?(ordem.dir==="asc"?"ascending":"descending"):"none"}>{ORDENAVEIS.has(c.key)?<Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={()=>ordenar(c.key)}>{c.rotulo}{ordem.coluna!==c.key?<ArrowUpDown className="ml-1 h-3 w-3"/>:ordem.dir==="asc"?<ArrowUp className="ml-1 h-3 w-3"/>:<ArrowDown className="ml-1 h-3 w-3"/>}</Button>:c.rotulo}</TableHead>)}<TableHead className="sticky right-0 z-30 w-px bg-muted text-center font-medium">Ações</TableHead></TableRow></TableHeader><TableBody>{paginaLinhas.map(l=><Fragment key={l.sku}><TableRow className="border-b">{colunasVisiveis.map(c=><TableCell key={c.key} className={cn("py-2.5 align-top",c.direita&&"text-right",fixa(c.key))}>{c.key==="cod_cadastro"&&(l.qtd_divergencias??0)>0?<div className="flex items-center gap-1"><Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido===l.sku?"Recolher conciliação":"Expandir conciliação"} onClick={()=>setExpandido(e=>e===l.sku?null:l.sku)}>{expandido===l.sku?<ChevronDown className="h-3.5 w-3.5"/>:<ChevronRight className="h-3.5 w-3.5"/>}</Button>{celula(l,c)}</div>:celula(l,c)}</TableCell>)}<TableCell className="sticky right-0 z-20 bg-card py-2.5"><div className="flex justify-center gap-1">{(l.fase==="ativo"||l.fase==="pre_venda")&&<Tooltip><TooltipTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Descontinuar" disabled={emAcao===l.sku} onClick={()=>agir(l.sku,"inativo")}><Ban className="h-3.5 w-3.5"/></Button></TooltipTrigger><TooltipContent>Descontinuar</TooltipContent></Tooltip>}{l.sugestao==="pronto_para_ativo"&&<Tooltip><TooltipTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Promover para Ativo" disabled={emAcao===l.sku} onClick={()=>agir(l.sku,"ativo")}><ArrowUpCircle className="h-3.5 w-3.5"/></Button></TooltipTrigger><TooltipContent>Promover para Ativo</TooltipContent></Tooltip>}</div></TableCell></TableRow>{expandido===l.sku&&(l.qtd_divergencias??0)>0&&<TableRow><TableCell colSpan={colunasVisiveis.length+1} className="bg-muted/30 p-4"><DeParaConciliacao l={l}/></TableCell></TableRow>}</Fragment>)}</TableBody></Table></div><div className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground"><span>Mostrando <span className="font-medium tabular-nums text-foreground">{recorte.length?(paginaAtual-1)*tamanho+1:0}–{Math.min(paginaAtual*tamanho,recorte.length)}</span> de <span className="font-medium tabular-nums text-foreground">{recorte.length}</span></span><div className="flex items-center gap-2">{TAMANHOS.map(n=><Button key={n} size="sm" variant="outline" className={cn(n===tamanho&&"border-primary bg-primary/5")} onClick={()=>setTamanho(n)}>{n}</Button>)}<Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaAtual<=1} onClick={()=>setPagina(paginaAtual-1)} aria-label="Página anterior"><ChevronLeft className="h-4 w-4"/></Button><span className="tabular-nums">{paginaAtual} / {paginas}</span><Button size="icon" variant="outline" className="h-8 w-8" disabled={paginaAtual>=paginas} onClick={()=>setPagina(paginaAtual+1)} aria-label="Próxima página"><ChevronRight className="h-4 w-4"/></Button></div></div></>}
+  <AlertDialog open={!!confirmSaldo} onOpenChange={o=>!o&&setConfirmSaldo(null)}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Descontinuar com saldo em estoque?</AlertDialogTitle><AlertDialogDescription>O produto <strong>{confirmSaldo?.sku}</strong> ainda tem saldo disponível ({fmtNum(confirmSaldo?.saldo)}). Descontinuar não apaga o saldo — ele passa a ser queima.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={()=>{const sku=confirmSaldo?.sku;setConfirmSaldo(null);if(sku)agir(sku,"inativo",true);}}>Descontinuar mesmo assim</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+  <Dialog open={!!faltando} onOpenChange={o=>!o&&setFaltando(null)}><DialogContent><DialogHeader><DialogTitle>Ficha incompleta</DialogTitle><DialogDescription>O produto <strong>{faltando?.sku}</strong> não pode avançar enquanto estes campos estiverem vazios:</DialogDescription></DialogHeader>{chips(faltando?.campos)}<DialogFooter><Button variant="outline" onClick={()=>setFaltando(null)}>Fechar</Button></DialogFooter></DialogContent></Dialog>
+  <Dialog open={!!erroFop} onOpenChange={o=>!o&&setErroFop(null)}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>O FOP recusou a mudança</DialogTitle><DialogDescription>Resposta na íntegra da trava para <strong>{erroFop?.sku}</strong>.</DialogDescription></DialogHeader><pre className="max-h-80 overflow-auto rounded-md border bg-muted/40 p-3 text-xs whitespace-pre-wrap">{erroFop?.corpo}</pre><DialogFooter><Button variant="outline" onClick={()=>setErroFop(null)}>Fechar</Button></DialogFooter></DialogContent></Dialog>
+  </PageShell></TooltipProvider>;
 }
 
-/** De-para lado a lado (SNCF / Bling / XPM) + situação no cartório. Valor divergente em destaque. */
-function DeParaConciliacao({ l }: { l: ConcLinha }) {
-  const divs = new Set(l.divergencias ?? []);
-  const emDash = (v: unknown) =>
-    v === null || v === undefined || String(v).trim() === "" ? "—" : String(v);
-
-  type LinhaDP = { rotulo: string; sncf: unknown; bling?: unknown; xpm?: unknown; slugBling?: string; slugXpm?: string };
-  const linhas: LinhaDP[] = [
-    { rotulo: "EAN", sncf: l.ean, bling: l.bling_gtin, xpm: l.xpm_ean, slugBling: "bling_ean_diverge", slugXpm: "xpm_ean_diverge" },
-    { rotulo: "NCM", sncf: l.ncm, bling: l.bling_ncm, xpm: l.xpm_ncm, slugBling: "bling_ncm_diverge", slugXpm: "xpm_ncm_diverge" },
-    {
-      rotulo: "Peso",
-      sncf: l.peso_g != null ? `${fmtNum(l.peso_g)} g` : null,
-      xpm: l.xpm_peso_kg != null ? `${Number(l.xpm_peso_kg).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : null,
-      slugXpm: divs.has("xpm_peso_padrao") ? "xpm_peso_padrao" : "xpm_peso_diverge",
-    },
-    {
-      rotulo: "Ativo",
-      sncf: l.fase,
-      bling: l.bling_ativo == null ? null : l.bling_ativo ? "ativo" : "inativo",
-      slugBling: "bling_inativo_com_ativo",
-    },
-  ];
-
-  const celula = (v: unknown, slug?: string) => {
-    const divergente = !!slug && divs.has(slug);
-    return (
-      <span className={divergente ? "font-semibold text-destructive" : v == null || String(v).trim() === "" ? "text-muted-foreground" : undefined}>
-        {emDash(v)}
-      </span>
-    );
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="overflow-hidden rounded-md border bg-background">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
-              <th className="px-3 py-2 font-medium">Campo</th>
-              <th className="px-3 py-2 font-medium">SNCF</th>
-              <th className="px-3 py-2 font-medium">Bling</th>
-              <th className="px-3 py-2 font-medium">XPM</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((r) => (
-              <tr key={r.rotulo} className="border-b last:border-0">
-                <td className="px-3 py-2 text-muted-foreground">{r.rotulo}</td>
-                <td className="px-3 py-2">{celula(r.sncf)}</td>
-                <td className="px-3 py-2">{celula(r.bling, r.slugBling)}</td>
-                <td className="px-3 py-2">{celula(r.xpm, r.slugXpm)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-        <span>
-          Cartório: <span className={divs.has("sem_cartorio") || divs.has("cartorio_nao_alocado") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_estado)}</span>
-        </span>
-        <span>Inner: <span className={divs.has("cartorio_sem_inner") ? "font-semibold text-warning" : "text-foreground"}>{l.cartorio_inner ?? "—"}</span></span>
-        <span>SKU no cartório: <span className={divs.has("cartorio_sku_diverge") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_sku)}</span></span>
-      </div>
-    </div>
-  );
-}
+function DeParaConciliacao({l}:{l:LinhaUnida}){const divs=new Set(l.divergencias??[]);const dash=(v:unknown)=>v==null||String(v).trim()===""?"—":String(v);const rows=[{r:"EAN",s:l.ean,b:l.bling_gtin,x:l.xpm_ean,sb:"bling_ean_diverge",sx:"xpm_ean_diverge"},{r:"NCM",s:l.ncm,b:l.bling_ncm,x:l.xpm_ncm,sb:"bling_ncm_diverge",sx:"xpm_ncm_diverge"},{r:"Peso",s:l.peso_g!=null?`${fmtNum(l.peso_g)} g`:null,b:null,x:l.xpm_peso_kg!=null?`${fmtNum(l.xpm_peso_kg)} kg`:null,sx:divs.has("xpm_peso_padrao")?"xpm_peso_padrao":"xpm_peso_diverge"},{r:"Ativo",s:l.fase,b:l.bling_ativo==null?null:l.bling_ativo?"ativo":"inativo",x:null,sb:"bling_inativo_com_ativo"}];const val=(v:unknown,slug?:string)=><span className={cn(divs.has(slug??"")&&"text-destructive-strong",!temValor(v)&&"text-muted-foreground")}>{dash(v)}</span>;return <div className="space-y-3"><div className="overflow-hidden rounded-md border bg-background"><table className="w-full text-xs"><thead><tr className="border-b bg-muted text-left"><th className="px-3 py-2 font-medium">Campo</th><th className="px-3 py-2 font-medium">SNCF</th><th className="px-3 py-2 font-medium">Bling</th><th className="px-3 py-2 font-medium">XPM</th></tr></thead><tbody>{rows.map(r=><tr key={r.r} className="border-b last:border-0"><td className="px-3 py-2 text-muted-foreground">{r.r}</td><td className="px-3 py-2">{val(r.s)}</td><td className="px-3 py-2">{val(r.b,r.sb)}</td><td className="px-3 py-2">{val(r.x,r.sx)}</td></tr>)}</tbody></table></div><div className="flex flex-wrap gap-4 text-xs text-muted-foreground"><span>Cartório: {val(l.cartorio_estado,divs.has("sem_cartorio")?"sem_cartorio":"cartorio_nao_alocado")}</span><span>Inner: {val(l.cartorio_inner,"cartorio_sem_inner")}</span><span>SKU no cartório: {val(l.cartorio_sku,"cartorio_sku_diverge")}</span></div></div>}
