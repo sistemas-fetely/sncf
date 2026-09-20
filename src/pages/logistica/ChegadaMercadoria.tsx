@@ -7,6 +7,8 @@ import DeParaFornecedor from "@/pages/logistica/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 import EmbarquesTab from "@/components/compras/EmbarquesTab";
+import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
+
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -29,7 +31,9 @@ const ABAS: AbaMercadoria[] = [
   { value: "novo", label: "Novo pedido", render: () => <CadastroPedidoCompra vista="novo" /> },
   { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
   { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
+  { value: "importar-pi", label: "Importar PI", render: () => <ImportarPiPedidoTab /> },
 ];
+
 
 
 export default function ChegadaMercadoria() {
