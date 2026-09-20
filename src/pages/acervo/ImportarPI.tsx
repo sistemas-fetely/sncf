@@ -841,88 +841,143 @@ export default function ImportarPI() {
         </Card>
       )}
 
-      {/* PASSO 5 — ALOCAR */}
+      {/* PASSO 5 — ETAPA 1: EFETIVAR NO CARTÓRIO */}
       {loteId && contagens && !stageQuery.isPending && !stageQuery.isError && (
-        aAlocar.length === 0 ? (
-          <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">
-              Todos os itens já tinham código no cartório. Nada a alocar.
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">5. Alocar códigos</CardTitle>
-              <CardDescription>
-                {aAlocar.length} linha(s) sem código. A alocação é do cartório — a tela só pede.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor="inner">Inner</Label>
-                  <Input
-                    id="inner"
-                    type="number"
-                    min={1}
-                    value={innerQtd}
-                    onChange={(e) => { setInnerQtd(e.target.value); setPropostaVista(false); }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Vem do packing list da fábrica — não se inventa.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="motivo-aloc">Motivo</Label>
-                  <Input
-                    id="motivo-aloc"
-                    value={motivoAloc || (piNumero ? `PI ${piNumero}` : "")}
-                    onChange={(e) => { setMotivoAloc(e.target.value); setPropostaVista(false); }}
-                  />
-                </div>
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">5. Efetivar no cartório</CardTitle>
+            <CardDescription>
+              O cartório marca o código como alocado, grava o Inner e vincula a linha do lote.
+              Obrigatório antes de qualquer produto nascer no FOP.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="motivo-efetivar">Motivo</Label>
+              <Input
+                id="motivo-efetivar"
+                value={motivoEfetivar}
+                placeholder="Lanweier PI070626-162, coleção Jingle Pop"
+                onChange={(e) => { setMotivoEfetivar(e.target.value); setPrevia(null); setEfetivado(null); }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Fornecedor e número da PI — fica registrado no cartório.
+              </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => alocar(true)} disabled={alocando}>
-                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Ver proposta
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={() => efetivarCartorio(true)}
+                disabled={efetivando || !motivoEfetivar.trim()}
+              >
+                {efetivando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simular efetivação
+              </Button>
+              {previa?.ok && (
+                <Button
+                  onClick={() => efetivarCartorio(false)}
+                  disabled={efetivando || !motivoEfetivar.trim()}
+                >
+                  {efetivando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Confirmar efetivação
                 </Button>
-                <Button onClick={() => alocar(false)} disabled={alocando || !propostaVista}>
-                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Confirmar alocação
-                </Button>
-              </div>
+              )}
+            </div>
 
-              {proposta && (
-                <div className="space-y-2">
-                  {proposta.livres_depois !== null && (
-                    <div className="text-sm text-muted-foreground">
-                      Livres depois: <span className="font-medium">{proposta.livres_depois}</span>
+            {previa && previa.ok === false && (
+              <div className="space-y-2">
+                {(previa.bloqueios ?? []).map((b, i) => (
+                  <Alert key={`${b.bloqueio}-${i}`} variant="destructive">
+                    <AlertDescription>
+                      <strong>{ROTULO_BLOQUEIO[b.bloqueio] ?? b.bloqueio}</strong> — {b.linhas} linha(s)
+                      {b.detalhe ? <span className="block text-xs">{b.detalhe}</span> : null}
+                    </AlertDescription>
+                  </Alert>
+                ))}
+                {(previa.bloqueios ?? []).length === 0 && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      O cartório recusou a efetivação e não devolveu detalhe do bloqueio.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Resolva na planilha e grave o lote de novo. Não existe caminho para ignorar bloqueio.
+                </p>
+              </div>
+            )}
+
+            {(efetivado ?? (previa?.ok ? previa : null)) && (() => {
+              const r = (efetivado ?? previa)!;
+              const livres = r.livres_depois ?? null;
+              return (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Nascem</div>
+                      <div className="text-2xl font-semibold">{r.produtos?.length ?? r.linhas ?? 0}</div>
                     </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Códigos novos do cartório</div>
+                      <div className="text-2xl font-semibold">{r.alocar_novos ?? 0}</div>
+                    </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Livres depois no cartório</div>
+                      <div className="text-2xl font-semibold">{livres ?? "—"}</div>
+                    </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Nascem na fase</div>
+                      <div className="text-2xl font-semibold">{r.nascerao_em_fase ?? "—"}</div>
+                    </div>
+                  </div>
+
+                  {livres !== null && livres < 50 && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        Só sobram {livres} código(s) livres no cartório — o banco GS1 está acabando.
+                      </AlertDescription>
+                    </Alert>
                   )}
+
+                  {efetivado && (
+                    <Alert>
+                      <AlertDescription>
+                        Cartório efetivado. Os códigos já saíram do estoque: se o FOP bloquear algum
+                        item na etapa 6, isso <strong>não</strong> desfaz esta etapa.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-20">Linha</TableHead>
                           <TableHead>cod_cadastro</TableHead>
                           <TableHead>EAN</TableHead>
                           <TableHead>DUN</TableHead>
-                          <TableHead>SKU sugerido</TableHead>
+                          <TableHead>Inner</TableHead>
+                          <TableHead>Código novo</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {proposta.codigos.map((c, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.cod_cadastro) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.ean) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.dun) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.sku_sugerido) || "—"}</TableCell>
+                        {(r.produtos ?? []).map((p, i) => (
+                          <TableRow key={`${p.cod_cadastro ?? i}`}>
+                            <TableCell className="text-muted-foreground">{p.linha ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.cod_cadastro ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.ean ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.dun ?? "—"}</TableCell>
+                            <TableCell>{p.inner_qtd ?? "—"}</TableCell>
+                            <TableCell>
+                              {p.alocar_novo ? <Badge variant="default">novo</Badge> : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                           </TableRow>
                         ))}
-                        {proposta.codigos.length === 0 && (
+                        {(r.produtos ?? []).length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                              Nenhum código na proposta.
+                            <TableCell colSpan={6} className="text-muted-foreground">
+                              Nenhum produto no de-para.
                             </TableCell>
                           </TableRow>
                         )}
@@ -930,32 +985,38 @@ export default function ImportarPI() {
                     </Table>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )
+              );
+            })()}
+          </CardContent>
+        </Card>
       )}
 
-      {/* PASSO 6 — REGISTRAR NO FOP */}
-      {loteId && contagens && paraFop.length > 0 && (
+      {/* PASSO 6 — ETAPA 2: NASCER NO FOP */}
+      {loteId && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">6. Registrar no FOP</CardTitle>
+            <CardTitle className="text-base">6. Nascer no FOP</CardTitle>
             <CardDescription>
-              {paraFop.length} item(ns) reconhecido(s) ou alocado(s). Quem decide se nasce é o FOP.
+              {efetivado
+                ? `${efetivado.produtos?.length ?? 0} produto(s) efetivados no cartório. Quem decide se nasce é o FOP.`
+                : "Disponível só depois da efetivação no cartório confirmada neste lote."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-              <Button variant="outline" onClick={() => registrarFop(true)} disabled={registrando}>
-                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Ver o que será registrado
-              </Button>
-              <Button onClick={() => registrarFop(false)} disabled={registrando || !registroVisto}>
-                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Registrar no FOP
-              </Button>
-            </div>
+            {!efetivado ? (
+              <Alert>
+                <AlertDescription>
+                  Efetive o lote no cartório (passo 5) para liberar o nascimento no FOP.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={nascerNoFop} disabled={registrando}>
+                  {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Fazer nascer no FOP
+                </Button>
+              </div>
+            )}
 
             {erro401 && (
               <Alert variant="destructive">
