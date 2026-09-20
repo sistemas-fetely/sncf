@@ -57,34 +57,49 @@ serve(async (req) => {
       }
       const dryRun = body?.dry_run !== false;
 
-      const { data: fopKeyPi, error: errVault } = await supabase.rpc("get_vault_secret", {
-        p_name: "FOP_SERVICE_ROLE_KEY",
+      // Transporte: endpoint inbound do FOP (ja autentica) — a chave de servico
+      // do REST nunca foi preenchida (placeholder de template). Token compartilhado
+      // do vault, nunca do env. O julgamento dos itens continua sendo do cartorio;
+      // aqui so repassa a resposta.
+      const { data: fopToken, error: errVault } = await supabase.rpc("get_vault_secret", {
+        p_name: "FOP_INBOUND_TOKEN",
       });
-      if (errVault || !fopKeyPi) {
+      if (errVault || !fopToken) {
         console.error("[promover-fase-produto] registrar_pi: vault falhou", errVault);
         throw new Error(
-          `FOP_SERVICE_ROLE_KEY indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
+          `FOP_INBOUND_TOKEN indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
         );
       }
 
-      const respPi = await fetch(`${FOP_URL}/rest/v1/rpc/fn_registrar_produtos_cartorio`, {
+      const respPi = await fetch(`${FOP_URL}/functions/v1/sincronizar-catalogo`, {
         method: "POST",
         headers: {
-          apikey: fopKeyPi,
-          Authorization: `Bearer ${fopKeyPi}`,
+          Authorization: `Bearer ${fopToken}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ p_itens: itens, p_dry_run: dryRun }),
+        body: JSON.stringify({ modo: "registrar_pi", itens, dry_run: dryRun }),
       });
 
-      const j = await respPi.json().catch(() => ({}));
-      if (!respPi.ok) {
-        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, j);
-        throw new Error(`fn_registrar_produtos_cartorio: HTTP ${respPi.status} ${JSON.stringify(j)}`);
+      const corpoPi = await respPi.text();
+      let j: Record<string, unknown> = {};
+      try {
+        j = JSON.parse(corpoPi) as Record<string, unknown>;
+      } catch {
+        j = {};
+      }
+      if (respPi.status === 401) {
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou o token inbound", corpoPi);
+        throw new Error("O token de entrada do FOP foi recusado — configuração a revisar, não é erro do cadastro.");
+      }
+      if (!respPi.ok || j.ok !== true) {
+        console.error("[promover-fase-produto] registrar_pi: FOP recusou", respPi.status, corpoPi);
+        throw new Error(
+          `registrar_pi no FOP: HTTP ${respPi.status} ${typeof j.erro_banco === "string" ? j.erro_banco : corpoPi}`,
+        );
       }
 
       console.log("[promover-fase-produto] registrar_pi ok", { itens: itens.length, dryRun });
-      return json({ ok: true, tipo: "registrar_pi", resultado: j });
+      return json({ ok: true, tipo: "registrar_pi", resultado: j.resultado ?? j });
     }
 
     const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
