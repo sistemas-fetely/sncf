@@ -85,6 +85,44 @@ function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
 const fmtNum = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
 
+/** Selo B/S/X de presença por sistema. Presente = verde; ausente = vermelho (ausência é informação). */
+function SelosSistemas({ linha }: { linha: Linha }) {
+  const presencas = ([
+    { letra: "B", nome: "Bling", presente: linha.cod_bling != null && String(linha.cod_bling).trim() !== "" },
+    { letra: "S", nome: "Shopify", presente: linha.cod_shopify != null && String(linha.cod_shopify).trim() !== "", diverge: linha.shopify_sku_diverge === true },
+    { letra: "X", nome: "XPM", presente: linha.cod_xpm != null && String(linha.cod_xpm).trim() !== "" },
+  ] as const);
+  return (
+    <div className="flex items-center gap-1">
+      {presencas.map((s) => (
+        <Tooltip key={s.letra}>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={s.nome}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-semibold ${
+                s.presente
+                  ? s.diverge
+                    ? "border-warning/40 bg-warning/10 text-warning"
+                    : "border-success/40 bg-success/10 text-success"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {s.letra}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {s.presente
+              ? s.diverge
+                ? `${s.nome}: presente, mas com SKU diferente do nosso`
+                : `${s.nome}: presente`
+              : `${s.nome}: não encontrado`}
+          </TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+
 type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora" | "selos";
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
