@@ -23,6 +23,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 
 
 import {
@@ -39,6 +40,12 @@ import {
   gerarPlanilhaPreenchida,
   nomeArquivoPlanilhaPreenchida,
 } from "@/lib/pi/planilhaPreenchidaPI";
+import {
+  mascarar,
+  mascararMatriz,
+  mensagemErroTermoRestrito,
+  useTermosRestritos,
+} from "@/lib/pi/mascararTermoRestrito";
 
 
 const IGNORAR = "— ignorar —";
@@ -114,7 +121,9 @@ function badgeEstado(estado: string | null): "default" | "secondary" | "destruct
 }
 
 function msgErro(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
+  const restrito = mensagemErroTermoRestrito(e);
+  if (restrito) return restrito;
+  return formatError(e);
 }
 
 function chaveColuna(nome: string, i: number): string {
@@ -128,6 +137,8 @@ function textoCelula(v: unknown): string {
 
 export default function ImportarPI() {
   const queryClient = useQueryClient();
+  const termosQuery = useTermosRestritos();
+  const termos = termosQuery.data ?? [];
   const [arquivoOriginal, setArquivoOriginal] = useState<File | null>(null);
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
 
@@ -205,16 +216,27 @@ export default function ImportarPI() {
 
   async function onArquivo(file: File | undefined) {
     if (!file) return;
+    if (termosQuery.isPending) {
+      toast.error("A máscara de termos sigilosos ainda está carregando — tente novamente em um instante");
+      return;
+    }
+    if (termosQuery.isError) {
+      toast.error("A máscara de termos sigilosos não pôde ser carregada. A planilha não será exibida.");
+      return;
+    }
     if (sinonimosQuery.isPending) {
       toast.error("Sinônimos de coluna ainda carregando — tente de novo em um instante");
       return;
     }
     setLendo(true);
     try {
-      const { abas: as, matrizPorAba: mpa } = await lerArquivo(file);
+      const lido = await lerArquivo(file);
+      const mpa = mascararMatriz(lido.matrizPorAba, termos);
+      const as = Object.keys(mpa);
       if (as.length === 0) throw new Error("planilha sem abas");
       setArquivoOriginal(file);
-      setArquivoNome(file.name);
+      const nomeSeguro = mascarar(file.name, termos);
+      setArquivoNome(nomeSeguro);
 
       setAbas(as);
       setMatrizPorAba(mpa);
@@ -228,9 +250,9 @@ export default function ImportarPI() {
           if (m) { setPiNumero(m[1]); break; }
         }
       }
-      toast.success(`${file.name} lido — ${as.length} aba(s)`);
+      toast.success(`${nomeSeguro} lido — ${as.length} aba(s)`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
+      toast.error(msgErro(e));
     } finally {
       setLendo(false);
     }
@@ -577,7 +599,14 @@ export default function ImportarPI() {
         <Alert variant="destructive">
           <AlertDescription>
             Falha ao carregar os sinônimos de coluna:{" "}
-            {sinonimosQuery.error instanceof Error ? sinonimosQuery.error.message : "erro desconhecido"}
+            {formatError(sinonimosQuery.error)}
+          </AlertDescription>
+        </Alert>
+      )}
+      {termosQuery.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            A máscara de termos sigilosos não pôde ser carregada. As linhas da planilha não serão exibidas nem gravadas.
           </AlertDescription>
         </Alert>
       )}
@@ -591,7 +620,7 @@ export default function ImportarPI() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {sinonimosQuery.isPending ? (
+          {sinonimosQuery.isPending || termosQuery.isPending ? (
             <Skeleton className="h-10 w-full max-w-sm" />
           ) : (
             <div className="flex flex-wrap items-center gap-3">
@@ -599,6 +628,7 @@ export default function ImportarPI() {
                 type="file"
                 accept=".xlsx,.xls"
                 className="max-w-sm"
+                disabled={termosQuery.isError}
                 onChange={(e) => onArquivo(e.target.files?.[0])}
               />
               {lendo && (
@@ -855,7 +885,7 @@ export default function ImportarPI() {
                 {ORDEM_ESTADOS.filter((e) => contagens[e] !== undefined).map((e) => (
                   <div key={e} className="rounded-md border p-4">
                     <div className="text-xs text-muted-foreground">{e}</div>
-                    <div className="text-2xl font-semibold">{contagens[e]}</div>
+                    <div className="text-2xl font-medium">{contagens[e]}</div>
                   </div>
                 ))}
               </div>
