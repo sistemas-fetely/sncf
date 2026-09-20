@@ -26535,31 +26535,46 @@ export type Database = {
       importacao_conteiner: {
         Row: {
           atualizado_em: string
+          cbm: number | null
           criado_em: string
           id: number
+          lacre: string | null
           numero_conteiner: string | null
           observacao: string | null
           pedido_id: number
+          peso_bruto: number | null
+          peso_liquido: number | null
+          qtd_caixas: number | null
           quantidade: number
           tipo_id: number
         }
         Insert: {
           atualizado_em?: string
+          cbm?: number | null
           criado_em?: string
           id?: number
+          lacre?: string | null
           numero_conteiner?: string | null
           observacao?: string | null
           pedido_id: number
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          qtd_caixas?: number | null
           quantidade?: number
           tipo_id: number
         }
         Update: {
           atualizado_em?: string
+          cbm?: number | null
           criado_em?: string
           id?: number
+          lacre?: string | null
           numero_conteiner?: string | null
           observacao?: string | null
           pedido_id?: number
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          qtd_caixas?: number | null
           quantidade?: number
           tipo_id?: number
         }

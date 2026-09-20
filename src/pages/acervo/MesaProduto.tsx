@@ -5,6 +5,7 @@
 // ordena e mostra. A promoção e a descontinuação continuam passando pela edge
 // function promover-fase-produto, que é quem manda no FOP (mestre do dado).
 import { useMemo, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -423,7 +424,12 @@ export default function MesaProduto() {
           const fora = Array.isArray(l.campos_fora_do_espelho) ? l.campos_fora_do_espelho : [];
           return (
             <div className="flex items-center gap-1.5">
-              <span className="font-medium tracking-tight">{texto}</span>
+              <Link
+                to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`}
+                className="font-medium tracking-tight underline-offset-2 hover:underline"
+              >
+                {texto}
+              </Link>
               {fora.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
