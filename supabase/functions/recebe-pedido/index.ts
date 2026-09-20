@@ -441,6 +441,12 @@ if (body.tipo === "dimensoes_produto") {
         altura_cm: p.altura_cm,
         largura_cm: p.largura_cm,
         profundidade_cm: p.profundidade_cm,
+        // v8.1: canal de venda (ambos/b2b/b2c/nulo), familia e qtd_kit. Os tres
+        // chegavam no payload do FOP e eram descartados aqui em silencio — o sync
+        // respondia sucesso e a coluna ficava nula. Nao remover.
+        canal_venda: p.canal_venda,
+        familia: p.familia,
+        qtd_kit: p.qtd_kit,
       }));
 
       // AUSÊNCIA-NÃO-É-APAGAMENTO vive na RPC (lei do banco), não aqui. Upsert direto em
