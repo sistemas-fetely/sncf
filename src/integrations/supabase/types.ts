@@ -8092,7 +8092,38 @@ export type Database = {
             referencedRelation: "cartorio_banco_ean"
             referencedColumns: ["prefixo"]
           },
+          {
+            foreignKeyName: "fk_cartorio_estado"
+            columns: ["estado"]
+            isOneToOne: false
+            referencedRelation: "cartorio_estado_dim"
+            referencedColumns: ["slug"]
+          },
         ]
+      }
+      cartorio_estado_dim: {
+        Row: {
+          alocavel: boolean
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          alocavel?: boolean
+          descricao?: string | null
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          alocavel?: boolean
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
       }
       centro_distribuicao: {
         Row: {
@@ -52546,6 +52577,45 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_canal_execucao: {
+        Row: {
+          canal: string
+          disparado_em: string
+          erro: string | null
+          id: number
+          origem: string
+          request_id: number | null
+          respondido_em: string | null
+          resposta: string | null
+          status_code: number | null
+          sucesso: boolean | null
+        }
+        Insert: {
+          canal: string
+          disparado_em?: string
+          erro?: string | null
+          id?: number
+          origem?: string
+          request_id?: number | null
+          respondido_em?: string | null
+          resposta?: string | null
+          status_code?: number | null
+          sucesso?: boolean | null
+        }
+        Update: {
+          canal?: string
+          disparado_em?: string
+          erro?: string | null
+          id?: number
+          origem?: string
+          request_id?: number | null
+          respondido_em?: string | null
+          resposta?: string | null
+          status_code?: number | null
+          sucesso?: boolean | null
+        }
+        Relationships: []
+      }
       tarefa_execucao_tipo_dim: {
         Row: {
           ativo: boolean
@@ -67955,6 +68025,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cartorio_banco_ean"
             referencedColumns: ["prefixo"]
+          },
+          {
+            foreignKeyName: "fk_cartorio_estado"
+            columns: ["estado"]
+            isOneToOne: false
+            referencedRelation: "cartorio_estado_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
@@ -103255,6 +103332,10 @@ export type Database = {
       }
       fn_pedido_tem_lastro: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pi_conferir_lote: { Args: { p_lote_id: string }; Returns: Json }
+      fn_pi_efetivar_lote: {
+        Args: { p_dry_run?: boolean; p_lote_id: string; p_motivo: string }
+        Returns: Json
+      }
       fn_pix_brcode: {
         Args: {
           p_chave: string
@@ -103668,6 +103749,17 @@ export type Database = {
           titulo: string
           valor: number
         }[]
+      }
+      fn_sync_canal_conferir: { Args: never; Returns: Json }
+      fn_sync_canal_disparar: {
+        Args: {
+          p_body?: Json
+          p_canal: string
+          p_origem?: string
+          p_timeout_ms?: number
+          p_url: string
+        }
+        Returns: number
       }
       fn_tarefa_promover: {
         Args: {
