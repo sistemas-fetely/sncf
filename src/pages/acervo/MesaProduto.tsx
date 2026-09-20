@@ -616,12 +616,28 @@ export default function MesaProduto() {
   const textoSelos = (l: Linha) =>
     presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
 
+  /** Última fase: próxima é inativo ou inexistente. Descontinuar é ação, não promoção. */
+  const ultimaFase = (l: Linha) => {
+    const p = l.proxima_fase;
+    return p == null || String(p).trim() === "" || String(p).toLowerCase() === "inativo";
+  };
+
+  const TravessaoUltimaFase = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-muted-foreground">—</span>
+      </TooltipTrigger>
+      <TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent>
+    </Tooltip>
+  );
+
   function celula(l: Linha, c: ColDef) {
     const v = l[c.key];
     switch (c.tipo) {
       case "selos":
         return <SelosSistemas linha={l} />;
       case "chips":
+        if (c.key === "falta_proxima_fase" && ultimaFase(l)) return <TravessaoUltimaFase />;
         return <Chips itens={Array.isArray(v) ? v : null} variante={c.key === "donos_pendencia" ? "secondary" : "outline"} />;
       case "badge":
         return <Badge variant="outline">{v ?? l.fase ?? "—"}</Badge>;
