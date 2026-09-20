@@ -5,6 +5,7 @@
 // ordena e mostra. A promoção e a descontinuação continuam passando pela edge
 // function promover-fase-produto, que é quem manda no FOP (mestre do dado).
 import { useMemo, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
