@@ -168,8 +168,6 @@ const COLUNAS: ColDef[] = [
   { key: "fase_ordem", rotulo: "Ordem da fase", tipo: "num", alinharDireita: true },
   { key: "proxima_fase", rotulo: "Próxima fase", tipo: "texto" },
   { key: "sugestao", rotulo: "Sugestão", tipo: "texto" },
-  { key: "falta_fase_atual", rotulo: "Falta na fase atual", tipo: "chips" },
-  { key: "qtd_falta_atual", rotulo: "Falta (qtd) atual", tipo: "num", alinharDireita: true },
   { key: "donos_pendencia", rotulo: "Quem resolve", tipo: "chips" },
   { key: "campos_fora_do_espelho", rotulo: "Campos fora do espelho", tipo: "chips" },
   { key: "ficha_completa", rotulo: "Ficha completa", tipo: "bool" },
