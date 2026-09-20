@@ -19159,6 +19159,36 @@ export type Database = {
         }
         Relationships: []
       }
+      dimensao_auto_provisionada: {
+        Row: {
+          codigo: string
+          conferido: boolean
+          criado_em: string
+          id: number
+          origem: string
+          rotulo: string
+          tabela: string
+        }
+        Insert: {
+          codigo: string
+          conferido?: boolean
+          criado_em?: string
+          id?: number
+          origem?: string
+          rotulo: string
+          tabela: string
+        }
+        Update: {
+          codigo?: string
+          conferido?: boolean
+          criado_em?: string
+          id?: number
+          origem?: string
+          rotulo?: string
+          tabela?: string
+        }
+        Relationships: []
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string
@@ -102656,6 +102686,7 @@ export type Database = {
         Args: { p_ate: string; p_de: string }
         Returns: number
       }
+      fn_dim_slug: { Args: { p_rotulo: string }; Returns: string }
       fn_dun_de_ean: { Args: { p_ean: string }; Returns: string }
       fn_eh_comprador: { Args: { p_user_id: string }; Returns: boolean }
       fn_eh_dia_util: { Args: { p_data: string }; Returns: boolean }
@@ -105495,6 +105526,7 @@ export type Database = {
         Returns: Json
       }
       unaccent: { Args: { "": string }; Returns: string }
+      unaccent_simples: { Args: { t: string }; Returns: string }
       user_perfis_detalhados: {
         Args: { _user_id: string }
         Returns: {
