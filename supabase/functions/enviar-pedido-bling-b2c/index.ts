@@ -93,6 +93,20 @@ const limparTexto = (v: unknown): string =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** Normaliza telefone BR para o formato que o Bling aceita: "(15) 99789-6084".
+ *  O Bling RECUSA E.164 com "+" (medido no pedido Shopify 6726112280635: o POST
+ *  /contatos voltava VALIDATION_ERROR "campo Celular" e o item esgotava as 3
+ *  tentativas). Tira o DDI 55 quando presente e formata DDD+numero. Devolve
+ *  null quando o tamanho nao e 10/11 — lixo nao vai pro Bling: o campo e
+ *  omitido em vez de mandar valor que a API recusa. */
+const telefoneBR = (v: unknown): string | null => {
+  let d = String(v ?? "").replace(/\D/g, "");
+  if (d.startsWith("55") && (d.length === 12 || d.length === 13)) d = d.slice(2);
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  return null;
+};
+
 const arred2 = (n: number) => parseFloat(n.toFixed(2));
 
 // ── Shopify: dados que o espelho NAO tem ────────────────────────────────────
@@ -502,9 +516,8 @@ Deno.serve(async (req) => {
           continue;
         }
         const emailCliente = (order.email ?? order.customer?.email ?? "").trim();
-        const telefoneCliente = (order.shippingAddress?.phone ?? order.phone ?? order.customer?.phone ?? "")
-          .toString()
-          .trim();
+        const telefoneBruto = order.shippingAddress?.phone ?? order.phone ?? order.customer?.phone;
+        const telefoneCliente = telefoneBR(telefoneBruto);
 
         // 4. Produtos por SKU: cache -> GET /produtos?codigo= -> FAIL-LOUD.
         //    NUNCA cria produto no Bling (o "cria-se-nao-acha" do B2B gerava duplicata).
