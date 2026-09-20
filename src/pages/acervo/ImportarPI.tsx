@@ -105,15 +105,13 @@ export default function ImportarPI() {
   const [conferindo, setConferindo] = useState(false);
   const [contagens, setContagens] = useState<Record<string, number> | null>(null);
 
-  // passo 5
-  const [innerQtd, setInnerQtd] = useState("");
-  const [motivoAloc, setMotivoAloc] = useState("");
-  const [propostaVista, setPropostaVista] = useState(false);
-  const [proposta, setProposta] = useState<{ codigos: Record<string, unknown>[]; livres_depois: number | null } | null>(null);
-  const [alocando, setAlocando] = useState(false);
+  // passo 5 — efetivar no cartório (etapa 1: fn_pi_efetivar_lote)
+  const [motivoEfetivar, setMotivoEfetivar] = useState("");
+  const [efetivando, setEfetivando] = useState(false);
+  const [previa, setPrevia] = useState<RespostaEfetivar | null>(null);
+  const [efetivado, setEfetivado] = useState<RespostaEfetivar | null>(null);
 
-  // passo 6
-  const [registroVisto, setRegistroVisto] = useState(false);
+  // passo 6 — nascer no FOP (etapa 2, só depois da etapa 1 confirmada)
   const [registroResultado, setRegistroResultado] = useState<Record<string, unknown>[] | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [erro401, setErro401] = useState(false);
