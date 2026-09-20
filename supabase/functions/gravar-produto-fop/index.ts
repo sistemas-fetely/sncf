@@ -2,7 +2,7 @@
 // O SNCF e o mestre da linha tecnica; o FOP continua sendo a tela do Thomer para os campos dele.
 // A whitelist NAO vive aqui: vem de produto_ficha_nascimento (dono='fetely'). Se a matriz
 // mudar o dono de um campo, esta funcao muda de comportamento sozinha (DIMENSAO-VIA-TABELA).
-// Nenhum caminho devolve ok sem o PATCH no FOP ter dado 2xx.
+// Nenhum caminho devolve ok sem o FOP ter aceitado a gravacao (POST no endpoint inbound).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
