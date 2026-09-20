@@ -11,7 +11,7 @@
 //    a view só devolve os slugs em `alertas`.
 // Nenhuma faixa, percentual, nome de regra ou severidade está escrito no código.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HistoricoPrecoTab } from "@/components/acervo/HistoricoPrecoTab";
 
 /** Linha da view vw_preco_espelho (1 por SKU). */
 interface LinhaPreco {
@@ -98,6 +100,19 @@ function hojeIso(): string {
 const Travessao = () => <span className="text-muted-foreground">—</span>;
 
 export default function TabelaPreco() {
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") ?? "tabela";
+  const mudarAba = useCallback(
+    (v: string) => {
+      setParams((prev) => {
+        const prox = new URLSearchParams(prev);
+        if (v === "tabela") prox.delete("aba");
+        else prox.set("aba", v);
+        return prox;
+      }, { replace: true });
+    },
+    [setParams],
+  );
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
   const [grupo, setGrupo] = useState("todos");
@@ -283,7 +298,7 @@ export default function TabelaPreco() {
           titulo="Tabela de Preço"
           icone={Tags}
           estado="Espelho do FOP — leitura. O preço é gerido pelo time comercial."
-          acoes={
+          acoes={aba === "tabela" ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
@@ -301,9 +316,16 @@ export default function TabelaPreco() {
                 Atualizar
               </Button>
             </div>
-          }
+          ) : undefined}
         />
 
+        <Tabs value={aba} onValueChange={mudarAba} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="tabela">Tabela</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tabela" className="space-y-4">
         {erro && (
           <Card className="border-destructive/50">
             <CardContent className="py-4 text-sm text-destructive">
@@ -596,6 +618,12 @@ export default function TabelaPreco() {
           Margem calculada sobre o custo registrado no cadastro. Confira o que esse custo representa
           antes de usar como base de decisão.
         </p>
+          </TabsContent>
+
+          <TabsContent value="historico">
+            <HistoricoPrecoTab />
+          </TabsContent>
+        </Tabs>
       </PageShell>
     </TooltipProvider>
   );
