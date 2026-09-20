@@ -129,11 +129,16 @@ type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
-/** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
+/**
+ * As colunas da view. Pendências separadas em duas perguntas:
+ * "a ficha está completa para a fase em que ele está?" (Falta agora) e
+ * "ele pode avançar?" (Falta p/ promover).
+ */
 const COLUNAS_PADRAO = [
   "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "grupo", "colecao",
-  "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
+  "qtd_falta_atual", "falta_fase_atual", "qtd_falta_proxima", "falta_proxima_fase",
+  "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
@@ -147,8 +152,10 @@ const COLUNAS: ColDef[] = [
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
   { key: "colecao", rotulo: "Coleção", tipo: "texto" },
-  { key: "qtd_falta_proxima", rotulo: "Falta (qtd) próxima", tipo: "num", alinharDireita: true },
-  { key: "falta_proxima_fase", rotulo: "Falta para a próxima fase", tipo: "chips" },
+  { key: "qtd_falta_atual", rotulo: "Falta agora (qtd)", tipo: "num", alinharDireita: true },
+  { key: "falta_fase_atual", rotulo: "Falta agora", tipo: "chips" },
+  { key: "qtd_falta_proxima", rotulo: "Falta p/ promover (qtd)", tipo: "num", alinharDireita: true },
+  { key: "falta_proxima_fase", rotulo: "Falta p/ promover", tipo: "chips" },
   // Desligada por padrão: `tem_bling` vem da ficha em bling_produtos_cache,
   // origem diferente do Cód. Bling (que vem do produto em produtos).
   { key: "tem_bling", rotulo: "Ficha no Bling", tipo: "bool" },
@@ -161,8 +168,6 @@ const COLUNAS: ColDef[] = [
   { key: "fase_ordem", rotulo: "Ordem da fase", tipo: "num", alinharDireita: true },
   { key: "proxima_fase", rotulo: "Próxima fase", tipo: "texto" },
   { key: "sugestao", rotulo: "Sugestão", tipo: "texto" },
-  { key: "falta_fase_atual", rotulo: "Falta na fase atual", tipo: "chips" },
-  { key: "qtd_falta_atual", rotulo: "Falta (qtd) atual", tipo: "num", alinharDireita: true },
   { key: "donos_pendencia", rotulo: "Quem resolve", tipo: "chips" },
   { key: "campos_fora_do_espelho", rotulo: "Campos fora do espelho", tipo: "chips" },
   { key: "ficha_completa", rotulo: "Ficha completa", tipo: "bool" },
@@ -611,12 +616,28 @@ export default function MesaProduto() {
   const textoSelos = (l: Linha) =>
     presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
 
+  /** Última fase: próxima é inativo ou inexistente. Descontinuar é ação, não promoção. */
+  const ultimaFase = (l: Linha) => {
+    const p = l.proxima_fase;
+    return p == null || String(p).trim() === "" || String(p).toLowerCase() === "inativo";
+  };
+
+  const TravessaoUltimaFase = () => (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="text-muted-foreground">—</span>
+      </TooltipTrigger>
+      <TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent>
+    </Tooltip>
+  );
+
   function celula(l: Linha, c: ColDef) {
     const v = l[c.key];
     switch (c.tipo) {
       case "selos":
         return <SelosSistemas linha={l} />;
       case "chips":
+        if (c.key === "falta_proxima_fase" && ultimaFase(l)) return <TravessaoUltimaFase />;
         return <Chips itens={Array.isArray(v) ? v : null} variante={c.key === "donos_pendencia" ? "secondary" : "outline"} />;
       case "badge":
         return <Badge variant="outline">{v ?? l.fase ?? "—"}</Badge>;
@@ -639,7 +660,19 @@ export default function MesaProduto() {
           </Tooltip>
         );
       case "num": {
+        if (c.key === "qtd_falta_proxima" && ultimaFase(l)) return <TravessaoUltimaFase />;
         if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>;
+        // Furo de ficha: produto vendendo com cadastro incompleto.
+        if (c.key === "qtd_falta_atual" && Number(v) > 0 && l.fase === "ativo") {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-medium text-warning tabular-nums">{fmtNum(Number(v))}</span>
+              </TooltipTrigger>
+              <TooltipContent>produto ativo com ficha incompleta</TooltipContent>
+            </Tooltip>
+          );
+        }
         const zeroPositivo = c.key === "qtd_falta_proxima" && Number(v) === 0;
         return (
           <span className={zeroPositivo ? "font-medium text-success" : "tabular-nums"}>
