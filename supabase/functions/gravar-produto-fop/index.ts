@@ -144,47 +144,88 @@ serve(async (req) => {
       dePara[campo] = { de: (atual as Record<string, unknown>)[campo] ?? null, para: valor };
     }
 
-    // 7) Escrita no mestre do cadastro: FOP. Credencial do vault, nunca do env.
-    const { data: fopKey, error: errVault } = await supabase.rpc("get_vault_secret", {
-      p_name: "FOP_SERVICE_ROLE_KEY",
+    // 7) Escrita no mestre do cadastro: FOP, via endpoint inbound que ja autentica.
+    //    A autorizacao (whitelist, dono, identidade) continua sendo decidida AQUI —
+    //    o FOP e so o braco de escrita. Credencial do vault, nunca do env.
+    //    (A chave de servico do REST nunca foi preenchida — placeholder de template;
+    //    o token inbound e o compartilhado valido nos dois lados.)
+    const { data: fopToken, error: errVault } = await supabase.rpc("get_vault_secret", {
+      p_name: "FOP_INBOUND_TOKEN",
     });
-    if (errVault || !fopKey) {
+    if (errVault || !fopToken) {
       console.error("[gravar-produto-fop] vault falhou", errVault);
       return json(
         {
           ok: false,
-          erro: `FOP_SERVICE_ROLE_KEY indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
+          erro: `FOP_INBOUND_TOKEN indisponível no vault${errVault ? `: ${errVault.message}` : ""}`,
         },
         500,
       );
     }
 
-    const respFop = await fetch(
-      `${FOP_URL}/rest/v1/products?cod_cadastro=eq.${encodeURIComponent(codCadastro)}`,
-      {
-        method: "PATCH",
-        headers: {
-          apikey: fopKey,
-          Authorization: `Bearer ${fopKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=representation",
-        },
-        body: JSON.stringify(patch),
+    const respFop = await fetch(`${FOP_URL}/functions/v1/sincronizar-catalogo`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${fopToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        modo: "gravar_produto",
+        cod_cadastro: codCadastro,
+        campos: patch,
+        motivo,
+      }),
+    });
 
-    if (!respFop.ok) {
-      // As triggers do FOP (gate_fase, gate_dimensoes, derivar_sku) explicam o motivo:
-      // devolve o corpo cru, sem mastigar.
-      const corpo = await respFop.text();
-      console.error("[gravar-produto-fop] FOP recusou", respFop.status, corpo);
+    const corpoFop = await respFop.text();
+    let fopJson: Record<string, unknown> | null = null;
+    try {
+      fopJson = JSON.parse(corpoFop) as Record<string, unknown>;
+    } catch {
+      fopJson = null;
+    }
+
+    if (respFop.status === 401) {
+      // Falha de configuracao (token recusado), nao do usuario.
+      console.error("[gravar-produto-fop] FOP recusou o token inbound", corpoFop);
       return json(
-        { ok: false, erro: "FOP recusou a gravação", fop_status: respFop.status, fop_body: corpo },
+        { ok: false, erro: "O token de entrada do FOP foi recusado — configuração a revisar, não é erro do cadastro.", fop_status: 401, fop_body: corpoFop },
         502,
       );
     }
 
-    const fopRepresentacao = await respFop.json().catch(() => null);
+    if (respFop.status === 403) {
+      console.error("[gravar-produto-fop] FOP recusou campos", corpoFop);
+      return json(
+        { ok: false, erro: "FOP recusou campos da gravação", campos_recusados: fopJson?.campos_recusados ?? null, fop_body: corpoFop },
+        403,
+      );
+    }
+
+    if (respFop.status === 404) {
+      console.error("[gravar-produto-fop] produto nao encontrado no FOP", corpoFop);
+      return json(
+        { ok: false, erro: "Produto não encontrado no FOP", fop_body: corpoFop },
+        404,
+      );
+    }
+
+    if (!respFop.ok || fopJson?.ok !== true) {
+      // 502 do FOP traz erro_banco das triggers (gate_fase, gate_dimensoes,
+      // derivar_sku): devolve CRU, sem mastigar.
+      console.error("[gravar-produto-fop] FOP recusou", respFop.status, corpoFop);
+      return json(
+        {
+          ok: false,
+          erro: "FOP recusou a gravação",
+          fop_status: respFop.status,
+          fop_body: typeof fopJson?.erro_banco === "string" ? fopJson.erro_banco : corpoFop,
+        },
+        502,
+      );
+    }
+
+    const fopRepresentacao = fopJson;
     console.log("[gravar-produto-fop] FOP aceitou", { codCadastro, campos: pedidos });
 
     // 8) Espelho local — o sync reconcilia, mas a falha nao pode ficar muda
