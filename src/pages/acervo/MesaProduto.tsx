@@ -89,15 +89,19 @@ type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
-/** As 53 colunas da view. As 11 primeiras são as visíveis por padrão. */
+/** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
 const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "nome_comercial", "fase_nome", "grupo", "colecao",
+  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm",
+  "nome_comercial", "fase_nome", "grupo", "colecao",
   "qtd_falta_proxima", "falta_proxima_fase", "tem_bling", "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
-  { key: "cod_cadastro", rotulo: "Código", tipo: "texto" },
-  { key: "sku", rotulo: "SKU", tipo: "texto" },
+  { key: "cod_cadastro", rotulo: "Cód. Cadastro", tipo: "texto" },
+  { key: "sku", rotulo: "Cód. SKU", tipo: "texto" },
+  { key: "cod_bling", rotulo: "Cód. Bling", tipo: "texto" },
+  { key: "cod_shopify", rotulo: "Cód. Shopify", tipo: "texto" },
+  { key: "cod_xpm", rotulo: "Cód. XPM", tipo: "texto" },
   { key: "nome_comercial", rotulo: "Nome comercial", tipo: "texto" },
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
@@ -595,6 +599,41 @@ export default function MesaProduto() {
           return <span className="text-muted-foreground">—</span>;
         }
         const texto = String(v);
+        // Colunas de identidade nos sistemas de origem: nulo é informação —
+        // significa que o produto não existe naquele sistema.
+        if (c.key === "cod_bling" || c.key === "cod_shopify" || c.key === "cod_xpm") {
+          const onde = c.key === "cod_bling" ? "Bling" : c.key === "cod_shopify" ? "Shopify" : "XPM";
+          if (texto.trim() === "") {
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-muted-foreground">—</span>
+                </TooltipTrigger>
+                <TooltipContent>não encontrado no {onde}</TooltipContent>
+              </Tooltip>
+            );
+          }
+          const diverge = c.key === "cod_shopify" && l.shopify_sku_diverge === true;
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className={`block max-w-[180px] truncate ${diverge ? "font-medium text-warning" : ""}`}
+                >
+                  {texto}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs break-all">
+                {texto}
+                {diverge && (
+                  <div className="mt-1 text-warning">
+                    SKU diferente do nosso — casado pelo código de barras.
+                  </div>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
         if (c.key === "cod_cadastro") {
           const fora = Array.isArray(l.campos_fora_do_espelho) ? l.campos_fora_do_espelho : [];
           return (
