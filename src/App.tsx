@@ -405,6 +405,11 @@ const App = () => (
                     <MesaProduto />
                   </ProtectedRoute>
                  } />
+                <Route path="/vendas/produto/ficha/:cod_cadastro" element={
+                  <ProtectedRoute>
+                    <FichaProduto />
+                  </ProtectedRoute>
+                } />
                 <Route path="/vendas/produto/cartorio" element={
                   <ProtectedRoute>
                     <CartorioCodigos />
