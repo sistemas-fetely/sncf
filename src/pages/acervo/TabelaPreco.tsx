@@ -298,7 +298,7 @@ export default function TabelaPreco() {
           titulo="Tabela de Preço"
           icone={Tags}
           estado="Espelho do FOP — leitura. O preço é gerido pelo time comercial."
-          acoes={
+          acoes={aba === "tabela" ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
                 <Download className="mr-2 h-4 w-4" />
