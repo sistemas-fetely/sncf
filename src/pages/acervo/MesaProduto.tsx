@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2, RefreshCw, ArrowUpCircle, AlertTriangle, PackageX, Search, Ban,
-  Check, X, Columns3, Download, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown,
+  Check, X, Columns3, Download, ChevronLeft, ChevronRight, ChevronDown, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ type Linha = Record<string, any> & {
   atualizado_em: string | null;
 };
 
-type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos";
+type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos" | "conciliacao";
 
 const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
   { id: "prontos", label: "Prontos para promover", sugestao: "pronto_para_ativo" },
@@ -70,6 +70,8 @@ const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
   { id: "ativo_sem_bling", label: "Ativo sem Bling", sugestao: "ativo_sem_bling" },
   { id: "furo", label: "Furo em produto ativo", sugestao: "ativo_com_furo" },
   { id: "todos", label: "Todos", sugestao: null },
+  // A última aba não recorta por `sugestao`: lê vw_produto_conciliacao.
+  { id: "conciliacao", label: "Conciliação", sugestao: null },
 ];
 
 const fmtNum = (v: number | null | undefined) =>
