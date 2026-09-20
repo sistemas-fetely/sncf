@@ -1,6 +1,6 @@
 // Ato humano de mudar a fase do produto.
 // O SNCF decide (portoes de ficha, saldo, um degrau por vez); o FOP e o mestre do dado.
-// Nenhum caminho devolve ok sem o PATCH no FOP ter dado certo.
+// Nenhum caminho devolve ok sem o FOP ter aceitado (POST no endpoint inbound sincronizar-catalogo).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
