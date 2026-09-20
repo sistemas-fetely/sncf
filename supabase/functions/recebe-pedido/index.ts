@@ -376,6 +376,32 @@ if (body.tipo === "dimensoes_produto") {
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
+      // FAIL-LOUD: campo que o FOP manda e o mapeamento nao conhece nao pode sumir
+      // calado. Aviso no log (uma linha por execucao, nao por produto).
+      const CAMPOS_CONHECIDOS = new Set([
+        "sku", "cod_cadastro", "fase", "ean", "dun",
+        "nome_comercial", "nome_completo", "marca", "linha", "grupo", "tipo",
+        "departamento", "categoria", "colecao", "cor_nome", "cor", "estampa",
+        "tamanho_numero", "descricao_produto", "tipo_embalagem", "material",
+        "material_descritivo", "ncm", "cest", "origem_fisc", "origem_prod",
+        "preco_atacado", "preco_varejo", "peso_g", "multiplos", "ativo",
+        "altura_cm", "largura_cm", "profundidade_cm",
+        "canal_venda", "familia", "qtd_kit",
+      ]);
+      const desconhecidos = new Set<string>();
+      for (const p of body.produtos) {
+        if (p && typeof p === "object") {
+          for (const k of Object.keys(p)) {
+            if (!CAMPOS_CONHECIDOS.has(k)) desconhecidos.add(k);
+          }
+        }
+      }
+      if (desconhecidos.size > 0) {
+        console.warn(
+          `[recebe-pedido] catálogo: campos do payload sem destino no mapeamento (descartados): ${[...desconhecidos].sort().join(", ")}`
+        );
+      }
+
       const payload = body.produtos.map((p: any) => ({
         sku: p.sku,
         cod_cadastro: p.cod_cadastro,
