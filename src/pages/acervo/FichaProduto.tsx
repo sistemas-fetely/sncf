@@ -74,15 +74,19 @@ const NOTA_DONO: Record<string, string> = {
 };
 
 /** Erro estruturado das edge functions (403/422/409/502/500). */
-type ErroFuncao = { status: number; corpo: any };
+type CorpoFuncao = Record<string, unknown>;
+type ErroFuncao = { status: number; corpo: CorpoFuncao | null };
 
-async function chamarFuncao(nome: string, payload: Record<string, unknown>): Promise<any> {
+async function chamarFuncao(
+  nome: string,
+  payload: Record<string, unknown>,
+): Promise<CorpoFuncao> {
   const { data, error } = await supabase.functions.invoke(nome, { body: payload });
 
   if (error) {
-    const resp = (error as any)?.context as Response | undefined;
+    const resp = (error as { context?: unknown })?.context as Response | undefined;
     if (resp && typeof resp.json === "function") {
-      let corpo: any = null;
+      let corpo: CorpoFuncao | null = null;
       try {
         corpo = await resp.json();
       } catch (_) {
