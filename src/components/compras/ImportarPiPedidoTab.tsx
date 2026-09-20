@@ -25,6 +25,12 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
+import {
+  mascarar,
+  mascararMatriz,
+  mensagemErroTermoRestrito,
+  useTermosRestritos,
+} from "@/lib/pi/mascararTermoRestrito";
 
 import {
   lerArquivo,
@@ -109,6 +115,8 @@ type FabricaOpcao = {
 };
 
 function msgErro(e: unknown): string {
+  const restrito = mensagemErroTermoRestrito(e);
+  if (restrito) return restrito;
   const m = formatError(e);
   if (/row-level security|permission denied|policy/i.test(m)) {
     return `Sem permissão para gravar: hoje só super_admin escreve nesta importação. (${m})`;
@@ -171,6 +179,8 @@ function exemplosTexto(v: unknown): string | null {
 
 export default function ImportarPiPedidoTab() {
   const queryClient = useQueryClient();
+  const termosQuery = useTermosRestritos();
+  const termos = termosQuery.data ?? [];
 
   // passo 1
   const [arquivoNome, setArquivoNome] = useState<string | null>(null);
@@ -338,15 +348,26 @@ export default function ImportarPiPedidoTab() {
 
   async function onArquivo(file: File | undefined) {
     if (!file) return;
+    if (termosQuery.isPending) {
+      toast.error("A máscara de termos sigilosos ainda está carregando — tente novamente em um instante");
+      return;
+    }
+    if (termosQuery.isError) {
+      toast.error("A máscara de termos sigilosos não pôde ser carregada. A planilha não será exibida.");
+      return;
+    }
     if (sinonimosQuery.isPending) {
       toast.error("Sinônimos de coluna ainda carregando — tente de novo em um instante");
       return;
     }
     setLendo(true);
     try {
-      const { abas: as, matrizPorAba: mpa } = await lerArquivo(file);
+      const lido = await lerArquivo(file);
+      const mpa = mascararMatriz(lido.matrizPorAba, termos);
+      const as = Object.keys(mpa);
       if (as.length === 0) throw new Error("planilha sem abas");
-      setArquivoNome(file.name);
+      const nomeSeguro = mascarar(file.name, termos);
+      setArquivoNome(nomeSeguro);
       setAbas(as);
       setMatrizPorAba(mpa);
       setAba(as[0]);
@@ -359,7 +380,7 @@ export default function ImportarPiPedidoTab() {
         }
         if (achou) break;
       }
-      toast.success(`${file.name} lido — ${as.length} aba(s)`);
+      toast.success(`${nomeSeguro} lido — ${as.length} aba(s)`);
     } catch (e) {
       toast.error(msgErro(e));
     } finally {
@@ -647,6 +668,13 @@ export default function ImportarPiPedidoTab() {
           </AlertDescription>
         </Alert>
       )}
+      {termosQuery.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            A máscara de termos sigilosos não pôde ser carregada. As linhas da planilha não serão exibidas nem gravadas.
+          </AlertDescription>
+        </Alert>
+      )}
       {pedidosQuery.isError && (
         <Alert variant="destructive">
           <AlertDescription>
@@ -664,7 +692,7 @@ export default function ImportarPiPedidoTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {sinonimosQuery.isPending ? (
+          {sinonimosQuery.isPending || termosQuery.isPending ? (
             <Skeleton className="h-10 w-full max-w-sm" />
           ) : (
             <div className="flex flex-wrap items-center gap-3">
@@ -672,6 +700,7 @@ export default function ImportarPiPedidoTab() {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 className="max-w-sm"
+                disabled={termosQuery.isError}
                 onChange={(e) => onArquivo(e.target.files?.[0])}
               />
               {lendo && (
