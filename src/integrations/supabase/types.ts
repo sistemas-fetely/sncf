@@ -55276,6 +55276,33 @@ export type Database = {
         }
         Relationships: []
       }
+      termo_restrito: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          id: number
+          motivo: string | null
+          padrao: string
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          id?: number
+          motivo?: string | null
+          padrao: string
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          id?: number
+          motivo?: string | null
+          padrao?: string
+          rotulo?: string
+        }
+        Relationships: []
+      }
       ti_ativos: {
         Row: {
           atribuido_em: string | null
