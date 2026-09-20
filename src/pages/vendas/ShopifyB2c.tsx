@@ -187,6 +187,7 @@ export default function ShopifyB2c() {
   const [uf, setUf] = useState("todas");
   const [alerta, setAlerta] = useState("todos");
   const [incluirCancelados, setIncluirCancelados] = useState(false);
+  const [incluirNaoPagos, setIncluirNaoPagos] = useState(false);
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
   const [ordenacao, setOrdenacao] = useState<OrdenacaoB2c>(null);
   const [cdFiltro, setCdFiltro] = useState("todos");
@@ -273,12 +274,14 @@ export default function ShopifyB2c() {
   }, [lista]);
 
   const filaAtiva = useMemo(() => {
-    const ativos = lista.filter((p) => p.na_carteira_ativa);
+    const ativos = lista.filter(
+      (p) => p.na_carteira_ativa && (incluirNaoPagos || p.estagio !== "aguardando_pagamento"),
+    );
     return {
       qtd: ativos.length,
       valor: ativos.reduce((s, p) => s + Number(p.total ?? 0), 0),
     };
-  }, [lista]);
+  }, [lista, incluirNaoPagos]);
 
   const mapaAlerta = useMemo(() => {
     const m = new Map<string, AlertaDim>();
@@ -416,6 +419,7 @@ export default function ShopifyB2c() {
   const filtrados = useMemo(() => {
     let r = lista;
     if (!incluirCancelados) r = r.filter((p) => p.estagio !== "cancelado");
+    if (!incluirNaoPagos) r = r.filter((p) => p.estagio !== "aguardando_pagamento");
     if (estagioParam) r = r.filter((p) => p.estagio === estagioParam);
     if (uf !== "todas") r = r.filter((p) => p.shipping_province === uf);
     if (alerta !== "todos") r = r.filter((p) => p.alerta === alerta);
@@ -431,16 +435,17 @@ export default function ShopifyB2c() {
       );
     }
     return r;
-  }, [lista, incluirCancelados, estagioParam, uf, alerta, busca, cdFiltro]);
+  }, [lista, incluirCancelados, incluirNaoPagos, estagioParam, uf, alerta, busca, cdFiltro]);
 
   // Funil respeita o toggle de CD: com filtro ativo, conta a MESMA lista que a
   // tabela mostra (ignorando só o filtro de fase); em Total, a view manda.
   const listaDoCd = useMemo(() => {
     let r = lista;
     if (!incluirCancelados) r = r.filter((p) => p.estagio !== "cancelado");
+    if (!incluirNaoPagos) r = r.filter((p) => p.estagio !== "aguardando_pagamento");
     if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
     return r;
-  }, [lista, incluirCancelados, cdFiltro]);
+  }, [lista, incluirCancelados, incluirNaoPagos, cdFiltro]);
 
   const contagensPorEstagio = useMemo(() => {
     if (cdFiltro === "todos") return null;
@@ -518,7 +523,7 @@ export default function ShopifyB2c() {
   // fica olhando uma página 7 que já não existe.
   useEffect(() => {
     setPagina(1);
-  }, [busca, uf, alerta, estagioParam, incluirCancelados, ordenacao, cdFiltro]);
+  }, [busca, uf, alerta, estagioParam, incluirCancelados, incluirNaoPagos, ordenacao, cdFiltro]);
 
   const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasB2c);
@@ -637,6 +642,16 @@ export default function ShopifyB2c() {
               />
               <Label htmlFor="b2c-cancelados" className="text-xs text-muted-foreground">
                 Incluir cancelados
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                id="b2c-nao-pagos"
+                checked={incluirNaoPagos}
+                onCheckedChange={setIncluirNaoPagos}
+              />
+              <Label htmlFor="b2c-nao-pagos" className="text-xs text-muted-foreground">
+                Incluir não pagos
               </Label>
             </div>
             <span className="text-xs text-muted-foreground">
