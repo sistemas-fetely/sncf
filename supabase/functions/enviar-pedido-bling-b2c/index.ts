@@ -640,6 +640,16 @@ Deno.serve(async (req) => {
               contato: contatoNovo,
             });
           } else {
+            // GUARDRAIL: contato novo com telefone bruto que a normalizacao recusou
+            // (null). Sem isso o POST /contatos voltava VALIDATION_ERROR do Bling e o
+            // operador via um JSON de API na coluna "Proxima acao". Falha legivel aqui;
+            // SEM telefone nenhum no Shopify segue sem o campo (o Bling aceita).
+            if (telefoneBruto && !telefoneCliente) {
+              await falhar(
+                `Telefone do cliente inválido para o Bling ("${String(telefoneBruto)}") — contato novo não pode ser criado. Corrija o telefone no pedido Shopify e reenvie.`,
+              );
+              continue;
+            }
             await dormir(ESPERA_ENTRE_CHAMADAS_MS);
             try {
               const criado = await bling.post("/contatos", contatoNovo);
