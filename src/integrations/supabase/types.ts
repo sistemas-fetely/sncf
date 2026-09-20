@@ -22903,6 +22903,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -27255,6 +27262,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -27540,6 +27554,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
             referencedColumns: ["sku"]
           },
           {
@@ -28463,6 +28484,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -29061,6 +29089,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
             referencedColumns: ["sku"]
           },
           {
@@ -64449,6 +64484,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -70487,6 +70529,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
             referencedColumns: ["sku"]
           },
           {
@@ -79412,6 +79461,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -81333,6 +81389,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_produto_crosswalk"
             referencedColumns: ["sku"]
           },
@@ -81494,6 +81557,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
             referencedColumns: ["sku"]
           },
           {
@@ -85139,14 +85209,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -86086,14 +86156,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -92086,6 +92156,67 @@ export type Database = {
           },
         ]
       }
+      vw_produto_conciliacao: {
+        Row: {
+          atualizado_em: string | null
+          bling_ativo: boolean | null
+          bling_codigo: string | null
+          bling_gtin: string | null
+          bling_itens_caixa: number | null
+          bling_n_linhas: number | null
+          bling_ncm: string | null
+          bling_preco: number | null
+          cartorio_estado: string | null
+          cartorio_inner: number | null
+          cartorio_sku: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          divergencias: string[] | null
+          dun: string | null
+          ean: string | null
+          existe_bling: boolean | null
+          existe_xpm: boolean | null
+          fase: string | null
+          grupo: string | null
+          multiplos: number | null
+          ncm: string | null
+          nome_comercial: string | null
+          peso_g: number | null
+          preco_varejo: number | null
+          qtd_divergencias: number | null
+          qtd_kit: number | null
+          sku: string | null
+          tem_ficha_bling: boolean | null
+          xpm_codigo: string | null
+          xpm_ean: string | null
+          xpm_ncm: string | null
+          xpm_peso_kg: number | null
+          xpm_qtd_item: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_cartorio_estado"
+            columns: ["cartorio_estado"]
+            isOneToOne: false
+            referencedRelation: "cartorio_estado_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
       vw_produto_crosswalk: {
         Row: {
           ativo: boolean | null
@@ -96867,14 +96998,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -100933,6 +101064,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
             referencedColumns: ["sku"]
           },
           {
