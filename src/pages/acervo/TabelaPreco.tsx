@@ -319,6 +319,13 @@ export default function TabelaPreco() {
           }
         />
 
+        <Tabs value={aba} onValueChange={mudarAba} className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="tabela">Tabela</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="tabela" className="space-y-4">
         {erro && (
           <Card className="border-destructive/50">
             <CardContent className="py-4 text-sm text-destructive">
@@ -611,6 +618,12 @@ export default function TabelaPreco() {
           Margem calculada sobre o custo registrado no cadastro. Confira o que esse custo representa
           antes de usar como base de decisão.
         </p>
+          </TabsContent>
+
+          <TabsContent value="historico">
+            <HistoricoPrecoTab />
+          </TabsContent>
+        </Tabs>
       </PageShell>
     </TooltipProvider>
   );
