@@ -32,7 +32,7 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
-  usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd,
+  usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
   type PedidoB2cRow, type AlertaDim, type CentroB2c,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
@@ -823,8 +823,15 @@ export default function ShopifyB2c() {
                                             id {f.bling_pedido_id}
                                           </span>
                                         )}
+                                        {/* TENTATIVAS NO SELO: hoje um pedido em 2ª tentativa e um
+                                            recém-enfileirado ficam idênticos na tela — o operador não
+                                            distingue "esperando a janela" de "já falhou duas vezes". */}
                                         {(f.status === "pendente" || f.status === "processando") && (
-                                          <span className="text-xs text-muted-foreground">na fila</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {p.fila_tentativas && p.fila_tentativas > 0
+                                              ? `na fila (${p.fila_tentativas}/3)`
+                                              : "na fila"}
+                                          </span>
                                         )}
                                         {f.status === "aguardando_destino" && (
                                           <span className="text-xs text-muted-foreground">
@@ -832,7 +839,9 @@ export default function ShopifyB2c() {
                                           </span>
                                         )}
                                         {f.status === "erro" && (
-                                          <Selo estado="destructive">erro</Selo>
+                                          <Selo estado="destructive">
+                                            erro ({p.fila_tentativas ?? 3}/3)
+                                          </Selo>
                                         )}
                                         {f.status === "enviado" && (
                                           <Selo estado="success">No Bling</Selo>
