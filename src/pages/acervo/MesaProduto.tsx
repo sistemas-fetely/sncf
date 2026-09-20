@@ -423,9 +423,12 @@ export default function MesaProduto() {
 
   useEffect(() => { setPagina(1); setExpandido(null); }, [aba, fase, busca, tamanho, filtroDiv]);
 
-  const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const ehConc = aba === "conciliacao";
+  const recorteAtivo: unknown[] = ehConc ? concRecorte : recorte;
+  const totalPaginas = Math.max(1, Math.ceil(recorteAtivo.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const visivelNaPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const visivelConc = concRecorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
   const colunasVisiveis = COLUNAS.filter((c) => visiveis.includes(c.key));
   const abaLabel = ABAS.find((a) => a.id === aba)?.label ?? "";
