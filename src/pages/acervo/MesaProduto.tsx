@@ -1158,3 +1158,71 @@ export default function MesaProduto() {
     </TooltipProvider>
   );
 }
+
+/** De-para lado a lado (SNCF / Bling / XPM) + situação no cartório. Valor divergente em destaque. */
+function DeParaConciliacao({ l }: { l: ConcLinha }) {
+  const divs = new Set(l.divergencias ?? []);
+  const emDash = (v: unknown) =>
+    v === null || v === undefined || String(v).trim() === "" ? "—" : String(v);
+
+  type LinhaDP = { rotulo: string; sncf: unknown; bling?: unknown; xpm?: unknown; slugBling?: string; slugXpm?: string };
+  const linhas: LinhaDP[] = [
+    { rotulo: "EAN", sncf: l.ean, bling: l.bling_gtin, xpm: l.xpm_ean, slugBling: "bling_ean_diverge", slugXpm: "xpm_ean_diverge" },
+    { rotulo: "NCM", sncf: l.ncm, bling: l.bling_ncm, xpm: l.xpm_ncm, slugBling: "bling_ncm_diverge", slugXpm: "xpm_ncm_diverge" },
+    {
+      rotulo: "Peso",
+      sncf: l.peso_g != null ? `${fmtNum(l.peso_g)} g` : null,
+      xpm: l.xpm_peso_kg != null ? `${Number(l.xpm_peso_kg).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : null,
+      slugXpm: divs.has("xpm_peso_padrao") ? "xpm_peso_padrao" : "xpm_peso_diverge",
+    },
+    {
+      rotulo: "Ativo",
+      sncf: l.fase,
+      bling: l.bling_ativo == null ? null : l.bling_ativo ? "ativo" : "inativo",
+      slugBling: "bling_inativo_com_ativo",
+    },
+  ];
+
+  const celula = (v: unknown, slug?: string) => {
+    const divergente = !!slug && divs.has(slug);
+    return (
+      <span className={divergente ? "font-semibold text-destructive" : v == null || String(v).trim() === "" ? "text-muted-foreground" : undefined}>
+        {emDash(v)}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-hidden rounded-md border bg-background">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2 font-medium">Campo</th>
+              <th className="px-3 py-2 font-medium">SNCF</th>
+              <th className="px-3 py-2 font-medium">Bling</th>
+              <th className="px-3 py-2 font-medium">XPM</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((r) => (
+              <tr key={r.rotulo} className="border-b last:border-0">
+                <td className="px-3 py-2 text-muted-foreground">{r.rotulo}</td>
+                <td className="px-3 py-2">{celula(r.sncf)}</td>
+                <td className="px-3 py-2">{celula(r.bling, r.slugBling)}</td>
+                <td className="px-3 py-2">{celula(r.xpm, r.slugXpm)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          Cartório: <span className={divs.has("sem_cartorio") || divs.has("cartorio_nao_alocado") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_estado)}</span>
+        </span>
+        <span>Inner: <span className={divs.has("cartorio_sem_inner") ? "font-semibold text-warning" : "text-foreground"}>{l.cartorio_inner ?? "—"}</span></span>
+        <span>SKU no cartório: <span className={divs.has("cartorio_sku_diverge") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_sku)}</span></span>
+      </div>
+    </div>
+  );
+}
