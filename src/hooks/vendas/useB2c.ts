@@ -256,3 +256,32 @@ export function useCentrosB2c() {
     },
   });
 }
+
+/** Status do cron de descida ao Bling (rodapé da aba Fila).
+ *  Fonte: RPC fn_b2c_sinc_status (banco pronto, 1 linha). Se falhar, a tela
+ *  simplesmente não mostra o rodapé — decisão explícita da frente, não é erro
+ *  de operador. */
+export interface SincBlingStatus {
+  job_nome: string | null;
+  schedule: string | null;
+  ultimo_em: string | null;
+  ultimo_status: string | null;
+  proximo_em: string | null;
+  segundos_ate_proximo: number | null;
+  fila_pendentes: number | null;
+  fila_erro: number | null;
+}
+
+export function useSincStatusBling() {
+  return useQuery({
+    queryKey: ["b2c-sinc-status"],
+    refetchInterval: 60 * 1000,
+    retry: false,
+    queryFn: async (): Promise<SincBlingStatus | null> => {
+      const { data, error } = await supabase.rpc("fn_b2c_sinc_status");
+      if (error) throw error;
+      const linha = Array.isArray(data) ? data[0] : data;
+      return (linha ?? null) as SincBlingStatus | null;
+    },
+  });
+}

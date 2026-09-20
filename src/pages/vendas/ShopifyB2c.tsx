@@ -32,7 +32,7 @@ import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
-  usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd,
+  usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
   type PedidoB2cRow, type AlertaDim, type CentroB2c,
 } from "@/hooks/vendas/useB2c";
 import { fmtDataHora } from "@/lib/data";
@@ -90,6 +90,31 @@ const STATUS_FILA_SEM_ALERTA = new Set([
 function alertaSuprimidoPorFila(p: PedidoB2cRow): boolean {
   if (!p.fila_status) return false;
   return STATUS_FILA_SEM_ALERTA.has(p.fila_status);
+}
+
+/** HH:mm em America/Sao_Paulo para o rodapé de sincronização. */
+const fmtHoraSp = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/Sao_Paulo",
+});
+
+/** Rodapé discreto da aba Fila: último e próximo sinc do cron de descida.
+ *  Silencioso de propósito: RPC falhou ou voltou vazia → não renderiza nada
+ *  (decisão da frente — não é erro do operador). */
+function SincBlingRodape() {
+  const { data } = useSincStatusBling();
+  if (!data?.ultimo_em) return null;
+  const falhou = data.ultimo_status !== "succeeded";
+  return (
+    <span className="text-xs text-muted-foreground">
+      Bling · último sinc{" "}
+      <span className={falhou ? "text-destructive" : undefined}>
+        {fmtHoraSp.format(new Date(data.ultimo_em))}
+      </span>
+      {data.proximo_em && <> · próximo {fmtHoraSp.format(new Date(data.proximo_em))}</>}
+    </span>
+  );
 }
 
 /** Próxima ação exibida — reflete o estado real da descida ao Bling. */
@@ -823,8 +848,15 @@ export default function ShopifyB2c() {
                                             id {f.bling_pedido_id}
                                           </span>
                                         )}
+                                        {/* TENTATIVAS NO SELO: hoje um pedido em 2ª tentativa e um
+                                            recém-enfileirado ficam idênticos na tela — o operador não
+                                            distingue "esperando a janela" de "já falhou duas vezes". */}
                                         {(f.status === "pendente" || f.status === "processando") && (
-                                          <span className="text-xs text-muted-foreground">na fila</span>
+                                          <span className="text-xs text-muted-foreground">
+                                            {f.status === "pendente" && p.fila_tentativas && p.fila_tentativas > 0
+                                              ? `na fila (${p.fila_tentativas}/3)`
+                                              : "na fila"}
+                                          </span>
                                         )}
                                         {f.status === "aguardando_destino" && (
                                           <span className="text-xs text-muted-foreground">
@@ -832,7 +864,9 @@ export default function ShopifyB2c() {
                                           </span>
                                         )}
                                         {f.status === "erro" && (
-                                          <Selo estado="destructive">erro</Selo>
+                                          <Selo estado="destructive">
+                                            erro ({p.fila_tentativas ?? 3}/3)
+                                          </Selo>
                                         )}
                                         {f.status === "enviado" && (
                                           <Selo estado="success">No Bling</Selo>
@@ -1026,6 +1060,7 @@ export default function ShopifyB2c() {
                   chavePreferencia={CHAVE_PAGINA_B2C}
                   onPagina={setPagina}
                   onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+                  extraDireita={<SincBlingRodape />}
                 />
               </CardContent>
             </Card>

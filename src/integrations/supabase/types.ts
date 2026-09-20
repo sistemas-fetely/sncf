@@ -102642,6 +102642,19 @@ export type Database = {
           status_atual: string
         }[]
       }
+      fn_b2c_sinc_status: {
+        Args: never
+        Returns: {
+          fila_erro: number
+          fila_pendentes: number
+          job_nome: string
+          proximo_em: string
+          schedule: string
+          segundos_ate_proximo: number
+          ultimo_em: string
+          ultimo_status: string
+        }[]
+      }
       fn_b2c_xpm_ciclo: {
         Args: never
         Returns: {

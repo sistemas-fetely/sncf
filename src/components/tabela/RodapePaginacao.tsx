@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -51,12 +52,15 @@ export function RodapePaginacao({
   chavePreferencia,
   onPagina,
   onTamanhoPagina,
+  extraDireita,
 }: {
   total: number;
   /** 1-based */
   pagina: number;
   tamanhoPagina: number;
   chavePreferencia: string;
+  /** Conteudo opcional no fim da linha (ex.: status de sincronizacao). Telas que nao passam nada ficam como estao. */
+  extraDireita?: ReactNode;
   onPagina: (p: number) => void;
   onTamanhoPagina: (n: number) => void;
 }) {
@@ -169,6 +173,8 @@ export function RodapePaginacao({
           </Button>
         </div>
       )}
+
+      {extraDireita}
     </div>
   );
 }
