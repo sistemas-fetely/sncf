@@ -75,6 +75,11 @@ const NOTA_DONO: Record<string, string> = {
 
 /** Erro estruturado das edge functions (403/422/409/502/500). */
 type CorpoFuncao = Record<string, unknown>;
+
+/** Texto quando o campo veio como string não vazia; senão undefined. */
+function txt(v: unknown): string | undefined {
+  return typeof v === "string" && v.trim() !== "" ? v : undefined;
+}
 type ErroFuncao = { status: number; corpo: CorpoFuncao | null };
 
 async function chamarFuncao(
