@@ -376,6 +376,32 @@ if (body.tipo === "dimensoes_produto") {
     // ── Branch: sincronização de catálogo de produtos ─────────────────────
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "catalogo" && Array.isArray(body.produtos)) {
+      // FAIL-LOUD: campo que o FOP manda e o mapeamento nao conhece nao pode sumir
+      // calado. Aviso no log (uma linha por execucao, nao por produto).
+      const CAMPOS_CONHECIDOS = new Set([
+        "sku", "cod_cadastro", "fase", "ean", "dun",
+        "nome_comercial", "nome_completo", "marca", "linha", "grupo", "tipo",
+        "departamento", "categoria", "colecao", "cor_nome", "cor", "estampa",
+        "tamanho_numero", "descricao_produto", "tipo_embalagem", "material",
+        "material_descritivo", "ncm", "cest", "origem_fisc", "origem_prod",
+        "preco_atacado", "preco_varejo", "peso_g", "multiplos", "ativo",
+        "altura_cm", "largura_cm", "profundidade_cm",
+        "canal_venda", "familia", "qtd_kit",
+      ]);
+      const desconhecidos = new Set<string>();
+      for (const p of body.produtos) {
+        if (p && typeof p === "object") {
+          for (const k of Object.keys(p)) {
+            if (!CAMPOS_CONHECIDOS.has(k)) desconhecidos.add(k);
+          }
+        }
+      }
+      if (desconhecidos.size > 0) {
+        console.warn(
+          `[recebe-pedido] catálogo: campos do payload sem destino no mapeamento (descartados): ${[...desconhecidos].sort().join(", ")}`
+        );
+      }
+
       const payload = body.produtos.map((p: any) => ({
         sku: p.sku,
         cod_cadastro: p.cod_cadastro,
@@ -415,6 +441,12 @@ if (body.tipo === "dimensoes_produto") {
         altura_cm: p.altura_cm,
         largura_cm: p.largura_cm,
         profundidade_cm: p.profundidade_cm,
+        // v8.1: canal de venda (ambos/b2b/b2c/nulo), familia e qtd_kit. Os tres
+        // chegavam no payload do FOP e eram descartados aqui em silencio — o sync
+        // respondia sucesso e a coluna ficava nula. Nao remover.
+        canal_venda: p.canal_venda,
+        familia: p.familia,
+        qtd_kit: p.qtd_kit,
       }));
 
       // AUSÊNCIA-NÃO-É-APAGAMENTO vive na RPC (lei do banco), não aqui. Upsert direto em

@@ -45339,6 +45339,30 @@ export type Database = {
           },
         ]
       }
+      produto_canal_dim: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       produto_colecao_cad_dim: {
         Row: {
           ativo: boolean
@@ -51895,6 +51919,7 @@ export type Database = {
           altura_cm: number | null
           ativo: boolean
           atualizado_em: string
+          canal_venda: string | null
           categoria: string | null
           cest: string | null
           cod_cadastro: string | null
@@ -51936,6 +51961,7 @@ export type Database = {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          canal_venda?: string | null
           categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
@@ -51977,6 +52003,7 @@ export type Database = {
           altura_cm?: number | null
           ativo?: boolean
           atualizado_em?: string
+          canal_venda?: string | null
           categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
