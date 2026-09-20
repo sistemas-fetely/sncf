@@ -86183,14 +86183,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -92438,7 +92438,10 @@ export type Database = {
           campos_fora_do_espelho: string[] | null
           categoria: string | null
           cest: string | null
+          cod_bling: string | null
           cod_cadastro: string | null
+          cod_shopify: string | null
+          cod_xpm: string | null
           colecao: string | null
           cor: string | null
           cor_nome: string | null
@@ -92479,6 +92482,7 @@ export type Database = {
           qtd_falta_proxima: number | null
           qtd_kit: number | null
           saldo_disponivel: number | null
+          shopify_sku_diverge: boolean | null
           sku: string | null
           sugestao: string | null
           tamanho_numero: string | null
