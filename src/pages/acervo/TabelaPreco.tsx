@@ -10,9 +10,10 @@
 //  - os alertas vêm de preco_regra_validacao (nome, descricao, severidade);
 //    a view só devolve os slugs em `alertas`.
 // Nenhuma faixa, percentual, nome de regra ou severidade está escrito no código.
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight,
@@ -110,7 +111,7 @@ export default function TabelaPreco() {
   const faixasQ = useQuery({
     queryKey: ["preco-faixas"],
     queryFn: async (): Promise<Faixa[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown as SupabaseClient)
         .from("preco_faixa_desconto")
         .select("slug, rotulo, percentual, base, ordem")
         .eq("ativo", true)
@@ -123,7 +124,7 @@ export default function TabelaPreco() {
   const regrasQ = useQuery({
     queryKey: ["preco-regras"],
     queryFn: async (): Promise<Regra[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown as SupabaseClient)
         .from("preco_regra_validacao")
         .select("slug, nome, descricao, severidade, ordem")
         .eq("ativo", true)
@@ -136,7 +137,7 @@ export default function TabelaPreco() {
   const listaQ = useQuery({
     queryKey: ["preco-espelho"],
     queryFn: async (): Promise<LinhaPreco[]> => {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as unknown as SupabaseClient)
         .from("vw_preco_espelho")
         .select("*")
         .order("cod_cadastro", { ascending: true });
@@ -145,9 +146,9 @@ export default function TabelaPreco() {
     },
   });
 
-  const linhas = listaQ.data ?? [];
-  const faixas = faixasQ.data ?? [];
-  const regras = regrasQ.data ?? [];
+  const linhas = useMemo(() => listaQ.data ?? [], [listaQ.data]);
+  const faixas = useMemo(() => faixasQ.data ?? [], [faixasQ.data]);
+  const regras = useMemo(() => regrasQ.data ?? [], [regrasQ.data]);
 
   const regraPorSlug = useMemo(() => {
     const m = new Map<string, Regra>();
@@ -155,8 +156,10 @@ export default function TabelaPreco() {
     return m;
   }, [regras]);
 
-  const ehCritico = (l: LinhaPreco) =>
-    (l.alertas ?? []).some((s) => regraPorSlug.get(s)?.severidade === "critico");
+  const ehCritico = useCallback(
+    (l: LinhaPreco) => (l.alertas ?? []).some((s) => regraPorSlug.get(s)?.severidade === "critico"),
+    [regraPorSlug],
+  );
 
   const opcoes = useMemo(() => {
     const cole = new Set<string>();
@@ -196,7 +199,7 @@ export default function TabelaPreco() {
       for (const s of as) porRegra.set(s, (porRegra.get(s) ?? 0) + 1);
     }
     return { total: baseSemAlerta.length, comAlerta, criticos, porRegra };
-  }, [baseSemAlerta, regraPorSlug]);
+  }, [baseSemAlerta, ehCritico]);
 
   const recorte = useMemo(() => {
     let base = baseSemAlerta;
@@ -222,7 +225,7 @@ export default function TabelaPreco() {
       return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * mult;
     };
     return [...base].sort(comparar);
-  }, [baseSemAlerta, alerta, ordem, regraPorSlug]);
+  }, [baseSemAlerta, alerta, ordem, ehCritico]);
 
   useEffect(() => { setPagina(1); }, [busca, colecao, grupo, fase, alerta, tamanho]);
 
@@ -431,7 +434,7 @@ export default function TabelaPreco() {
                           key={f.slug}
                           className={cn(
                             "whitespace-nowrap text-right",
-                            base && "cursor-pointer select-none bg-muted font-semibold text-foreground",
+                            base && "cursor-pointer select-none bg-muted font-medium text-foreground",
                           )}
                           onClick={base ? () => ordenar("preco_atacado") : undefined}
                         >
@@ -500,7 +503,7 @@ export default function TabelaPreco() {
                               key={f.slug}
                               className={cn(
                                 "whitespace-nowrap text-right tabular-nums",
-                                base && "bg-muted/50 font-semibold",
+                                base && "bg-muted/50 font-medium",
                               )}
                             >
                               {fmtBRL(typeof v === "number" ? v : null) ?? <Travessao />}
