@@ -1,7 +1,8 @@
 // Aba de SOPS > Produto > Estoque. Empurra sncf_produtos.nome_operacional para o campo
 // `nome` do cadastro no Bling — o texto que sai na linha do pedido e na NF.
 // Fica ao lado da aba Conciliacao de proposito: aquela DIAGNOSTICA a divergencia de
-// cadastro, esta CORRIGE. Restrita a super_admin porque reescreve cadastro fiscal.
+// cadastro, esta CORRIGE. A escrita no Bling exige a ação nomeada
+// `acao.renomear_produto_bling` — sem ela, o botão de aplicar fica travado.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/layout/PageShell";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -63,6 +65,11 @@ export default function NomesBling() {
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [simulado, setSimulado] = useState(false);
   const [confirmar, setConfirmar] = useState(false);
+
+  // Guarda de escrita: renomear no Bling exige a ação nomeada. Enquanto a
+  // verificação carrega, o botão fica travado — default seguro é bloqueado.
+  const { permitido: podeRenomear, carregando: carregandoPermissao } =
+    usePermissaoAcaoOuSuperAdmin("acao.renomear_produto_bling");
 
   // ---- Bloco 1: situação (view instantânea) ----
   const situacao = useQuery({
@@ -286,11 +293,23 @@ export default function NomesBling() {
             </Button>
             <Button
               variant="destructive"
-              disabled={rodando || !simulado || !resultado}
+              disabled={rodando || !simulado || !resultado || !podeRenomear}
+              title={
+                !podeRenomear
+                  ? carregandoPermissao
+                    ? "Verificando permissão…"
+                    : "Requer a permissão “Renomear produto no Bling” (acao.renomear_produto_bling)"
+                  : undefined
+              }
               onClick={() => setConfirmar(true)}
             >
               Aplicar no Bling
             </Button>
+            {!podeRenomear && !carregandoPermissao && (
+              <span className="text-xs text-muted-foreground">
+                Sem a permissão “Renomear produto no Bling” — a simulação segue liberada, a escrita não.
+              </span>
+            )}
           </div>
 
           {rodando && (

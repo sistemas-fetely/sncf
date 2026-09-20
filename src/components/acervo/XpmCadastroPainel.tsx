@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { AlertTriangle, Eye, Loader2, Send, Wrench } from "lucide-react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const TETO_SKUS = 10;
 
@@ -70,6 +71,14 @@ export function XpmCadastroPainel() {
   const [dialogAberto, setDialogAberto] = useState(false);
   const [payloads, setPayloads] = useState<ResultadoSku[]>([]);
   const [resultados, setResultados] = useState<ResultadoSku[]>([]);
+
+  // Guarda de escrita: cadastrar/corrigir no XPM exige a ação nomeada.
+  // Enquanto a verificação carrega, os botões ficam travados — default seguro.
+  const { permitido: podeCadastrarXpm, carregando: carregandoPermissao } =
+    usePermissaoAcaoOuSuperAdmin("acao.cadastrar_produto_xpm");
+  const tituloSemPermissao = carregandoPermissao
+    ? "Verificando permissão…"
+    : "Requer a permissão “Cadastrar produto no XPM” (acao.cadastrar_produto_xpm)";
 
   const { data: linhas, isLoading, isError, error } = useQuery({
     queryKey: ["xpm-cadastro-divergencia"],
@@ -215,12 +224,18 @@ export function XpmCadastroPainel() {
             <Button
               size="sm"
               className="gap-2"
-              disabled={semSkus || acima || !payloadVisto || enviando}
+              disabled={semSkus || acima || !payloadVisto || enviando || !podeCadastrarXpm}
+              title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
               onClick={() => cadastrar.mutate(selecionados)}
             >
               {enviando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Cadastrar no XPM
             </Button>
+            {!podeCadastrarXpm && !carregandoPermissao && (
+              <span className="text-xs text-muted-foreground">
+                Sem a permissão “Cadastrar produto no XPM” — o diagnóstico e o payload seguem visíveis, a escrita não.
+              </span>
+            )}
             {acima && (
               <span className="text-xs text-destructive">
                 Máximo de {TETO_SKUS} SKUs por chamada. Reduza a seleção.
@@ -359,7 +374,8 @@ export function XpmCadastroPainel() {
                             size="sm"
                             variant="outline"
                             className="gap-2"
-                            disabled={corrigirCategoria.isPending}
+                            disabled={corrigirCategoria.isPending || !podeCadastrarXpm}
+                            title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
                             onClick={() => corrigirCategoria.mutate(l.sku as string)}
                           >
                             {corrigirCategoria.isPending
