@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertCircle, CalendarClock, ListTodo, User } from "lucide-react";
@@ -5,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStatusRotulo, useNomePessoa } from "@/components/tarefas/detalhe/comuns";
+import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
-import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useStatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
 import { useTarefasDoTitulo } from "@/hooks/cobranca/useTarefasDoTitulo";
 import { cn } from "@/lib/utils";
@@ -23,7 +24,7 @@ interface Props {
 /** Mesmo desenho do bloco da ficha do pedido: abertas primeiro, terminais ao fim. */
 export function TituloTarefasBloco({ tituloId }: Props) {
   const { data: tarefas = [], isLoading } = useTarefasDoTitulo(tituloId);
-  const { abrir } = useTarefaAberta();
+  const [peekId, setPeekId] = useState<string | null>(null);
   const rotuloStatus = useStatusRotulo();
   const nomePessoa = useNomePessoa();
   const { data: statusDim } = useStatusTarefaDim();
@@ -42,6 +43,7 @@ export function TituloTarefasBloco({ tituloId }: Props) {
   });
 
   return (
+    <>
     <Card className="border-border/60">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -83,13 +85,13 @@ export function TituloTarefasBloco({ tituloId }: Props) {
                     t.atrasada && !t.e_terminal && "border-destructive/40 bg-destructive/10",
                     t.e_terminal && "opacity-70 ml-4 border-l-2 border-l-muted",
                   )}
-                  onClick={() => abrir(t.tarefa_id)}
+                  onClick={() => setPeekId(t.tarefa_id)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      abrir(t.tarefa_id);
+                      setPeekId(t.tarefa_id);
                     }
                   }}
                 >
@@ -151,5 +153,13 @@ export function TituloTarefasBloco({ tituloId }: Props) {
         )}
       </CardContent>
     </Card>
+    <TarefaDetalhePainel
+      tarefaId={peekId}
+      aberto={!!peekId}
+      onOpenChange={(v) => {
+        if (!v) setPeekId(null);
+      }}
+    />
+    </>
   );
 }
