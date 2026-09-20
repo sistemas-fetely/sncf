@@ -423,7 +423,12 @@ export default function MesaProduto() {
           const fora = Array.isArray(l.campos_fora_do_espelho) ? l.campos_fora_do_espelho : [];
           return (
             <div className="flex items-center gap-1.5">
-              <span className="font-medium tracking-tight">{texto}</span>
+              <Link
+                to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`}
+                className="font-medium tracking-tight underline-offset-2 hover:underline"
+              >
+                {texto}
+              </Link>
               {fora.length > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
