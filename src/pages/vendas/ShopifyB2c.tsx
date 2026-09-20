@@ -853,7 +853,7 @@ export default function ShopifyB2c() {
                                             distingue "esperando a janela" de "já falhou duas vezes". */}
                                         {(f.status === "pendente" || f.status === "processando") && (
                                           <span className="text-xs text-muted-foreground">
-                                            {p.fila_tentativas && p.fila_tentativas > 0
+                                            {f.status === "pendente" && p.fila_tentativas && p.fila_tentativas > 0
                                               ? `na fila (${p.fila_tentativas}/3)`
                                               : "na fila"}
                                           </span>
