@@ -433,6 +433,7 @@ export default function ImportarPI() {
         setPrevia(null);
         setRegistroResultado(null);
         await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
+        await queryClient.invalidateQueries({ queryKey: ["pi-import-lote", loteId] });
         toast.success(`Cartório efetivado — ${r.produtos?.length ?? 0} produto(s) prontos para nascer`);
       }
     } catch (e) {
@@ -519,6 +520,46 @@ export default function ImportarPI() {
       setBaixando(false);
     }
   }
+
+  // ---------- PASSO 8 — PLANILHA PREENCHIDA (devolutiva pós-efetivação) ----------
+  // Montada do ESTÁGIO (pi_import_stage.bruto), não do arquivo original: o ciclo
+  // pode fechar dias depois, sem o arquivo no navegador. Rótulos originais intactos.
+  async function baixarPreenchida() {
+    if (!loteId) return;
+    setBaixandoPreenchida(true);
+    try {
+      if (linhasStage.length === 0) throw new Error("Lote sem linhas no estágio");
+      const blob = await gerarPlanilhaPreenchida(
+        linhasStage.map((l) => ({
+          bruto: l.bruto,
+          cod_cadastro: l.cod_cadastro,
+          ean: l.ean,
+          dun: l.dun,
+          inner_qtd: l.inner_qtd,
+          estado: l.estado,
+        })),
+      );
+      const nomeArquivo = nomeArquivoPlanilhaPreenchida({
+        piNumero: lote?.pi_numero ?? (piNumero.trim() || null),
+        fornecedor: lote?.fornecedor ?? (fornecedor.trim() || null),
+        loteId,
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = nomeArquivo;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success(`${linhasStage.length} linha(s) exportada(s) em ${nomeArquivo}`);
+    } catch (e) {
+      toast.error(msgErro(e));
+    } finally {
+      setBaixandoPreenchida(false);
+    }
+  }
+
 
 
   return (
