@@ -104,6 +104,10 @@ type PedidoOpcao = {
   linhas: number;
 };
 
+type FabricaOpcao = {
+  codigo: string;
+};
+
 function msgErro(e: unknown): string {
   const m = formatError(e);
   if (/row-level security|permission denied|policy/i.test(m)) {
@@ -223,7 +227,7 @@ export default function ImportarPiPedidoTab() {
 
       const { data: fabricas, error: erroFabricas } = await supabase
         .from("importacao_fabrica")
-        .select("id, codigo, nome");
+        .select("id, codigo");
       if (erroFabricas) throw new Error(erroFabricas.message);
 
       const { data: vinculos, error: erroVinculos } = await supabase
@@ -249,9 +253,9 @@ export default function ImportarPiPedidoTab() {
         if (pagina.length < BLOCO) break;
       }
 
-      const nomeFabrica = new Map<number, string>();
-      for (const f of (fabricas ?? []) as { id: number; codigo: string; nome: string | null }[]) {
-        nomeFabrica.set(f.id, f.nome ?? f.codigo);
+      const codigoFabrica = new Map<number, string>();
+      for (const f of (fabricas ?? []) as { id: number; codigo: string }[]) {
+        codigoFabrica.set(f.id, f.codigo);
       }
       const refEmbarque = new Map<number, string>();
       for (const v of (vinculos ?? []) as unknown as {
@@ -269,13 +273,25 @@ export default function ImportarPiPedidoTab() {
       }[]).map((p) => ({
         id: p.id,
         numero_pedido: p.numero_pedido,
-        fabrica: p.fabrica_id === null ? null : nomeFabrica.get(p.fabrica_id) ?? null,
+        fabrica: p.fabrica_id === null ? null : codigoFabrica.get(p.fabrica_id) ?? null,
         ref: refEmbarque.get(p.id) ?? null,
         linhas: porPedido.get(p.id) ?? 0,
       }));
 
       // sem linha primeiro — e' o caso que a importacao veio resolver
       return lista.sort((a, b) => a.linhas - b.linhas || b.id - a.id);
+    },
+  });
+
+  const fabricasQuery = useQuery({
+    queryKey: ["importacao-pi-fabricas"],
+    queryFn: async (): Promise<FabricaOpcao[]> => {
+      const { data, error } = await supabase
+        .from("importacao_fabrica")
+        .select("codigo")
+        .order("codigo");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as FabricaOpcao[];
     },
   });
 
@@ -777,8 +793,25 @@ export default function ImportarPiPedidoTab() {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="pi-fornecedor">Fornecedor</Label>
-              <Input id="pi-fornecedor" value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} />
+              <Label>Fábrica</Label>
+              {fabricasQuery.isPending ? (
+                <Skeleton className="h-10 w-full" />
+              ) : (
+                <Select value={fornecedor} onValueChange={setFornecedor}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a sigla" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(fabricasQuery.data ?? []).map((f) => (
+                      <SelectItem key={f.codigo} value={f.codigo}>{f.codigo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {fabricasQuery.isError && (
+                <p className="text-xs text-destructive">{formatError(fabricasQuery.error)}</p>
+              )}
+              <p className="text-xs text-muted-foreground">Apenas a sigla da fábrica é gravada no lote.</p>
             </div>
             <div className="space-y-1">
               <Label htmlFor="pi-numero">Número da PI</Label>
@@ -1127,7 +1160,7 @@ export default function ImportarPiPedidoTab() {
               <Input
                 id="pi-motivo"
                 className="max-w-xl"
-                placeholder="Ex.: Lanweier PI070626-162, coleção Jingle Pop"
+                placeholder="Ex.: PI070626-162 (ZL), coleção Jingle Pop"
                 value={motivo}
                 onChange={(e) => setMotivo(e.target.value)}
               />

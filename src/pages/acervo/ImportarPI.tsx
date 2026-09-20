@@ -934,7 +934,7 @@ export default function ImportarPI() {
               <Input
                 id="motivo-efetivar"
                 value={motivoEfetivar}
-                placeholder="Lanweier PI070626-162, coleção Jingle Pop"
+                placeholder="PI070626-162 (ZL), coleção Jingle Pop"
                 onChange={(e) => { setMotivoEfetivar(e.target.value); setPrevia(null); setEfetivado(null); }}
               />
               <p className="text-xs text-muted-foreground">

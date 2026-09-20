@@ -118,7 +118,6 @@ interface Centro {
 interface Fabrica {
   id: number;
   codigo: string;
-  nome: string | null;
 }
 interface Parceiro {
   id: string;
@@ -447,7 +446,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("importacao_fabrica")
-        .select("id, codigo, nome")
+        .select("id, codigo")
         .order("codigo");
       if (error) throw error;
       return (data ?? []) as Fabrica[];
@@ -1319,7 +1318,6 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       {fabricasQ.data?.map((f) => (
                         <SelectItem key={f.id} value={String(f.id)}>
                           {f.codigo}
-                          {f.nome ? ` — ${f.nome}` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>

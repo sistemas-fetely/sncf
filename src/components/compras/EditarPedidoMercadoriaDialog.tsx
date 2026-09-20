@@ -238,10 +238,10 @@ export default function EditarPedidoMercadoriaDialog({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("importacao_fabrica")
-        .select("id, codigo, nome")
+        .select("id, codigo")
         .order("codigo");
       if (error) throw error;
-      return (data ?? []) as { id: number; codigo: string; nome: string | null }[];
+      return (data ?? []) as { id: number; codigo: string }[];
     },
   });
 
@@ -476,7 +476,6 @@ export default function EditarPedidoMercadoriaDialog({
                     {fabricasQ.data?.map((f) => (
                       <SelectItem key={f.id} value={String(f.id)}>
                         {f.codigo}
-                        {f.nome ? ` — ${f.nome}` : ""}
                       </SelectItem>
                     ))}
                   </SelectContent>
