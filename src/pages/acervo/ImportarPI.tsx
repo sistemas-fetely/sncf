@@ -308,10 +308,9 @@ export default function ImportarPI() {
       setLoteId(r.loteId);
       setGravadas(r.gravadas);
       setContagens(null);
-      setProposta(null);
-      setPropostaVista(false);
+      setPrevia(null);
+      setEfetivado(null);
       setRegistroResultado(null);
-      setRegistroVisto(false);
       setErro401(false);
       setColunasCriadas(null);
       setBaixou(false);
