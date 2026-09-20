@@ -35,6 +35,10 @@ import {
 } from "@/lib/pi/lerPlanilhaPI";
 import { gravarLotePI } from "@/lib/pi/gravarLotePI";
 import { devolverPlanilhaPI, type PreenchimentoLinha } from "@/lib/pi/devolverPlanilhaPI";
+import {
+  gerarPlanilhaPreenchida,
+  nomeArquivoPlanilhaPreenchida,
+} from "@/lib/pi/planilhaPreenchidaPI";
 
 
 const IGNORAR = "— ignorar —";
@@ -45,6 +49,7 @@ const CAMPOS_IDENTIDADE = ["sku", "cod_cadastro", "ean"];
 
 type LinhaStage = {
   linha_num: number;
+  bruto: Record<string, unknown> | null;
   sku: string | null;
   cod_cadastro: string | null;
   ean: string | null;
@@ -52,6 +57,15 @@ type LinhaStage = {
   inner_qtd: number | null;
   estado: string | null;
   motivo: string | null;
+};
+
+type LotePI = {
+  id: string;
+  fornecedor: string | null;
+  pi_numero: string | null;
+  estado: string | null;
+  total_linhas: number | null;
+  atualizado_em: string | null;
 };
 
 const ORDEM_ESTADOS = ["reconhecido", "a_alocar", "erro", "ignorado"] as const;
