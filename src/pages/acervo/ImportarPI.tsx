@@ -1191,7 +1191,62 @@ export default function ImportarPI() {
           </CardContent>
         </Card>
       )}
+      {/* PASSO 8 — PLANILHA PREENCHIDA */}
+      {loteId && contagens && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">8. Planilha preenchida</CardTitle>
+            <CardDescription>
+              Devolutiva ao fornecedor com os códigos que nasceram. Colunas originais da PI
+              intactas, seguidas de Cód. Cadastro, EAN-13, DUN-14, Inner e Situação.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 rounded-md border p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <div className="text-xs text-muted-foreground">Fornecedor</div>
+                <div className="font-medium">{lote?.fornecedor || fornecedor || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Número da PI</div>
+                <div className="font-medium">{lote?.pi_numero || piNumero || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Linhas</div>
+                <div className="font-medium">{lote?.total_linhas ?? linhasStage.length}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Efetivado em</div>
+                <div className="font-medium">
+                  {loteEfetivado && lote?.atualizado_em
+                    ? new Date(lote.atualizado_em).toLocaleDateString("pt-BR")
+                    : "—"}
+                </div>
+              </div>
+            </div>
+
+            <Button
+              onClick={baixarPreenchida}
+              disabled={!loteEfetivado || baixandoPreenchida || linhasStage.length === 0}
+            >
+              {baixandoPreenchida ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Download className="mr-2 h-4 w-4" />
+              )}
+              Baixar planilha preenchida
+            </Button>
+
+            {!loteEfetivado && (
+              <p className="text-xs text-muted-foreground">
+                Disponível depois de efetivar no cartório.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </PageShell>
+
   );
 }
 
