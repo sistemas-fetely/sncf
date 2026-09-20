@@ -26544,6 +26544,7 @@ export type Database = {
           atualizado_em: string
           cbm: number | null
           criado_em: string
+          embarque_id: number | null
           id: number
           lacre: string | null
           numero_conteiner: string | null
@@ -26559,6 +26560,7 @@ export type Database = {
           atualizado_em?: string
           cbm?: number | null
           criado_em?: string
+          embarque_id?: number | null
           id?: number
           lacre?: string | null
           numero_conteiner?: string | null
@@ -26574,6 +26576,7 @@ export type Database = {
           atualizado_em?: string
           cbm?: number | null
           criado_em?: string
+          embarque_id?: number | null
           id?: number
           lacre?: string | null
           numero_conteiner?: string | null
@@ -26586,6 +26589,13 @@ export type Database = {
           tipo_id?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "importacao_conteiner_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_embarque"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "importacao_conteiner_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -26758,6 +26768,142 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_importacao_pedido_conferencia_nf"
             referencedColumns: ["nf_id"]
+          },
+        ]
+      }
+      importacao_embarque: {
+        Row: {
+          armador: string | null
+          atualizado_em: string
+          criado_em: string
+          data_chegada: string | null
+          eta: string | null
+          eta_precisao: string
+          etd: string | null
+          id: number
+          numero_bl: string | null
+          observacao: string | null
+          porto_chegada_id: number | null
+          ref_rocabella: string
+          status_id: number | null
+          total_conteineres: number
+        }
+        Insert: {
+          armador?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          data_chegada?: string | null
+          eta?: string | null
+          eta_precisao?: string
+          etd?: string | null
+          id?: number
+          numero_bl?: string | null
+          observacao?: string | null
+          porto_chegada_id?: number | null
+          ref_rocabella: string
+          status_id?: number | null
+          total_conteineres?: number
+        }
+        Update: {
+          armador?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          data_chegada?: string | null
+          eta?: string | null
+          eta_precisao?: string
+          etd?: string | null
+          id?: number
+          numero_bl?: string | null
+          observacao?: string | null
+          porto_chegada_id?: number | null
+          ref_rocabella?: string
+          status_id?: number | null
+          total_conteineres?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_embarque_porto_chegada_id_fkey"
+            columns: ["porto_chegada_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_porto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      importacao_embarque_pedido: {
+        Row: {
+          criado_em: string
+          embarque_id: number
+          id: number
+          observacao: string | null
+          parcial: boolean
+          pedido_id: number
+        }
+        Insert: {
+          criado_em?: string
+          embarque_id: number
+          id?: number
+          observacao?: string | null
+          parcial?: boolean
+          pedido_id: number
+        }
+        Update: {
+          criado_em?: string
+          embarque_id?: number
+          id?: number
+          observacao?: string | null
+          parcial?: boolean
+          pedido_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_embarque_pedido_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_embarque"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compra_pedido_identidade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
           },
         ]
       }
@@ -103975,6 +104121,10 @@ export type Database = {
           p_url: string
         }
         Returns: number
+      }
+      fn_sync_pedido_espelho: {
+        Args: { p_pedido_id: number }
+        Returns: undefined
       }
       fn_tarefa_promover: {
         Args: {
