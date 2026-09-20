@@ -6,6 +6,7 @@ import CadastroPedidoCompra from "@/pages/logistica/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/logistica/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
+import EmbarquesTab from "@/components/compras/EmbarquesTab";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
