@@ -1049,10 +1049,13 @@ export default function ImportarPI() {
                           <TableCell className="font-mono text-xs">{textoCelula(it.sku) || "—"}</TableCell>
                           <TableCell>
                             <Badge
-                              variant={
-                                status === "nasceria" ? "default"
-                                  : status === "bloqueado" ? "secondary"
-                                    : status === "erro" ? "destructive" : "outline"
+                              variant={status === "erro" ? "destructive" : "outline"}
+                              className={
+                                status === "registrado"
+                                  ? "border-success/40 bg-success/10 text-success-strong"
+                                  : status === "bloqueado"
+                                    ? "border-warning/40 bg-warning/10 text-warning-strong"
+                                    : undefined
                               }
                             >
                               {status || "—"}
