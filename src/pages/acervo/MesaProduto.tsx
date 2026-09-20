@@ -487,7 +487,9 @@ export default function MesaProduto() {
     }
     const cols = colunasVisiveis;
     const cabecalho = cols.map((c) => csvCelula(c.rotulo)).join(";");
-    const corpo = recorte.map((l) => cols.map((c) => csvCelula(l[c.key])).join(";")).join("\n");
+    const corpo = recorte
+      .map((l) => cols.map((c) => csvCelula(c.tipo === "selos" ? textoSelos(l) : l[c.key])).join(";"))
+      .join("\n");
     const conteudo = "\uFEFF" + cabecalho + "\n" + corpo;
     const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -562,6 +564,8 @@ export default function MesaProduto() {
   function celula(l: Linha, c: ColDef) {
     const v = l[c.key];
     switch (c.tipo) {
+      case "selos":
+        return <SelosSistemas linha={l} />;
       case "chips":
         return <Chips itens={Array.isArray(v) ? v : null} variante={c.key === "donos_pendencia" ? "secondary" : "outline"} />;
       case "badge":
