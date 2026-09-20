@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Selo } from "@/components/ui/selo";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
@@ -46,9 +47,43 @@ function tocarAlerta() {
 }
 
 /**
+ * Grau de confiança da foto por `fonte` (`vw_produto_imagem`). A fonte é o que
+ * muda o tratamento visual — nunca o critério de aceite, que segue sendo o EAN.
+ * Fonte desconhecida cai no tratamento de atenção com o próprio slug no
+ * tooltip — NUNCA no tratamento de confiança.
+ */
+const FONTE_FOTO: Record<string, { atencao: "discreta" | "forte"; tooltip: string }> = {
+  produto: {
+    atencao: "discreta",
+    tooltip: "foto principal do produto — pode não ser desta cor",
+  },
+  galeria: {
+    atencao: "discreta",
+    tooltip: "foto principal do produto — pode não ser desta cor",
+  },
+  cor: {
+    atencao: "forte",
+    tooltip: "foto da coleção nesta cor — confira pelo código, não pela foto",
+  },
+};
+
+function tratamentoFoto(fonte: string | null | undefined) {
+  if (!fonte) {
+    return { atencao: "discreta" as const, tooltip: "origem da foto não informada" };
+  }
+  const conhecida = FONTE_FOTO[fonte];
+  if (conhecida) return conhecida;
+  return { atencao: "discreta" as const, tooltip: `origem da foto desconhecida (${fonte})` };
+}
+
+/**
  * Foto do produto — CONFERÊNCIA VISUAL, nunca critério de aceite (quem valida
- * é o EAN). Sem foto ou falha de rede: placeholder neutro com pacote — nunca
- * um quadrado quebrado na frente do operador.
+ * é o EAN). A `fonte` vira marca de atenção sobre a imagem: 'variante' é a foto
+ * da cor certa (sem marca); 'produto'/'galeria' podem não ser desta cor (marca
+ * discreta); 'cor' é foto da coleção, não do produto (borda tracejada — mais
+ * visível, porque é ali que o conferente decide). Sem foto ou falha de rede:
+ * placeholder neutro com pacote — nunca um quadrado quebrado na frente do
+ * operador.
  */
 function FotoItem({
   imagem, descricao, tamanho,
@@ -66,15 +101,42 @@ function FotoItem({
       </span>
     );
   }
+  // 'variante' não entra no mapa de atenção: é o caso bom, sem marca.
+  const tratamento = imagem?.fonte === "variante" ? null : tratamentoFoto(imagem?.fonte);
+  const emblema = tamanho >= 100 ? 24 : 14; // na confirmação do bipe a marca precisa ser clara
   return (
-    <img
-      src={url}
-      alt={descricao}
-      loading="lazy"
-      onError={() => setQuebrou(true)}
-      className="shrink-0 rounded-md border border-border object-cover"
-      style={{ width: tamanho, height: tamanho }}
-    />
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className="relative inline-block shrink-0"
+          style={{ width: tamanho, height: tamanho }}
+        >
+          <img
+            src={url}
+            alt={descricao}
+            loading="lazy"
+            onError={() => setQuebrou(true)}
+            className={cn(
+              "shrink-0 rounded-md object-cover",
+              tratamento === null && "border border-border",
+              tratamento?.atencao === "discreta" && "border border-warning",
+              tratamento?.atencao === "forte" && "border-2 border-dashed border-warning",
+            )}
+            style={{ width: tamanho, height: tamanho }}
+          />
+          {tratamento && (
+            <span
+              className="absolute -right-1.5 -top-1.5 flex items-center justify-center rounded-full bg-warning text-warning-foreground shadow-sm"
+              style={{ width: emblema, height: emblema }}
+              aria-hidden="true"
+            >
+              <AlertTriangle style={{ width: emblema * 0.6, height: emblema * 0.6 }} />
+            </span>
+          )}
+        </span>
+      </TooltipTrigger>
+      {tratamento && <TooltipContent className="max-w-xs">{tratamento.tooltip}</TooltipContent>}
+    </Tooltip>
   );
 }
 
