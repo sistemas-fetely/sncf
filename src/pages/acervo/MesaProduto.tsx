@@ -4,14 +4,14 @@
 // classifica, não recalcula pendência e não deduz fase: só conta, recorta,
 // ordena e mostra. A promoção e a descontinuação continuam passando pela edge
 // function promover-fase-produto, que é quem manda no FOP (mestre do dado).
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, Fragment } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Loader2, RefreshCw, ArrowUpCircle, AlertTriangle, PackageX, Search, Ban,
-  Check, X, Columns3, Download, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown,
+  Check, X, Columns3, Download, ChevronLeft, ChevronRight, ChevronDown, ArrowUp, ArrowDown, ArrowUpDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ type Linha = Record<string, any> & {
   atualizado_em: string | null;
 };
 
-type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos";
+type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos" | "conciliacao";
 
 const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
   { id: "prontos", label: "Prontos para promover", sugestao: "pronto_para_ativo" },
@@ -70,6 +70,8 @@ const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
   { id: "ativo_sem_bling", label: "Ativo sem Bling", sugestao: "ativo_sem_bling" },
   { id: "furo", label: "Furo em produto ativo", sugestao: "ativo_com_furo" },
   { id: "todos", label: "Todos", sugestao: null },
+  // A última aba não recorta por `sugestao`: lê vw_produto_conciliacao.
+  { id: "conciliacao", label: "Conciliação", sugestao: null },
 ];
 
 const fmtNum = (v: number | null | undefined) =>
@@ -148,6 +150,69 @@ const ORDENAVEIS = new Set([
 
 const TAMANHOS = [50, 100, 200, 500];
 
+// ================= Conciliação (aba própria) =================
+// Fonte: view vw_produto_conciliacao (1 linha por SKU). Compara o cadastro do
+// SNCF com Bling, XPM e o cartório. Não existe tabela de regras: o dicionário
+// das divergências vive AQUI, e só aqui. Slug novo na view sem rótulo aparece
+// cru — nunca escondido.
+type SevDiv = "critico" | "atencao";
+const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string }> = {
+  sem_cartorio: { rotulo: "Sem registro no cartório", sev: "critico", explicacao: "Produto existe mas o código não está no cartório." },
+  cartorio_nao_alocado: { rotulo: "Código não alocado", sev: "critico", explicacao: "Produto usa código que o cartório não marcou como alocado." },
+  cartorio_sem_inner: { rotulo: "Cartório sem Inner", sev: "atencao", explicacao: "Código alocado sem a quantidade do Inner. Vem do packing list." },
+  cartorio_sku_diverge: { rotulo: "SKU diverge do cartório", sev: "critico", explicacao: "O SKU do produto não bate com o registrado no cartório." },
+  sem_bling: { rotulo: "Sem produto no Bling", sev: "critico", explicacao: "Não fatura: não existe no ERP." },
+  bling_duplicado: { rotulo: "Código duplicado no Bling", sev: "critico", explicacao: "Mais de uma linha no Bling com o mesmo código." },
+  bling_ean_diverge: { rotulo: "EAN diverge do Bling", sev: "critico", explicacao: "O GTIN do Bling não bate com o EAN do cadastro." },
+  bling_ncm_diverge: { rotulo: "NCM diverge do Bling", sev: "critico", explicacao: "NCM diferente entre cadastro e ERP: risco fiscal na NF-e." },
+  bling_inativo_com_ativo: { rotulo: "Inativo no Bling", sev: "critico", explicacao: "Produto ativo aqui e inativo no ERP." },
+  sem_ficha_bling: { rotulo: "Sem ficha no Bling", sev: "critico", explicacao: "Ativo sem ficha criada no ERP." },
+  sem_xpm: { rotulo: "Sem cadastro no XPM", sev: "critico", explicacao: "Não expede: o armazém não conhece o produto." },
+  xpm_ean_diverge: { rotulo: "EAN diverge do XPM", sev: "critico", explicacao: "Etiqueta do armazém não bate com o EAN do cadastro." },
+  xpm_ncm_vazio: { rotulo: "NCM vazio no XPM", sev: "atencao", explicacao: "Cadastrado no armazém sem NCM." },
+  xpm_ncm_diverge: { rotulo: "NCM diverge do XPM", sev: "critico", explicacao: "NCM diferente entre cadastro e armazém." },
+  xpm_peso_padrao: { rotulo: "Peso padrão no XPM (10,11 kg)", sev: "critico", explicacao: "Valor default que ninguém corrigiu. Peso errado = cubagem e frete errados." },
+  xpm_peso_diverge: { rotulo: "Peso diverge do XPM", sev: "atencao", explicacao: "Peso do armazém fora de 10% do cadastro." },
+};
+// Slug desconhecido do dicionário conta como crítico (não pode passar batido).
+const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
+const rotuloDoSlug = (slug: string) => DIC_DIV[slug]?.rotulo ?? slug;
+
+type ConcLinha = {
+  cod_cadastro: string | null;
+  sku: string;
+  nome_comercial: string | null;
+  colecao: string | null;
+  grupo: string | null;
+  fase: string | null;
+  ean: string | null;
+  dun: string | null;
+  ncm: string | null;
+  peso_g: number | null;
+  qtd_kit: number | null;
+  multiplos: number | null;
+  preco_varejo: number | null;
+  atualizado_em: string | null;
+  cartorio_estado: string | null;
+  cartorio_inner: number | null;
+  cartorio_sku: string | null;
+  bling_codigo: string | null;
+  bling_gtin: string | null;
+  bling_ncm: string | null;
+  bling_ativo: boolean | null;
+  bling_preco: number | null;
+  bling_n_linhas: number | null;
+  xpm_codigo: string | null;
+  xpm_ean: string | null;
+  xpm_ncm: string | null;
+  xpm_peso_kg: number | null;
+  tem_ficha_bling: boolean | null;
+  divergencias: string[] | null;
+  qtd_divergencias: number | null;
+  existe_bling: boolean | null;
+  existe_xpm: boolean | null;
+};
+
 /** Erro estruturado devolvido pela edge function (409/422/502). */
 type ErroFuncao = { status: number; corpo: any };
 
@@ -211,7 +276,19 @@ export default function MesaProduto() {
     },
   });
 
+  const conc = useQuery({
+    queryKey: ["mesa-produto-conciliacao"],
+    queryFn: async (): Promise<ConcLinha[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_produto_conciliacao")
+        .select("*");
+      if (error) throw error;
+      return (data ?? []) as ConcLinha[];
+    },
+  });
+
   const linhas = lista.data ?? [];
+  const concLinhas = conc.data ?? [];
 
   // Fases vindas da própria view (rótulo de fase_nome, ordem de fase_ordem).
   const fases = useMemo(() => {
@@ -235,17 +312,40 @@ export default function MesaProduto() {
     [linhas, fase],
   );
 
+  // Conciliação: mesmo filtro de fase da Mesa, sobre a view própria.
+  const porFaseConc = useMemo(
+    () => (fase === "todas" ? concLinhas : concLinhas.filter((l) => (l.fase ?? "sem_fase") === fase)),
+    [concLinhas, fase],
+  );
+  const concBase = useMemo(
+    () => porFaseConc.filter((l) => (l.qtd_divergencias ?? 0) > 0),
+    [porFaseConc],
+  );
+
   const contagemAba = useMemo(() => {
     const c = {} as Record<AbaId, number>;
     for (const a of ABAS) {
-      c[a.id] = a.sugestao === null
-        ? porFase.length
-        : porFase.filter((l) => l.sugestao === a.sugestao).length;
+      if (a.id === "conciliacao") {
+        c[a.id] = concBase.length;
+      } else {
+        c[a.id] = a.sugestao === null
+          ? porFase.length
+          : porFase.filter((l) => l.sugestao === a.sugestao).length;
+      }
     }
     return c;
-  }, [porFase]);
+  }, [porFase, concBase]);
 
   const contagemFase = useMemo(() => {
+    if (aba === "conciliacao") {
+      const base = concLinhas.filter((l) => (l.qtd_divergencias ?? 0) > 0);
+      const m = new Map<string, number>();
+      for (const l of base) {
+        const k = l.fase ?? "sem_fase";
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+      return { total: base.length, porCodigo: m };
+    }
     const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
     const base = sug === null ? linhas : linhas.filter((l) => l.sugestao === sug);
     const m = new Map<string, number>();
@@ -254,7 +354,7 @@ export default function MesaProduto() {
       m.set(k, (m.get(k) ?? 0) + 1);
     }
     return { total: base.length, porCodigo: m };
-  }, [linhas, aba]);
+  }, [linhas, aba, concLinhas]);
 
   const recorte = useMemo(() => {
     const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
@@ -279,11 +379,56 @@ export default function MesaProduto() {
     });
   }, [porFase, aba, busca, ordem]);
 
-  useEffect(() => { setPagina(1); }, [aba, fase, busca, tamanho]);
+  // ---- Recorte da aba Conciliação ----
+  // filtroDiv: "todas" | "criticas" | slug de divergência
+  const [filtroDiv, setFiltroDiv] = useState<string>("todas");
+  const [expandido, setExpandido] = useState<string | null>(null);
 
-  const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const concContagemSlugs = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of concBase) {
+      for (const s of l.divergencias ?? []) m.set(s, (m.get(s) ?? 0) + 1);
+    }
+    return [...m.entries()]
+      .map(([slug, n]) => ({ slug, n, sev: sevDoSlug(slug) }))
+      .sort((a, b) => (a.sev === b.sev ? b.n - a.n : a.sev === "critico" ? -1 : 1));
+  }, [concBase]);
+
+  const concCriticas = useMemo(
+    () => concBase.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico")).length,
+    [concBase],
+  );
+
+  const concRecorte = useMemo(() => {
+    let base = concBase;
+    if (filtroDiv === "criticas") {
+      base = base.filter((l) => (l.divergencias ?? []).some((s) => sevDoSlug(s) === "critico"));
+    } else if (filtroDiv !== "todas") {
+      base = base.filter((l) => (l.divergencias ?? []).includes(filtroDiv));
+    }
+    const q = busca.trim().toLowerCase();
+    if (q) {
+      base = base.filter((l) =>
+        [l.cod_cadastro, l.sku, l.nome_comercial, l.ean]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q)),
+      );
+    }
+    return [...base].sort((a, b) => {
+      const d = (b.qtd_divergencias ?? 0) - (a.qtd_divergencias ?? 0);
+      if (d !== 0) return d;
+      return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
+    });
+  }, [concBase, filtroDiv, busca]);
+
+  useEffect(() => { setPagina(1); setExpandido(null); }, [aba, fase, busca, tamanho, filtroDiv]);
+
+  const ehConc = aba === "conciliacao";
+  const recorteAtivo: unknown[] = ehConc ? concRecorte : recorte;
+  const totalPaginas = Math.max(1, Math.ceil(recorteAtivo.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const visivelNaPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const visivelConc = concRecorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
   const colunasVisiveis = COLUNAS.filter((c) => visiveis.includes(c.key));
   const abaLabel = ABAS.find((a) => a.id === aba)?.label ?? "";
@@ -302,7 +447,31 @@ export default function MesaProduto() {
     );
   }
 
+  function exportarCsvConciliacao() {
+    const cab = ["Código", "SKU", "Nome comercial", "Fase", "Cartório", "Bling", "XPM", "Divergências (qtd)", "Divergências"];
+    const simNao = (v: boolean | null) => (v === null || v === undefined ? "" : v ? "sim" : "não");
+    const corpo = concRecorte.map((l) => [
+      l.cod_cadastro, l.sku, l.nome_comercial, l.fase,
+      l.cartorio_estado ? "sim" : "não",
+      simNao(l.existe_bling), simNao(l.existe_xpm),
+      l.qtd_divergencias ?? 0,
+      (l.divergencias ?? []).map(rotuloDoSlug).join("; "),
+    ].map(csvCelula).join(";")).join("\n");
+    const conteudo = "\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo;
+    const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mesa-produto-conciliacao-${fmtData(new Date(), "").split("/").reverse().join("-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportarCsv() {
+    if (aba === "conciliacao") {
+      exportarCsvConciliacao();
+      return;
+    }
     const cols = colunasVisiveis;
     const cabecalho = cols.map((c) => csvCelula(c.rotulo)).join(";");
     const corpo = recorte.map((l) => cols.map((c) => csvCelula(l[c.key])).join(";")).join("\n");
@@ -450,6 +619,55 @@ export default function MesaProduto() {
     }
   }
 
+  // Rodapé de paginação compartilhado pelas abas (Mesa e Conciliação).
+  const rodape = (
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+      <span>
+        Mostrando{" "}
+        <span className="font-medium text-foreground tabular-nums">
+          {recorteAtivo.length === 0 ? 0 : (paginaAtual - 1) * tamanho + 1}–{Math.min(paginaAtual * tamanho, recorteAtivo.length)}
+        </span>{" "}
+        de <span className="font-medium text-foreground tabular-nums">{recorteAtivo.length}</span>
+      </span>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {TAMANHOS.map((n) => (
+            <Button
+              key={n}
+              size="sm"
+              variant={n === tamanho ? "default" : "outline"}
+              className="h-8 px-2 tabular-nums"
+              onClick={() => setTamanho(n)}
+            >
+              {n}
+            </Button>
+          ))}
+        </div>
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          disabled={paginaAtual <= 1}
+          onClick={() => setPagina(paginaAtual - 1)}
+          aria-label="Página anterior"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <span className="tabular-nums">{paginaAtual} / {totalPaginas}</span>
+        <Button
+          size="icon"
+          variant="outline"
+          className="h-8 w-8"
+          disabled={paginaAtual >= totalPaginas}
+          onClick={() => setPagina(paginaAtual + 1)}
+          aria-label="Próxima página"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <TooltipProvider delayDuration={200}>
     <PageShell>
@@ -459,11 +677,11 @@ export default function MesaProduto() {
         estado={
           lista.isLoading
             ? "Carregando fila…"
-            : `${recorte.length} de ${linhas.length} produtos · aba ${abaLabel} · fase ${faseLabel}`
+            : `${recorteAtivo.length} de ${ehConc ? concLinhas.length : linhas.length} produtos · aba ${abaLabel} · fase ${faseLabel}`
         }
         acoes={
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
+            <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorteAtivo.length === 0}>
               <Download className="mr-2 h-4 w-4" />
               Exportar CSV
             </Button>
@@ -673,52 +891,187 @@ export default function MesaProduto() {
                 </Table>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                <span>
-                  Mostrando{" "}
-                  <span className="font-medium text-foreground tabular-nums">
-                    {(paginaAtual - 1) * tamanho + 1}–{Math.min(paginaAtual * tamanho, recorte.length)}
-                  </span>{" "}
-                  de <span className="font-medium text-foreground tabular-nums">{recorte.length}</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {TAMANHOS.map((n) => (
-                      <Button
-                        key={n}
-                        size="sm"
-                        variant={n === tamanho ? "default" : "outline"}
-                        className="h-8 px-2 tabular-nums"
-                        onClick={() => setTamanho(n)}
-                      >
-                        {n}
-                      </Button>
-                    ))}
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    disabled={paginaAtual <= 1}
-                    onClick={() => setPagina(paginaAtual - 1)}
-                    aria-label="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="tabular-nums">{paginaAtual} / {totalPaginas}</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    disabled={paginaAtual >= totalPaginas}
-                    onClick={() => setPagina(paginaAtual + 1)}
-                    aria-label="Próxima página"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              {rodape}
             </>
+          )}
+
+          {/* ================= Aba Conciliação ================= */}
+          {ehConc && (
+            conc.isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+              </div>
+            ) : conc.isError ? (
+              <Card className="border-destructive">
+                <CardContent className="flex items-center gap-2 py-4 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  Falha ao ler a conciliação: {(conc.error as Error)?.message}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Compara o cadastro do SNCF com Bling, XPM e o cartório de códigos.
+                  Esta aba aponta; corrigir é pela Ficha do Produto ou pelo dono do sistema de origem.
+                </p>
+
+                {/* Resumo clicável */}
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant={filtroDiv === "todas" ? "default" : "outline"}
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setFiltroDiv("todas")}
+                  >
+                    Com divergência
+                    <Badge variant="secondary" className="text-[10px]">{concBase.length}</Badge>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filtroDiv === "criticas" ? "default" : "outline"}
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setFiltroDiv("criticas")}
+                  >
+                    Críticas
+                    <Badge variant="secondary" className="text-[10px]">{concCriticas}</Badge>
+                  </Button>
+                  {concContagemSlugs.map((s) => (
+                    <Button
+                      key={s.slug}
+                      size="sm"
+                      variant={filtroDiv === s.slug ? "default" : "outline"}
+                      className="h-8 gap-1.5 text-xs"
+                      onClick={() => setFiltroDiv(s.slug)}
+                    >
+                      {rotuloDoSlug(s.slug)}
+                      <Badge variant="secondary" className="text-[10px]">{s.n}</Badge>
+                    </Button>
+                  ))}
+                </div>
+
+                {concRecorte.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    Nenhum produto com divergência neste recorte.
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Código</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Nome comercial</TableHead>
+                            <TableHead>Fase</TableHead>
+                            <TableHead>Cartório · Bling · XPM</TableHead>
+                            <TableHead className="text-right">Divergências</TableHead>
+                            <TableHead>Quais</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visivelConc.map((l) => {
+                            const divs = l.divergencias ?? [];
+                            const presencas: { nome: string; ok: boolean | null }[] = [
+                              { nome: "Cartório", ok: l.cartorio_estado != null },
+                              { nome: "Bling", ok: l.existe_bling },
+                              { nome: "XPM", ok: l.existe_xpm },
+                            ];
+                            return (
+                              <Fragment key={l.sku}>
+                                <TableRow
+                                  className="cursor-pointer"
+                                  onClick={() => setExpandido((e) => (e === l.sku ? null : l.sku))}
+                                >
+                                  <TableCell>
+                                    <div className="flex items-center gap-1.5">
+                                      {expandido === l.sku
+                                        ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                        : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                                      {l.cod_cadastro ? (
+                                        <Link
+                                          to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`}
+                                          className="font-medium tracking-tight underline-offset-2 hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {l.cod_cadastro}
+                                        </Link>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm">{l.sku}</TableCell>
+                                  <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
+                                  <TableCell><Badge variant="outline">{l.fase ?? "—"}</Badge></TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      {presencas.map((p) => (
+                                        <Tooltip key={p.nome}>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1">
+                                              {p.ok
+                                                ? <Check className="h-4 w-4 text-success" />
+                                                : <X className="h-4 w-4 text-destructive" />}
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>{p.nome}: {p.ok ? "presente" : "ausente"}</TooltipContent>
+                                        </Tooltip>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{l.qtd_divergencias ?? 0}</TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      {divs.slice(0, 3).map((s) => (
+                                        <Tooltip key={s}>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                              <Badge
+                                                variant={sevDoSlug(s) === "critico" ? "destructive" : "outline"}
+                                                className={sevDoSlug(s) === "critico" ? "text-[11px] font-normal" : "border-warning/60 text-[11px] font-normal text-warning"}
+                                              >
+                                                {rotuloDoSlug(s)}
+                                              </Badge>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            {DIC_DIV[s]?.explicacao ?? `Divergência sem rótulo no dicionário: ${s}`}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      ))}
+                                      {divs.length > 3 && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                              <Badge variant="secondary" className="text-[11px] font-normal">+{divs.length - 3}</Badge>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            {divs.slice(3).map(rotuloDoSlug).join(", ")}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                {expandido === l.sku && (
+                                  <TableRow>
+                                    <TableCell colSpan={7} className="bg-muted/30 p-4">
+                                      <DeParaConciliacao l={l} />
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </Fragment>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {rodape}
+                  </>
+                )}
+              </>
+            )
           )}
         </CardContent>
       </Card>
@@ -803,5 +1156,73 @@ export default function MesaProduto() {
       </Dialog>
     </PageShell>
     </TooltipProvider>
+  );
+}
+
+/** De-para lado a lado (SNCF / Bling / XPM) + situação no cartório. Valor divergente em destaque. */
+function DeParaConciliacao({ l }: { l: ConcLinha }) {
+  const divs = new Set(l.divergencias ?? []);
+  const emDash = (v: unknown) =>
+    v === null || v === undefined || String(v).trim() === "" ? "—" : String(v);
+
+  type LinhaDP = { rotulo: string; sncf: unknown; bling?: unknown; xpm?: unknown; slugBling?: string; slugXpm?: string };
+  const linhas: LinhaDP[] = [
+    { rotulo: "EAN", sncf: l.ean, bling: l.bling_gtin, xpm: l.xpm_ean, slugBling: "bling_ean_diverge", slugXpm: "xpm_ean_diverge" },
+    { rotulo: "NCM", sncf: l.ncm, bling: l.bling_ncm, xpm: l.xpm_ncm, slugBling: "bling_ncm_diverge", slugXpm: "xpm_ncm_diverge" },
+    {
+      rotulo: "Peso",
+      sncf: l.peso_g != null ? `${fmtNum(l.peso_g)} g` : null,
+      xpm: l.xpm_peso_kg != null ? `${Number(l.xpm_peso_kg).toLocaleString("pt-BR", { maximumFractionDigits: 3 })} kg` : null,
+      slugXpm: divs.has("xpm_peso_padrao") ? "xpm_peso_padrao" : "xpm_peso_diverge",
+    },
+    {
+      rotulo: "Ativo",
+      sncf: l.fase,
+      bling: l.bling_ativo == null ? null : l.bling_ativo ? "ativo" : "inativo",
+      slugBling: "bling_inativo_com_ativo",
+    },
+  ];
+
+  const celula = (v: unknown, slug?: string) => {
+    const divergente = !!slug && divs.has(slug);
+    return (
+      <span className={divergente ? "font-semibold text-destructive" : v == null || String(v).trim() === "" ? "text-muted-foreground" : undefined}>
+        {emDash(v)}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="overflow-hidden rounded-md border bg-background">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50 text-left text-xs text-muted-foreground">
+              <th className="px-3 py-2 font-medium">Campo</th>
+              <th className="px-3 py-2 font-medium">SNCF</th>
+              <th className="px-3 py-2 font-medium">Bling</th>
+              <th className="px-3 py-2 font-medium">XPM</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((r) => (
+              <tr key={r.rotulo} className="border-b last:border-0">
+                <td className="px-3 py-2 text-muted-foreground">{r.rotulo}</td>
+                <td className="px-3 py-2">{celula(r.sncf)}</td>
+                <td className="px-3 py-2">{celula(r.bling, r.slugBling)}</td>
+                <td className="px-3 py-2">{celula(r.xpm, r.slugXpm)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+        <span>
+          Cartório: <span className={divs.has("sem_cartorio") || divs.has("cartorio_nao_alocado") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_estado)}</span>
+        </span>
+        <span>Inner: <span className={divs.has("cartorio_sem_inner") ? "font-semibold text-warning" : "text-foreground"}>{l.cartorio_inner ?? "—"}</span></span>
+        <span>SKU no cartório: <span className={divs.has("cartorio_sku_diverge") ? "font-semibold text-destructive" : "text-foreground"}>{emDash(l.cartorio_sku)}</span></span>
+      </div>
+    </div>
   );
 }

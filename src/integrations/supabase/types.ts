@@ -87698,14 +87698,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -92162,7 +92162,6 @@ export type Database = {
           bling_ativo: boolean | null
           bling_codigo: string | null
           bling_gtin: string | null
-          bling_itens_caixa: number | null
           bling_n_linhas: number | null
           bling_ncm: string | null
           bling_preco: number | null
@@ -92191,7 +92190,6 @@ export type Database = {
           xpm_ean: string | null
           xpm_ncm: string | null
           xpm_peso_kg: number | null
-          xpm_qtd_item: number | null
         }
         Relationships: [
           {
