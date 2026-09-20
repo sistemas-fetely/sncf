@@ -730,16 +730,16 @@ export default function EmbarquesTab() {
   const [soTransito, setSoTransito] = useState(false);
   const [editando, setEditando] = useState<number | null>(null);
 
-  const status = dimQ.data?.status ?? [];
-  const portos = dimQ.data?.portos ?? [];
-  const tipos = dimQ.data?.tipos ?? [];
-  const fabricas = dimQ.data?.fabricas ?? [];
+  const status = useMemo<DimStatus[]>(() => dimQ.data?.status ?? [], [dimQ.data]);
+  const portos = useMemo<DimPorto[]>(() => dimQ.data?.portos ?? [], [dimQ.data]);
+  const tipos = useMemo<DimTipo[]>(() => dimQ.data?.tipos ?? [], [dimQ.data]);
+  const fabricas = useMemo<DimFabrica[]>(() => dimQ.data?.fabricas ?? [], [dimQ.data]);
 
   const statusPorId = useMemo(() => new Map(status.map((s) => [s.id, s])), [status]);
   const portoPorId = useMemo(() => new Map(portos.map((p) => [p.id, p])), [portos]);
   const fabricaPorId = useMemo(() => new Map(fabricas.map((f) => [f.id, f])), [fabricas]);
 
-  const embarques = embarquesQ.data ?? [];
+  const embarques = useMemo<EmbarqueRow[]>(() => embarquesQ.data ?? [], [embarquesQ.data]);
 
   const registrarChegada = useMutation({
     mutationFn: async (emb: EmbarqueRow) => {
