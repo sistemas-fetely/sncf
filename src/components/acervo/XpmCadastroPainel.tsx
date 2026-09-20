@@ -224,12 +224,18 @@ export function XpmCadastroPainel() {
             <Button
               size="sm"
               className="gap-2"
-              disabled={semSkus || acima || !payloadVisto || enviando}
+              disabled={semSkus || acima || !payloadVisto || enviando || !podeCadastrarXpm}
+              title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
               onClick={() => cadastrar.mutate(selecionados)}
             >
               {enviando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Cadastrar no XPM
             </Button>
+            {!podeCadastrarXpm && !carregandoPermissao && (
+              <span className="text-xs text-muted-foreground">
+                Sem a permissão “Cadastrar produto no XPM” — o diagnóstico e o payload seguem visíveis, a escrita não.
+              </span>
+            )}
             {acima && (
               <span className="text-xs text-destructive">
                 Máximo de {TETO_SKUS} SKUs por chamada. Reduza a seleção.
@@ -368,7 +374,8 @@ export function XpmCadastroPainel() {
                             size="sm"
                             variant="outline"
                             className="gap-2"
-                            disabled={corrigirCategoria.isPending}
+                            disabled={corrigirCategoria.isPending || !podeCadastrarXpm}
+                            title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
                             onClick={() => corrigirCategoria.mutate(l.sku as string)}
                           >
                             {corrigirCategoria.isPending
