@@ -660,7 +660,19 @@ export default function MesaProduto() {
           </Tooltip>
         );
       case "num": {
+        if (c.key === "qtd_falta_proxima" && ultimaFase(l)) return <TravessaoUltimaFase />;
         if (v === null || v === undefined) return <span className="text-muted-foreground">—</span>;
+        // Furo de ficha: produto vendendo com cadastro incompleto.
+        if (c.key === "qtd_falta_atual" && Number(v) > 0 && l.fase === "ativo") {
+          return (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="font-medium text-warning tabular-nums">{fmtNum(Number(v))}</span>
+              </TooltipTrigger>
+              <TooltipContent>produto ativo com ficha incompleta</TooltipContent>
+            </Tooltip>
+          );
+        }
         const zeroPositivo = c.key === "qtd_falta_proxima" && Number(v) === 0;
         return (
           <span className={zeroPositivo ? "font-medium text-success" : "tabular-nums"}>
