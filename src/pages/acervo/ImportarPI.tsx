@@ -359,78 +359,84 @@ export default function ImportarPI() {
     }
   }
 
-  // ---------- PASSO 5 ----------
-  async function alocar(dryRun: boolean) {
-    const inner = Number(innerQtd);
-    if (!Number.isFinite(inner) || inner <= 0) {
-      toast.error("Informe o Inner — vem do packing list da fábrica");
+  // ---------- PASSO 5 — ETAPA 1: EFETIVAR NO CARTÓRIO ----------
+  // fn_pi_efetivar_lote marca o código como alocado, grava inner_qtd e vincula a
+  // linha do stage ao cartório. Sem esta etapa confirmada não existe etapa 2.
+  async function efetivarCartorio(dryRun: boolean) {
+    if (!loteId) return;
+    const motivo = motivoEfetivar.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da efetivação — fornecedor e número da PI");
       return;
     }
-    if (!motivoAloc.trim()) {
-      toast.error("Informe o motivo da alocação");
-      return;
-    }
-    setAlocando(true);
+    setEfetivando(true);
     try {
-      const { data, error } = await supabase.rpc("fn_cartorio_alocar", {
-        p_qtd: aAlocar.length,
-        p_inner: inner,
-        p_motivo: motivoAloc.trim(),
+      const { data, error } = await supabase.rpc("fn_pi_efetivar_lote", {
+        p_lote_id: loteId,
+        p_motivo: motivo,
         p_dry_run: dryRun,
       });
       if (error) throw new Error(error.message);
-      const r = (data ?? {}) as { codigos?: Record<string, unknown>[]; livres_depois?: number };
+      const r = (data ?? {}) as RespostaEfetivar;
       if (dryRun) {
-        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
-        setPropostaVista(true);
-        toast.success(`Proposta para ${r.codigos?.length ?? 0} código(s)`);
+        setPrevia(r);
+        setEfetivado(null);
+        if (r.ok) toast.success(`Liberado — ${r.produtos?.length ?? 0} produto(s) nascem`);
+        else toast.error(`Efetivação bloqueada — ${r.bloqueios?.length ?? 0} bloqueio(s)`);
       } else {
-        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
-        setPropostaVista(false);
+        if (!r.ok) {
+          setPrevia(r);
+          setEfetivado(null);
+          throw new Error(
+            `Efetivação recusada pelo banco: ${(r.bloqueios ?? [])
+              .map((b) => `${ROTULO_BLOQUEIO[b.bloqueio] ?? b.bloqueio} (${b.linhas})`)
+              .join(" · ") || "sem detalhe"}`,
+          );
+        }
+        setEfetivado(r);
+        setPrevia(null);
+        setRegistroResultado(null);
         await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
-        toast.success(`${r.codigos?.length ?? 0} código(s) alocado(s)`);
+        toast.success(`Cartório efetivado — ${r.produtos?.length ?? 0} produto(s) prontos para nascer`);
       }
     } catch (e) {
       toast.error(msgErro(e));
     } finally {
-      setAlocando(false);
+      setEfetivando(false);
     }
   }
 
-  // ---------- PASSO 6 ----------
-  async function registrarFop(dryRun: boolean) {
-    const itens = paraFop.map((l) => ({
-      cod_cadastro: l.cod_cadastro,
-      ean: l.ean,
-      ...(l.sku ? { sku: l.sku } : {}),
-    }));
+  // ---------- PASSO 6 — ETAPA 2: NASCER NO FOP ----------
+  // Só roda com a etapa 1 confirmada (efetivado != null). Nenhum outro caminho
+  // chama registrar_pi.
+  async function nascerNoFop() {
+    const itens = efetivado?.produtos ?? [];
     if (itens.length === 0) {
-      toast.error("Nenhuma linha reconhecida ou alocada para registrar");
+      toast.error("Efetive o lote no cartório antes de fazer os produtos nascerem");
       return;
     }
     setRegistrando(true);
     setErro401(false);
     try {
-      const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
-        body: { tipo: "registrar_pi", itens, dry_run: dryRun },
-      });
-      if (error) {
-        const status = (error as { context?: { status?: number } }).context?.status;
-        if (status === 401) {
-          setErro401(true);
-          throw new Error("401 — registrar exige sessão de usuário ativa");
+      const acumulado: Record<string, unknown>[] = [];
+      for (let i = 0; i < itens.length; i += TETO_ITENS_FOP) {
+        const bloco = itens.slice(i, i + TETO_ITENS_FOP);
+        const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
+          body: { tipo: "registrar_pi", itens: bloco, dry_run: false },
+        });
+        if (error) {
+          const status = (error as { context?: { status?: number } }).context?.status;
+          if (status === 401) {
+            setErro401(true);
+            throw new Error("401 — registrar exige sessão de usuário ativa");
+          }
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
+        const res = (data as { resultado?: { itens?: Record<string, unknown>[] } } | null)?.resultado;
+        acumulado.push(...(res?.itens ?? []));
+        setRegistroResultado([...acumulado]);
       }
-      const res = (data as { resultado?: { itens?: Record<string, unknown>[] } } | null)?.resultado;
-      setRegistroResultado(res?.itens ?? []);
-      if (dryRun) {
-        setRegistroVisto(true);
-        toast.success(`${res?.itens?.length ?? 0} item(ns) avaliado(s)`);
-      } else {
-        setRegistroVisto(false);
-        toast.success("Itens registrados no FOP");
-      }
+      toast.success(`${acumulado.length} item(ns) enviados ao FOP`);
     } catch (e) {
       toast.error(msgErro(e));
     } finally {
