@@ -227,7 +227,7 @@ export default function ImportarPiPedidoTab() {
 
       const { data: vinculos, error: erroVinculos } = await supabase
         .from("importacao_embarque_pedido")
-        .select("pedido_id, importacao_embarque(rocabella_ref)");
+        .select("pedido_id, importacao_embarque(ref_rocabella)");
       if (erroVinculos) throw new Error(erroVinculos.message);
 
       // contagem de linhas por pedido — paginado, o PostgREST corta em 1000
@@ -236,13 +236,14 @@ export default function ImportarPiPedidoTab() {
       for (let inicio = 0; ; inicio += BLOCO) {
         const { data, error } = await supabase
           .from("importacao_linha")
-          .select("pedido_id")
+          .select("importacao_pedido_id")
           .range(inicio, inicio + BLOCO - 1);
         if (error) throw new Error(error.message);
-        const pagina = (data ?? []) as { pedido_id: number | null }[];
+        const pagina = (data ?? []) as { importacao_pedido_id: number | null }[];
         for (const l of pagina) {
-          if (l.pedido_id === null) continue;
-          porPedido.set(l.pedido_id, (porPedido.get(l.pedido_id) ?? 0) + 1);
+          const pid = l.importacao_pedido_id;
+          if (pid === null) continue;
+          porPedido.set(pid, (porPedido.get(pid) ?? 0) + 1);
         }
         if (pagina.length < BLOCO) break;
       }
@@ -252,14 +253,15 @@ export default function ImportarPiPedidoTab() {
         nomeFabrica.set(f.id, f.nome ?? f.codigo);
       }
       const refEmbarque = new Map<number, string>();
-      for (const v of (vinculos ?? []) as {
+      for (const v of (vinculos ?? []) as unknown as {
         pedido_id: number | null;
-        importacao_embarque: { rocabella_ref: string | null } | null;
+        importacao_embarque: { ref_rocabella: string | null } | null;
       }[]) {
         if (v.pedido_id === null) continue;
-        const ref = v.importacao_embarque?.rocabella_ref;
+        const ref = v.importacao_embarque?.ref_rocabella;
         if (ref && !refEmbarque.has(v.pedido_id)) refEmbarque.set(v.pedido_id, ref);
       }
+
 
       const lista = ((pedidos ?? []) as {
         id: number; numero_pedido: string | null; fabrica_id: number | null;
