@@ -89,15 +89,19 @@ type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
-/** As 53 colunas da view. As 11 primeiras são as visíveis por padrão. */
+/** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
 const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "nome_comercial", "fase_nome", "grupo", "colecao",
+  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm",
+  "nome_comercial", "fase_nome", "grupo", "colecao",
   "qtd_falta_proxima", "falta_proxima_fase", "tem_bling", "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
-  { key: "cod_cadastro", rotulo: "Código", tipo: "texto" },
-  { key: "sku", rotulo: "SKU", tipo: "texto" },
+  { key: "cod_cadastro", rotulo: "Cód. Cadastro", tipo: "texto" },
+  { key: "sku", rotulo: "Cód. SKU", tipo: "texto" },
+  { key: "cod_bling", rotulo: "Cód. Bling", tipo: "texto" },
+  { key: "cod_shopify", rotulo: "Cód. Shopify", tipo: "texto" },
+  { key: "cod_xpm", rotulo: "Cód. XPM", tipo: "texto" },
   { key: "nome_comercial", rotulo: "Nome comercial", tipo: "texto" },
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
