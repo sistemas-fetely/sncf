@@ -5,7 +5,7 @@
 // ordena e mostra. A promoção e a descontinuação continuam passando pela edge
 // function promover-fase-produto, que é quem manda no FOP (mestre do dado).
 import { useMemo, useState, useEffect, Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -64,15 +64,23 @@ type Linha = Record<string, any> & {
 type AbaId = "prontos" | "falta_ficha" | "bloqueados" | "ativo_sem_bling" | "furo" | "todos" | "conciliacao";
 
 const ABAS: { id: AbaId; label: string; sugestao: string | null }[] = [
+  { id: "todos", label: "Todos", sugestao: null },
   { id: "prontos", label: "Prontos para promover", sugestao: "pronto_para_ativo" },
   { id: "falta_ficha", label: "Falta ficha no Bling", sugestao: "falta_ficha_bling" },
   { id: "bloqueados", label: "Bloqueados", sugestao: "bloqueado" },
   { id: "ativo_sem_bling", label: "Ativo sem Bling", sugestao: "ativo_sem_bling" },
   { id: "furo", label: "Furo em produto ativo", sugestao: "ativo_com_furo" },
-  { id: "todos", label: "Todos", sugestao: null },
   // A última aba não recorta por `sugestao`: lê vw_produto_conciliacao.
   { id: "conciliacao", label: "Conciliação", sugestao: null },
 ];
+
+const ABAS_VALIDAS = new Set<AbaId>(ABAS.map((a) => a.id));
+
+function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
+  if (aba === "todos") return linhas;
+  const sugestao = ABAS.find((item) => item.id === aba)?.sugestao;
+  return sugestao ? linhas.filter((linha) => linha.sugestao === sugestao) : [];
+}
 
 const fmtNum = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
@@ -248,7 +256,9 @@ function csvCelula(v: unknown): string {
 }
 
 export default function MesaProduto() {
-  const [aba, setAba] = useState<AbaId>("prontos");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const abaParam = searchParams.get("aba");
+  const aba: AbaId = abaParam && ABAS_VALIDAS.has(abaParam as AbaId) ? abaParam as AbaId : "todos";
   const [fase, setFase] = useState<string>("todas");
   const [busca, setBusca] = useState("");
   const [emAcao, setEmAcao] = useState<string | null>(null);
@@ -328,9 +338,7 @@ export default function MesaProduto() {
       if (a.id === "conciliacao") {
         c[a.id] = concBase.length;
       } else {
-        c[a.id] = a.sugestao === null
-          ? porFase.length
-          : porFase.filter((l) => l.sugestao === a.sugestao).length;
+        c[a.id] = linhasDaAba(porFase, a.id).length;
       }
     }
     return c;
@@ -346,8 +354,7 @@ export default function MesaProduto() {
       }
       return { total: base.length, porCodigo: m };
     }
-    const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
-    const base = sug === null ? linhas : linhas.filter((l) => l.sugestao === sug);
+    const base = linhasDaAba(linhas, aba);
     const m = new Map<string, number>();
     for (const l of base) {
       const k = l.fase ?? "sem_fase";
@@ -357,8 +364,7 @@ export default function MesaProduto() {
   }, [linhas, aba, concLinhas]);
 
   const recorte = useMemo(() => {
-    const sug = ABAS.find((a) => a.id === aba)?.sugestao ?? null;
-    let base = sug === null ? porFase : porFase.filter((l) => l.sugestao === sug);
+    let base = linhasDaAba(porFase, aba);
     const q = busca.trim().toLowerCase();
     if (q) {
       base = base.filter((l) =>
@@ -780,7 +786,15 @@ export default function MesaProduto() {
         </CardHeader>
 
         <CardContent>
-          <Tabs value={aba} onValueChange={(v) => setAba(v as AbaId)}>
+          <Tabs
+            value={aba}
+            onValueChange={(v) => {
+              const proxima = new URLSearchParams(searchParams);
+              if (v === "todos") proxima.delete("aba");
+              else proxima.set("aba", v);
+              setSearchParams(proxima, { replace: true });
+            }}
+          >
             <TabsList className="mb-4 flex-wrap">
               {ABAS.map((a) => (
                 <TabsTrigger key={a.id} value={a.id} className="gap-2">
