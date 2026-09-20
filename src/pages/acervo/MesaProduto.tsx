@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpCircle, ArrowUpDown, Ban, Check,
   ChevronDown, ChevronRight, Columns3, Download, GripVertical,
-  PackageX, RefreshCw, Search, X,
+  ImageOff, PackageX, RefreshCw, Search, X,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ type Linha = Record<string, unknown> & {
   sugestao: string | null; campos_fora_do_espelho: string[] | null;
   falta_fase_atual: string[] | null; falta_proxima_fase: string[] | null;
   qtd_falta_atual: number | null; qtd_falta_proxima: number | null;
+  foto_url: string | null; foto_exata: boolean | null;
 };
 
 type ConcLinha = {
@@ -49,7 +50,7 @@ type ConcLinha = {
 };
 
 type LinhaUnida = Linha & Partial<ConcLinha>;
-type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias";
+type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias" | "foto";
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; direita?: boolean };
 type ErroFuncao = { status: number; corpo: Record<string, unknown> };
 type Indicador = "prontos" | "bloqueados" | "furo" | "divergencia" | null;
@@ -94,6 +95,7 @@ const COLUNAS_PADRAO = [
   "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
 ];
 const COLUNAS: ColDef[] = [
+  { key:"foto_url",rotulo:"Foto",tipo:"foto" },
   { key:"cod_cadastro",rotulo:"Cód. Cadastro",tipo:"texto" }, { key:"sku",rotulo:"Cód. SKU",tipo:"texto" },
   { key:"cod_bling",rotulo:"Cód. Bling",tipo:"texto" }, { key:"cod_shopify",rotulo:"Cód. Shopify",tipo:"texto" },
   { key:"cod_xpm",rotulo:"Cód. XPM",tipo:"texto" }, { key:"sistemas",rotulo:"Sistemas",tipo:"selos" },
