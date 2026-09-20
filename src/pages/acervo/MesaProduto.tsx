@@ -33,7 +33,7 @@ type Linha = Record<string, unknown> & {
   sugestao: string | null; campos_fora_do_espelho: string[] | null;
   falta_fase_atual: string[] | null; falta_proxima_fase: string[] | null;
   qtd_falta_atual: number | null; qtd_falta_proxima: number | null;
-  foto_url: string | null; foto_exata: boolean | null;
+  foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
 type ConcLinha = {
@@ -86,7 +86,7 @@ const SITUACOES = [
 ] as const;
 const SISTEMAS = [
   ["sem_bling", "Sem Bling"], ["sem_shopify", "Sem Shopify"],
-  ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"],
+  ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"], ["sem_foto_propria", "Sem foto própria"],
 ] as const;
 
 const COLUNAS_PADRAO = [
@@ -95,7 +95,7 @@ const COLUNAS_PADRAO = [
   "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
 ];
 const COLUNAS: ColDef[] = [
-  { key:"foto_url",rotulo:"Foto",tipo:"foto" },
+  { key:"foto_url",rotulo:"Foto",tipo:"foto" }, { key:"foto_origem",rotulo:"Origem da foto",tipo:"texto" },
   { key:"cod_cadastro",rotulo:"Cód. Cadastro",tipo:"texto" }, { key:"sku",rotulo:"Cód. SKU",tipo:"texto" },
   { key:"cod_bling",rotulo:"Cód. Bling",tipo:"texto" }, { key:"cod_shopify",rotulo:"Cód. Shopify",tipo:"texto" },
   { key:"cod_xpm",rotulo:"Cód. XPM",tipo:"texto" }, { key:"sistemas",rotulo:"Sistemas",tipo:"selos" },
