@@ -447,7 +447,31 @@ export default function MesaProduto() {
     );
   }
 
+  function exportarCsvConciliacao() {
+    const cab = ["Código", "SKU", "Nome comercial", "Fase", "Cartório", "Bling", "XPM", "Divergências (qtd)", "Divergências"];
+    const simNao = (v: boolean | null) => (v === null || v === undefined ? "" : v ? "sim" : "não");
+    const corpo = concRecorte.map((l) => [
+      l.cod_cadastro, l.sku, l.nome_comercial, l.fase,
+      l.cartorio_estado ? "sim" : "não",
+      simNao(l.existe_bling), simNao(l.existe_xpm),
+      l.qtd_divergencias ?? 0,
+      (l.divergencias ?? []).map(rotuloDoSlug).join("; "),
+    ].map(csvCelula).join(";")).join("\n");
+    const conteudo = "\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo;
+    const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mesa-produto-conciliacao-${fmtData(new Date(), "").split("/").reverse().join("-")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportarCsv() {
+    if (aba === "conciliacao") {
+      exportarCsvConciliacao();
+      return;
+    }
     const cols = colunasVisiveis;
     const cabecalho = cols.map((c) => csvCelula(c.rotulo)).join(";");
     const corpo = recorte.map((l) => cols.map((c) => csvCelula(l[c.key])).join(";")).join("\n");
