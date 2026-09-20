@@ -87698,14 +87698,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -91867,6 +91867,50 @@ export type Database = {
           sku: string | null
           tem_critico: string | null
           varejo_sobre_atacado: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
+      vw_preco_historico_analise: {
+        Row: {
+          acao: string | null
+          alterado_por_nome: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          criado_em: string | null
+          delta_atacado: number | null
+          delta_varejo: number | null
+          espelhado_em: string | null
+          fase: string | null
+          ficou_invertido: boolean | null
+          grupo: string | null
+          id: string | null
+          mes: string | null
+          nome_comercial: string | null
+          observacao: string | null
+          preco_atacado_anterior: number | null
+          preco_atacado_novo: number | null
+          preco_varejo_anterior: number | null
+          preco_varejo_novo: number | null
+          sem_autoria: boolean | null
+          sentido: string | null
+          sku: string | null
+          variacao_atacado_percent: number | null
+          variacao_varejo_percent: number | null
         }
         Relationships: [
           {
@@ -96996,14 +97040,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
