@@ -56,6 +56,39 @@ type LinhaStage = {
 
 const ORDEM_ESTADOS = ["reconhecido", "a_alocar", "erro", "ignorado"] as const;
 
+// Etapa 1 da efetivação — resposta de fn_pi_efetivar_lote. O banco decide tudo:
+// a tela só mostra bloqueio ou de-para, nunca recalcula nem oferece "forçar".
+type BloqueioEfetivar = { bloqueio: string; linhas: number; detalhe?: string | null };
+type ProdutoEfetivar = {
+  linha?: number;
+  cod_cadastro?: string | null;
+  ean?: string | null;
+  dun?: string | null;
+  inner_qtd?: number | null;
+  alocar_novo?: boolean;
+};
+type RespostaEfetivar = {
+  ok?: boolean;
+  dry_run?: boolean;
+  lote?: string;
+  linhas?: number;
+  alocar_novos?: number;
+  livres_depois?: number | null;
+  nascerao_em_fase?: string | null;
+  bloqueios?: BloqueioEfetivar[];
+  produtos?: ProdutoEfetivar[];
+};
+
+const ROTULO_BLOQUEIO: Record<string, string> = {
+  inner_ausente: "Inner ausente",
+  ean_invalido: "EAN inválido",
+  ean_ja_e_produto: "EAN já é produto",
+  cod_ja_e_produto: "Código já é produto",
+  cartorio_sem_estoque: "Cartório sem estoque",
+};
+
+const TETO_ITENS_FOP = 200;
+
 function badgeEstado(estado: string | null): "default" | "secondary" | "destructive" | "outline" {
   switch (estado) {
     case "reconhecido": return "secondary";
