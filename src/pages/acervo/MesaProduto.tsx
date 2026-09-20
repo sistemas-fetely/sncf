@@ -150,6 +150,69 @@ const ORDENAVEIS = new Set([
 
 const TAMANHOS = [50, 100, 200, 500];
 
+// ================= Conciliação (aba própria) =================
+// Fonte: view vw_produto_conciliacao (1 linha por SKU). Compara o cadastro do
+// SNCF com Bling, XPM e o cartório. Não existe tabela de regras: o dicionário
+// das divergências vive AQUI, e só aqui. Slug novo na view sem rótulo aparece
+// cru — nunca escondido.
+type SevDiv = "critico" | "atencao";
+const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string }> = {
+  sem_cartorio: { rotulo: "Sem registro no cartório", sev: "critico", explicacao: "Produto existe mas o código não está no cartório." },
+  cartorio_nao_alocado: { rotulo: "Código não alocado", sev: "critico", explicacao: "Produto usa código que o cartório não marcou como alocado." },
+  cartorio_sem_inner: { rotulo: "Cartório sem Inner", sev: "atencao", explicacao: "Código alocado sem a quantidade do Inner. Vem do packing list." },
+  cartorio_sku_diverge: { rotulo: "SKU diverge do cartório", sev: "critico", explicacao: "O SKU do produto não bate com o registrado no cartório." },
+  sem_bling: { rotulo: "Sem produto no Bling", sev: "critico", explicacao: "Não fatura: não existe no ERP." },
+  bling_duplicado: { rotulo: "Código duplicado no Bling", sev: "critico", explicacao: "Mais de uma linha no Bling com o mesmo código." },
+  bling_ean_diverge: { rotulo: "EAN diverge do Bling", sev: "critico", explicacao: "O GTIN do Bling não bate com o EAN do cadastro." },
+  bling_ncm_diverge: { rotulo: "NCM diverge do Bling", sev: "critico", explicacao: "NCM diferente entre cadastro e ERP: risco fiscal na NF-e." },
+  bling_inativo_com_ativo: { rotulo: "Inativo no Bling", sev: "critico", explicacao: "Produto ativo aqui e inativo no ERP." },
+  sem_ficha_bling: { rotulo: "Sem ficha no Bling", sev: "critico", explicacao: "Ativo sem ficha criada no ERP." },
+  sem_xpm: { rotulo: "Sem cadastro no XPM", sev: "critico", explicacao: "Não expede: o armazém não conhece o produto." },
+  xpm_ean_diverge: { rotulo: "EAN diverge do XPM", sev: "critico", explicacao: "Etiqueta do armazém não bate com o EAN do cadastro." },
+  xpm_ncm_vazio: { rotulo: "NCM vazio no XPM", sev: "atencao", explicacao: "Cadastrado no armazém sem NCM." },
+  xpm_ncm_diverge: { rotulo: "NCM diverge do XPM", sev: "critico", explicacao: "NCM diferente entre cadastro e armazém." },
+  xpm_peso_padrao: { rotulo: "Peso padrão no XPM (10,11 kg)", sev: "critico", explicacao: "Valor default que ninguém corrigiu. Peso errado = cubagem e frete errados." },
+  xpm_peso_diverge: { rotulo: "Peso diverge do XPM", sev: "atencao", explicacao: "Peso do armazém fora de 10% do cadastro." },
+};
+// Slug desconhecido do dicionário conta como crítico (não pode passar batido).
+const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
+const rotuloDoSlug = (slug: string) => DIC_DIV[slug]?.rotulo ?? slug;
+
+type ConcLinha = {
+  cod_cadastro: string | null;
+  sku: string;
+  nome_comercial: string | null;
+  colecao: string | null;
+  grupo: string | null;
+  fase: string | null;
+  ean: string | null;
+  dun: string | null;
+  ncm: string | null;
+  peso_g: number | null;
+  qtd_kit: number | null;
+  multiplos: number | null;
+  preco_varejo: number | null;
+  atualizado_em: string | null;
+  cartorio_estado: string | null;
+  cartorio_inner: number | null;
+  cartorio_sku: string | null;
+  bling_codigo: string | null;
+  bling_gtin: string | null;
+  bling_ncm: string | null;
+  bling_ativo: boolean | null;
+  bling_preco: number | null;
+  bling_n_linhas: number | null;
+  xpm_codigo: string | null;
+  xpm_ean: string | null;
+  xpm_ncm: string | null;
+  xpm_peso_kg: number | null;
+  tem_ficha_bling: boolean | null;
+  divergencias: string[] | null;
+  qtd_divergencias: number | null;
+  existe_bling: boolean | null;
+  existe_xpm: boolean | null;
+};
+
 /** Erro estruturado devolvido pela edge function (409/422/502). */
 type ErroFuncao = { status: number; corpo: any };
 
