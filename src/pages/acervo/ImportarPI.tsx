@@ -56,6 +56,39 @@ type LinhaStage = {
 
 const ORDEM_ESTADOS = ["reconhecido", "a_alocar", "erro", "ignorado"] as const;
 
+// Etapa 1 da efetivação — resposta de fn_pi_efetivar_lote. O banco decide tudo:
+// a tela só mostra bloqueio ou de-para, nunca recalcula nem oferece "forçar".
+type BloqueioEfetivar = { bloqueio: string; linhas: number; detalhe?: string | null };
+type ProdutoEfetivar = {
+  linha?: number;
+  cod_cadastro?: string | null;
+  ean?: string | null;
+  dun?: string | null;
+  inner_qtd?: number | null;
+  alocar_novo?: boolean;
+};
+type RespostaEfetivar = {
+  ok?: boolean;
+  dry_run?: boolean;
+  lote?: string;
+  linhas?: number;
+  alocar_novos?: number;
+  livres_depois?: number | null;
+  nascerao_em_fase?: string | null;
+  bloqueios?: BloqueioEfetivar[];
+  produtos?: ProdutoEfetivar[];
+};
+
+const ROTULO_BLOQUEIO: Record<string, string> = {
+  inner_ausente: "Inner ausente",
+  ean_invalido: "EAN inválido",
+  ean_ja_e_produto: "EAN já é produto",
+  cod_ja_e_produto: "Código já é produto",
+  cartorio_sem_estoque: "Cartório sem estoque",
+};
+
+const TETO_ITENS_FOP = 200;
+
 function badgeEstado(estado: string | null): "default" | "secondary" | "destructive" | "outline" {
   switch (estado) {
     case "reconhecido": return "secondary";
@@ -105,15 +138,13 @@ export default function ImportarPI() {
   const [conferindo, setConferindo] = useState(false);
   const [contagens, setContagens] = useState<Record<string, number> | null>(null);
 
-  // passo 5
-  const [innerQtd, setInnerQtd] = useState("");
-  const [motivoAloc, setMotivoAloc] = useState("");
-  const [propostaVista, setPropostaVista] = useState(false);
-  const [proposta, setProposta] = useState<{ codigos: Record<string, unknown>[]; livres_depois: number | null } | null>(null);
-  const [alocando, setAlocando] = useState(false);
+  // passo 5 — efetivar no cartório (etapa 1: fn_pi_efetivar_lote)
+  const [motivoEfetivar, setMotivoEfetivar] = useState("");
+  const [efetivando, setEfetivando] = useState(false);
+  const [previa, setPrevia] = useState<RespostaEfetivar | null>(null);
+  const [efetivado, setEfetivado] = useState<RespostaEfetivar | null>(null);
 
-  // passo 6
-  const [registroVisto, setRegistroVisto] = useState(false);
+  // passo 6 — nascer no FOP (etapa 2, só depois da etapa 1 confirmada)
   const [registroResultado, setRegistroResultado] = useState<Record<string, unknown>[] | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [erro401, setErro401] = useState(false);
@@ -277,10 +308,9 @@ export default function ImportarPI() {
       setLoteId(r.loteId);
       setGravadas(r.gravadas);
       setContagens(null);
-      setProposta(null);
-      setPropostaVista(false);
+      setPrevia(null);
+      setEfetivado(null);
       setRegistroResultado(null);
-      setRegistroVisto(false);
       setErro401(false);
       setColunasCriadas(null);
       setBaixou(false);
@@ -308,8 +338,8 @@ export default function ImportarPI() {
   });
 
   const linhasStage = stageQuery.data ?? [];
-  const aAlocar = linhasStage.filter((l) => l.estado === "a_alocar");
-  const paraFop = linhasStage.filter((l) => l.estado === "reconhecido" || l.estado === "alocado");
+  // a alocação de código deixou de ser chamada pela tela: fn_pi_efetivar_lote aloca.
+  // paraFop foi removido: o conjunto que nasce no FOP agora vem de fn_pi_efetivar_lote.
   const comCodigo = linhasStage.filter((l) => l.cod_cadastro || l.ean || l.dun);
 
   async function conferir() {
@@ -329,78 +359,84 @@ export default function ImportarPI() {
     }
   }
 
-  // ---------- PASSO 5 ----------
-  async function alocar(dryRun: boolean) {
-    const inner = Number(innerQtd);
-    if (!Number.isFinite(inner) || inner <= 0) {
-      toast.error("Informe o Inner — vem do packing list da fábrica");
+  // ---------- PASSO 5 — ETAPA 1: EFETIVAR NO CARTÓRIO ----------
+  // fn_pi_efetivar_lote marca o código como alocado, grava inner_qtd e vincula a
+  // linha do stage ao cartório. Sem esta etapa confirmada não existe etapa 2.
+  async function efetivarCartorio(dryRun: boolean) {
+    if (!loteId) return;
+    const motivo = motivoEfetivar.trim();
+    if (!motivo) {
+      toast.error("Informe o motivo da efetivação — fornecedor e número da PI");
       return;
     }
-    if (!motivoAloc.trim()) {
-      toast.error("Informe o motivo da alocação");
-      return;
-    }
-    setAlocando(true);
+    setEfetivando(true);
     try {
-      const { data, error } = await supabase.rpc("fn_cartorio_alocar", {
-        p_qtd: aAlocar.length,
-        p_inner: inner,
-        p_motivo: motivoAloc.trim(),
+      const { data, error } = await supabase.rpc("fn_pi_efetivar_lote", {
+        p_lote_id: loteId,
+        p_motivo: motivo,
         p_dry_run: dryRun,
       });
       if (error) throw new Error(error.message);
-      const r = (data ?? {}) as { codigos?: Record<string, unknown>[]; livres_depois?: number };
+      const r = (data ?? {}) as RespostaEfetivar;
       if (dryRun) {
-        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
-        setPropostaVista(true);
-        toast.success(`Proposta para ${r.codigos?.length ?? 0} código(s)`);
+        setPrevia(r);
+        setEfetivado(null);
+        if (r.ok) toast.success(`Liberado — ${r.produtos?.length ?? 0} produto(s) nascem`);
+        else toast.error(`Efetivação bloqueada — ${r.bloqueios?.length ?? 0} bloqueio(s)`);
       } else {
-        setProposta({ codigos: r.codigos ?? [], livres_depois: r.livres_depois ?? null });
-        setPropostaVista(false);
+        if (!r.ok) {
+          setPrevia(r);
+          setEfetivado(null);
+          throw new Error(
+            `Efetivação recusada pelo banco: ${(r.bloqueios ?? [])
+              .map((b) => `${ROTULO_BLOQUEIO[b.bloqueio] ?? b.bloqueio} (${b.linhas})`)
+              .join(" · ") || "sem detalhe"}`,
+          );
+        }
+        setEfetivado(r);
+        setPrevia(null);
+        setRegistroResultado(null);
         await queryClient.invalidateQueries({ queryKey: ["pi-import-stage", loteId] });
-        toast.success(`${r.codigos?.length ?? 0} código(s) alocado(s)`);
+        toast.success(`Cartório efetivado — ${r.produtos?.length ?? 0} produto(s) prontos para nascer`);
       }
     } catch (e) {
       toast.error(msgErro(e));
     } finally {
-      setAlocando(false);
+      setEfetivando(false);
     }
   }
 
-  // ---------- PASSO 6 ----------
-  async function registrarFop(dryRun: boolean) {
-    const itens = paraFop.map((l) => ({
-      cod_cadastro: l.cod_cadastro,
-      ean: l.ean,
-      ...(l.sku ? { sku: l.sku } : {}),
-    }));
+  // ---------- PASSO 6 — ETAPA 2: NASCER NO FOP ----------
+  // Só roda com a etapa 1 confirmada (efetivado != null). Nenhum outro caminho
+  // chama registrar_pi.
+  async function nascerNoFop() {
+    const itens = efetivado?.produtos ?? [];
     if (itens.length === 0) {
-      toast.error("Nenhuma linha reconhecida ou alocada para registrar");
+      toast.error("Efetive o lote no cartório antes de fazer os produtos nascerem");
       return;
     }
     setRegistrando(true);
     setErro401(false);
     try {
-      const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
-        body: { tipo: "registrar_pi", itens, dry_run: dryRun },
-      });
-      if (error) {
-        const status = (error as { context?: { status?: number } }).context?.status;
-        if (status === 401) {
-          setErro401(true);
-          throw new Error("401 — registrar exige sessão de usuário ativa");
+      const acumulado: Record<string, unknown>[] = [];
+      for (let i = 0; i < itens.length; i += TETO_ITENS_FOP) {
+        const bloco = itens.slice(i, i + TETO_ITENS_FOP);
+        const { data, error } = await supabase.functions.invoke("promover-fase-produto", {
+          body: { tipo: "registrar_pi", itens: bloco, dry_run: false },
+        });
+        if (error) {
+          const status = (error as { context?: { status?: number } }).context?.status;
+          if (status === 401) {
+            setErro401(true);
+            throw new Error("401 — registrar exige sessão de usuário ativa");
+          }
+          throw new Error(error.message);
         }
-        throw new Error(error.message);
+        const res = (data as { resultado?: { itens?: Record<string, unknown>[] } } | null)?.resultado;
+        acumulado.push(...(res?.itens ?? []));
+        setRegistroResultado([...acumulado]);
       }
-      const res = (data as { resultado?: { itens?: Record<string, unknown>[] } } | null)?.resultado;
-      setRegistroResultado(res?.itens ?? []);
-      if (dryRun) {
-        setRegistroVisto(true);
-        toast.success(`${res?.itens?.length ?? 0} item(ns) avaliado(s)`);
-      } else {
-        setRegistroVisto(false);
-        toast.success("Itens registrados no FOP");
-      }
+      toast.success(`${acumulado.length} item(ns) enviados ao FOP`);
     } catch (e) {
       toast.error(msgErro(e));
     } finally {
@@ -805,88 +841,143 @@ export default function ImportarPI() {
         </Card>
       )}
 
-      {/* PASSO 5 — ALOCAR */}
+      {/* PASSO 5 — ETAPA 1: EFETIVAR NO CARTÓRIO */}
       {loteId && contagens && !stageQuery.isPending && !stageQuery.isError && (
-        aAlocar.length === 0 ? (
-          <Card>
-            <CardContent className="py-4 text-sm text-muted-foreground">
-              Todos os itens já tinham código no cartório. Nada a alocar.
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">5. Alocar códigos</CardTitle>
-              <CardDescription>
-                {aAlocar.length} linha(s) sem código. A alocação é do cartório — a tela só pede.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <Label htmlFor="inner">Inner</Label>
-                  <Input
-                    id="inner"
-                    type="number"
-                    min={1}
-                    value={innerQtd}
-                    onChange={(e) => { setInnerQtd(e.target.value); setPropostaVista(false); }}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Vem do packing list da fábrica — não se inventa.
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="motivo-aloc">Motivo</Label>
-                  <Input
-                    id="motivo-aloc"
-                    value={motivoAloc || (piNumero ? `PI ${piNumero}` : "")}
-                    onChange={(e) => { setMotivoAloc(e.target.value); setPropostaVista(false); }}
-                  />
-                </div>
-              </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">5. Efetivar no cartório</CardTitle>
+            <CardDescription>
+              O cartório marca o código como alocado, grava o Inner e vincula a linha do lote.
+              Obrigatório antes de qualquer produto nascer no FOP.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="motivo-efetivar">Motivo</Label>
+              <Input
+                id="motivo-efetivar"
+                value={motivoEfetivar}
+                placeholder="Lanweier PI070626-162, coleção Jingle Pop"
+                onChange={(e) => { setMotivoEfetivar(e.target.value); setPrevia(null); setEfetivado(null); }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Fornecedor e número da PI — fica registrado no cartório.
+              </p>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
-                <Button variant="outline" onClick={() => alocar(true)} disabled={alocando}>
-                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Ver proposta
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={() => efetivarCartorio(true)}
+                disabled={efetivando || !motivoEfetivar.trim()}
+              >
+                {efetivando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Simular efetivação
+              </Button>
+              {previa?.ok && (
+                <Button
+                  onClick={() => efetivarCartorio(false)}
+                  disabled={efetivando || !motivoEfetivar.trim()}
+                >
+                  {efetivando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Confirmar efetivação
                 </Button>
-                <Button onClick={() => alocar(false)} disabled={alocando || !propostaVista}>
-                  {alocando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Confirmar alocação
-                </Button>
-              </div>
+              )}
+            </div>
 
-              {proposta && (
-                <div className="space-y-2">
-                  {proposta.livres_depois !== null && (
-                    <div className="text-sm text-muted-foreground">
-                      Livres depois: <span className="font-medium">{proposta.livres_depois}</span>
+            {previa && previa.ok === false && (
+              <div className="space-y-2">
+                {(previa.bloqueios ?? []).map((b, i) => (
+                  <Alert key={`${b.bloqueio}-${i}`} variant="destructive">
+                    <AlertDescription>
+                      <strong>{ROTULO_BLOQUEIO[b.bloqueio] ?? b.bloqueio}</strong> — {b.linhas} linha(s)
+                      {b.detalhe ? <span className="block text-xs">{b.detalhe}</span> : null}
+                    </AlertDescription>
+                  </Alert>
+                ))}
+                {(previa.bloqueios ?? []).length === 0 && (
+                  <Alert variant="destructive">
+                    <AlertDescription>
+                      O cartório recusou a efetivação e não devolveu detalhe do bloqueio.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Resolva na planilha e grave o lote de novo. Não existe caminho para ignorar bloqueio.
+                </p>
+              </div>
+            )}
+
+            {(efetivado ?? (previa?.ok ? previa : null)) && (() => {
+              const r = (efetivado ?? previa)!;
+              const livres = r.livres_depois ?? null;
+              return (
+                <div className="space-y-3">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Nascem</div>
+                      <div className="text-2xl font-medium">{r.produtos?.length ?? r.linhas ?? 0}</div>
                     </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Códigos novos do cartório</div>
+                      <div className="text-2xl font-medium">{r.alocar_novos ?? 0}</div>
+                    </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Livres depois no cartório</div>
+                      <div className="text-2xl font-medium">{livres ?? "—"}</div>
+                    </div>
+                    <div className="rounded-md border p-4">
+                      <div className="text-xs text-muted-foreground">Nascem na fase</div>
+                      <div className="text-2xl font-medium">{r.nascerao_em_fase ?? "—"}</div>
+                    </div>
+                  </div>
+
+                  {livres !== null && livres < 50 && (
+                    <Alert variant="destructive">
+                      <AlertDescription>
+                        Só sobram {livres} código(s) livres no cartório — o banco GS1 está acabando.
+                      </AlertDescription>
+                    </Alert>
                   )}
+
+                  {efetivado && (
+                    <Alert>
+                      <AlertDescription>
+                        Cartório efetivado. Os códigos já saíram do estoque: se o FOP bloquear algum
+                        item na etapa 6, isso <strong>não</strong> desfaz esta etapa.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-20">Linha</TableHead>
                           <TableHead>cod_cadastro</TableHead>
                           <TableHead>EAN</TableHead>
                           <TableHead>DUN</TableHead>
-                          <TableHead>SKU sugerido</TableHead>
+                          <TableHead>Inner</TableHead>
+                          <TableHead>Código novo</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {proposta.codigos.map((c, i) => (
-                          <TableRow key={i}>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.cod_cadastro) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.ean) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.dun) || "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{textoCelula(c.sku_sugerido) || "—"}</TableCell>
+                        {(r.produtos ?? []).map((p, i) => (
+                          <TableRow key={`${p.cod_cadastro ?? i}`}>
+                            <TableCell className="text-muted-foreground">{p.linha ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.cod_cadastro ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.ean ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{p.dun ?? "—"}</TableCell>
+                            <TableCell>{p.inner_qtd ?? "—"}</TableCell>
+                            <TableCell>
+                              {p.alocar_novo ? <Badge variant="default">novo</Badge> : <span className="text-muted-foreground">—</span>}
+                            </TableCell>
                           </TableRow>
                         ))}
-                        {proposta.codigos.length === 0 && (
+                        {(r.produtos ?? []).length === 0 && (
                           <TableRow>
-                            <TableCell colSpan={4} className="text-muted-foreground">
-                              Nenhum código na proposta.
+                            <TableCell colSpan={6} className="text-muted-foreground">
+                              Nenhum produto no de-para.
                             </TableCell>
                           </TableRow>
                         )}
@@ -894,32 +985,38 @@ export default function ImportarPI() {
                     </Table>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        )
+              );
+            })()}
+          </CardContent>
+        </Card>
       )}
 
-      {/* PASSO 6 — REGISTRAR NO FOP */}
-      {loteId && contagens && paraFop.length > 0 && (
+      {/* PASSO 6 — ETAPA 2: NASCER NO FOP */}
+      {loteId && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">6. Registrar no FOP</CardTitle>
+            <CardTitle className="text-base">6. Nascer no FOP</CardTitle>
             <CardDescription>
-              {paraFop.length} item(ns) reconhecido(s) ou alocado(s). Quem decide se nasce é o FOP.
+              {efetivado
+                ? `${efetivado.produtos?.length ?? 0} produto(s) efetivados no cartório. Quem decide se nasce é o FOP.`
+                : "Disponível só depois da efetivação no cartório confirmada neste lote."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex flex-wrap gap-3">
-              <Button variant="outline" onClick={() => registrarFop(true)} disabled={registrando}>
-                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Ver o que será registrado
-              </Button>
-              <Button onClick={() => registrarFop(false)} disabled={registrando || !registroVisto}>
-                {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Registrar no FOP
-              </Button>
-            </div>
+            {!efetivado ? (
+              <Alert>
+                <AlertDescription>
+                  Efetive o lote no cartório (passo 5) para liberar o nascimento no FOP.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={nascerNoFop} disabled={registrando}>
+                  {registrando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Fazer nascer no FOP
+                </Button>
+              </div>
+            )}
 
             {erro401 && (
               <Alert variant="destructive">
@@ -952,10 +1049,13 @@ export default function ImportarPI() {
                           <TableCell className="font-mono text-xs">{textoCelula(it.sku) || "—"}</TableCell>
                           <TableCell>
                             <Badge
-                              variant={
-                                status === "nasceria" ? "default"
-                                  : status === "bloqueado" ? "secondary"
-                                    : status === "erro" ? "destructive" : "outline"
+                              variant={status === "erro" ? "destructive" : "outline"}
+                              className={
+                                status === "registrado"
+                                  ? "border-success/40 bg-success/10 text-success-strong"
+                                  : status === "bloqueado"
+                                    ? "border-warning/40 bg-warning/10 text-warning-strong"
+                                    : undefined
                               }
                             >
                               {status || "—"}
