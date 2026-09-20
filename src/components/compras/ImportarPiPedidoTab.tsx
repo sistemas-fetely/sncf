@@ -104,7 +104,7 @@ type PedidoOpcao = {
 };
 
 function msgErro(e: unknown): string {
-  const m = e instanceof Error ? e.message : String(e);
+  const m = formatError(e);
   if (/row-level security|permission denied|policy/i.test(m)) {
     return `Sem permissão para gravar: hoje só super_admin escreve nesta importação. (${m})`;
   }
@@ -281,7 +281,10 @@ export default function ImportarPiPedidoTab() {
   const sinonimos = sinonimosQuery.data ?? [];
   const pedidos = pedidosQuery.data ?? [];
   const pedidoEscolhido = pedidos.find((p) => String(p.id) === pedidoId) ?? null;
-  const matriz = aba ? (matrizPorAba[aba] ?? []) : [];
+  const matriz = useMemo(
+    () => (aba ? (matrizPorAba[aba] ?? []) : []),
+    [aba, matrizPorAba],
+  );
 
   function limparEtapas() {
     setLoteId(null);
