@@ -85,15 +85,55 @@ function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
 const fmtNum = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
 
-type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora";
+type SeloSistema = { letra: string; nome: string; presente: boolean; diverge?: boolean };
+
+/** Selo B/S/X de presença por sistema. Presente = verde; ausente = vermelho (ausência é informação). */
+function SelosSistemas({ linha }: { linha: Linha }) {
+  const presencas: SeloSistema[] = [
+    { letra: "B", nome: "Bling", presente: linha.cod_bling != null && String(linha.cod_bling).trim() !== "" },
+    { letra: "S", nome: "Shopify", presente: linha.cod_shopify != null && String(linha.cod_shopify).trim() !== "", diverge: linha.shopify_sku_diverge === true },
+    { letra: "X", nome: "XPM", presente: linha.cod_xpm != null && String(linha.cod_xpm).trim() !== "" },
+  ];
+  return (
+    <div className="flex items-center gap-1">
+      {presencas.map((s) => (
+        <Tooltip key={s.letra}>
+          <TooltipTrigger asChild>
+            <span
+              aria-label={s.nome}
+              className={`inline-flex h-5 w-5 items-center justify-center rounded border text-[11px] font-semibold ${
+                s.presente
+                  ? s.diverge
+                    ? "border-warning/40 bg-warning/10 text-warning"
+                    : "border-success/40 bg-success/10 text-success"
+                  : "border-destructive/40 bg-destructive/10 text-destructive"
+              }`}
+            >
+              {s.letra}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            {s.presente
+              ? s.diverge
+                ? `${s.nome}: presente, mas com SKU diferente do nosso`
+                : `${s.nome}: presente`
+              : `${s.nome}: não encontrado`}
+          </TooltipContent>
+        </Tooltip>
+      ))}
+    </div>
+  );
+}
+
+type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora" | "selos";
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
 /** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
 const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm",
+  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "grupo", "colecao",
-  "qtd_falta_proxima", "falta_proxima_fase", "tem_bling", "saldo_disponivel", "atualizado_em",
+  "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
@@ -102,13 +142,16 @@ const COLUNAS: ColDef[] = [
   { key: "cod_bling", rotulo: "Cód. Bling", tipo: "texto" },
   { key: "cod_shopify", rotulo: "Cód. Shopify", tipo: "texto" },
   { key: "cod_xpm", rotulo: "Cód. XPM", tipo: "texto" },
+  { key: "sistemas", rotulo: "Sistemas", tipo: "selos" },
   { key: "nome_comercial", rotulo: "Nome comercial", tipo: "texto" },
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
   { key: "colecao", rotulo: "Coleção", tipo: "texto" },
   { key: "qtd_falta_proxima", rotulo: "Falta (qtd) próxima", tipo: "num", alinharDireita: true },
   { key: "falta_proxima_fase", rotulo: "Falta para a próxima fase", tipo: "chips" },
-  { key: "tem_bling", rotulo: "Bling", tipo: "bool" },
+  // Desligada por padrão: `tem_bling` vem da ficha em bling_produtos_cache,
+  // origem diferente do Cód. Bling (que vem do produto em produtos).
+  { key: "tem_bling", rotulo: "Ficha no Bling", tipo: "bool" },
   { key: "saldo_disponivel", rotulo: "Saldo disponível", tipo: "num", alinharDireita: true },
   { key: "atualizado_em", rotulo: "Atualizado em", tipo: "datahora" },
   // opcionais
@@ -484,7 +527,9 @@ export default function MesaProduto() {
     }
     const cols = colunasVisiveis;
     const cabecalho = cols.map((c) => csvCelula(c.rotulo)).join(";");
-    const corpo = recorte.map((l) => cols.map((c) => csvCelula(l[c.key])).join(";")).join("\n");
+    const corpo = recorte
+      .map((l) => cols.map((c) => csvCelula(c.tipo === "selos" ? textoSelos(l) : l[c.key])).join(";"))
+      .join("\n");
     const conteudo = "\uFEFF" + cabecalho + "\n" + corpo;
     const blob = new Blob([conteudo], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -556,9 +601,21 @@ export default function MesaProduto() {
     );
   };
 
+  /** Presença nos três sistemas, lida dos códigos de origem (não de tem_bling). */
+  const presencaSistemas = (l: Linha): SeloSistema[] => [
+    { letra: "B", nome: "Bling", presente: l.cod_bling != null && String(l.cod_bling).trim() !== "" },
+    { letra: "S", nome: "Shopify", presente: l.cod_shopify != null && String(l.cod_shopify).trim() !== "", diverge: l.shopify_sku_diverge === true },
+    { letra: "X", nome: "XPM", presente: l.cod_xpm != null && String(l.cod_xpm).trim() !== "" },
+  ];
+
+  const textoSelos = (l: Linha) =>
+    presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
+
   function celula(l: Linha, c: ColDef) {
     const v = l[c.key];
     switch (c.tipo) {
+      case "selos":
+        return <SelosSistemas linha={l} />;
       case "chips":
         return <Chips itens={Array.isArray(v) ? v : null} variante={c.key === "donos_pendencia" ? "secondary" : "outline"} />;
       case "badge":
