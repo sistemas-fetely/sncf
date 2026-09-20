@@ -268,7 +268,7 @@ export default function FichaProduto() {
         setErroEspelho(String(corpo.erro));
         await produtoQ.refetch();
       } else {
-        toast.error("Não gravou", { description: corpo?.erro ?? formatError(e) });
+        toast.error("Não gravou", { description: txt(corpo.erro) ?? formatError(e) });
       }
     } finally {
       setSalvando(false);
@@ -303,7 +303,7 @@ export default function FichaProduto() {
             : JSON.stringify(corpo.fop_body ?? corpo, null, 2),
         );
       } else {
-        toast.error("Não promoveu", { description: corpo?.erro ?? formatError(e) });
+        toast.error("Não promoveu", { description: txt(corpo.erro) ?? formatError(e) });
       }
     } finally {
       setPromovendo(false);
