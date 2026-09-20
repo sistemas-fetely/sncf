@@ -168,6 +168,10 @@ export default function ImportarPI() {
   const [colunasCriadas, setColunasCriadas] = useState<string[] | null>(null);
   const [baixou, setBaixou] = useState(false);
 
+  // passo 8 — planilha preenchida (devolutiva pós-efetivação)
+  const [baixandoPreenchida, setBaixandoPreenchida] = useState(false);
+
+
 
   const sinonimosQuery = useQuery({
     queryKey: ["pi-coluna-sinonimo"],
@@ -343,13 +347,31 @@ export default function ImportarPI() {
     queryFn: async (): Promise<LinhaStage[]> => {
       const { data, error } = await supabase
         .from("pi_import_stage")
-        .select("linha_num, sku, cod_cadastro, ean, dun, inner_qtd, estado, motivo")
+        .select("linha_num, bruto, sku, cod_cadastro, ean, dun, inner_qtd, estado, motivo")
         .eq("lote_id", loteId!)
         .order("linha_num");
       if (error) throw new Error(error.message);
       return (data ?? []) as LinhaStage[];
     },
   });
+
+  // cabeçalho do lote — alimenta o bloco da planilha preenchida (passo 8)
+  const loteQuery = useQuery({
+    queryKey: ["pi-import-lote", loteId],
+    enabled: !!loteId,
+    queryFn: async (): Promise<LotePI | null> => {
+      const { data, error } = await supabase
+        .from("pi_import_lote")
+        .select("id, fornecedor, pi_numero, estado, total_linhas, atualizado_em")
+        .eq("id", loteId!)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return (data ?? null) as LotePI | null;
+    },
+  });
+  const lote = loteQuery.data ?? null;
+  const loteEfetivado = lote?.estado === "efetivado" || efetivado !== null;
+
 
   const linhasStage = stageQuery.data ?? [];
   // a alocação de código deixou de ser chamada pela tela: fn_pi_efetivar_lote aloca.
