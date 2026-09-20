@@ -77,7 +77,6 @@ interface DimTipo {
 interface DimFabrica {
   id: number;
   codigo: string;
-  nome: string | null;
 }
 
 interface ConteinerRow {
@@ -238,7 +237,7 @@ function useDimensoes() {
           .from("importacao_conteiner_tipo")
           .select("id, codigo, descricao, cbm_nominal")
           .order("codigo"),
-        supabase.from("importacao_fabrica").select("id, codigo, nome").order("codigo"),
+        supabase.from("importacao_fabrica").select("id, codigo").order("codigo"),
       ]);
       if (status.error) throw status.error;
       if (portos.error) throw portos.error;
@@ -922,7 +921,6 @@ export default function EmbarquesTab() {
             {fabricas.map((f) => (
               <SelectItem key={f.id} value={String(f.id)}>
                 {f.codigo}
-                {f.nome ? ` — ${f.nome}` : ""}
               </SelectItem>
             ))}
           </SelectContent>
