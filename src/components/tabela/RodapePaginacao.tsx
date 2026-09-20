@@ -173,6 +173,8 @@ export function RodapePaginacao({
           </Button>
         </div>
       )}
+
+      {extraDireita}
     </div>
   );
 }
