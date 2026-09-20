@@ -43,7 +43,7 @@ interface TarefaParaEditar {
   titulo: string;
   descricao: string | null;
   prazo_dias: number;
-  prioridade: "urgente" | "normal" | "baixa";
+  prioridade: "urgente" | "alta" | "normal" | "baixa";
   responsavel_user_id: string | null;
   colaborador_id: string | null;
   colaborador_tipo: "clt" | "pj" | null;
@@ -76,7 +76,7 @@ export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEdita
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [prazoDias, setPrazoDias] = useState(7);
-  const [prioridade, setPrioridade] = useState<"urgente" | "normal" | "baixa">("normal");
+  const [prioridade, setPrioridade] = useState<"urgente" | "alta" | "normal" | "baixa">("normal");
   const [responsavelUserId, setResponsavelUserId] = useState("");
   const [colaboradorRelacionadoId, setColaboradorRelacionadoId] = useState("");
 
@@ -422,9 +422,10 @@ export function NovaTarefaDialog({ open, onOpenChange, onCriada, tarefaParaEdita
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="baixa">🟢 Baixa</SelectItem>
-                  <SelectItem value="normal">🟡 Normal</SelectItem>
-                  <SelectItem value="urgente">🔴 Urgente</SelectItem>
+                  <SelectItem value="urgente">Urgente</SelectItem>
+                  <SelectItem value="alta">Alta</SelectItem>
+                  <SelectItem value="normal">Normal</SelectItem>
+                  <SelectItem value="baixa">Baixa</SelectItem>
                 </SelectContent>
               </Select>
             </div>
