@@ -11,7 +11,7 @@
 //    a view só devolve os slugs em `alertas`.
 // Nenhuma faixa, percentual, nome de regra ou severidade está escrito no código.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,8 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HistoricoPrecoTab } from "@/components/acervo/HistoricoPrecoTab";
 
 /** Linha da view vw_preco_espelho (1 por SKU). */
 interface LinhaPreco {
