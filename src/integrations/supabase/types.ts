@@ -85275,14 +85275,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -92497,6 +92497,8 @@ export type Database = {
           fase_nome: string | null
           fase_ordem: number | null
           ficha_completa: boolean | null
+          foto_exata: boolean | null
+          foto_url: string | null
           grupo: string | null
           largura_cm: number | null
           linha: string | null
@@ -97110,14 +97112,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -104372,6 +104374,10 @@ export type Database = {
       }
       fn_processo_nascer_de_atribuicao: {
         Args: { _atribuicao_id: string; _codigo?: string; _nome?: string }
+        Returns: string
+      }
+      fn_produto_foto_url: {
+        Args: { p_colecao: string; p_cor: string }
         Returns: string
       }
       fn_prorrogacao_aplicar_antecipado: {
