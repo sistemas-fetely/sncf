@@ -916,19 +916,19 @@ export default function ImportarPI() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-md border p-4">
                       <div className="text-xs text-muted-foreground">Nascem</div>
-                      <div className="text-2xl font-semibold">{r.produtos?.length ?? r.linhas ?? 0}</div>
+                      <div className="text-2xl font-medium">{r.produtos?.length ?? r.linhas ?? 0}</div>
                     </div>
                     <div className="rounded-md border p-4">
                       <div className="text-xs text-muted-foreground">Códigos novos do cartório</div>
-                      <div className="text-2xl font-semibold">{r.alocar_novos ?? 0}</div>
+                      <div className="text-2xl font-medium">{r.alocar_novos ?? 0}</div>
                     </div>
                     <div className="rounded-md border p-4">
                       <div className="text-xs text-muted-foreground">Livres depois no cartório</div>
-                      <div className="text-2xl font-semibold">{livres ?? "—"}</div>
+                      <div className="text-2xl font-medium">{livres ?? "—"}</div>
                     </div>
                     <div className="rounded-md border p-4">
                       <div className="text-xs text-muted-foreground">Nascem na fase</div>
-                      <div className="text-2xl font-semibold">{r.nascerao_em_fase ?? "—"}</div>
+                      <div className="text-2xl font-medium">{r.nascerao_em_fase ?? "—"}</div>
                     </div>
                   </div>
 
