@@ -85,15 +85,15 @@ function linhasDaAba(linhas: Linha[], aba: AbaId): Linha[] {
 const fmtNum = (v: number | null | undefined) =>
   typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
 
-type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora";
+type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora" | "selos";
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
 /** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
 const COLUNAS_PADRAO = [
-  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm",
+  "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "grupo", "colecao",
-  "qtd_falta_proxima", "falta_proxima_fase", "tem_bling", "saldo_disponivel", "atualizado_em",
+  "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
@@ -102,13 +102,16 @@ const COLUNAS: ColDef[] = [
   { key: "cod_bling", rotulo: "Cód. Bling", tipo: "texto" },
   { key: "cod_shopify", rotulo: "Cód. Shopify", tipo: "texto" },
   { key: "cod_xpm", rotulo: "Cód. XPM", tipo: "texto" },
+  { key: "sistemas", rotulo: "Sistemas", tipo: "selos" },
   { key: "nome_comercial", rotulo: "Nome comercial", tipo: "texto" },
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
   { key: "colecao", rotulo: "Coleção", tipo: "texto" },
   { key: "qtd_falta_proxima", rotulo: "Falta (qtd) próxima", tipo: "num", alinharDireita: true },
   { key: "falta_proxima_fase", rotulo: "Falta para a próxima fase", tipo: "chips" },
-  { key: "tem_bling", rotulo: "Bling", tipo: "bool" },
+  // Desligada por padrão: `tem_bling` vem da ficha em bling_produtos_cache,
+  // origem diferente do Cód. Bling (que vem do produto em produtos).
+  { key: "tem_bling", rotulo: "Ficha no Bling", tipo: "bool" },
   { key: "saldo_disponivel", rotulo: "Saldo disponível", tipo: "num", alinharDireita: true },
   { key: "atualizado_em", rotulo: "Atualizado em", tipo: "datahora" },
   // opcionais
