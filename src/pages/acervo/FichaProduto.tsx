@@ -236,18 +236,23 @@ export default function FichaProduto() {
         motivo: motivo.trim(),
       });
 
-      setDePara(r.de_para ?? null);
+      setDePara((r.de_para as Record<string, { de: unknown; para: unknown }> | null) ?? null);
       setRascunho({});
       setMotivo("");
-      toast.success(`${cod} — ${(r.gravados ?? []).length} campo(s) gravado(s)`, {
+      const gravados = Array.isArray(r.gravados) ? r.gravados : [];
+      toast.success(`${cod} — ${gravados.length} campo(s) gravado(s)`, {
         description: "Gravado no FOP e espelhado aqui.",
       });
       await produtoQ.refetch();
     } catch (e) {
       const err = e as ErroFuncao;
-      const corpo = err?.corpo ?? {};
+      const corpo: CorpoFuncao = err?.corpo ?? {};
       if (err?.status === 403) {
-        setErro403({ campo: corpo.campo, dono: corpo.dono, erro: corpo.erro ?? "Campo recusado." });
+        setErro403({
+          campo: txt(corpo.campo),
+          dono: txt(corpo.dono),
+          erro: txt(corpo.erro) ?? "Campo recusado.",
+        });
       } else if (err?.status === 502) {
         setErroFop(
           typeof corpo.fop_body === "string"
