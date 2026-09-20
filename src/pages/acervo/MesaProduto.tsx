@@ -561,6 +561,16 @@ export default function MesaProduto() {
     );
   };
 
+  /** Presença nos três sistemas, lida dos códigos de origem (não de tem_bling). */
+  const presencaSistemas = (l: Linha) => ([
+    { letra: "B", nome: "Bling", presente: l.cod_bling != null && String(l.cod_bling).trim() !== "" },
+    { letra: "S", nome: "Shopify", presente: l.cod_shopify != null && String(l.cod_shopify).trim() !== "", diverge: l.shopify_sku_diverge === true },
+    { letra: "X", nome: "XPM", presente: l.cod_xpm != null && String(l.cod_xpm).trim() !== "" },
+  ] as const);
+
+  const textoSelos = (l: Linha) =>
+    presencaSistemas(l).map((s) => `${s.letra}:${s.presente ? "sim" : "não"}`).join(";");
+
   function celula(l: Linha, c: ColDef) {
     const v = l[c.key];
     switch (c.tipo) {
