@@ -1,7 +1,8 @@
 // Aba de SOPS > Produto > Estoque. Empurra sncf_produtos.nome_operacional para o campo
 // `nome` do cadastro no Bling — o texto que sai na linha do pedido e na NF.
 // Fica ao lado da aba Conciliacao de proposito: aquela DIAGNOSTICA a divergencia de
-// cadastro, esta CORRIGE. Restrita a super_admin porque reescreve cadastro fiscal.
+// cadastro, esta CORRIGE. A escrita no Bling exige a ação nomeada
+// `acao.renomear_produto_bling` — sem ela, o botão de aplicar fica travado.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/layout/PageShell";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
