@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { cn } from "@/lib/utils";
 import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useAuth } from "@/contexts/AuthContext";
@@ -74,6 +75,7 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
   const [responsavelId, setResponsavelId] = useState<string>("");
   const [prioridade, setPrioridade] = useState<PedidoTarefaPrioridade>("media");
   const [dataLimite, setDataLimite] = useState("");
+  const [peekId, setPeekId] = useState<string | null>(null);
 
   const abertas = tarefas.filter((t) => STATUS_ABERTOS.includes(t.status)).length;
 
@@ -147,7 +149,16 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
             return (
               <li
                 key={t.tarefa_id}
-                className={cn("px-3 py-2.5 space-y-1.5", !aberta && "bg-muted/30")}
+                className={cn("px-3 py-2.5 space-y-1.5 cursor-pointer", !aberta && "bg-muted/30")}
+                onClick={() => setPeekId(t.tarefa_id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setPeekId(t.tarefa_id);
+                  }
+                }}
               >
                 <div className="flex items-start gap-2">
                   <div className="flex-1 min-w-0 space-y-1">
@@ -200,7 +211,10 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
                       size="sm"
                       className="h-7 shrink-0 text-xs"
                       disabled={concluir.isPending}
-                      onClick={() => concluir.mutate({ tarefaId: t.tarefa_id, pedidoId })}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        concluir.mutate({ tarefaId: t.tarefa_id, pedidoId });
+                      }}
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 mr-1 text-success" />
                       Marcar concluída
@@ -302,6 +316,13 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <TarefaDetalhePainel
+        tarefaId={peekId}
+        aberto={!!peekId}
+        onOpenChange={(v) => {
+          if (!v) setPeekId(null);
+        }}
+      />
     </div>
   );
 }
