@@ -316,7 +316,7 @@ export default function TabelaPreco() {
                 Atualizar
               </Button>
             </div>
-          }
+          ) : undefined}
         />
 
         <Tabs value={aba} onValueChange={mudarAba} className="space-y-4">
