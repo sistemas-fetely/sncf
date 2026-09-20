@@ -842,52 +842,187 @@ export default function MesaProduto() {
                 </Table>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-                <span>
-                  Mostrando{" "}
-                  <span className="font-medium text-foreground tabular-nums">
-                    {(paginaAtual - 1) * tamanho + 1}–{Math.min(paginaAtual * tamanho, recorte.length)}
-                  </span>{" "}
-                  de <span className="font-medium text-foreground tabular-nums">{recorte.length}</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1">
-                    {TAMANHOS.map((n) => (
-                      <Button
-                        key={n}
-                        size="sm"
-                        variant={n === tamanho ? "default" : "outline"}
-                        className="h-8 px-2 tabular-nums"
-                        onClick={() => setTamanho(n)}
-                      >
-                        {n}
-                      </Button>
-                    ))}
-                  </div>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    disabled={paginaAtual <= 1}
-                    onClick={() => setPagina(paginaAtual - 1)}
-                    aria-label="Página anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="tabular-nums">{paginaAtual} / {totalPaginas}</span>
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    disabled={paginaAtual >= totalPaginas}
-                    onClick={() => setPagina(paginaAtual + 1)}
-                    aria-label="Próxima página"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              {rodape}
             </>
+          )}
+
+          {/* ================= Aba Conciliação ================= */}
+          {ehConc && (
+            conc.isLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" /> Carregando…
+              </div>
+            ) : conc.isError ? (
+              <Card className="border-destructive">
+                <CardContent className="flex items-center gap-2 py-4 text-sm text-destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  Falha ao ler a conciliação: {(conc.error as Error)?.message}
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Compara o cadastro do SNCF com Bling, XPM e o cartório de códigos.
+                  Esta aba aponta; corrigir é pela Ficha do Produto ou pelo dono do sistema de origem.
+                </p>
+
+                {/* Resumo clicável */}
+                <div className="mb-3 flex flex-wrap items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant={filtroDiv === "todas" ? "default" : "outline"}
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setFiltroDiv("todas")}
+                  >
+                    Com divergência
+                    <Badge variant="secondary" className="text-[10px]">{concBase.length}</Badge>
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={filtroDiv === "criticas" ? "default" : "outline"}
+                    className="h-8 gap-1.5 text-xs"
+                    onClick={() => setFiltroDiv("criticas")}
+                  >
+                    Críticas
+                    <Badge variant="secondary" className="text-[10px]">{concCriticas}</Badge>
+                  </Button>
+                  {concContagemSlugs.map((s) => (
+                    <Button
+                      key={s.slug}
+                      size="sm"
+                      variant={filtroDiv === s.slug ? "default" : "outline"}
+                      className="h-8 gap-1.5 text-xs"
+                      onClick={() => setFiltroDiv(s.slug)}
+                    >
+                      {rotuloDoSlug(s.slug)}
+                      <Badge variant="secondary" className="text-[10px]">{s.n}</Badge>
+                    </Button>
+                  ))}
+                </div>
+
+                {concRecorte.length === 0 ? (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    Nenhum produto com divergência neste recorte.
+                  </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Código</TableHead>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Nome comercial</TableHead>
+                            <TableHead>Fase</TableHead>
+                            <TableHead>Cartório · Bling · XPM</TableHead>
+                            <TableHead className="text-right">Divergências</TableHead>
+                            <TableHead>Quais</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {visivelConc.map((l) => {
+                            const divs = l.divergencias ?? [];
+                            const presencas: { nome: string; ok: boolean | null }[] = [
+                              { nome: "Cartório", ok: l.cartorio_estado != null },
+                              { nome: "Bling", ok: l.existe_bling },
+                              { nome: "XPM", ok: l.existe_xpm },
+                            ];
+                            return (
+                              <Fragment key={l.sku}>
+                                <TableRow
+                                  className="cursor-pointer"
+                                  onClick={() => setExpandido((e) => (e === l.sku ? null : l.sku))}
+                                >
+                                  <TableCell>
+                                    <div className="flex items-center gap-1.5">
+                                      {expandido === l.sku
+                                        ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                        : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+                                      {l.cod_cadastro ? (
+                                        <Link
+                                          to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`}
+                                          className="font-medium tracking-tight underline-offset-2 hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {l.cod_cadastro}
+                                        </Link>
+                                      ) : (
+                                        <span className="text-muted-foreground">—</span>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-sm">{l.sku}</TableCell>
+                                  <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
+                                  <TableCell><Badge variant="outline">{l.fase ?? "—"}</Badge></TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-2">
+                                      {presencas.map((p) => (
+                                        <Tooltip key={p.nome}>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex items-center gap-1">
+                                              {p.ok
+                                                ? <Check className="h-4 w-4 text-success" />
+                                                : <X className="h-4 w-4 text-destructive" />}
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent>{p.nome}: {p.ok ? "presente" : "ausente"}</TooltipContent>
+                                        </Tooltip>
+                                      ))}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums">{l.qtd_divergencias ?? 0}</TableCell>
+                                  <TableCell>
+                                    <div className="flex flex-wrap items-center gap-1">
+                                      {divs.slice(0, 3).map((s) => (
+                                        <Tooltip key={s}>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                              <Badge
+                                                variant={sevDoSlug(s) === "critico" ? "destructive" : "outline"}
+                                                className={sevDoSlug(s) === "critico" ? "text-[11px] font-normal" : "border-warning/60 text-[11px] font-normal text-warning"}
+                                              >
+                                                {rotuloDoSlug(s)}
+                                              </Badge>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            {DIC_DIV[s]?.explicacao ?? `Divergência sem rótulo no dicionário: ${s}`}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      ))}
+                                      {divs.length > 3 && (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                              <Badge variant="secondary" className="text-[11px] font-normal">+{divs.length - 3}</Badge>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            {divs.slice(3).map(rotuloDoSlug).join(", ")}
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      )}
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                                {expandido === l.sku && (
+                                  <TableRow>
+                                    <TableCell colSpan={7} className="bg-muted/30 p-4">
+                                      <DeParaConciliacao l={l} />
+                                    </TableCell>
+                                  </TableRow>
+                                )}
+                              </Fragment>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {rodape}
+                  </>
+                )}
+              </>
+            )
           )}
         </CardContent>
       </Card>
