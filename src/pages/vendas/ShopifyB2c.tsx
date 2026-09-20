@@ -92,6 +92,31 @@ function alertaSuprimidoPorFila(p: PedidoB2cRow): boolean {
   return STATUS_FILA_SEM_ALERTA.has(p.fila_status);
 }
 
+/** HH:mm em America/Sao_Paulo para o rodapé de sincronização. */
+const fmtHoraSp = new Intl.DateTimeFormat("pt-BR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZone: "America/Sao_Paulo",
+});
+
+/** Rodapé discreto da aba Fila: último e próximo sinc do cron de descida.
+ *  Silencioso de propósito: RPC falhou ou voltou vazia → não renderiza nada
+ *  (decisão da frente — não é erro do operador). */
+function SincBlingRodape() {
+  const { data } = useSincStatusBling();
+  if (!data?.ultimo_em) return null;
+  const falhou = data.ultimo_status !== "succeeded";
+  return (
+    <span className="text-xs text-muted-foreground">
+      Bling · último sinc{" "}
+      <span className={falhou ? "text-destructive" : undefined}>
+        {fmtHoraSp.format(new Date(data.ultimo_em))}
+      </span>
+      {data.proximo_em && <> · próximo {fmtHoraSp.format(new Date(data.proximo_em))}</>}
+    </span>
+  );
+}
+
 /** Próxima ação exibida — reflete o estado real da descida ao Bling. */
 function proximaAcaoExibida(p: PedidoB2cRow): string | null {
   switch (p.fila_status) {
@@ -1035,6 +1060,7 @@ export default function ShopifyB2c() {
                   chavePreferencia={CHAVE_PAGINA_B2C}
                   onPagina={setPagina}
                   onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
+                  extraDireita={<SincBlingRodape />}
                 />
               </CardContent>
             </Card>
