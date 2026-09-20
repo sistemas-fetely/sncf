@@ -339,7 +339,7 @@ export default function ImportarPI() {
 
   const linhasStage = stageQuery.data ?? [];
   const aAlocar = linhasStage.filter((l) => l.estado === "a_alocar");
-  const paraFop = linhasStage.filter((l) => l.estado === "reconhecido" || l.estado === "alocado");
+  // paraFop foi removido: o conjunto que nasce no FOP agora vem de fn_pi_efetivar_lote.
   const comCodigo = linhasStage.filter((l) => l.cod_cadastro || l.ean || l.dun);
 
   async function conferir() {
