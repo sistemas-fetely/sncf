@@ -17,8 +17,6 @@ export type LinhaPlanilhaPreenchida = {
   estado: string | null;
 };
 
-const COLUNAS_SNC = ["Cód. Cadastro", "EAN-13", "DUN-14", "Inner", "Situação"] as const;
-
 function rotuloSituacao(estado: string | null): string {
   if (estado === "efetivado") return "Efetivado";
   if (estado === "reconhecido") return "Conferido";
@@ -94,5 +92,3 @@ export async function gerarPlanilhaPreenchida(
   });
 }
 
-// usado só para satisfazer tree-shaking de COLUNAS_SNC em testes futuros
-export { COLUNAS_SNC };
