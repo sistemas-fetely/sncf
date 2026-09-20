@@ -129,11 +129,16 @@ type TipoCol = "texto" | "num" | "bool" | "chips" | "badge" | "data" | "datahora
 
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; alinharDireita?: boolean };
 
-/** As 53 colunas da view. As 14 primeiras são as visíveis por padrão. */
+/**
+ * As colunas da view. Pendências separadas em duas perguntas:
+ * "a ficha está completa para a fase em que ele está?" (Falta agora) e
+ * "ele pode avançar?" (Falta p/ promover).
+ */
 const COLUNAS_PADRAO = [
   "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
   "nome_comercial", "fase_nome", "grupo", "colecao",
-  "qtd_falta_proxima", "falta_proxima_fase", "saldo_disponivel", "atualizado_em",
+  "qtd_falta_atual", "falta_fase_atual", "qtd_falta_proxima", "falta_proxima_fase",
+  "saldo_disponivel", "atualizado_em",
 ];
 
 const COLUNAS: ColDef[] = [
@@ -147,8 +152,10 @@ const COLUNAS: ColDef[] = [
   { key: "fase_nome", rotulo: "Fase", tipo: "badge" },
   { key: "grupo", rotulo: "Grupo", tipo: "texto" },
   { key: "colecao", rotulo: "Coleção", tipo: "texto" },
-  { key: "qtd_falta_proxima", rotulo: "Falta (qtd) próxima", tipo: "num", alinharDireita: true },
-  { key: "falta_proxima_fase", rotulo: "Falta para a próxima fase", tipo: "chips" },
+  { key: "qtd_falta_atual", rotulo: "Falta agora (qtd)", tipo: "num", alinharDireita: true },
+  { key: "falta_fase_atual", rotulo: "Falta agora", tipo: "chips" },
+  { key: "qtd_falta_proxima", rotulo: "Falta p/ promover (qtd)", tipo: "num", alinharDireita: true },
+  { key: "falta_proxima_fase", rotulo: "Falta p/ promover", tipo: "chips" },
   // Desligada por padrão: `tem_bling` vem da ficha em bling_produtos_cache,
   // origem diferente do Cód. Bling (que vem do produto em produtos).
   { key: "tem_bling", rotulo: "Ficha no Bling", tipo: "bool" },
