@@ -275,3 +275,23 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--gold) / 0.5);
 }
+
+/* Mesa do Produto: mantém a navegação horizontal aparente e alcançável. */
+.mesa-produto-scroll {
+  scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--muted));
+  scrollbar-width: auto;
+  scrollbar-gutter: stable;
+}
+.mesa-produto-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+  -webkit-appearance: none;
+}
+.mesa-produto-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+.mesa-produto-scroll::-webkit-scrollbar-thumb {
+  border: 3px solid hsl(var(--muted));
+  border-radius: 6px;
+  background: hsl(var(--muted-foreground));
+}
