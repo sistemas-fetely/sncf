@@ -1001,9 +1001,18 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : linhas.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhuma NF órfã. Toda nota válida achou seu pedido.
-          </p>
+          <div className="flex items-center justify-center gap-3 py-8">
+            <p className="text-center text-sm text-muted-foreground">
+              {soAcionaveis
+                ? "Nenhuma NF esperando vínculo."
+                : "Nenhuma NF órfã. Toda nota válida achou seu pedido."}
+            </p>
+            {soAcionaveis && (
+              <Button variant="outline" size="sm" onClick={() => setSoAcionaveis(false)}>
+                Ver todas
+              </Button>
+            )}
+          </div>
         ) : (
           <Table>
             <TableHeader>
