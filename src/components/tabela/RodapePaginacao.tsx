@@ -86,11 +86,7 @@ export function RodapePaginacao({
             onValueChange={(v) => {
               const n = Number(v) as PageSizeOption;
               onTamanhoPagina(n);
-              try {
-                localStorage.setItem(chavePreferencia, String(n));
-              } catch {
-                // modo privativo pode bloquear o storage — a troca vale só nesta sessão
-              }
+              if (tela) salvar({ tamanho_pagina: n });
               onPagina(1);
             }}
           >
