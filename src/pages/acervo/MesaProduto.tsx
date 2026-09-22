@@ -256,7 +256,7 @@ export default function MesaProduto() {
     if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
     if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
     if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>predSistema(l,s)))return false;
-    if(!semIndicador&&indicador){if(indicador==="divergencia"&&(l.qtd_divergencias??0)<=0)return false;const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(indicador!=="divergencia"&&l.sugestao!==slug)return false;}
+    if(!semIndicador&&indicador){if(indicador.startsWith("imp:")){if(l.fase!=="ativo"||!(l.impactos??[]).includes(indicador.slice(4)))return false;}else{const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(l.sugestao!==slug)return false;}}
     return true;
   }
   const recorte=(()=>{const base=linhas.filter(l=>aplica(l));const mult=ordem.dir==="asc"?1:-1;return [...base].sort((a,b)=>{const va=a[ordem.coluna],vb=b[ordem.coluna];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;if(typeof va==="number"&&typeof vb==="number")return(va-vb)*mult;return String(va).localeCompare(String(vb),"pt-BR",{numeric:true})*mult;});})();
