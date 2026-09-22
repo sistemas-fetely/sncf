@@ -93,6 +93,47 @@ function alertaSuprimidoPorFila(p: PedidoB2cRow): boolean {
   return STATUS_FILA_SEM_ALERTA.has(p.fila_status);
 }
 
+// RASTREIO-NA-LINHA (22/09/2026): o estado do objeto vem da view
+// (rastreio_estado) e é mostrado como Selo abaixo do código de rastreio.
+// Só estes seis valores existem — não inventar.
+const SELO_RASTREIO_ESTADO: Record<string, { estado: EstadoSelo; rotulo: string }> = {
+  entregue: { estado: "success", rotulo: "Entregue" },
+  em_transito: { estado: "info", rotulo: "Em trânsito" },
+  postado_coletado: { estado: "info", rotulo: "Postado" },
+  etiqueta: { estado: "muted", rotulo: "Etiqueta emitida" },
+  devolucao: { estado: "destructive", rotulo: "Em devolução" },
+  excecao: { estado: "warning", rotulo: "Ocorrência" },
+};
+
+const TOOLTIP_ETIQUETA_SEM_MOVIMENTO =
+  "A etiqueta saiu, mas a transportadora ainda não registrou nenhum evento — a caixa pode não ter sido postada.";
+
+/** Selo de rastreio da linha: estado do objeto, ou o aviso de etiqueta sem
+ *  movimento. Sem estado e sem etiqueta → nada. */
+function seloRastreio(p: PedidoB2cRow): { estado: EstadoSelo; rotulo: string; tooltip?: string } | null {
+  if (p.rastreio_estado) {
+    const m = SELO_RASTREIO_ESTADO[p.rastreio_estado];
+    return m ?? { estado: "muted", rotulo: p.rastreio_estado };
+  }
+  if (p.etiqueta_gerada_em) {
+    return {
+      estado: "muted",
+      rotulo: "Etiqueta gerada · sem movimento",
+      tooltip: TOOLTIP_ETIQUETA_SEM_MOVIMENTO,
+    };
+  }
+  return null;
+}
+
+// SELO-DE-ESTAGIO-DIZ-A-FONTE (22/09/2026): estagio_fonte explica de onde o
+// estágio veio. Valor fora do mapa ou nulo → o Selo fica sozinho, sem tooltip.
+const TOOLTIP_ESTAGIO_FONTE: Record<string, string> = {
+  registro: "Estágio vindo do registro do pedido (XPM, Mesa SP ou rastreio)",
+  rastreio: "Estágio vindo do rastreio da transportadora — este pedido não existe no SNCF",
+  loja: "Cancelado na loja",
+  administrativo: "Ainda sem fase física: estágio vindo da NF ou do pagamento",
+};
+
 /** HH:mm em America/Sao_Paulo para o rodapé de sincronização. */
 const fmtHoraSp = new Intl.DateTimeFormat("pt-BR", {
   hour: "2-digit",
@@ -1019,9 +1060,24 @@ export default function ShopifyB2c() {
                                 </Tooltip>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
-                                <Selo estado={p.estagio === "cancelado" ? "destructive" : p.eh_final ? "success" : "info"}>
-                                  {txt(p.estagio_rotulo)}
-                                </Selo>
+                                {(() => {
+                                  const selo = (
+                                    <Selo estado={p.estagio === "cancelado" ? "destructive" : p.eh_final ? "success" : "info"}>
+                                      {txt(p.estagio_rotulo)}
+                                    </Selo>
+                                  );
+                                  const dica = p.estagio_fonte
+                                    ? TOOLTIP_ESTAGIO_FONTE[p.estagio_fonte]
+                                    : undefined;
+                                  return dica ? (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>{selo}</TooltipTrigger>
+                                      <TooltipContent className="max-w-[280px]">{dica}</TooltipContent>
+                                    </Tooltip>
+                                  ) : (
+                                    selo
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                                 {txt(p.area_responsavel)}
@@ -1086,36 +1142,57 @@ export default function ShopifyB2c() {
                                 </div>
                               </TableCell>
                               <TableCell className="whitespace-nowrap">
-                                {p.tracking_number ? (
-                                  <div className="flex items-center gap-1">
-                                    <span className="font-mono text-xs">{p.tracking_number}</span>
-                                    <button
-                                      type="button"
-                                      title="Copiar código"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        copiar(p.tracking_number!, "Código de rastreio");
-                                      }}
-                                      className="text-muted-foreground transition-colors hover:text-gold"
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </button>
-                                    {p.tracking_url && (
-                                      <a
-                                        href={p.tracking_url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Abrir rastreio"
-                                        onClick={(e) => e.stopPropagation()}
+                                {(() => {
+                                  const selo = seloRastreio(p);
+                                  const codigo = p.tracking_number ? (
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-mono text-xs">{p.tracking_number}</span>
+                                      <button
+                                        type="button"
+                                        title="Copiar código"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          copiar(p.tracking_number!, "Código de rastreio");
+                                        }}
                                         className="text-muted-foreground transition-colors hover:text-gold"
                                       >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                      </a>
-                                    )}
-                                  </div>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground">—</span>
-                                )}
+                                        <Copy className="h-3.5 w-3.5" />
+                                      </button>
+                                      {p.tracking_url && (
+                                        <a
+                                          href={p.tracking_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          title="Abrir rastreio"
+                                          onClick={(e) => e.stopPropagation()}
+                                          className="text-muted-foreground transition-colors hover:text-gold"
+                                        >
+                                          <ExternalLink className="h-3.5 w-3.5" />
+                                        </a>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  );
+                                  if (!selo) return codigo;
+                                  return (
+                                    <div className="space-y-1">
+                                      {codigo}
+                                      {selo.tooltip ? (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span className="inline-flex">
+                                              <Selo estado={selo.estado}>{selo.rotulo}</Selo>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-[260px]">{selo.tooltip}</TooltipContent>
+                                        </Tooltip>
+                                      ) : (
+                                        <Selo estado={selo.estado}>{selo.rotulo}</Selo>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </TableCell>
                               <TableCell className="w-8">
                                 {p.coerencia_status === "divergente" && (
