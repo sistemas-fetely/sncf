@@ -217,7 +217,7 @@ const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoque"));
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 
-const ConciliacaoCadastro = lazy(() => import("@/pages/acervo/ConciliacaoCadastro"));
+const ConciliacaoFila = lazy(() => import("@/pages/acervo/ConciliacaoFila"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
 const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
@@ -418,6 +418,11 @@ const App = () => (
                     <TabelaPreco />
                   </ProtectedRoute>
                 } />
+                <Route path="/vendas/produto/conciliacao" element={
+                  <ProtectedRoute>
+                    <ConciliacaoFila />
+                  </ProtectedRoute>
+                } />
                 <Route path="/vendas/produto/fotos" element={
                   <ProtectedRoute>
                     <FotosProduto />
@@ -438,7 +443,6 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
-                  <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoCadastro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
                     <ProtectedRoute>
                       <NomesBling />
@@ -929,11 +933,13 @@ const App = () => (
             <Route path="/produto" element={<Navigate to="/vendas/produto" replace />} />
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
-            <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
+            {/* CONCILIACAO-VIROU-TELA-PROPRIA (23/09/2026): a aba de estoque saiu; link salvo não quebra. */}
+            <Route path="/vendas/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
             <Route path="/conciliacao/orfaos" element={<Navigate to="/administrativo/conciliacao/orfaos" replace />} />
             <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
             <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
-            <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/estoque/conciliacao" replace />} />
+            <Route path="/acervo/produtos/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
             <Route path="/templates" element={<Navigate to="/processos" replace />} />
             <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
             <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />

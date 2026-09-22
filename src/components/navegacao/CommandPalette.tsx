@@ -42,7 +42,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/vendas/produto", titulo: "Produto", pilar: "sops", icon: LayoutGrid, tags: ["produto", "cockpit", "sku", "catálogo"] },
   { rota: "/vendas/produto/estoque/virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },
   { rota: "/vendas/produto/estoque/saude", titulo: "Saúde do Estoque", pilar: "sops", icon: LayoutGrid, tags: ["saúde", "estoque", "auditoria"] },
-  { rota: "/vendas/produto/estoque/conciliacao", titulo: "Conciliação de Cadastro", pilar: "sops", icon: GitCompare, tags: ["conciliação", "cadastro", "bling", "shopify"] },
+  { rota: "/vendas/produto/conciliacao", titulo: "Conciliação de Cadastro", pilar: "sops", icon: GitCompare, tags: ["conciliação", "cadastro", "bling", "shopify"] },
 
   // SOPs
   { rota: "/pedidos", titulo: "Pedidos", pilar: "sops", icon: ShoppingCart, tags: ["pedidos", "vendas", "ordens"] },
