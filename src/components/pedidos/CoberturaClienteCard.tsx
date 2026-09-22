@@ -2,8 +2,12 @@
  * Cobertura do cliente.
  *
  * O pedido não é mais o dono do dinheiro: ele valida contra o saldo da conta do
- * cliente. O botão "Liberar por cobertura" é o CAMINHO NOVO — convive com o
- * portão antigo e não mexe nele.
+ * cliente. O botão "Liberar por cobertura" é PRÉ-RESERVA MANUAL — o empenho
+ * acontece sozinho na descida para pré-separação (guarda em `transicionar_pedido`,
+ * desde 10/09) — e convive com o portão antigo, sem mexer nele.
+ *
+ * O card lê o empenho vivo do pedido via `empenho_deste_pedido` para não
+ * oferecer ato sem efeito: pedido já empenhado não mostra o botão.
  *
  * DIMENSÃO-VIA-TABELA: quando o card aparece e se libera não é decisão dele —
  * quem decide é `politica_cobertura_financeira_estagio`, lida pelo estágio.
@@ -61,13 +65,23 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
   const valor = Number(valorPedido ?? 0);
   const total = Number(cob.cobertura_total ?? 0);
   const valorConhecido = valor > 0;
-  const cobre = valorConhecido && total >= valor;
-  const falta = Math.max(0, valor - total);
+  // EMPENHO-AUTOMATICO: a descida para pré-separação já empenha sozinha. A RPC
+  // devolve quanto DESTE pedido está empenhado (conta_cliente_empenho vivo).
+  const empenhoPedido = Number(cob.empenho_deste_pedido ?? 0);
+  const jaEmpenhadoIntegral = valorConhecido && empenhoPedido >= valor;
+  const faltaEmpenhar = Math.max(0, valor - empenhoPedido); // o que ainda precisa ser empenhado
+  // cobertura_total já desconta o empenho do próprio pedido — comparar contra o
+  // valor cheio contava o próprio empenho como falta.
+  const cobre = valorConhecido && (jaEmpenhadoIntegral || total >= faltaEmpenhar);
+  const falta = Math.max(0, faltaEmpenhar - total);
+  const empenhoParcial = empenhoPedido > 0 && empenhoPedido < valor;
 
   // Política no comando: sem modo 'decisao' (ou enquanto ela carrega) o botão
-  // não existe — card em modo informativo/read-only.
+  // não existe — card em modo informativo/read-only. Sum também quando nada
+  // resta a empenhar: oferecer o ato seria botão sem efeito.
   const modoDecisao = politica?.modo === "decisao";
-  const podeLiberar = !!pedidoId && modoDecisao && politica.permite_liberar && cobre && !empenhado;
+  const podeLiberar =
+    !!pedidoId && modoDecisao && politica.permite_liberar && cobre && !empenhado && !jaEmpenhadoIntegral;
 
   async function liberarPorCobertura() {
     if (!pedidoId) return;
@@ -119,7 +133,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       <div className="flex items-center justify-between gap-2">
         <span className="text-xs font-medium">Cobertura do cliente</span>
         <div className="flex items-center gap-1.5">
-          {empenhado && <Selo estado="success">empenhado</Selo>}
+          {(jaEmpenhadoIntegral || empenhado) && <Selo estado="success">empenhado</Selo>}
           {valorConhecido &&
             (cobre ? (
               <CheckCircle2 className="h-4 w-4 text-success" />
@@ -162,6 +176,12 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       )}
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        {empenhoPedido > 0 && (
+          <>
+            <dt>Empenhado neste pedido</dt>
+            <dd className="text-right text-foreground">{formatBRL(empenhoPedido)}</dd>
+          </>
+        )}
         <dt>Saldo disponível</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.fonte1_saldo_disponivel)}</dd>
         <dt>Limite disponível</dt>
@@ -186,7 +206,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
           disabled={liberar.isPending}
         >
           {liberar.isPending && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-          Liberar por cobertura
+          {empenhoParcial ? "Completar empenho" : "Liberar por cobertura"}
         </Button>
       )}
     </div>

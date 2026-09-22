@@ -76,6 +76,8 @@ export interface ContaClienteCobertura {
   forma_a_prazo?: boolean | null;
   /** false = limite inelegível nesta composição de cobertura. */
   fonte3_elegivel?: boolean | null;
+  /** Quanto DESTE pedido já está empenhado (conta_cliente_empenho vivo). 0 na leitura de carteira. */
+  empenho_deste_pedido?: number | null;
 }
 
 export const QK_CONTA_CLIENTE_SALDO = "conta-cliente-saldo";
