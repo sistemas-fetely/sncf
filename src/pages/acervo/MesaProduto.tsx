@@ -322,7 +322,19 @@ function DeParaConciliacao({l,regras,impactos}:{l:LinhaUnida;regras:Map<string,R
     {r:"Ativo",s:l.fase,b:l.bling_ativo==null?null:l.bling_ativo?"ativo":"inativo",x:null,y:l.no_shopify==null?null:l.no_shopify?(l.ativo_shopify?"ativo":"inativo"):"não existe",sb:"bling_inativo_com_ativo",sy:divs.has("sem_shopify")?"sem_shopify":undefined},
   ] as {r:string;s:unknown;b:unknown;x:unknown;y:unknown;sb?:string;sx?:string;sy?:string}[];
   const val=(v:unknown,slug?:string)=><span className={cn(divs.has(slug??"")&&"text-destructive-strong",!temValor(v)&&"text-muted-foreground")}>{dash(v)}</span>;
+  // ROTEIRO-ANTES-DO-DIAGNÓSTICO: o que fazer com cada divergência, ordenado pela
+  // gravidade do impacto. Slug sem regra cadastrada aparece cru, sem inventar texto.
+  const roteiro=[...(l.divergencias??[])].map(slug=>({slug,r:regras.get(slug)??null})).map(x=>({...x,imp:x.r?.impacto?impactos.get(x.r.impacto)??null:null})).sort((a,b)=>(b.imp?.gravidade??0)-(a.imp?.gravidade??0));
   return <div className="space-y-3">
+    {roteiro.length>0&&<div className="overflow-hidden rounded-md border bg-background">
+      <div className="border-b bg-muted px-3 py-2 text-xs font-medium">O que fazer</div>
+      <ul className="divide-y">{roteiro.map(x=><li key={x.slug} className="space-y-0.5 px-3 py-2 text-xs">
+        <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{x.r?.nome??x.slug}</span>{x.imp&&<Badge variant="outline" className={cn("font-normal",tomGravidade(x.imp.gravidade))}>{x.imp.nome}</Badge>}</div>
+        {x.r?.consequencia&&<p className="text-muted-foreground">{x.r.consequencia}</p>}
+        {x.r?.o_que_fazer&&<p>{x.r.o_que_fazer}</p>}
+        {x.r?.onde_resolver&&<p className="text-muted-foreground">resolve-se no {x.r.onde_resolver}</p>}
+      </li>)}</ul>
+    </div>}
     <div className="overflow-hidden rounded-md border bg-background"><table className="w-full text-xs"><thead><tr className="border-b bg-muted text-left"><th className="px-3 py-2 font-medium">Campo</th><th className="px-3 py-2 font-medium">SNCF</th><th className="px-3 py-2 font-medium">Bling</th><th className="px-3 py-2 font-medium">XPM</th><th className="px-3 py-2 font-medium">Shopify</th></tr></thead><tbody>{rows.map(r=><tr key={r.r} className="border-b last:border-0"><td className="px-3 py-2 text-muted-foreground">{r.r}</td><td className="px-3 py-2">{val(r.s)}</td><td className="px-3 py-2">{val(r.b,r.sb)}</td><td className="px-3 py-2">{val(r.x,r.sx)}</td><td className="px-3 py-2">{val(r.y,r.sy)}</td></tr>)}</tbody></table></div>
     <div className="flex flex-wrap gap-4 text-xs text-muted-foreground"><span>Cartório: {val(l.cartorio_estado,divs.has("sem_cartorio")?"sem_cartorio":"cartorio_nao_alocado")}</span><span>Inner: {val(l.cartorio_inner,"cartorio_sem_inner")}</span><span>SKU no cartório: {val(l.cartorio_sku,"cartorio_sku_diverge")}</span>{temValor(l.handle)&&<span>Handle Shopify: {val(l.handle)}</span>}{l.variantes_shopify!=null&&<span>Variantes Shopify: {val(fmtNum(l.variantes_shopify))}</span>}</div>
     {(l.bling_n_cards??0)>1&&<CardsBling sku={l.sku} motivo={l.bling_canonico_motivo??null} por={l.bling_canonico_por??null}/>}
