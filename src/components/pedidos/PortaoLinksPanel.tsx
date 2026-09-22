@@ -78,7 +78,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       const { data, error } = await (supabase as any)
         .from("provisao_recebimento")
         .select(
-          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em, link_pagamento, pix_txid, pix_token, pix_qr_url",
+          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em, link_pagamento, pix_txid, pix_token, pix_qr_url, captura_id",
         )
         .eq("pedido_id", pedidoId)
         .order("numero_parcela", { ascending: true });
