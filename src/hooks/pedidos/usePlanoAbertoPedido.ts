@@ -43,7 +43,7 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
     queryFn: async (): Promise<LinhaPlanoAberta[]> => {
       const { data, error } = await supabase
         .from("provisao_recebimento")
-        .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_portao")
+        .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_portao, captura_id")
         .eq("pedido_id", pedido_id!)
         .is("pago_em", null)
         .order("numero_parcela", { ascending: true });
