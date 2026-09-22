@@ -1310,7 +1310,10 @@ if (itensSemProdutoBling.length > 0) {
     await supabase.from("bling_envios_log").insert({
       pedido_id,
       enviado_por: userId,
-      payload_enviado: payload,
+      // CARD-CANÔNICO: o log guarda o payload exato do POST + por qual degrau cada SKU
+      // resolveu (canonico | cache | api). A chave extra NÃO vai no POST ao Bling.
+      payload_enviado: { ...payload, _resolucao_produto: fonteResolucao },
+
       resposta_status: respStatus,
       resposta_body: respBody,
       bling_id_retornado: blingId,
