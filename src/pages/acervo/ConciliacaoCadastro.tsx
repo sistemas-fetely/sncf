@@ -341,6 +341,12 @@ export default function ConciliacaoCadastro() {
 
   return (
     <PageShell variant="dados" className="animate-casa-fade-in">
+      {/* APOSENTADA (22/09/2026) — a conciliação virou aba única da Mesa do Produto, sobre
+          vw_produto_conciliacao_360. Rota mantida só para link salvo e favorito não morrerem. */}
+      <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+        Esta tela foi aposentada: a conciliação agora vive na{" "}
+        <Link to="/vendas/produto/mesa" className="font-medium underline">Mesa do Produto</Link>, com Bling, Shopify, XPM e cartório na mesma linha.
+      </div>
       <CasaPageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
