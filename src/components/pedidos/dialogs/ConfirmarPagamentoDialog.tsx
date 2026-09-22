@@ -268,9 +268,57 @@ export function ConfirmarPagamentoDialog({
   const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
   const temAnexo = !!comprovanteId;
   const valorNum = Number(String(valor).replace(",", ".")) || 0;
+  const parcelasNum = Math.max(1, Math.min(24, Number(parcelasCaptura) || 1));
+
+  // CAPTURA-PARCIAL (22/09/2026): o saldo de cartão em aberto do PEDIDO — não o valor
+  // da parcela — é o que nasce no campo Valor. Quem valida de verdade é a RPC.
+  const saldoCartaoAberto = useMemo(
+    () =>
+      (planoQ.data ?? [])
+        .filter((l) => meioDaLinha(l) === "cartao")
+        .reduce((s, l) => s + l.valor, 0),
+    [planoQ.data],
+  );
+  const parcelasDoPlano = useMemo(() => {
+    const cartao = (planoQ.data ?? []).filter((l) => meioDaLinha(l) === "cartao");
+    return Math.max(1, Math.min(24, linhaEfetiva?.total_parcelas ?? cartao.length ?? 1));
+  }, [planoQ.data, linhaEfetiva]);
+
+  // Nasce preenchido com o saldo em aberto e as parcelas do plano, uma vez por abertura.
+  const nasceuCapturaRef = useRef(false);
+  useEffect(() => {
+    if (!aberto) { nasceuCapturaRef.current = false; return; }
+    if (nasceuCapturaRef.current || !linhaEhCartao || saldoCartaoAberto <= 0) return;
+    nasceuCapturaRef.current = true;
+    setValor(saldoCartaoAberto.toFixed(2));
+    setParcelasCaptura(String(parcelasDoPlano));
+  }, [aberto, linhaEhCartao, saldoCartaoAberto, parcelasDoPlano]);
+
+  // Prévia com debounce: só sonda o banco quando o operador para de digitar.
+  const [previaValor, setPreviaValor] = useState(0);
+  const [previaParcelas, setPreviaParcelas] = useState(1);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPreviaValor(valorNum);
+      setPreviaParcelas(parcelasNum);
+    }, 450);
+    return () => clearTimeout(t);
+  }, [valorNum, parcelasNum]);
+
+  const previaQ = usePreviaCapturaCartao(
+    pedidoId,
+    previaValor,
+    previaParcelas,
+    aberto && ehCartao && linhaEhCartao,
+  );
+  const previa = previaQ.data ?? null;
+  const previaErro = previaQ.error ? rawMessage(previaQ.error) : null;
 
   const enviando =
-    confirmarComprovante.isPending || confirmarLinha.isPending || confirmarCartao.isPending;
+    confirmarComprovante.isPending ||
+    confirmarLinha.isPending ||
+    confirmarCartao.isPending ||
+    confirmarCaptura.isPending;
 
   const podeGate = modo === "mesa" ? mesaQ.permitido : temAnexo ? declaradoQ.permitido || semAnexoQ.permitido : semAnexoQ.permitido;
   const carregandoGate =
