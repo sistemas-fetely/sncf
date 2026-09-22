@@ -5,3 +5,4 @@
 - [x] Reconstruir a Mesa do Produto nas cinco faixas do Sistema Visual Fetély v2, preservando capacidades e unificando conciliação.
 - [x] Mascarar termos restritos vindos de planilhas nas duas importações de PI antes de exibir ou gravar.
 - [x] Montar o peek de leitura de tarefa nos três contextos acessórios de pedido e título.
+- [x] Corrigir a Ficha do Produto: foto em destaque, campos longos sem transbordo, contraste dos valores e tipo de `canal_venda` atualizado.

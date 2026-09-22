@@ -4,13 +4,13 @@
 // mora aqui. Campo novo na matriz aparece sozinho.
 // Leitura: vw_produto_mesa_lista. Escrita: SEMPRE pela edge function gravar-produto-fop
 // (o cliente nunca escreve em sncf_produtos nem em products). Fase: promover-fase-produto.
-import { useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowLeft, ArrowUpCircle, Check, Loader2, Lock, RefreshCw, Save, X,
+  AlertTriangle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,19 @@ type LinhaProduto = Record<string, unknown> & {
   tem_bling: boolean | null;
   saldo_disponivel: number | null;
   atualizado_em: string | null;
+};
+
+type ImagemProduto = {
+  imagem_url: string | null;
+  origem: string | null;
+};
+
+const ORIGEM_IMAGEM: Record<string, string> = {
+  propria: "foto do produto — base própria",
+  produto: "foto do produto",
+  produto_shopify: "foto principal — pode não ser desta cor",
+  cor: "foto da coleção nesta cor — não é do produto",
+  colecao: "foto genérica da coleção",
 };
 
 /** Identidade: mesmo com dono='fetely', só muda pelo cartório (fn_pi_efetivar_lote).
@@ -151,6 +164,8 @@ export default function FichaProduto() {
   const [erroEspelho, setErroEspelho] = useState<string | null>(null);
   const [faltando, setFaltando] = useState<string[] | null>(null);
   const [confirmSaldo, setConfirmSaldo] = useState<number | null>(null);
+  const [fotoAmpliada, setFotoAmpliada] = useState(false);
+  const [fotoFalhou, setFotoFalhou] = useState(false);
 
   const matrizQ = useQuery({
     queryKey: ["produto-ficha-matriz"],
@@ -168,18 +183,51 @@ export default function FichaProduto() {
     queryKey: ["produto-ficha", cod],
     enabled: cod.length > 0,
     queryFn: async (): Promise<LinhaProduto | null> => {
+      const [fichaR, canalR] = await Promise.all([
+        supabase
+          .from("vw_produto_mesa_lista")
+          .select("*")
+          .eq("cod_cadastro", cod)
+          .maybeSingle(),
+        supabase
+          .from("sncf_produtos")
+          .select("canal_venda")
+          .eq("cod_cadastro", cod)
+          .maybeSingle(),
+      ]);
+      if (fichaR.error) throw new Error(fichaR.error.message);
+      if (canalR.error) throw new Error(canalR.error.message);
+      if (!fichaR.data) return null;
+      return { ...fichaR.data, canal_venda: canalR.data?.canal_venda ?? null } as LinhaProduto;
+    },
+  });
+
+  const imagemQ = useQuery({
+    queryKey: ["produto-ficha-imagem", produtoQ.data?.sku],
+    enabled: Boolean(produtoQ.data?.sku),
+    queryFn: async (): Promise<ImagemProduto | null> => {
+      const sku = produtoQ.data?.sku;
+      if (!sku) return null;
       const { data, error } = await supabase
-        .from("vw_produto_mesa_lista")
-        .select("*")
-        .eq("cod_cadastro", cod)
+        .from("vw_produto_imagem_final")
+        .select("imagem_url, origem")
+        .eq("sku", sku)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return (data ?? null) as LinhaProduto | null;
+      return data;
     },
   });
 
   const produto = produtoQ.data ?? null;
   const matriz = matrizQ.data ?? [];
+  const imagem = imagemQ.data ?? null;
+  const origemImagem = imagem?.origem ? ORIGEM_IMAGEM[imagem.origem] ?? imagem.origem : null;
+  const origemFraca = imagem?.origem === "cor" || imagem?.origem === "colecao";
+  const fotoDisponivel = Boolean(imagem?.imagem_url) && !fotoFalhou;
+
+  useEffect(() => {
+    setFotoFalhou(false);
+  }, [imagem?.imagem_url]);
 
   const blocos = useMemo(() => {
     const mapa = new Map<string, LinhaMatriz[]>();
@@ -437,12 +485,14 @@ export default function FichaProduto() {
                         const vazio = textoValor(atual).trim() === "";
                         const pendente = vazio && (faltaAtual.has(m.campo) || faltaProxima.has(m.campo));
 
+                        const textoLongo = valor.length > 120;
+
                         return (
-                          <div key={m.campo} className="space-y-1.5">
+                          <div key={m.campo} className={`min-w-0 space-y-1.5 ${textoLongo ? "sm:col-span-2" : ""}`}>
                             <div className="flex items-center gap-1.5">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Label htmlFor={`campo-${m.campo}`} className="text-xs">
+                                  <Label htmlFor={`campo-${m.campo}`} className="text-xs text-muted-foreground">
                                     {rotuloCampo(m.campo)}
                                   </Label>
                                 </TooltipTrigger>
@@ -451,12 +501,12 @@ export default function FichaProduto() {
                                 </TooltipContent>
                               </Tooltip>
                               {m.obrigatorio && (
-                                <Badge variant="outline" className="text-[10px] py-0">
+                                <Badge variant="outline" className="py-0 text-[10px] text-muted-foreground">
                                   obrigatório{m.fase_exigida ? ` em ${m.fase_exigida}` : ""}
                                 </Badge>
                               )}
                               {!editavel && (
-                                <Badge variant="secondary" className="text-[10px] py-0">
+                                <Badge variant="secondary" className="py-0 text-[10px] text-muted-foreground">
                                   {NOTA_DONO[dono] ?? `dono: ${dono || "—"}`}
                                 </Badge>
                               )}
@@ -470,16 +520,27 @@ export default function FichaProduto() {
                               )}
                             </div>
 
-                            {editavel && noEspelho ? (
+                            {editavel && noEspelho && textoLongo ? (
+                              <Textarea
+                                id={`campo-${m.campo}`}
+                                className="h-32 resize-y overflow-y-auto text-foreground"
+                                value={valor}
+                                onChange={(e) => editar(m.campo, e.target.value)}
+                              />
+                            ) : editavel && noEspelho ? (
                               <Input
                                 id={`campo-${m.campo}`}
-                                className="h-9"
+                                className="h-9 text-foreground"
                                 value={valor}
                                 onChange={(e) => editar(m.campo, e.target.value)}
                                 inputMode={ehNumerico(m.campo, atual) ? "decimal" : undefined}
                               />
+                            ) : noEspelho && textoLongo ? (
+                              <div className="h-32 overflow-y-auto whitespace-pre-wrap break-words rounded-md border bg-muted/40 px-3 py-2 text-sm text-foreground">
+                                {textoValor(atual)}
+                              </div>
                             ) : (
-                              <div className="flex h-9 items-center rounded-md border bg-muted/40 px-3 text-sm">
+                              <div className="flex min-h-9 min-w-0 items-center overflow-hidden rounded-md border bg-muted/40 px-3 text-sm text-foreground">
                                 {noEspelho
                                   ? (textoValor(atual) || <span className="text-muted-foreground">—</span>)
                                   : <span className="text-xs text-muted-foreground">fora do espelho do SNCF</span>}
@@ -575,8 +636,47 @@ export default function FichaProduto() {
                 )}
               </div>
 
-              {/* pendências e fase */}
+              {/* foto, pendências e fase */}
               <div className="space-y-4">
+                <Card>
+                  <CardContent className="space-y-3 p-4">
+                    {fotoDisponivel && imagem?.imagem_url ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="aspect-square h-auto w-full overflow-hidden rounded-md border bg-muted p-0"
+                        onClick={() => setFotoAmpliada(true)}
+                        aria-label={`Ampliar foto de ${produto.nome_comercial || cod}`}
+                      >
+                        <img
+                          src={imagem.imagem_url}
+                          alt={produto.nome_comercial || `Produto ${cod}`}
+                          className="h-full w-full object-contain"
+                          onError={() => setFotoFalhou(true)}
+                        />
+                      </Button>
+                    ) : (
+                      <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed bg-muted text-muted-foreground">
+                        {imagemQ.isLoading
+                          ? <Loader2 className="h-7 w-7 animate-spin" />
+                          : <ImageOff className="h-8 w-8" />}
+                        <span className="text-sm">{imagemQ.isLoading ? "carregando foto" : "sem foto"}</span>
+                      </div>
+                    )}
+                    {imagemQ.isError ? (
+                      <p className="text-xs text-destructive-strong">
+                        Não foi possível carregar a foto: {formatError(imagemQ.error)}
+                      </p>
+                    ) : origemImagem ? (
+                      <p className={`text-xs ${origemFraca ? "text-warning-strong" : "text-muted-foreground"}`}>
+                        {origemImagem}
+                      </p>
+                    ) : null}
+                    <Button variant="link" size="sm" className="h-auto p-0 text-muted-foreground" asChild>
+                      <Link to="/vendas/produto/fotos">Gerenciar fotos</Link>
+                    </Button>
+                  </CardContent>
+                </Card>
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Pendências e fase</CardTitle>
@@ -677,6 +777,24 @@ export default function FichaProduto() {
                 Gravar {alteracoes.length} campo(s)
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={fotoAmpliada} onOpenChange={setFotoAmpliada}>
+          <DialogContent className="max-w-3xl">
+            <DialogHeader>
+              <DialogTitle>{produto?.nome_comercial || `Produto ${cod}`}</DialogTitle>
+              {origemImagem && <DialogDescription>{origemImagem}</DialogDescription>}
+            </DialogHeader>
+            {imagem?.imagem_url && (
+              <div className="flex max-h-[75vh] items-center justify-center rounded-md bg-muted p-4">
+                <img
+                  src={imagem.imagem_url}
+                  alt={produto?.nome_comercial || `Produto ${cod}`}
+                  className="max-h-[70vh] w-full object-contain"
+                />
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 
