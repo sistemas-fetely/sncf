@@ -121,10 +121,16 @@ export interface PedidoB2cRow {
   cd_efetivo_codigo: string | null;
   cd_efetivo_nome: string | null;
   cd_efetivo_fonte: string | null;
+  // LASTRO-FISICO-NA-VIEW (22/09/2026): a escada de estágio foi refundada —
+  // agora vem do registro do pedido, não do flag de fulfillment do Shopify.
+  etiqueta_gerada_em: string | null;
+  rastreio_estado: string | null;
+  fase_fisica_seq: number | null;
+  estagio_fonte: string | null;
 }
 
 const CAMPOS_PEDIDO =
-  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte";
+  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte, etiqueta_gerada_em, rastreio_estado, fase_fisica_seq, estagio_fonte";
 
 export function usePedidosB2c() {
   return useQuery({
