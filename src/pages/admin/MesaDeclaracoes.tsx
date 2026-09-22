@@ -918,6 +918,11 @@ type NfOrfa = {
   sugestao_dias: number | null;
   sugestao_confianca: "alta" | "media" | "baixa" | null;
   candidatos_do_cliente: number | null;
+  pendencia: string;
+  pendencia_label: string | null;
+  pendencia_explica: string | null;
+  pendencia_exige_acao: boolean | null;
+  pendencia_ordem: number | null;
 };
 
 type RespVinculo = {
@@ -935,6 +940,7 @@ type RespVinculo = {
 
 function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: string | null }) {
   const [escolhida, setEscolhida] = useState<NfOrfa | null>(null);
+  const [soAcionaveis, setSoAcionaveis] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ["nfs-orfas-candidatas"],
@@ -949,16 +955,45 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
     },
   });
 
-  const linhas = data ?? [];
+  const todas = data ?? [];
+  // Acionáveis primeiro: pendencia_ordem asc e depois data de emissão desc.
+  const ordenadas = [...todas].sort((a, b) => {
+    const ordA = a.pendencia_ordem ?? 9999;
+    const ordB = b.pendencia_ordem ?? 9999;
+    if (ordA !== ordB) return ordA - ordB;
+    return (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
+  });
+  const linhas = soAcionaveis
+    ? ordenadas.filter((n) => n.pendencia_exige_acao === true)
+    : ordenadas;
+  const escondidas = soAcionaveis
+    ? ordenadas.filter((n) => n.pendencia_exige_acao !== true)
+    : [];
+  const rotulosEscondidos = [...new Set(escondidas.map((n) => n.pendencia_label).filter(Boolean))];
 
   return (
     <Card id="fila-nfs-sem-pedido">
       <CardHeader className="gap-1">
-        <CardTitle className="text-base">NFs sem pedido — {linhas.length}</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">NFs sem pedido — {linhas.length}</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSoAcionaveis(!soAcionaveis)}
+          >
+            {soAcionaveis ? "Ver todas" : "Ver só as acionáveis"}
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Nota fiscal válida que chegou do Bling sem pedido de venda atrelado. Enquanto o vínculo
           não existe, o pedido não fatura, não desce pra XPM e não baixa estoque.
         </p>
+        {soAcionaveis && escondidas.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {escondidas.length} nota(s) fora da fila: {rotulosEscondidos.join(", ")} — não esperam
+            vínculo.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -966,15 +1001,25 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : linhas.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Nenhuma NF órfã. Toda nota válida achou seu pedido.
-          </p>
+          <div className="flex items-center justify-center gap-3 py-8">
+            <p className="text-center text-sm text-muted-foreground">
+              {soAcionaveis
+                ? "Nenhuma NF esperando vínculo."
+                : "Nenhuma NF órfã. Toda nota válida achou seu pedido."}
+            </p>
+            {soAcionaveis && (
+              <Button variant="outline" size="sm" onClick={() => setSoAcionaveis(false)}>
+                Ver todas
+              </Button>
+            )}
+          </div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>NF</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Pendência</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Sugestão</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
@@ -982,7 +1027,10 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
             </TableHeader>
             <TableBody>
               {linhas.map((n) => (
-                <TableRow key={n.nf_id}>
+                <TableRow
+                  key={n.nf_id}
+                  className={n.pendencia_exige_acao === false ? "text-muted-foreground" : undefined}
+                >
                   <TableCell>
                     <p className="text-sm">
                       {n.numero ?? "—"}
@@ -993,6 +1041,7 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
                   <TableCell className="max-w-[220px] truncate text-sm">
                     {n.cliente ?? "—"}
                   </TableCell>
+                  <TableCell className="text-sm">{n.pendencia_label ?? "—"}</TableCell>
                   <TableCell className="text-sm">{formatBRL(n.valor_nota)}</TableCell>
                   <TableCell>
                     {n.sugestao_pedido_ref ? (
@@ -1029,7 +1078,16 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => setEscolhida(n)}>
+                    <Button
+                      variant={n.pendencia_exige_acao === false ? "ghost" : "outline"}
+                      size="sm"
+                      title={
+                        n.pendencia_exige_acao === false
+                          ? (n.pendencia_explica ?? undefined)
+                          : undefined
+                      }
+                      onClick={() => setEscolhida(n)}
+                    >
                       Declarar vínculo
                     </Button>
                   </TableCell>
