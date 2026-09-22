@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   AlertTriangle, ArrowDown, ArrowDownCircle, ArrowUp, ArrowUpCircle, ArrowUpDown, Ban, Check,
-  ChevronDown, ChevronRight, Columns3, Download, GripVertical,
+  ChevronDown, Columns3, Download, GripVertical,
   ImageOff, Loader2, PackageX, RefreshCw, Search, X,
 } from "lucide-react";
 
@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
 import { fmtData, fmtDataHora } from "@/lib/data";
+// O de-para da conciliação virou componente compartilhado com a tela Conciliação de Cadastro.
+import { tomGravidade, type ConcLinha, type ImpactoDim, type RegraDiv } from "@/components/acervo/DeParaConciliacao";
 
 type Linha = Record<string, unknown> & {
   sku: string; cod_cadastro: string | null; nome_comercial: string | null;
@@ -39,37 +41,6 @@ type Linha = Record<string, unknown> & {
   foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
-// CONCILIAÇÃO 360 (22/09/2026) — fonte única `vw_produto_conciliacao_360`: funde a antiga
-// aba da Mesa (SNCF × Bling × XPM × cartório) com a tela /estoque/conciliacao (Shopify, preço,
-// marca), e traz o card canônico do Bling por SKU.
-type ConcLinha = {
-  sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null;
-  grupo: string | null; fase: string | null; ean: string | null; dun: string | null;
-  ncm: string | null; peso_g: number | null; qtd_kit: number | null; multiplos: number | null;
-  preco_varejo: number | null; atualizado_em: string | null; cartorio_estado: string | null;
-  cartorio_inner: number | null; cartorio_sku: string | null; bling_codigo: string | null;
-  bling_gtin: string | null; bling_ncm: string | null; bling_ativo: boolean | null;
-  bling_preco: number | null; bling_n_linhas: number | null; xpm_codigo: string | null;
-  xpm_ean: string | null; xpm_ncm: string | null; xpm_peso_kg: number | null;
-  tem_ficha_bling: boolean | null; divergencias: string[] | null; qtd_divergencias: number | null;
-  existe_bling: boolean | null; existe_xpm: boolean | null;
-  bling_nome: string | null; bling_marca: string | null; bling_card_canonico: string | null;
-  bling_n_cards: number | null; bling_canonico_por: string | null; bling_canonico_motivo: string | null;
-  no_shopify: boolean | null; ativo_shopify: boolean | null; variantes_shopify: number | null;
-  inventory_items: number | null; handle: string | null; preco_shopify: number | null;
-  barcode_shopify: string | null;
-  // Consequência da divergência, resolvida na própria view.
-  impactos: string[] | null; impacto_maior: string | null; gravidade: number | null;
-};
-
-type CardBling = {
-  sku: string; bling_id: string; nome_bling: string | null; card_ativo: boolean | null;
-  estoque_atual: number | null; preco_venda: number | null; updated_at: string | null;
-  nome_bate_catalogo: boolean | null; nome_legado: boolean | null; e_canonico: boolean | null;
-  escolhido_por: string | null; motivo_canonico: string | null; n_candidatos: number | null;
-  ja_foi_usado: boolean | null; n_envios: number | null; ultimo_envio: string | null;
-};
-
 type LinhaUnida = Linha & Partial<ConcLinha>;
 type FaseProduto = { slug: string; nome: string; ordem: number };
 type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias" | "foto";
@@ -78,21 +49,6 @@ type ErroFuncao = { status: number; corpo: Record<string, unknown> };
 // Indicador: "prontos" | "bloqueados" | "furo" | `imp:<slug do impacto>`.
 type Indicador = string | null;
 type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
-
-// DIVERGÊNCIA POR CONSEQUÊNCIA (22/09/2026) — o dicionário saiu do código: nome,
-// consequência, o que fazer e onde resolver vêm de `divergencia_regra`; nome,
-// descrição e gravidade do impacto vêm de `divergencia_impacto_dim`. Slug que a
-// view devolver sem regra cadastrada continua aparecendo cru.
-type ImpactoDim = { slug: string; nome: string; descricao: string | null; gravidade: number | null; ordem: number | null };
-type RegraDiv = {
-  slug: string; nome: string; sistema: string | null; impacto: string | null;
-  consequencia: string | null; o_que_fazer: string | null; onde_resolver: string | null; ordem: number | null;
-};
-/** Tom do chip pela gravidade do impacto — nada de "crítico/atenção" escrito aqui. */
-const tomGravidade = (g: number | null | undefined) =>
-  (g ?? 0) >= 90 ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
-  : (g ?? 0) >= 60 ? "border-warning/40 bg-warning/10 text-warning-strong"
-  : "";
 
 const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
   contagem === 0 ? ""
