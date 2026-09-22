@@ -881,10 +881,24 @@ export default function ShopifyB2c() {
                 {marcadosTravados.length !== 1 ? "s" : ""} na descida ao Bling.
               </span>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => setReprocesso(marcadosTravados)}>
-                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                  Devolver para a fila
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={carregandoPermFila || !podeDevolverFila}
+                          onClick={() => setReprocesso(marcadosTravados)}
+                        >
+                          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                          Devolver para a fila
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{dicaDevolverFila}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button size="sm" variant="ghost" onClick={() => setMarcados(new Set())}>
                   Limpar
                 </Button>
