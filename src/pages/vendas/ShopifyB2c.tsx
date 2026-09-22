@@ -31,8 +31,11 @@ import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } fro
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
-  type PedidoB2cRow, type AlertaDim, type CentroB2c,
+  useSinalB2c, sinalMudou,
+  type PedidoB2cRow, type AlertaDim, type CentroB2c, type SinalB2c,
 } from "@/hooks/vendas/useB2c";
+import { Button } from "@/components/ui/button";
+import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
