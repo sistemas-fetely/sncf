@@ -236,6 +236,17 @@ export default function ShopifyB2c() {
   const permFila = usePodeVerAba("tela.b2c");
   const permDash = usePodeVerAba("tela.dash_b2c");
 
+  // Guarda de escrita: devolver pedido à fila é ação nomeada. Enquanto carrega,
+  // o botão nasce desabilitado — default seguro. Nunca some, só trava com dica.
+  const { permitido: podeDevolverFila, carregando: carregandoPermFila } =
+    usePermissaoAcaoOuSuperAdmin("acao.reprocessar_fila_b2c");
+  const dicaDevolverFila = carregandoPermFila
+    ? "Verificando permissão…"
+    : podeDevolverFila
+      ? "Devolver para a fila do Bling"
+      : "Sem permissão para devolver pedidos à fila";
+
+
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
     dash: permDash,
