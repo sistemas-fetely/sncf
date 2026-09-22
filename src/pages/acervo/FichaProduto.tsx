@@ -985,7 +985,11 @@ export default function FichaProduto() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => { setConfirmSaldo(null); void promover(true); }}
+                onClick={() => {
+                  const pendente = confirmSaldo;
+                  setConfirmSaldo(null);
+                  if (pendente) void mudarFase(pendente.faseDestino, pendente.motivo, true);
+                }}
               >
                 Seguir mesmo assim
               </AlertDialogAction>
