@@ -49,7 +49,8 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
         .is("pago_em", null)
         .order("numero_parcela", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map((l) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? []).map((l: any) => ({
         id: l.id as string,
         numero_parcela: l.numero_parcela as number | null,
         total_parcelas: l.total_parcelas as number | null,
