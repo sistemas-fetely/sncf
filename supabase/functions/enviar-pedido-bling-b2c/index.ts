@@ -568,7 +568,7 @@ Deno.serve(async (req) => {
         }
 
 
-        // Nome do catalogo: desempate do degrau 3 (mesma regra da RPC).
+        // Nome do catalogo: desempate do ULTIMO RECURSO (mesma regra da RPC).
         const nomesCatalogo: Record<string, string> = {};
         const faltamApi = skus.filter((sku) => !mapaProduto[sku]);
         if (faltamApi.length > 0) {
@@ -629,8 +629,11 @@ Deno.serve(async (req) => {
         const naoResolvidos = skus.filter((sku) => !mapaProduto[sku]);
         if (naoResolvidos.length > 0) {
           await falhar(
-            `${naoResolvidos.length} SKU(s) sem produto no Bling — cadastre antes de reenviar: ` +
-              naoResolvidos.join(", ") +
+            `${naoResolvidos.length} SKU(s) sem produto no Bling — cadastre ou corrija o ` +
+              `codigo antes de reenviar: ` +
+              naoResolvidos
+                .map((s) => `${s}${motivoSemCard[s] ? ` — ${motivoSemCard[s]}` : ""}`)
+                .join(" | ") +
               ". Nada foi criado no Bling.",
           );
           continue;
