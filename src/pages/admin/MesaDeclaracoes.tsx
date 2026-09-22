@@ -1097,7 +1097,7 @@ function DeclararVinculoNfDialog({
     queryFn: async (): Promise<PedidoAlvo[]> => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id, id_externo, cliente_nome_snapshot, valor_total, estagio")
+        .select("id, id_externo, cliente_nome_snapshot, valor_liquido, estagio")
         .ilike("id_externo", `%${busca.trim()}%`)
         .order("id_externo", { ascending: false })
         .limit(10);
@@ -1107,7 +1107,7 @@ function DeclararVinculoNfDialog({
         id: p.id,
         ref: p.id_externo ?? p.id,
         cliente: p.cliente_nome_snapshot ?? "Sem cliente",
-        valor: p.valor_total ?? null,
+        valor: p.valor_liquido ?? null,
         estagio: p.estagio ?? null,
       }));
     },
