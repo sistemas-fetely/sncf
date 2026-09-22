@@ -889,3 +889,435 @@ function NovaDeclaracaoForm({
     </Card>
   );
 }
+
+// ═══════════════════════════════════════════════════════════
+// Fila de NFs sem pedido + declaração de vínculo NF → pedido
+// PORTA-UNICA-DA-DECLARACAO: o vínculo passa por fn_declarar_vinculo_nf_pedido,
+// que confere valor/parceiro, move o estágio e faz nascer os títulos. Inserir
+// direto no livro faria só metade do trabalho.
+// ═══════════════════════════════════════════════════════════
+
+type NfOrfa = {
+  nf_id: string;
+  numero: string | null;
+  serie: string | null;
+  situacao: string | null;
+  data_emissao: string | null;
+  valor_nota: number | null;
+  parceiro_id: string | null;
+  chave_acesso: string | null;
+  pdf_url: string | null;
+  cliente: string | null;
+  sugestao_pedido_id: string | null;
+  sugestao_pedido_ref: string | null;
+  sugestao_valor: number | null;
+  sugestao_estagio: string | null;
+  sugestao_delta_valor: number | null;
+  sugestao_dias: number | null;
+  sugestao_confianca: "alta" | "media" | "baixa" | null;
+  candidatos_do_cliente: number | null;
+};
+
+type RespVinculo = {
+  ok?: boolean;
+  erro?: string;
+  exige_forcar?: boolean;
+  avisos?: string[] | null;
+  nf?: { numero?: string | null; serie?: string | null; valor?: number | null; data_emissao?: string | null } | null;
+  pedido?: { ref?: string | null; valor?: number | null; estagio?: string | null } | null;
+  estagio_de?: string | null;
+  estagio_para?: string | null;
+  titulos_criados?: number | null;
+  valor_titulos?: number | null;
+};
+
+function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: string | null }) {
+  const [escolhida, setEscolhida] = useState<NfOrfa | null>(null);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["nfs-orfas-candidatas"],
+    queryFn: async (): Promise<NfOrfa[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_nf_orfa_candidata")
+        .select("*")
+        .order("data_emissao", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as NfOrfa[];
+    },
+  });
+
+  const linhas = data ?? [];
+
+  return (
+    <Card id="fila-nfs-sem-pedido">
+      <CardHeader className="gap-1">
+        <CardTitle className="text-base">NFs sem pedido — {linhas.length}</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Nota fiscal válida que chegou do Bling sem pedido de venda atrelado. Enquanto o vínculo
+          não existe, o pedido não fatura, não desce pra XPM e não baixa estoque.
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : linhas.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Nenhuma NF órfã. Toda nota válida achou seu pedido.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>NF</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Sugestão</TableHead>
+                <TableHead className="text-right">Ação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {linhas.map((n) => (
+                <TableRow key={n.nf_id}>
+                  <TableCell>
+                    <p className="text-sm">
+                      {n.numero ?? "—"}
+                      {n.serie ? ` / ${n.serie}` : ""}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{fmtData(n.data_emissao)}</p>
+                  </TableCell>
+                  <TableCell className="max-w-[220px] truncate text-sm">
+                    {n.cliente ?? "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{formatBRL(n.valor_nota)}</TableCell>
+                  <TableCell>
+                    {n.sugestao_pedido_ref ? (
+                      <div className="space-y-1">
+                        <p className="text-sm">{n.sugestao_pedido_ref}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatBRL(n.sugestao_valor)}
+                          {n.sugestao_estagio ? ` · ${n.sugestao_estagio}` : ""}
+                        </p>
+                        <Badge
+                          variant={
+                            n.sugestao_confianca === "alta"
+                              ? "default"
+                              : n.sugestao_confianca === "media"
+                                ? "secondary"
+                                : "outline"
+                          }
+                          className="text-xs"
+                        >
+                          {n.sugestao_confianca === "alta"
+                            ? "confiança alta"
+                            : n.sugestao_confianca === "media"
+                              ? "confiança média"
+                              : "sem palpite"}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">—</p>
+                        <Badge variant="outline" className="text-xs">
+                          sem palpite
+                        </Badge>
+                      </div>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="outline" size="sm" onClick={() => setEscolhida(n)}>
+                      Declarar vínculo
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+
+      {escolhida && (
+        <DeclararVinculoNfDialog
+          nf={escolhida}
+          motivos={motivos}
+          userId={userId}
+          onFechar={() => setEscolhida(null)}
+        />
+      )}
+    </Card>
+  );
+}
+
+type PedidoAlvo = {
+  id: string;
+  ref: string;
+  cliente: string;
+  valor: number | null;
+  estagio: string | null;
+};
+
+function DeclararVinculoNfDialog({
+  nf,
+  motivos,
+  userId,
+  onFechar,
+}: {
+  nf: NfOrfa;
+  motivos: Motivo[];
+  userId: string | null;
+  onFechar: () => void;
+}) {
+  const qc = useQueryClient();
+
+  const [pedido, setPedido] = useState<PedidoAlvo | null>(
+    nf.sugestao_pedido_id
+      ? {
+          id: nf.sugestao_pedido_id,
+          ref: nf.sugestao_pedido_ref ?? nf.sugestao_pedido_id,
+          cliente: nf.cliente ?? "Sem cliente",
+          valor: nf.sugestao_valor,
+          estagio: nf.sugestao_estagio,
+        }
+      : null,
+  );
+  const [busca, setBusca] = useState("");
+  const [motivoCodigo, setMotivoCodigo] = useState(
+    motivos.some((m) => m.codigo === "nf_refeita_no_bling") ? "nf_refeita_no_bling" : "",
+  );
+  const [observacao, setObservacao] = useState("");
+  const [aviso, setAviso] = useState<RespVinculo | null>(null);
+
+  const { data: resultados, isFetching } = useQuery({
+    queryKey: ["nf-vinculo-busca-pedido", busca],
+    enabled: !pedido && busca.trim().length >= 2,
+    queryFn: async (): Promise<PedidoAlvo[]> => {
+      const { data, error } = await supabase
+        .from("pedidos")
+        .select("id, id_externo, cliente_nome_snapshot, valor_total, estagio")
+        .ilike("id_externo", `%${busca.trim()}%`)
+        .order("id_externo", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? []).map((p: any) => ({
+        id: p.id,
+        ref: p.id_externo ?? p.id,
+        cliente: p.cliente_nome_snapshot ?? "Sem cliente",
+        valor: p.valor_total ?? null,
+        estagio: p.estagio ?? null,
+      }));
+    },
+  });
+
+  const declarar = useMutation({
+    mutationFn: async (forcar: boolean): Promise<RespVinculo> => {
+      if (!pedido || !motivoCodigo) throw new Error("Escolha o pedido e o motivo.");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)("fn_declarar_vinculo_nf_pedido", {
+        p_nf_id: nf.nf_id,
+        p_pedido_id: pedido.id,
+        p_motivo: observacao.trim(),
+        p_motivo_codigo: motivoCodigo,
+        p_forcar: forcar,
+        p_declarado_por: userId,
+      });
+      if (error) throw error;
+      return (data ?? {}) as RespVinculo;
+    },
+    onSuccess: (resp) => {
+      if (resp.ok !== true) {
+        if (resp.exige_forcar) {
+          setAviso(resp);
+          return;
+        }
+        toast.error(resp.erro || "Não foi possível declarar o vínculo.");
+        return;
+      }
+      const nfTxt = `${resp.nf?.numero ?? nf.numero ?? "NF"}${resp.nf?.serie ? `/${resp.nf.serie}` : ""}`;
+      const pedTxt = resp.pedido?.ref ?? pedido?.ref ?? "pedido";
+      toast.success(
+        `NF ${nfTxt} vinculada ao ${pedTxt}. Estágio: ${resp.estagio_de ?? "—"} → ${resp.estagio_para ?? "—"}.`,
+      );
+      if ((resp.titulos_criados ?? 0) > 0) {
+        toast.info(
+          `${resp.titulos_criados} título(s) nasceram, somando ${formatBRL(resp.valor_titulos)}.`,
+        );
+      }
+      (resp.avisos ?? []).forEach((a) => toast.warning(a));
+      qc.invalidateQueries({ queryKey: ["declaracoes-realidade"] });
+      qc.invalidateQueries({ queryKey: ["declaracoes-vivas-contador"] });
+      qc.invalidateQueries({ queryKey: ["nfs-orfas-candidatas"] });
+      onFechar();
+    },
+    onError: (e) => toast.error(formatError(e)),
+  });
+
+  const podeDeclarar = !!pedido && !!motivoCodigo && observacao.trim().length >= 15;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onFechar()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Declarar vínculo de NF</DialogTitle>
+          <DialogDescription>
+            Você afirma que esta nota fiscal pertence a este pedido. O sistema passa a tratar os
+            dois como um só fato.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* NF fixa */}
+          <div className="rounded-md border border-border/60 bg-muted/40 p-3 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p>
+                NF {nf.numero ?? "—"}
+                {nf.serie ? ` / ${nf.serie}` : ""} · {fmtData(nf.data_emissao)}
+              </p>
+              {nf.pdf_url && (
+                <Button asChild variant="ghost" size="sm">
+                  <a href={nf.pdf_url} target="_blank" rel="noopener noreferrer">
+                    Abrir PDF
+                  </a>
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {nf.cliente ?? "Sem cliente"} · {formatBRL(nf.valor_nota)}
+            </p>
+          </div>
+
+          {/* Pedido */}
+          <div className="space-y-1">
+            <Label>Pedido *</Label>
+            {pedido ? (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 px-3 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-sm">{pedido.ref}</p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {formatBRL(pedido.valor)}
+                    {pedido.estagio ? ` · ${pedido.estagio}` : ""} · {pedido.cliente}
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setPedido(null)}>
+                  Trocar
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="pl-8"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    placeholder="Busque pelo número do pedido"
+                  />
+                </div>
+                {busca.trim().length >= 2 && (
+                  <div className="mt-1 max-h-52 overflow-y-auto rounded-md border border-border/60">
+                    {isFetching ? (
+                      <p className="p-3 text-xs text-muted-foreground">Buscando…</p>
+                    ) : (resultados ?? []).length === 0 ? (
+                      <p className="p-3 text-xs text-muted-foreground">Nada encontrado.</p>
+                    ) : (
+                      (resultados ?? []).map((p) => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setPedido(p)}
+                          className="flex w-full items-center justify-between gap-2 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/50"
+                        >
+                          <span className="text-sm">{p.ref}</span>
+                          <span className="truncate text-xs text-muted-foreground">{p.cliente}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Motivo */}
+          <div className="space-y-1">
+            <Label>Motivo *</Label>
+            <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
+              <SelectTrigger>
+                <SelectValue placeholder="Por que o vínculo não veio sozinho?" />
+              </SelectTrigger>
+              <SelectContent>
+                {motivos.map((m) => (
+                  <SelectItem key={m.codigo} value={m.codigo}>
+                    {m.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Observação */}
+          <div className="space-y-1">
+            <Label>Observação *</Label>
+            <Textarea
+              rows={3}
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              placeholder="Conte a história para quem ler daqui a seis meses: qual NF foi cancelada, por quê, quem refez."
+            />
+          </div>
+
+          {/* Avisos de forçagem */}
+          {aviso && (
+            <div className="space-y-2 rounded-md border border-warning/50 bg-warning/5 p-3">
+              <p className="flex items-center gap-2 text-sm">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                O sistema encontrou divergências. Confira antes de seguir.
+              </p>
+              <ul className="list-inside list-disc space-y-1 text-xs text-muted-foreground">
+                {(aviso.avisos ?? []).map((a, i) => (
+                  <li key={i}>{a}</li>
+                ))}
+              </ul>
+              <div className="grid grid-cols-2 gap-3 rounded-md border border-border/60 bg-background p-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Nota fiscal</p>
+                  <p>
+                    {aviso.nf?.numero ?? nf.numero ?? "—"}
+                    {aviso.nf?.serie ? `/${aviso.nf.serie}` : ""}
+                  </p>
+                  <p>{formatBRL(aviso.nf?.valor ?? nf.valor_nota)}</p>
+                  <p className="text-muted-foreground">
+                    {fmtData(aviso.nf?.data_emissao ?? nf.data_emissao)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Pedido</p>
+                  <p>{aviso.pedido?.ref ?? pedido?.ref ?? "—"}</p>
+                  <p>{formatBRL(aviso.pedido?.valor ?? pedido?.valor)}</p>
+                  <p className="text-muted-foreground">
+                    {aviso.pedido?.estagio ?? pedido?.estagio ?? "—"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button
+            disabled={!podeDeclarar || declarar.isPending}
+            onClick={() => declarar.mutate(!!aviso)}
+          >
+            {declarar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {aviso ? "Declarar mesmo assim" : "Declarar vínculo"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
