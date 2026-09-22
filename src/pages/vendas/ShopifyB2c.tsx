@@ -1326,20 +1326,23 @@ export default function ShopifyB2c() {
                               </TableCell>
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
                                 {podeReprocessar(p) && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7"
-                                        aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
-                                        onClick={() => setReprocesso([p])}
-                                      >
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Devolver para a fila do Bling</TooltipContent>
-                                  </Tooltip>
+                                   <Tooltip>
+                                     <TooltipTrigger asChild>
+                                       <span>
+                                         <Button
+                                           size="icon"
+                                           variant="ghost"
+                                           className="h-7 w-7"
+                                           disabled={carregandoPermFila || !podeDevolverFila}
+                                           aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
+                                           onClick={() => setReprocesso([p])}
+                                         >
+                                           <RotateCcw className="h-3.5 w-3.5" />
+                                         </Button>
+                                       </span>
+                                     </TooltipTrigger>
+                                     <TooltipContent>{dicaDevolverFila}</TooltipContent>
+                                   </Tooltip>
                                 )}
                               </TableCell>
                               <TableCell className="w-8">
