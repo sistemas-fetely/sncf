@@ -41,7 +41,8 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
     queryKey: ["plano-aberto-pedido", pedido_id],
     enabled: !!pedido_id && habilitado,
     queryFn: async (): Promise<LinhaPlanoAberta[]> => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("provisao_recebimento")
         .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_portao, captura_id")
         .eq("pedido_id", pedido_id!)
