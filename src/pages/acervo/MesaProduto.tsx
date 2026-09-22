@@ -36,6 +36,9 @@ type Linha = Record<string, unknown> & {
   foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
+// CONCILIAÇÃO 360 (22/09/2026) — fonte única `vw_produto_conciliacao_360`: funde a antiga
+// aba da Mesa (SNCF × Bling × XPM × cartório) com a tela /estoque/conciliacao (Shopify, preço,
+// marca), e traz o card canônico do Bling por SKU.
 type ConcLinha = {
   sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null;
   grupo: string | null; fase: string | null; ean: string | null; dun: string | null;
@@ -47,6 +50,19 @@ type ConcLinha = {
   xpm_ean: string | null; xpm_ncm: string | null; xpm_peso_kg: number | null;
   tem_ficha_bling: boolean | null; divergencias: string[] | null; qtd_divergencias: number | null;
   existe_bling: boolean | null; existe_xpm: boolean | null;
+  bling_nome: string | null; bling_marca: string | null; bling_card_canonico: string | null;
+  bling_n_cards: number | null; bling_canonico_por: string | null; bling_canonico_motivo: string | null;
+  no_shopify: boolean | null; ativo_shopify: boolean | null; variantes_shopify: number | null;
+  inventory_items: number | null; handle: string | null; preco_shopify: number | null;
+  barcode_shopify: string | null;
+};
+
+type CardBling = {
+  sku: string; bling_id: string; nome_bling: string | null; card_ativo: boolean | null;
+  estoque_atual: number | null; preco_venda: number | null; updated_at: string | null;
+  nome_bate_catalogo: boolean | null; nome_legado: boolean | null; e_canonico: boolean | null;
+  escolhido_por: string | null; motivo_canonico: string | null; n_candidatos: number | null;
+  ja_foi_usado: boolean | null; n_envios: number | null; ultimo_envio: string | null;
 };
 
 type LinhaUnida = Linha & Partial<ConcLinha>;
