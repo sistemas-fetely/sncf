@@ -1019,6 +1019,7 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
               <TableRow>
                 <TableHead>NF</TableHead>
                 <TableHead>Cliente</TableHead>
+                <TableHead>Pendência</TableHead>
                 <TableHead>Valor</TableHead>
                 <TableHead>Sugestão</TableHead>
                 <TableHead className="text-right">Ação</TableHead>
