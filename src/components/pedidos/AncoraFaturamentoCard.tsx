@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { formatError } from "@/lib/format-error";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -206,7 +207,7 @@ export function AncoraFaturamentoCard({
       onDeclarada?.();
     },
     onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Não foi possível declarar a âncora");
+      toast.error(formatError(e));
     },
   });
 
@@ -215,6 +216,7 @@ export function AncoraFaturamentoCard({
       const { error } = await supabase.rpc(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         "fn_remontar_plano_pela_condicao" as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         { p_pedido_id: pedidoId, p_motivo: motivoRemonte, p_origem: "manual" } as any,
       );
       if (error) throw error;
@@ -234,7 +236,7 @@ export function AncoraFaturamentoCard({
       });
     },
     onError: (e: unknown) => {
-      toast.error(e instanceof Error ? e.message : "Não foi possível remontar o plano");
+      toast.error(formatError(e));
     },
   });
 
