@@ -58,6 +58,7 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
         data_prevista: (l.data_prevista as string | null) ?? null,
         tipo_pagamento: (l.tipo_pagamento as string | null) ?? null,
         eh_portao: (l.eh_portao as boolean | null) ?? null,
+        captura_id: (l.captura_id as string | null) ?? null,
       }));
     },
   });
