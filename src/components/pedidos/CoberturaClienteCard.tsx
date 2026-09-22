@@ -176,6 +176,12 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       )}
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        {empenhoPedido > 0 && (
+          <>
+            <dt>Empenhado neste pedido</dt>
+            <dd className="text-right text-foreground">{formatBRL(empenhoPedido)}</dd>
+          </>
+        )}
         <dt>Saldo disponível</dt>
         <dd className="text-right text-foreground">{formatBRL(cob.fonte1_saldo_disponivel)}</dd>
         <dt>Limite disponível</dt>
