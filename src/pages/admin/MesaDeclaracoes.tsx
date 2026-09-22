@@ -797,7 +797,8 @@ function NovaDeclaracaoForm({
         )}
 
         {/* Observação */}
-        {tipo && (
+        {tipo && !ehNf && (
+
           <div className="space-y-1">
             <Label>Observação *</Label>
             <Textarea
