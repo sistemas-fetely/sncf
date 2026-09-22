@@ -13,6 +13,13 @@ import {
   NfAnexoError,
 } from "../_shared/bling/nf-anexo.ts";
 import { exigirAcao } from "../_shared/permissao-acao.ts";
+import {
+  chaveSku,
+  escolherCandidatoApi,
+  lerCardsCanonicos,
+  type FonteResolucaoCard,
+} from "../_shared/bling/card-canonico.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
