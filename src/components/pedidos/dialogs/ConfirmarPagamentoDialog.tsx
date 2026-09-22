@@ -251,7 +251,7 @@ export function ConfirmarPagamentoDialog({
     ultimaLinhaSyncRef.current = null;
   }, [aberto]);
 
-  const capturas = capturasQ.data ?? [];
+  const capturas = useMemo(() => capturasQ.data ?? [], [capturasQ.data]);
   const capturaDaLinha = useMemo(() => {
     const id = linhaEfetiva?.captura_id ?? null;
     return id ? (capturas.find((c) => c.id === id) ?? null) : null;
