@@ -9,24 +9,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
 
 export const PAGE_SIZE_OPTIONS = [20, 50, 100, 200] as const;
 export type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
 export const DEFAULT_PAGE_SIZE: PageSizeOption = 20;
 
 /**
- * Le a preferencia de tamanho de pagina do operador. A chave vem de fora para
- * cada tabela ter a sua — quem escolheu 200 na fila nao muda a da loja.
+ * Compatibilidade: telas antigas chamam isso para semear o estado inicial.
+ * A preferencia agora mora no banco (por usuario) — nada mais e' lido do
+ * navegador, entao aqui so' sai o padrao. Quem passa `tela` ao rodape ganha
+ * persistencia de verdade.
  */
-export function lerTamanhoPaginaSalvo(chavePreferencia: string): PageSizeOption {
-  try {
-    const salvo = Number(localStorage.getItem(chavePreferencia));
-    return (PAGE_SIZE_OPTIONS as readonly number[]).includes(salvo)
-      ? (salvo as PageSizeOption)
-      : DEFAULT_PAGE_SIZE;
-  } catch {
-    return DEFAULT_PAGE_SIZE;
-  }
+export function lerTamanhoPaginaSalvo(_chavePreferencia?: string): PageSizeOption {
+  return DEFAULT_PAGE_SIZE;
 }
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
@@ -49,7 +45,7 @@ export function RodapePaginacao({
   total,
   pagina,
   tamanhoPagina,
-  chavePreferencia,
+  tela,
   onPagina,
   onTamanhoPagina,
   extraDireita,
@@ -58,12 +54,16 @@ export function RodapePaginacao({
   /** 1-based */
   pagina: number;
   tamanhoPagina: number;
-  chavePreferencia: string;
+  /** Slug da tela para guardar o tamanho de pagina no banco. Sem ela, nada persiste. */
+  tela?: string;
+  /** @deprecated chave de navegador — nao usada mais */
+  chavePreferencia?: string;
   /** Conteudo opcional no fim da linha (ex.: status de sincronizacao). Telas que nao passam nada ficam como estao. */
   extraDireita?: ReactNode;
   onPagina: (p: number) => void;
   onTamanhoPagina: (n: number) => void;
 }) {
+  const { salvar } = usePreferenciaTela<{ tamanho_pagina?: number }>(tela ?? "", {});
   const totalPaginas = Math.max(1, Math.ceil(total / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const inicioRange = total === 0 ? 0 : (paginaAtual - 1) * tamanhoPagina + 1;
