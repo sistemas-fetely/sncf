@@ -73,7 +73,8 @@ type FaseProduto = { slug: string; nome: string; ordem: number };
 type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias" | "foto";
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; direita?: boolean };
 type ErroFuncao = { status: number; corpo: Record<string, unknown> };
-type Indicador = "prontos" | "bloqueados" | "furo" | "divergencia" | null;
+// Indicador: "prontos" | "bloqueados" | "furo" | `imp:<slug do impacto>`.
+type Indicador = string | null;
 type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
 
 type SevDiv = "critico" | "atencao";
