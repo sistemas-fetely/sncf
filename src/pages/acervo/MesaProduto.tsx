@@ -24,7 +24,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { RodapePaginacao, lerTamanhoPaginaSalvo } from "@/components/tabela/RodapePaginacao";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
+import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
 import { fmtData, fmtDataHora } from "@/lib/data";
 
 type Linha = Record<string, unknown> & {
@@ -205,7 +206,7 @@ export default function MesaProduto() {
   const [colecoes,setColecoes]=useState<string[]>([]); const [grupos,setGrupos]=useState<string[]>([]); const [sistemas,setSistemas]=useState<string[]>([]);
   const [indicador,setIndicador]=useState<Indicador>(null); const [visiveis,setVisiveis]=useState<string[]>(COLUNAS_PADRAO);
   const [ordemColunas,setOrdemColunas]=useState<string[]>(COLUNAS.map(c=>c.key)); const [arrastando,setArrastando]=useState<string|null>(null);
-  const [ordem,setOrdem]=useState({coluna:"cod_cadastro",dir:"asc" as "asc"|"desc"}); const [pagina,setPagina]=useState(1); const [tamanho,setTamanho]=useState<number>(()=>lerTamanhoPaginaSalvo("mesa-produto-tamanho-pagina"));
+  const [ordem,setOrdem]=useState({coluna:"cod_cadastro",dir:"asc" as "asc"|"desc"}); const [pagina,setPagina]=useState(1); const [tamanho,setTamanho]=useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido,setExpandido]=useState<string|null>(null); const [emAcao,setEmAcao]=useState<string|null>(null);
   const [confirmSaldo,setConfirmSaldo]=useState<{sku:string;saldo:number}|null>(null); const [faltando,setFaltando]=useState<{sku:string;campos:string[]}|null>(null); const [erroFop,setErroFop]=useState<{sku:string;corpo:string}|null>(null);
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
