@@ -41,6 +41,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
@@ -218,9 +219,10 @@ function truncarErro(texto: string, max = 80): string {
 }
 
 // DEVOLVER-PARA-A-FILA (22/09/2026): o cron da descida só olha `pendente`, então
-// pedido em erro fica parado para sempre. Quem pode voltar são estes dois estados
-// — a própria RPC ignora o resto.
-const ESTADOS_REPROCESSAVEIS = new Set(["erro", "pausado"]);
+// pedido em erro fica parado para sempre. Só `erro` volta: `pausado` é quarentena
+// manual ("nunca processar" — vovôs, duplicatas no Bling, legado) e devolver
+// duplicaria o pedido no Bling. A RPC já recusa pausado; a tela não pode oferecer.
+const ESTADOS_REPROCESSAVEIS = new Set(["erro"]);
 const podeReprocessar = (p: PedidoB2cRow): boolean =>
   ESTADOS_REPROCESSAVEIS.has(p.fila_status ?? "") && !!p.fila_id;
 const AVISO_CRON_FILA = "A descida ao Bling roda a cada 10 minutos: depois de devolver, o pedido entra na próxima janela.";
@@ -233,6 +235,17 @@ export default function ShopifyB2c() {
   // Guarda nominal por aba.
   const permFila = usePodeVerAba("tela.b2c");
   const permDash = usePodeVerAba("tela.dash_b2c");
+
+  // Guarda de escrita: devolver pedido à fila é ação nomeada. Enquanto carrega,
+  // o botão nasce desabilitado — default seguro. Nunca some, só trava com dica.
+  const { permitido: podeDevolverFila, carregando: carregandoPermFila } =
+    usePermissaoAcaoOuSuperAdmin("acao.reprocessar_fila_b2c");
+  const dicaDevolverFila = carregandoPermFila
+    ? "Verificando permissão…"
+    : podeDevolverFila
+      ? "Devolver para a fila do Bling"
+      : "Sem permissão para devolver pedidos à fila";
+
 
   const permissoes: Record<Aba, { podeVer: boolean; carregando: boolean }> = {
     fila: permFila,
@@ -609,7 +622,7 @@ export default function ShopifyB2c() {
       toast.success(`${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`, {
         description: [
           r.ignorados > 0
-            ? `${r.ignorados} ignorado${r.ignorados !== 1 ? "s" : ""} por não estar${r.ignorados !== 1 ? "em" : ""} em erro.`
+            ? `${r.ignorados} ignorado(s) por não estar(em) em erro.`
             : null,
           r.nota,
           AVISO_CRON_FILA,
@@ -868,10 +881,24 @@ export default function ShopifyB2c() {
                 {marcadosTravados.length !== 1 ? "s" : ""} na descida ao Bling.
               </span>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={() => setReprocesso(marcadosTravados)}>
-                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
-                  Devolver para a fila
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={carregandoPermFila || !podeDevolverFila}
+                          onClick={() => setReprocesso(marcadosTravados)}
+                        >
+                          <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                          Devolver para a fila
+                        </Button>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>{dicaDevolverFila}</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <Button size="sm" variant="ghost" onClick={() => setMarcados(new Set())}>
                   Limpar
                 </Button>
@@ -1299,20 +1326,23 @@ export default function ShopifyB2c() {
                               </TableCell>
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
                                 {podeReprocessar(p) && (
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-7 w-7"
-                                        aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
-                                        onClick={() => setReprocesso([p])}
-                                      >
-                                        <RotateCcw className="h-3.5 w-3.5" />
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Devolver para a fila do Bling</TooltipContent>
-                                  </Tooltip>
+                                   <Tooltip>
+                                     <TooltipTrigger asChild>
+                                       <span>
+                                         <Button
+                                           size="icon"
+                                           variant="ghost"
+                                           className="h-7 w-7"
+                                           disabled={carregandoPermFila || !podeDevolverFila}
+                                           aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
+                                           onClick={() => setReprocesso([p])}
+                                         >
+                                           <RotateCcw className="h-3.5 w-3.5" />
+                                         </Button>
+                                       </span>
+                                     </TooltipTrigger>
+                                     <TooltipContent>{dicaDevolverFila}</TooltipContent>
+                                   </Tooltip>
                                 )}
                               </TableCell>
                               <TableCell className="w-8">
