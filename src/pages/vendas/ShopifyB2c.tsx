@@ -341,6 +341,48 @@ export default function ShopifyB2c() {
 
   const qc = useQueryClient();
 
+  // ── SENTINELA-B2C · 22/09/2026 ───────────────────────────────────────────
+  // A lista da fila vem de vw_gestao_b2c_pedido (~2,9s por execução), então
+  // ela NÃO tem refetchInterval. Pedido novo nasce de webhook Shopify e
+  // nenhuma mutation invalida o cache, logo a tela ficava parada até um F5.
+  // A sentinela é uma RPC barata (~4ms) que só avisa que algo mudou; quem
+  // manda recarregar é o operador, no clique — ele pode estar no meio de uma
+  // seleção em lote de CD, e puxar o tapete seria pior que o problema.
+  const { data: sinal, refetch: refetchSinal } = useSinalB2c();
+  const [baseline, setBaseline] = useState<SinalB2c | null>(null);
+  const [atualizandoFila, setAtualizandoFila] = useState(false);
+  const carregamentoBaseline = useRef(0);
+
+  useEffect(() => {
+    if (!sinal) return;
+    if (baseline === null || pedidosAtualizadoEm !== carregamentoBaseline.current) {
+      carregamentoBaseline.current = pedidosAtualizadoEm;
+      setBaseline(sinal);
+    }
+  }, [sinal, baseline, pedidosAtualizadoEm]);
+
+  const mostrarFaixaSinal = sinalMudou(sinal, baseline);
+  const novosNaLoja =
+    sinal && baseline ? sinal.pedidos_qtd - baseline.pedidos_qtd : 0;
+
+  /** Recarrega a lista pesada só sob pedido. FAIL-LOUD: erro real no toast. */
+  async function atualizarFila() {
+    setAtualizandoFila(true);
+    try {
+      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      const novo = await refetchSinal();
+      if (novo.data) {
+        carregamentoBaseline.current = 0;
+        setBaseline(novo.data);
+      }
+    } catch (e) {
+      toast.error("Não foi possível atualizar a fila.", { description: formatError(e) });
+    } finally {
+      setAtualizandoFila(false);
+    }
+  }
+
   /** Grava a escolha do CD e libera a descida. FAIL-LOUD: erro do banco no toast. */
   async function escolherCd(pedidos: PedidoB2cRow[], centro: CentroB2c) {
     const alvos = pedidos.filter((p) => !!p.shopify_id);
