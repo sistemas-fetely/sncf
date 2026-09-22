@@ -5987,6 +5987,39 @@ export type Database = {
         }
         Relationships: []
       }
+      bling_card_canonico: {
+        Row: {
+          atualizado_em: string
+          bling_id: string
+          escolhido_por: string
+          fixado_em: string | null
+          fixado_por: string | null
+          motivo: string | null
+          n_candidatos: number
+          sku: string
+        }
+        Insert: {
+          atualizado_em?: string
+          bling_id: string
+          escolhido_por?: string
+          fixado_em?: string | null
+          fixado_por?: string | null
+          motivo?: string | null
+          n_candidatos?: number
+          sku: string
+        }
+        Update: {
+          atualizado_em?: string
+          bling_id?: string
+          escolhido_por?: string
+          fixado_em?: string | null
+          fixado_por?: string | null
+          motivo?: string | null
+          n_candidatos?: number
+          sku?: string
+        }
+        Relationships: []
+      }
       bling_contatos_log: {
         Row: {
           acionado_por: string | null
@@ -67239,6 +67272,30 @@ export type Database = {
           },
         ]
       }
+      vw_bling_card_360: {
+        Row: {
+          bling_id: string | null
+          card_ativo: boolean | null
+          e_canonico: boolean | null
+          escolhido_por: string | null
+          estoque_atual: number | null
+          fase: string | null
+          ja_foi_usado: boolean | null
+          motivo_canonico: string | null
+          n_candidatos: number | null
+          n_envios: number | null
+          nome_bate_catalogo: boolean | null
+          nome_bling: string | null
+          nome_comercial: string | null
+          nome_legado: boolean | null
+          preco_venda: number | null
+          sku: string | null
+          ultimo_envio: string | null
+          updated_at: string | null
+          usado_mas_nao_canonico: boolean | null
+        }
+        Relationships: []
+      }
       vw_bling_completar_fiscal: {
         Row: {
           altura_br: string | null
@@ -87861,14 +87918,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -97231,14 +97288,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -103289,6 +103346,10 @@ export type Database = {
       }
       fn_baixa_pendente_diagnostico: {
         Args: { p_pendencia_id: string }
+        Returns: Json
+      }
+      fn_bling_card_canonico_recalcular: {
+        Args: { p_dry_run?: boolean }
         Returns: Json
       }
       fn_boleto_fator_vencimento: { Args: { p_venc: string }; Returns: number }

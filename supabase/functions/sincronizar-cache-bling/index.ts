@@ -74,10 +74,17 @@ serve(async (req) => {
       if (pagina > 100) break; // guardrail anti-loop
     }
 
-    // dedup por sku (mantém o último)
-    const mapa = new Map<string, { sku: string; bling_produto_id: number; nome: string }>();
-    for (const p of produtos) mapa.set(p.sku, p);
-    const distintos = [...mapa.values()];
+    // Agrupa por sku mantendo TODOS os cards (o catálogo tem duplicata: 923 SKUs com 2+).
+    // Quem escolhe qual card representa o SKU é `bling_card_canonico` (passo 4), NÃO a
+    // ordem da paginação. O "mantém o último" de antes fazia o id gravado mudar sozinho.
+    const porSku = new Map<string, { sku: string; bling_produto_id: number; nome: string }[]>();
+    for (const p of produtos) {
+      const lista = porSku.get(p.sku) ?? [];
+      lista.push(p);
+      porSku.set(p.sku, lista);
+    }
+    const distintos = [...porSku.values()].map((l) => l[0]);
+
 
     // 3. Cobertura vs SNCF ativo
     const { data: ativos } = await supabase
@@ -100,23 +107,69 @@ serve(async (req) => {
 
     if (dryRun) return json(200, { dry_run: true, ...cobertura });
 
-    // 4. Upsert real na cache (idempotente)
-    const linhas = distintos.map((p) => ({
-      sku: p.sku,
-      bling_produto_id: p.bling_produto_id,
-      nome: p.nome,
-      atualizado_em: new Date().toISOString(),
-    }));
+    // 4. CARD-CANÔNICO (22/09/2026) — recalcula a escolha por SKU antes de gravar a cache.
+    //    A RPC aplica a regra (ativo → nome do catálogo → nome fora do padrão antigo →
+    //    maior estoque → atualizado mais recente) e NUNCA sobrescreve escolha manual.
+    const { error: recanErr } = await supabase.rpc("fn_bling_card_canonico_recalcular", {
+      p_dry_run: false,
+    });
+    if (recanErr) throw new Error(`Falha ao recalcular card canônico: ${recanErr.message}`);
+
+    const skusCatalogo = [...porSku.keys()];
+    const canonico: Record<string, number> = {};
+    for (let i = 0; i < skusCatalogo.length; i += 500) {
+      const chunk = skusCatalogo.slice(i, i + 500);
+      const { data: rows, error: canErr } = await supabase
+        .from("bling_card_canonico")
+        .select("sku, bling_id")
+        .in("sku", chunk);
+      if (canErr) throw new Error(`Falha ao ler bling_card_canonico: ${canErr.message}`);
+      for (const r of rows ?? []) {
+        const id = Number(r.bling_id);
+        if (Number.isFinite(id) && id > 0) canonico[String(r.sku).trim()] = id;
+      }
+    }
+
+    // 5. Upsert real na cache (idempotente) — o card vem do canônico, não da paginação.
+    let semCanonico = 0;
+    const linhas = [...porSku.entries()].map(([sku, cards]) => {
+      const idCanonico = canonico[sku];
+      // Rede de segurança: SKU no catálogo sem linha canônica não deve acontecer.
+      // Cai no comportamento antigo (primeiro card visto) e GRITA no log — silêncio aqui
+      // foi exatamente o que criou o problema do card errado.
+      if (!idCanonico) {
+        semCanonico++;
+        console.warn(
+          `[sincronizar-cache-bling] SKU sem card canônico: ${sku} ` +
+            `(${cards.length} card(s) no Bling) — usando ${cards[0].bling_produto_id} por fallback`,
+        );
+      }
+      const escolhido = cards.find((c) => c.bling_produto_id === idCanonico) ?? cards[0];
+      return {
+        sku,
+        bling_produto_id: idCanonico ?? escolhido.bling_produto_id,
+        nome: escolhido.nome,
+        atualizado_em: new Date().toISOString(),
+      };
+    });
     const { error: upErr } = await supabase
       .from("bling_produtos_cache")
       .upsert(linhas, { onConflict: "sku" });
     if (upErr) throw new Error(`Falha no upsert da cache: ${upErr.message}`);
 
+
     // Reconcilia o espelho produtos: desativa linhas cujo bling_id sumiu do Bling
     const { data: reconciliados, error: recErr } = await supabase.rpc("reconciliar_produtos_espelho");
     if (recErr) throw new Error(`Falha na reconciliação do espelho: ${recErr.message}`);
 
-    return json(200, { dry_run: false, upserted: linhas.length, produtos_reconciliados: reconciliados, ...cobertura });
+    return json(200, {
+      dry_run: false,
+      upserted: linhas.length,
+      produtos_reconciliados: reconciliados,
+      skus_sem_card_canonico: semCanonico,
+      ...cobertura,
+    });
+
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }

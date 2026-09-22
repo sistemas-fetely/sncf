@@ -30,6 +30,13 @@ import {
   refreshAccessToken,
 } from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
+import {
+  chaveSku,
+  escolherCandidatoApi,
+  lerCardsCanonicos,
+  type FonteResolucaoCard,
+} from "../_shared/bling/card-canonico.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -519,19 +526,61 @@ Deno.serve(async (req) => {
         const telefoneBruto = order.shippingAddress?.phone ?? order.phone ?? order.customer?.phone;
         const telefoneCliente = telefoneBR(telefoneBruto);
 
-        // 4. Produtos por SKU: cache -> GET /produtos?codigo= -> FAIL-LOUD.
+        // 4. Produtos por SKU — CARD-CANÔNICO (22/09/2026), mesma regra do B2B:
+        //    `bling_card_canonico` -> `bling_produtos_cache` -> GET /produtos?codigo=
+        //    (com desempate ativo -> nome do catalogo -> maior estoque) -> FAIL-LOUD.
         //    NUNCA cria produto no Bling (o "cria-se-nao-acha" do B2B gerava duplicata).
         //    VEM ANTES DO CONTATO de proposito: SKU nao resolvido aborta o item sem ter
         //    criado NADA no Bling — contato orfao de pedido que nunca desceu e lixo.
         const skus: string[] = [...new Set(itens.map((it) => it.sku))];
-        const { data: cacheRows, error: eCache } = await supabase
-          .from("bling_produtos_cache")
-          .select("sku, bling_produto_id")
-          .in("sku", skus);
-        if (eCache) throw new Error(`ler bling_produtos_cache: ${eCache.message}`);
 
         const mapaProduto: Record<string, number> = {};
-        for (const row of cacheRows ?? []) mapaProduto[String(row.sku).trim()] = row.bling_produto_id;
+        const fonteResolucao: Record<string, FonteResolucaoCard> = {};
+
+        // Degrau 1: card canonico (fonte de verdade da escolha entre cards duplicados).
+        const canonicoMap = await lerCardsCanonicos(supabase, skus);
+        for (const sku of skus) {
+          const id = canonicoMap[chaveSku(sku)];
+          if (id) {
+            mapaProduto[sku] = id;
+            fonteResolucao[sku] = "canonico";
+          }
+        }
+
+        // Degrau 2: espelho do catalogo, so para o que o canonico nao cobriu.
+        const faltamCache = skus.filter((sku) => !mapaProduto[sku]);
+        if (faltamCache.length > 0) {
+          const { data: cacheRows, error: eCache } = await supabase
+            .from("bling_produtos_cache")
+            .select("sku, bling_produto_id")
+            .in("sku", faltamCache);
+          if (eCache) throw new Error(`ler bling_produtos_cache: ${eCache.message}`);
+          const porChave: Record<string, number> = {};
+          for (const row of cacheRows ?? []) {
+            const id = Number(row.bling_produto_id);
+            if (Number.isFinite(id) && id > 0) porChave[chaveSku(row.sku)] = id;
+          }
+          for (const sku of faltamCache) {
+            const id = porChave[chaveSku(sku)];
+            if (id) {
+              mapaProduto[sku] = id;
+              fonteResolucao[sku] = "cache";
+            }
+          }
+        }
+
+        // Nome do catalogo: desempate do degrau 3 (mesma regra da RPC).
+        const nomesCatalogo: Record<string, string> = {};
+        const faltamApi = skus.filter((sku) => !mapaProduto[sku]);
+        if (faltamApi.length > 0) {
+          const { data: catRows } = await supabase
+            .from("sncf_produtos")
+            .select("sku, nome_comercial")
+            .in("sku", faltamApi);
+          for (const r of catRows ?? []) {
+            if (r?.nome_comercial) nomesCatalogo[chaveSku(r.sku)] = String(r.nome_comercial);
+          }
+        }
 
         const novosCache: { sku: string; bling_produto_id: number; nome: string }[] = [];
         for (const sku of skus) {
@@ -539,14 +588,27 @@ Deno.serve(async (req) => {
           await dormir(ESPERA_ENTRE_CHAMADAS_MS);
           try {
             const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(sku)}&limite=100`);
-            const achado = (resp?.data ?? []).find(
-              (p: { id?: number; codigo?: string }) => String(p?.codigo ?? "").trim() === sku,
+            const escolha = escolherCandidatoApi(
+              resp?.data ?? [],
+              sku,
+              nomesCatalogo[chaveSku(sku)] ?? null,
             );
-            if (achado?.id) {
-              mapaProduto[sku] = Number(achado.id);
+            if (escolha) {
+              if (escolha.total > 1) {
+                // Card duplicado no Bling: registra a decisao, nunca decide em silencio.
+                console.warn("[b2c-descida] card duplicado no Bling", {
+                  sku,
+                  candidatos: escolha.total,
+                  escolhido: escolha.id,
+                  motivo: escolha.motivo,
+                  origem: "api",
+                });
+              }
+              mapaProduto[sku] = escolha.id;
+              fonteResolucao[sku] = "api";
               novosCache.push({
                 sku,
-                bling_produto_id: Number(achado.id),
+                bling_produto_id: escolha.id,
                 nome: itens.find((it) => it.sku === sku)?.nome ?? sku,
               });
             }
@@ -563,6 +625,7 @@ Deno.serve(async (req) => {
               () => {},
             );
         }
+
 
         const naoResolvidos = skus.filter((sku) => !mapaProduto[sku]);
         if (naoResolvidos.length > 0) {
@@ -891,6 +954,9 @@ Deno.serve(async (req) => {
             total: totalPedido,
             itens: blingItens.length,
             duracao_ms: Date.now() - t0,
+            // CARD-CANÔNICO: por qual degrau cada SKU resolveu (canonico | cache | api).
+            resolucao_produto: fonteResolucao,
+
           });
         } catch (e) {
           await falhar(`POST /pedidos/vendas: ${(e as Error).message}`);
