@@ -103233,6 +103233,7 @@ export type Database = {
           tem_recebimento: boolean
         }[]
       }
+      fn_b2c_fila_sinal: { Args: never; Returns: Json }
       fn_b2c_pedido_venda: {
         Args: never
         Returns: {
