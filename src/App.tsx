@@ -417,6 +417,11 @@ const App = () => (
                     <TabelaPreco />
                   </ProtectedRoute>
                 } />
+                <Route path="/vendas/produto/fotos" element={
+                  <ProtectedRoute>
+                    <FotosProduto />
+                  </ProtectedRoute>
+                } />
                 <Route path="/vendas/produto/cartorio" element={
                   <ProtectedRoute>
                     <CartorioCodigos />
