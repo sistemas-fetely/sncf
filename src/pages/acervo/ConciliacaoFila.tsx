@@ -289,8 +289,8 @@ export default function ConciliacaoFila() {
     if (c.key === "sku") return <span>{l.sku}</span>;
     if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
     if (c.key === "fase") return <Badge variant="outline" className="font-normal">{l.fase ?? "—"}</Badge>;
-    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className={cn("font-normal", tomGravidade(l.gravidade))}>{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
-    if (c.key === "impacto") return <span>{l.impacto_nome ?? l.impacto ?? "—"}</span>;
+    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className={cn("whitespace-nowrap font-normal", tomGravidade(l.gravidade))}>{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
+    if (c.key === "impacto") return <span className="whitespace-nowrap">{l.impacto_nome ?? l.impacto ?? "—"}</span>;
     if (c.key === "matriz" || c.key === "destino") {
       const campo = c.key === "matriz" ? l.campo_matriz : l.campo_destino;
       const valor = c.key === "matriz" ? l.valor_matriz : l.valor_destino;
