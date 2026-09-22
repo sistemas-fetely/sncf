@@ -69,6 +69,7 @@ const COLUNAS: ColDef[] = [
   { key: "nome_comercial", rotulo: "Nome", ordenavel: true },
   { key: "fase", rotulo: "Fase", ordenavel: true },
   { key: "regra", rotulo: "Regra", ordenavel: true },
+  { key: "camada_nome", rotulo: "Camada", ordenavel: true },
   { key: "impacto", rotulo: "Impacto", ordenavel: true },
   { key: "matriz", rotulo: "Matriz", ordenavel: true },
   { key: "destino", rotulo: "Destino", ordenavel: true },
@@ -82,6 +83,7 @@ function chaveOrdem(l: FilaLinha, coluna: string): string | number | null {
   if (coluna === "destino") return l.valor_destino;
   if (coluna === "onde") return l.onde_resolver;
   if (coluna === "regra") return l.regra_nome ?? l.regra;
+  if (coluna === "camada_nome") return l.camada_ordem;
   if (coluna === "impacto") return l.gravidade;
   return (l as unknown as Record<string, string | number | null>)[coluna] ?? null;
 }
