@@ -118,7 +118,7 @@ const predSistema = (l: LinhaUnida, v: string): boolean =>
   : v === "bling_card_duplicado" ? (l.bling_n_cards ?? 0) > 1
   : v === "sem_shopify" ? l.no_shopify !== true
   : v === "sem_xpm" ? !temValor(l.cod_xpm)
-  : v === "sem_foto_propria" ? l.foto_origem !== "produto"
+  : v === "sem_foto_propria" ? l.foto_origem !== "propria" && l.foto_origem !== "produto"
   : (l.qtd_divergencias ?? 0) > 0;
 
 const COLUNAS_PADRAO = [
@@ -182,6 +182,9 @@ function csvCelula(v: unknown): string {
 }
 
 const FOTO_ORIGEM: Record<string, { rotulo: string; tooltip: string; borda: string; opaco: boolean }> = {
+  // 'propria' é a base própria do SNCF (produto_foto) — a fonte mais confiável:
+  // identifica o produto, não a cor nem a coleção. Sem marca nenhuma.
+  propria: { rotulo: "Foto do produto (base própria)", tooltip: "foto do produto — base própria", borda: "border-border", opaco: false },
   produto: { rotulo: "Foto do produto", tooltip: "foto do produto", borda: "border-border", opaco: false },
   produto_shopify: { rotulo: "Foto principal (Shopify)", tooltip: "foto principal do produto — pode não ser desta cor", borda: "border-border", opaco: false },
   cor: { rotulo: "Foto da cor", tooltip: "foto da coleção nesta cor — não é do produto", borda: "border-dashed border-muted-foreground/60", opaco: false },
