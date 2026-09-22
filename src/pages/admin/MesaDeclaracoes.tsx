@@ -1097,7 +1097,7 @@ function DeclararVinculoNfDialog({
     queryFn: async (): Promise<PedidoAlvo[]> => {
       const { data, error } = await supabase
         .from("pedidos")
-        .select("id, id_externo, cliente_nome_snapshot, valor_total, estagio")
+        .select("id, id_externo, cliente_nome_snapshot, valor_liquido, estagio")
         .ilike("id_externo", `%${busca.trim()}%`)
         .order("id_externo", { ascending: false })
         .limit(10);
@@ -1107,7 +1107,7 @@ function DeclararVinculoNfDialog({
         id: p.id,
         ref: p.id_externo ?? p.id,
         cliente: p.cliente_nome_snapshot ?? "Sem cliente",
-        valor: p.valor_total ?? null,
+        valor: p.valor_liquido ?? null,
         estagio: p.estagio ?? null,
       }));
     },
@@ -1202,7 +1202,14 @@ function DeclararVinculoNfDialog({
                     {pedido.estagio ? ` · ${pedido.estagio}` : ""} · {pedido.cliente}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setPedido(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAviso(null);
+                    setPedido(null);
+                  }}
+                >
                   Trocar
                 </Button>
               </div>
@@ -1228,7 +1235,10 @@ function DeclararVinculoNfDialog({
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setPedido(p)}
+                          onClick={() => {
+                            setAviso(null);
+                            setPedido(p);
+                          }}
                           className="flex w-full items-center justify-between gap-2 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/50"
                         >
                           <span className="text-sm">{p.ref}</span>
@@ -1245,7 +1255,13 @@ function DeclararVinculoNfDialog({
           {/* Motivo */}
           <div className="space-y-1">
             <Label>Motivo *</Label>
-            <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
+            <Select
+              value={motivoCodigo}
+              onValueChange={(v) => {
+                setAviso(null);
+                setMotivoCodigo(v);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Por que o vínculo não veio sozinho?" />
               </SelectTrigger>
