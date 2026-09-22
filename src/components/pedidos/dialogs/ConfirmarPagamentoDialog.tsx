@@ -332,10 +332,15 @@ export function ConfirmarPagamentoDialog({
   // bancaria so entra no repasse posterior. Por isso o campo de banco nao bloqueia
   // confirmacao quando o caminho eh cartao, mas continua obrigatorio nos demais.
   const bancoFaltando = !ehCartao && !bancoId;
-  const linhaFaltando = (!ehCartao || !!capturaDaLinha) && !provisaoEfetiva;
+  const linhaFaltando = !ehCartao && !provisaoEfetiva;
+  // CAPTURA-PARCIAL: cartão precisa de valor; a recusa por valor acima do saldo vem
+  // do banco (a prévia já mostra a mensagem real) — o front só desabilita o botão.
+  const valorFaltando = ehCartao && valorNum <= 0;
+  const previaRecusou = ehCartao && !!previaErro;
 
   const bloqueado =
-    enviando || anexoFaltando || refFaltando || bancoFaltando || linhaFaltando || !dataPagamento;
+    enviando || anexoFaltando || refFaltando || bancoFaltando || linhaFaltando ||
+    valorFaltando || previaRecusou || !dataPagamento;
 
   const motivoBloqueio = anexoFaltando
     ? "Na Mesa o pagamento só fecha com comprovante anexado."
@@ -345,40 +350,27 @@ export function ConfirmarPagamentoDialog({
         ? "Diga em qual conta o dinheiro entrou."
         : linhaFaltando
           ? "Nenhuma linha de portão pendente para confirmar."
-          : undefined;
+          : valorFaltando
+            ? "Diga quanto passou na maquininha."
+            : previaRecusou
+              ? previaErro ?? undefined
+              : undefined;
 
   async function confirmar() {
     if (bloqueado) return;
     try {
-      if (ehCartao && capturaDaLinha && provisaoEfetiva) {
-        // Cartão com captura: fecha SÓ as parcelas desta captura e carimba o NSU nela.
-        await confirmarLinha.mutateAsync({
-          provisao_id: provisaoEfetiva,
-          prova_tipo: "cartao_nsu",
-          prova_ref: referencia.trim(),
-          data_pagamento: dataPagamento,
-          observacao,
-        });
-        const pendentes = capturas.filter(
-          (c) => c.id !== capturaDaLinha.id && !c.confirmada_em,
-        );
-        if (pendentes.length) {
-          toast({
-            title: "Falta confirmar outro cartão",
-            description: pendentes
-              .map((c) => `Falta confirmar o Cartão ${c.ordem ?? "—"} (${formatBRL(c.valor)})`)
-              .join(" · "),
-          });
-        }
-      } else if (ehCartao) {
-        // Cartão sem captura (legado): uma autorização fecha o pedido inteiro.
-        await confirmarCartao.mutateAsync({
+      if (ehCartao) {
+        // CAPTURA-PARCIAL (22/09/2026): o cartão fecha por captura, no valor que de fato
+        // passou. O saldo de cartão continua aberto até as capturas cobrirem o plano.
+        await confirmarCaptura.mutateAsync({
           pedido_id: pedidoId,
-          nsu: referencia,
-          data_captura: dataPagamento,
-          valor_capturado: valorNum > 0 ? valorNum : null,
-          observacao,
+          valor: valorNum,
+          nsu: referencia.trim(),
+          parcelas: parcelasNum,
+          data_pagamento: dataPagamento,
+          banco_recebimento_id: bancoId || null,
           adquirente_id: adquirenteId || null,
+          observacao,
         });
       } else if (temAnexo && comprovanteId) {
         await confirmarComprovante.mutateAsync({
