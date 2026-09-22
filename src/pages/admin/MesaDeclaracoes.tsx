@@ -678,8 +678,33 @@ function NovaDeclaracaoForm({
           )}
         </div>
 
+        {/* Vínculo de NF: a RPC é a porta única — não se declara por aqui */}
+        {ehNf && (
+          <div className="space-y-2 rounded-md border border-warning/50 bg-warning/5 p-3">
+            <p className="text-sm">
+              Esse tipo se declara pela fila <strong>NFs sem pedido</strong>, no começo da página.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              O vínculo exige escolher a nota e o pedido juntos, e passa por conferência de valor e
+              de cliente antes de valer. Por isso ele não nasce neste formulário.
+            </p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                document
+                  .getElementById("fila-nfs-sem-pedido")
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" })
+              }
+            >
+              Ir para a fila de NFs sem pedido
+            </Button>
+          </div>
+        )}
+
         {/* Alvo */}
-        {tipo && (
+        {tipo && !ehNf && (
+
           <div className="space-y-1">
             <Label>
               {entidade === "pedido" ? "Pedido (busque pelo número)" : "Expedição XPM (busque pelo código)"} *
