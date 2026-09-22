@@ -104174,6 +104174,21 @@ export type Database = {
           tipo_linha: string
         }[]
       }
+      fn_confirmar_captura_cartao: {
+        Args: {
+          p_adquirente_id?: string
+          p_banco_recebimento_id?: string
+          p_bandeira?: string
+          p_data_pagamento?: string
+          p_nsu: string
+          p_observacao?: string
+          p_parcelas?: number
+          p_pedido_id: string
+          p_simular?: boolean
+          p_valor: number
+        }
+        Returns: Json
+      }
       fn_conta_cliente_classe: {
         Args: { p_parceiro_id: string }
         Returns: Json
