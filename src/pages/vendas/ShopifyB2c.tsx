@@ -606,8 +606,7 @@ export default function ShopifyB2c() {
     setReprocessando(true);
     try {
       const r = await reprocessarFilaB2c(ids, "bling", motivoReprocesso.trim());
-      toast({
-        title: `${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`,
+      toast.success(`${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`, {
         description: [
           r.ignorados > 0
             ? `${r.ignorados} ignorado${r.ignorados !== 1 ? "s" : ""} por não estar${r.ignorados !== 1 ? "em" : ""} em erro.`
@@ -621,11 +620,7 @@ export default function ShopifyB2c() {
       setMarcados(new Set());
       await atualizarFila();
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Não foi possível devolver para a fila",
-        description: rawMessage(e),
-      });
+      toast.error("Não foi possível devolver para a fila.", { description: formatError(e) });
     } finally {
       setReprocessando(false);
     }
