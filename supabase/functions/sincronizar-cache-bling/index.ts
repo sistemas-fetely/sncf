@@ -162,7 +162,14 @@ serve(async (req) => {
     const { data: reconciliados, error: recErr } = await supabase.rpc("reconciliar_produtos_espelho");
     if (recErr) throw new Error(`Falha na reconciliação do espelho: ${recErr.message}`);
 
-    return json(200, { dry_run: false, upserted: linhas.length, produtos_reconciliados: reconciliados, ...cobertura });
+    return json(200, {
+      dry_run: false,
+      upserted: linhas.length,
+      produtos_reconciliados: reconciliados,
+      skus_sem_card_canonico: semCanonico,
+      ...cobertura,
+    });
+
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }
