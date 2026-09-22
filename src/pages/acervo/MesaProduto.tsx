@@ -77,34 +77,21 @@ type ErroFuncao = { status: number; corpo: Record<string, unknown> };
 type Indicador = string | null;
 type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
 
-type SevDiv = "critico" | "atencao";
-const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string }> = {
-  sem_cartorio: { rotulo: "Sem registro no cartório", sev: "critico", explicacao: "Produto existe mas o código não está no cartório." },
-  cartorio_nao_alocado: { rotulo: "Código não alocado", sev: "critico", explicacao: "Produto usa código que o cartório não marcou como alocado." },
-  cartorio_sem_inner: { rotulo: "Cartório sem Inner", sev: "atencao", explicacao: "Código alocado sem a quantidade do Inner. Vem do packing list." },
-  cartorio_sku_diverge: { rotulo: "SKU diverge do cartório", sev: "critico", explicacao: "O SKU do produto não bate com o registrado no cartório." },
-  sem_bling: { rotulo: "Sem produto no Bling", sev: "critico", explicacao: "Não fatura: não existe no ERP." },
-  bling_duplicado: { rotulo: "Código duplicado no Bling", sev: "critico", explicacao: "Mais de uma linha no Bling com o mesmo código." },
-  bling_ean_diverge: { rotulo: "EAN diverge do Bling", sev: "critico", explicacao: "O GTIN do Bling não bate com o EAN do cadastro." },
-  bling_ncm_diverge: { rotulo: "NCM diverge do Bling", sev: "critico", explicacao: "NCM diferente entre cadastro e ERP: risco fiscal na NF-e." },
-  bling_inativo_com_ativo: { rotulo: "Inativo no Bling", sev: "critico", explicacao: "Produto ativo aqui e inativo no ERP." },
-  sem_ficha_bling: { rotulo: "Sem ficha no Bling", sev: "critico", explicacao: "Ativo sem ficha criada no ERP." },
-  sem_xpm: { rotulo: "Sem cadastro no XPM", sev: "critico", explicacao: "Não expede: o armazém não conhece o produto." },
-  xpm_ean_diverge: { rotulo: "EAN diverge do XPM", sev: "critico", explicacao: "Etiqueta do armazém não bate com o EAN do cadastro." },
-  xpm_ncm_vazio: { rotulo: "NCM vazio no XPM", sev: "atencao", explicacao: "Cadastrado no armazém sem NCM." },
-  xpm_ncm_diverge: { rotulo: "NCM diverge do XPM", sev: "critico", explicacao: "NCM diferente entre cadastro e armazém." },
-  xpm_peso_padrao: { rotulo: "Peso padrão no XPM (10,11 kg)", sev: "critico", explicacao: "Valor default que ninguém corrigiu. Peso errado = cubagem e frete errados." },
-  xpm_peso_diverge: { rotulo: "Peso diverge do XPM", sev: "atencao", explicacao: "Peso do armazém fora de 10% do cadastro." },
-  bling_preco_diverge: { rotulo: "Preço diverge do Bling", sev: "critico", explicacao: "Preço do ERP diferente do catálogo: a NF sai com o preço do ERP." },
-  bling_marca_diverge: { rotulo: "Marca diverge do Bling", sev: "atencao", explicacao: "Marca diferente entre catálogo e ERP." },
-  bling_nome_diverge: { rotulo: "Nome diverge do Bling", sev: "critico", explicacao: "O nome do card no Bling não bate com o nome comercial. No Bling o nome é a chave de identificação — nome errado é card errado na nota." },
-  sem_shopify: { rotulo: "Sem produto no Shopify", sev: "atencao", explicacao: "Produto ativo que não existe na vitrine." },
-  shopify_preco_diverge: { rotulo: "Preço diverge do Shopify", sev: "critico", explicacao: "O consumidor final vê um preço diferente do catálogo." },
-  shopify_barcode_diverge: { rotulo: "Código de barras diverge do Shopify", sev: "critico", explicacao: "A etiqueta da loja não bate com o EAN." },
+// DIVERGÊNCIA POR CONSEQUÊNCIA (22/09/2026) — o dicionário saiu do código: nome,
+// consequência, o que fazer e onde resolver vêm de `divergencia_regra`; nome,
+// descrição e gravidade do impacto vêm de `divergencia_impacto_dim`. Slug que a
+// view devolver sem regra cadastrada continua aparecendo cru.
+type ImpactoDim = { slug: string; nome: string; descricao: string | null; gravidade: number | null; ordem: number | null };
+type RegraDiv = {
+  slug: string; nome: string; sistema: string | null; impacto: string | null;
+  consequencia: string | null; o_que_fazer: string | null; onde_resolver: string | null; ordem: number | null;
 };
-// Slug desconhecido do dicionário conta como crítico (não pode passar batido).
-const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
-const rotuloDoSlug = (slug: string) => DIC_DIV[slug]?.rotulo ?? slug;
+/** Tom do chip pela gravidade do impacto — nada de "crítico/atenção" escrito aqui. */
+const tomGravidade = (g: number | null | undefined) =>
+  (g ?? 0) >= 90 ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
+  : (g ?? 0) >= 60 ? "border-warning/40 bg-warning/10 text-warning-strong"
+  : "";
+
 
 const SITUACOES = [
   ["pronto_para_ativo", "Prontos para promover"], ["falta_ficha_bling", "Falta ficha no Bling"],
