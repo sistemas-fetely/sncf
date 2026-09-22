@@ -283,7 +283,11 @@ function MesaConteudo() {
         </CardContent>
       </Card>
 
+      {/* 1.5 ─ NFs sem pedido */}
+      <FilaNfsSemPedido motivos={motivos ?? []} userId={user?.id ?? null} />
+
       {/* 2 ─ Lista */}
+
       <Card>
         <CardHeader className="gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
