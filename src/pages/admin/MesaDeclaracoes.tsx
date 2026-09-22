@@ -940,6 +940,7 @@ type RespVinculo = {
 
 function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: string | null }) {
   const [escolhida, setEscolhida] = useState<NfOrfa | null>(null);
+  const [soAcionaveis, setSoAcionaveis] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: ["nfs-orfas-candidatas"],
@@ -954,16 +955,45 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
     },
   });
 
-  const linhas = data ?? [];
+  const todas = data ?? [];
+  // Acionáveis primeiro: pendencia_ordem asc e depois data de emissão desc.
+  const ordenadas = [...todas].sort((a, b) => {
+    const ordA = a.pendencia_ordem ?? 9999;
+    const ordB = b.pendencia_ordem ?? 9999;
+    if (ordA !== ordB) return ordA - ordB;
+    return (b.data_emissao ?? "").localeCompare(a.data_emissao ?? "");
+  });
+  const linhas = soAcionaveis
+    ? ordenadas.filter((n) => n.pendencia_exige_acao === true)
+    : ordenadas;
+  const escondidas = soAcionaveis
+    ? ordenadas.filter((n) => n.pendencia_exige_acao !== true)
+    : [];
+  const rotulosEscondidos = [...new Set(escondidas.map((n) => n.pendencia_label).filter(Boolean))];
 
   return (
     <Card id="fila-nfs-sem-pedido">
       <CardHeader className="gap-1">
-        <CardTitle className="text-base">NFs sem pedido — {linhas.length}</CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base">NFs sem pedido — {linhas.length}</CardTitle>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setSoAcionaveis(!soAcionaveis)}
+          >
+            {soAcionaveis ? "Ver todas" : "Ver só as acionáveis"}
+          </Button>
+        </div>
         <p className="text-xs text-muted-foreground">
           Nota fiscal válida que chegou do Bling sem pedido de venda atrelado. Enquanto o vínculo
           não existe, o pedido não fatura, não desce pra XPM e não baixa estoque.
         </p>
+        {soAcionaveis && escondidas.length > 0 && (
+          <p className="text-xs text-muted-foreground">
+            {escondidas.length} nota(s) fora da fila: {rotulosEscondidos.join(", ")} — não esperam
+            vínculo.
+          </p>
+        )}
       </CardHeader>
       <CardContent>
         {isLoading ? (
