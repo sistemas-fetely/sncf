@@ -107,9 +107,18 @@ const SITUACOES = [
   ["ativo_com_furo", "Furo em ativo"], ["__sem__", "Sem situação"],
 ] as const;
 const SISTEMAS = [
-  ["sem_bling", "Sem Bling"], ["sem_shopify", "Sem Shopify"],
+  ["sem_bling", "Sem Bling"], ["bling_card_duplicado", "Card duplicado no Bling"],
+  ["sem_shopify", "Sem Shopify"],
   ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"], ["sem_foto_propria", "Sem foto própria"],
 ] as const;
+// Predicado único do filtro Sistemas (usado no recorte e na contagem facetada).
+const predSistema = (l: LinhaUnida, v: string): boolean =>
+  v === "sem_bling" ? !temValor(l.cod_bling)
+  : v === "bling_card_duplicado" ? (l.bling_n_cards ?? 0) > 1
+  : v === "sem_shopify" ? l.no_shopify !== true
+  : v === "sem_xpm" ? !temValor(l.cod_xpm)
+  : v === "sem_foto_propria" ? l.foto_origem !== "produto"
+  : (l.qtd_divergencias ?? 0) > 0;
 
 const COLUNAS_PADRAO = [
   "foto_url", "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
