@@ -418,9 +418,7 @@ export default function ShopifyB2c() {
 
 
   const filtrados = useMemo(() => {
-    let r = lista;
-    if (!incluirCancelados) r = r.filter((p) => p.estagio !== "cancelado");
-    if (!incluirNaoPagos) r = r.filter((p) => p.estagio !== "aguardando_pagamento");
+    let r = listaValida;
     if (estagioParam) r = r.filter((p) => p.estagio === estagioParam);
     if (uf !== "todas") r = r.filter((p) => p.shipping_province === uf);
     if (alerta !== "todos") r = r.filter((p) => p.alerta === alerta);
@@ -436,17 +434,15 @@ export default function ShopifyB2c() {
       );
     }
     return r;
-  }, [lista, incluirCancelados, incluirNaoPagos, estagioParam, uf, alerta, busca, cdFiltro]);
+  }, [listaValida, estagioParam, uf, alerta, busca, cdFiltro]);
 
   // Funil respeita o toggle de CD: com filtro ativo, conta a MESMA lista que a
   // tabela mostra (ignorando só o filtro de fase); em Total, a view manda.
   const listaDoCd = useMemo(() => {
-    let r = lista;
-    if (!incluirCancelados) r = r.filter((p) => p.estagio !== "cancelado");
-    if (!incluirNaoPagos) r = r.filter((p) => p.estagio !== "aguardando_pagamento");
+    let r = listaValida;
     if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
     return r;
-  }, [lista, incluirCancelados, incluirNaoPagos, cdFiltro]);
+  }, [listaValida, cdFiltro]);
 
   const contagensPorEstagio = useMemo(() => {
     if (cdFiltro === "todos") return null;
@@ -524,7 +520,7 @@ export default function ShopifyB2c() {
   // fica olhando uma página 7 que já não existe.
   useEffect(() => {
     setPagina(1);
-  }, [busca, uf, alerta, estagioParam, incluirCancelados, incluirNaoPagos, ordenacao, cdFiltro]);
+  }, [busca, uf, alerta, estagioParam, ordenacao, cdFiltro]);
 
   const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasB2c);
@@ -601,7 +597,7 @@ export default function ShopifyB2c() {
               <SelectContent>
                 <SelectItem value="todos">Estágio: todos</SelectItem>
                 {Array.from(
-                  new Map(lista.filter((p) => p.estagio).map((p) => [p.estagio!, p.estagio_rotulo ?? p.estagio!])),
+                  new Map(listaValida.filter((p) => p.estagio).map((p) => [p.estagio!, p.estagio_rotulo ?? p.estagio!])),
                 ).map(([codigo, rotulo]) => (
                   <SelectItem key={codigo} value={codigo}>
                     {rotulo}
@@ -635,26 +631,6 @@ export default function ShopifyB2c() {
                 ))}
               </SelectContent>
             </Select>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="b2c-cancelados"
-                checked={incluirCancelados}
-                onCheckedChange={setIncluirCancelados}
-              />
-              <Label htmlFor="b2c-cancelados" className="text-xs text-muted-foreground">
-                Incluir cancelados
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="b2c-nao-pagos"
-                checked={incluirNaoPagos}
-                onCheckedChange={setIncluirNaoPagos}
-              />
-              <Label htmlFor="b2c-nao-pagos" className="text-xs text-muted-foreground">
-                Incluir não pagos
-              </Label>
-            </div>
             <span className="text-xs text-muted-foreground">
               {filtrados.length} pedido{filtrados.length !== 1 ? "s" : ""} · {filaAtiva.qtd} em
               andamento ({formatBRL(filaAtiva.valor)})
