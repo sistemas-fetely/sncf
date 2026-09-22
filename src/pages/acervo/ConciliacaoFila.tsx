@@ -37,6 +37,7 @@ type FilaLinha = {
   cod_cadastro: string | null; sku: string; nome_comercial: string | null;
   colecao: string | null; grupo: string | null; fase: string | null;
   regra: string; regra_nome: string | null; sistema: string | null;
+  camada: string | null; camada_nome: string | null; camada_ordem: number | null;
   impacto: string | null; impacto_nome: string | null; gravidade: number | null;
   onde_resolver: string | null; rota_resolver: string | null;
   consequencia: string | null; o_que_fazer: string | null;
@@ -46,8 +47,8 @@ type FilaLinha = {
   qtd_divergencias: number | null;
 };
 
-type Grupo = "onde" | "impacto" | "regra" | "fase" | "colecao";
-const PARAMS: Grupo[] = ["onde", "impacto", "regra", "fase", "colecao"];
+type Grupo = "camada" | "onde" | "impacto" | "regra" | "fase" | "colecao";
+const PARAMS: Grupo[] = ["camada", "onde", "impacto", "regra", "fase", "colecao"];
 
 const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
   contagem === 0 ? ""
