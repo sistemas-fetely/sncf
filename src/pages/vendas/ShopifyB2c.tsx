@@ -595,6 +595,42 @@ export default function ShopifyB2c() {
     [listaDoCd],
   );
 
+  /**
+   * Devolve os pedidos travados para `pendente` via fn_fila_b2c_reprocessar.
+   * FAIL-LOUD: a mensagem real do banco vai para o toast e a fila é recarregada.
+   */
+  async function devolverParaFila() {
+    const alvos = reprocesso ?? [];
+    const ids = alvos.map((p) => p.fila_id).filter((x): x is string => !!x);
+    if (!ids.length) return;
+    setReprocessando(true);
+    try {
+      const r = await reprocessarFilaB2c(ids, "bling", motivoReprocesso.trim());
+      toast({
+        title: `${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`,
+        description: [
+          r.ignorados > 0
+            ? `${r.ignorados} ignorado${r.ignorados !== 1 ? "s" : ""} por não estar${r.ignorados !== 1 ? "em" : ""} em erro.`
+            : null,
+          r.nota,
+          AVISO_CRON_FILA,
+        ].filter(Boolean).join(" "),
+      });
+      setReprocesso(null);
+      setMotivoReprocesso("");
+      setMarcados(new Set());
+      await atualizarFila();
+    } catch (e) {
+      toast({
+        variant: "destructive",
+        title: "Não foi possível devolver para a fila",
+        description: rawMessage(e),
+      });
+    } finally {
+      setReprocessando(false);
+    }
+  }
+
   /** Pedidos da página que ainda esperam destino — base da ação em lote. */
   const aguardandoDestino = useMemo(
     () => listaDoCd.filter((p) => p.fila_status === "aguardando_destino"),
@@ -1340,6 +1376,55 @@ export default function ShopifyB2c() {
           setConfirmacao(null);
         }}
       />
+
+      {/* DEVOLVER-PARA-A-FILA: motivo obrigatório, e a resposta da RPC é o que a tela conta. */}
+      <Dialog
+        open={reprocesso !== null}
+        onOpenChange={(v) => {
+          if (reprocessando) return;
+          if (!v) { setReprocesso(null); setMotivoReprocesso(""); }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Devolver {reprocesso?.length ?? 0} pedido{(reprocesso?.length ?? 0) !== 1 ? "s" : ""} para a fila do Bling?
+            </DialogTitle>
+            <DialogDescription>{AVISO_CRON_FILA}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">
+              {(reprocesso ?? []).map((p) => p.order_name ?? "sem número").join(", ")}
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="motivo-reprocesso">Motivo (obrigatório)</Label>
+              <Textarea
+                id="motivo-reprocesso"
+                rows={3}
+                value={motivoReprocesso}
+                onChange={(e) => setMotivoReprocesso(e.target.value)}
+                placeholder="Ex.: card do produto corrigido no Bling"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={reprocessando}
+              onClick={() => { setReprocesso(null); setMotivoReprocesso(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={reprocessando || !motivoReprocesso.trim() || !reprocesso?.length}
+              onClick={() => void devolverParaFila()}
+            >
+              {reprocessando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Devolver para a fila
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PedidoB2cDrawer
         pedido={selecionado}
