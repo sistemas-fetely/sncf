@@ -2,8 +2,12 @@
  * Cobertura do cliente.
  *
  * O pedido não é mais o dono do dinheiro: ele valida contra o saldo da conta do
- * cliente. O botão "Liberar por cobertura" é o CAMINHO NOVO — convive com o
- * portão antigo e não mexe nele.
+ * cliente. O botão "Liberar por cobertura" é PRÉ-RESERVA MANUAL — o empenho
+ * acontece sozinho na descida para pré-separação (guarda em `transicionar_pedido`,
+ * desde 10/09) — e convive com o portão antigo, sem mexer nele.
+ *
+ * O card lê o empenho vivo do pedido via `empenho_deste_pedido` para não
+ * oferecer ato sem efeito: pedido já empenhado não mostra o botão.
  *
  * DIMENSÃO-VIA-TABELA: quando o card aparece e se libera não é decisão dele —
  * quem decide é `politica_cobertura_financeira_estagio`, lida pelo estágio.
