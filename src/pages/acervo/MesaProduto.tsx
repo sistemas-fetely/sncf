@@ -39,6 +39,7 @@ type Linha = Record<string, unknown> & {
   sugestao: string | null; campos_fora_do_espelho: string[] | null;
   falta_fase_atual: string[] | null; falta_proxima_fase: string[] | null;
   qtd_falta_atual: number | null; qtd_falta_proxima: number | null;
+  falta_separada: string[] | null;
   foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
@@ -117,6 +118,7 @@ const COLUNAS: ColDef[] = [
   { key:"tamanho_numero",rotulo:"Tamanho / número",tipo:"texto" }, { key:"departamento",rotulo:"Departamento",tipo:"texto" },
   { key:"categoria",rotulo:"Categoria",tipo:"texto" }, { key:"descricao_produto",rotulo:"Descrição do produto",tipo:"texto" },
   { key:"qtd_divergencias",rotulo:"Divergências (qtd)",tipo:"num",direita:true }, { key:"divergencias",rotulo:"Divergências",tipo:"divergencias" },
+  { key:"falta_separada",rotulo:"Pendência separada",tipo:"chips" },
 ];
 const ORDENAVEIS = new Set(["cod_cadastro","sku","nome_comercial","fase_ordem","qtd_falta_atual","qtd_falta_proxima","qtd_divergencias","atualizado_em"]);
 const fmtNum = (v: number | null | undefined) => typeof v === "number" ? v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) : "0";
