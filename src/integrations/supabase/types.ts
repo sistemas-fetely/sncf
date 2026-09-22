@@ -19760,34 +19760,43 @@ export type Database = {
       divergencia_regra: {
         Row: {
           ativo: boolean
+          campo_destino: string | null
+          campo_matriz: string | null
           consequencia: string
           impacto: string
           nome: string
           o_que_fazer: string | null
           onde_resolver: string
           ordem: number
+          rota_resolver: string | null
           sistema: string
           slug: string
         }
         Insert: {
           ativo?: boolean
+          campo_destino?: string | null
+          campo_matriz?: string | null
           consequencia: string
           impacto: string
           nome: string
           o_que_fazer?: string | null
           onde_resolver: string
           ordem?: number
+          rota_resolver?: string | null
           sistema: string
           slug: string
         }
         Update: {
           ativo?: boolean
+          campo_destino?: string | null
+          campo_matriz?: string | null
           consequencia?: string
           impacto?: string
           nome?: string
           o_que_fazer?: string | null
           onde_resolver?: string
           ordem?: number
+          rota_resolver?: string | null
           sistema?: string
           slug?: string
         }
@@ -23528,6 +23537,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cartorio_situacao"
             referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "fornecedor_produto_sku_fkey"
@@ -27920,6 +27936,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -28227,6 +28250,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cartorio_situacao"
             referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
@@ -29170,6 +29200,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -29790,6 +29827,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cartorio_situacao"
             referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
@@ -65604,6 +65648,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -71728,6 +71779,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -72499,6 +72557,57 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_recebivel_por_conta"
             referencedColumns: ["conta_id"]
+          },
+        ]
+      }
+      vw_conciliacao_fila: {
+        Row: {
+          bling_codigo: string | null
+          campo_destino: string | null
+          campo_matriz: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          consequencia: string | null
+          fase: string | null
+          gravidade: number | null
+          grupo: string | null
+          handle: string | null
+          impacto: string | null
+          impacto_nome: string | null
+          nome_comercial: string | null
+          o_que_fazer: string | null
+          onde_resolver: string | null
+          qtd_divergencias: number | null
+          regra: string | null
+          regra_nome: string | null
+          rota_resolver: string | null
+          sistema: string | null
+          sku: string | null
+          valor_destino: string | null
+          valor_matriz: string | null
+          xpm_codigo: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_impacto_fkey"
+            columns: ["impacto"]
+            isOneToOne: false
+            referencedRelation: "divergencia_impacto_dim"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
           },
         ]
       }
@@ -80745,6 +80854,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -82716,6 +82832,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_estoque"
             referencedColumns: ["sku"]
           },
@@ -82899,6 +83022,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cartorio_situacao"
             referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
@@ -86741,14 +86871,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -89258,14 +89388,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -98863,14 +98993,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -102937,6 +103067,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_cartorio_situacao"
             referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_fila"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
