@@ -33,9 +33,8 @@ import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts"
 import {
   chaveSku,
   escolherCandidatoApi,
-  lerCardsCanonicos,
-  type FonteResolucaoCard,
 } from "../_shared/bling/card-canonico.ts";
+import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 
 
 const corsHeaders = {
