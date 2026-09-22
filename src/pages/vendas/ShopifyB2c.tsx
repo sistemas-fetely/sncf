@@ -830,6 +830,24 @@ export default function ShopifyB2c() {
             onLimpar={() => setMarcados(new Set())}
           />
 
+          {marcadosTravados.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
+              <span>
+                {marcadosTravados.length} pedido{marcadosTravados.length !== 1 ? "s" : ""} travado
+                {marcadosTravados.length !== 1 ? "s" : ""} na descida ao Bling.
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setReprocesso(marcadosTravados)}>
+                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                  Devolver para a fila
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setMarcados(new Set())}>
+                  Limpar
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!isError && (
             <Card>
               <CardContent className="p-0">
@@ -898,7 +916,7 @@ export default function ShopifyB2c() {
                               }
                             >
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
-                                {p.fila_status === "aguardando_destino" && p.shopify_id && (
+                                {(p.fila_status === "aguardando_destino" || podeReprocessar(p)) && p.shopify_id && (
                                   <Checkbox
                                     checked={marcados.has(p.shopify_id)}
                                     aria-label={`Marcar pedido ${p.order_name ?? ""}`}
@@ -1014,9 +1032,25 @@ export default function ShopifyB2c() {
                                           </span>
                                         )}
                                         {f.status === "erro" && (
-                                          <Selo estado="destructive">
-                                            erro ({p.fila_tentativas ?? 3}/3)
-                                          </Selo>
+                                          p.fila_ultimo_erro?.trim() ? (
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <span className="inline-flex">
+                                                  <Selo estado="destructive">
+                                                    erro ({p.fila_tentativas ?? 3}/3)
+                                                  </Selo>
+                                                </span>
+                                              </TooltipTrigger>
+                                              {/* RESPOSTA-DO-BLING-INTEIRA: sem truncar, é onde está o motivo. */}
+                                              <TooltipContent className="max-w-[380px] whitespace-pre-wrap break-words">
+                                                {p.fila_ultimo_erro}
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          ) : (
+                                            <Selo estado="destructive">
+                                              erro ({p.fila_tentativas ?? 3}/3)
+                                            </Selo>
+                                          )
                                         )}
                                         {f.status === "enviado" && (
                                           <Selo estado="success">No Bling</Selo>
@@ -1126,9 +1160,16 @@ export default function ShopifyB2c() {
                                   }
                                   if (p.fila_status === "erro" && p.fila_ultimo_erro?.trim()) {
                                     return (
-                                      <span className="line-clamp-2 text-destructive" title={p.fila_ultimo_erro}>
-                                        {truncarErro(p.fila_ultimo_erro)}
-                                      </span>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="line-clamp-2 cursor-help text-destructive">
+                                            {truncarErro(p.fila_ultimo_erro)}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-[380px] whitespace-pre-wrap break-words">
+                                          {p.fila_ultimo_erro}
+                                        </TooltipContent>
+                                      </Tooltip>
                                     );
                                   }
                                   if (p.fila_status === "pausado") {
@@ -1223,6 +1264,24 @@ export default function ShopifyB2c() {
                                     </div>
                                   );
                                 })()}
+                              </TableCell>
+                              <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                                {podeReprocessar(p) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
+                                        onClick={() => setReprocesso([p])}
+                                      >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Devolver para a fila do Bling</TooltipContent>
+                                  </Tooltip>
+                                )}
                               </TableCell>
                               <TableCell className="w-8">
                                 {p.coerencia_status === "divergente" && (
