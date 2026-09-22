@@ -64,6 +64,12 @@ function EstadoLinha({ p }: { p: Provisao }) {
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   // REFERENCIA-SEMPRE: uma só tela de confirmação para todas as linhas do portão.
   const [confirmarLinha, setConfirmarLinha] = useState<{ id: string | null } | null>(null);
+  // CAPTURA-DE-CARTAO (22/09/2026): um pedido pode ter N capturas (N cartões).
+  const [dividirAberto, setDividirAberto] = useState(false);
+  const capturasQ = useCapturasPedido(pedidoId);
+  const dinheiroQ = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
+  const cobrancaQ = usePermissaoAcaoOuSuperAdmin("acao.cobranca_receber");
+  const podeDinheiro = dinheiroQ.permitido || cobrancaQ.permitido;
   const provisoesQ = useQuery({
     queryKey: ["provisoes-pedido", pedidoId],
     enabled: !!pedidoId,
