@@ -954,6 +954,9 @@ Deno.serve(async (req) => {
             total: totalPedido,
             itens: blingItens.length,
             duracao_ms: Date.now() - t0,
+            // CARD-CANÔNICO: por qual degrau cada SKU resolveu (canonico | cache | api).
+            resolucao_produto: fonteResolucao,
+
           });
         } catch (e) {
           await falhar(`POST /pedidos/vendas: ${(e as Error).message}`);
