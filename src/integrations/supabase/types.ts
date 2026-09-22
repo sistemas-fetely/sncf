@@ -14,6 +14,18 @@ export type Database = {
   }
   public: {
     Tables: {
+      _cat_pdf_perm: {
+        Row: {
+          cod: string
+        }
+        Insert: {
+          cod: string
+        }
+        Update: {
+          cod?: string
+        }
+        Relationships: []
+      }
       _diag_estoque_churn: {
         Row: {
           de: number | null
@@ -46283,6 +46295,57 @@ export type Database = {
             referencedColumns: ["slug"]
           },
         ]
+      }
+      produto_foto: {
+        Row: {
+          altura_px: number | null
+          arquivo: string
+          bytes: number | null
+          catalogo: string | null
+          cod_cadastro: string
+          criado_em: string
+          criado_por: string | null
+          id: string
+          largura_px: number | null
+          observacao: string | null
+          ordem: number
+          origem: string
+          principal: boolean
+          url: string
+        }
+        Insert: {
+          altura_px?: number | null
+          arquivo: string
+          bytes?: number | null
+          catalogo?: string | null
+          cod_cadastro: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          largura_px?: number | null
+          observacao?: string | null
+          ordem?: number
+          origem: string
+          principal?: boolean
+          url: string
+        }
+        Update: {
+          altura_px?: number | null
+          arquivo?: string
+          bytes?: number | null
+          catalogo?: string | null
+          cod_cadastro?: string
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          largura_px?: number | null
+          observacao?: string | null
+          ordem?: number
+          origem?: string
+          principal?: boolean
+          url?: string
+        }
+        Relationships: []
       }
       produto_grupo_dim: {
         Row: {
