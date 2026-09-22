@@ -1071,7 +1071,10 @@ export default function ShopifyB2c() {
                                     : undefined;
                                   return dica ? (
                                     <Tooltip>
-                                      <TooltipTrigger asChild>{selo}</TooltipTrigger>
+                                      {/* Selo não repassa ref: o span é o gatilho do tooltip */}
+                                      <TooltipTrigger asChild>
+                                        <span className="inline-flex">{selo}</span>
+                                      </TooltipTrigger>
                                       <TooltipContent className="max-w-[280px]">{dica}</TooltipContent>
                                     </Tooltip>
                                   ) : (
