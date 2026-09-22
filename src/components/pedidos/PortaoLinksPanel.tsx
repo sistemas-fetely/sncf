@@ -9,6 +9,9 @@ import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { DividirCartoesDialog } from "@/components/pedidos/dialogs/DividirCartoesDialog";
+import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
