@@ -71,6 +71,11 @@ function tratamentoFoto(fonte: string | null | undefined) {
   if (!fonte) {
     return { atencao: "discreta" as const, tooltip: "origem da foto não informada" };
   }
+  // 'propria' é a base própria do SNCF e entra no mesmo grau de confiança do
+  // 'variante': identifica o produto, sem marca de atenção.
+  if (fonte === "propria") {
+    return { atencao: "discreta" as const, tooltip: "foto do produto — base própria" };
+  }
   const conhecida = FONTE_FOTO[fonte];
   if (conhecida) return conhecida;
   return { atencao: "discreta" as const, tooltip: `origem da foto desconhecida (${fonte})` };
