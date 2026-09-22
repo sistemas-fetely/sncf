@@ -573,7 +573,9 @@ function NovaDeclaracaoForm({
   // operador não escrever a observação e só descobrir no envio.
   const minObs = tipo?.codigo === "expedicao_cancelada_xpm" ? 15 : 10;
   const podeConfirmar =
+    !ehNf &&
     !!tipo &&
+
     !!motivo &&
     !!alvo &&
     observacao.trim().length >= minObs &&
