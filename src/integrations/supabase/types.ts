@@ -19730,6 +19730,30 @@ export type Database = {
         }
         Relationships: []
       }
+      divergencia_camada_dim: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       divergencia_impacto_dim: {
         Row: {
           ativo: boolean
@@ -19760,6 +19784,7 @@ export type Database = {
       divergencia_regra: {
         Row: {
           ativo: boolean
+          camada: string
           campo_destino: string | null
           campo_matriz: string | null
           consequencia: string
@@ -19774,6 +19799,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          camada: string
           campo_destino?: string | null
           campo_matriz?: string | null
           consequencia: string
@@ -19788,6 +19814,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          camada?: string
           campo_destino?: string | null
           campo_matriz?: string | null
           consequencia?: string
@@ -19801,6 +19828,13 @@ export type Database = {
           slug?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_camada_fkey"
+            columns: ["camada"]
+            isOneToOne: false
+            referencedRelation: "divergencia_camada_dim"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "divergencia_regra_impacto_fkey"
             columns: ["impacto"]
@@ -72777,6 +72811,9 @@ export type Database = {
       vw_conciliacao_fila: {
         Row: {
           bling_codigo: string | null
+          camada: string | null
+          camada_nome: string | null
+          camada_ordem: number | null
           campo_destino: string | null
           campo_matriz: string | null
           cod_cadastro: string | null
@@ -72802,6 +72839,13 @@ export type Database = {
           xpm_codigo: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_camada_fkey"
+            columns: ["camada"]
+            isOneToOne: false
+            referencedRelation: "divergencia_camada_dim"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "divergencia_regra_impacto_fkey"
             columns: ["impacto"]
@@ -89643,14 +89687,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

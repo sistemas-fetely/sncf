@@ -37,6 +37,7 @@ type FilaLinha = {
   cod_cadastro: string | null; sku: string; nome_comercial: string | null;
   colecao: string | null; grupo: string | null; fase: string | null;
   regra: string; regra_nome: string | null; sistema: string | null;
+  camada: string | null; camada_nome: string | null; camada_ordem: number | null;
   impacto: string | null; impacto_nome: string | null; gravidade: number | null;
   onde_resolver: string | null; rota_resolver: string | null;
   consequencia: string | null; o_que_fazer: string | null;
@@ -46,8 +47,8 @@ type FilaLinha = {
   qtd_divergencias: number | null;
 };
 
-type Grupo = "onde" | "impacto" | "regra" | "fase" | "colecao";
-const PARAMS: Grupo[] = ["onde", "impacto", "regra", "fase", "colecao"];
+type Grupo = "camada" | "onde" | "impacto" | "regra" | "fase" | "colecao";
+const PARAMS: Grupo[] = ["camada", "onde", "impacto", "regra", "fase", "colecao"];
 
 const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
   contagem === 0 ? ""
@@ -68,6 +69,7 @@ const COLUNAS: ColDef[] = [
   { key: "nome_comercial", rotulo: "Nome", ordenavel: true },
   { key: "fase", rotulo: "Fase", ordenavel: true },
   { key: "regra", rotulo: "Regra", ordenavel: true },
+  { key: "camada_nome", rotulo: "Camada", ordenavel: true },
   { key: "impacto", rotulo: "Impacto", ordenavel: true },
   { key: "matriz", rotulo: "Matriz", ordenavel: true },
   { key: "destino", rotulo: "Destino", ordenavel: true },
@@ -81,6 +83,7 @@ function chaveOrdem(l: FilaLinha, coluna: string): string | number | null {
   if (coluna === "destino") return l.valor_destino;
   if (coluna === "onde") return l.onde_resolver;
   if (coluna === "regra") return l.regra_nome ?? l.regra;
+  if (coluna === "camada_nome") return l.camada_ordem;
   if (coluna === "impacto") return l.gravidade;
   return (l as unknown as Record<string, string | number | null>)[coluna] ?? null;
 }
@@ -209,7 +212,7 @@ export default function ConciliacaoFila() {
       if (g === ignorar) continue;
       const sel = lista(g);
       if (!sel.length) continue;
-      const v = g === "onde" ? l.onde_resolver : g === "impacto" ? l.impacto : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
+      const v = g === "camada" ? l.camada : g === "onde" ? l.onde_resolver : g === "impacto" ? l.impacto : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
       if (!sel.includes(String(v ?? "__sem__"))) return false;
     }
     return true;
@@ -266,6 +269,14 @@ export default function ConciliacaoFila() {
   const facet = (g: Grupo, ops: { valor: string; rotulo: string }[], chave: (l: FilaLinha) => string) =>
     ops.map(o => ({ ...o, contagem: linhas.filter(l => aplica(l, g) && chave(l) === o.valor).length }));
 
+  const opcoesCamada = useMemo(() => {
+    const m = new Map<string, { nome: string; ordem: number | null }>();
+    for (const l of linhas) {
+      const k = l.camada ?? "__sem__";
+      if (!m.has(k)) m.set(k, { nome: l.camada_nome ?? k, ordem: l.camada_ordem });
+    }
+    return [...m.entries()].sort((a, b) => (a[1].ordem ?? 9999) - (b[1].ordem ?? 9999) || a[1].nome.localeCompare(b[1].nome, "pt-BR")).map(([valor, v]) => ({ valor, rotulo: valor === "__sem__" ? "Sem camada" : v.nome }));
+  }, [linhas]);
   const opcoesOnde = useMemo(() => [...new Set(linhas.map(l => l.onde_resolver ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem destino" : v })), [linhas]);
   const opcoesImpacto = useMemo(() => {
     const presentes = new Set(linhas.map(l => l.impacto ?? "__sem__"));
@@ -291,9 +302,9 @@ export default function ConciliacaoFila() {
   }
 
   function exportar() {
-    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Impacto", "Gravidade", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
+    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Camada", "Impacto", "Gravidade", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
     const corpo = recorte.map(l => [
-      l.cod_cadastro, l.sku, l.nome_comercial, l.fase, l.colecao, l.regra_nome ?? l.regra,
+      l.cod_cadastro, l.sku, l.nome_comercial, l.fase, l.colecao, l.regra_nome ?? l.regra, l.camada_nome ?? l.camada,
       l.impacto_nome ?? l.impacto, l.gravidade, l.campo_matriz, l.valor_matriz,
       l.campo_destino, l.valor_destino, l.onde_resolver, l.consequencia, l.o_que_fazer,
     ].map(csvCelula).join(";")).join("\n");
@@ -315,6 +326,7 @@ export default function ConciliacaoFila() {
     if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
     if (c.key === "fase") return <Badge variant="outline" className="font-normal">{l.fase ?? "—"}</Badge>;
     if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className={cn("whitespace-nowrap font-normal", tomGravidade(l.gravidade))}>{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
+    if (c.key === "camada_nome") return <span className="whitespace-nowrap">{l.camada_nome ?? l.camada ?? "—"}</span>;
     if (c.key === "impacto") return <span className="whitespace-nowrap">{l.impacto_nome ?? l.impacto ?? "—"}</span>;
     if (c.key === "matriz" || c.key === "destino") {
       const campo = c.key === "matriz" ? l.campo_matriz : l.campo_destino;
@@ -365,6 +377,7 @@ export default function ConciliacaoFila() {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={busca} onChange={e => setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU ou nome" />
       </div>
+      <FiltroFacetado label="Camada" selecionados={lista("camada")} onChange={v => setLista("camada", v)} opcoes={facet("camada", opcoesCamada, l => l.camada ?? "__sem__")} />
       <FiltroFacetado label="Onde resolver" selecionados={lista("onde")} onChange={v => setLista("onde", v)} opcoes={facet("onde", opcoesOnde, l => l.onde_resolver ?? "__sem__")} />
       <FiltroFacetado label="Impacto" selecionados={lista("impacto")} onChange={v => setLista("impacto", v)} opcoes={facet("impacto", opcoesImpacto, l => l.impacto ?? "__sem__")} />
       <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
