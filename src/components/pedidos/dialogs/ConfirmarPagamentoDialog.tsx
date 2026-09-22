@@ -158,6 +158,7 @@ export function ConfirmarPagamentoDialog({
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
   const confirmarLinha = useConfirmarPagamentoLinha();
   const confirmarCartao = useConfirmarCartaoCapturado();
+  const confirmarCaptura = useConfirmarCapturaCartao();
 
   // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
   const destinoQ = useQuery({
