@@ -302,9 +302,9 @@ export default function ConciliacaoFila() {
   }
 
   function exportar() {
-    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Impacto", "Gravidade", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
+    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Camada", "Impacto", "Gravidade", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
     const corpo = recorte.map(l => [
-      l.cod_cadastro, l.sku, l.nome_comercial, l.fase, l.colecao, l.regra_nome ?? l.regra,
+      l.cod_cadastro, l.sku, l.nome_comercial, l.fase, l.colecao, l.regra_nome ?? l.regra, l.camada_nome ?? l.camada,
       l.impacto_nome ?? l.impacto, l.gravidade, l.campo_matriz, l.valor_matriz,
       l.campo_destino, l.valor_destino, l.onde_resolver, l.consequencia, l.o_que_fazer,
     ].map(csvCelula).join(";")).join("\n");
