@@ -31,8 +31,11 @@ import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } fro
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
-  type PedidoB2cRow, type AlertaDim, type CentroB2c,
+  useSinalB2c, sinalMudou,
+  type PedidoB2cRow, type AlertaDim, type CentroB2c, type SinalB2c,
 } from "@/hooks/vendas/useB2c";
+import { Button } from "@/components/ui/button";
+import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
@@ -113,6 +116,21 @@ function SincBlingRodape() {
       {data.proximo_em && <> · próximo {fmtHoraSp.format(new Date(data.proximo_em))}</>}
     </span>
   );
+}
+
+/** SENTINELA-B2C · 22/09/2026 — carimbo de frescor da própria lista.
+ *  A lista pesada (view de ~2,9s) não recarrega sozinha; sem carimbo o
+ *  operador não sabe de quando é o dado. Reconta a cada 15s. */
+function FrescorFila({ dataUpdatedAt }: { dataUpdatedAt: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 15 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!dataUpdatedAt) return null;
+  const segundos = Math.max(0, Math.floor((Date.now() - dataUpdatedAt) / 1000));
+  const texto = segundos < 60 ? `há ${segundos}s` : `há ${Math.floor(segundos / 60)} min`;
+  return <span className="text-xs text-muted-foreground">fila · atualizada {texto}</span>;
 }
 
 /** Próxima ação exibida — reflete o estado real da descida ao Bling. */
@@ -219,7 +237,13 @@ export default function ShopifyB2c() {
     return () => ro.disconnect();
   }, [abaEfetiva]);
 
-  const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
+  const {
+    data: pedidos,
+    isLoading,
+    isError,
+    error,
+    dataUpdatedAt: pedidosAtualizadoEm,
+  } = usePedidosB2c();
   const {
     data: alertasDim,
     isError: alertasDimErro,
@@ -316,6 +340,48 @@ export default function ShopifyB2c() {
   const centros = useMemo(() => centrosData ?? [], [centrosData]);
 
   const qc = useQueryClient();
+
+  // ── SENTINELA-B2C · 22/09/2026 ───────────────────────────────────────────
+  // A lista da fila vem de vw_gestao_b2c_pedido (~2,9s por execução), então
+  // ela NÃO tem refetchInterval. Pedido novo nasce de webhook Shopify e
+  // nenhuma mutation invalida o cache, logo a tela ficava parada até um F5.
+  // A sentinela é uma RPC barata (~4ms) que só avisa que algo mudou; quem
+  // manda recarregar é o operador, no clique — ele pode estar no meio de uma
+  // seleção em lote de CD, e puxar o tapete seria pior que o problema.
+  const { data: sinal, refetch: refetchSinal } = useSinalB2c();
+  const [baseline, setBaseline] = useState<SinalB2c | null>(null);
+  const [atualizandoFila, setAtualizandoFila] = useState(false);
+  const carregamentoBaseline = useRef(0);
+
+  useEffect(() => {
+    if (!sinal) return;
+    if (baseline === null || pedidosAtualizadoEm !== carregamentoBaseline.current) {
+      carregamentoBaseline.current = pedidosAtualizadoEm;
+      setBaseline(sinal);
+    }
+  }, [sinal, baseline, pedidosAtualizadoEm]);
+
+  const mostrarFaixaSinal = sinalMudou(sinal, baseline);
+  const novosNaLoja =
+    sinal && baseline ? sinal.pedidos_qtd - baseline.pedidos_qtd : 0;
+
+  /** Recarrega a lista pesada só sob pedido. FAIL-LOUD: erro real no toast. */
+  async function atualizarFila() {
+    setAtualizandoFila(true);
+    try {
+      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      const novo = await refetchSinal();
+      if (novo.data) {
+        carregamentoBaseline.current = 0;
+        setBaseline(novo.data);
+      }
+    } catch (e) {
+      toast.error("Não foi possível atualizar a fila.", { description: formatError(e) });
+    } finally {
+      setAtualizandoFila(false);
+    }
+  }
 
   /** Grava a escolha do CD e libera a descida. FAIL-LOUD: erro do banco no toast. */
   async function escolherCd(pedidos: PedidoB2cRow[], centro: CentroB2c) {
@@ -582,6 +648,21 @@ export default function ShopifyB2c() {
               alertaSemCd={alertaSemCd}
             />
           </div>
+
+          {/* SENTINELA-B2C · 22/09/2026 — sistema sugere, humano decide. */}
+          {mostrarFaixaSinal && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                {novosNaLoja > 0
+                  ? `${novosNaLoja} pedido${novosNaLoja !== 1 ? "s" : ""} nov${novosNaLoja !== 1 ? "os" : "o"} na loja desde que você abriu esta tela.`
+                  : "A fila mudou desde que você abriu esta tela."}
+              </span>
+              <Button size="sm" variant="outline" disabled={atualizandoFila} onClick={atualizarFila}>
+                {atualizandoFila && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Atualizar
+              </Button>
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-2">
             <Input
@@ -1052,7 +1133,12 @@ export default function ShopifyB2c() {
                   chavePreferencia={CHAVE_PAGINA_B2C}
                   onPagina={setPagina}
                   onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
-                  extraDireita={<SincBlingRodape />}
+                  extraDireita={
+                    <span className="flex items-center gap-3">
+                      <SincBlingRodape />
+                      <FrescorFila dataUpdatedAt={pedidosAtualizadoEm} />
+                    </span>
+                  }
                 />
               </CardContent>
             </Card>

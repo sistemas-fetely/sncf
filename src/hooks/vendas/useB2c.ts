@@ -285,3 +285,45 @@ export function useSincStatusBling() {
     },
   });
 }
+
+// ── SENTINELA-B2C · 22/09/2026 ─────────────────────────────────────────────
+// A view vw_gestao_b2c_pedido custa ~2,9s por execução, então NÃO existe
+// refetchInterval nela. Pedido novo nasce de webhook Shopify (nenhuma mutation
+// do sistema invalida o cache) e o QueryClient global usa staleTime Infinity —
+// sem sentinela, o operador fica olhando fila vazia achando que não tem
+// trabalho. Esta RPC é barata (~4ms): só avisa que algo mudou. Quem decide
+// recarregar a view pesada é o humano, no clique.
+export interface SinalB2c {
+  pedidos_qtd: number;
+  pedidos_max: string | null;
+  fila_qtd: number;
+  fila_hash: string | null;
+  em: string | null;
+}
+
+/** Compara só o conteúdo do sinal, ignorando `em` (que muda a cada chamada). */
+export function sinalMudou(a: SinalB2c | null | undefined, b: SinalB2c | null | undefined): boolean {
+  if (!a || !b) return false;
+  return (
+    a.pedidos_qtd !== b.pedidos_qtd ||
+    a.pedidos_max !== b.pedidos_max ||
+    a.fila_qtd !== b.fila_qtd ||
+    a.fila_hash !== b.fila_hash
+  );
+}
+
+export function useSinalB2c() {
+  return useQuery({
+    queryKey: ["b2c-sinal"],
+    refetchInterval: 20 * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+    retry: false,
+    queryFn: async (): Promise<SinalB2c | null> => {
+      const { data, error } = await supabase.rpc("fn_b2c_fila_sinal");
+      if (error) throw error;
+      return (data ?? null) as unknown as SinalB2c | null;
+    },
+  });
+}
