@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
-  Download, GitCompare, RefreshCw, Search,
+  Download, GitCompare, RefreshCw, Search, X,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +132,13 @@ export default function ConciliacaoFila() {
 
   const lista = (k: Grupo) => (sp.get(k) ?? "").split(",").filter(Boolean);
   const busca = sp.get("q") ?? "";
+  // SEM-PRODUTO-NA-URL: o card "Anúncios sem produto" da Mesa linka já filtrado.
+  const semProduto = sp.get("sem_produto") === "1";
+  function setSemProduto(v: boolean) {
+    const novo = new URLSearchParams(sp);
+    if (v) novo.set("sem_produto", "1"); else novo.delete("sem_produto");
+    setSp(novo, { replace: true });
+  }
   function setLista(k: Grupo, vs: string[]) {
     const novo = new URLSearchParams(sp);
     if (vs.length) novo.set(k, vs.join(",")); else novo.delete(k);
@@ -195,6 +202,9 @@ export default function ConciliacaoFila() {
   const aplica = (l: FilaLinha, ignorar?: Grupo) => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");
     if (q && ![l.cod_cadastro, l.sku, l.nome_comercial].filter(temValor).some(v => String(v).toLocaleLowerCase("pt-BR").includes(q))) return false;
+    // cod_cadastro nulo é anúncio do Shopify sem produto nosso — só entra no
+    // recorte com sem_produto=1. Vale para tudo, inclusive os cards.
+    if (semProduto && l.cod_cadastro !== null) return false;
     for (const g of PARAMS) {
       if (g === ignorar) continue;
       const sel = lista(g);
@@ -269,7 +279,7 @@ export default function ConciliacaoFila() {
   const opcoesFase = useMemo(() => [...new Set(linhas.map(l => l.fase ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem fase" : v })), [linhas]);
   const opcoesColecao = useMemo(() => [...new Set(linhas.map(l => l.colecao ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem coleção" : v })), [linhas]);
 
-  const filtrosAtivos = (busca ? 1 : 0) + PARAMS.reduce((n, g) => n + lista(g).length, 0);
+  const filtrosAtivos = (busca ? 1 : 0) + (semProduto ? 1 : 0) + PARAMS.reduce((n, g) => n + lista(g).length, 0);
   const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
@@ -360,6 +370,7 @@ export default function ConciliacaoFila() {
       <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
       <FiltroFacetado label="Fase" selecionados={lista("fase")} onChange={v => setLista("fase", v)} opcoes={facet("fase", opcoesFase, l => l.fase ?? "__sem__")} />
       <FiltroFacetado label="Coleção" selecionados={lista("colecao")} onChange={v => setLista("colecao", v)} opcoes={facet("colecao", opcoesColecao, l => l.colecao ?? "__sem__")} />
+      {semProduto && <Button variant="ghost" size="sm" onClick={() => setSemProduto(false)}>Só anúncios sem produto<X className="ml-1 h-3 w-3" /></Button>}
       {filtrosAtivos > 0 && <Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros ({filtrosAtivos})</Button>}
     </section>
 

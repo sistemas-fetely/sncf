@@ -23535,15 +23535,15 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "fornecedor_produto_sku_fkey"
@@ -23633,6 +23633,27 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -23641,6 +23662,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -27929,15 +27957,15 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
@@ -28027,6 +28055,27 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -28035,6 +28084,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -28248,15 +28304,15 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
@@ -28346,6 +28402,27 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -28354,6 +28431,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -29193,15 +29277,15 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
@@ -29291,6 +29375,27 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -29299,6 +29404,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -29825,15 +29937,15 @@ export type Database = {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
@@ -29923,6 +30035,27 @@ export type Database = {
             foreignKeyName: "importacao_romaneio_stage_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -29931,6 +30064,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -65641,15 +65781,15 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
@@ -65739,6 +65879,27 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -65747,6 +65908,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
           {
@@ -68347,6 +68515,24 @@ export type Database = {
           usado_mas_nao_canonico: boolean | null
         }
         Relationships: []
+      }
+      vw_bling_card_fiscal: {
+        Row: {
+          bling_cest: string | null
+          bling_origem_fisc: string | null
+          cest: string | null
+          origem_fisc: string | null
+          sku: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_origem_fisc"
+            columns: ["origem_fisc"]
+            isOneToOne: false
+            referencedRelation: "produto_origem_fiscal_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_bling_completar_fiscal: {
         Row: {
@@ -71772,15 +71958,15 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
@@ -71870,6 +72056,27 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -71878,6 +72085,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
           {
@@ -72594,20 +72808,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "divergencia_impacto_dim"
             referencedColumns: ["slug"]
-          },
-          {
-            foreignKeyName: "fk_produto_colecao"
-            columns: ["colecao"]
-            isOneToOne: false
-            referencedRelation: "produto_colecao_cad_dim"
-            referencedColumns: ["rotulo"]
-          },
-          {
-            foreignKeyName: "fk_produto_grupo"
-            columns: ["grupo"]
-            isOneToOne: false
-            referencedRelation: "produto_grupo_dim"
-            referencedColumns: ["rotulo"]
           },
         ]
       }
@@ -80818,15 +81018,15 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "fornecedor_produto_sku_fkey"
@@ -80916,6 +81116,27 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -80924,6 +81145,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -82796,15 +83024,15 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
@@ -82894,6 +83122,27 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -82902,6 +83151,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
           {
@@ -82991,15 +83247,15 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
@@ -83089,6 +83345,27 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -83097,6 +83374,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
           {
@@ -89359,14 +89643,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -98607,6 +98891,26 @@ export type Database = {
           },
         ]
       }
+      vw_shopify_variante: {
+        Row: {
+          barcode_shopify: string | null
+          cod_por_ean: string | null
+          cod_por_sku: string | null
+          cod_por_sufixo: string | null
+          eh_kit: boolean | null
+          handle: string | null
+          shopify_id: string | null
+          sku_por_ean: string | null
+          sku_por_sku: string | null
+          sku_por_sufixo: string | null
+          sku_shopify: string | null
+          status: string | null
+          title: string | null
+          variante_id: string | null
+          variante_titulo: string | null
+        }
+        Relationships: []
+      }
       vw_sku_embalagem_classe: {
         Row: {
           classe: string | null
@@ -103036,15 +103340,15 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
-            referencedRelation: "vw_cartorio_situacao"
-            referencedColumns: ["sku_cadastro"]
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
-            referencedRelation: "vw_conciliacao_fila"
-            referencedColumns: ["sku"]
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
           },
           {
             foreignKeyName: "importacao_linha_sku_fkey"
@@ -103134,6 +103438,27 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
             referencedColumns: ["sku"]
           },
@@ -103142,6 +103467,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
             referencedColumns: ["sku"]
           },
         ]
@@ -103173,6 +103505,20 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
         ]
+      }
+      vw_xpm_card_medidas: {
+        Row: {
+          medidas_cm: string | null
+          medidas_erradas: boolean | null
+          peso_bruto_errado: boolean | null
+          peso_g: number | null
+          peso_unitario_errado: boolean | null
+          sku: string | null
+          xpm_medidas_cm: string | null
+          xpm_peso_bruto_g: number | null
+          xpm_peso_unitario_g: number | null
+        }
+        Relationships: []
       }
       vw_xpm_ciclo: {
         Row: {
@@ -105749,6 +106095,7 @@ export type Database = {
         Returns: string
       }
       fn_gtin_dv: { Args: { p_base: string }; Returns: number }
+      fn_gtin_valido: { Args: { p: string }; Returns: boolean }
       fn_gtin14: {
         Args: { p_ean13: string; p_indicador?: string }
         Returns: string
