@@ -6,7 +6,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { DividirCartoesDialog } from "@/components/pedidos/dialogs/DividirCartoesDialog";
@@ -205,7 +205,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
               const anterior = i > 0 ? provisoes[i - 1] : null;
               const abreGrupo = !!captura && anterior?.captura_id !== p.captura_id;
               return (
-                <>
+                <Fragment key={p.id}>
                   {abreGrupo && captura && (
                     <TableRow key={`grupo-${captura.id}`} className="bg-muted/50 hover:bg-muted/50">
                       <TableCell colSpan={5} className="py-1.5 text-xs font-medium">
@@ -218,7 +218,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                       </TableCell>
                     </TableRow>
                   )}
-                  <TableRow key={p.id}>
+                  <TableRow>
                     <TableCell className="font-medium">
                       {p.numero_parcela ?? "—"}
                       {p.eh_portao && <Badge variant="secondary" className="ml-2 text-[10px]">Portão</Badge>}
@@ -233,7 +233,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                     <TableCell>{fmtDate(p.data_prevista)}</TableCell>
                     <TableCell><EstadoLinha p={p} /></TableCell>
                   </TableRow>
-                </>
+                </Fragment>
               );
             })}
           </TableBody>
@@ -289,6 +289,14 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </div>
           );
         })}
+      {dividirAberto && (
+        <DividirCartoesDialog
+          pedidoId={pedidoId}
+          totalCartao={totalCartao}
+          aberto
+          aoFechar={() => setDividirAberto(false)}
+        />
+      )}
       {confirmarLinha && (
         <ConfirmarPagamentoDialog
           pedidoId={pedidoId}
