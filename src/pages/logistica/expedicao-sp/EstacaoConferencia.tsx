@@ -83,8 +83,9 @@ function tratamentoFoto(fonte: string | null | undefined) {
 
 /**
  * Foto do produto — CONFERÊNCIA VISUAL, nunca critério de aceite (quem valida
- * é o EAN). A `fonte` vira marca de atenção sobre a imagem: 'variante' é a foto
- * da cor certa (sem marca); 'produto'/'galeria' podem não ser desta cor (marca
+ * é o EAN). A `fonte` vira marca de atenção sobre a imagem: 'variante' e
+ * 'propria' (base própria do SNCF) são a foto do produto — sem marca;
+ * 'produto'/'galeria' podem não ser desta cor (marca
  * discreta); 'cor' é foto da coleção, não do produto (borda tracejada — mais
  * visível, porque é ali que o conferente decide). Sem foto ou falha de rede:
  * placeholder neutro com pacote — nunca um quadrado quebrado na frente do
@@ -106,8 +107,9 @@ function FotoItem({
       </span>
     );
   }
-  // 'variante' não entra no mapa de atenção: é o caso bom, sem marca.
-  const tratamento = imagem?.fonte === "variante" ? null : tratamentoFoto(imagem?.fonte);
+  // 'variante' e 'propria' não entram no mapa de atenção: são os casos bons,
+  // sem marca. 'propria' é a base própria do SNCF (identifica o produto).
+  const tratamento = imagem?.fonte === "variante" || imagem?.fonte === "propria" ? null : tratamentoFoto(imagem?.fonte);
   const emblema = tamanho >= 100 ? 24 : 14; // na confirmação do bipe a marca precisa ser clara
   return (
     <Tooltip>
