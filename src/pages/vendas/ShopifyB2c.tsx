@@ -41,6 +41,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { AbaPermitida, ConteudoAba, usePodeVerAba } from "@/components/AbaGate";
@@ -218,9 +219,10 @@ function truncarErro(texto: string, max = 80): string {
 }
 
 // DEVOLVER-PARA-A-FILA (22/09/2026): o cron da descida só olha `pendente`, então
-// pedido em erro fica parado para sempre. Quem pode voltar são estes dois estados
-// — a própria RPC ignora o resto.
-const ESTADOS_REPROCESSAVEIS = new Set(["erro", "pausado"]);
+// pedido em erro fica parado para sempre. Só `erro` volta: `pausado` é quarentena
+// manual ("nunca processar" — vovôs, duplicatas no Bling, legado) e devolver
+// duplicaria o pedido no Bling. A RPC já recusa pausado; a tela não pode oferecer.
+const ESTADOS_REPROCESSAVEIS = new Set(["erro"]);
 const podeReprocessar = (p: PedidoB2cRow): boolean =>
   ESTADOS_REPROCESSAVEIS.has(p.fila_status ?? "") && !!p.fila_id;
 const AVISO_CRON_FILA = "A descida ao Bling roda a cada 10 minutos: depois de devolver, o pedido entra na próxima janela.";
