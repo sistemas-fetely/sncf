@@ -144,12 +144,27 @@ export default function ConciliacaoFila() {
   }
   function limpar() { setSp(new URLSearchParams(), { replace: true }); }
 
+  // POSTGREST-CORTA-EM-MIL (22/09/2026): a view tem 3.348 linhas e o corte
+  // silencioso mostrava 877 divergências no lugar de 2.860. Lê em páginas de
+  // 1.000 com ordem estável (sku, regra) até a página vir incompleta.
   const fila = useQuery({
     queryKey: ["conciliacao-fila"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("vw_conciliacao_fila" as never).select("*");
-      if (error) throw error;
-      return (data ?? []) as FilaLinha[];
+      const PAGINA = 1000;
+      const todas: FilaLinha[] = [];
+      for (let de = 0; ; de += PAGINA) {
+        const { data, error } = await supabase
+          .from("vw_conciliacao_fila" as never)
+          .select("*")
+          .order("sku")
+          .order("regra")
+          .range(de, de + PAGINA - 1);
+        if (error) throw error;
+        const pagina = (data ?? []) as FilaLinha[];
+        todas.push(...pagina);
+        if (pagina.length < PAGINA) break;
+      }
+      return todas;
     },
   });
   const impactosDim = useQuery({
