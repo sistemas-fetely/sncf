@@ -34,6 +34,8 @@ interface Provisao {
   pix_txid: string | null;
   pix_token: string | null;
   pix_qr_url: string | null;
+  /** CAPTURA-DE-CARTAO: a qual cartão (captura) a parcela pertence. Nulo = legado. */
+  captura_id: string | null;
 }
 
 
