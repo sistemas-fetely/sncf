@@ -1202,7 +1202,14 @@ function DeclararVinculoNfDialog({
                     {pedido.estagio ? ` · ${pedido.estagio}` : ""} · {pedido.cliente}
                   </p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setPedido(null)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setAviso(null);
+                    setPedido(null);
+                  }}
+                >
                   Trocar
                 </Button>
               </div>
@@ -1228,7 +1235,10 @@ function DeclararVinculoNfDialog({
                         <button
                           key={p.id}
                           type="button"
-                          onClick={() => setPedido(p)}
+                          onClick={() => {
+                            setAviso(null);
+                            setPedido(p);
+                          }}
                           className="flex w-full items-center justify-between gap-2 border-b border-border/40 px-3 py-2 text-left last:border-0 hover:bg-muted/50"
                         >
                           <span className="text-sm">{p.ref}</span>
@@ -1245,7 +1255,13 @@ function DeclararVinculoNfDialog({
           {/* Motivo */}
           <div className="space-y-1">
             <Label>Motivo *</Label>
-            <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
+            <Select
+              value={motivoCodigo}
+              onValueChange={(v) => {
+                setAviso(null);
+                setMotivoCodigo(v);
+              }}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Por que o vínculo não veio sozinho?" />
               </SelectTrigger>
