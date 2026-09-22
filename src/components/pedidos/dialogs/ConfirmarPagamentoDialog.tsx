@@ -624,19 +624,46 @@ export function ConfirmarPagamentoDialog({
           </div>
         </div>
 
-        {capturaDaLinha && !destinoQ.data && (
+        {/* CAPTURA-PARCIAL (22/09/2026): efeito da captura antes do clique, direto do banco. */}
+        {ehCartao && (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+            {previaErro ? (
+              <span className="text-destructive">{previaErro}</span>
+            ) : previaQ.isFetching ? (
+              <span className="text-muted-foreground">Calculando o efeito desta captura…</span>
+            ) : previa ? (
+              <>
+                <span>
+                  Saldo em aberto após esta captura:{" "}
+                  <span className="font-medium">
+                    {formatBRL(previa.saldo_aberto_depois ?? 0)}
+                  </span>
+                </span>
+                {previa.fecha_portao && (
+                  <span className="ml-1 font-medium">
+                    Esta captura fecha o portão do pedido.
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground">
+                Informe o valor da captura para ver o efeito no saldo.
+              </span>
+            )}
+          </div>
+        )}
+
+        {ehCartao && (
           <p className="text-xs text-muted-foreground">
-            Este pagamento quita o Cartão {capturaDaLinha.ordem ?? "—"} deste pedido — os outros
-            cartões continuam pendentes até serem confirmados com o NSU deles.
+            Esta captura quita {formatBRL(valorNum)} dos {formatBRL(saldoCartaoAberto)} em aberto
+            deste pedido.
           </p>
         )}
 
-        {destinoQ.data && (
+        {!ehCartao && destinoQ.data && (
           <p className="text-xs text-muted-foreground">
             {destinoQ.data.tem_portao_pendente
-              ? capturaDaLinha
-                ? `Este pagamento quita o Cartão ${capturaDaLinha.ordem ?? "—"} deste pedido.`
-                : "Este pagamento quita o portão deste pedido."
+              ? "Este pagamento quita o portão deste pedido."
               : `Sem portão pendente: o valor credita a conta de ${destinoQ.data.cliente ?? "—"} e será alocado contra ${destinoQ.data.qtd_titulos_abertos ?? 0} título(s) em aberto (${formatBRL(destinoQ.data.valor_titulos_abertos ?? 0)}).${
                   (destinoQ.data.qtd_titulos_abertos ?? 0) === 0
                     ? " …e ficará como saldo na conta do cliente."
