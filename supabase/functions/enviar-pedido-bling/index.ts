@@ -914,7 +914,13 @@ serve(async (req) => {
       total: totalExato, soma_parcelas_enviadas: alvoAPrazo, tem_parcelas: temParcelas,
     });
 
-    // 9. Sync de produtos: cache → Bling GET → Bling POST (auto-cadastro)
+    // 9. Resolução do produto no Bling — CARD-CANÔNICO (22/09/2026).
+    //    Três degraus, nesta ordem, sem escolha arbitrária em nenhum deles:
+    //      1. `bling_card_canonico` (fonte de verdade da escolha entre cards duplicados)
+    //      2. `bling_produtos_cache` (espelho do catálogo, já montado do canônico)
+    //      3. API do Bling por código, com desempate explícito (ativo → nome do catálogo
+    //         → maior estoque) e console.warn dizendo quantos candidatos vieram.
+    //    NUNCA cria produto no Bling: SKU não resolvido cai no guardrail FAIL-LOUD abaixo.
     const stripQtdSuffix = (d: string) =>
       (d || "").replace(/\s*\(\d+\s*un\.?\)\s*$/i, "").trim();
 
@@ -922,16 +928,54 @@ serve(async (req) => {
       itens.map((it: any) => it.sku).filter(Boolean)
     )] as string[];
 
-    const { data: cachedRows } = skusComCodigo.length > 0
-      ? await supabase
-          .from("bling_produtos_cache")
-          .select("sku, bling_produto_id")
-          .in("sku", skusComCodigo)
-      : { data: [] };
-
     const cacheMap: Record<string, number> = {};
-    for (const row of (cachedRows || [])) {
-      cacheMap[row.sku] = row.bling_produto_id;
+    // Rastro de por qual degrau cada SKU resolveu — vai para o log do envio.
+    const fonteResolucao: Record<string, FonteResolucaoCard> = {};
+
+    // Degrau 1: card canônico.
+    const canonicoMap = skusComCodigo.length > 0
+      ? await lerCardsCanonicos(supabase, skusComCodigo)
+      : {};
+    for (const sku of skusComCodigo) {
+      const id = canonicoMap[chaveSku(sku)];
+      if (id) {
+        cacheMap[sku] = id;
+        fonteResolucao[sku] = "canonico";
+      }
+    }
+
+    // Degrau 2: espelho do catálogo, só para o que o canônico não cobriu.
+    const faltamCache = skusComCodigo.filter((sku) => !cacheMap[sku]);
+    if (faltamCache.length > 0) {
+      const { data: cachedRows } = await supabase
+        .from("bling_produtos_cache")
+        .select("sku, bling_produto_id")
+        .in("sku", faltamCache);
+      const porChave: Record<string, number> = {};
+      for (const row of (cachedRows || [])) {
+        const id = Number(row.bling_produto_id);
+        if (Number.isFinite(id) && id > 0) porChave[chaveSku(row.sku)] = id;
+      }
+      for (const sku of faltamCache) {
+        const id = porChave[chaveSku(sku)];
+        if (id) {
+          cacheMap[sku] = id;
+          fonteResolucao[sku] = "cache";
+        }
+      }
+    }
+
+    // Nome do catálogo: critério de desempate no degrau 3 (mesma regra da RPC).
+    const nomesCatalogo: Record<string, string> = {};
+    const faltamApi = skusComCodigo.filter((sku) => !cacheMap[sku]);
+    if (faltamApi.length > 0) {
+      const { data: catRows } = await supabase
+        .from("sncf_produtos")
+        .select("sku, nome_comercial")
+        .in("sku", faltamApi);
+      for (const r of (catRows || [])) {
+        if (r?.nome_comercial) nomesCatalogo[chaveSku(r.sku)] = String(r.nome_comercial);
+      }
     }
 
     const novosCacheEntries: { sku: string; bling_produto_id: number; nome: string }[] = [];
@@ -940,41 +984,54 @@ serve(async (req) => {
       if (!it.sku || cacheMap[it.sku]) continue;
 
       const nome = stripQtdSuffix(it.descricao);
-
-      let blingProdId: number | null = null;
       const skuTrim = String(it.sku).trim();
 
       // Catálogo Bling é 100% plano (sem variação) e os nomes são genéricos/repetidos.
-      // Casar por nome ou caçar "produto pai" é furada — pode resolver para o produto ERRADO.
-      // O único campo confiável é o CÓDIGO. trim() dos dois lados: há código gravado com tab invisível.
+      // Casar por nome é furada — pode resolver para o produto ERRADO. O campo de
+      // casamento é o CÓDIGO; o nome entra só como desempate entre cards do MESMO código.
+      // trim() dos dois lados: há código gravado com tab invisível.
       const acharPorCodigo = async (): Promise<number | null> => {
-        // 1) filtro exato por código (Bling v3 aceita ?codigo=)
-        try {
-          const r = await client.get(`/produtos?codigo=${encodeURIComponent(skuTrim)}&limite=100`);
-          const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
-          if (m?.id) return m.id;
-        } catch (_) {}
-        // 2) fallback: busca por critério de código
-        try {
-          const r = await client.get(`/produtos?criterio=2&q=${encodeURIComponent(skuTrim)}&limite=100`);
-          const m = (r?.data || []).find((p: any) => String(p.codigo || "").trim() === skuTrim);
-          if (m?.id) return m.id;
-        } catch (_) {}
+        const nomeCat = nomesCatalogo[chaveSku(skuTrim)] ?? null;
+        const tentativas = [
+          `/produtos?codigo=${encodeURIComponent(skuTrim)}&limite=100`,
+          `/produtos?criterio=2&q=${encodeURIComponent(skuTrim)}&limite=100`,
+        ];
+        for (const endpoint of tentativas) {
+          try {
+            const r = await client.get(endpoint);
+            const escolha = escolherCandidatoApi(r?.data || [], skuTrim, nomeCat);
+            if (escolha) {
+              if (escolha.total > 1) {
+                // Card duplicado no Bling: registra a decisão, nunca decide em silêncio.
+                console.warn("[enviar-pedido-bling] card duplicado no Bling", {
+                  sku: skuTrim,
+                  candidatos: escolha.total,
+                  escolhido: escolha.id,
+                  motivo: escolha.motivo,
+                  origem: "api",
+                });
+              }
+              return escolha.id;
+            }
+          } catch (_) { /* endpoint seguinte decide; guardrail abaixo bloqueia se nada resolver */ }
+        }
         return null;
       };
 
-      blingProdId = await acharPorCodigo();
+      const blingProdId = await acharPorCodigo();
 
       // NÃO cria produto no Bling. O "cria-se-não-acha" gerava lixo/duplicata no catálogo.
-      // Se não achou pelo código (acharPorCodigo acima), deixa não-resolvido → o guardrail
-      // FAIL-LOUD abaixo bloqueia o envio e lista o SKU pra correção manual. A cache completa
+      // Se não achou pelo código, deixa não-resolvido → o guardrail FAIL-LOUD abaixo
+      // bloqueia o envio e lista o SKU pra correção manual. A cache completa
       // (sincronizar-cache-bling, cron diário) cobre os ativos; produto novo entra em até 24h.
 
       if (blingProdId) {
         cacheMap[it.sku] = blingProdId;
+        fonteResolucao[it.sku] = "api";
         novosCacheEntries.push({ sku: it.sku, bling_produto_id: blingProdId, nome });
       }
     }
+
 
 if (novosCacheEntries.length > 0) {
   supabase
