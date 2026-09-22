@@ -266,7 +266,7 @@ export default function MesaProduto() {
     const existeRegra=(regrasDim.data??[]).some(r=>r.impacto===slug);
     return !existeRegra&&Array.isArray(l.impactos)&&l.impactos.includes(slug);
   };
-  const predSistemaTela=(l:LinhaUnida,v:string)=>v.startsWith("imp:")?impactoPresente(l,v.slice(4)):predSistemaBase(l,v);
+  const predSistemaTela=(l:LinhaUnida,v:string)=>v.startsWith("imp:")?(l.impactos??[]).includes(v.slice(4)):predSistemaBase(l,v);
 
   function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
     const q=busca.trim().toLocaleLowerCase("pt-BR"); if(q&&![l.cod_cadastro,l.sku,l.nome_comercial,l.ean].filter(temValor).some(v=>String(v).toLocaleLowerCase("pt-BR").includes(q)))return false;
