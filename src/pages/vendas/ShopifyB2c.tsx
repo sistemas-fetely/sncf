@@ -1070,7 +1070,12 @@ export default function ShopifyB2c() {
                   chavePreferencia={CHAVE_PAGINA_B2C}
                   onPagina={setPagina}
                   onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
-                  extraDireita={<SincBlingRodape />}
+                  extraDireita={
+                    <span className="flex items-center gap-3">
+                      <SincBlingRodape />
+                      <FrescorFila dataUpdatedAt={pedidosAtualizadoEm} />
+                    </span>
+                  }
                 />
               </CardContent>
             </Card>
