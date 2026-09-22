@@ -1,14 +1,15 @@
-# Correções na Ficha do Produto
+# Regressão de fase do produto
 
 ## Implementação
-- Ajustar a grade de campos para que valores acima de 120 caracteres ocupem uma linha inteira e usem textarea com altura limitada e rolagem interna, tanto em edição quanto em leitura.
-- Reequilibrar a hierarquia visual: valores em `foreground`; rótulos e selos em `muted-foreground`; sem reduzir a opacidade do conteúdo somente-leitura.
-- Consultar `vw_produto_imagem_final` pelo SKU e incluir a foto no topo da coluna direita, com origem, estado “sem foto”, ampliação em diálogo e link para “Gerenciar fotos”.
-- Regenerar os tipos do banco para reconhecer `canal_venda`, sem alterar banco, regras de edição, recusas ou promoção.
+- Ler as fases e seus rótulos de `produto_fase_dim`, usando a ordem cadastrada para identificar a fase imediatamente anterior.
+- Na Ficha, mostrar “Voltar para <fase anterior>” somente quando houver anterior; abrir confirmação com produto, de-para, efeito comercial e motivo obrigatório.
+- Reusar a chamada existente de `promover-fase-produto`, preservando os tratamentos de saldo, resposta do FOP e erros de autorização; no sucesso, recarregar a ficha e apresentar o de-para da fase.
+- Na Mesa, adicionar a ação compacta “Voltar fase” por linha, com tooltip, confirmação e motivo obrigatório, usando a mesma fase anterior cadastrada e os mesmos tratamentos de resposta.
 
 ## Validação
-- Rodar o typecheck exigido pelo projeto e verificar a Ficha em tela larga e estreita, incluindo texto longo, foto e ampliação.
+- Rodar o typecheck exigido pelo projeto e lint apenas nos dois arquivos alterados.
+- Conferir na prévia um produto ativo: botão, diálogo, rótulos e motivo obrigatório; confirmar também que a primeira fase não oferece regressão.
 
 ## Escopo
-- Alteração visual e de leitura concentrada em `src/pages/acervo/FichaProduto.tsx`.
-- `src/integrations/supabase/types.ts` será apenas regenerado a partir do banco existente.
+- Alterar somente `src/pages/acervo/FichaProduto.tsx` e `src/pages/acervo/MesaProduto.tsx`, além da atualização de acompanhamento no roadmap.
+- Não alterar banco, fotos, campos, filtros ou regras de avanço.
