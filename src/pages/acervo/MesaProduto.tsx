@@ -257,7 +257,7 @@ export default function MesaProduto() {
   const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
   const faseAnterior=(l:LinhaUnida)=>{const atual=fasesDim.data?.find(f=>f.slug===l.fase);if(!atual)return null;return[...(fasesDim.data??[])].filter(f=>f.ordem<atual.ordem).sort((a,b)=>b.ordem-a.ordem)[0]??null;};
   const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
-  const impactoPresente=(l:LinhaUnida,slug:string)=>{const divs=l.divergencias??[];if(divs.some(d=>regraPorSlug.get(String(d))?.impacto===slug))return true;const existeRegra=(regrasDim.data??[]).some(r=>r.impacto===slug);return !existeRegra&&Array.isArray(l.impactos)&&l.impactos.some(i=>String(i)===slug);};
+  const impactoPresente=(l:LinhaUnida,slug:string)=>Array.isArray(l.impactos)&&l.impactos.includes(slug);
   const predSistemaTela=(l:LinhaUnida,v:string)=>v.startsWith("imp:")?impactoPresente(l,v.slice(4)):predSistemaBase(l,v);
 
   function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
