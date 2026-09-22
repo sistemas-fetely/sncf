@@ -133,8 +133,17 @@ function FrescorFila({ dataUpdatedAt }: { dataUpdatedAt: number }) {
   return <span className="text-xs text-muted-foreground">fila · atualizada {texto}</span>;
 }
 
-/** Próxima ação exibida — reflete o estado real da descida ao Bling. */
+/** Próxima ação exibida — reflete o estado real da descida ao Bling.
+ *  FILA-PERDE-A-PALAVRA-DEPOIS-DA-NF (22/09/2026): a fila do Bling só tem
+ *  autoridade sobre a próxima ação enquanto o pedido ainda NÃO foi faturado.
+ *  Emitida a NF, quem manda é a view — antes, o texto da fila sobrescrevia
+ *  a view sempre ("entregue" virava "No Bling — aguardando faturamento"). */
 function proximaAcaoExibida(p: PedidoB2cRow): string | null {
+  // A view já priorizou o alerta: avisos críticos (ex.: "NF autorizada e o
+  // pedido nao avancou: ver o erro de automacao") nunca podem ser substituídos
+  // por texto da fila.
+  if (p.alerta) return p.proxima_acao;
+  if (p.tem_nf) return p.proxima_acao;
   switch (p.fila_status) {
     case "aguardando_destino":
       return "Escolha o CD para liberar a descida";
