@@ -19730,6 +19730,77 @@ export type Database = {
         }
         Relationships: []
       }
+      divergencia_impacto_dim: {
+        Row: {
+          ativo: boolean
+          descricao: string
+          gravidade: number
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao: string
+          gravidade: number
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string
+          gravidade?: number
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
+      divergencia_regra: {
+        Row: {
+          ativo: boolean
+          consequencia: string
+          impacto: string
+          nome: string
+          o_que_fazer: string | null
+          onde_resolver: string
+          ordem: number
+          sistema: string
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          consequencia: string
+          impacto: string
+          nome: string
+          o_que_fazer?: string | null
+          onde_resolver: string
+          ordem?: number
+          sistema: string
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          consequencia?: string
+          impacto?: string
+          nome?: string
+          o_que_fazer?: string | null
+          onde_resolver?: string
+          ordem?: number
+          sistema?: string
+          slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "divergencia_regra_impacto_fkey"
+            columns: ["impacto"]
+            isOneToOne: false
+            referencedRelation: "divergencia_impacto_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string
@@ -93850,8 +93921,11 @@ export type Database = {
           existe_bling: boolean | null
           existe_xpm: boolean | null
           fase: string | null
+          gravidade: number | null
           grupo: string | null
           handle: string | null
+          impacto_maior: string | null
+          impactos: string[] | null
           inventory_items: number | null
           multiplos: number | null
           ncm: string | null
@@ -105448,6 +105522,10 @@ export type Database = {
       }
       fn_faturar_pedido: {
         Args: { p_nf_id: string; p_pedido_id: string }
+        Returns: Json
+      }
+      fn_fila_b2c_reprocessar: {
+        Args: { p_fila: string; p_ids: string[]; p_motivo: string }
         Returns: Json
       }
       fn_fila_cadencia: {
