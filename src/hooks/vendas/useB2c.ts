@@ -105,6 +105,9 @@ export interface PedidoB2cRow {
   fila_bling_pedido_numero: string | null;
   fila_tentativas: number | null;
   fila_ultimo_erro: string | null;
+  // DEVOLVER-PARA-A-FILA (22/09/2026): o id da linha da fila do Bling não vem na
+  // view — é casado aqui, e é o que a RPC de reprocesso recebe.
+  fila_id: string | null;
   tag_shopify: string | null;
   cd_sugerido: string | null;
   cd_cep_codigo: string | null;
@@ -153,18 +156,19 @@ export function usePedidosB2c() {
       if (ids.length > 0) {
         const { data: filaNumeros, error: erroFila } = await supabase
           .from("bling_pedido_fila_b2c")
-          .select("shopify_pedido_id, bling_pedido_numero")
-          .in("shopify_pedido_id", ids)
-          .not("bling_pedido_numero", "is", null);
+          .select("id, shopify_pedido_id, bling_pedido_numero")
+          .in("shopify_pedido_id", ids);
         if (erroFila) throw erroFila;
         const mapa = new Map(
           (filaNumeros ?? []).map((r) => [
             r.shopify_pedido_id as string,
-            r.bling_pedido_numero as string,
+            r as { id: string; bling_pedido_numero: string | null },
           ]),
         );
         for (const r of rows) {
-          r.fila_bling_pedido_numero = (r.shopify_id && mapa.get(r.shopify_id)) || null;
+          const linha = r.shopify_id ? mapa.get(r.shopify_id) : undefined;
+          r.fila_bling_pedido_numero = linha?.bling_pedido_numero ?? null;
+          r.fila_id = linha?.id ?? null;
         }
       }
       return rows;
@@ -234,6 +238,36 @@ export async function desfazerEscolhaCd(shopifyId: string): Promise<void> {
   if (r && r.ok === false) {
     throw new Error(`A escolha não pôde ser desfeita (fila: ${r.status ?? "desconhecida"}).`);
   }
+}
+
+/** Resposta da RPC de reprocesso da fila. */
+export interface ReprocessoFilaB2c {
+  ok: boolean;
+  fila: string;
+  devolvidos: number;
+  pedidos_informados: number;
+  ignorados: number;
+  nota: string | null;
+}
+
+/**
+ * DEVOLVER-PARA-A-FILA (22/09/2026): pedido em erro fica parado para sempre — o
+ * cron só olha `pendente`. A RPC devolve para `pendente` só quem está em erro ou
+ * pausado e grava o motivo no último erro. FAIL-LOUD: mensagem real do banco.
+ */
+export async function reprocessarFilaB2c(
+  ids: string[],
+  fila: "bling" | "xpm",
+  motivo: string,
+): Promise<ReprocessoFilaB2c> {
+  const { data, error } = await supabase.rpc("fn_fila_b2c_reprocessar", {
+    p_ids: ids,
+    p_fila: fila,
+    p_motivo: motivo,
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("A função não devolveu resposta.");
+  return data as unknown as ReprocessoFilaB2c;
 }
 
 /**

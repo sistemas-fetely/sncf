@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -31,10 +31,15 @@ import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } fro
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
-  useSinalB2c, sinalMudou,
+  useSinalB2c, sinalMudou, reprocessarFilaB2c,
   type PedidoB2cRow, type AlertaDim, type CentroB2c, type SinalB2c,
 } from "@/hooks/vendas/useB2c";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
@@ -212,6 +217,14 @@ function truncarErro(texto: string, max = 80): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
+// DEVOLVER-PARA-A-FILA (22/09/2026): o cron da descida só olha `pendente`, então
+// pedido em erro fica parado para sempre. Quem pode voltar são estes dois estados
+// — a própria RPC ignora o resto.
+const ESTADOS_REPROCESSAVEIS = new Set(["erro", "pausado"]);
+const podeReprocessar = (p: PedidoB2cRow): boolean =>
+  ESTADOS_REPROCESSAVEIS.has(p.fila_status ?? "") && !!p.fila_id;
+const AVISO_CRON_FILA = "A descida ao Bling roda a cada 10 minutos: depois de devolver, o pedido entra na próxima janela.";
+
 export default function ShopifyB2c() {
   const [searchParams, setSearchParams] = useSearchParams();
   const abaParam = searchParams.get("aba");
@@ -262,6 +275,9 @@ export default function ShopifyB2c() {
     centro: CentroB2c;
     sugeridoNome: string | null;
   } | null>(null);
+  const [reprocesso, setReprocesso] = useState<PedidoB2cRow[] | null>(null);
+  const [motivoReprocesso, setMotivoReprocesso] = useState("");
+  const [reprocessando, setReprocessando] = useState(false);
 
   const ordenarPor = (coluna: ColunaB2c) => {
     setOrdenacao((atual) => {
@@ -579,6 +595,37 @@ export default function ShopifyB2c() {
     [listaDoCd],
   );
 
+  /**
+   * Devolve os pedidos travados para `pendente` via fn_fila_b2c_reprocessar.
+   * FAIL-LOUD: a mensagem real do banco vai para o toast e a fila é recarregada.
+   */
+  async function devolverParaFila() {
+    const alvos = reprocesso ?? [];
+    const ids = alvos.map((p) => p.fila_id).filter((x): x is string => !!x);
+    if (!ids.length) return;
+    setReprocessando(true);
+    try {
+      const r = await reprocessarFilaB2c(ids, "bling", motivoReprocesso.trim());
+      toast.success(`${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`, {
+        description: [
+          r.ignorados > 0
+            ? `${r.ignorados} ignorado${r.ignorados !== 1 ? "s" : ""} por não estar${r.ignorados !== 1 ? "em" : ""} em erro.`
+            : null,
+          r.nota,
+          AVISO_CRON_FILA,
+        ].filter(Boolean).join(" "),
+      });
+      setReprocesso(null);
+      setMotivoReprocesso("");
+      setMarcados(new Set());
+      await atualizarFila();
+    } catch (e) {
+      toast.error("Não foi possível devolver para a fila.", { description: formatError(e) });
+    } finally {
+      setReprocessando(false);
+    }
+  }
+
   /** Pedidos da página que ainda esperam destino — base da ação em lote. */
   const aguardandoDestino = useMemo(
     () => listaDoCd.filter((p) => p.fila_status === "aguardando_destino"),
@@ -588,6 +635,17 @@ export default function ShopifyB2c() {
   const pedidosMarcados = useMemo(
     () => aguardandoDestino.filter((p) => p.shopify_id && marcados.has(p.shopify_id)),
     [aguardandoDestino, marcados],
+  );
+
+  /** Pedidos travados na descida — base da devolução para a fila, em lote. */
+  const travadosNaFila = useMemo(
+    () => listaDoCd.filter(podeReprocessar),
+    [listaDoCd],
+  );
+
+  const marcadosTravados = useMemo(
+    () => travadosNaFila.filter((p) => p.shopify_id && marcados.has(p.shopify_id)),
+    [travadosNaFila, marcados],
   );
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
@@ -803,6 +861,24 @@ export default function ShopifyB2c() {
             onLimpar={() => setMarcados(new Set())}
           />
 
+          {marcadosTravados.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
+              <span>
+                {marcadosTravados.length} pedido{marcadosTravados.length !== 1 ? "s" : ""} travado
+                {marcadosTravados.length !== 1 ? "s" : ""} na descida ao Bling.
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => setReprocesso(marcadosTravados)}>
+                  <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                  Devolver para a fila
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setMarcados(new Set())}>
+                  Limpar
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!isError && (
             <Card>
               <CardContent className="p-0">
@@ -844,18 +920,19 @@ export default function ShopifyB2c() {
                           <CabecalhoOrdenavel rotulo="Financeiro" dir={ordenacao?.coluna === "financeiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("financeiro")} />
                           <CabecalhoOrdenavel rotulo="Rastreio" dir={ordenacao?.coluna === "rastreio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("rastreio")} />
                           <TableHead className="w-8" />
+                          <TableHead className="w-8" />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="py-8 text-center">
+                            <TableCell colSpan={14} className="py-8 text-center">
                               <Skeleton className="mx-auto h-4 w-32" />
                             </TableCell>
                           </TableRow>
                         ) : filtrados.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
+                            <TableCell colSpan={14} className="py-8 text-center text-muted-foreground">
                               Nenhum pedido nesta seleção.
                             </TableCell>
                           </TableRow>
@@ -871,7 +948,7 @@ export default function ShopifyB2c() {
                               }
                             >
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
-                                {p.fila_status === "aguardando_destino" && p.shopify_id && (
+                                {(p.fila_status === "aguardando_destino" || podeReprocessar(p)) && p.shopify_id && (
                                   <Checkbox
                                     checked={marcados.has(p.shopify_id)}
                                     aria-label={`Marcar pedido ${p.order_name ?? ""}`}
@@ -987,9 +1064,25 @@ export default function ShopifyB2c() {
                                           </span>
                                         )}
                                         {f.status === "erro" && (
-                                          <Selo estado="destructive">
-                                            erro ({p.fila_tentativas ?? 3}/3)
-                                          </Selo>
+                                          p.fila_ultimo_erro?.trim() ? (
+                                            <Tooltip>
+                                              <TooltipTrigger asChild>
+                                                <span className="inline-flex">
+                                                  <Selo estado="destructive">
+                                                    erro ({p.fila_tentativas ?? 3}/3)
+                                                  </Selo>
+                                                </span>
+                                              </TooltipTrigger>
+                                              {/* RESPOSTA-DO-BLING-INTEIRA: sem truncar, é onde está o motivo. */}
+                                              <TooltipContent className="max-w-[380px] whitespace-pre-wrap break-words">
+                                                {p.fila_ultimo_erro}
+                                              </TooltipContent>
+                                            </Tooltip>
+                                          ) : (
+                                            <Selo estado="destructive">
+                                              erro ({p.fila_tentativas ?? 3}/3)
+                                            </Selo>
+                                          )
                                         )}
                                         {f.status === "enviado" && (
                                           <Selo estado="success">No Bling</Selo>
@@ -1099,9 +1192,16 @@ export default function ShopifyB2c() {
                                   }
                                   if (p.fila_status === "erro" && p.fila_ultimo_erro?.trim()) {
                                     return (
-                                      <span className="line-clamp-2 text-destructive" title={p.fila_ultimo_erro}>
-                                        {truncarErro(p.fila_ultimo_erro)}
-                                      </span>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="line-clamp-2 cursor-help text-destructive">
+                                            {truncarErro(p.fila_ultimo_erro)}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-[380px] whitespace-pre-wrap break-words">
+                                          {p.fila_ultimo_erro}
+                                        </TooltipContent>
+                                      </Tooltip>
                                     );
                                   }
                                   if (p.fila_status === "pausado") {
@@ -1197,6 +1297,24 @@ export default function ShopifyB2c() {
                                   );
                                 })()}
                               </TableCell>
+                              <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                                {podeReprocessar(p) && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        aria-label={`Devolver pedido ${p.order_name ?? ""} para a fila`}
+                                        onClick={() => setReprocesso([p])}
+                                      >
+                                        <RotateCcw className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Devolver para a fila do Bling</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </TableCell>
                               <TableCell className="w-8">
                                 {p.coerencia_status === "divergente" && (
                                   <Tooltip>
@@ -1253,6 +1371,55 @@ export default function ShopifyB2c() {
           setConfirmacao(null);
         }}
       />
+
+      {/* DEVOLVER-PARA-A-FILA: motivo obrigatório, e a resposta da RPC é o que a tela conta. */}
+      <Dialog
+        open={reprocesso !== null}
+        onOpenChange={(v) => {
+          if (reprocessando) return;
+          if (!v) { setReprocesso(null); setMotivoReprocesso(""); }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Devolver {reprocesso?.length ?? 0} pedido{(reprocesso?.length ?? 0) !== 1 ? "s" : ""} para a fila do Bling?
+            </DialogTitle>
+            <DialogDescription>{AVISO_CRON_FILA}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm">
+              {(reprocesso ?? []).map((p) => p.order_name ?? "sem número").join(", ")}
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="motivo-reprocesso">Motivo (obrigatório)</Label>
+              <Textarea
+                id="motivo-reprocesso"
+                rows={3}
+                value={motivoReprocesso}
+                onChange={(e) => setMotivoReprocesso(e.target.value)}
+                placeholder="Ex.: card do produto corrigido no Bling"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              disabled={reprocessando}
+              onClick={() => { setReprocesso(null); setMotivoReprocesso(""); }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={reprocessando || !motivoReprocesso.trim() || !reprocesso?.length}
+              onClick={() => void devolverParaFila()}
+            >
+              {reprocessando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Devolver para a fila
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PedidoB2cDrawer
         pedido={selecionado}
