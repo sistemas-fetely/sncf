@@ -46643,29 +46643,35 @@ export type Database = {
         Row: {
           bloco: string
           campo: string
+          conta_como_furo: boolean
           descricao: string | null
           dono: string
           fase_exigida: string | null
           obrigatorio: boolean
           ordem: number
+          rotulo_separado: string | null
         }
         Insert: {
           bloco: string
           campo: string
+          conta_como_furo?: boolean
           descricao?: string | null
           dono: string
           fase_exigida?: string | null
           obrigatorio?: boolean
           ordem: number
+          rotulo_separado?: string | null
         }
         Update: {
           bloco?: string
           campo?: string
+          conta_como_furo?: boolean
           descricao?: string | null
           dono?: string
           fase_exigida?: string | null
           obrigatorio?: boolean
           ordem?: number
+          rotulo_separado?: string | null
         }
         Relationships: [
           {
@@ -87267,14 +87273,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -94626,6 +94632,7 @@ export type Database = {
           donos_pendencia: string[] | null
           falta_fase_atual: string[] | null
           falta_proxima_fase: string[] | null
+          falta_separada: string[] | null
           fase: string | null
           fase_nome: string | null
           fase_ordem: number | null
@@ -94682,6 +94689,7 @@ export type Database = {
           estampa: string | null
           falta_fase_atual: string[] | null
           falta_proxima_fase: string[] | null
+          falta_separada: string[] | null
           familia: string | null
           fase: string | null
           fase_nome: string | null
