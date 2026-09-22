@@ -1078,7 +1078,16 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" onClick={() => setEscolhida(n)}>
+                    <Button
+                      variant={n.pendencia_exige_acao === false ? "ghost" : "outline"}
+                      size="sm"
+                      title={
+                        n.pendencia_exige_acao === false
+                          ? (n.pendencia_explica ?? undefined)
+                          : undefined
+                      }
+                      onClick={() => setEscolhida(n)}
+                    >
                       Declarar vínculo
                     </Button>
                   </TableCell>
