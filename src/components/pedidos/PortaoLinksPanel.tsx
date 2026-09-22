@@ -105,6 +105,19 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   );
   const cartaoAbertoValor = cartaoAbertas.reduce((a, p) => a + Number(p.valor ?? 0), 0);
 
+  // CAPTURA-DE-CARTAO: o plano de cartão só pode ser redividido enquanto NENHUMA
+  // linha de cartão estiver paga — a RPC recusa o resto, aqui é só conveniência.
+  const linhasCartao = provisoes.filter((p) => p.tipo_pagamento === "cartao");
+  const totalCartao = linhasCartao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
+  const podeDividir =
+    linhasCartao.length > 0 && !linhasCartao.some((p) => estaPago(p)) && podeDinheiro;
+
+  const capturas = capturasQ.data ?? [];
+  const capturaPorId = new Map(capturas.map((c) => [c.id, c]));
+  /** Primeira parcela em aberto de cada captura — é por ela que a captura se confirma. */
+  const primeiraAbertaDaCaptura = (capturaId: string) =>
+    provisoes.find((p) => p.captura_id === capturaId && !estaPago(p)) ?? null;
+
   return (
     <div className="space-y-4">
       <div>
