@@ -118,6 +118,21 @@ function SincBlingRodape() {
   );
 }
 
+/** SENTINELA-B2C · 22/09/2026 — carimbo de frescor da própria lista.
+ *  A lista pesada (view de ~2,9s) não recarrega sozinha; sem carimbo o
+ *  operador não sabe de quando é o dado. Reconta a cada 15s. */
+function FrescorFila({ dataUpdatedAt }: { dataUpdatedAt: number }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 15 * 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!dataUpdatedAt) return null;
+  const segundos = Math.max(0, Math.floor((Date.now() - dataUpdatedAt) / 1000));
+  const texto = segundos < 60 ? `há ${segundos}s` : `há ${Math.floor(segundos / 60)} min`;
+  return <span className="text-xs text-muted-foreground">fila · atualizada {texto}</span>;
+}
+
 /** Próxima ação exibida — reflete o estado real da descida ao Bling. */
 function proximaAcaoExibida(p: PedidoB2cRow): string | null {
   switch (p.fila_status) {
