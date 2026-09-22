@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -209,6 +209,7 @@ function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:strin
 }
 
 export default function MesaProduto() {
+  const navigate=useNavigate();
   const [busca,setBusca]=useState(""); const [situacoes,setSituacoes]=useState<string[]>([]); const [fasesSel,setFasesSel]=useState<string[]>([]);
   const [colecoes,setColecoes]=useState<string[]>([]); const [grupos,setGrupos]=useState<string[]>([]); const [sistemas,setSistemas]=useState<string[]>([]);
   const [indicador,setIndicador]=useState<Indicador>(null); const [visiveis,setVisiveis]=useState<string[]>(COLUNAS_PADRAO);
@@ -257,15 +258,6 @@ export default function MesaProduto() {
   const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
   const faseAnterior=(l:LinhaUnida)=>{const atual=fasesDim.data?.find(f=>f.slug===l.fase);if(!atual)return null;return[...(fasesDim.data??[])].filter(f=>f.ordem<atual.ordem).sort((a,b)=>b.ordem-a.ordem)[0]??null;};
   const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
-  const divergenciasParaIndicador=(l:LinhaUnida)=>{
-    const temCardBling=l.existe_bling===true||temValor(l.bling_card_canonico)||temValor(l.bling_codigo);
-    return (l.divergencias??[]).filter(d=>!(d==="sem_ficha_bling"&&temCardBling));
-  };
-  const impactoPresente=(l:LinhaUnida,slug:string)=>{
-    if(divergenciasParaIndicador(l).some(d=>regraPorSlug.get(String(d))?.impacto===slug))return true;
-    const existeRegra=(regrasDim.data??[]).some(r=>r.impacto===slug);
-    return !existeRegra&&Array.isArray(l.impactos)&&l.impactos.includes(slug);
-  };
   const predSistemaTela=(l:LinhaUnida,v:string)=>v.startsWith("imp:")?(l.impactos??[]).includes(v.slice(4)):predSistemaBase(l,v);
 
   function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
@@ -275,7 +267,7 @@ export default function MesaProduto() {
     if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
     if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
     if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>predSistemaTela(l,s)))return false;
-    if(!semIndicador&&indicador){if(indicador.startsWith("imp:")){if(l.fase!=="ativo"||!impactoPresente(l,indicador.slice(4)))return false;}else{const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(l.sugestao!==slug)return false;}}
+    if(!semIndicador&&indicador){const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(l.sugestao!==slug)return false;}
     return true;
   }
   const recorte=(()=>{const base=linhas.filter(l=>aplica(l));const mult=ordem.dir==="asc"?1:-1;return [...base].sort((a,b)=>{const va=a[ordem.coluna],vb=b[ordem.coluna];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;if(typeof va==="number"&&typeof vb==="number")return(va-vb)*mult;return String(va).localeCompare(String(vb),"pt-BR",{numeric:true})*mult;});})();
@@ -284,7 +276,7 @@ export default function MesaProduto() {
   // INDICADOR-POR-CONSEQUÊNCIA: no lugar de "Com divergência" (que marcava o
   // catálogo inteiro), um card por impacto da dimensão. Contagem zero fica visível.
   const impactosOrdenados=useMemo(()=>[...(impactosDim.data??[])].sort((a,b)=>(b.gravidade??0)-(a.gravidade??0)||(a.ordem??999)-(b.ordem??999)),[impactosDim.data]);
-  const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length,tooltip:null as string|null,gravidade:null as number|null},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo"),tooltip:null,gravidade:null},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado"),tooltip:null,gravidade:null},{id:"furo" as Indicador,label:"Furo em ativo",n:conta(l=>l.sugestao==="ativo_com_furo"),tooltip:null,gravidade:null},...impactosOrdenados.map(i=>({id:`imp:${i.slug}` as Indicador,label:i.nome,n:conta(l=>l.fase==="ativo"&&impactoPresente(l,i.slug)),tooltip:i.descricao,gravidade:i.gravidade}))];
+  const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length,tooltip:null as string|null,gravidade:null as number|null},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo"),tooltip:null,gravidade:null},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado"),tooltip:null,gravidade:null},{id:"furo" as Indicador,label:"Furo em ativo",n:conta(l=>l.sugestao==="ativo_com_furo"),tooltip:null,gravidade:null},...impactosOrdenados.map(i=>({id:`imp:${i.slug}` as Indicador,label:i.nome,n:conta(l=>l.fase==="ativo"&&(l.impactos??[]).includes(i.slug)),tooltip:i.descricao,gravidade:i.gravidade}))];
   const facet=(grupo:GrupoFiltro,ops:{valor:string;rotulo:string}[],pred:(l:LinhaUnida,v:string)=>boolean)=>ops.map(o=>({...o,contagem:linhas.filter(l=>aplica(l,grupo)&&pred(l,o.valor)).length}));
   const filtrosAtivos=(busca?1:0)+situacoes.length+fasesSel.length+colecoes.length+grupos.length+sistemas.length+(indicador?1:0);
   const colunasVisiveis=ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c&&visiveis.includes(c.key));
@@ -307,7 +299,7 @@ export default function MesaProduto() {
   const fixa=(key:string,cab=false)=>key==="foto_url"?cn("sticky left-0 w-14 bg-muted",cab?"z-50":"z-20"):key==="cod_cadastro"?cn("sticky left-14 w-28 bg-muted",cab?"z-50":"z-20"):key==="sku"?cn("sticky left-[10.5rem] w-32 border-r bg-muted",cab?"z-50":"z-20"):"";
   return <TooltipProvider delayDuration={200}><PageShell><PageHeader titulo="Mesa do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch(),impactosDim.refetch(),regrasDim.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching||impactosDim.isFetching||regrasDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching||impactosDim.isFetching||regrasDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
   {erro&&<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os produtos. Atualize a página para tentar novamente. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
-  <section className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6" aria-label="Indicadores">{carregando?Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=>{const impacto=String(c.id??"").startsWith("imp:");const selecionado=indicador===c.id;const botao=<Button key={c.label} variant="outline" className={cn("h-20 items-start justify-center border p-3 text-left",impacto&&tomCardImpacto(c.gravidade,c.n),selecionado&&"ring-2 ring-primary ring-offset-2 ring-offset-background")} onClick={()=>setIndicador(selecionado?null:c.id)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className={cn("mt-1 text-[21px] font-medium tabular-nums",impacto?tomNumeroImpacto(c.gravidade,c.n):"text-foreground")}>{c.n}</span></span></Button>;return c.tooltip?<Tooltip key={c.label}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.tooltip}</TooltipContent></Tooltip>:botao;})}</section>
+  <section className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6" aria-label="Indicadores">{carregando?Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=>{const impacto=String(c.id??"").startsWith("imp:");const selecionado=indicador===c.id;const botao=<Button key={c.label} variant="outline" className={cn("h-20 items-start justify-center border p-3 text-left",impacto&&tomCardImpacto(c.gravidade,c.n),selecionado&&"ring-2 ring-primary ring-offset-2 ring-offset-background")} onClick={()=>{if(impacto){navigate(`/vendas/produto/conciliacao?impacto=${encodeURIComponent(String(c.id).slice(4))}&fase=ativo`);return;}setIndicador(selecionado?null:c.id);}}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className={cn("mt-1 text-[21px] font-medium tabular-nums",impacto?tomNumeroImpacto(c.gravidade,c.n):"text-foreground")}>{c.n}</span></span></Button>;return c.tooltip?<Tooltip key={c.label}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.tooltip}</TooltipContent></Tooltip>:botao;})}</section>
   <section className="flex flex-wrap items-center gap-2 border-y py-3"><div className="relative min-w-64 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={busca} onChange={e=>setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU, nome ou EAN"/></div>
   <FiltroFacetado label="Situação" selecionados={situacoes} onChange={setSituacoes} opcoes={facet("situacao",SITUACOES.map(([valor,rotulo])=>({valor,rotulo})),(l,v)=>(l.sugestao??"__sem__")===v)}/>
   <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facet("fase",fases.map(({valor,rotulo})=>({valor,rotulo})),(l,v)=>(l.fase??"__sem__")===v)}/>
