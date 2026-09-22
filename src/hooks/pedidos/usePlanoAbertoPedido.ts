@@ -9,6 +9,8 @@ export interface LinhaPlanoAberta {
   data_prevista: string | null;
   tipo_pagamento: string | null;
   eh_portao: boolean | null;
+  /** CAPTURA-DE-CARTAO: a qual cartão (captura) esta parcela pertence. */
+  captura_id: string | null;
 }
 
 /** Meio de pagamento canônico da linha do plano. */
