@@ -105203,6 +105203,10 @@ export type Database = {
         Args: { p_titulo_id: string }
         Returns: Json
       }
+      fn_purgar_capturas_orfas: {
+        Args: { p_pedido_id: string }
+        Returns: number
+      }
       fn_rastreio_conciliar_entregue: {
         Args: { p_dry_run?: boolean }
         Returns: Json
