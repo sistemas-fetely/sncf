@@ -36,6 +36,8 @@ import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 import { formatError } from "@/lib/format-error";
 import { fmtData, fmtDataHora, hojeISO, paraDataISO } from "@/lib/data";
+import { formatBRL } from "@/lib/format-currency";
+
 import { nomeExibicao } from "@/lib/parceiros/nome";
 
 type Tipo = {
