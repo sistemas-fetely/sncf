@@ -889,18 +889,19 @@ export default function ShopifyB2c() {
                           <CabecalhoOrdenavel rotulo="Financeiro" dir={ordenacao?.coluna === "financeiro" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("financeiro")} />
                           <CabecalhoOrdenavel rotulo="Rastreio" dir={ordenacao?.coluna === "rastreio" ? ordenacao.dir : null} onOrdenar={() => ordenarPor("rastreio")} />
                           <TableHead className="w-8" />
+                          <TableHead className="w-8" />
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {isLoading ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="py-8 text-center">
+                            <TableCell colSpan={14} className="py-8 text-center">
                               <Skeleton className="mx-auto h-4 w-32" />
                             </TableCell>
                           </TableRow>
                         ) : filtrados.length === 0 ? (
                           <TableRow>
-                            <TableCell colSpan={13} className="py-8 text-center text-muted-foreground">
+                            <TableCell colSpan={14} className="py-8 text-center text-muted-foreground">
                               Nenhum pedido nesta seleção.
                             </TableCell>
                           </TableRow>
