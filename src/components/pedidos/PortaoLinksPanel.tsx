@@ -138,7 +138,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         </p>
       </div>
 
-      {cartaoAbertas.length > 0 && (
+      {cartaoAbertas.length > 0 && capturas.length === 0 && (
         <div className="flex items-center justify-between gap-3 rounded-md border p-3">
           <p className="text-xs text-muted-foreground">
             {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
@@ -146,6 +146,41 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
           </p>
           <Button size="sm" onClick={() => setConfirmarLinha({ id: null })}>
             Confirmar captura
+          </Button>
+        </div>
+      )}
+
+      {/* CAPTURA-DE-CARTAO: cada cartão se confirma sozinho, com o NSU dele. */}
+      {capturas.map((c) => {
+        const abertas = provisoes.filter((p) => p.captura_id === c.id && !estaPago(p));
+        const alvo = abertas[0] ?? null;
+        return (
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+            <div className="text-sm">
+              <span className="font-medium">{rotuloCaptura(c)}</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {c.nsu ? `NSU ${c.nsu}` : "sem NSU ainda"}
+                {abertas.length > 0
+                  ? ` · ${abertas.length} parcela(s) em aberto`
+                  : " · todas as parcelas confirmadas"}
+              </span>
+            </div>
+            {alvo && podeDinheiro && (
+              <Button size="sm" onClick={() => setConfirmarLinha({ id: alvo.id })}>
+                Confirmar Cartão {c.ordem ?? "—"}
+              </Button>
+            )}
+          </div>
+        );
+      })}
+
+      {podeDividir && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+          <p className="text-xs text-muted-foreground">
+            Cliente pagou com mais de um cartão? Cada cartão é uma captura, com NSU próprio.
+          </p>
+          <Button size="sm" variant="outline" onClick={() => setDividirAberto(true)}>
+            Dividir entre cartões
           </Button>
         </div>
       )}
