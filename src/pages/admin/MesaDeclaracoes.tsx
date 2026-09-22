@@ -918,6 +918,11 @@ type NfOrfa = {
   sugestao_dias: number | null;
   sugestao_confianca: "alta" | "media" | "baixa" | null;
   candidatos_do_cliente: number | null;
+  pendencia: string;
+  pendencia_label: string | null;
+  pendencia_explica: string | null;
+  pendencia_exige_acao: boolean | null;
+  pendencia_ordem: number | null;
 };
 
 type RespVinculo = {
