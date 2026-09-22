@@ -131,6 +131,8 @@ export function ConfirmarPagamentoDialog({
   const [referencia, setReferencia] = useState("");
   const [dataPagamento, setDataPagamento] = useState(() => hojeISO());
   const [valor, setValor] = useState("");
+  // CAPTURA-PARCIAL (22/09/2026): parcelas da captura (repasses da adquirente).
+  const [parcelasCaptura, setParcelasCaptura] = useState("1");
   const [bancoId, setBancoId] = useState("");
   const [adquirenteId, setAdquirenteId] = useState("");
   const [observacao, setObservacao] = useState("");
