@@ -136,6 +136,7 @@ const NomesBling = lazy(() => import("@/pages/acervo/NomesBling"));
 const MesaProduto = lazy(() => import("@/pages/acervo/MesaProduto"));
 const FichaProduto = lazy(() => import("@/pages/acervo/FichaProduto"));
 const TabelaPreco = lazy(() => import("@/pages/acervo/TabelaPreco"));
+const FotosProduto = lazy(() => import("@/pages/acervo/FotosProduto"));
 const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
