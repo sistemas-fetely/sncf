@@ -756,7 +756,8 @@ function NovaDeclaracaoForm({
         )}
 
         {/* Valor declarado */}
-        {tipo?.exige_valor && (
+        {tipo?.exige_valor && !ehNf && (
+
           <div className="space-y-1">
             {pedeTransportadora ? (
               <>
