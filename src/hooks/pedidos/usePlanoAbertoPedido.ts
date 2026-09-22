@@ -9,6 +9,8 @@ export interface LinhaPlanoAberta {
   data_prevista: string | null;
   tipo_pagamento: string | null;
   eh_portao: boolean | null;
+  /** CAPTURA-DE-CARTAO: a qual cartão (captura) esta parcela pertence. */
+  captura_id: string | null;
 }
 
 /** Meio de pagamento canônico da linha do plano. */
@@ -39,14 +41,16 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
     queryKey: ["plano-aberto-pedido", pedido_id],
     enabled: !!pedido_id && habilitado,
     queryFn: async (): Promise<LinhaPlanoAberta[]> => {
-      const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
         .from("provisao_recebimento")
-        .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_portao")
+        .select("id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_portao, captura_id")
         .eq("pedido_id", pedido_id!)
         .is("pago_em", null)
         .order("numero_parcela", { ascending: true });
       if (error) throw error;
-      return (data ?? []).map((l) => ({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? []).map((l: any) => ({
         id: l.id as string,
         numero_parcela: l.numero_parcela as number | null,
         total_parcelas: l.total_parcelas as number | null,
@@ -54,6 +58,7 @@ export function usePlanoAbertoPedido(pedido_id: string | null | undefined, habil
         data_prevista: (l.data_prevista as string | null) ?? null,
         tipo_pagamento: (l.tipo_pagamento as string | null) ?? null,
         eh_portao: (l.eh_portao as boolean | null) ?? null,
+        captura_id: (l.captura_id as string | null) ?? null,
       }));
     },
   });

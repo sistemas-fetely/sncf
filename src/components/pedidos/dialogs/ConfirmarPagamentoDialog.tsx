@@ -38,6 +38,8 @@ import {
 } from "@/hooks/comercial/useComprovantePagamento";
 import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
+import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
+import { useToast } from "@/hooks/use-toast";
 import {
   usePlanoAbertoPedido,
   meioDaLinha,
@@ -141,6 +143,10 @@ export function ConfirmarPagamentoDialog({
   const bancosQ = useBancosRecebimento(aberto);
   const adquirentesQ = useAdquirentes(aberto && provaTipo === "cartao_nsu");
   const comprovantesQ = useComprovantesPedido(pedidoId, aberto);
+  // CAPTURA-DE-CARTAO (22/09/2026): com dois cartões, UMA confirmação NÃO quita o
+  // portão inteiro — ela fecha só as parcelas da captura da linha confirmada.
+  const capturasQ = useCapturasPedido(pedidoId, aberto);
+  const { toast } = useToast();
 
   const enviarComprovante = useEnviarComprovante(pedidoId);
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
@@ -188,8 +194,13 @@ export function ConfirmarPagamentoDialog({
   // Linha efetiva do plano nos DOIS caminhos (provisaoId fixo ou escolha manual):
   // é ela quem dita o meio — e o meio dita o tipo de prova.
   const linhaEfetiva = useMemo(
-    () => candidatas.find((l) => l.id === provisaoEfetiva) ?? null,
-    [candidatas, provisaoEfetiva],
+    () =>
+      candidatas.find((l) => l.id === provisaoEfetiva) ??
+      // CAPTURA-DE-CARTAO: parcela de repasse pode não ser linha de portão, mas ainda
+      // precisa saber de qual cartão é.
+      (planoQ.data ?? []).find((l) => l.id === provisaoEfetiva) ??
+      null,
+    [candidatas, planoQ.data, provisaoEfetiva],
   );
 
   // O comprovante mais recente já lido pela IA preenche a tela sozinho.
@@ -240,6 +251,12 @@ export function ConfirmarPagamentoDialog({
     ultimaLinhaSyncRef.current = null;
   }, [aberto]);
 
+  const capturas = useMemo(() => capturasQ.data ?? [], [capturasQ.data]);
+  const capturaDaLinha = useMemo(() => {
+    const id = linhaEfetiva?.captura_id ?? null;
+    return id ? (capturas.find((c) => c.id === id) ?? null) : null;
+  }, [capturas, linhaEfetiva]);
+
   const ehCartao = provaTipo === "cartao_nsu";
   // Linha de cartão SÓ fecha pela captura com NSU — a prova fica travada.
   const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
@@ -259,7 +276,7 @@ export function ConfirmarPagamentoDialog({
   // bancaria so entra no repasse posterior. Por isso o campo de banco nao bloqueia
   // confirmacao quando o caminho eh cartao, mas continua obrigatorio nos demais.
   const bancoFaltando = !ehCartao && !bancoId;
-  const linhaFaltando = !ehCartao && !provisaoEfetiva;
+  const linhaFaltando = (!ehCartao || !!capturaDaLinha) && !provisaoEfetiva;
 
   const bloqueado =
     enviando || anexoFaltando || refFaltando || bancoFaltando || linhaFaltando || !dataPagamento;
@@ -277,8 +294,28 @@ export function ConfirmarPagamentoDialog({
   async function confirmar() {
     if (bloqueado) return;
     try {
-      if (ehCartao) {
-        // Cartão: sempre a captura por NSU, com ou sem anexo.
+      if (ehCartao && capturaDaLinha && provisaoEfetiva) {
+        // Cartão com captura: fecha SÓ as parcelas desta captura e carimba o NSU nela.
+        await confirmarLinha.mutateAsync({
+          provisao_id: provisaoEfetiva,
+          prova_tipo: "cartao_nsu",
+          prova_ref: referencia.trim(),
+          data_pagamento: dataPagamento,
+          observacao,
+        });
+        const pendentes = capturas.filter(
+          (c) => c.id !== capturaDaLinha.id && !c.confirmada_em,
+        );
+        if (pendentes.length) {
+          toast({
+            title: "Falta confirmar outro cartão",
+            description: pendentes
+              .map((c) => `Falta confirmar o Cartão ${c.ordem ?? "—"} (${formatBRL(c.valor)})`)
+              .join(" · "),
+          });
+        }
+      } else if (ehCartao) {
+        // Cartão sem captura (legado): uma autorização fecha o pedido inteiro.
         await confirmarCartao.mutateAsync({
           pedido_id: pedidoId,
           nsu: referencia,
@@ -342,6 +379,14 @@ export function ConfirmarPagamentoDialog({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          ) : capturaDaLinha ? (
+            <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+              Você vai confirmar:{" "}
+              <span className="font-medium">{rotuloCaptura(capturaDaLinha)}</span>
+              <span className="ml-1 text-xs text-muted-foreground">
+                · {capturaDaLinha.nsu ? `NSU ${capturaDaLinha.nsu}` : "NSU da captura"}
+              </span>
             </div>
           ) : linhaAlvo ? (
             <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
@@ -498,10 +543,19 @@ export function ConfirmarPagamentoDialog({
           </div>
         </div>
 
+        {capturaDaLinha && !destinoQ.data && (
+          <p className="text-xs text-muted-foreground">
+            Este pagamento quita o Cartão {capturaDaLinha.ordem ?? "—"} deste pedido — os outros
+            cartões continuam pendentes até serem confirmados com o NSU deles.
+          </p>
+        )}
+
         {destinoQ.data && (
           <p className="text-xs text-muted-foreground">
             {destinoQ.data.tem_portao_pendente
-              ? "Este pagamento quita o portão deste pedido."
+              ? capturaDaLinha
+                ? `Este pagamento quita o Cartão ${capturaDaLinha.ordem ?? "—"} deste pedido.`
+                : "Este pagamento quita o portão deste pedido."
               : `Sem portão pendente: o valor credita a conta de ${destinoQ.data.cliente ?? "—"} e será alocado contra ${destinoQ.data.qtd_titulos_abertos ?? 0} título(s) em aberto (${formatBRL(destinoQ.data.valor_titulos_abertos ?? 0)}).${
                   (destinoQ.data.qtd_titulos_abertos ?? 0) === 0
                     ? " …e ficará como saldo na conta do cliente."
@@ -517,7 +571,11 @@ export function ConfirmarPagamentoDialog({
           {(podeGate || carregandoGate) && (
             <Button onClick={confirmar} disabled={bloqueado} title={motivoBloqueio}>
               {enviando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {ehCartao ? "Confirmar captura" : "Confirmar pagamento"}
+              {ehCartao
+                ? capturaDaLinha
+                  ? `Confirmar Cartão ${capturaDaLinha.ordem ?? "—"}`
+                  : "Confirmar captura"
+                : "Confirmar pagamento"}
             </Button>
           )}
         </DialogFooter>

@@ -6,9 +6,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PixQrCode } from "@/components/pedidos/PixQrCode";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { DividirCartoesDialog } from "@/components/pedidos/dialogs/DividirCartoesDialog";
+import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const fmtDate = (s?: string | null) =>
@@ -31,6 +34,8 @@ interface Provisao {
   pix_txid: string | null;
   pix_token: string | null;
   pix_qr_url: string | null;
+  /** CAPTURA-DE-CARTAO: a qual cartão (captura) a parcela pertence. Nulo = legado. */
+  captura_id: string | null;
 }
 
 
@@ -59,6 +64,12 @@ function EstadoLinha({ p }: { p: Provisao }) {
 export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   // REFERENCIA-SEMPRE: uma só tela de confirmação para todas as linhas do portão.
   const [confirmarLinha, setConfirmarLinha] = useState<{ id: string | null } | null>(null);
+  // CAPTURA-DE-CARTAO (22/09/2026): um pedido pode ter N capturas (N cartões).
+  const [dividirAberto, setDividirAberto] = useState(false);
+  const capturasQ = useCapturasPedido(pedidoId);
+  const dinheiroQ = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
+  const cobrancaQ = usePermissaoAcaoOuSuperAdmin("acao.cobranca_receber");
+  const podeDinheiro = dinheiroQ.permitido || cobrancaQ.permitido;
   const provisoesQ = useQuery({
     queryKey: ["provisoes-pedido", pedidoId],
     enabled: !!pedidoId,
@@ -67,7 +78,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
       const { data, error } = await (supabase as any)
         .from("provisao_recebimento")
         .select(
-          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em, link_pagamento, pix_txid, pix_token, pix_qr_url",
+          "id, pedido_id, numero_parcela, total_parcelas, valor, data_prevista, tipo_pagamento, eh_entrada, eh_portao, condicao_pagamento, status, pago_em, link_pagamento, pix_txid, pix_token, pix_qr_url, captura_id",
         )
         .eq("pedido_id", pedidoId)
         .order("numero_parcela", { ascending: true });
@@ -94,6 +105,19 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
   );
   const cartaoAbertoValor = cartaoAbertas.reduce((a, p) => a + Number(p.valor ?? 0), 0);
 
+  // CAPTURA-DE-CARTAO: o plano de cartão só pode ser redividido enquanto NENHUMA
+  // linha de cartão estiver paga — a RPC recusa o resto, aqui é só conveniência.
+  const linhasCartao = provisoes.filter((p) => p.tipo_pagamento === "cartao");
+  const totalCartao = linhasCartao.reduce((a, p) => a + Number(p.valor ?? 0), 0);
+  const podeDividir =
+    linhasCartao.length > 0 && !linhasCartao.some((p) => estaPago(p)) && podeDinheiro;
+
+  const capturas = capturasQ.data ?? [];
+  const capturaPorId = new Map(capturas.map((c) => [c.id, c]));
+  /** Primeira parcela em aberto de cada captura — é por ela que a captura se confirma. */
+  const primeiraAbertaDaCaptura = (capturaId: string) =>
+    provisoes.find((p) => p.captura_id === capturaId && !estaPago(p)) ?? null;
+
   return (
     <div className="space-y-4">
       <div>
@@ -114,7 +138,7 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
         </p>
       </div>
 
-      {cartaoAbertas.length > 0 && (
+      {cartaoAbertas.length > 0 && capturas.length === 0 && (
         <div className="flex items-center justify-between gap-3 rounded-md border p-3">
           <p className="text-xs text-muted-foreground">
             {cartaoAbertas.length} parcela(s) de cartão em aberto · {fmtBRL.format(cartaoAbertoValor)} —
@@ -122,6 +146,41 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
           </p>
           <Button size="sm" onClick={() => setConfirmarLinha({ id: null })}>
             Confirmar captura
+          </Button>
+        </div>
+      )}
+
+      {/* CAPTURA-DE-CARTAO: cada cartão se confirma sozinho, com o NSU dele. */}
+      {capturas.map((c) => {
+        const abertas = provisoes.filter((p) => p.captura_id === c.id && !estaPago(p));
+        const alvo = abertas[0] ?? null;
+        return (
+          <div key={c.id} className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+            <div className="text-sm">
+              <span className="font-medium">{rotuloCaptura(c)}</span>
+              <span className="ml-2 text-xs text-muted-foreground">
+                {c.nsu ? `NSU ${c.nsu}` : "sem NSU ainda"}
+                {abertas.length > 0
+                  ? ` · ${abertas.length} parcela(s) em aberto`
+                  : " · todas as parcelas confirmadas"}
+              </span>
+            </div>
+            {alvo && podeDinheiro && (
+              <Button size="sm" onClick={() => setConfirmarLinha({ id: alvo.id })}>
+                Confirmar Cartão {c.ordem ?? "—"}
+              </Button>
+            )}
+          </div>
+        );
+      })}
+
+      {podeDividir && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+          <p className="text-xs text-muted-foreground">
+            Cliente pagou com mais de um cartão? Cada cartão é uma captura, com NSU próprio.
+          </p>
+          <Button size="sm" variant="outline" onClick={() => setDividirAberto(true)}>
+            Dividir entre cartões
           </Button>
         </div>
       )}
@@ -140,18 +199,43 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {provisoes.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">
-                  {p.numero_parcela ?? "—"}
-                  {p.eh_portao && <Badge variant="secondary" className="ml-2 text-[10px]">Portão</Badge>}
-                </TableCell>
-                <TableCell className="capitalize">{p.tipo_pagamento ?? "—"}</TableCell>
-                <TableCell>{fmtBRL.format(Number(p.valor ?? 0))}</TableCell>
-                <TableCell>{fmtDate(p.data_prevista)}</TableCell>
-                <TableCell><EstadoLinha p={p} /></TableCell>
-              </TableRow>
-            ))}
+            {provisoes.map((p, i) => {
+              // CAPTURA-DE-CARTAO: cabeçalho de grupo quando a parcela muda de cartão.
+              const captura = p.captura_id ? capturaPorId.get(p.captura_id) : undefined;
+              const anterior = i > 0 ? provisoes[i - 1] : null;
+              const abreGrupo = !!captura && anterior?.captura_id !== p.captura_id;
+              return (
+                <Fragment key={p.id}>
+                  {abreGrupo && captura && (
+                    <TableRow key={`grupo-${captura.id}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell colSpan={5} className="py-1.5 text-xs font-medium">
+                        {rotuloCaptura(captura)}
+                        {captura.nsu && (
+                          <span className="ml-2 font-normal text-muted-foreground">
+                            NSU {captura.nsu}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      {p.numero_parcela ?? "—"}
+                      {p.eh_portao && <Badge variant="secondary" className="ml-2 text-[10px]">Portão</Badge>}
+                      {captura && (
+                        <Badge variant="outline" className="ml-2 text-[10px]">
+                          Cartão {captura.ordem ?? "—"}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="capitalize">{p.tipo_pagamento ?? "—"}</TableCell>
+                    <TableCell>{fmtBRL.format(Number(p.valor ?? 0))}</TableCell>
+                    <TableCell>{fmtDate(p.data_prevista)}</TableCell>
+                    <TableCell><EstadoLinha p={p} /></TableCell>
+                  </TableRow>
+                </Fragment>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
@@ -205,6 +289,14 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </div>
           );
         })}
+      {dividirAberto && (
+        <DividirCartoesDialog
+          pedidoId={pedidoId}
+          totalCartao={totalCartao}
+          aberto
+          aoFechar={() => setDividirAberto(false)}
+        />
+      )}
       {confirmarLinha && (
         <ConfirmarPagamentoDialog
           pedidoId={pedidoId}
