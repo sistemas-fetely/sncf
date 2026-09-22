@@ -293,6 +293,7 @@ Deno.serve(async (req) => {
         posicoes_disponiveis: todos.length,
         foto_mais_recente: todos[0] ?? null,
         pendentes_restantes: Math.max(pendentes.length - posicoes, 0),
+        reimportadas_ja_existentes: reimportadasJaExistentes,
         teto_por_execucao: maxFotos,
       },
 
