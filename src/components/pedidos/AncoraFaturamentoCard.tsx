@@ -15,7 +15,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertTriangle, CalendarCheck, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Info, Loader2, RefreshCw } from "lucide-react";
 import { PRE_FATURAMENTO_CHECKLIST_KEY } from "@/components/pedidos/PreFaturamentoCard";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
@@ -83,6 +83,16 @@ interface Sugestao {
   linhas: LinhaAncora[];
   cronograma: { parcela: number; provisao_id: string; data: string }[];
   venc_max: string | null;
+  plano_divergente: {
+    motivo: string;
+    condicao: string | null;
+    parcelas_condicao: number;
+    parcelas_plano: number;
+    intervalos_condicao: number[];
+    intervalos_plano: number[];
+    valores_condicao: number[];
+    valores_plano: number[];
+  } | null;
   alertas: AlertaAncora[];
   pode_declarar: boolean;
   pode_forcar: boolean;
@@ -119,6 +129,8 @@ export function AncoraFaturamentoCard({
   const [redeclarando, setRedeclarando] = useState(false);
   const [forcaAberta, setForcaAberta] = useState(false);
   const [motivoForca, setMotivoForca] = useState("");
+  const [remonteAberta, setRemonteAberta] = useState(false);
+  const [motivoRemonte, setMotivoRemonte] = useState("");
 
   const sugestaoQ = useQuery({
     queryKey: ["ancora-sugestao", pedidoId, dataFaturamento, gorduraDias, vencParcela1],
@@ -198,6 +210,34 @@ export function AncoraFaturamentoCard({
     },
   });
 
+  const remontar = useMutation<void, unknown, void>({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        "fn_remontar_plano_pela_condicao" as any,
+        { p_pedido_id: pedidoId, p_motivo: motivoRemonte, p_origem: "manual" } as any,
+      );
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Plano remontado pela condição atual");
+      setRemonteAberta(false);
+      setMotivoRemonte("");
+      setVencParcela1("");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["ancora-sugestao", pedidoId] }),
+        qc.invalidateQueries({ queryKey: ["ancora-vigente", pedidoId] }),
+        qc.invalidateQueries({ queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId) }),
+      ]);
+      await qc.invalidateQueries({
+        predicate: (q) => JSON.stringify(q.queryKey).includes(pedidoId),
+      });
+    },
+    onError: (e: unknown) => {
+      toast.error(e instanceof Error ? e.message : "Não foi possível remontar o plano");
+    },
+  });
+
   const vigente = vigenteQ.data ?? null;
   const carregando = sugestaoQ.isLoading || vigenteQ.isLoading;
 
@@ -235,6 +275,10 @@ export function AncoraFaturamentoCard({
     }
 
     const mostrarForm = !vigente || redeclarando;
+    const planoDivergente = sugestao.plano_divergente ?? null;
+    const alertasVisiveis = (sugestao.alertas ?? []).filter(
+      (a) => !(planoDivergente && a.codigo === "plano_diverge_da_condicao"),
+    );
 
     return (
       <div className="space-y-4">
@@ -276,6 +320,45 @@ export function AncoraFaturamentoCard({
 
         {mostrarForm && (
           <>
+            {planoDivergente && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="space-y-2">
+                  <p className="font-semibold">
+                    O plano de pagamento não bate com a condição do pedido
+                  </p>
+                  <ul className="space-y-1 text-sm">
+                    <li>
+                      Plano atual: {planoDivergente.parcelas_plano}x · intervalos{" "}
+                      {planoDivergente.intervalos_plano.join("/")} ·{" "}
+                      {planoDivergente.valores_plano
+                        .map((v) => fmtBRL.format(Number(v) || 0))
+                        .join(" + ")}
+                    </li>
+                    <li>
+                      Condição “{planoDivergente.condicao ?? "—"}”:{planoDivergente.parcelas_condicao}x ·
+                      intervalos {planoDivergente.intervalos_condicao.join("/")} ·{" "}
+                      {planoDivergente.valores_condicao
+                        .map((v) => fmtBRL.format(Number(v) || 0))
+                        .join(" + ")}
+                    </li>
+                  </ul>
+                  <p>
+                    A condição foi alterada depois que o plano foi montado. Remonte o plano para
+                    declarar a data de faturamento.
+                  </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => setRemonteAberta(true)}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Remontar plano pela condição
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="grid gap-4 md:grid-cols-3">
               <div className="space-y-1">
                 <Label htmlFor="ancora-data">Data de faturamento</Label>
@@ -310,9 +393,12 @@ export function AncoraFaturamentoCard({
                   type="date"
                   value={vencParcela1}
                   onChange={(e) => setVencParcela1(e.target.value)}
+                  disabled={!!planoDivergente}
                 />
                 <p className="text-xs text-muted-foreground leading-snug">
-                  Só se quiser sobrescrever o cálculo
+                  {planoDivergente
+                    ? "Remonte o plano antes de sobrescrever o vencimento"
+                    : "Só se quiser sobrescrever o cálculo"}
                 </p>
               </div>
             </div>
@@ -354,7 +440,7 @@ export function AncoraFaturamentoCard({
             </Table>
             </div>
 
-            {(sugestao.alertas ?? []).map((a) => (
+            {alertasVisiveis.map((a) => (
               <Alert key={a.codigo} variant={a.bloqueia ? "destructive" : "default"}>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{a.detalhe}</AlertDescription>
