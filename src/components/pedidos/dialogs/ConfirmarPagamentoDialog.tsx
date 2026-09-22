@@ -526,9 +526,9 @@ export function ConfirmarPagamentoDialog({
             />
           </div>
 
-          {/* Valor */}
+          {/* Valor — no cartão é o valor DA CAPTURA, editável (CAPTURA-PARCIAL 22/09/2026) */}
           <div className="space-y-2">
-            <Label htmlFor="valor-pagamento">Valor</Label>
+            <Label htmlFor="valor-pagamento">{ehCartao ? "Valor da captura" : "Valor"}</Label>
             <Input
               id="valor-pagamento"
               type="number"
@@ -536,9 +536,42 @@ export function ConfirmarPagamentoDialog({
               inputMode="decimal"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
-              placeholder={linhaAlvo ? linhaAlvo.valor.toFixed(2) : "0,00"}
+              placeholder={
+                ehCartao
+                  ? saldoCartaoAberto.toFixed(2)
+                  : linhaAlvo
+                    ? linhaAlvo.valor.toFixed(2)
+                    : "0,00"
+              }
             />
+            {ehCartao && (
+              <p className="text-xs text-muted-foreground">
+                Quanto passou de fato na maquininha. Saldo de cartão em aberto:{" "}
+                {formatBRL(saldoCartaoAberto)}.
+              </p>
+            )}
           </div>
+
+          {/* Parcelas da captura — repasses da adquirente, não cobranças ao cliente */}
+          {ehCartao && (
+            <div className="space-y-2">
+              <Label htmlFor="parcelas-captura">Parcelas da captura</Label>
+              <Input
+                id="parcelas-captura"
+                type="number"
+                min={1}
+                max={24}
+                step="1"
+                inputMode="numeric"
+                value={parcelasCaptura}
+                onChange={(e) => setParcelasCaptura(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cartão parcelado é uma captura só — as parcelas são os repasses da adquirente.
+              </p>
+            </div>
+          )}
+
 
           {/* Banco de recebimento */}
           <div className="space-y-2">
