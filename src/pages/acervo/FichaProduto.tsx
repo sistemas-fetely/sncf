@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, X,
+  AlertTriangle, ArrowDownCircle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,12 @@ type LinhaProduto = Record<string, unknown> & {
 type ImagemProduto = {
   imagem_url: string | null;
   origem: string | null;
+};
+
+type FaseProduto = {
+  slug: string;
+  nome: string;
+  ordem: number;
 };
 
 const ORIGEM_IMAGEM: Record<string, string> = {
@@ -156,6 +162,8 @@ export default function FichaProduto() {
   const [confirmar, setConfirmar] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [promovendo, setPromovendo] = useState(false);
+  const [confirmarRegressao, setConfirmarRegressao] = useState(false);
+  const [motivoRegressao, setMotivoRegressao] = useState("");
   const [dePara, setDePara] = useState<Record<string, { de: unknown; para: unknown }> | null>(null);
 
   // erros fail-loud
@@ -163,7 +171,7 @@ export default function FichaProduto() {
   const [erroFop, setErroFop] = useState<string | null>(null);
   const [erroEspelho, setErroEspelho] = useState<string | null>(null);
   const [faltando, setFaltando] = useState<string[] | null>(null);
-  const [confirmSaldo, setConfirmSaldo] = useState<number | null>(null);
+  const [confirmSaldo, setConfirmSaldo] = useState<{ saldo: number; faseDestino: string; motivo?: string } | null>(null);
   const [fotoAmpliada, setFotoAmpliada] = useState(false);
   const [fotoFalhou, setFotoFalhou] = useState(false);
 
@@ -176,6 +184,18 @@ export default function FichaProduto() {
         .order("ordem", { ascending: true });
       if (error) throw new Error(error.message);
       return (data ?? []) as LinhaMatriz[];
+    },
+  });
+
+  const fasesQ = useQuery({
+    queryKey: ["produto-fase-dim"],
+    queryFn: async (): Promise<FaseProduto[]> => {
+      const { data, error } = await supabase
+        .from("produto_fase_dim")
+        .select("slug, nome, ordem")
+        .order("ordem", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as FaseProduto[];
     },
   });
 
@@ -224,6 +244,12 @@ export default function FichaProduto() {
   const origemImagem = imagem?.origem ? ORIGEM_IMAGEM[imagem.origem] ?? imagem.origem : null;
   const origemFraca = imagem?.origem === "cor" || imagem?.origem === "colecao";
   const fotoDisponivel = Boolean(imagem?.imagem_url) && !fotoFalhou;
+  const faseAtualDim = fasesQ.data?.find((fase) => fase.slug === produto?.fase) ?? null;
+  const faseAnterior = faseAtualDim
+    ? [...(fasesQ.data ?? [])]
+      .filter((fase) => fase.ordem < faseAtualDim.ordem)
+      .sort((a, b) => b.ordem - a.ordem)[0] ?? null
+    : null;
 
   useEffect(() => {
     setFotoFalhou(false);
@@ -324,24 +350,31 @@ export default function FichaProduto() {
     }
   }
 
-  async function promover(confirmarSaldo = false) {
-    if (!produto?.sku || !produto.proxima_fase) return;
+  async function mudarFase(faseDestino: string, motivoMudanca?: string, confirmarSaldoMudanca = false) {
+    if (!produto?.sku || !faseDestino) return;
     setPromovendo(true);
     try {
       const r = await chamarFuncao("promover-fase-produto", {
         sku: produto.sku,
-        fase_destino: produto.proxima_fase,
-        ...(confirmarSaldo ? { confirmar_saldo: true } : {}),
+        fase_destino: faseDestino,
+        ...(motivoMudanca ? { motivo: motivoMudanca } : {}),
+        ...(confirmarSaldoMudanca ? { confirmar_saldo: true } : {}),
       });
       toast.success(`${cod} — ${r.de ?? "?"} → ${r.para}`, {
         description: "Fase gravada no FOP e espelhada aqui.",
       });
       await produtoQ.refetch();
+      setConfirmarRegressao(false);
+      setMotivoRegressao("");
     } catch (e) {
       const err = e as ErroFuncao;
       const corpo = err?.corpo ?? {};
       if (err?.status === 409) {
-        setConfirmSaldo(Number(corpo.saldo_disponivel ?? 0));
+        setConfirmSaldo({
+          saldo: Number(corpo.saldo_disponivel ?? 0),
+          faseDestino,
+          motivo: motivoMudanca,
+        });
       } else if (err?.status === 422) {
         setFaltando(Array.isArray(corpo.campos_faltando) ? corpo.campos_faltando : []);
       } else if (err?.status === 502) {
@@ -351,11 +384,16 @@ export default function FichaProduto() {
             : JSON.stringify(corpo.fop_body ?? corpo, null, 2),
         );
       } else {
-        toast.error("Não promoveu", { description: txt(corpo.erro) ?? formatError(e) });
+        toast.error("Não mudou a fase", { description: txt(corpo.erro) ?? formatError(e) });
       }
     } finally {
       setPromovendo(false);
     }
+  }
+
+  function promover(confirmarSaldoMudanca = false) {
+    if (!produto?.proxima_fase) return;
+    return mudarFase(produto.proxima_fase, undefined, confirmarSaldoMudanca);
   }
 
   const Identidade = ({ campo }: { campo: string }) => (
@@ -734,6 +772,17 @@ export default function FichaProduto() {
                         Promover para {produto.proxima_fase}
                       </Button>
                     )}
+                    {faseAnterior && (
+                      <Button
+                        className="w-full"
+                        variant="outline"
+                        onClick={() => setConfirmarRegressao(true)}
+                        disabled={promovendo}
+                      >
+                        <ArrowDownCircle className="mr-2 h-4 w-4" />
+                        Voltar para {faseAnterior.nome}
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -775,6 +824,48 @@ export default function FichaProduto() {
               <Button onClick={salvar} disabled={salvando}>
                 {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Gravar {alteracoes.length} campo(s)
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={confirmarRegressao}
+          onOpenChange={(aberto) => {
+            if (promovendo) return;
+            setConfirmarRegressao(aberto);
+            if (!aberto) setMotivoRegressao("");
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>
+                Voltar {cod} — {produto?.nome_comercial || "Produto sem nome"} de {faseAtualDim?.nome ?? produto?.fase_nome ?? produto?.fase ?? "—"} para {faseAnterior?.nome ?? "—"}?
+              </DialogTitle>
+              <DialogDescription>
+                O produto sai do catálogo de venda enquanto estiver em pré-venda.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5">
+              <Label htmlFor="motivo-regressao">Motivo (obrigatório)</Label>
+              <Textarea
+                id="motivo-regressao"
+                value={motivoRegressao}
+                onChange={(e) => setMotivoRegressao(e.target.value)}
+                placeholder="Ex.: produto ativado antes do lançamento"
+                rows={3}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmarRegressao(false)} disabled={promovendo}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => faseAnterior && void mudarFase(faseAnterior.slug, motivoRegressao.trim())}
+                disabled={!faseAnterior || !motivoRegressao.trim() || promovendo}
+              >
+                {promovendo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -887,7 +978,7 @@ export default function FichaProduto() {
             <AlertDialogHeader>
               <AlertDialogTitle>Seguir com saldo em estoque?</AlertDialogTitle>
               <AlertDialogDescription>
-                O produto ainda tem saldo disponível ({confirmSaldo ?? 0}). Mudar de fase não apaga
+                O produto ainda tem saldo disponível ({confirmSaldo?.saldo ?? 0}). Mudar de fase não apaga
                 o saldo.
               </AlertDialogDescription>
             </AlertDialogHeader>
