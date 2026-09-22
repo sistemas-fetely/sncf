@@ -175,7 +175,7 @@ export default function ConciliacaoFila() {
 
   const regraPorSlug = useMemo(() => new Map((regrasDim.data ?? []).map(r => [r.slug, r])), [regrasDim.data]);
   const impactoPorSlug = useMemo(() => new Map((impactosDim.data ?? []).map(i => [i.slug, i])), [impactosDim.data]);
-  const linhas = fila.data ?? [];
+  const linhas = useMemo(() => fila.data ?? [], [fila.data]);
 
   const aplica = (l: FilaLinha, ignorar?: Grupo) => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");
