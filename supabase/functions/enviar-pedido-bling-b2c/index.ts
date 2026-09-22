@@ -33,9 +33,8 @@ import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts"
 import {
   chaveSku,
   escolherCandidatoApi,
-  lerCardsCanonicos,
-  type FonteResolucaoCard,
 } from "../_shared/bling/card-canonico.ts";
+import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 
 
 const corsHeaders = {
@@ -526,50 +525,50 @@ Deno.serve(async (req) => {
         const telefoneBruto = order.shippingAddress?.phone ?? order.phone ?? order.customer?.phone;
         const telefoneCliente = telefoneBR(telefoneBruto);
 
-        // 4. Produtos por SKU — CARD-CANÔNICO (22/09/2026), mesma regra do B2B:
-        //    `bling_card_canonico` -> `bling_produtos_cache` -> GET /produtos?codigo=
-        //    (com desempate ativo -> nome do catalogo -> maior estoque) -> FAIL-LOUD.
-        //    NUNCA cria produto no Bling (o "cria-se-nao-acha" do B2B gerava duplicata).
-        //    VEM ANTES DO CONTATO de proposito: SKU nao resolvido aborta o item sem ter
+        // 4. Produtos por codigo — UMA FUNCAO SO (22/09/2026, pedido #1336), igual ao B2B:
+        //    `fn_bling_resolver_produto(codigo)` → cod_cadastro → SKU → espelho, e NUNCA
+        //    devolve card inativo. O Shopify manda o cod_cadastro no lugar do SKU em
+        //    parte dos casos; resolver pela string caia no card duplicado INATIVO e o
+        //    Bling recusava com "Produto nao encontrado, id invalido".
+        //    API do Bling fica como ULTIMO recurso. NUNCA cria produto no Bling.
+        //    VEM ANTES DO CONTATO de proposito: codigo nao resolvido aborta o item sem ter
         //    criado NADA no Bling — contato orfao de pedido que nunca desceu e lixo.
         const skus: string[] = [...new Set(itens.map((it) => it.sku))];
 
         const mapaProduto: Record<string, number> = {};
-        const fonteResolucao: Record<string, FonteResolucaoCard> = {};
+        const fonteResolucao: Record<string, string> = {};
+        const bloqueiosCadastro: string[] = [];
+        const motivoSemCard: Record<string, string> = {};
 
-        // Degrau 1: card canonico (fonte de verdade da escolha entre cards duplicados).
-        const canonicoMap = await lerCardsCanonicos(supabase, skus);
         for (const sku of skus) {
-          const id = canonicoMap[chaveSku(sku)];
-          if (id) {
-            mapaProduto[sku] = id;
-            fonteResolucao[sku] = "canonico";
+          const r = await resolverProdutoBling(supabase, sku);
+          const idRpc = Number(r.bling_id);
+          if (r.ok && Number.isFinite(idRpc) && idRpc > 0) {
+            mapaProduto[sku] = idRpc;
+            fonteResolucao[sku] = r.como ?? "rpc";
+            continue;
           }
+          if (r.card_inativo) {
+            bloqueiosCadastro.push(
+              `${sku}${r.sku ? ` (SKU ${r.sku})` : ""}: ${r.motivo ?? "card INATIVO no Bling"}`,
+            );
+            continue;
+          }
+          motivoSemCard[sku] = r.motivo ?? "codigo nao resolve para produto do Bling";
         }
 
-        // Degrau 2: espelho do catalogo, so para o que o canonico nao cobriu.
-        const faltamCache = skus.filter((sku) => !mapaProduto[sku]);
-        if (faltamCache.length > 0) {
-          const { data: cacheRows, error: eCache } = await supabase
-            .from("bling_produtos_cache")
-            .select("sku, bling_produto_id")
-            .in("sku", faltamCache);
-          if (eCache) throw new Error(`ler bling_produtos_cache: ${eCache.message}`);
-          const porChave: Record<string, number> = {};
-          for (const row of cacheRows ?? []) {
-            const id = Number(row.bling_produto_id);
-            if (Number.isFinite(id) && id > 0) porChave[chaveSku(row.sku)] = id;
-          }
-          for (const sku of faltamCache) {
-            const id = porChave[chaveSku(sku)];
-            if (id) {
-              mapaProduto[sku] = id;
-              fonteResolucao[sku] = "cache";
-            }
-          }
+        // Card inativo e problema de CADASTRO, nao de rede: tentar de novo nao resolve.
+        if (bloqueiosCadastro.length > 0) {
+          await falhar(
+            `${bloqueiosCadastro.length} item(ns) apontam para card INATIVO no Bling — ` +
+              `o Bling recusaria o pedido. Reative o card ou corrija o codigo na origem: ` +
+              bloqueiosCadastro.join(" | ") + ". Nada foi criado no Bling.",
+          );
+          continue;
         }
 
-        // Nome do catalogo: desempate do degrau 3 (mesma regra da RPC).
+
+        // Nome do catalogo: desempate do ULTIMO RECURSO (mesma regra da RPC).
         const nomesCatalogo: Record<string, string> = {};
         const faltamApi = skus.filter((sku) => !mapaProduto[sku]);
         if (faltamApi.length > 0) {
@@ -630,8 +629,11 @@ Deno.serve(async (req) => {
         const naoResolvidos = skus.filter((sku) => !mapaProduto[sku]);
         if (naoResolvidos.length > 0) {
           await falhar(
-            `${naoResolvidos.length} SKU(s) sem produto no Bling — cadastre antes de reenviar: ` +
-              naoResolvidos.join(", ") +
+            `${naoResolvidos.length} SKU(s) sem produto no Bling — cadastre ou corrija o ` +
+              `codigo antes de reenviar: ` +
+              naoResolvidos
+                .map((s) => `${s}${motivoSemCard[s] ? ` — ${motivoSemCard[s]}` : ""}`)
+                .join(" | ") +
               ". Nada foi criado no Bling.",
           );
           continue;

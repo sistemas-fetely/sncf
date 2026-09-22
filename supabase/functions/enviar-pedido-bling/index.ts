@@ -16,9 +16,8 @@ import { exigirAcao } from "../_shared/permissao-acao.ts";
 import {
   chaveSku,
   escolherCandidatoApi,
-  lerCardsCanonicos,
-  type FonteResolucaoCard,
 } from "../_shared/bling/card-canonico.ts";
+import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 
 
 const corsHeaders = {
@@ -921,13 +920,12 @@ serve(async (req) => {
       total: totalExato, soma_parcelas_enviadas: alvoAPrazo, tem_parcelas: temParcelas,
     });
 
-    // 9. Resolução do produto no Bling — CARD-CANÔNICO (22/09/2026).
-    //    Três degraus, nesta ordem, sem escolha arbitrária em nenhum deles:
-    //      1. `bling_card_canonico` (fonte de verdade da escolha entre cards duplicados)
-    //      2. `bling_produtos_cache` (espelho do catálogo, já montado do canônico)
-    //      3. API do Bling por código, com desempate explícito (ativo → nome do catálogo
-    //         → maior estoque) e console.warn dizendo quantos candidatos vieram.
-    //    NUNCA cria produto no Bling: SKU não resolvido cai no guardrail FAIL-LOUD abaixo.
+    // 9. Resolução do produto no Bling — UMA FUNÇÃO SÓ (22/09/2026, pedido #1336).
+    //    `fn_bling_resolver_produto(codigo)` resolve por cod_cadastro → SKU → espelho e
+    //    NUNCA devolve card inativo. Substituiu os três degraus daqui (canônico → cache
+    //    → API), que resolviam pela STRING do código e caíam no card duplicado inativo.
+    //    A API do Bling continua, mas só como ÚLTIMO recurso: quando a RPC não acha
+    //    card nenhum para o código. NUNCA cria produto no Bling.
     const stripQtdSuffix = (d: string) =>
       (d || "").replace(/\s*\(\d+\s*un\.?\)\s*$/i, "").trim();
 
@@ -936,43 +934,39 @@ serve(async (req) => {
     )] as string[];
 
     const cacheMap: Record<string, number> = {};
-    // Rastro de por qual degrau cada SKU resolveu — vai para o log do envio.
-    const fonteResolucao: Record<string, FonteResolucaoCard> = {};
+    // Rastro de por qual degrau cada código resolveu — vai para o log do envio.
+    const fonteResolucao: Record<string, string> = {};
+    // Card inativo é problema de CADASTRO: bloqueia na hora, reenviar não resolve.
+    const bloqueiosCadastro: string[] = [];
+    const motivoSemCard: Record<string, string> = {};
 
-    // Degrau 1: card canônico.
-    const canonicoMap = skusComCodigo.length > 0
-      ? await lerCardsCanonicos(supabase, skusComCodigo)
-      : {};
-    for (const sku of skusComCodigo) {
-      const id = canonicoMap[chaveSku(sku)];
-      if (id) {
-        cacheMap[sku] = id;
-        fonteResolucao[sku] = "canonico";
+    for (const codigo of skusComCodigo) {
+      const r = await resolverProdutoBling(supabase, codigo);
+      const id = Number(r.bling_id);
+      if (r.ok && Number.isFinite(id) && id > 0) {
+        cacheMap[codigo] = id;
+        fonteResolucao[codigo] = r.como ?? "rpc";
+        continue;
       }
+      if (r.card_inativo) {
+        bloqueiosCadastro.push(
+          `${codigo}${r.sku ? ` (SKU ${r.sku})` : ""}: ${r.motivo ?? "card INATIVO no Bling"}`,
+        );
+        continue;
+      }
+      motivoSemCard[codigo] = r.motivo ?? "código não resolve para produto do Bling";
     }
 
-    // Degrau 2: espelho do catálogo, só para o que o canônico não cobriu.
-    const faltamCache = skusComCodigo.filter((sku) => !cacheMap[sku]);
-    if (faltamCache.length > 0) {
-      const { data: cachedRows } = await supabase
-        .from("bling_produtos_cache")
-        .select("sku, bling_produto_id")
-        .in("sku", faltamCache);
-      const porChave: Record<string, number> = {};
-      for (const row of (cachedRows || [])) {
-        const id = Number(row.bling_produto_id);
-        if (Number.isFinite(id) && id > 0) porChave[chaveSku(row.sku)] = id;
-      }
-      for (const sku of faltamCache) {
-        const id = porChave[chaveSku(sku)];
-        if (id) {
-          cacheMap[sku] = id;
-          fonteResolucao[sku] = "cache";
-        }
-      }
+    if (bloqueiosCadastro.length > 0) {
+      return await falhaLimpando(
+        `${bloqueiosCadastro.length} item(ns) apontam para card INATIVO no Bling — ` +
+        `o Bling recusaria o pedido. Corrija o cadastro (reative o card ou ajuste o ` +
+        `código na origem) antes de reenviar: ${bloqueiosCadastro.join(" | ")}`,
+        409,
+      );
     }
 
-    // Nome do catálogo: critério de desempate no degrau 3 (mesma regra da RPC).
+    // Nome do catálogo: critério de desempate no último recurso (mesma regra da RPC).
     const nomesCatalogo: Record<string, string> = {};
     const faltamApi = skusComCodigo.filter((sku) => !cacheMap[sku]);
     if (faltamApi.length > 0) {
@@ -993,10 +987,10 @@ serve(async (req) => {
       const nome = stripQtdSuffix(it.descricao);
       const skuTrim = String(it.sku).trim();
 
-      // Catálogo Bling é 100% plano (sem variação) e os nomes são genéricos/repetidos.
-      // Casar por nome é furada — pode resolver para o produto ERRADO. O campo de
-      // casamento é o CÓDIGO; o nome entra só como desempate entre cards do MESMO código.
-      // trim() dos dois lados: há código gravado com tab invisível.
+      // ÚLTIMO RECURSO. Catálogo Bling é 100% plano e os nomes são genéricos/repetidos:
+      // casar por nome pode resolver para o produto ERRADO. O campo de casamento é o
+      // CÓDIGO; o nome entra só como desempate entre cards do MESMO código, e o
+      // desempate continua preferindo card ativo.
       const acharPorCodigo = async (): Promise<number | null> => {
         const nomeCat = nomesCatalogo[chaveSku(skuTrim)] ?? null;
         const tentativas = [
@@ -1029,8 +1023,7 @@ serve(async (req) => {
 
       // NÃO cria produto no Bling. O "cria-se-não-acha" gerava lixo/duplicata no catálogo.
       // Se não achou pelo código, deixa não-resolvido → o guardrail FAIL-LOUD abaixo
-      // bloqueia o envio e lista o SKU pra correção manual. A cache completa
-      // (sincronizar-cache-bling, cron diário) cobre os ativos; produto novo entra em até 24h.
+      // bloqueia o envio e lista o SKU pra correção manual.
 
       if (blingProdId) {
         cacheMap[it.sku] = blingProdId;
@@ -1047,22 +1040,25 @@ if (novosCacheEntries.length > 0) {
     .then(() => {}, () => {});
 }
 
-// Guardrail pós-sync — FAIL-LOUD: produtos com SKU que não foram resolvidos
-// (não encontrados nem criados no Bling) iriam como avulsos sem código.
-// Bloqueamos o envio e listamos os produtos para correção manual.
+// Guardrail pós-resolução — FAIL-LOUD: item com código que não resolveu iria como
+// avulso sem código. Bloqueia o envio com o motivo que a RPC deu para cada um.
 const itensSemProdutoBling = itens.filter(
   (it: any) => it.sku && !cacheMap[it.sku]
 );
 if (itensSemProdutoBling.length > 0) {
   const nomes = itensSemProdutoBling
-    .map((it: any) => `${it.descricao ?? "(sem descrição)"} [${it.sku}]`)
+    .map((it: any) =>
+      `${it.descricao ?? "(sem descrição)"} [${it.sku}]` +
+      (motivoSemCard[it.sku] ? ` — ${motivoSemCard[it.sku]}` : "")
+    )
     .join(" | ");
   return await falhaLimpando(
-    `${itensSemProdutoBling.length} produto(s) não encontrado(s) nem criado(s) no Bling — ` +
-    `verifique os logs do Bling e cadastre manualmente antes de reenviar: ${nomes}`,
+    `${itensSemProdutoBling.length} produto(s) não encontrado(s) no Bling — ` +
+    `cadastre ou corrija o código antes de reenviar: ${nomes}`,
     409,
   );
 }
+
 
 // 9d. Monta itens com produto.id (catálogo) ou fallback avulso
     // Frete da REMESSA (rateado na divisão) quando existir; senão o do pedido.
