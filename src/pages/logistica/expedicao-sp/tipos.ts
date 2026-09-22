@@ -80,7 +80,7 @@ export interface ItemPedidoMesa {
 export interface ImagemProdutoMesa {
   sku: string;
   imagem_url: string;
-  fonte: "variante" | "produto" | "galeria" | "cor";
+  fonte: "propria" | "variante" | "produto" | "galeria" | "cor";
 }
 
 export interface ModalEntrega {
