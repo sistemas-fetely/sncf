@@ -20,6 +20,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -175,6 +176,11 @@ export default function MesaProduto() {
   const [confirmSaldo,setConfirmSaldo]=useState<{sku:string;saldo:number;faseDestino:string;motivo?:string}|null>(null); const [faltando,setFaltando]=useState<{sku:string;campos:string[]}|null>(null); const [erroFop,setErroFop]=useState<{sku:string;corpo:string}|null>(null);
   const [regressao,setRegressao]=useState<{linha:LinhaUnida;fase:FaseProduto}|null>(null); const [motivoRegressao,setMotivoRegressao]=useState("");
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
+  // REGRESSAO EM LOTE: o recorte inteiro (todas as paginas), um por vez.
+  // Coleção ativada antes do cadastro completo eram 70 cliques manuais.
+  const [loteAberto,setLoteAberto]=useState(false); const [loteMotivo,setLoteMotivo]=useState(""); const [loteSaldo,setLoteSaldo]=useState(false);
+  const [loteRodando,setLoteRodando]=useState(false); const [loteFeito,setLoteFeito]=useState(0);
+  const [loteResultado,setLoteResultado]=useState<{ok:number;falhas:{cod:string;motivo:string}[]}|null>(null);
 
   // Preferencia por usuario, no banco: colunas visiveis, ordem das colunas e
   // tamanho de pagina. Aba, filtros e busca ficam de fora — recorte e' do momento.
