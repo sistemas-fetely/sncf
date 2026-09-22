@@ -199,18 +199,43 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {provisoes.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">
-                  {p.numero_parcela ?? "—"}
-                  {p.eh_portao && <Badge variant="secondary" className="ml-2 text-[10px]">Portão</Badge>}
-                </TableCell>
-                <TableCell className="capitalize">{p.tipo_pagamento ?? "—"}</TableCell>
-                <TableCell>{fmtBRL.format(Number(p.valor ?? 0))}</TableCell>
-                <TableCell>{fmtDate(p.data_prevista)}</TableCell>
-                <TableCell><EstadoLinha p={p} /></TableCell>
-              </TableRow>
-            ))}
+            {provisoes.map((p, i) => {
+              // CAPTURA-DE-CARTAO: cabeçalho de grupo quando a parcela muda de cartão.
+              const captura = p.captura_id ? capturaPorId.get(p.captura_id) : undefined;
+              const anterior = i > 0 ? provisoes[i - 1] : null;
+              const abreGrupo = !!captura && anterior?.captura_id !== p.captura_id;
+              return (
+                <>
+                  {abreGrupo && captura && (
+                    <TableRow key={`grupo-${captura.id}`} className="bg-muted/50 hover:bg-muted/50">
+                      <TableCell colSpan={5} className="py-1.5 text-xs font-medium">
+                        {rotuloCaptura(captura)}
+                        {captura.nsu && (
+                          <span className="ml-2 font-normal text-muted-foreground">
+                            NSU {captura.nsu}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  <TableRow key={p.id}>
+                    <TableCell className="font-medium">
+                      {p.numero_parcela ?? "—"}
+                      {p.eh_portao && <Badge variant="secondary" className="ml-2 text-[10px]">Portão</Badge>}
+                      {captura && (
+                        <Badge variant="outline" className="ml-2 text-[10px]">
+                          Cartão {captura.ordem ?? "—"}
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="capitalize">{p.tipo_pagamento ?? "—"}</TableCell>
+                    <TableCell>{fmtBRL.format(Number(p.valor ?? 0))}</TableCell>
+                    <TableCell>{fmtDate(p.data_prevista)}</TableCell>
+                    <TableCell><EstadoLinha p={p} /></TableCell>
+                  </TableRow>
+                </>
+              );
+            })}
           </TableBody>
         </Table>
       </div>
