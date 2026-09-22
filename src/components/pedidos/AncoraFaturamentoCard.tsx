@@ -536,6 +536,56 @@ export function AncoraFaturamentoCard({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            <Dialog
+              open={remonteAberta}
+              onOpenChange={(v) => {
+                if (remontar.isPending) return;
+                setRemonteAberta(v);
+                if (!v) setMotivoRemonte("");
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Remontar plano pela condição</DialogTitle>
+                  <DialogDescription>
+                    O plano de {planoDivergente?.parcelas_plano ?? 0} parcela(s) será substituído
+                    por {planoDivergente?.parcelas_condicao ?? 0} parcela(s) conforme a condição “
+                    {planoDivergente?.condicao ?? "—"}”. Nada pago é tocado; o pedido continua no
+                    estágio atual.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <Textarea
+                  value={motivoRemonte}
+                  onChange={(e) => setMotivoRemonte(e.target.value)}
+                  placeholder="Ex.: comercial renegociou o prazo com o cliente"
+                  rows={3}
+                />
+                <div className="text-xs text-muted-foreground">{motivoRemonte.trim().length}/3 caracteres</div>
+
+                <DialogFooter>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setRemonteAberta(false);
+                      setMotivoRemonte("");
+                    }}
+                    disabled={remontar.isPending}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    disabled={motivoRemonte.trim().length < 3 || remontar.isPending}
+                    onClick={() => remontar.mutate()}
+                    className="gap-1.5"
+                  >
+                    {remontar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Confirmar
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </>
         )}
       </div>
