@@ -106052,6 +106052,10 @@ export type Database = {
       }
       fn_pix_crc16: { Args: { p_texto: string }; Returns: string }
       fn_pix_txid: { Args: { p_id_externo: string }; Returns: string }
+      fn_plano_diverge_condicao: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_plano_recebimento_pedido: {
         Args: { p_pedido_id: string }
         Returns: {
@@ -106283,6 +106287,10 @@ export type Database = {
       fn_regras_aplicar: { Args: never; Returns: Json }
       fn_regua_materializar: { Args: never; Returns: Json }
       fn_relogio_refresh: { Args: never; Returns: number }
+      fn_remontar_plano_pela_condicao: {
+        Args: { p_motivo?: string; p_origem?: string; p_pedido_id: string }
+        Returns: Json
+      }
       fn_render_template: {
         Args: { p_template: string; p_vals: Json }
         Returns: string
