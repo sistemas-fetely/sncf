@@ -194,8 +194,13 @@ export function ConfirmarPagamentoDialog({
   // Linha efetiva do plano nos DOIS caminhos (provisaoId fixo ou escolha manual):
   // é ela quem dita o meio — e o meio dita o tipo de prova.
   const linhaEfetiva = useMemo(
-    () => candidatas.find((l) => l.id === provisaoEfetiva) ?? null,
-    [candidatas, provisaoEfetiva],
+    () =>
+      candidatas.find((l) => l.id === provisaoEfetiva) ??
+      // CAPTURA-DE-CARTAO: parcela de repasse pode não ser linha de portão, mas ainda
+      // precisa saber de qual cartão é.
+      (planoQ.data ?? []).find((l) => l.id === provisaoEfetiva) ??
+      null,
+    [candidatas, planoQ.data, provisaoEfetiva],
   );
 
   // O comprovante mais recente já lido pela IA preenche a tela sozinho.
@@ -537,6 +542,13 @@ export function ConfirmarPagamentoDialog({
             />
           </div>
         </div>
+
+        {capturaDaLinha && !destinoQ.data && (
+          <p className="text-xs text-muted-foreground">
+            Este pagamento quita o Cartão {capturaDaLinha.ordem ?? "—"} deste pedido — os outros
+            cartões continuam pendentes até serem confirmados com o NSU deles.
+          </p>
+        )}
 
         {destinoQ.data && (
           <p className="text-xs text-muted-foreground">
