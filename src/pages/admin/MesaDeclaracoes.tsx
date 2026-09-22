@@ -1027,7 +1027,10 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
             </TableHeader>
             <TableBody>
               {linhas.map((n) => (
-                <TableRow key={n.nf_id}>
+                <TableRow
+                  key={n.nf_id}
+                  className={n.pendencia_exige_acao === false ? "text-muted-foreground" : undefined}
+                >
                   <TableCell>
                     <p className="text-sm">
                       {n.numero ?? "—"}
@@ -1038,6 +1041,7 @@ function FilaNfsSemPedido({ motivos, userId }: { motivos: Motivo[]; userId: stri
                   <TableCell className="max-w-[220px] truncate text-sm">
                     {n.cliente ?? "—"}
                   </TableCell>
+                  <TableCell className="text-sm">{n.pendencia_label ?? "—"}</TableCell>
                   <TableCell className="text-sm">{formatBRL(n.valor_nota)}</TableCell>
                   <TableCell>
                     {n.sugestao_pedido_ref ? (
