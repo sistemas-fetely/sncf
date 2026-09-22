@@ -224,7 +224,7 @@ export default function MesaProduto() {
     if(ignorar!=="fase"&&fasesSel.length&&!fasesSel.includes(l.fase??"__sem__"))return false;
     if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
     if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
-    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>s==="sem_bling"?!temValor(l.cod_bling):s==="sem_shopify"?!temValor(l.cod_shopify):s==="sem_xpm"?!temValor(l.cod_xpm):(l.qtd_divergencias??0)>0))return false;
+    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>predSistema(l,s)))return false;
     if(!semIndicador&&indicador){if(indicador==="divergencia"&&(l.qtd_divergencias??0)<=0)return false;const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(indicador!=="divergencia"&&l.sugestao!==slug)return false;}
     return true;
   }
