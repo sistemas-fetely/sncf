@@ -90,6 +90,12 @@ const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string 
   xpm_ncm_diverge: { rotulo: "NCM diverge do XPM", sev: "critico", explicacao: "NCM diferente entre cadastro e armazém." },
   xpm_peso_padrao: { rotulo: "Peso padrão no XPM (10,11 kg)", sev: "critico", explicacao: "Valor default que ninguém corrigiu. Peso errado = cubagem e frete errados." },
   xpm_peso_diverge: { rotulo: "Peso diverge do XPM", sev: "atencao", explicacao: "Peso do armazém fora de 10% do cadastro." },
+  bling_preco_diverge: { rotulo: "Preço diverge do Bling", sev: "critico", explicacao: "Preço do ERP diferente do catálogo: a NF sai com o preço do ERP." },
+  bling_marca_diverge: { rotulo: "Marca diverge do Bling", sev: "atencao", explicacao: "Marca diferente entre catálogo e ERP." },
+  bling_nome_diverge: { rotulo: "Nome diverge do Bling", sev: "critico", explicacao: "O nome do card no Bling não bate com o nome comercial. No Bling o nome é a chave de identificação — nome errado é card errado na nota." },
+  sem_shopify: { rotulo: "Sem produto no Shopify", sev: "atencao", explicacao: "Produto ativo que não existe na vitrine." },
+  shopify_preco_diverge: { rotulo: "Preço diverge do Shopify", sev: "critico", explicacao: "O consumidor final vê um preço diferente do catálogo." },
+  shopify_barcode_diverge: { rotulo: "Código de barras diverge do Shopify", sev: "critico", explicacao: "A etiqueta da loja não bate com o EAN." },
 };
 // Slug desconhecido do dicionário conta como crítico (não pode passar batido).
 const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
