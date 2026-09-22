@@ -104,8 +104,10 @@ const SISTEMAS = [
   ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"], ["sem_foto_propria", "Sem foto própria"],
 ] as const;
 // Predicado único do filtro Sistemas (usado no recorte e na contagem facetada).
+// `imp:<slug>` são as opções de impacto, lidas de divergencia_impacto_dim.
 const predSistema = (l: LinhaUnida, v: string): boolean =>
-  v === "sem_bling" ? !temValor(l.cod_bling)
+  v.startsWith("imp:") ? (l.impactos ?? []).includes(v.slice(4))
+  : v === "sem_bling" ? !temValor(l.cod_bling)
   : v === "bling_card_duplicado" ? (l.bling_n_cards ?? 0) > 1
   : v === "sem_shopify" ? l.no_shopify !== true
   : v === "sem_xpm" ? !temValor(l.cod_xpm)
