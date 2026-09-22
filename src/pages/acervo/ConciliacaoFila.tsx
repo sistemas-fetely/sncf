@@ -326,6 +326,7 @@ export default function ConciliacaoFila() {
     if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
     if (c.key === "fase") return <Badge variant="outline" className="font-normal">{l.fase ?? "—"}</Badge>;
     if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className={cn("whitespace-nowrap font-normal", tomGravidade(l.gravidade))}>{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
+    if (c.key === "camada_nome") return <span className="whitespace-nowrap">{l.camada_nome ?? l.camada ?? "—"}</span>;
     if (c.key === "impacto") return <span className="whitespace-nowrap">{l.impacto_nome ?? l.impacto ?? "—"}</span>;
     if (c.key === "matriz" || c.key === "destino") {
       const campo = c.key === "matriz" ? l.campo_matriz : l.campo_destino;
@@ -376,6 +377,7 @@ export default function ConciliacaoFila() {
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input value={busca} onChange={e => setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU ou nome" />
       </div>
+      <FiltroFacetado label="Camada" selecionados={lista("camada")} onChange={v => setLista("camada", v)} opcoes={facet("camada", opcoesCamada, l => l.camada ?? "__sem__")} />
       <FiltroFacetado label="Onde resolver" selecionados={lista("onde")} onChange={v => setLista("onde", v)} opcoes={facet("onde", opcoesOnde, l => l.onde_resolver ?? "__sem__")} />
       <FiltroFacetado label="Impacto" selecionados={lista("impacto")} onChange={v => setLista("impacto", v)} opcoes={facet("impacto", opcoesImpacto, l => l.impacto ?? "__sem__")} />
       <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
