@@ -206,7 +206,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
           disabled={liberar.isPending}
         >
           {liberar.isPending && <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />}
-          Liberar por cobertura
+          {empenhoParcial ? "Completar empenho" : "Liberar por cobertura"}
         </Button>
       )}
     </div>
