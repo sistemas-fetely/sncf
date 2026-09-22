@@ -60762,6 +60762,30 @@ export type Database = {
         }
         Relationships: []
       }
+      user_preferencias_tela: {
+        Row: {
+          created_at: string
+          preferencias: Json
+          tela: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          preferencias?: Json
+          tela: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          preferencias?: Json
+          tela?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           atribuido_manualmente: boolean
@@ -105179,6 +105203,10 @@ export type Database = {
         Returns: unknown
       }
       fn_prazo_transito_pedido: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_preferencia_tela_salvar: {
+        Args: { p_preferencias: Json; p_tela: string }
+        Returns: Json
+      }
       fn_previsao_entrega: { Args: { p_pedido_id: string }; Returns: Json }
       fn_processar_ocorrencia_transp: {
         Args: {
