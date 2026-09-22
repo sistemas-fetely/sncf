@@ -809,12 +809,15 @@ function NovaDeclaracaoForm({
           </div>
         )}
 
-        <div className="flex justify-end">
-          <Button disabled={!podeConfirmar} onClick={() => setConfirmando(true)}>
-            Revisar declaração
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+        {!ehNf && (
+          <div className="flex justify-end">
+            <Button disabled={!podeConfirmar} onClick={() => setConfirmando(true)}>
+              Revisar declaração
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
       </CardContent>
 
       {/* Confirmação */}
