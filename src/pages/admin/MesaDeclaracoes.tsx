@@ -501,6 +501,8 @@ function NovaDeclaracaoForm({
   const tipo = tipos.find((t) => t.codigo === tipoCodigo) ?? null;
   const motivo = motivos.find((m) => m.codigo === motivoCodigo) ?? null;
   const entidade = tipo?.entidade ?? null;
+  const ehNf = entidade === "nf";
+
 
   const pedeData =
     !!tipo?.exige_valor &&
