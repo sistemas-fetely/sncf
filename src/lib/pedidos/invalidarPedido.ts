@@ -70,7 +70,8 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "splits",
   "plano-aberto-pedido",
   "provisoes-pedido",
-  "capturas-pedido", // CAPTURA-DE-CARTAO: capturas do pedido (useCapturasPedido)
+  "capturas-pedido",
+  "provisoes-captura", // CAPTURA-DE-CARTAO: capturas do pedido (useCapturasPedido)
   "provisao-portao-pendente",
   "pedido-portao-provisorio",
   "pedido-priorizado",

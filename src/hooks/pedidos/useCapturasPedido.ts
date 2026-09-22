@@ -57,3 +57,38 @@ export function useCapturasPedido(pedidoId: string | null | undefined, habilitad
     },
   });
 }
+
+/** Vínculo parcela → captura (e estado pago), para a lista do plano de recebimento. */
+export interface ProvisaoCaptura {
+  id: string;
+  captura_id: string | null;
+  tipo_pagamento: string | null;
+  valor: number;
+  pago_em: string | null;
+  status: string | null;
+}
+
+export function useProvisoesCaptura(pedidoId: string | null | undefined, habilitado = true) {
+  return useQuery({
+    queryKey: ["provisoes-captura", pedidoId],
+    enabled: !!pedidoId && habilitado,
+    queryFn: async (): Promise<ProvisaoCaptura[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("provisao_recebimento")
+        .select("id, captura_id, tipo_pagamento, valor, pago_em, status")
+        .eq("pedido_id", pedidoId!)
+        .order("numero_parcela", { ascending: true });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data ?? []).map((p: any) => ({
+        id: p.id as string,
+        captura_id: (p.captura_id as string | null) ?? null,
+        tipo_pagamento: (p.tipo_pagamento as string | null) ?? null,
+        valor: Number(p.valor ?? 0),
+        pago_em: (p.pago_em as string | null) ?? null,
+        status: (p.status as string | null) ?? null,
+      }));
+    },
+  });
+}
