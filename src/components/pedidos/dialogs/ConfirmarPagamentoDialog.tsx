@@ -7,8 +7,9 @@
  * papel), no SOPS e opcional (quem tem acao.confirmar_pagamento_sem_anexo pode
  * declarar). Regra que vale numa porta e nao na outra nao e guarda, e sugestao.
  *
- * CARTAO-E-CAPTURA-UNICA: cartao fecha SEMPRE por `confirmar_cartao_capturado` (com ou
- * sem anexo) — `confirmar_comprovante_pagamento` recusa tipo cartao de proposito.
+ * CAPTURA-PARCIAL (22/09/2026): cartao fecha por `fn_confirmar_captura_cartao`, no valor
+ * que de fato passou na maquininha — pode levar mais de uma captura ate o plano cobrir.
+ * `confirmar_comprovante_pagamento` recusa tipo cartao de proposito.
  * `confirmar_portao_pago` nao e chamada em lugar nenhum: esta aposentada.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,12 +39,10 @@ import {
   useEnviarComprovante,
 } from "@/hooks/comercial/useComprovantePagamento";
 import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
-import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
 import {
   useConfirmarCapturaCartao,
   usePreviaCapturaCartao,
 } from "@/hooks/pedidos/useConfirmarCapturaCartao";
-import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
 import { useToast } from "@/hooks/use-toast";
 import {
   usePlanoAbertoPedido,
@@ -150,15 +149,11 @@ export function ConfirmarPagamentoDialog({
   const bancosQ = useBancosRecebimento(aberto);
   const adquirentesQ = useAdquirentes(aberto && provaTipo === "cartao_nsu");
   const comprovantesQ = useComprovantesPedido(pedidoId, aberto);
-  // CAPTURA-DE-CARTAO (22/09/2026): com dois cartões, UMA confirmação NÃO quita o
-  // portão inteiro — ela fecha só as parcelas da captura da linha confirmada.
-  const capturasQ = useCapturasPedido(pedidoId, aberto);
   const { toast } = useToast();
 
   const enviarComprovante = useEnviarComprovante(pedidoId);
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
   const confirmarLinha = useConfirmarPagamentoLinha();
-  const confirmarCartao = useConfirmarCartaoCapturado();
   const confirmarCaptura = useConfirmarCapturaCartao();
 
   // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
@@ -259,12 +254,6 @@ export function ConfirmarPagamentoDialog({
     ultimaLinhaSyncRef.current = null;
   }, [aberto]);
 
-  const capturas = useMemo(() => capturasQ.data ?? [], [capturasQ.data]);
-  const capturaDaLinha = useMemo(() => {
-    const id = linhaEfetiva?.captura_id ?? null;
-    return id ? (capturas.find((c) => c.id === id) ?? null) : null;
-  }, [capturas, linhaEfetiva]);
-
   const ehCartao = provaTipo === "cartao_nsu";
   // Linha de cartão SÓ fecha pela captura com NSU — a prova fica travada.
   const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
@@ -319,7 +308,6 @@ export function ConfirmarPagamentoDialog({
   const enviando =
     confirmarComprovante.isPending ||
     confirmarLinha.isPending ||
-    confirmarCartao.isPending ||
     confirmarCaptura.isPending;
 
   const podeGate = modo === "mesa" ? mesaQ.permitido : temAnexo ? declaradoQ.permitido || semAnexoQ.permitido : semAnexoQ.permitido;
@@ -428,13 +416,15 @@ export function ConfirmarPagamentoDialog({
                 </SelectContent>
               </Select>
             </div>
-          ) : capturaDaLinha ? (
+          ) : ehCartao ? (
+            // VOCABULARIO-CAPTURA (22/09/2026): o cabeçalho reflete o que o operador
+            // digitou — o número do cartão só existe depois que o banco cria a captura.
             <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
-              Você vai confirmar:{" "}
-              <span className="font-medium">{rotuloCaptura(capturaDaLinha)}</span>
-              <span className="ml-1 text-xs text-muted-foreground">
-                · {capturaDaLinha.nsu ? `NSU ${capturaDaLinha.nsu}` : "NSU da captura"}
-              </span>
+              Você vai confirmar uma captura de{" "}
+              <span className="font-medium">{formatBRL(valorNum)}</span> em {parcelasNum}x
+              <div className="text-xs text-muted-foreground">
+                Saldo de cartão em aberto: {formatBRL(saldoCartaoAberto)}
+              </div>
             </div>
           ) : linhaAlvo ? (
             <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
@@ -679,11 +669,7 @@ export function ConfirmarPagamentoDialog({
           {(podeGate || carregandoGate) && (
             <Button onClick={confirmar} disabled={bloqueado} title={motivoBloqueio}>
               {enviando && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {ehCartao
-                ? capturaDaLinha
-                  ? `Confirmar Cartão ${capturaDaLinha.ordem ?? "—"}`
-                  : "Confirmar captura"
-                : "Confirmar pagamento"}
+              {ehCartao ? "Confirmar captura" : "Confirmar pagamento"}
             </Button>
           )}
         </DialogFooter>
