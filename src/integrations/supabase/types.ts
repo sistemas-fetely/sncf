@@ -81671,8 +81671,11 @@ export type Database = {
           entrega_fonte: string | null
           entrega_prevista: string | null
           estagio: string | null
+          estagio_fonte: string | null
           estagio_ordem: number | null
           estagio_rotulo: string | null
+          etiqueta_gerada_em: string | null
+          fase_fisica_seq: number | null
           fila_bling_pedido_id: string | null
           fila_status: string | null
           fila_tentativas: number | null
@@ -81701,6 +81704,7 @@ export type Database = {
           proxima_acao: string | null
           rastreio_atualizado_em: string | null
           rastreio_entregue: boolean | null
+          rastreio_estado: string | null
           rastreio_status: string | null
           refunded_amount: number | null
           shipment_atualizado_em: string | null
@@ -86857,14 +86861,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -97882,14 +97886,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
