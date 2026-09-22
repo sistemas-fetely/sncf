@@ -237,7 +237,13 @@ export default function ShopifyB2c() {
     return () => ro.disconnect();
   }, [abaEfetiva]);
 
-  const { data: pedidos, isLoading, isError, error } = usePedidosB2c();
+  const {
+    data: pedidos,
+    isLoading,
+    isError,
+    error,
+    dataUpdatedAt: pedidosAtualizadoEm,
+  } = usePedidosB2c();
   const {
     data: alertasDim,
     isError: alertasDimErro,
