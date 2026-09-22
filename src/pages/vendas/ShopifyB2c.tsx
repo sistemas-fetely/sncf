@@ -601,6 +601,21 @@ export default function ShopifyB2c() {
             />
           </div>
 
+          {/* SENTINELA-B2C · 22/09/2026 — sistema sugere, humano decide. */}
+          {mostrarFaixaSinal && (
+            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <span>
+                {novosNaLoja > 0
+                  ? `${novosNaLoja} pedido${novosNaLoja !== 1 ? "s" : ""} nov${novosNaLoja !== 1 ? "os" : "o"} na loja desde que você abriu esta tela.`
+                  : "A fila mudou desde que você abriu esta tela."}
+              </span>
+              <Button size="sm" variant="outline" disabled={atualizandoFila} onClick={atualizarFila}>
+                {atualizandoFila && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                Atualizar
+              </Button>
+            </div>
+          )}
+
           <div className="flex flex-wrap items-center gap-2">
             <Input
               placeholder="Buscar por pedido ou cliente…"
