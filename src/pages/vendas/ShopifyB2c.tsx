@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import { useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Copy, ExternalLink, Loader2 } from "lucide-react";
+import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -31,10 +31,15 @@ import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } fro
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   usePedidosB2c, usePedidoAlertaDim, useCentrosB2c, desfazerEscolhaCd, useSincStatusBling,
-  useSinalB2c, sinalMudou,
+  useSinalB2c, sinalMudou, reprocessarFilaB2c,
   type PedidoB2cRow, type AlertaDim, type CentroB2c, type SinalB2c,
 } from "@/hooks/vendas/useB2c";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
@@ -212,6 +217,14 @@ function truncarErro(texto: string, max = 80): string {
   return t.length > max ? `${t.slice(0, max)}…` : t;
 }
 
+// DEVOLVER-PARA-A-FILA (22/09/2026): o cron da descida só olha `pendente`, então
+// pedido em erro fica parado para sempre. Quem pode voltar são estes dois estados
+// — a própria RPC ignora o resto.
+const ESTADOS_REPROCESSAVEIS = new Set(["erro", "pausado"]);
+const podeReprocessar = (p: PedidoB2cRow): boolean =>
+  ESTADOS_REPROCESSAVEIS.has(p.fila_status ?? "") && !!p.fila_id;
+const AVISO_CRON_FILA = "A descida ao Bling roda a cada 10 minutos: depois de devolver, o pedido entra na próxima janela.";
+
 export default function ShopifyB2c() {
   const [searchParams, setSearchParams] = useSearchParams();
   const abaParam = searchParams.get("aba");
@@ -262,6 +275,9 @@ export default function ShopifyB2c() {
     centro: CentroB2c;
     sugeridoNome: string | null;
   } | null>(null);
+  const [reprocesso, setReprocesso] = useState<PedidoB2cRow[] | null>(null);
+  const [motivoReprocesso, setMotivoReprocesso] = useState("");
+  const [reprocessando, setReprocessando] = useState(false);
 
   const ordenarPor = (coluna: ColunaB2c) => {
     setOrdenacao((atual) => {
@@ -588,6 +604,17 @@ export default function ShopifyB2c() {
   const pedidosMarcados = useMemo(
     () => aguardandoDestino.filter((p) => p.shopify_id && marcados.has(p.shopify_id)),
     [aguardandoDestino, marcados],
+  );
+
+  /** Pedidos travados na descida — base da devolução para a fila, em lote. */
+  const travadosNaFila = useMemo(
+    () => listaDoCd.filter(podeReprocessar),
+    [listaDoCd],
+  );
+
+  const marcadosTravados = useMemo(
+    () => travadosNaFila.filter((p) => p.shopify_id && marcados.has(p.shopify_id)),
+    [travadosNaFila, marcados],
   );
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
