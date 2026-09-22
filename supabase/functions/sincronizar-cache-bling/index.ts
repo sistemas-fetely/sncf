@@ -74,10 +74,17 @@ serve(async (req) => {
       if (pagina > 100) break; // guardrail anti-loop
     }
 
-    // dedup por sku (mantém o último)
-    const mapa = new Map<string, { sku: string; bling_produto_id: number; nome: string }>();
-    for (const p of produtos) mapa.set(p.sku, p);
-    const distintos = [...mapa.values()];
+    // Agrupa por sku mantendo TODOS os cards (o catálogo tem duplicata: 923 SKUs com 2+).
+    // Quem escolhe qual card representa o SKU é `bling_card_canonico` (passo 4), NÃO a
+    // ordem da paginação. O "mantém o último" de antes fazia o id gravado mudar sozinho.
+    const porSku = new Map<string, { sku: string; bling_produto_id: number; nome: string }[]>();
+    for (const p of produtos) {
+      const lista = porSku.get(p.sku) ?? [];
+      lista.push(p);
+      porSku.set(p.sku, lista);
+    }
+    const distintos = [...porSku.values()].map((l) => l[0]);
+
 
     // 3. Cobertura vs SNCF ativo
     const { data: ativos } = await supabase
