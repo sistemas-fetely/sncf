@@ -183,13 +183,22 @@ export default function FichaProduto() {
     queryKey: ["produto-ficha", cod],
     enabled: cod.length > 0,
     queryFn: async (): Promise<LinhaProduto | null> => {
-      const { data, error } = await supabase
-        .from("vw_produto_mesa_lista")
-        .select("*")
-        .eq("cod_cadastro", cod)
-        .maybeSingle();
-      if (error) throw new Error(error.message);
-      return (data ?? null) as LinhaProduto | null;
+      const [fichaR, canalR] = await Promise.all([
+        supabase
+          .from("vw_produto_mesa_lista")
+          .select("*")
+          .eq("cod_cadastro", cod)
+          .maybeSingle(),
+        supabase
+          .from("sncf_produtos")
+          .select("canal_venda")
+          .eq("cod_cadastro", cod)
+          .maybeSingle(),
+      ]);
+      if (fichaR.error) throw new Error(fichaR.error.message);
+      if (canalR.error) throw new Error(canalR.error.message);
+      if (!fichaR.data) return null;
+      return { ...fichaR.data, canal_venda: canalR.data?.canal_venda ?? null } as LinhaProduto;
     },
   });
 
