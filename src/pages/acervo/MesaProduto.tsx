@@ -58,6 +58,8 @@ type ConcLinha = {
   no_shopify: boolean | null; ativo_shopify: boolean | null; variantes_shopify: number | null;
   inventory_items: number | null; handle: string | null; preco_shopify: number | null;
   barcode_shopify: string | null;
+  // Consequência da divergência, resolvida na própria view.
+  impactos: string[] | null; impacto_maior: string | null; gravidade: number | null;
 };
 
 type CardBling = {
