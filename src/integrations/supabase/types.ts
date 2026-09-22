@@ -23695,6 +23695,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -28117,6 +28124,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -28458,6 +28472,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
             referencedColumns: ["sku"]
           },
           {
@@ -29437,6 +29458,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -30091,6 +30119,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
             referencedColumns: ["sku"]
           },
           {
@@ -32736,6 +32771,33 @@ export type Database = {
           achado?: string
           chave?: string
           motivo?: string
+        }
+        Relationships: []
+      }
+      ncm_oficial: {
+        Row: {
+          ato_legal: string | null
+          atualizado_em: string
+          codigo: string
+          data_fim: string | null
+          data_inicio: string | null
+          descricao: string
+        }
+        Insert: {
+          ato_legal?: string | null
+          atualizado_em?: string
+          codigo: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao: string
+        }
+        Update: {
+          ato_legal?: string | null
+          atualizado_em?: string
+          codigo?: string
+          data_fim?: string | null
+          data_inicio?: string | null
+          descricao?: string
         }
         Relationships: []
       }
@@ -65941,6 +66003,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -72112,6 +72181,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
             referencedColumns: ["sku"]
           },
           {
@@ -81188,6 +81264,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -83194,6 +83277,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_xpm_cadastro_divergencia"
             referencedColumns: ["sku"]
           },
@@ -83411,6 +83501,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
             referencedColumns: ["sku"]
           },
           {
@@ -88124,14 +88221,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -98991,6 +99088,30 @@ export type Database = {
           },
         ]
       }
+      vw_sncf_qualidade: {
+        Row: {
+          ncm_inexistente: boolean | null
+          origem_vazia: boolean | null
+          peso_medidas_zerados: boolean | null
+          preco_invalido: boolean | null
+          sku: string | null
+        }
+        Insert: {
+          ncm_inexistente?: never
+          origem_vazia?: never
+          peso_medidas_zerados?: never
+          preco_invalido?: never
+          sku?: string | null
+        }
+        Update: {
+          ncm_inexistente?: never
+          origem_vazia?: never
+          peso_medidas_zerados?: never
+          preco_invalido?: never
+          sku?: string | null
+        }
+        Relationships: []
+      }
       vw_solicitacao_trilha: {
         Row: {
           ator: string | null
@@ -103504,6 +103625,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
             referencedColumns: ["sku"]
           },
           {
