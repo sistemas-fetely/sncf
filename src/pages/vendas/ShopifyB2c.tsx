@@ -622,7 +622,7 @@ export default function ShopifyB2c() {
       toast.success(`${r.devolvidos} pedido${r.devolvidos !== 1 ? "s" : ""} de volta na fila`, {
         description: [
           r.ignorados > 0
-            ? `${r.ignorados} ignorado${r.ignorados !== 1 ? "s" : ""} por não estar${r.ignorados !== 1 ? "em" : ""} em erro.`
+            ? `${r.ignorados} ignorado(s) por não estar(em) em erro.`
             : null,
           r.nota,
           AVISO_CRON_FILA,
