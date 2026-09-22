@@ -211,6 +211,29 @@ export default function MesaProduto() {
   const [confirmSaldo,setConfirmSaldo]=useState<{sku:string;saldo:number}|null>(null); const [faltando,setFaltando]=useState<{sku:string;campos:string[]}|null>(null); const [erroFop,setErroFop]=useState<{sku:string;corpo:string}|null>(null);
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
 
+  // Preferencia por usuario, no banco: colunas visiveis, ordem das colunas e
+  // tamanho de pagina. Aba, filtros e busca ficam de fora — recorte e' do momento.
+  // Coluna que nao existe mais na view e' ignorada em silencio.
+  const pref=usePreferenciaTela<{colunas_visiveis?:string[];ordem_colunas?:string[];tamanho_pagina?:number}>("mesa_produto",{});
+  const [hidratado,setHidratado]=useState(false);
+  useEffect(()=>{
+    if(hidratado||pref.carregando)return;
+    const chaves=new Set(COLUNAS.map(c=>c.key));
+    const vis=Array.isArray(pref.preferencias.colunas_visiveis)?pref.preferencias.colunas_visiveis.filter(k=>typeof k==="string"&&chaves.has(k)):null;
+    if(vis&&vis.length)setVisiveis([...new Set([...COLUNAS_PADRAO.filter(k=>["foto_url","cod_cadastro","sku"].includes(k)),...vis])]);
+    const ord=Array.isArray(pref.preferencias.ordem_colunas)?pref.preferencias.ordem_colunas.filter(k=>typeof k==="string"&&chaves.has(k)):null;
+    if(ord&&ord.length)setOrdemColunas([...ord,...COLUNAS.map(c=>c.key).filter(k=>!ord.includes(k))]);
+    const tam=Number(pref.preferencias.tamanho_pagina);
+    if((PAGE_SIZE_OPTIONS as readonly number[]).includes(tam))setTamanho(tam);
+    setHidratado(true);
+  },[hidratado,pref.carregando,pref.preferencias]);
+  useEffect(()=>{
+    if(!hidratado)return;
+    pref.salvar({colunas_visiveis:visiveis,ordem_colunas:ordemColunas});
+  // salvar e' estavel por tela; depender dele reescreveria a cada render
+  },[hidratado,visiveis,ordemColunas]); // eslint-disable-line react-hooks/exhaustive-deps
+
+
   const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_mesa_lista" as never).select("*").order("cod_cadastro");if(error)throw error;return(data??[]) as Linha[];}});
   const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao_360" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
   const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes"],queryFn:async()=>{const slugs=SITUACOES.filter(([slug])=>slug!=="__sem__").map(([slug])=>slug);const respostas=await Promise.all(slugs.map(async slug=>{const {data,error}=await supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug);if(error)throw error;return(data??[]) as {sku:string;sugestao:string|null}[];}));return respostas.flat();}});
