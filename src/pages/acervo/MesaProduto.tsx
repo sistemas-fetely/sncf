@@ -36,6 +36,9 @@ type Linha = Record<string, unknown> & {
   foto_url: string | null; foto_exata: boolean | null; foto_origem: string | null;
 };
 
+// CONCILIAÇÃO 360 (22/09/2026) — fonte única `vw_produto_conciliacao_360`: funde a antiga
+// aba da Mesa (SNCF × Bling × XPM × cartório) com a tela /estoque/conciliacao (Shopify, preço,
+// marca), e traz o card canônico do Bling por SKU.
 type ConcLinha = {
   sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null;
   grupo: string | null; fase: string | null; ean: string | null; dun: string | null;
@@ -47,6 +50,19 @@ type ConcLinha = {
   xpm_ean: string | null; xpm_ncm: string | null; xpm_peso_kg: number | null;
   tem_ficha_bling: boolean | null; divergencias: string[] | null; qtd_divergencias: number | null;
   existe_bling: boolean | null; existe_xpm: boolean | null;
+  bling_nome: string | null; bling_marca: string | null; bling_card_canonico: string | null;
+  bling_n_cards: number | null; bling_canonico_por: string | null; bling_canonico_motivo: string | null;
+  no_shopify: boolean | null; ativo_shopify: boolean | null; variantes_shopify: number | null;
+  inventory_items: number | null; handle: string | null; preco_shopify: number | null;
+  barcode_shopify: string | null;
+};
+
+type CardBling = {
+  sku: string; bling_id: string; nome_bling: string | null; card_ativo: boolean | null;
+  estoque_atual: number | null; preco_venda: number | null; updated_at: string | null;
+  nome_bate_catalogo: boolean | null; nome_legado: boolean | null; e_canonico: boolean | null;
+  escolhido_por: string | null; motivo_canonico: string | null; n_candidatos: number | null;
+  ja_foi_usado: boolean | null; n_envios: number | null; ultimo_envio: string | null;
 };
 
 type LinhaUnida = Linha & Partial<ConcLinha>;
@@ -74,6 +90,12 @@ const DIC_DIV: Record<string, { rotulo: string; sev: SevDiv; explicacao: string 
   xpm_ncm_diverge: { rotulo: "NCM diverge do XPM", sev: "critico", explicacao: "NCM diferente entre cadastro e armazém." },
   xpm_peso_padrao: { rotulo: "Peso padrão no XPM (10,11 kg)", sev: "critico", explicacao: "Valor default que ninguém corrigiu. Peso errado = cubagem e frete errados." },
   xpm_peso_diverge: { rotulo: "Peso diverge do XPM", sev: "atencao", explicacao: "Peso do armazém fora de 10% do cadastro." },
+  bling_preco_diverge: { rotulo: "Preço diverge do Bling", sev: "critico", explicacao: "Preço do ERP diferente do catálogo: a NF sai com o preço do ERP." },
+  bling_marca_diverge: { rotulo: "Marca diverge do Bling", sev: "atencao", explicacao: "Marca diferente entre catálogo e ERP." },
+  bling_nome_diverge: { rotulo: "Nome diverge do Bling", sev: "critico", explicacao: "O nome do card no Bling não bate com o nome comercial. No Bling o nome é a chave de identificação — nome errado é card errado na nota." },
+  sem_shopify: { rotulo: "Sem produto no Shopify", sev: "atencao", explicacao: "Produto ativo que não existe na vitrine." },
+  shopify_preco_diverge: { rotulo: "Preço diverge do Shopify", sev: "critico", explicacao: "O consumidor final vê um preço diferente do catálogo." },
+  shopify_barcode_diverge: { rotulo: "Código de barras diverge do Shopify", sev: "critico", explicacao: "A etiqueta da loja não bate com o EAN." },
 };
 // Slug desconhecido do dicionário conta como crítico (não pode passar batido).
 const sevDoSlug = (slug: string): SevDiv => DIC_DIV[slug]?.sev ?? "critico";
@@ -85,9 +107,18 @@ const SITUACOES = [
   ["ativo_com_furo", "Furo em ativo"], ["__sem__", "Sem situação"],
 ] as const;
 const SISTEMAS = [
-  ["sem_bling", "Sem Bling"], ["sem_shopify", "Sem Shopify"],
+  ["sem_bling", "Sem Bling"], ["bling_card_duplicado", "Card duplicado no Bling"],
+  ["sem_shopify", "Sem Shopify"],
   ["sem_xpm", "Sem XPM"], ["divergencia", "Com divergência"], ["sem_foto_propria", "Sem foto própria"],
 ] as const;
+// Predicado único do filtro Sistemas (usado no recorte e na contagem facetada).
+const predSistema = (l: LinhaUnida, v: string): boolean =>
+  v === "sem_bling" ? !temValor(l.cod_bling)
+  : v === "bling_card_duplicado" ? (l.bling_n_cards ?? 0) > 1
+  : v === "sem_shopify" ? l.no_shopify !== true
+  : v === "sem_xpm" ? !temValor(l.cod_xpm)
+  : v === "sem_foto_propria" ? l.foto_origem !== "produto"
+  : (l.qtd_divergencias ?? 0) > 0;
 
 const COLUNAS_PADRAO = [
   "foto_url", "cod_cadastro", "sku", "cod_bling", "cod_shopify", "cod_xpm", "sistemas",
@@ -180,7 +211,7 @@ export default function MesaProduto() {
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
 
   const lista=useQuery({queryKey:["mesa-produto-lista"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_mesa_lista" as never).select("*").order("cod_cadastro");if(error)throw error;return(data??[]) as Linha[];}});
-  const conc=useQuery({queryKey:["mesa-produto-conciliacao"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
+  const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao_360" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
   const sugestoes=useQuery({queryKey:["mesa-produto-sugestoes"],queryFn:async()=>{const slugs=SITUACOES.filter(([slug])=>slug!=="__sem__").map(([slug])=>slug);const respostas=await Promise.all(slugs.map(async slug=>{const {data,error}=await supabase.from("vw_produto_mesa_fase" as never).select("sku, sugestao").eq("sugestao",slug);if(error)throw error;return(data??[]) as {sku:string;sugestao:string|null}[];}));return respostas.flat();}});
   const linhas=useMemo(()=>{const mapa=new Map((conc.data??[]).map(c=>[c.sku,c]));const sugestaoPorSku=new Map((sugestoes.data??[]).map(l=>[l.sku,l.sugestao]));return(lista.data??[]).map(l=>{const unida={...l,...(mapa.get(l.sku)??{})} as LinhaUnida;const sugestaoRecebida=sugestaoPorSku.get(l.sku)??l.sugestao;if(unida.fase!=="ativo")return{...unida,sugestao:sugestaoRecebida};if(!temValor(unida.cod_bling))return{...unida,sugestao:"ativo_sem_bling"};if((unida.qtd_falta_atual??0)>0)return{...unida,sugestao:"ativo_com_furo"};return{...unida,sugestao:null};}) as LinhaUnida[];},[lista.data,conc.data,sugestoes.data]);
   const carregando=lista.isLoading||conc.isLoading||sugestoes.isLoading; const erro=lista.error??conc.error??sugestoes.error;
@@ -193,7 +224,7 @@ export default function MesaProduto() {
     if(ignorar!=="fase"&&fasesSel.length&&!fasesSel.includes(l.fase??"__sem__"))return false;
     if(ignorar!=="colecao"&&colecoes.length&&!colecoes.includes(String(l.colecao??"")))return false;
     if(ignorar!=="grupo"&&grupos.length&&!grupos.includes(String(l.grupo??"")))return false;
-    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>s==="sem_bling"?!temValor(l.cod_bling):s==="sem_shopify"?!temValor(l.cod_shopify):s==="sem_xpm"?!temValor(l.cod_xpm):(l.qtd_divergencias??0)>0))return false;
+    if(ignorar!=="sistemas"&&sistemas.length&&!sistemas.some(s=>predSistema(l,s)))return false;
     if(!semIndicador&&indicador){if(indicador==="divergencia"&&(l.qtd_divergencias??0)<=0)return false;const slug=indicador==="prontos"?"pronto_para_ativo":indicador==="bloqueados"?"bloqueado":"ativo_com_furo";if(indicador!=="divergencia"&&l.sugestao!==slug)return false;}
     return true;
   }
@@ -228,7 +259,7 @@ export default function MesaProduto() {
   <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facet("fase",fases.map(({valor,rotulo})=>({valor,rotulo})),(l,v)=>(l.fase??"__sem__")===v)}/>
   <FiltroFacetado label="Coleção" selecionados={colecoes} onChange={setColecoes} opcoes={facet("colecao",valores("colecao").map(v=>({valor:v,rotulo:v})),(l,v)=>l.colecao===v)}/>
   <FiltroFacetado label="Grupo" selecionados={grupos} onChange={setGrupos} opcoes={facet("grupo",valores("grupo").map(v=>({valor:v,rotulo:v})),(l,v)=>l.grupo===v)}/>
-  <FiltroFacetado label="Sistemas" selecionados={sistemas} onChange={setSistemas} opcoes={facet("sistemas",SISTEMAS.map(([valor,rotulo])=>({valor,rotulo})),(l,v)=>v==="sem_bling"?!temValor(l.cod_bling):v==="sem_shopify"?!temValor(l.cod_shopify):v==="sem_xpm"?!temValor(l.cod_xpm):v==="sem_foto_propria"?l.foto_origem!=="produto":(l.qtd_divergencias??0)>0)}/>
+  <FiltroFacetado label="Sistemas" selecionados={sistemas} onChange={setSistemas} opcoes={facet("sistemas",SISTEMAS.map(([valor,rotulo])=>({valor,rotulo})),predSistema)}/>
   <Popover><PopoverTrigger asChild><Button variant="outline" size="sm"><Columns3 className="mr-2 h-4 w-4"/>Colunas ({colunasVisiveis.length})</Button></PopoverTrigger><PopoverContent align="end" className="w-80 p-0"><div className="flex items-center justify-between border-b px-3 py-2 text-xs text-muted-foreground"><span>Arraste para reordenar</span><Button variant="ghost" size="sm" onClick={()=>{setVisiveis(COLUNAS_PADRAO);setOrdemColunas(COLUNAS.map(c=>c.key));}}>Padrão</Button></div><ScrollArea className="h-96"><div className="p-2">{ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c).map(c=>{const fixaId=["foto_url","cod_cadastro","sku"].includes(c.key);return <div key={c.key} draggable={!fixaId} onDragStart={()=>setArrastando(c.key)} onDragOver={e=>e.preventDefault()} onDrop={()=>mover(c.key)} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted"><GripVertical className={cn("h-4 w-4 text-muted-foreground",fixaId&&"opacity-30")}/><Checkbox checked={visiveis.includes(c.key)} disabled={fixaId} onCheckedChange={()=>setVisiveis(v=>v.includes(c.key)?v.filter(x=>x!==c.key):[...v,c.key])}/><span className="truncate text-sm">{c.rotulo}</span></div>})}</div></ScrollArea></PopoverContent></Popover>
   {filtrosAtivos>0&&<Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros ({filtrosAtivos})</Button>}</section>
   {carregando?<div className="space-y-2">{Array.from({length:8}).map((_,i)=><Skeleton key={i} className="h-11 w-full"/>)}</div>:recorte.length===0?<div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhum produto neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>:<div className="overflow-hidden rounded-md border bg-card"><Table className="text-xs" containerClassName="mesa-produto-scroll max-h-[min(62vh,46rem)]"><TableHeader><TableRow>{colunasVisiveis.map(c=><TableHead key={c.key} className={cn("sticky top-0 z-40 whitespace-nowrap font-medium",c.direita&&"text-right",fixa(c.key,true))} aria-sort={ordem.coluna===c.key?(ordem.dir==="asc"?"ascending":"descending"):"none"}>{ORDENAVEIS.has(c.key)?<Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={()=>ordenar(c.key)}>{c.rotulo}{ordem.coluna!==c.key?<ArrowUpDown className="ml-1 h-3 w-3"/>:ordem.dir==="asc"?<ArrowUp className="ml-1 h-3 w-3"/>:<ArrowDown className="ml-1 h-3 w-3"/>}</Button>:c.rotulo}</TableHead>)}<TableHead className="sticky right-0 top-0 z-50 w-px text-center font-medium">Ações</TableHead></TableRow></TableHeader><TableBody>{paginaLinhas.map(l=><Fragment key={l.sku}><TableRow className="border-b">{colunasVisiveis.map(c=><TableCell key={c.key} className={cn("py-2.5 align-top",c.direita&&"text-right",fixa(c.key))}>{c.key==="cod_cadastro"&&(l.qtd_divergencias??0)>0?<div className="flex items-center gap-1"><Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido===l.sku?"Recolher conciliação":"Expandir conciliação"} onClick={()=>setExpandido(e=>e===l.sku?null:l.sku)}>{expandido===l.sku?<ChevronDown className="h-3.5 w-3.5"/>:<ChevronRight className="h-3.5 w-3.5"/>}</Button>{celula(l,c)}</div>:celula(l,c)}</TableCell>)}<TableCell className="sticky right-0 z-20 bg-card py-2.5"><div className="flex justify-center gap-1">{(l.fase==="ativo"||l.fase==="pre_venda")&&<Tooltip><TooltipTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Descontinuar" disabled={emAcao===l.sku} onClick={()=>agir(l.sku,"inativo")}><Ban className="h-3.5 w-3.5"/></Button></TooltipTrigger><TooltipContent>Descontinuar</TooltipContent></Tooltip>}{l.sugestao==="pronto_para_ativo"&&<Tooltip><TooltipTrigger asChild><Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Promover para Ativo" disabled={emAcao===l.sku} onClick={()=>agir(l.sku,"ativo")}><ArrowUpCircle className="h-3.5 w-3.5"/></Button></TooltipTrigger><TooltipContent>Promover para Ativo</TooltipContent></Tooltip>}</div></TableCell></TableRow>{expandido===l.sku&&(l.qtd_divergencias??0)>0&&<TableRow><TableCell colSpan={colunasVisiveis.length+1} className="bg-muted/30 p-4"><DeParaConciliacao l={l}/></TableCell></TableRow>}</Fragment>)}</TableBody></Table><RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} chavePreferencia="mesa-produto-tamanho-pagina" onPagina={setPagina} onTamanhoPagina={setTamanho} /></div>}
@@ -239,4 +270,40 @@ export default function MesaProduto() {
   </PageShell></TooltipProvider>;
 }
 
-function DeParaConciliacao({l}:{l:LinhaUnida}){const divs=new Set(l.divergencias??[]);const dash=(v:unknown)=>v==null||String(v).trim()===""?"—":String(v);const rows=[{r:"EAN",s:l.ean,b:l.bling_gtin,x:l.xpm_ean,sb:"bling_ean_diverge",sx:"xpm_ean_diverge"},{r:"NCM",s:l.ncm,b:l.bling_ncm,x:l.xpm_ncm,sb:"bling_ncm_diverge",sx:"xpm_ncm_diverge"},{r:"Peso",s:l.peso_g!=null?`${fmtNum(l.peso_g)} g`:null,b:null,x:l.xpm_peso_kg!=null?`${fmtNum(l.xpm_peso_kg)} kg`:null,sx:divs.has("xpm_peso_padrao")?"xpm_peso_padrao":"xpm_peso_diverge"},{r:"Ativo",s:l.fase,b:l.bling_ativo==null?null:l.bling_ativo?"ativo":"inativo",x:null,sb:"bling_inativo_com_ativo"}];const val=(v:unknown,slug?:string)=><span className={cn(divs.has(slug??"")&&"text-destructive-strong",!temValor(v)&&"text-muted-foreground")}>{dash(v)}</span>;return <div className="space-y-3"><div className="overflow-hidden rounded-md border bg-background"><table className="w-full text-xs"><thead><tr className="border-b bg-muted text-left"><th className="px-3 py-2 font-medium">Campo</th><th className="px-3 py-2 font-medium">SNCF</th><th className="px-3 py-2 font-medium">Bling</th><th className="px-3 py-2 font-medium">XPM</th></tr></thead><tbody>{rows.map(r=><tr key={r.r} className="border-b last:border-0"><td className="px-3 py-2 text-muted-foreground">{r.r}</td><td className="px-3 py-2">{val(r.s)}</td><td className="px-3 py-2">{val(r.b,r.sb)}</td><td className="px-3 py-2">{val(r.x,r.sx)}</td></tr>)}</tbody></table></div><div className="flex flex-wrap gap-4 text-xs text-muted-foreground"><span>Cartório: {val(l.cartorio_estado,divs.has("sem_cartorio")?"sem_cartorio":"cartorio_nao_alocado")}</span><span>Inner: {val(l.cartorio_inner,"cartorio_sem_inner")}</span><span>SKU no cartório: {val(l.cartorio_sku,"cartorio_sku_diverge")}</span></div></div>}
+const fmtMoeda=(v:number|null|undefined)=>typeof v==="number"?v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"}):null;
+
+function DeParaConciliacao({l}:{l:LinhaUnida}){
+  const divs=new Set(l.divergencias??[]);
+  const dash=(v:unknown)=>v==null||String(v).trim()===""?"—":String(v);
+  const rows=[
+    {r:"EAN",s:l.ean,b:l.bling_gtin,x:l.xpm_ean,y:l.barcode_shopify,sb:"bling_ean_diverge",sx:"xpm_ean_diverge",sy:"shopify_barcode_diverge"},
+    {r:"NCM",s:l.ncm,b:l.bling_ncm,x:l.xpm_ncm,y:null,sb:"bling_ncm_diverge",sx:"xpm_ncm_diverge"},
+    {r:"Nome",s:l.nome_comercial,b:l.bling_nome,x:null,y:null,sb:"bling_nome_diverge"},
+    {r:"Marca",s:l.marca,b:l.bling_marca,x:null,y:null,sb:"bling_marca_diverge"},
+    {r:"Preço",s:fmtMoeda(l.preco_varejo),b:fmtMoeda(l.bling_preco),x:null,y:fmtMoeda(l.preco_shopify),sb:"bling_preco_diverge",sy:"shopify_preco_diverge"},
+    {r:"Peso",s:l.peso_g!=null?`${fmtNum(l.peso_g)} g`:null,b:null,x:l.xpm_peso_kg!=null?`${fmtNum(l.xpm_peso_kg)} kg`:null,y:null,sx:divs.has("xpm_peso_padrao")?"xpm_peso_padrao":"xpm_peso_diverge"},
+    {r:"Ativo",s:l.fase,b:l.bling_ativo==null?null:l.bling_ativo?"ativo":"inativo",x:null,y:l.no_shopify==null?null:l.no_shopify?(l.ativo_shopify?"ativo":"inativo"):"não existe",sb:"bling_inativo_com_ativo",sy:divs.has("sem_shopify")?"sem_shopify":undefined},
+  ] as {r:string;s:unknown;b:unknown;x:unknown;y:unknown;sb?:string;sx?:string;sy?:string}[];
+  const val=(v:unknown,slug?:string)=><span className={cn(divs.has(slug??"")&&"text-destructive-strong",!temValor(v)&&"text-muted-foreground")}>{dash(v)}</span>;
+  return <div className="space-y-3">
+    <div className="overflow-hidden rounded-md border bg-background"><table className="w-full text-xs"><thead><tr className="border-b bg-muted text-left"><th className="px-3 py-2 font-medium">Campo</th><th className="px-3 py-2 font-medium">SNCF</th><th className="px-3 py-2 font-medium">Bling</th><th className="px-3 py-2 font-medium">XPM</th><th className="px-3 py-2 font-medium">Shopify</th></tr></thead><tbody>{rows.map(r=><tr key={r.r} className="border-b last:border-0"><td className="px-3 py-2 text-muted-foreground">{r.r}</td><td className="px-3 py-2">{val(r.s)}</td><td className="px-3 py-2">{val(r.b,r.sb)}</td><td className="px-3 py-2">{val(r.x,r.sx)}</td><td className="px-3 py-2">{val(r.y,r.sy)}</td></tr>)}</tbody></table></div>
+    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground"><span>Cartório: {val(l.cartorio_estado,divs.has("sem_cartorio")?"sem_cartorio":"cartorio_nao_alocado")}</span><span>Inner: {val(l.cartorio_inner,"cartorio_sem_inner")}</span><span>SKU no cartório: {val(l.cartorio_sku,"cartorio_sku_diverge")}</span>{temValor(l.handle)&&<span>Handle Shopify: {val(l.handle)}</span>}{l.variantes_shopify!=null&&<span>Variantes Shopify: {val(fmtNum(l.variantes_shopify))}</span>}</div>
+    {(l.bling_n_cards??0)>1&&<CardsBling sku={l.sku} motivo={l.bling_canonico_motivo??null} por={l.bling_canonico_por??null}/>}
+  </div>;
+}
+
+// CARDS NO BLING (22/09/2026) — somente leitura. Excluir/mesclar card com estoque e histórico
+// de nota é operação do Flavio dentro do Bling, olho a olho.
+function CardsBling({sku,motivo,por}:{sku:string;motivo:string|null;por:string|null}){
+  const q=useQuery({queryKey:["mesa-produto-cards-bling",sku],queryFn:async()=>{const {data,error}=await supabase.from("vw_bling_card_360" as never).select("*").eq("sku",sku);if(error)throw error;return(data??[]) as CardBling[];}});
+  const cards=useMemo(()=>[...(q.data??[])].sort((a,b)=>Number(b.e_canonico)-Number(a.e_canonico)||Number(b.estoque_atual??0)-Number(a.estoque_atual??0)),[q.data]);
+  return <div className="space-y-2">
+    <div className="flex flex-wrap items-baseline gap-2"><span className="text-xs font-medium">Cards no Bling</span><span className="text-xs text-muted-foreground">{cards.length} cadastros para o mesmo SKU{motivo?` · canônico escolhido por ${por==="manual"?"escolha manual":"regra"}: ${motivo}`:""}</span></div>
+    {q.isLoading?<Skeleton className="h-16 w-full"/>:q.error?<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os cards do Bling. Detalhe: {(q.error as Error).message}</AlertDescription></Alert>:cards.length===0?<p className="text-xs text-muted-foreground">Nenhum card encontrado.</p>:
+    <div className="overflow-hidden rounded-md border bg-background"><table className="w-full text-xs"><thead><tr className="border-b bg-muted text-left"><th className="px-3 py-2 font-medium">ID no Bling</th><th className="px-3 py-2 font-medium">Nome no Bling</th><th className="px-3 py-2 font-medium">Situação</th><th className="px-3 py-2 text-right font-medium">Estoque</th><th className="px-3 py-2 text-right font-medium">Preço</th><th className="px-3 py-2 font-medium">Atualizado</th><th className="px-3 py-2 font-medium">Marcas</th></tr></thead><tbody>{cards.map(c=><tr key={c.bling_id} className={cn("border-b last:border-0",!c.e_canonico&&"text-muted-foreground")}><td className="px-3 py-2 tabular-nums">{c.bling_id}</td><td className="px-3 py-2">{c.nome_bling??"—"}</td><td className="px-3 py-2">{c.card_ativo==null?"—":c.card_ativo?"ativo":"inativo"}</td><td className="px-3 py-2 text-right tabular-nums">{fmtNum(c.estoque_atual)}</td><td className="px-3 py-2 text-right tabular-nums">{fmtMoeda(c.preco_venda)??"—"}</td><td className="px-3 py-2">{fmtDataHora(c.updated_at)}</td><td className="px-3 py-2"><div className="flex flex-wrap gap-1">
+      {c.e_canonico&&<Tooltip><TooltipTrigger asChild><Badge className="font-normal">Canônico</Badge></TooltipTrigger><TooltipContent className="max-w-xs">é este que o sistema usa para enviar pedido e emitir nota</TooltipContent></Tooltip>}
+      {c.ja_foi_usado&&<Tooltip><TooltipTrigger asChild><Badge variant="secondary" className="font-normal">Já usado</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{fmtNum(c.n_envios)} envio(s) · último em {fmtDataHora(c.ultimo_envio)}</TooltipContent></Tooltip>}
+      {c.nome_legado&&<Tooltip><TooltipTrigger asChild><Badge variant="outline" className="font-normal">Nome legado</Badge></TooltipTrigger><TooltipContent className="max-w-xs">nome no padrão antigo</TooltipContent></Tooltip>}
+    </div></td></tr>)}</tbody></table></div>}
+  </div>;
+}
