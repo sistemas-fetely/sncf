@@ -94,6 +94,18 @@ const tomGravidade = (g: number | null | undefined) =>
   : (g ?? 0) >= 60 ? "border-warning/40 bg-warning/10 text-warning-strong"
   : "";
 
+const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
+  contagem === 0 ? ""
+  : (gravidade ?? 0) >= 90 ? "border-destructive/50"
+  : (gravidade ?? 0) >= 60 ? "border-warning/50"
+  : "";
+
+const tomNumeroImpacto = (gravidade: number | null | undefined, contagem: number) =>
+  contagem === 0 ? "text-foreground"
+  : (gravidade ?? 0) >= 90 ? "text-destructive-strong"
+  : (gravidade ?? 0) >= 60 ? "text-warning-strong"
+  : "text-foreground";
+
 
 const SITUACOES = [
   ["pronto_para_ativo", "Prontos para promover"], ["falta_ficha_bling", "Falta ficha no Bling"],
@@ -263,10 +275,10 @@ export default function MesaProduto() {
   useEffect(()=>{setPagina(1);setExpandido(null);},[busca,situacoes,fasesSel,colecoes,grupos,sistemas,indicador,tamanho]);
   const conta=(pred:(l:LinhaUnida)=>boolean,ignorar?:GrupoFiltro)=>linhas.filter(l=>aplica(l,ignorar,true)&&pred(l)).length;
   // INDICADOR-POR-CONSEQUÊNCIA: no lugar de "Com divergência" (que marcava o
-  // catálogo inteiro), um card por impacto com ocorrência — contando produtos em
-  // fase ativo, ordenados por gravidade desc.
-  const impactosComOcorrencia=useMemo(()=>{const vistos=new Set<string>();for(const l of linhas)for(const s of l.impactos??[])vistos.add(s);return (impactosDim.data??[]).filter(i=>vistos.has(i.slug)).sort((a,b)=>(b.gravidade??0)-(a.gravidade??0));},[linhas,impactosDim.data]);
-  const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length,tooltip:null as string|null},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo"),tooltip:null},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado"),tooltip:null},{id:"furo" as Indicador,label:"Furo em ativo",n:conta(l=>l.sugestao==="ativo_com_furo"),tooltip:null},...impactosComOcorrencia.map(i=>({id:`imp:${i.slug}` as Indicador,label:i.nome,n:conta(l=>l.fase==="ativo"&&(l.impactos??[]).includes(i.slug)),tooltip:i.descricao}))];
+  // catálogo inteiro), um card por impacto da dimensão. Contagem zero fica visível.
+  const impactosOrdenados=useMemo(()=>[...(impactosDim.data??[])].sort((a,b)=>(b.gravidade??0)-(a.gravidade??0)||(a.ordem??999)-(b.ordem??999)),[impactosDim.data]);
+  const contemImpacto=(l:LinhaUnida,slug:string)=>Array.isArray(l.impactos)&&l.impactos.some(i=>String(i)===slug);
+  const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length,tooltip:null as string|null,gravidade:null as number|null},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo"),tooltip:null,gravidade:null},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado"),tooltip:null,gravidade:null},{id:"furo" as Indicador,label:"Furo em ativo",n:conta(l=>l.sugestao==="ativo_com_furo"),tooltip:null,gravidade:null},...impactosOrdenados.map(i=>({id:`imp:${i.slug}` as Indicador,label:i.nome,n:conta(l=>l.fase==="ativo"&&contemImpacto(l,i.slug)),tooltip:i.descricao,gravidade:i.gravidade}))];
   const facet=(grupo:GrupoFiltro,ops:{valor:string;rotulo:string}[],pred:(l:LinhaUnida,v:string)=>boolean)=>ops.map(o=>({...o,contagem:linhas.filter(l=>aplica(l,grupo)&&pred(l,o.valor)).length}));
   const filtrosAtivos=(busca?1:0)+situacoes.length+fasesSel.length+colecoes.length+grupos.length+sistemas.length+(indicador?1:0);
   const colunasVisiveis=ordemColunas.map(k=>COLUNAS.find(c=>c.key===k)).filter((c):c is ColDef=>!!c&&visiveis.includes(c.key));
@@ -289,7 +301,7 @@ export default function MesaProduto() {
   const fixa=(key:string,cab=false)=>key==="foto_url"?cn("sticky left-0 w-14 bg-muted",cab?"z-50":"z-20"):key==="cod_cadastro"?cn("sticky left-14 w-28 bg-muted",cab?"z-50":"z-20"):key==="sku"?cn("sticky left-[10.5rem] w-32 border-r bg-muted",cab?"z-50":"z-20"):"";
   return <TooltipProvider delayDuration={200}><PageShell><PageHeader titulo="Mesa do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4"/>Exportar CSV</Button><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch(),impactosDim.refetch(),regrasDim.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching||impactosDim.isFetching||regrasDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching||impactosDim.isFetching||regrasDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
   {erro&&<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os produtos. Atualize a página para tentar novamente. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
-  <section className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6" aria-label="Indicadores">{carregando?Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=>{const botao=<Button key={c.label} variant="outline" className={cn("h-20 items-start justify-center border p-3 text-left",indicador===c.id&&"border-primary bg-primary/5")} onClick={()=>setIndicador(indicador===c.id?null:c.id)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span></span></Button>;return c.tooltip?<Tooltip key={c.label}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.tooltip}</TooltipContent></Tooltip>:botao;})}</section>
+  <section className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6" aria-label="Indicadores">{carregando?Array.from({length:6}).map((_,i)=><Skeleton key={i} className="h-20"/>):cards.map(c=>{const impacto=String(c.id??"").startsWith("imp:");const selecionado=indicador===c.id;const botao=<Button key={c.label} variant="outline" className={cn("h-20 items-start justify-center border p-3 text-left",impacto&&tomCardImpacto(c.gravidade,c.n),selecionado&&"ring-2 ring-primary ring-offset-2 ring-offset-background")} onClick={()=>setIndicador(selecionado?null:c.id)}><span className="flex w-full flex-col"><span className="text-[11px] font-normal text-muted-foreground">{c.label}</span><span className={cn("mt-1 text-[21px] font-medium tabular-nums",impacto?tomNumeroImpacto(c.gravidade,c.n):"text-foreground")}>{c.n}</span></span></Button>;return c.tooltip?<Tooltip key={c.label}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.tooltip}</TooltipContent></Tooltip>:botao;})}</section>
   <section className="flex flex-wrap items-center gap-2 border-y py-3"><div className="relative min-w-64 flex-1"><Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"/><Input value={busca} onChange={e=>setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU, nome ou EAN"/></div>
   <FiltroFacetado label="Situação" selecionados={situacoes} onChange={setSituacoes} opcoes={facet("situacao",SITUACOES.map(([valor,rotulo])=>({valor,rotulo})),(l,v)=>(l.sugestao??"__sem__")===v)}/>
   <FiltroFacetado label="Fase" selecionados={fasesSel} onChange={setFasesSel} opcoes={facet("fase",fases.map(({valor,rotulo})=>({valor,rotulo})),(l,v)=>(l.fase??"__sem__")===v)}/>
