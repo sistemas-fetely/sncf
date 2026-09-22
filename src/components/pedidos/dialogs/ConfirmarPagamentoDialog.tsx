@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { hojeISO } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
+import { rawMessage } from "@/lib/format-error";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
 import { useAdquirentes } from "@/hooks/financeiro/useAdquirentes";
@@ -38,6 +39,10 @@ import {
 } from "@/hooks/comercial/useComprovantePagamento";
 import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
+import {
+  useConfirmarCapturaCartao,
+  usePreviaCapturaCartao,
+} from "@/hooks/pedidos/useConfirmarCapturaCartao";
 import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -131,6 +136,8 @@ export function ConfirmarPagamentoDialog({
   const [referencia, setReferencia] = useState("");
   const [dataPagamento, setDataPagamento] = useState(() => hojeISO());
   const [valor, setValor] = useState("");
+  // CAPTURA-PARCIAL (22/09/2026): parcelas da captura (repasses da adquirente).
+  const [parcelasCaptura, setParcelasCaptura] = useState("1");
   const [bancoId, setBancoId] = useState("");
   const [adquirenteId, setAdquirenteId] = useState("");
   const [observacao, setObservacao] = useState("");
@@ -152,6 +159,7 @@ export function ConfirmarPagamentoDialog({
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
   const confirmarLinha = useConfirmarPagamentoLinha();
   const confirmarCartao = useConfirmarCartaoCapturado();
+  const confirmarCaptura = useConfirmarCapturaCartao();
 
   // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
   const destinoQ = useQuery({
@@ -262,9 +270,57 @@ export function ConfirmarPagamentoDialog({
   const linhaEhCartao = !!linhaEfetiva && meioDaLinha(linhaEfetiva) === "cartao";
   const temAnexo = !!comprovanteId;
   const valorNum = Number(String(valor).replace(",", ".")) || 0;
+  const parcelasNum = Math.max(1, Math.min(24, Number(parcelasCaptura) || 1));
+
+  // CAPTURA-PARCIAL (22/09/2026): o saldo de cartão em aberto do PEDIDO — não o valor
+  // da parcela — é o que nasce no campo Valor. Quem valida de verdade é a RPC.
+  const saldoCartaoAberto = useMemo(
+    () =>
+      (planoQ.data ?? [])
+        .filter((l) => meioDaLinha(l) === "cartao")
+        .reduce((s, l) => s + l.valor, 0),
+    [planoQ.data],
+  );
+  const parcelasDoPlano = useMemo(() => {
+    const cartao = (planoQ.data ?? []).filter((l) => meioDaLinha(l) === "cartao");
+    return Math.max(1, Math.min(24, linhaEfetiva?.total_parcelas ?? cartao.length ?? 1));
+  }, [planoQ.data, linhaEfetiva]);
+
+  // Nasce preenchido com o saldo em aberto e as parcelas do plano, uma vez por abertura.
+  const nasceuCapturaRef = useRef(false);
+  useEffect(() => {
+    if (!aberto) { nasceuCapturaRef.current = false; return; }
+    if (nasceuCapturaRef.current || !linhaEhCartao || saldoCartaoAberto <= 0) return;
+    nasceuCapturaRef.current = true;
+    setValor(saldoCartaoAberto.toFixed(2));
+    setParcelasCaptura(String(parcelasDoPlano));
+  }, [aberto, linhaEhCartao, saldoCartaoAberto, parcelasDoPlano]);
+
+  // Prévia com debounce: só sonda o banco quando o operador para de digitar.
+  const [previaValor, setPreviaValor] = useState(0);
+  const [previaParcelas, setPreviaParcelas] = useState(1);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPreviaValor(valorNum);
+      setPreviaParcelas(parcelasNum);
+    }, 450);
+    return () => clearTimeout(t);
+  }, [valorNum, parcelasNum]);
+
+  const previaQ = usePreviaCapturaCartao(
+    pedidoId,
+    previaValor,
+    previaParcelas,
+    aberto && ehCartao && linhaEhCartao,
+  );
+  const previa = previaQ.data ?? null;
+  const previaErro = previaQ.error ? rawMessage(previaQ.error) : null;
 
   const enviando =
-    confirmarComprovante.isPending || confirmarLinha.isPending || confirmarCartao.isPending;
+    confirmarComprovante.isPending ||
+    confirmarLinha.isPending ||
+    confirmarCartao.isPending ||
+    confirmarCaptura.isPending;
 
   const podeGate = modo === "mesa" ? mesaQ.permitido : temAnexo ? declaradoQ.permitido || semAnexoQ.permitido : semAnexoQ.permitido;
   const carregandoGate =
@@ -276,10 +332,15 @@ export function ConfirmarPagamentoDialog({
   // bancaria so entra no repasse posterior. Por isso o campo de banco nao bloqueia
   // confirmacao quando o caminho eh cartao, mas continua obrigatorio nos demais.
   const bancoFaltando = !ehCartao && !bancoId;
-  const linhaFaltando = (!ehCartao || !!capturaDaLinha) && !provisaoEfetiva;
+  const linhaFaltando = !ehCartao && !provisaoEfetiva;
+  // CAPTURA-PARCIAL: cartão precisa de valor; a recusa por valor acima do saldo vem
+  // do banco (a prévia já mostra a mensagem real) — o front só desabilita o botão.
+  const valorFaltando = ehCartao && valorNum <= 0;
+  const previaRecusou = ehCartao && !!previaErro;
 
   const bloqueado =
-    enviando || anexoFaltando || refFaltando || bancoFaltando || linhaFaltando || !dataPagamento;
+    enviando || anexoFaltando || refFaltando || bancoFaltando || linhaFaltando ||
+    valorFaltando || previaRecusou || !dataPagamento;
 
   const motivoBloqueio = anexoFaltando
     ? "Na Mesa o pagamento só fecha com comprovante anexado."
@@ -289,40 +350,27 @@ export function ConfirmarPagamentoDialog({
         ? "Diga em qual conta o dinheiro entrou."
         : linhaFaltando
           ? "Nenhuma linha de portão pendente para confirmar."
-          : undefined;
+          : valorFaltando
+            ? "Diga quanto passou na maquininha."
+            : previaRecusou
+              ? previaErro ?? undefined
+              : undefined;
 
   async function confirmar() {
     if (bloqueado) return;
     try {
-      if (ehCartao && capturaDaLinha && provisaoEfetiva) {
-        // Cartão com captura: fecha SÓ as parcelas desta captura e carimba o NSU nela.
-        await confirmarLinha.mutateAsync({
-          provisao_id: provisaoEfetiva,
-          prova_tipo: "cartao_nsu",
-          prova_ref: referencia.trim(),
-          data_pagamento: dataPagamento,
-          observacao,
-        });
-        const pendentes = capturas.filter(
-          (c) => c.id !== capturaDaLinha.id && !c.confirmada_em,
-        );
-        if (pendentes.length) {
-          toast({
-            title: "Falta confirmar outro cartão",
-            description: pendentes
-              .map((c) => `Falta confirmar o Cartão ${c.ordem ?? "—"} (${formatBRL(c.valor)})`)
-              .join(" · "),
-          });
-        }
-      } else if (ehCartao) {
-        // Cartão sem captura (legado): uma autorização fecha o pedido inteiro.
-        await confirmarCartao.mutateAsync({
+      if (ehCartao) {
+        // CAPTURA-PARCIAL (22/09/2026): o cartão fecha por captura, no valor que de fato
+        // passou. O saldo de cartão continua aberto até as capturas cobrirem o plano.
+        await confirmarCaptura.mutateAsync({
           pedido_id: pedidoId,
-          nsu: referencia,
-          data_captura: dataPagamento,
-          valor_capturado: valorNum > 0 ? valorNum : null,
-          observacao,
+          valor: valorNum,
+          nsu: referencia.trim(),
+          parcelas: parcelasNum,
+          data_pagamento: dataPagamento,
+          banco_recebimento_id: bancoId || null,
           adquirente_id: adquirenteId || null,
+          observacao,
         });
       } else if (temAnexo && comprovanteId) {
         await confirmarComprovante.mutateAsync({
@@ -478,9 +526,9 @@ export function ConfirmarPagamentoDialog({
             />
           </div>
 
-          {/* Valor */}
+          {/* Valor — no cartão é o valor DA CAPTURA, editável (CAPTURA-PARCIAL 22/09/2026) */}
           <div className="space-y-2">
-            <Label htmlFor="valor-pagamento">Valor</Label>
+            <Label htmlFor="valor-pagamento">{ehCartao ? "Valor da captura" : "Valor"}</Label>
             <Input
               id="valor-pagamento"
               type="number"
@@ -488,9 +536,42 @@ export function ConfirmarPagamentoDialog({
               inputMode="decimal"
               value={valor}
               onChange={(e) => setValor(e.target.value)}
-              placeholder={linhaAlvo ? linhaAlvo.valor.toFixed(2) : "0,00"}
+              placeholder={
+                ehCartao
+                  ? saldoCartaoAberto.toFixed(2)
+                  : linhaAlvo
+                    ? linhaAlvo.valor.toFixed(2)
+                    : "0,00"
+              }
             />
+            {ehCartao && (
+              <p className="text-xs text-muted-foreground">
+                Quanto passou de fato na maquininha. Saldo de cartão em aberto:{" "}
+                {formatBRL(saldoCartaoAberto)}.
+              </p>
+            )}
           </div>
+
+          {/* Parcelas da captura — repasses da adquirente, não cobranças ao cliente */}
+          {ehCartao && (
+            <div className="space-y-2">
+              <Label htmlFor="parcelas-captura">Parcelas da captura</Label>
+              <Input
+                id="parcelas-captura"
+                type="number"
+                min={1}
+                max={24}
+                step="1"
+                inputMode="numeric"
+                value={parcelasCaptura}
+                onChange={(e) => setParcelasCaptura(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Cartão parcelado é uma captura só — as parcelas são os repasses da adquirente.
+              </p>
+            </div>
+          )}
+
 
           {/* Banco de recebimento */}
           <div className="space-y-2">
@@ -543,19 +624,46 @@ export function ConfirmarPagamentoDialog({
           </div>
         </div>
 
-        {capturaDaLinha && !destinoQ.data && (
+        {/* CAPTURA-PARCIAL (22/09/2026): efeito da captura antes do clique, direto do banco. */}
+        {ehCartao && (
+          <div className="rounded-md border bg-muted/40 px-3 py-2 text-xs">
+            {previaErro ? (
+              <span className="text-destructive">{previaErro}</span>
+            ) : previaQ.isFetching ? (
+              <span className="text-muted-foreground">Calculando o efeito desta captura…</span>
+            ) : previa ? (
+              <>
+                <span>
+                  Saldo em aberto após esta captura:{" "}
+                  <span className="font-medium">
+                    {formatBRL(previa.saldo_aberto_depois ?? 0)}
+                  </span>
+                </span>
+                {previa.fecha_portao && (
+                  <span className="ml-1 font-medium">
+                    Esta captura fecha o portão do pedido.
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground">
+                Informe o valor da captura para ver o efeito no saldo.
+              </span>
+            )}
+          </div>
+        )}
+
+        {ehCartao && (
           <p className="text-xs text-muted-foreground">
-            Este pagamento quita o Cartão {capturaDaLinha.ordem ?? "—"} deste pedido — os outros
-            cartões continuam pendentes até serem confirmados com o NSU deles.
+            Esta captura quita {formatBRL(valorNum)} dos {formatBRL(saldoCartaoAberto)} em aberto
+            deste pedido.
           </p>
         )}
 
-        {destinoQ.data && (
+        {!ehCartao && destinoQ.data && (
           <p className="text-xs text-muted-foreground">
             {destinoQ.data.tem_portao_pendente
-              ? capturaDaLinha
-                ? `Este pagamento quita o Cartão ${capturaDaLinha.ordem ?? "—"} deste pedido.`
-                : "Este pagamento quita o portão deste pedido."
+              ? "Este pagamento quita o portão deste pedido."
               : `Sem portão pendente: o valor credita a conta de ${destinoQ.data.cliente ?? "—"} e será alocado contra ${destinoQ.data.qtd_titulos_abertos ?? 0} título(s) em aberto (${formatBRL(destinoQ.data.valor_titulos_abertos ?? 0)}).${
                   (destinoQ.data.qtd_titulos_abertos ?? 0) === 0
                     ? " …e ficará como saldo na conta do cliente."
