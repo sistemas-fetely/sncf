@@ -734,7 +734,8 @@ function NovaDeclaracaoForm({
         )}
 
         {/* Motivo */}
-        {tipo && (
+        {tipo && !ehNf && (
+
           <div className="space-y-1">
             <Label>Motivo *</Label>
             <Select value={motivoCodigo} onValueChange={setMotivoCodigo}>
