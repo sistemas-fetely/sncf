@@ -326,7 +326,7 @@ export function AncoraFaturamentoCard({
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription className="space-y-2">
-                  <p className="font-semibold">
+                  <p className="font-medium">
                     O plano de pagamento não bate com a condição do pedido
                   </p>
                   <ul className="space-y-1 text-sm">
