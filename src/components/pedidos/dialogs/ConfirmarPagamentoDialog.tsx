@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { hojeISO } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
+import { rawMessage } from "@/lib/format-error";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
 import { useAdquirentes } from "@/hooks/financeiro/useAdquirentes";
