@@ -30,6 +30,13 @@ import {
   refreshAccessToken,
 } from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
+import {
+  chaveSku,
+  escolherCandidatoApi,
+  lerCardsCanonicos,
+  type FonteResolucaoCard,
+} from "../_shared/bling/card-canonico.ts";
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
