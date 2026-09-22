@@ -38,6 +38,10 @@ import {
 } from "@/hooks/comercial/useComprovantePagamento";
 import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
 import { useConfirmarCartaoCapturado } from "@/hooks/pedidos/useConfirmarCartaoCapturado";
+import {
+  useConfirmarCapturaCartao,
+  usePreviaCapturaCartao,
+} from "@/hooks/pedidos/useConfirmarCapturaCartao";
 import { useCapturasPedido, rotuloCaptura } from "@/hooks/pedidos/useCapturasPedido";
 import { useToast } from "@/hooks/use-toast";
 import {
