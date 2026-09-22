@@ -185,21 +185,26 @@ Deno.serve(async (req) => {
 
     // Le a lista de FOTOS (1 linha por foto), nao as 41k+ linhas de posicao:
     // o cliente trunca em 1000 e o sync reimportava foto que ja tinha.
+    // DEDUPLICACAO POR CHAVE DE FUSO: o XPM devolve `horario` sem fuso
+    // (hora de Brasilia). Comparar com ISO/UTC do banco reimportava as 8 fotos
+    // mais recentes toda noite e gastava o teto nelas — as lacunas nunca
+    // entravam. A view agora entrega `chave_xpm` (texto "YYYY-MM-DDTHH24:MI:SS"
+    // no fuso America/Sao_Paulo); a chave do lado do XPM e o proprio texto.
     const { data: jaTem, error: eJa } = await sb
       .from("vw_xpm_estoque_fotos")
-      .select("data_hora_posicao, parcial")
-      .order("data_hora_posicao", { ascending: false });
+      .select("chave_xpm, parcial")
+      .order("chave_xpm", { ascending: false });
     if (eJa) throw new Error(`ler posicoes existentes: ${eJa.message}`);
 
-    const chave = (v: string) => new Date(v).toISOString().slice(0, 19);
+    const chave = (v: string) => v.slice(0, 19);
     const existentes = new Set(
-      (jaTem ?? []).map((r: Record<string, any>) => chave(r.data_hora_posicao)),
+      (jaTem ?? []).map((r: Record<string, any>) => chave(r.chave_xpm)),
     );
     // Foto parcial e reimportada: a XPM as vezes devolve o retrato incompleto
     // (12/08 veio com 37 de 633 SKUs) e o saldo fica furado ate ela ser refeita.
     const parciais = new Set(
       (jaTem ?? []).filter((r: Record<string, any>) => r.parcial === true)
-        .map((r: Record<string, any>) => chave(r.data_hora_posicao)),
+        .map((r: Record<string, any>) => chave(r.chave_xpm)),
     );
 
     // PRESENTE ANTES DO PASSADO: a foto mais recente entra sempre em primeiro
@@ -211,6 +216,12 @@ Deno.serve(async (req) => {
     const alvo = historico
       ? [todos[0], ...pendentes.filter((h) => h !== todos[0])].slice(0, maxFotos)
       : [todos[0]];
+
+    // Sentinela da deduplicacao: foto que ja existia (e nao e parcial) nao
+    // deveria nunca voltar para o alvo. Se subir aqui, a chave de fuso furou.
+    const reimportadasJaExistentes = alvo.filter(
+      (h) => existentes.has(chave(h)) && !parciais.has(chave(h)),
+    ).length;
 
 
     for (const horario of alvo) {
@@ -282,6 +293,7 @@ Deno.serve(async (req) => {
         posicoes_disponiveis: todos.length,
         foto_mais_recente: todos[0] ?? null,
         pendentes_restantes: Math.max(pendentes.length - posicoes, 0),
+        reimportadas_ja_existentes: reimportadasJaExistentes,
         teto_por_execucao: maxFotos,
       },
 

@@ -76775,15 +76775,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_estoque_contabil: {
-        Row: {
-          estoque_bloqueado: number | null
-          estoque_contabil: number | null
-          estoque_sadio: number | null
-          sku: string | null
-        }
-        Relationships: []
-      }
       vw_estoque_entradas: {
         Row: {
           centro: string | null
@@ -76902,16 +76893,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_estoque_por_local: {
-        Row: {
-          centro: string | null
-          centro_nome: string | null
-          estoque_contabil: number | null
-          estoque_real: number | null
-          sku: string | null
-        }
-        Relationships: []
-      }
       vw_estoque_posicao: {
         Row: {
           centro: string | null
@@ -76935,16 +76916,6 @@ export type Database = {
           ultimo_mov: string | null
           vendavel: boolean | null
           verdade_primaria: string | null
-        }
-        Relationships: []
-      }
-      vw_estoque_real: {
-        Row: {
-          contado_bloqueado: number | null
-          contado_total: number | null
-          data_contagem: string | null
-          estoque_real: number | null
-          sku: string | null
         }
         Relationships: []
       }
@@ -86871,14 +86842,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -87825,14 +87796,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -98993,14 +98964,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -103335,46 +103306,6 @@ export type Database = {
         }
         Relationships: []
       }
-      vw_xpm_estoque_conciliacao: {
-        Row: {
-          colecao: string | null
-          data_snapshot: string | null
-          diferenca: number | null
-          existe_no_catalogo: boolean | null
-          grupo: string | null
-          linha: string | null
-          nome_comercial: string | null
-          saldo_ledger_sncf: number | null
-          sku: string | null
-          status_conciliacao: string | null
-          xpm_danificado: number | null
-          xpm_normal: number | null
-          xpm_truncado: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_produto_colecao"
-            columns: ["colecao"]
-            isOneToOne: false
-            referencedRelation: "produto_colecao_cad_dim"
-            referencedColumns: ["rotulo"]
-          },
-          {
-            foreignKeyName: "fk_produto_grupo"
-            columns: ["grupo"]
-            isOneToOne: false
-            referencedRelation: "produto_grupo_dim"
-            referencedColumns: ["rotulo"]
-          },
-          {
-            foreignKeyName: "fk_produto_linha"
-            columns: ["linha"]
-            isOneToOne: false
-            referencedRelation: "produto_linha_dim"
-            referencedColumns: ["rotulo"]
-          },
-        ]
-      }
       vw_xpm_estoque_conciliacao_api: {
         Row: {
           colecao: string | null
@@ -103418,6 +103349,7 @@ export type Database = {
       }
       vw_xpm_estoque_fotos: {
         Row: {
+          chave_xpm: string | null
           data_hora_posicao: string | null
           importado_em: string | null
           linhas: number | null
