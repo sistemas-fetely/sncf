@@ -104902,6 +104902,7 @@ export type Database = {
         Args: { p_dry_run?: boolean }
         Returns: Json
       }
+      fn_bling_resolver_produto: { Args: { p_codigo: string }; Returns: Json }
       fn_boleto_fator_vencimento: { Args: { p_venc: string }; Returns: number }
       fn_boleto_linha_digitavel: {
         Args: { p_nosso_numero: string; p_valor: number; p_vencimento: string }
