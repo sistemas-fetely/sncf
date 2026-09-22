@@ -212,7 +212,7 @@ export default function ConciliacaoFila() {
       if (g === ignorar) continue;
       const sel = lista(g);
       if (!sel.length) continue;
-      const v = g === "onde" ? l.onde_resolver : g === "impacto" ? l.impacto : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
+      const v = g === "camada" ? l.camada : g === "onde" ? l.onde_resolver : g === "impacto" ? l.impacto : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
       if (!sel.includes(String(v ?? "__sem__"))) return false;
     }
     return true;
@@ -269,6 +269,14 @@ export default function ConciliacaoFila() {
   const facet = (g: Grupo, ops: { valor: string; rotulo: string }[], chave: (l: FilaLinha) => string) =>
     ops.map(o => ({ ...o, contagem: linhas.filter(l => aplica(l, g) && chave(l) === o.valor).length }));
 
+  const opcoesCamada = useMemo(() => {
+    const m = new Map<string, { nome: string; ordem: number | null }>();
+    for (const l of linhas) {
+      const k = l.camada ?? "__sem__";
+      if (!m.has(k)) m.set(k, { nome: l.camada_nome ?? k, ordem: l.camada_ordem });
+    }
+    return [...m.entries()].sort((a, b) => (a[1].ordem ?? 9999) - (b[1].ordem ?? 9999) || a[1].nome.localeCompare(b[1].nome, "pt-BR")).map(([valor, v]) => ({ valor, rotulo: valor === "__sem__" ? "Sem camada" : v.nome }));
+  }, [linhas]);
   const opcoesOnde = useMemo(() => [...new Set(linhas.map(l => l.onde_resolver ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem destino" : v })), [linhas]);
   const opcoesImpacto = useMemo(() => {
     const presentes = new Set(linhas.map(l => l.impacto ?? "__sem__"));
