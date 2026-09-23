@@ -426,7 +426,7 @@ export default function ConciliacaoFila() {
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
           </TableHead>)}
         </TableRow></TableHeader>
-        <TableBody>{paginaLinhas.map(l => <Fragment key={`${l.sku}|${l.regra}`}>
+        <TableBody>{paginaLinhas.map(l => <Fragment key={l.linha_id}>
           <TableRow className="border-b">
             <TableCell className="py-2.5 align-top">
               <Checkbox
@@ -444,7 +444,7 @@ export default function ConciliacaoFila() {
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
           {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
-            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={`${x.sku}|${x.regra}`} l={x} />)}</div>
+            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={x.linha_id} l={x} />)}</div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
       </Table>
