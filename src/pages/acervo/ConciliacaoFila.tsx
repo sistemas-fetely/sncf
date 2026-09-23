@@ -265,6 +265,11 @@ export default function ConciliacaoFila() {
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
   const produtos = new Set(recorte.map(l => l.sku)).size;
+  // CICLO-PLANILHA: produtos do recorte com a regra de cadastro incompleto.
+  const codsIncompletos = useMemo(
+    () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
+    [recorte],
+  );
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
