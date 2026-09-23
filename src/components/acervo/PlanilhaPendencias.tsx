@@ -182,6 +182,13 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
+  /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
+  const faltandoCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of mesa.data ?? []) for (const c of l.falta_fase_atual ?? []) m.set(c, (m.get(c) ?? 0) + 1);
+    return m;
+  }, [mesa.data]);
+
   /** Campos PRÉ-MARCADOS ao abrir a exportação: faltando no recorte + campos de contexto. */
   const preMarcados = useMemo(() => {
     const s = new Set<string>();
@@ -414,7 +421,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setSelecionados(new Set((dim.data ?? []).map(d => d.campo)))}>Marcar todos</Button>
-          <Button variant="outline" size="sm" onClick={marcarFaltantes} disabled={!colunas.length}>Só os faltantes</Button>
+          <Button variant="outline" size="sm" onClick={marcarFaltantes} disabled={preMarcados.size === 0}>Só os faltantes</Button>
           <span className="ml-auto text-xs text-muted-foreground">{selecionados.size} coluna(s) marcada(s)</span>
         </div>
 
