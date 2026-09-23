@@ -601,7 +601,27 @@ export default function FichaProduto() {
                               )}
                             </div>
 
-                            {editavel && noEspelho && textoLongo ? (
+                            {editavel && noEspelho && opcoes.length > 0 ? (
+                              <Select
+                                value={valor.trim() === "" ? SEM_VALOR : valor}
+                                onValueChange={(v) => editar(m.campo, v === SEM_VALOR ? "" : v)}
+                              >
+                                <SelectTrigger id={`campo-${m.campo}`} className="h-9 text-foreground">
+                                  <SelectValue placeholder="— vazio —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {!obrigatorioAgora && <SelectItem value={SEM_VALOR}>— vazio —</SelectItem>}
+                                  {foraDaLista && (
+                                    <SelectItem value={valor}>{valor} (fora da lista)</SelectItem>
+                                  )}
+                                  {opcoes.map((o) => (
+                                    <SelectItem key={o.valor} value={o.valor}>
+                                      {o.rotulo === o.valor ? o.valor : `${o.rotulo} (${o.valor})`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : editavel && noEspelho && textoLongo ? (
                               <Textarea
                                 id={`campo-${m.campo}`}
                                 className="h-32 resize-y overflow-y-auto text-foreground"
