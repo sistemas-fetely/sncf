@@ -32,16 +32,18 @@ serve(async (req) => {
     // ===================== BRANCHES DE API (orfaos) =====================
     // Canal API existe SO para produto vendavel que nunca teve entrada fisica.
     // O caminho principal do cadastro continua sendo a planilha Cad_item, abaixo.
-    if (body?.tipo === "cadastrar_api" || body?.tipo === "corrigir_categoria_xpm") {
+    if (body?.tipo === "cadastrar_api" || body?.tipo === "corrigir_categoria_xpm" || body?.tipo === "atualizar_cadastro_xpm") {
       const t0 = Date.now();
       const tipo: string = body.tipo;
       const skus: string[] = Array.isArray(body.skus) ? body.skus : [];
-      const dry_run: boolean = tipo === "cadastrar_api" ? (body.dry_run ?? true) : false;
+      const dry_run: boolean = tipo === "corrigir_categoria_xpm" ? false : (body.dry_run ?? true);
       const resultados: Record<string, unknown>[] = [];
+      const teto = tipo === "atualizar_cadastro_xpm" ? 200 : 10;
 
       try {
         if (skus.length === 0) throw new Error("skus obrigatorio");
-        if (skus.length > 10) throw new Error("teto de 10 SKUs por chamada (volume de orfao nao justifica lote)");
+        if (skus.length > teto) throw new Error(`teto de ${teto} SKUs por chamada`);
+
 
         const { data: cfgRow, error: eCfg } = await supabase
           .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
