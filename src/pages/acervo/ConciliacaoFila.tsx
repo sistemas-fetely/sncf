@@ -21,6 +21,10 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
+import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
+
+/** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
+const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
 
 /**
  * CONCILIAÇÃO DE CADASTRO (23/09/2026) — fila de trabalho, somente leitura.
