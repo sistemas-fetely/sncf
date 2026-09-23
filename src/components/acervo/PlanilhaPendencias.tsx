@@ -32,7 +32,7 @@ const PORTA_FOP = "fop";
 const PORTA_INNER = "cartorio_inner";
 const ROTULO_PORTA: Record<string, string> = { [PORTA_FOP]: "cadastro", [PORTA_INNER]: "Inner" };
 
-type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null };
+type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null; contexto_planilha: boolean | null };
 type LinhaMesa = Record<string, unknown> & { cod_cadastro: string | null; sku: string | null; nome_comercial: string | null; falta_fase_atual: string[] | null };
 
 type CorpoFuncao = Record<string, unknown>;
@@ -129,7 +129,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produto_ficha_nascimento")
-        .select("campo, rotulo, ordem, porta_escrita")
+        .select("campo, rotulo, ordem, porta_escrita, contexto_planilha")
         .eq("importavel_planilha", true)
         .order("ordem");
       if (error) throw error;
