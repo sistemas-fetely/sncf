@@ -73,6 +73,21 @@ function csvCelula(v: unknown): string {
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Chave de casamento do cod_cadastro tolerante ao Excel: tira ="", espaços e zeros à esquerda. */
+function chaveCod(v: unknown): string {
+  let s = String(v ?? "").trim();
+  if (s.startsWith('="') && s.endsWith('"')) s = s.slice(2, -1);
+  s = s.trim();
+  const semZeros = s.replace(/^0+/, "");
+  return semZeros === "" ? s : semZeros;
+}
+
+/** Célula de cod_cadastro escrita como fórmula de texto, para o Excel não comer o zero à esquerda. */
+function celulaCod(v: unknown): string {
+  const s = String(v ?? "").trim();
+  return s === "" ? "" : `="${s}"`;
+}
+
 function textoValor(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (Array.isArray(v)) return v.join("; ");
@@ -182,6 +197,19 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
+  /** Índice por chave sem zeros à esquerda: mais de um produto na mesma chave = ambiguidade. */
+  const porCodNorm = useMemo(() => {
+    const m = new Map<string, LinhaMesa[]>();
+    for (const l of mesa.data ?? []) {
+      if (!l.cod_cadastro) continue;
+      const k = chaveCod(l.cod_cadastro);
+      const lista = m.get(k);
+      if (lista) lista.push(l);
+      else m.set(k, [l]);
+    }
+    return m;
+  }, [mesa.data]);
+
   /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
   const faltandoCount = useMemo(() => {
     const m = new Map<string, number>();
@@ -242,7 +270,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
       .filter((l): l is LinhaMesa => !!l)
       .map(l => {
         const falta = new Set(l.falta_fase_atual ?? []);
-        return [l.cod_cadastro, l.sku, l.nome_comercial, ...campos.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
+        return [celulaCod(l.cod_cadastro), l.sku, l.nome_comercial, ...campos.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
           .map(csvCelula).join(";");
       }).join("\n");
     const url = URL.createObjectURL(new Blob(["\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo], { type: "text/csv;charset=utf-8;" }));
@@ -271,10 +299,19 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
 
     const encontradas: Mudanca[] = [];
     for (const l of linhas.slice(1)) {
-      const cod = (l[iCod] ?? "").trim();
-      if (!cod) continue;
-      const atual = porCod.get(cod);
-      if (!atual) { avisos.push(`${cod}: cod_cadastro não encontrado no recorte — linha ignorada.`); continue; }
+      const codArquivo = String(l[iCod] ?? "").trim();
+      if (!codArquivo) continue;
+      const candidatos = porCodNorm.get(chaveCod(codArquivo)) ?? [];
+      if (candidatos.length === 0) {
+        avisos.push(`cod_cadastro ${codArquivo}: não encontrado no recorte (confira se o Excel não removeu o zero à esquerda)`);
+        continue;
+      }
+      if (candidatos.length > 1) {
+        avisos.push(`cod_cadastro ${codArquivo}: ambíguo sem o zero à esquerda (casa com ${candidatos.map(c => c.cod_cadastro).join(", ")})`);
+        continue;
+      }
+      const atual = candidatos[0];
+      const cod = String(atual.cod_cadastro);
       for (let i = 0; i < cab.length; i++) {
         if (i === iCod) continue;
         const dimCampo = importaveis.get(cab[i]);
