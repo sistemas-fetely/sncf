@@ -46662,6 +46662,8 @@ export type Database = {
           campo: string
           conta_como_furo: boolean
           descricao: string | null
+          dim_coluna: string | null
+          dim_tabela: string | null
           dono: string
           fase_exigida: string | null
           importavel_planilha: boolean
@@ -46677,6 +46679,8 @@ export type Database = {
           campo: string
           conta_como_furo?: boolean
           descricao?: string | null
+          dim_coluna?: string | null
+          dim_tabela?: string | null
           dono: string
           fase_exigida?: string | null
           importavel_planilha?: boolean
@@ -46692,6 +46696,8 @@ export type Database = {
           campo?: string
           conta_como_furo?: boolean
           descricao?: string | null
+          dim_coluna?: string | null
+          dim_tabela?: string | null
           dono?: string
           fase_exigida?: string | null
           importavel_planilha?: boolean
@@ -53274,6 +53280,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_canal_venda"
+            columns: ["canal_venda"]
+            isOneToOne: false
+            referencedRelation: "produto_canal_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_colecao"
             columns: ["colecao"]
             isOneToOne: false
@@ -53299,6 +53312,13 @@ export type Database = {
             columns: ["linha"]
             isOneToOne: false
             referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
             referencedColumns: ["rotulo"]
           },
           {
@@ -68626,6 +68646,13 @@ export type Database = {
             columns: ["linha"]
             isOneToOne: false
             referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
             referencedColumns: ["rotulo"]
           },
         ]
@@ -94595,6 +94622,13 @@ export type Database = {
             referencedColumns: ["rotulo"]
           },
           {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
             foreignKeyName: "fk_produto_origem_fisc"
             columns: ["origem_fisc"]
             isOneToOne: false
@@ -94749,6 +94783,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_produto_canal_venda"
+            columns: ["canal_venda"]
+            isOneToOne: false
+            referencedRelation: "produto_canal_dim"
+            referencedColumns: ["slug"]
+          },
+          {
             foreignKeyName: "fk_produto_colecao"
             columns: ["colecao"]
             isOneToOne: false
@@ -94774,6 +94815,13 @@ export type Database = {
             columns: ["linha"]
             isOneToOne: false
             referencedRelation: "produto_linha_dim"
+            referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "fk_produto_marca"
+            columns: ["marca"]
+            isOneToOne: false
+            referencedRelation: "produto_marca_dim"
             referencedColumns: ["rotulo"]
           },
           {
@@ -106135,6 +106183,15 @@ export type Database = {
       fn_faturar_pedido: {
         Args: { p_nf_id: string; p_pedido_id: string }
         Returns: Json
+      }
+      fn_ficha_opcoes: {
+        Args: never
+        Returns: {
+          campo: string
+          ordem: number
+          rotulo: string
+          valor: string
+        }[]
       }
       fn_fila_b2c_reprocessar: {
         Args: { p_fila: string; p_ids: string[]; p_motivo: string }
