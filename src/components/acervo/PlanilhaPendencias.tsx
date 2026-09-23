@@ -23,7 +23,16 @@ import { fmtData } from "@/lib/data";
  * produto não interrompe a fila e aparece nomeado no fim.
  */
 
-type CampoDim = { campo: string; rotulo: string | null; ordem: number };
+/**
+ * PORTA DE ESCRITA: cada campo importável diz por onde grava (`porta_escrita`).
+ * 'fop' = edge gravar-produto-fop; 'cartorio_inner' = RPC fn_cartorio_definir_inner.
+ * Campo sem porta é ignorado — nenhum nome de campo decidido aqui.
+ */
+const PORTA_FOP = "fop";
+const PORTA_INNER = "cartorio_inner";
+const ROTULO_PORTA: Record<string, string> = { [PORTA_FOP]: "cadastro", [PORTA_INNER]: "Inner" };
+
+type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null };
 type LinhaMesa = Record<string, unknown> & { cod_cadastro: string | null; sku: string | null; nome_comercial: string | null; falta_fase_atual: string[] | null };
 
 type CorpoFuncao = Record<string, unknown>;
