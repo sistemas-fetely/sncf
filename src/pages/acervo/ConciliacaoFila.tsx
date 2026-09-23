@@ -313,12 +313,27 @@ export default function ConciliacaoFila() {
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
-  // Correção no XPM não olha fase: vale para qualquer produto selecionado.
+  // Correção não olha fase: vale para qualquer produto selecionado — mas cada
+  // botão só recebe selecionados com pendência do sistema dele (derive de
+  // `linhas`, não do recorte filtrado, para não depender do filtro atual).
   const selecionadosProdutos = useMemo<ProdutoXpm[]>(
     () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p)
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
+  const sistemasPorSku = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const l of linhas) {
+      if (!temValor(l.sku) || !temValor(l.onde_resolver)) continue;
+      let set = m.get(String(l.sku));
+      if (!set) { set = new Set(); m.set(String(l.sku), set); }
+      set.add(l.onde_resolver);
+    }
+    return m;
+  }, [linhas]);
+  const filtrarPorSistema = (sistema: string) => selecionadosProdutos.filter(p => sistemasPorSku.get(p.sku)?.has(sistema));
+  const selecionadosProdutosXpm = useMemo(() => filtrarPorSistema("XPM"), [selecionadosProdutos, sistemasPorSku]);
+  const selecionadosProdutosBling = useMemo(() => filtrarPorSistema("Bling"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
