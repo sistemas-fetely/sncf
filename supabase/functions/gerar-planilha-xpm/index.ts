@@ -32,16 +32,18 @@ serve(async (req) => {
     // ===================== BRANCHES DE API (orfaos) =====================
     // Canal API existe SO para produto vendavel que nunca teve entrada fisica.
     // O caminho principal do cadastro continua sendo a planilha Cad_item, abaixo.
-    if (body?.tipo === "cadastrar_api" || body?.tipo === "corrigir_categoria_xpm") {
+    if (body?.tipo === "cadastrar_api" || body?.tipo === "corrigir_categoria_xpm" || body?.tipo === "atualizar_cadastro_xpm") {
       const t0 = Date.now();
       const tipo: string = body.tipo;
       const skus: string[] = Array.isArray(body.skus) ? body.skus : [];
-      const dry_run: boolean = tipo === "cadastrar_api" ? (body.dry_run ?? true) : false;
+      const dry_run: boolean = tipo === "corrigir_categoria_xpm" ? false : (body.dry_run ?? true);
       const resultados: Record<string, unknown>[] = [];
+      const teto = tipo === "atualizar_cadastro_xpm" ? 200 : 10;
 
       try {
         if (skus.length === 0) throw new Error("skus obrigatorio");
-        if (skus.length > 10) throw new Error("teto de 10 SKUs por chamada (volume de orfao nao justifica lote)");
+        if (skus.length > teto) throw new Error(`teto de ${teto} SKUs por chamada`);
+
 
         const { data: cfgRow, error: eCfg } = await supabase
           .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
@@ -65,6 +67,72 @@ serve(async (req) => {
         const hJson = { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
 
         for (const sku of skus) {
+          // ===== CORRECAO DE CADASTRO NO XPM PELA MATRIZ (de-para + PUT) =====
+          if (tipo === "atualizar_cadastro_xpm") {
+            const { data: cache, error: eCache } = await supabase
+              .from("xpm_produtos_cache")
+              .select("xpm_produto_id, descricao, ncm, peso_unitario_kg, altura_m, largura_m, comprimento_m, categoria_codigo")
+              .eq("codigo", sku).maybeSingle();
+            if (eCache) throw new Error(`xpm_produtos_cache ${sku}: ${eCache.message}`);
+            if (!cache?.xpm_produto_id) { resultados.push({ sku, status: "nao_esta_no_xpm" }); continue; }
+
+            const { data: pay, error: ePay } = await supabase.rpc("fn_xpm_payload_cadastro", { p_sku: sku });
+            if (ePay) throw new Error(`fn_xpm_payload_cadastro ${sku}: ${ePay.message}`);
+            const pv = pay as any;
+
+            // GUARDA: matriz furada NUNCA sobrescreve o XPM. O unico bloqueio tolerado
+            // e o "JA CADASTRADO no XPM" — aqui ele e justamente o esperado.
+            const bloqueios: string[] = (Array.isArray(pv?.bloqueios) ? pv.bloqueios : []).map((b: unknown) => String(b));
+            const impeditivos = bloqueios.filter((b) => !/JA CADASTRADO/i.test(b));
+            if (impeditivos.length > 0) { resultados.push({ sku, status: "matriz_incompleta", bloqueios: impeditivos }); continue; }
+
+            const p1 = pv?.passo_1_produto;
+            if (!p1) { resultados.push({ sku, status: "erro_payload", erro: "passo_1_produto ausente" }); continue; }
+
+            const so = (v: unknown) => (v == null ? "" : String(v).trim());
+            const digitos = (v: unknown) => so(v).replace(/\D/g, "");
+            const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
+            const de_para: { campo: string; xpm: unknown; novo: unknown }[] = [];
+            const cmpTexto = (campo: string, atual: string, novo: string) => { if (atual !== novo) de_para.push({ campo, xpm: atual, novo }); };
+            const cmpNum = (campo: string, atual: unknown, novo: unknown) => {
+              const a = num(atual), b = num(novo);
+              if (b == null) return;
+              if (a == null || Math.abs(a - b) > 0.001) de_para.push({ campo, xpm: a, novo: b });
+            };
+            cmpTexto("descricao", so(cache.descricao), so(p1.descricao));
+            cmpTexto("ncm", digitos(cache.ncm), digitos(p1.classificacaoFiscalNCM));
+            cmpNum("peso_kg", cache.peso_unitario_kg, p1.pesoUnitario);
+            cmpNum("altura_m", cache.altura_m, p1.altura);
+            cmpNum("largura_m", cache.largura_m, p1.largura);
+            cmpNum("comprimento_m", cache.comprimento_m, p1.comprimento);
+            cmpTexto("categoria", so(cache.categoria_codigo), so(p1.categoriaId));
+
+            if (de_para.length === 0) { resultados.push({ sku, status: "sem_diferenca" }); continue; }
+            if (dry_run) { resultados.push({ sku, status: "tem_diferenca", xpm_produto_id: cache.xpm_produto_id, de_para }); continue; }
+
+            const r = await fetch(`${base}/api/services/app/Produto/Update`, {
+              method: "PUT", headers: hJson, body: JSON.stringify({ ...p1, id: cache.xpm_produto_id }),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!(r.ok && j?.success !== false)) {
+              resultados.push({ sku, status: "erro_update", xpm_produto_id: cache.xpm_produto_id, de_para, erro: j?.error?.message ?? `HTTP ${r.status}` });
+              continue;
+            }
+            // Espelha o que foi enviado para a leitura refletir na hora.
+            const { error: eUpd } = await supabase.from("xpm_produtos_cache").update({
+              descricao: p1.descricao ?? null,
+              ncm: p1.classificacaoFiscalNCM ?? null,
+              peso_unitario_kg: num(p1.pesoUnitario),
+              altura_m: num(p1.altura),
+              largura_m: num(p1.largura),
+              comprimento_m: num(p1.comprimento),
+              sincronizado_em: new Date().toISOString(),
+            }).eq("codigo", sku);
+            if (eUpd) throw new Error(`espelho xpm_produtos_cache ${sku}: ${eUpd.message}`);
+            resultados.push({ sku, status: "ok", xpm_produto_id: cache.xpm_produto_id, de_para });
+            continue;
+          }
+
           if (tipo === "corrigir_categoria_xpm") {
             const { data: cache, error: eCache } = await supabase
               .from("xpm_produtos_cache").select("xpm_produto_id").eq("codigo", sku).maybeSingle();
@@ -142,19 +210,35 @@ serve(async (req) => {
 
         const okQtd = resultados.filter((r) => r.status === "ok").length;
         const errQtd = resultados.filter((r) => typeof r.status === "string" && r.status !== "ok" && r.status !== "dry_run").length;
-        const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
-          sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "sucesso",
-          registros_criados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
-          detalhes: { acao: tipo, dry_run, resultados },
-        });
-        if (eLog) throw new Error(`log: ${eLog.message}`);
+        if (tipo === "atualizar_cadastro_xpm") {
+          // Dry-run nao e execucao: nao registra log.
+          if (!dry_run) {
+            const { error: eLogU } = await supabase.from("integracoes_sync_log").insert({
+              sistema: "zenlog_prd", tipo: "produto_update", status: errQtd > 0 ? "parcial" : "sucesso",
+              registros_atualizados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
+              detalhes: {
+                acao: tipo,
+                oks: resultados.filter((r) => r.status === "ok"),
+                falhas: resultados.filter((r) => r.status !== "ok"),
+              },
+            });
+            if (eLogU) throw new Error(`log: ${eLogU.message}`);
+          }
+        } else {
+          const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
+            sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "sucesso",
+            registros_criados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
+            detalhes: { acao: tipo, dry_run, resultados },
+          });
+          if (eLog) throw new Error(`log: ${eLog.message}`);
+        }
 
         return new Response(JSON.stringify({ ok: true, tipo, dry_run, total: skus.length, resultados }), {
           headers: { ...cors, "Content-Type": "application/json" },
         });
       } catch (e) {
         const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
-          sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "erro",
+          sistema: "zenlog_prd", tipo: tipo === "atualizar_cadastro_xpm" ? "produto_update" : "cadastro_xpm", status: "erro",
           registros_criados: 0, registros_erro: skus.length, duracao_ms: Date.now() - t0,
           detalhes: { acao: tipo, dry_run, erro: (e as Error).message, resultados },
         });

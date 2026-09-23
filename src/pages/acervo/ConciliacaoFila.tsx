@@ -24,6 +24,7 @@ import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
+import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -288,6 +289,12 @@ export default function ConciliacaoFila() {
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
+  // Correção no XPM não olha fase: vale para qualquer produto selecionado.
+  const selecionadosProdutos = useMemo<ProdutoXpm[]>(
+    () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p)
+      .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
+    [selecionados, produtoPorSku],
+  );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
@@ -355,6 +362,7 @@ export default function ConciliacaoFila() {
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
+        <CorrigirXpmLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
         {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
