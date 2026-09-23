@@ -427,9 +427,15 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
         </div>
 
         <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-3">
-          {listaExibicao.faltantes.length > 0 && <p className="pt-1 text-xs text-muted-foreground">Faltando no recorte</p>}
+          {(() => {
+            const temContexto = listaExibicao.contexto.length > 0;
+            const temFaltantes = listaExibicao.faltantes.length > 0;
+            const titulo = temContexto ? (temFaltantes ? "Faltando no recorte e contexto" : "Contexto") : "Faltando no recorte";
+            return (temFaltantes || temContexto) && <p className="pt-1 text-xs text-muted-foreground">{titulo}</p>;
+          })()}
           {listaExibicao.faltantes.map(d => linhaCampo(d))}
-          {listaExibicao.faltantes.length > 0 && listaExibicao.demais.length > 0 && (
+          {listaExibicao.contexto.map(d => linhaCampo(d))}
+          {(listaExibicao.faltantes.length > 0 || listaExibicao.contexto.length > 0) && listaExibicao.demais.length > 0 && (
             <p className="border-t pt-2 text-xs text-muted-foreground">Demais campos (já preenchidos)</p>
           )}
           {listaExibicao.demais.map(d => linhaCampo(d))}
