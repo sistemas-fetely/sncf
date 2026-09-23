@@ -73,6 +73,21 @@ function csvCelula(v: unknown): string {
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
+/** Chave de casamento do cod_cadastro tolerante ao Excel: tira ="", espaços e zeros à esquerda. */
+function chaveCod(v: unknown): string {
+  let s = String(v ?? "").trim();
+  if (s.startsWith('="') && s.endsWith('"')) s = s.slice(2, -1);
+  s = s.trim();
+  const semZeros = s.replace(/^0+/, "");
+  return semZeros === "" ? s : semZeros;
+}
+
+/** Célula de cod_cadastro escrita como fórmula de texto, para o Excel não comer o zero à esquerda. */
+function celulaCod(v: unknown): string {
+  const s = String(v ?? "").trim();
+  return s === "" ? "" : `="${s}"`;
+}
+
 function textoValor(v: unknown): string {
   if (v === null || v === undefined) return "";
   if (Array.isArray(v)) return v.join("; ");
