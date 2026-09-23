@@ -174,7 +174,7 @@ export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBlin
             {comDiferenca.map(r => <div key={r.sku} className="space-y-1 rounded-md border p-2">
               <p className="text-sm font-medium">{cod(r.sku)}</p>
               {(r.de_para ?? []).map(d => <p key={d.campo} className="text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{rotulos[d.campo] ?? d.campo}</span>: {mostrar(d.bling)} → <span className="text-foreground">{mostrar(d.novo)}</span>
+                <span className="font-medium text-foreground">{rotulos[d.campo] ?? d.campo}</span>: {mostrarCampo(d.campo, d.bling)} → <span className="text-foreground">{mostrarCampo(d.campo, d.novo)}</span>
               </p>)}
             </div>)}
 
@@ -232,7 +232,24 @@ const rotulos: Record<string, string> = {
   ncm: "NCM",
   cest: "CEST",
   situacao: "Situação do card",
+  unidadeMedida: "Unidade das medidas",
+  gtinEmbalagem: "DUN (GTIN da caixa)",
+  itensPorCaixa: "Itens por caixa",
 };
+
+const unidadeMedidaRotulos: Record<string, string> = {
+  "1": "Metros",
+  "2": "Centímetros",
+  "3": "Milímetros",
+};
+
+function mostrarCampo(campo: string, v: unknown): string {
+  if (campo === "unidadeMedida") {
+    if (v === null || v === undefined || v === "") return "(vazio)";
+    return unidadeMedidaRotulos[String(v)] ?? "(vazio)";
+  }
+  return mostrar(v);
+}
 
 function mostrar(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
