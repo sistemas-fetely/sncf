@@ -51,6 +51,7 @@ type ErroFuncao = { status: number; corpo: Record<string, unknown> };
 // Indicador: "prontos" | "bloqueados" — a Mesa é gestão de fase; os cards de
 // problema (impacto, furo, pendência separada, anúncios) moram na Conciliação.
 type Indicador = string | null;
+type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
 
 
 
