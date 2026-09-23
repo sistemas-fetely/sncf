@@ -180,6 +180,27 @@ serve(async (req) => {
 
       const { error: upErr } = await supabase.from("bling_produtos_cache")
         .update({ nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("sku", sku);
+
+      // Espelho em dia na hora: re-GET do Bling e grava o detalhe na cache,
+      // para a fila refletir sem esperar o próximo sync. Falha aqui não
+      // desconta o PUT — só vira aviso no de_para aplicado.
+      await sleep(THROTTLE_MS);
+      let avisoEspelho = "";
+      try {
+        const r2 = await client!.get(`/produtos/${blingId}`);
+        const detalhe = r2?.data ?? null;
+        if (!detalhe?.id) {
+          avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+        } else {
+          const { error: detErr } = await supabase.from("bling_produtos_cache")
+            .update({ detalhe_payload: detalhe, atualizado_em: new Date().toISOString() }).eq("sku", sku);
+          if (detErr) avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+        }
+      } catch (_) {
+        avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+      }
+      if (avisoEspelho) de_para.push({ campo: "espelho", bling: null, novo: avisoEspelho });
+
       resultados.push({
         sku, bling_id: blingId, status: "ok", de_para,
         ...(upErr ? { erro: `Bling atualizado, mas o espelho falhou: ${upErr.message}` } : {}),
