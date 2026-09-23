@@ -116,7 +116,10 @@ serve(async (req) => {
             cmpNum("altura_m", cache.altura_m, p1.altura);
             cmpNum("largura_m", cache.largura_m, p1.largura);
             cmpNum("comprimento_m", cache.comprimento_m, p1.comprimento);
-            cmpTexto("categoria", so(cache.categoria_codigo), so(p1.categoriaId));
+            // Categoria: o payload manda categoriaId; comparamos CODIGO do mapa.
+            // Id sem entrada no mapa -> nao acusa (nao ha como comparar).
+            const codMapaNovo = codigoDoMapa.get(String(p1.categoriaId));
+            if (codMapaNovo !== undefined) cmpTexto("categoria", so(cache.categoria_codigo), codMapaNovo);
 
             if (de_para.length === 0) { resultados.push({ sku, status: "sem_diferenca" }); continue; }
             if (dry_run) { resultados.push({ sku, status: "tem_diferenca", xpm_produto_id: cache.xpm_produto_id, de_para }); continue; }
