@@ -23,7 +23,16 @@ import { fmtData } from "@/lib/data";
  * produto não interrompe a fila e aparece nomeado no fim.
  */
 
-type CampoDim = { campo: string; rotulo: string | null; ordem: number };
+/**
+ * PORTA DE ESCRITA: cada campo importável diz por onde grava (`porta_escrita`).
+ * 'fop' = edge gravar-produto-fop; 'cartorio_inner' = RPC fn_cartorio_definir_inner.
+ * Campo sem porta é ignorado — nenhum nome de campo decidido aqui.
+ */
+const PORTA_FOP = "fop";
+const PORTA_INNER = "cartorio_inner";
+const ROTULO_PORTA: Record<string, string> = { [PORTA_FOP]: "cadastro", [PORTA_INNER]: "Inner" };
+
+type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null };
 type LinhaMesa = Record<string, unknown> & { cod_cadastro: string | null; sku: string | null; nome_comercial: string | null; falta_fase_atual: string[] | null };
 
 type CorpoFuncao = Record<string, unknown>;
@@ -98,7 +107,7 @@ function lerCsv(texto: string): string[][] {
 }
 
 type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
-type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string };
+type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string; porta: string };
 type Falha = { cod: string; motivo: string };
 
 export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGravado: () => void }) {
@@ -120,7 +129,7 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produto_ficha_nascimento")
-        .select("campo, rotulo, ordem")
+        .select("campo, rotulo, ordem, porta_escrita")
         .eq("importavel_planilha", true)
         .order("ordem");
       if (error) throw error;
@@ -196,7 +205,11 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     setExpAberto(true);
   }
 
-  const importaveis = useMemo(() => new Map((dim.data ?? []).map(d => [d.campo, d])), [dim.data]);
+  // Campo sem porta de escrita não é importável na prática: ninguém sabe por onde gravar.
+  const importaveis = useMemo(
+    () => new Map((dim.data ?? []).filter(d => (d.porta_escrita ?? "").trim() !== "").map(d => [d.campo, d])),
+    [dim.data],
+  );
 
   function exportarCom(campos: CampoDim[]) {
     const cab = ["cod_cadastro", "sku", "nome_comercial", ...campos.map(c => c.campo)];
@@ -256,9 +269,19 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
           }
           paraGravar = achou.valor;
         }
+        const porta = String(dimCampo.porta_escrita ?? "").trim();
+        // Porta do cartório só aceita contagem de peça: inteiro >= 1, como no packing list.
+        if (porta === PORTA_INNER) {
+          const n = Number(paraGravar.replace(",", "."));
+          if (!Number.isInteger(n) || n < 1) {
+            avisos.push(`${cod} · ${dimCampo.campo}: "${novo}" precisa ser um inteiro >= 1 (vem do packing list)`);
+            continue;
+          }
+          paraGravar = String(n);
+        }
         const de = textoValor(atual[dimCampo.campo]);
         if (de === paraGravar) continue;
-        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar });
+        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar, porta });
       }
     }
     setMudancas(encontradas);
@@ -273,14 +296,38 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     const falhas: Falha[] = [];
     let ok = 0;
     for (const cod of produtosAlvo) {
-      const campos: Record<string, string> = {};
-      for (const m of mudancas.filter(x => x.cod === cod)) campos[m.campo] = m.para;
-      try {
-        await chamarFuncao("gravar-produto-fop", { cod_cadastro: cod, motivo: motivo.trim(), campos });
-        ok++;
-      } catch (e) {
-        falhas.push({ cod, motivo: mensagemErro(e) });
+      const doProduto = mudancas.filter(x => x.cod === cod);
+      const camposFop: Record<string, string> = {};
+      for (const m of doProduto.filter(x => x.porta === PORTA_FOP)) camposFop[m.campo] = m.para;
+      const inners = doProduto.filter(x => x.porta === PORTA_INNER);
+      let falhouAlguma = false;
+
+      if (Object.keys(camposFop).length > 0) {
+        try {
+          await chamarFuncao("gravar-produto-fop", { cod_cadastro: cod, motivo: motivo.trim(), campos: camposFop });
+        } catch (e) {
+          falhouAlguma = true;
+          falhas.push({ cod, motivo: `${ROTULO_PORTA[PORTA_FOP]}: ${mensagemErro(e)}` });
+        }
       }
+      for (const m of inners) {
+        const { error } = await supabase.rpc("fn_cartorio_definir_inner", {
+          p_cod_cadastro: cod,
+          p_inner: Number(m.para),
+          p_motivo: motivo.trim(),
+        });
+        if (error) {
+          falhouAlguma = true;
+          falhas.push({ cod, motivo: `${ROTULO_PORTA[PORTA_INNER]}: ${error.message}` });
+        }
+      }
+      // Porta desconhecida não é grava silenciosa: aparece como falha nomeada.
+      for (const m of doProduto.filter(x => x.porta !== PORTA_FOP && x.porta !== PORTA_INNER)) {
+        falhouAlguma = true;
+        falhas.push({ cod, motivo: `${m.rotulo}: porta de escrita "${m.porta || "vazia"}" não é conhecida por esta tela.` });
+      }
+
+      if (!falhouAlguma) ok++;
       setFeito(f => f + 1);
     }
     setRodando(false);
