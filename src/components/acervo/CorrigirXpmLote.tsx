@@ -16,9 +16,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
  * mostra o de-para campo a campo e só envia depois do clique em Aplicar.
  * A guarda de matriz furada mora na edge; aqui a matriz incompleta só é exibida.
  *
- * A edge tem teto de 200 SKUs por chamada: este componente fatia sozinho,
- * chamando as levas SEQUENCIALMENTE e concatenando os resultados. Se uma
- * leva falhar, para ali e preserva o que já voltou (nunca descarta em silêncio).
+ * O teto da edge é de 200 SKUs por chamada; fatiamos em levas de 50 —
+ * 200 PUTs sequenciais numa leva estouram o tempo do servidor. Chamamos as
+ * levas SEQUENCIALMENTE e concatenamos os resultados. Se uma leva falhar,
+ * para ali e preserva o que já voltou (nunca descarta em silêncio).
  */
 
 export type ProdutoXpm = { sku: string; cod_cadastro: string | null };
@@ -26,7 +27,8 @@ export type ProdutoXpm = { sku: string; cod_cadastro: string | null };
 type DePara = { campo: string; xpm: unknown; novo: unknown };
 type Resultado = { sku: string; status: string; de_para?: DePara[]; bloqueios?: string[]; erro?: string };
 
-const TETO = 200;
+// Teto da edge = 200; 50 aqui é folga de tempo (200 PUTs sequenciais numa leva estouram o servidor).
+const TETO = 50;
 
 type Progresso = { leva: number; total: number };
 type Chamada = { resultados: Resultado[]; levaFalha: number | null; erroLeva: string | null };
