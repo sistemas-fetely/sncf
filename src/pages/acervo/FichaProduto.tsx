@@ -562,6 +562,11 @@ export default function FichaProduto() {
                         const pendente = vazio && (faltaAtual.has(m.campo) || faltaProxima.has(m.campo));
 
                         const textoLongo = valor.length > 120;
+                        // Campo com dimensão vira Select; a decisão vem do Map, não de lista no código.
+                        const opcoes = opcoesPorCampo.get(m.campo) ?? [];
+                        const obrigatorioAgora = Boolean(m.obrigatorio) && (!m.fase_exigida || m.fase_exigida === produto.fase);
+                        const foraDaLista = valor.trim() !== "" && !opcoes.some((o) => o.valor === valor);
+
 
                         return (
                           <div key={m.campo} className={`min-w-0 space-y-1.5 ${textoLongo ? "sm:col-span-2" : ""}`}>
