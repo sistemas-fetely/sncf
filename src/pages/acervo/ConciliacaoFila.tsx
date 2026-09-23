@@ -285,7 +285,7 @@ export default function ConciliacaoFila() {
     return m;
   }, [linhas]);
   const skusRecorte = useMemo(() => new Set(recorte.filter(l => temValor(l.sku)).map(l => String(l.sku))), [recorte]);
-  const skusPagina = useMemo(() => [...new Set(paginaLinhas.filter(l => temValor(l.sku)).map(l => String(l.sku)))], [paginaLinhas]);
+  const recorteMarcados = skusRecorte.size === 0 ? 0 : [...skusRecorte].filter(s => selecionados.has(s)).length;
   const selecionadosAtivos = useMemo<ProdutoLote[]>(
     () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p && p.fase === "ativo")
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
