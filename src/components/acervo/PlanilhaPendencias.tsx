@@ -340,6 +340,12 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
                 />
                 <span>{d.rotulo ?? d.campo}</span>
                 {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+                {(() => {
+                  const ops = opcoesPorCampo.get(d.campo) ?? [];
+                  return ops.length > 0 && ops.length <= 6
+                    ? <span className="text-xs text-muted-foreground">opções: {ops.map(o => o.valor).join(", ")}</span>
+                    : null;
+                })()}
               </label>
             );
           })}
