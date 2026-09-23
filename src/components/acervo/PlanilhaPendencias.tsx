@@ -366,6 +366,31 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     if (!v) setSelecionados(new Set());
   }
 
+  /** Uma linha do diálogo de exportação (mesmo desenho nos dois blocos). */
+  function linhaCampo(d: CampoDim) {
+    const n = faltandoCount.get(d.campo) ?? 0;
+    return (
+      <label key={d.campo} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-muted/50">
+        <Checkbox
+          checked={selecionados.has(d.campo)}
+          onCheckedChange={(v) => setSelecionados(prev => {
+            const novo = new Set(prev);
+            if (v) novo.add(d.campo); else novo.delete(d.campo);
+            return novo;
+          })}
+        />
+        <span>{d.rotulo ?? d.campo}</span>
+        {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+        {(() => {
+          const ops = opcoesPorCampo.get(d.campo) ?? [];
+          return ops.length > 0 && ops.length <= 6
+            ? <span className="text-xs text-muted-foreground">opções: {ops.map(o => o.valor).join(", ")}</span>
+            : null;
+        })()}
+      </label>
+    );
+  }
+
   if (!cods.length && !sempreVisivel) return null;
 
   const semPendencias = cods.length === 0;
