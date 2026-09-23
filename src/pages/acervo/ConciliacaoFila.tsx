@@ -24,6 +24,7 @@ import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
+import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
