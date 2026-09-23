@@ -127,6 +127,27 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     },
   });
 
+  // OPÇÕES VÁLIDAS: fonte única fn_ficha_opcoes(). Campo com dimensão só aceita valor da lista.
+  const opcoesQ = useQuery({
+    queryKey: ["ficha-opcoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_ficha_opcoes");
+      if (error) throw error;
+      return (data ?? []) as OpcaoCampo[];
+    },
+  });
+
+  const opcoesPorCampo = useMemo(() => {
+    const m = new Map<string, OpcaoCampo[]>();
+    for (const o of opcoesQ.data ?? []) {
+      const lista = m.get(o.campo) ?? [];
+      lista.push(o);
+      m.set(o.campo, lista);
+    }
+    for (const lista of m.values()) lista.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    return m;
+  }, [opcoesQ.data]);
+
   const mesa = useQuery({
     queryKey: ["mesa-pendencias", chave],
     enabled: cods.length > 0,
