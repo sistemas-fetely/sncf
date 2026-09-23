@@ -22,6 +22,7 @@ import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePa
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
+import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -270,6 +271,12 @@ export default function ConciliacaoFila() {
     () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
     [recorte],
   );
+  // MUTIRÃO: produtos ativos do recorte, deduplicados, para a regressão em lote.
+  const ativosRecorte = useMemo(() => {
+    const m = new Map<string, ProdutoLote>();
+    for (const l of recorte) if (l.fase === "ativo" && temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null });
+    return [...m.values()];
+  }, [recorte]);
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
@@ -323,6 +330,7 @@ export default function ConciliacaoFila() {
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
+        <VoltarFaseLote produtos={ativosRecorte} onFeito={() => { void fila.refetch(); }} />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
