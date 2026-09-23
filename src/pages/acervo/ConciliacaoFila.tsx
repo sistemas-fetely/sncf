@@ -335,8 +335,7 @@ export default function ConciliacaoFila() {
       return <span className="block max-w-48"><span className="block truncate">{temValor(valor) ? String(valor) : "—"}</span>{temValor(campo) && <span className="block truncate text-[10px] text-muted-foreground">{campo}</span>}</span>;
     }
     if (c.key === "onde") {
-      if (temValor(l.rota_resolver)) return <Link to={String(l.rota_resolver)} className="hover:underline">Resolver no SNCF →</Link>;
-      return <span className="text-muted-foreground">no {l.onde_resolver ?? "—"}</span>;
+      return <span className="whitespace-nowrap">{l.onde_resolver ?? "—"}{temValor(l.rota_resolver) && <> <Link to={String(l.rota_resolver)} className="hover:underline">abrir tela →</Link></>}</span>;
     }
     if (!temValor(l.o_que_fazer)) return celulaVazia;
     return <Tooltip><TooltipTrigger asChild><span className="block max-w-64 truncate text-left">{l.o_que_fazer}</span></TooltipTrigger><TooltipContent className="max-w-sm">{l.o_que_fazer}</TooltipContent></Tooltip>;
