@@ -65,7 +65,7 @@ export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBlin
 
   const comDiferenca = (previa ?? []).filter(r => r.status === "tem_diferenca");
   const semDiferenca = (previa ?? []).filter(r => r.status === "sem_diferenca");
-  const foraDoXpm = (previa ?? []).filter(r => r.status === "sem_cadastro_no_bling");
+  const semCadastro = (previa ?? []).filter(r => r.status === "sem_cadastro_no_bling");
   const incompletos = (previa ?? []).filter(r => r.status === "matriz_incompleta");
   const outros = (previa ?? []).filter(r => !["tem_diferenca", "sem_diferenca", "sem_cadastro_no_bling", "matriz_incompleta"].includes(r.status));
 
@@ -183,9 +183,9 @@ export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBlin
               <div className="flex flex-wrap gap-1">{semDiferenca.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
             </div>}
 
-            {foraDoXpm.length > 0 && <div className="space-y-1">
-              <p className="text-xs font-medium">Não estão no Bling ({foraDoXpm.length})</p>
-              <div className="flex flex-wrap gap-1">{foraDoXpm.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+            {semCadastro.length > 0 && <div className="space-y-1">
+              <p className="text-xs font-medium">Sem cadastro no Bling ({semCadastro.length})</p>
+              <div className="flex flex-wrap gap-1">{semCadastro.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
             </div>}
 
             {incompletos.length > 0 && <div className="space-y-1">
