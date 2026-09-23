@@ -5,7 +5,6 @@ import { AlertTriangle, Download, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,7 +108,6 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
   const [rodando, setRodando] = useState(false);
   const [feito, setFeito] = useState(0);
   const [resultado, setResultado] = useState<{ ok: number; falhas: Falha[] } | null>(null);
-  const [soMudancas, setSoMudancas] = useState(true);
 
   const chave = useMemo(() => [...cods].sort().join(","), [cods]);
 
@@ -246,8 +244,6 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     if (!v) { setArquivo(null); setMudancas([]); setProblemas([]); setResultado(null); setFeito(0); }
   }
 
-  const listaPrevia = soMudancas ? mudancas : mudancas;
-
   return <>
     <Button variant="outline" size="sm" onClick={exportar} disabled={mesa.isLoading || dim.isLoading || !colunas.length}>
       <Download className="mr-2 h-4 w-4" />Exportar pendências
@@ -283,7 +279,7 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
             <p className="text-sm font-medium">{produtosAlvo.length} produto(s) · {mudancas.length} campo(s) a gravar</p>
             {mudancas.length === 0 ? <p className="mt-1 text-xs text-muted-foreground">Nenhuma célula preenchida mudaria o valor atual.</p>
             : <ul className="mt-2 max-h-56 space-y-0.5 overflow-auto text-xs">
-              {listaPrevia.map((m, i) => <li key={i}>
+              {mudancas.map((m, i) => <li key={i}>
                 <span className="font-medium">{m.cod}</span> · {m.rotulo}: <span className="text-muted-foreground">{m.de || "vazio"}</span> → {m.para}
               </li>)}
             </ul>}
@@ -306,7 +302,6 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
             </ul>}
           </div>}
 
-          <div className="hidden"><Checkbox checked={soMudancas} onCheckedChange={v => setSoMudancas(v === true)} /></div>
         </div>
 
         <DialogFooter>
