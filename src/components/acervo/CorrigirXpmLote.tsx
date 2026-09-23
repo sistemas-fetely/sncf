@@ -56,7 +56,7 @@ async function chamar(skus: string[], dry_run: boolean, onProgresso?: (p: Progre
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[]; onFeito: () => void }) {
+export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoXpm[]; onFeito: () => void; sempreVisivel?: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [aplicando, setAplicando] = useState(false);
@@ -113,7 +113,7 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
     }
   }
 
-  if (!produtos.length) return null;
+  if (!produtos.length && !sempreVisivel) return null;
 
   const barra = (p: Progresso) => (
     <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
   );
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => void abrir()}>
+    <Button variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no XPM" : undefined}>
       <Wand2 className="mr-2 h-4 w-4" />Corrigir no XPM ({produtos.length})
     </Button>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>

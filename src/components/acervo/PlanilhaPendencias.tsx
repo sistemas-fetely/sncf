@@ -110,7 +110,7 @@ type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number 
 type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string; porta: string };
 type Falha = { cod: string; motivo: string };
 
-export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGravado: () => void }) {
+export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: { cods: string[]; onGravado: () => void; sempreVisivel?: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [expAberto, setExpAberto] = useState(false);
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
@@ -349,11 +349,15 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     if (!v) setSelecionados(new Set());
   }
 
+  if (!cods.length && !sempreVisivel) return null;
+
+  const semPendencias = cods.length === 0;
+
   return <>
-    <Button variant="outline" size="sm" onClick={abrirExportacao} disabled={mesa.isLoading || dim.isLoading}>
+    <Button variant="outline" size="sm" onClick={abrirExportacao} disabled={semPendencias || mesa.isLoading || dim.isLoading} title={semPendencias ? "Nenhuma pendência de dado do SNCF no recorte" : undefined}>
       <Download className="mr-2 h-4 w-4" />Exportar pendências
     </Button>
-    <Button variant="outline" size="sm" onClick={() => setAberto(true)}>
+    <Button variant="outline" size="sm" onClick={() => setAberto(true)} disabled={semPendencias} title={semPendencias ? "Nenhuma pendência de dado do SNCF no recorte" : undefined}>
       <Upload className="mr-2 h-4 w-4" />Importar preenchimento
     </Button>
 
