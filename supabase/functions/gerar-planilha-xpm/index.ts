@@ -66,6 +66,17 @@ serve(async (req) => {
         if (!authRes.ok || !token) throw new Error(`auth falhou: ${authJson?.error?.message ?? authRes.status}`);
         const hJson = { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
 
+        // Mapa categoria_id -> categoria_codigo, carregado UMA vez por invocacao.
+        // A comparacao de categoria compara CODIGOS (o payload manda id);
+        // sem entrada no mapa para o id, a categoria simplesmente nao e comparada.
+        const codigoDoMapa = new Map<string, string>();
+        if (tipo === "atualizar_cadastro_xpm") {
+          const { data: catMap, error: eCat } = await supabase
+            .from("xpm_categoria_map").select("categoria_codigo, categoria_id");
+          if (eCat) throw new Error(`xpm_categoria_map: ${eCat.message}`);
+          for (const c of (catMap ?? []) as any[]) codigoDoMapa.set(String(c.categoria_id), String(c.categoria_codigo));
+        }
+
         for (const sku of skus) {
           // ===== CORRECAO DE CADASTRO NO XPM PELA MATRIZ (de-para + PUT) =====
           if (tipo === "atualizar_cadastro_xpm") {
@@ -105,7 +116,10 @@ serve(async (req) => {
             cmpNum("altura_m", cache.altura_m, p1.altura);
             cmpNum("largura_m", cache.largura_m, p1.largura);
             cmpNum("comprimento_m", cache.comprimento_m, p1.comprimento);
-            cmpTexto("categoria", so(cache.categoria_codigo), so(p1.categoriaId));
+            // Categoria: o payload manda categoriaId; comparamos CODIGO do mapa.
+            // Id sem entrada no mapa -> nao acusa (nao ha como comparar).
+            const codMapaNovo = codigoDoMapa.get(String(p1.categoriaId));
+            if (codMapaNovo !== undefined) cmpTexto("categoria", so(cache.categoria_codigo), codMapaNovo);
 
             if (de_para.length === 0) { resultados.push({ sku, status: "sem_diferenca" }); continue; }
             if (dry_run) { resultados.push({ sku, status: "tem_diferenca", xpm_produto_id: cache.xpm_produto_id, de_para }); continue; }
@@ -119,6 +133,8 @@ serve(async (req) => {
               continue;
             }
             // Espelha o que foi enviado para a leitura refletir na hora.
+            // categoria_codigo: codigo do mapa correspondente ao id enviado (quando existir).
+            const codEspelho = codigoDoMapa.get(String(p1.categoriaId));
             const { error: eUpd } = await supabase.from("xpm_produtos_cache").update({
               descricao: p1.descricao ?? null,
               ncm: p1.classificacaoFiscalNCM ?? null,
@@ -126,6 +142,7 @@ serve(async (req) => {
               altura_m: num(p1.altura),
               largura_m: num(p1.largura),
               comprimento_m: num(p1.comprimento),
+              ...(codEspelho !== undefined ? { categoria_codigo: codEspelho } : {}),
               sincronizado_em: new Date().toISOString(),
             }).eq("codigo", sku);
             if (eUpd) throw new Error(`espelho xpm_produtos_cache ${sku}: ${eUpd.message}`);
