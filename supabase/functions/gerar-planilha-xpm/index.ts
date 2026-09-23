@@ -238,7 +238,7 @@ serve(async (req) => {
         });
       } catch (e) {
         const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
-          sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "erro",
+          sistema: "zenlog_prd", tipo: tipo === "atualizar_cadastro_xpm" ? "produto_update" : "cadastro_xpm", status: "erro",
           registros_criados: 0, registros_erro: skus.length, duracao_ms: Date.now() - t0,
           detalhes: { acao: tipo, dry_run, erro: (e as Error).message, resultados },
         });
