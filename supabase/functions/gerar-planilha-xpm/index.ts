@@ -210,12 +210,28 @@ serve(async (req) => {
 
         const okQtd = resultados.filter((r) => r.status === "ok").length;
         const errQtd = resultados.filter((r) => typeof r.status === "string" && r.status !== "ok" && r.status !== "dry_run").length;
-        const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
-          sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "sucesso",
-          registros_criados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
-          detalhes: { acao: tipo, dry_run, resultados },
-        });
-        if (eLog) throw new Error(`log: ${eLog.message}`);
+        if (tipo === "atualizar_cadastro_xpm") {
+          // Dry-run nao e execucao: nao registra log.
+          if (!dry_run) {
+            const { error: eLogU } = await supabase.from("integracoes_sync_log").insert({
+              sistema: "zenlog_prd", tipo: "produto_update", status: errQtd > 0 ? "parcial" : "sucesso",
+              registros_atualizados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
+              detalhes: {
+                acao: tipo,
+                oks: resultados.filter((r) => r.status === "ok"),
+                falhas: resultados.filter((r) => r.status !== "ok"),
+              },
+            });
+            if (eLogU) throw new Error(`log: ${eLogU.message}`);
+          }
+        } else {
+          const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
+            sistema: "zenlog_prd", tipo: "cadastro_xpm", status: "sucesso",
+            registros_criados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
+            detalhes: { acao: tipo, dry_run, resultados },
+          });
+          if (eLog) throw new Error(`log: ${eLog.message}`);
+        }
 
         return new Response(JSON.stringify({ ok: true, tipo, dry_run, total: skus.length, resultados }), {
           headers: { ...cors, "Content-Type": "application/json" },
