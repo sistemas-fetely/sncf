@@ -299,15 +299,14 @@ export default function ConciliacaoFila() {
   );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
-  const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
     const novo = new Set(prev);
     if (novo.has(sku)) novo.delete(sku); else novo.add(sku);
     return novo;
   });
-  const alternarPagina = (marcar: boolean) => setSelecionados(prev => {
+  const alternarRecorte = (marcar: boolean) => setSelecionados(prev => {
     const novo = new Set(prev);
-    for (const s of skusPagina) { if (marcar) novo.add(s); else novo.delete(s); }
+    for (const s of skusRecorte) { if (marcar) novo.add(s); else novo.delete(s); }
     return novo;
   });
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
