@@ -263,13 +263,64 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     if (!v) { setArquivo(null); setMudancas([]); setProblemas([]); setResultado(null); setFeito(0); }
   }
 
+  function fecharExportacao(v: boolean) {
+    setExpAberto(v);
+    if (!v) setSelecionados(new Set());
+  }
+
   return <>
-    <Button variant="outline" size="sm" onClick={exportar} disabled={mesa.isLoading || dim.isLoading || !colunas.length}>
+    <Button variant="outline" size="sm" onClick={abrirExportacao} disabled={mesa.isLoading || dim.isLoading}>
       <Download className="mr-2 h-4 w-4" />Exportar pendências
     </Button>
     <Button variant="outline" size="sm" onClick={() => setAberto(true)}>
       <Upload className="mr-2 h-4 w-4" />Importar preenchimento
     </Button>
+
+    <Dialog open={expAberto} onOpenChange={fecharExportacao}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Exportar planilha de cadastro</DialogTitle>
+          <DialogDescription>Escolha as colunas da planilha. Os campos que faltam no recorte vêm marcados; célula vazia na planilha significa que o produto está sem o valor.</DialogDescription>
+        </DialogHeader>
+
+        {(mesa.error || dim.error) && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível ler os valores atuais. Detalhe: {(mesa.error ?? dim.error as Error)?.message}</AlertDescription></Alert>}
+
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setSelecionados(new Set((dim.data ?? []).map(d => d.campo)))}>Marcar todos</Button>
+          <Button variant="outline" size="sm" onClick={marcarFaltantes} disabled={!colunas.length}>Só os faltantes</Button>
+          <span className="ml-auto text-xs text-muted-foreground">{selecionados.size} coluna(s) marcada(s)</span>
+        </div>
+
+        <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-3">
+          {(dim.data ?? []).map(d => {
+            const n = faltandoCount.get(d.campo) ?? 0;
+            return (
+              <label key={d.campo} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-muted/50">
+                <Checkbox
+                  checked={selecionados.has(d.campo)}
+                  onCheckedChange={(v) => setSelecionados(prev => {
+                    const novo = new Set(prev);
+                    if (v) novo.add(d.campo); else novo.delete(d.campo);
+                    return novo;
+                  })}
+                />
+                <span>{d.rotulo ?? d.campo}</span>
+                {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+              </label>
+            );
+          })}
+          {(dim.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum campo importável cadastrado.</p>}
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => fecharExportacao(false)}>Fechar</Button>
+          <Button onClick={() => exportarCom((dim.data ?? []).filter(d => selecionados.has(d.campo)))} disabled={selecionados.size === 0}>
+            Exportar {selecionados.size} coluna(s)
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
 
     <Dialog open={aberto} onOpenChange={fechar}>
       <DialogContent className="max-w-2xl">
