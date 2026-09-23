@@ -161,20 +161,27 @@ serve(async (req) => {
         if (txt(atual.situacao) !== alvo) { de_para.push({ campo: "situacao", bling: atual.situacao ?? null, novo: alvo }); novo.situacao = alvo; }
       }
 
-      if (!de_para.length) { resultados.push({ sku, bling_id: blingId, status: "sem_diferenca" }); continue; }
-      if (dryRun) { resultados.push({ sku, bling_id: blingId, status: "tem_diferenca", de_para }); continue; }
+      if (dryRun) {
+        if (!de_para.length) { resultados.push({ sku, bling_id: blingId, status: "sem_diferenca" }); continue; }
+        resultados.push({ sku, bling_id: blingId, status: "tem_diferenca", de_para });
+        continue;
+      }
 
+      // Execução: sem diferença não há PUT — mas o GET+espelho abaixo roda igual,
+      // para o espelho local ser atualizado à força mesmo sem nada a enviar.
       let putErro = "";
-      try {
-        await sleep(THROTTLE_MS);
-        const res = await fetch(`${BLING_BASE}/produtos/${blingId}`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${client!.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify(novo),
-        });
-        if (!res.ok) putErro = `Bling PUT ${res.status}: ${(await res.text()).slice(0, 800)}`;
-      } catch (e) {
-        putErro = e instanceof Error ? e.message : String(e);
+      if (de_para.length) {
+        try {
+          await sleep(THROTTLE_MS);
+          const res = await fetch(`${BLING_BASE}/produtos/${blingId}`, {
+            method: "PUT",
+            headers: { Authorization: `Bearer ${client!.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify(novo),
+          });
+          if (!res.ok) putErro = `Bling PUT ${res.status}: ${(await res.text()).slice(0, 800)}`;
+        } catch (e) {
+          putErro = e instanceof Error ? e.message : String(e);
+        }
       }
       if (putErro) { resultados.push({ sku, bling_id: blingId, status: "erro_put", de_para, erro: putErro }); continue; }
 

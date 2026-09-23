@@ -68,6 +68,8 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
   const semCadastro = (previa ?? []).filter(r => r.status === "sem_cadastro_no_bling");
   const incompletos = (previa ?? []).filter(r => r.status === "matriz_incompleta");
   const outros = (previa ?? []).filter(r => !["tem_diferenca", "sem_diferenca", "sem_cadastro_no_bling", "matriz_incompleta"].includes(r.status));
+  // Tudo que foi para o Bling (diferença ou já igual): o edge atualiza o espelho mesmo sem diferença.
+  const aplicaveis = [...comDiferenca, ...semDiferenca];
 
   const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); setProgresso(null); setAviso(null); };
   const recomparar = (v: boolean) => { setAtivarCard(v); void comparar(v); };
@@ -96,7 +98,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
   }
 
   async function aplicar() {
-    const skus = comDiferenca.map(r => r.sku);
+    const skus = aplicaveis.map(r => r.sku);
     if (!skus.length) return;
     setAplicando(true);
     try {
@@ -210,8 +212,9 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
             ? <Button variant="outline" onClick={() => { setAberto(false); zerar(); }}>Fechar</Button>
             : <>
               <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>
-              <Button disabled={carregando || aplicando || comDiferenca.length === 0} onClick={() => void aplicar()}>
-                {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar {comDiferenca.length} correções
+              <Button disabled={carregando || aplicando || aplicaveis.length === 0} onClick={() => void aplicar()}>
+                {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length})`}
               </Button>
             </>}
         </DialogFooter>
