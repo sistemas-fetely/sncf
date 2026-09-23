@@ -46649,6 +46649,7 @@ export type Database = {
           fase_exigida: string | null
           obrigatorio: boolean
           ordem: number
+          rotulo: string | null
           rotulo_separado: string | null
         }
         Insert: {
@@ -46660,6 +46661,7 @@ export type Database = {
           fase_exigida?: string | null
           obrigatorio?: boolean
           ordem: number
+          rotulo?: string | null
           rotulo_separado?: string | null
         }
         Update: {
@@ -46671,6 +46673,7 @@ export type Database = {
           fase_exigida?: string | null
           obrigatorio?: boolean
           ordem?: number
+          rotulo?: string | null
           rotulo_separado?: string | null
         }
         Relationships: [
