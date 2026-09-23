@@ -181,7 +181,8 @@ serve(async (req) => {
       const { error: upErr } = await supabase.from("bling_produtos_cache")
         .update({ nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("sku", sku);
 
-      // Espelho em dia na hora: re-GET do Bling e grava o detalhe na cache,
+      // Espelho em dia na hora: re-GET do Bling e grava na tabela `produtos`
+      // (espelho do Bling, chave bling_id) só os campos que a edge corrige,
       // para a fila refletir sem esperar o próximo sync. Falha aqui não
       // desconta o PUT — só vira aviso no de_para aplicado.
       await sleep(THROTTLE_MS);
@@ -190,14 +191,23 @@ serve(async (req) => {
         const r2 = await client!.get(`/produtos/${blingId}`);
         const detalhe = r2?.data ?? null;
         if (!detalhe?.id) {
-          avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+          avisoEspelho = "atualização do espelho falhou, fila pode demorar a limpar";
         } else {
-          const { error: detErr } = await supabase.from("bling_produtos_cache")
-            .update({ detalhe_payload: detalhe, atualizado_em: new Date().toISOString() }).eq("sku", sku);
-          if (detErr) avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+          const dim = (novo.dimensoes ?? {}) as any;
+          const { error: espErr } = await supabase.from("produtos").update({
+            gtin: novo.gtin,
+            preco_venda: novo.preco,
+            peso_liquido: novo.pesoLiquido,
+            peso_bruto: novo.pesoBruto,
+            altura_cm: dim.altura,
+            largura_cm: dim.largura,
+            profundidade_cm: dim.profundidade,
+            detalhe_payload: detalhe,
+          }).eq("bling_id", String(blingId));
+          if (espErr) avisoEspelho = `atualização do espelho falhou, fila pode demorar a limpar (${espErr.message})`;
         }
       } catch (_) {
-        avisoEspelho = "atualização do cache falhou, fila pode demorar a limpar";
+        avisoEspelho = "atualização do espelho falhou, fila pode demorar a limpar";
       }
       if (avisoEspelho) de_para.push({ campo: "espelho", bling: null, novo: avisoEspelho });
 

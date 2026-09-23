@@ -6756,6 +6756,7 @@ export type Database = {
           atualizado_em: string | null
           bling_produto_id: number
           criado_em: string | null
+          detalhe_payload: Json | null
           id: string
           nome: string | null
           sku: string
@@ -6764,6 +6765,7 @@ export type Database = {
           atualizado_em?: string | null
           bling_produto_id: number
           criado_em?: string | null
+          detalhe_payload?: Json | null
           id?: string
           nome?: string | null
           sku: string
@@ -6772,6 +6774,7 @@ export type Database = {
           atualizado_em?: string | null
           bling_produto_id?: number
           criado_em?: string | null
+          detalhe_payload?: Json | null
           id?: string
           nome?: string | null
           sku?: string
