@@ -22,6 +22,7 @@ import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePa
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
+import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
