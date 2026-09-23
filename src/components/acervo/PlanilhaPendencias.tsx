@@ -205,7 +205,11 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     setExpAberto(true);
   }
 
-  const importaveis = useMemo(() => new Map((dim.data ?? []).map(d => [d.campo, d])), [dim.data]);
+  // Campo sem porta de escrita não é importável na prática: ninguém sabe por onde gravar.
+  const importaveis = useMemo(
+    () => new Map((dim.data ?? []).filter(d => (d.porta_escrita ?? "").trim() !== "").map(d => [d.campo, d])),
+    [dim.data],
+  );
 
   function exportarCom(campos: CampoDim[]) {
     const cab = ["cod_cadastro", "sku", "nome_comercial", ...campos.map(c => c.campo)];
