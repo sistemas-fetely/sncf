@@ -15,6 +15,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
  * SISTEMA SUGERE / HUMANO DECIDE: o diálogo abre sempre em dry-run (nenhum PUT),
  * mostra o de-para campo a campo e só envia depois do clique em Aplicar.
  * A guarda de matriz furada mora na edge; aqui a matriz incompleta só é exibida.
+ *
+ * A edge tem teto de 200 SKUs por chamada: este componente fatia sozinho,
+ * chamando as levas SEQUENCIALMENTE e concatenando os resultados. Se uma
+ * leva falhar, para ali e preserva o que já voltou (nunca descarta em silêncio).
  */
 
 export type ProdutoXpm = { sku: string; cod_cadastro: string | null };
@@ -22,28 +26,32 @@ export type ProdutoXpm = { sku: string; cod_cadastro: string | null };
 type DePara = { campo: string; xpm: unknown; novo: unknown };
 type Resultado = { sku: string; status: string; de_para?: DePara[]; bloqueios?: string[]; erro?: string };
 
-const rotulos: Record<string, string> = {
-  descricao: "Descrição",
-  ncm: "NCM",
-  peso_kg: "Peso (kg)",
-  altura_m: "Altura (m)",
-  largura_m: "Largura (m)",
-  comprimento_m: "Comprimento (m)",
-  categoria: "Categoria",
-};
+const TETO = 200;
 
-function mostrar(v: unknown): string {
-  if (v === null || v === undefined || v === "") return "—";
-  return String(v);
-}
+type Progresso = { leva: number; total: number };
+type Chamada = { resultados: Resultado[]; levaFalha: number | null; erroLeva: string | null };
 
-async function chamar(skus: string[], dry_run: boolean): Promise<Resultado[]> {
-  const { data, error } = await supabase.functions.invoke("gerar-planilha-xpm", {
-    body: { tipo: "atualizar_cadastro_xpm", skus, dry_run },
-  });
-  if (error) throw error;
-  if (!data || data.ok !== true) throw data ?? new Error("Resposta vazia da função");
-  return (data.resultados ?? []) as Resultado[];
+async function chamar(skus: string[], dry_run: boolean, onProgresso?: (p: Progresso) => void): Promise<Chamada> {
+  const levas: string[][] = [];
+  for (let i = 0; i < skus.length; i += TETO) levas.push(skus.slice(i, i + TETO));
+  const total = levas.length;
+
+  const resultados: Resultado[] = [];
+  for (let i = 0; i < total; i++) {
+    onProgresso?.({ leva: i + 1, total });
+    try {
+      const { data, error } = await supabase.functions.invoke("gerar-planilha-xpm", {
+        body: { tipo: "atualizar_cadastro_xpm", skus: levas[i], dry_run },
+      });
+      if (error) throw error;
+      if (!data || data.ok !== true) throw data ?? new Error("Resposta vazia da função");
+      resultados.push(...((data.resultados ?? []) as Resultado[]));
+    } catch (e) {
+      // FAIL-LOUD sem perder o feito: devolve o que já voltou + a falha nomeada.
+      return { resultados, levaFalha: i + 1, erroLeva: formatError(e) };
+    }
+  }
+  return { resultados, levaFalha: null, erroLeva: null };
 }
 
 export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[]; onFeito: () => void }) {
@@ -52,6 +60,8 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
   const [aplicando, setAplicando] = useState(false);
   const [previa, setPrevia] = useState<Resultado[] | null>(null);
   const [final, setFinal] = useState<Resultado[] | null>(null);
+  const [progresso, setProgresso] = useState<Progresso | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
 
   const cod = (sku: string) => produtos.find(p => p.sku === sku)?.cod_cadastro ?? sku;
 
@@ -61,19 +71,22 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
   const incompletos = (previa ?? []).filter(r => r.status === "matriz_incompleta");
   const outros = (previa ?? []).filter(r => !["tem_diferenca", "sem_diferenca", "nao_esta_no_xpm", "matriz_incompleta"].includes(r.status));
 
-  const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); };
+  const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); setProgresso(null); setAviso(null); };
 
   async function abrir() {
     zerar();
     setAberto(true);
     setCarregando(true);
     try {
-      setPrevia(await chamar(produtos.map(p => p.sku), true));
+      const res = await chamar(produtos.map(p => p.sku), true, setProgresso);
+      setPrevia(res.resultados);
+      if (res.erroLeva) setAviso(`comparação incompleta: leva ${res.levaFalha} falhou — ${res.erroLeva}`);
     } catch (e) {
       toast.error("Não foi possível comparar com o XPM", { description: formatError(e) });
       setAberto(false);
     } finally {
       setCarregando(false);
+      setProgresso(null);
     }
   }
 
@@ -82,10 +95,11 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
     if (!skus.length) return;
     setAplicando(true);
     try {
-      const res = await chamar(skus, false);
-      setFinal(res);
-      const oks = res.filter(r => r.status === "ok").length;
-      const falhas = res.filter(r => r.status !== "ok");
+      const res = await chamar(skus, false, setProgresso);
+      setFinal(res.resultados);
+      if (res.erroLeva) setAviso(`comparação incompleta: leva ${res.levaFalha} falhou — ${res.erroLeva}`);
+      const oks = res.resultados.filter(r => r.status === "ok").length;
+      const falhas = res.resultados.filter(r => r.status !== "ok");
       if (falhas.length) toast.error(`${oks} corrigidos no XPM · ${falhas.length} falharam`, { description: "Veja a lista de falhas no diálogo." });
       else toast.success(`${oks} produtos corrigidos no XPM`);
       onFeito();
@@ -93,10 +107,20 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
       toast.error("A correção no XPM falhou", { description: formatError(e) });
     } finally {
       setAplicando(false);
+      setProgresso(null);
     }
   }
 
   if (!produtos.length) return null;
+
+  const barra = (p: Progresso) => (
+    <div className="flex items-center gap-2">
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${(p.leva / p.total) * 100}%` }} />
+      </div>
+      <span className="text-xs text-muted-foreground">{p.leva}/{p.total}</span>
+    </div>
+  );
 
   return <>
     <Button variant="outline" size="sm" onClick={() => void abrir()}>
@@ -109,7 +133,29 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
           <DialogDescription>Nada é enviado antes de você clicar em Aplicar. O sistema só mostra o que mudaria.</DialogDescription>
         </DialogHeader>
 
-        {carregando && <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Comparando {produtos.length} produto(s) com o XPM…</div>}
+        {carregando && (
+          <div className="space-y-2 py-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {progresso
+                ? <>Comparando leva {progresso.leva} de {progresso.total} ({Math.min(progresso.leva * TETO, produtos.length)} produtos)…</>
+                : <>Comparando {produtos.length} produto(s) com o XPM…</>}
+            </div>
+            {progresso && barra(progresso)}
+          </div>
+        )}
+
+        {aviso && <p className="text-sm text-destructive">{aviso}</p>}
+
+        {aplicando && progresso && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <>Corrigindo leva {progresso.leva} de {progresso.total}…</>
+            </div>
+            {barra(progresso)}
+          </div>
+        )}
 
         {!carregando && !final && previa && <ScrollArea className="max-h-[22rem] pr-3">
           <div className="space-y-4">
@@ -161,4 +207,19 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
       </DialogContent>
     </Dialog>
   </>;
+}
+
+const rotulos: Record<string, string> = {
+  descricao: "Descrição",
+  ncm: "NCM",
+  peso_kg: "Peso (kg)",
+  altura_m: "Altura (m)",
+  largura_m: "Largura (m)",
+  comprimento_m: "Comprimento (m)",
+  categoria: "Categoria",
+};
+
+function mostrar(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  return String(v);
 }
