@@ -66,6 +66,17 @@ serve(async (req) => {
         if (!authRes.ok || !token) throw new Error(`auth falhou: ${authJson?.error?.message ?? authRes.status}`);
         const hJson = { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
 
+        // Mapa categoria_id -> categoria_codigo, carregado UMA vez por invocacao.
+        // A comparacao de categoria compara CODIGOS (o payload manda id);
+        // sem entrada no mapa para o id, a categoria simplesmente nao e comparada.
+        const codigoDoMapa = new Map<string, string>();
+        if (tipo === "atualizar_cadastro_xpm") {
+          const { data: catMap, error: eCat } = await supabase
+            .from("xpm_categoria_map").select("categoria_codigo, categoria_id");
+          if (eCat) throw new Error(`xpm_categoria_map: ${eCat.message}`);
+          for (const c of (catMap ?? []) as any[]) codigoDoMapa.set(String(c.categoria_id), String(c.categoria_codigo));
+        }
+
         for (const sku of skus) {
           // ===== CORRECAO DE CADASTRO NO XPM PELA MATRIZ (de-para + PUT) =====
           if (tipo === "atualizar_cadastro_xpm") {
