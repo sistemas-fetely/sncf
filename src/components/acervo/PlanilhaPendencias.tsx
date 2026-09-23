@@ -394,29 +394,12 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
         </div>
 
         <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-3">
-          {(dim.data ?? []).map(d => {
-            const n = faltandoCount.get(d.campo) ?? 0;
-            return (
-              <label key={d.campo} className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-muted/50">
-                <Checkbox
-                  checked={selecionados.has(d.campo)}
-                  onCheckedChange={(v) => setSelecionados(prev => {
-                    const novo = new Set(prev);
-                    if (v) novo.add(d.campo); else novo.delete(d.campo);
-                    return novo;
-                  })}
-                />
-                <span>{d.rotulo ?? d.campo}</span>
-                {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
-                {(() => {
-                  const ops = opcoesPorCampo.get(d.campo) ?? [];
-                  return ops.length > 0 && ops.length <= 6
-                    ? <span className="text-xs text-muted-foreground">opções: {ops.map(o => o.valor).join(", ")}</span>
-                    : null;
-                })()}
-              </label>
-            );
-          })}
+          {listaExibicao.faltantes.length > 0 && <p className="pt-1 text-xs text-muted-foreground">Faltando no recorte</p>}
+          {listaExibicao.faltantes.map(d => linhaCampo(d))}
+          {listaExibicao.faltantes.length > 0 && listaExibicao.demais.length > 0 && (
+            <p className="border-t pt-2 text-xs text-muted-foreground">Demais campos (já preenchidos)</p>
+          )}
+          {listaExibicao.demais.map(d => linhaCampo(d))}
           {(dim.data ?? []).length === 0 && <p className="text-sm text-muted-foreground">Nenhum campo importável cadastrado.</p>}
         </div>
 
