@@ -46670,6 +46670,7 @@ export type Database = {
           obrigatorio: boolean
           onde_resolver: string
           ordem: number
+          porta_escrita: string | null
           rota_resolver: string | null
           rotulo: string | null
           rotulo_separado: string | null
@@ -46687,6 +46688,7 @@ export type Database = {
           obrigatorio?: boolean
           onde_resolver?: string
           ordem: number
+          porta_escrita?: string | null
           rota_resolver?: string | null
           rotulo?: string | null
           rotulo_separado?: string | null
@@ -46704,6 +46706,7 @@ export type Database = {
           obrigatorio?: boolean
           onde_resolver?: string
           ordem?: number
+          porta_escrita?: string | null
           rota_resolver?: string | null
           rotulo?: string | null
           rotulo_separado?: string | null
@@ -89836,14 +89839,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -94750,6 +94753,7 @@ export type Database = {
           foto_origem: string | null
           foto_url: string | null
           grupo: string | null
+          inner_qtd: number | null
           largura_cm: number | null
           linha: string | null
           marca: string | null
@@ -99506,14 +99510,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -105682,6 +105686,10 @@ export type Database = {
           p_motivo: string
           p_qtd: number
         }
+        Returns: Json
+      }
+      fn_cartorio_definir_inner: {
+        Args: { p_cod_cadastro: string; p_inner: number; p_motivo: string }
         Returns: Json
       }
       fn_casar_nf_por_fob: {
