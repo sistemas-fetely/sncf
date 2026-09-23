@@ -188,6 +188,28 @@ export default function FichaProduto() {
     },
   });
 
+  // OPÇÕES DE CAMPO: fonte única fn_ficha_opcoes(). Campo que aparece aqui vira Select;
+  // o resto continua Input. Nenhum nome de campo escrito na tela.
+  const opcoesQ = useQuery({
+    queryKey: ["ficha-opcoes"],
+    queryFn: async (): Promise<OpcaoCampo[]> => {
+      const { data, error } = await supabase.rpc("fn_ficha_opcoes");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as OpcaoCampo[];
+    },
+  });
+
+  const opcoesPorCampo = useMemo(() => {
+    const m = new Map<string, OpcaoCampo[]>();
+    for (const o of opcoesQ.data ?? []) {
+      const lista = m.get(o.campo) ?? [];
+      lista.push(o);
+      m.set(o.campo, lista);
+    }
+    for (const lista of m.values()) lista.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    return m;
+  }, [opcoesQ.data]);
+
   const fasesQ = useQuery({
     queryKey: ["produto-fase-dim"],
     queryFn: async (): Promise<FaseProduto[]> => {
