@@ -116,6 +116,8 @@ export default function ConciliacaoFila() {
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
+  // Seleção por PRODUTO (chave = sku). Mudar filtro não limpa: quem limpa é o usuário.
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
 
   // FILTRO-MORA-NA-URL: a Mesa e o resto do sistema linkam já filtrado.
