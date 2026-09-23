@@ -46658,6 +46658,7 @@ export type Database = {
           descricao: string | null
           dono: string
           fase_exigida: string | null
+          importavel_planilha: boolean
           obrigatorio: boolean
           ordem: number
           rotulo: string | null
@@ -46670,6 +46671,7 @@ export type Database = {
           descricao?: string | null
           dono: string
           fase_exigida?: string | null
+          importavel_planilha?: boolean
           obrigatorio?: boolean
           ordem: number
           rotulo?: string | null
@@ -46682,6 +46684,7 @@ export type Database = {
           descricao?: string | null
           dono?: string
           fase_exigida?: string | null
+          importavel_planilha?: boolean
           obrigatorio?: boolean
           ordem?: number
           rotulo?: string | null
@@ -87277,14 +87280,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -88231,14 +88234,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -89794,14 +89797,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -94673,6 +94676,7 @@ export type Database = {
           ativo: boolean | null
           atualizado_em: string | null
           campos_fora_do_espelho: string[] | null
+          canal_venda: string | null
           categoria: string | null
           cest: string | null
           cod_bling: string | null
