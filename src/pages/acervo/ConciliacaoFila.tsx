@@ -157,7 +157,9 @@ export default function ConciliacaoFila() {
 
   // POSTGREST-CORTA-EM-MIL (22/09/2026): a view tem 3.348 linhas e o corte
   // silencioso mostrava 877 divergências no lugar de 2.860. Lê em páginas de
-  // 1.000 com ordem estável (sku, regra) até a página vir incompleta.
+  // 1.000 com ordem única e estável (linha_id) até a página vir incompleta.
+  // (sku, regra) não é único — a mesma regra emite duas linhas do mesmo produto
+  // e o corte na borda da página podia duplicar/omitir linha.
   const fila = useQuery({
     queryKey: ["conciliacao-fila"],
     queryFn: async () => {
@@ -167,8 +169,7 @@ export default function ConciliacaoFila() {
         const { data, error } = await supabase
           .from("vw_conciliacao_fila" as never)
           .select("*")
-          .order("sku")
-          .order("regra")
+          .order("linha_id")
           .range(de, de + PAGINA - 1);
         if (error) throw error;
         const pagina = (data ?? []) as FilaLinha[];
