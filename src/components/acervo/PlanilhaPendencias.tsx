@@ -270,7 +270,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
       .filter((l): l is LinhaMesa => !!l)
       .map(l => {
         const falta = new Set(l.falta_fase_atual ?? []);
-        return [l.cod_cadastro, l.sku, l.nome_comercial, ...campos.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
+        return [celulaCod(l.cod_cadastro), l.sku, l.nome_comercial, ...campos.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
           .map(csvCelula).join(";");
       }).join("\n");
     const url = URL.createObjectURL(new Blob(["\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo], { type: "text/csv;charset=utf-8;" }));
