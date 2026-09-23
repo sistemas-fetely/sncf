@@ -46628,6 +46628,7 @@ export type Database = {
       }
       produto_fase_dim: {
         Row: {
+          cobra_ficha_na_fila: boolean
           descricao: string | null
           nome: string
           ordem: number
@@ -46635,6 +46636,7 @@ export type Database = {
           visivel_catalogo: boolean
         }
         Insert: {
+          cobra_ficha_na_fila?: boolean
           descricao?: string | null
           nome: string
           ordem: number
@@ -46642,6 +46644,7 @@ export type Database = {
           visivel_catalogo: boolean
         }
         Update: {
+          cobra_ficha_na_fila?: boolean
           descricao?: string | null
           nome?: string
           ordem?: number
