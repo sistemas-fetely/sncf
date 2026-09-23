@@ -38,6 +38,7 @@ const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
  * tudo vem de `vw_conciliacao_fila` e `divergencia_regra`.
  */
 type FilaLinha = {
+  linha_id: string;
   cod_cadastro: string | null; sku: string; nome_comercial: string | null;
   colecao: string | null; grupo: string | null; fase: string | null;
   regra: string; regra_nome: string | null; sistema: string | null;
@@ -156,7 +157,9 @@ export default function ConciliacaoFila() {
 
   // POSTGREST-CORTA-EM-MIL (22/09/2026): a view tem 3.348 linhas e o corte
   // silencioso mostrava 877 divergências no lugar de 2.860. Lê em páginas de
-  // 1.000 com ordem estável (sku, regra) até a página vir incompleta.
+  // 1.000 com ordem única e estável (linha_id) até a página vir incompleta.
+  // (sku, regra) não é único — a mesma regra emite duas linhas do mesmo produto
+  // e o corte na borda da página podia duplicar/omitir linha.
   const fila = useQuery({
     queryKey: ["conciliacao-fila"],
     queryFn: async () => {
@@ -166,8 +169,7 @@ export default function ConciliacaoFila() {
         const { data, error } = await supabase
           .from("vw_conciliacao_fila" as never)
           .select("*")
-          .order("sku")
-          .order("regra")
+          .order("linha_id")
           .range(de, de + PAGINA - 1);
         if (error) throw error;
         const pagina = (data ?? []) as FilaLinha[];
@@ -424,7 +426,7 @@ export default function ConciliacaoFila() {
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
           </TableHead>)}
         </TableRow></TableHeader>
-        <TableBody>{paginaLinhas.map(l => <Fragment key={`${l.sku}|${l.regra}`}>
+        <TableBody>{paginaLinhas.map(l => <Fragment key={l.linha_id}>
           <TableRow className="border-b">
             <TableCell className="py-2.5 align-top">
               <Checkbox
@@ -442,7 +444,7 @@ export default function ConciliacaoFila() {
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
           {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
-            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={`${x.sku}|${x.regra}`} l={x} />)}</div>
+            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={x.linha_id} l={x} />)}</div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
       </Table>
