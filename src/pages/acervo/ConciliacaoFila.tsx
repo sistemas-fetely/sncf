@@ -313,12 +313,27 @@ export default function ConciliacaoFila() {
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
-  // Correção no XPM não olha fase: vale para qualquer produto selecionado.
+  // Correção não olha fase: vale para qualquer produto selecionado — mas cada
+  // botão só recebe selecionados com pendência do sistema dele (derive de
+  // `linhas`, não do recorte filtrado, para não depender do filtro atual).
   const selecionadosProdutos = useMemo<ProdutoXpm[]>(
     () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p)
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
+  const sistemasPorSku = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const l of linhas) {
+      if (!temValor(l.sku) || !temValor(l.onde_resolver)) continue;
+      let set = m.get(String(l.sku));
+      if (!set) { set = new Set(); m.set(String(l.sku), set); }
+      set.add(l.onde_resolver);
+    }
+    return m;
+  }, [linhas]);
+  const filtrarPorSistema = (sistema: string) => selecionadosProdutos.filter(p => sistemasPorSku.get(p.sku)?.has(sistema));
+  const selecionadosProdutosXpm = useMemo(() => filtrarPorSistema("XPM"), [selecionadosProdutos, sistemasPorSku]);
+  const selecionadosProdutosBling = useMemo(() => filtrarPorSistema("Bling"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
@@ -386,8 +401,8 @@ export default function ConciliacaoFila() {
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
-        <CorrigirXpmLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
-        <CorrigirBlingLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
+        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} />
+        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} />
         {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
