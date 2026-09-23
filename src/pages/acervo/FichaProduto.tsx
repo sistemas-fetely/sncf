@@ -51,6 +51,9 @@ type LinhaMatriz = {
 
 type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
 
+/** Sentinela do item "— vazio —": o Select não aceita item com valor vazio. Grava null. */
+const SEM_VALOR = "__vazio__";
+
 type LinhaProduto = Record<string, unknown> & {
   cod_cadastro: string | null;
   sku: string | null;
