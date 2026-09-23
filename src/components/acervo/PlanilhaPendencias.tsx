@@ -244,9 +244,21 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
         if (!dimCampo) continue;
         const novo = (l[i] ?? "").trim();
         if (!novo) continue;
+        // Campo com dimensão: aceita valor OU rótulo digitado, sem distinguir caixa; grava o valor.
+        const opcoes = opcoesPorCampo.get(dimCampo.campo) ?? [];
+        let paraGravar = novo;
+        if (opcoes.length > 0) {
+          const alvo = novo.toLocaleLowerCase("pt-BR");
+          const achou = opcoes.find(o => o.valor.toLocaleLowerCase("pt-BR") === alvo || (o.rotulo ?? "").toLocaleLowerCase("pt-BR") === alvo);
+          if (!achou) {
+            avisos.push(`${cod} · ${dimCampo.campo}: "${novo}" não é uma opção válida (opções: ${opcoes.map(o => o.valor).join(", ")})`);
+            continue;
+          }
+          paraGravar = achou.valor;
+        }
         const de = textoValor(atual[dimCampo.campo]);
-        if (de === novo) continue;
-        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: novo });
+        if (de === paraGravar) continue;
+        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar });
       }
     }
     setMudancas(encontradas);
