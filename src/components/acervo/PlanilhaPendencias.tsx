@@ -388,6 +388,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
         />
         <span>{d.rotulo ?? d.campo}</span>
         {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+        {n === 0 && d.contexto_planilha && <span className="text-xs text-muted-foreground">contexto</span>}
         {(() => {
           const ops = opcoesPorCampo.get(d.campo) ?? [];
           return ops.length > 0 && ops.length <= 6
