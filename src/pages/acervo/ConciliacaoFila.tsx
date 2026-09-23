@@ -285,7 +285,7 @@ export default function ConciliacaoFila() {
     return m;
   }, [linhas]);
   const skusRecorte = useMemo(() => new Set(recorte.filter(l => temValor(l.sku)).map(l => String(l.sku))), [recorte]);
-  const skusPagina = useMemo(() => [...new Set(paginaLinhas.filter(l => temValor(l.sku)).map(l => String(l.sku)))], [paginaLinhas]);
+  const recorteMarcados = skusRecorte.size === 0 ? 0 : [...skusRecorte].filter(s => selecionados.has(s)).length;
   const selecionadosAtivos = useMemo<ProdutoLote[]>(
     () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p && p.fase === "ativo")
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
@@ -299,15 +299,14 @@ export default function ConciliacaoFila() {
   );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
-  const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
     const novo = new Set(prev);
     if (novo.has(sku)) novo.delete(sku); else novo.add(sku);
     return novo;
   });
-  const alternarPagina = (marcar: boolean) => setSelecionados(prev => {
+  const alternarRecorte = (marcar: boolean) => setSelecionados(prev => {
     const novo = new Set(prev);
-    for (const s of skusPagina) { if (marcar) novo.add(s); else novo.delete(s); }
+    for (const s of skusRecorte) { if (marcar) novo.add(s); else novo.delete(s); }
     return novo;
   });
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
@@ -409,16 +408,15 @@ export default function ConciliacaoFila() {
       {selecionados.size > 0 && <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
         <span className="font-medium">{selecionados.size} produto(s) selecionado(s)</span>
         {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
-        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setSelecionados(new Set(skusRecorte))}>Selecionar o recorte inteiro ({skusRecorte.size} produtos)</Button>
         <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
       </div>}
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted">
             <Checkbox
-              aria-label="Selecionar produtos desta página"
-              checked={skusPagina.length > 0 && paginaMarcados === skusPagina.length ? true : paginaMarcados > 0 ? "indeterminate" : false}
-              onCheckedChange={v => alternarPagina(v === true)}
+              aria-label="Selecionar todos os produtos do recorte"
+              checked={recorteMarcados === skusRecorte.size ? true : recorteMarcados > 0 ? "indeterminate" : false}
+              onCheckedChange={v => alternarRecorte(v === true)}
             />
           </TableHead>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
