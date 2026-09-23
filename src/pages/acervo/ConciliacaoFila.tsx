@@ -163,14 +163,6 @@ export default function ConciliacaoFila() {
       return todas;
     },
   });
-  const REMOVER_IMPACTOS_DIM = useQuery({
-    queryKey: ["divergencia-impacto-dim"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("divergencia_impacto_dim" as never).select("slug, nome, descricao, gravidade, ordem").order("ordem");
-      if (error) throw error;
-      return (data ?? []) as ImpactoDim[];
-    },
-  });
   const regrasDim = useQuery({
     queryKey: ["divergencia-regra"],
     queryFn: async () => {
