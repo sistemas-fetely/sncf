@@ -12,6 +12,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,6 +116,8 @@ export default function ConciliacaoFila() {
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
+  // Seleção por PRODUTO (chave = sku). Mudar filtro não limpa: quem limpa é o usuário.
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
 
   // FILTRO-MORA-NA-URL: a Mesa e o resto do sistema linkam já filtrado.
@@ -271,12 +274,33 @@ export default function ConciliacaoFila() {
     () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
     [recorte],
   );
-  // MUTIRÃO: produtos ativos do recorte, deduplicados, para a regressão em lote.
-  const ativosRecorte = useMemo(() => {
-    const m = new Map<string, ProdutoLote>();
-    for (const l of recorte) if (l.fase === "ativo" && temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null });
-    return [...m.values()];
-  }, [recorte]);
+  // MUTIRÃO: a ação em lote age sobre a SELEÇÃO do usuário, não sobre o recorte invisível.
+  // Deriva de `linhas` para cobrir produto selecionado que saiu do recorte atual.
+  const produtoPorSku = useMemo(() => {
+    const m = new Map<string, { sku: string; cod_cadastro: string | null; fase: string | null }>();
+    for (const l of linhas) if (temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null, fase: l.fase ?? null });
+    return m;
+  }, [linhas]);
+  const skusRecorte = useMemo(() => new Set(recorte.filter(l => temValor(l.sku)).map(l => String(l.sku))), [recorte]);
+  const skusPagina = useMemo(() => [...new Set(paginaLinhas.filter(l => temValor(l.sku)).map(l => String(l.sku)))], [paginaLinhas]);
+  const selecionadosAtivos = useMemo<ProdutoLote[]>(
+    () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p && p.fase === "ativo")
+      .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
+    [selecionados, produtoPorSku],
+  );
+  const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
+  const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
+  const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
+  const alternarProduto = (sku: string) => setSelecionados(prev => {
+    const novo = new Set(prev);
+    if (novo.has(sku)) novo.delete(sku); else novo.add(sku);
+    return novo;
+  });
+  const alternarPagina = (marcar: boolean) => setSelecionados(prev => {
+    const novo = new Set(prev);
+    for (const s of skusPagina) { if (marcar) novo.add(s); else novo.delete(s); }
+    return novo;
+  });
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
@@ -330,7 +354,8 @@ export default function ConciliacaoFila() {
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
-        <VoltarFaseLote produtos={ativosRecorte} onFeito={() => { void fila.refetch(); }} />
+        <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
+        {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
@@ -371,8 +396,21 @@ export default function ConciliacaoFila() {
     {carregando ? <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-11 w-full" />)}</div>
     : recorte.length === 0 ? <div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhuma divergência neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>
     : <div className="overflow-hidden rounded-md border bg-card">
+      {selecionados.size > 0 && <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
+        <span className="font-medium">{selecionados.size} produto(s) selecionado(s)</span>
+        {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
+        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setSelecionados(new Set(skusRecorte))}>Selecionar o recorte inteiro ({skusRecorte.size} produtos)</Button>
+        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+      </div>}
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
+          <TableHead className="sticky top-0 z-40 w-8 bg-muted">
+            <Checkbox
+              aria-label="Selecionar produtos desta página"
+              checked={skusPagina.length > 0 && paginaMarcados === skusPagina.length ? true : paginaMarcados > 0 ? "indeterminate" : false}
+              onCheckedChange={v => alternarPagina(v === true)}
+            />
+          </TableHead>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
           {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
@@ -381,13 +419,21 @@ export default function ConciliacaoFila() {
         <TableBody>{paginaLinhas.map(l => <Fragment key={`${l.sku}|${l.regra}`}>
           <TableRow className="border-b">
             <TableCell className="py-2.5 align-top">
+              <Checkbox
+                aria-label={`Selecionar ${l.cod_cadastro ?? l.sku}`}
+                checked={temValor(l.sku) && selecionados.has(String(l.sku))}
+                disabled={!temValor(l.sku)}
+                onCheckedChange={() => { if (temValor(l.sku)) alternarProduto(String(l.sku)); }}
+              />
+            </TableCell>
+            <TableCell className="py-2.5 align-top">
               <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido === l.sku ? `Recolher ${l.sku}` : `Expandir ${l.sku}`} onClick={() => setExpandido(e => e === l.sku ? null : l.sku)}>
                 {expandido === l.sku ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               </Button>
             </TableCell>
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
-          {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
+          {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
             <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={`${x.sku}|${x.regra}`} l={x} />)}</div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
