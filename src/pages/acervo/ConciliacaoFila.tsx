@@ -272,12 +272,33 @@ export default function ConciliacaoFila() {
     () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
     [recorte],
   );
-  // MUTIRÃO: produtos ativos do recorte, deduplicados, para a regressão em lote.
-  const ativosRecorte = useMemo(() => {
-    const m = new Map<string, ProdutoLote>();
-    for (const l of recorte) if (l.fase === "ativo" && temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null });
-    return [...m.values()];
-  }, [recorte]);
+  // MUTIRÃO: a ação em lote age sobre a SELEÇÃO do usuário, não sobre o recorte invisível.
+  // Deriva de `linhas` para cobrir produto selecionado que saiu do recorte atual.
+  const produtoPorSku = useMemo(() => {
+    const m = new Map<string, { sku: string; cod_cadastro: string | null; fase: string | null }>();
+    for (const l of linhas) if (temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null, fase: l.fase ?? null });
+    return m;
+  }, [linhas]);
+  const skusRecorte = useMemo(() => new Set(recorte.filter(l => temValor(l.sku)).map(l => String(l.sku))), [recorte]);
+  const skusPagina = useMemo(() => [...new Set(paginaLinhas.filter(l => temValor(l.sku)).map(l => String(l.sku)))], [paginaLinhas]);
+  const selecionadosAtivos = useMemo<ProdutoLote[]>(
+    () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p && p.fase === "ativo")
+      .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
+    [selecionados, produtoPorSku],
+  );
+  const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
+  const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
+  const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
+  const alternarProduto = (sku: string) => setSelecionados(prev => {
+    const novo = new Set(prev);
+    if (novo.has(sku)) novo.delete(sku); else novo.add(sku);
+    return novo;
+  });
+  const alternarPagina = (marcar: boolean) => setSelecionados(prev => {
+    const novo = new Set(prev);
+    for (const s of skusPagina) { if (marcar) novo.add(s); else novo.delete(s); }
+    return novo;
+  });
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
