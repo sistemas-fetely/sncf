@@ -299,10 +299,19 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
 
     const encontradas: Mudanca[] = [];
     for (const l of linhas.slice(1)) {
-      const cod = (l[iCod] ?? "").trim();
-      if (!cod) continue;
-      const atual = porCod.get(cod);
-      if (!atual) { avisos.push(`${cod}: cod_cadastro não encontrado no recorte — linha ignorada.`); continue; }
+      const codArquivo = String(l[iCod] ?? "").trim();
+      if (!codArquivo) continue;
+      const candidatos = porCodNorm.get(chaveCod(codArquivo)) ?? [];
+      if (candidatos.length === 0) {
+        avisos.push(`cod_cadastro ${codArquivo}: não encontrado no recorte (confira se o Excel não removeu o zero à esquerda)`);
+        continue;
+      }
+      if (candidatos.length > 1) {
+        avisos.push(`cod_cadastro ${codArquivo}: ambíguo sem o zero à esquerda (casa com ${candidatos.map(c => c.cod_cadastro).join(", ")})`);
+        continue;
+      }
+      const atual = candidatos[0];
+      const cod = String(atual.cod_cadastro);
       for (let i = 0; i < cab.length; i++) {
         if (i === iCod) continue;
         const dimCampo = importaveis.get(cab[i]);
