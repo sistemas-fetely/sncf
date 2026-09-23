@@ -242,26 +242,6 @@ export default function MesaProduto() {
   function exportar(){const cab=colunasVisiveis.map(c=>csvCelula(c.rotulo)).join(";");const corpo=recorte.map(l=>colunasVisiveis.map(c=>csvCelula(c.key==="sistemas"?`B:${temValor(l.cod_bling)?"sim":"não"};S:${temValor(l.cod_shopify)?"sim":"não"};X:${temValor(l.cod_xpm)?"sim":"não"}`:c.key==="divergencias"?(l.divergencias??[]).map(rotuloDoSlug).join("; "):c.key==="foto_origem"?rotuloFotoOrigem(l.foto_origem):l[c.key])).join(";")).join("\n");const url=URL.createObjectURL(new Blob(["\uFEFF"+cab+"\n"+corpo],{type:"text/csv;charset=utf-8;"}));const a=document.createElement("a");a.href=url;a.download=`mesa-produto-${fmtData(new Date(),"").split("/").reverse().join("-")}.csv`;a.click();URL.revokeObjectURL(url);}
   function tratarErro(sku:string,faseDestino:string,motivo:string|undefined,e:unknown){const err=e as ErroFuncao,corpo=err?.corpo??{};if(err?.status===409){setConfirmSaldo({sku,saldo:Number(corpo.saldo_disponivel??0),faseDestino,motivo});return;}if(err?.status===422){setFaltando({sku,campos:Array.isArray(corpo.campos_faltando)?corpo.campos_faltando.map(String):[]});return;}if(err?.status===502){setErroFop({sku,corpo:typeof corpo.fop_body==="string"?corpo.fop_body:JSON.stringify(corpo.fop_body??corpo,null,2)});return;}toast.error(`Falha em ${sku}`,{description:typeof corpo.erro==="string"?corpo.erro:"Erro sem detalhe."});}
   async function agir(sku:string,faseDestino:string,confirmarSaldo=false,motivo?:string){setEmAcao(sku);try{const r=await chamarPromocao({sku,fase_destino:faseDestino,...(motivo?{motivo}:{}),...(confirmarSaldo?{confirmar_saldo:true}:{})});toast.success(`${String(r.cod_cadastro??sku)} — ${String(r.de??"?")} → ${String(r.para??"?")}`,{description:"Fase gravada no FOP e espelhada aqui."});setRegressao(null);setMotivoRegressao("");await lista.refetch();}catch(e){tratarErro(sku,faseDestino,motivo,e);}finally{setEmAcao(null);}}
-  // FAIL-LOUD em lote: nao para no primeiro erro; cada falha vira linha com o motivo real.
-  function motivoDaFalha(e:unknown){const err=e as ErroFuncao,corpo=err?.corpo??{};
-    if(err?.status===409)return `saldo em estoque (${fmtNum(Number(corpo.saldo_disponivel??0))}) — marque "Seguir mesmo se houver saldo"`;
-    if(err?.status===422)return `ficha incompleta: ${(Array.isArray(corpo.campos_faltando)?corpo.campos_faltando.map(String):[]).join(", ")||"campos não informados"}`;
-    if(err?.status===502)return `o FOP recusou: ${typeof corpo.fop_body==="string"?corpo.fop_body:JSON.stringify(corpo.fop_body??corpo)}`;
-    return typeof corpo.erro==="string"?corpo.erro:"Erro sem detalhe.";}
-  async function voltarFaseDoRecorte(){
-    if(!faseDestinoLote||!loteMotivo.trim())return;
-    const alvo=[...ativosRecorte]; setLoteRodando(true); setLoteFeito(0); setLoteResultado(null);
-    let ok=0; const falhas:{cod:string;motivo:string}[]=[];
-    for(const l of alvo){
-      try{await chamarPromocao({sku:l.sku,fase_destino:faseDestinoLote.slug,motivo:loteMotivo.trim(),...(loteSaldo?{confirmar_saldo:true}:{})});ok++;}
-      catch(e){falhas.push({cod:l.cod_cadastro??l.sku,motivo:motivoDaFalha(e)});}
-      setLoteFeito(f=>f+1);
-    }
-    setLoteResultado({ok,falhas}); setLoteRodando(false);
-    if(falhas.length)toast.error(`${ok} voltaram para ${faseDestinoLote.nome} · ${falhas.length} falharam`,{description:"Veja a lista de falhas no diálogo."});
-    else toast.success(`${ok} produtos voltaram para ${faseDestinoLote.nome}`,{description:"Fase gravada no FOP e espelhada aqui."});
-    await lista.refetch();
-  }
   const ultima=(l:LinhaUnida)=>!l.proxima_fase||String(l.proxima_fase).toLowerCase()==="inativo";
   const chips=(itens:string[]|null|undefined,usarRotuloCampo=false)=><div className="flex flex-wrap gap-1">{!itens?.length?<span className="text-muted-foreground">—</span>:<>{itens.slice(0,3).map(x=><Badge key={x} variant="outline" className="font-normal">{usarRotuloCampo?(rotuloCampoPorSlug.get(x)??x):x}</Badge>)}{itens.length>3&&<Badge variant="outline" className="font-normal">+{itens.length-3}</Badge>}</>}</div>;
   const chipDivergencia=(slug:string)=>{const r=regraPorSlug.get(slug);return <Tooltip key={slug}><TooltipTrigger asChild><Badge variant="outline" className="font-normal">{r?.nome??slug}</Badge></TooltipTrigger><TooltipContent className="max-w-xs space-y-1"><p>{r?.consequencia??slug}</p>{r?.onde_resolver&&<p className="text-muted-foreground">resolve-se no {r.onde_resolver}</p>}</TooltipContent></Tooltip>;};
