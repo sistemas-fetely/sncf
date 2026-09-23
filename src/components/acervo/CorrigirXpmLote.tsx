@@ -209,7 +209,6 @@ export function CorrigirXpmLote({ produtos, onFeito }: { produtos: ProdutoXpm[];
   </>;
 }
 
-function rotulosFallback(campo: string): string { return campo; }
 const rotulos: Record<string, string> = {
   descricao: "Descrição",
   ncm: "NCM",
