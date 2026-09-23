@@ -19855,6 +19855,30 @@ export type Database = {
         }
         Relationships: []
       }
+      divergencia_sistema_dim: {
+        Row: {
+          ativo: boolean
+          cor: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          cor: string
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          cor?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string

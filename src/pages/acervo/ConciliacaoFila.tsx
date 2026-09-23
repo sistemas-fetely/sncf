@@ -179,7 +179,21 @@ export default function ConciliacaoFila() {
       return todas;
     },
   });
-  const carregando = fila.isLoading;
+  // IDENTIDADE-POR-SISTEMA (23/09/2026): cor e ordem dos cards "onde resolver"
+  // vêm de `divergencia_sistema_dim` (slug = valor de onde_resolver).
+  const sistemasDim = useQuery({
+    queryKey: ["divergencia-sistema-dim"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("divergencia_sistema_dim" as never)
+        .select("slug, nome, ordem, cor")
+        .eq("ativo", true);
+      if (error) throw error;
+      return (data ?? []) as { slug: string; nome: string; ordem: number | null; cor: string | null }[];
+    },
+  });
+
+  const carregando = fila.isLoading || sistemasDim.isLoading;
   const erro = fila.error;
   const atualizando = fila.isFetching;
 
@@ -222,30 +236,37 @@ export default function ConciliacaoFila() {
 
   useEffect(() => { setPagina(1); setExpandido(null); }, [sp, tamanho]);
 
-  // INDICADOR-POR-ONDE-RESOLVE: um card por sistema de destino presente na view.
-  // Visual neutro; o tooltip quebra a contagem por regra.
+  // INDICADOR-POR-ONDE-RESOLVE: um card por sistema ATIVO da dimensão, na ordem
+  // dela, SEMPRE — mesmo com contagem 0. Sistema que aparece na fila e não está
+  // na dimensão (e "Sem destino") vai no fim, neutro. Tooltip quebra por regra.
+  const corPorSistema = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of sistemasDim.data ?? []) if (d.cor) m.set(d.slug, d.cor);
+    return m;
+  }, [sistemasDim.data]);
+
   const cards = useMemo(() => {
     const base = linhas.filter(l => aplica(l, "onde"));
-    const mapa = new Map<string, FilaLinha[]>();
-    for (const l of base) {
-      const k = l.onde_resolver ?? "__sem__";
-      mapa.set(k, [...(mapa.get(k) ?? []), l]);
-    }
-    for (const l of linhas) {
-      const k = l.onde_resolver ?? "__sem__";
-      if (!mapa.has(k)) mapa.set(k, []);
-    }
-    return [...mapa.entries()].map(([onde, ls]) => {
+    const medir = (onde: string) => {
+      const ls = base.filter(l => (l.onde_resolver ?? "__sem__") === onde);
       const porRegra = new Map<string, { nome: string; n: number }>();
       for (const l of ls) {
         const atual = porRegra.get(l.regra);
         porRegra.set(l.regra, { nome: l.regra_nome ?? l.regra, n: (atual?.n ?? 0) + 1 });
       }
       const quebra = [...porRegra.values()].sort((a, b) => b.n - a.n).map(x => `${x.n} ${x.nome.toLocaleLowerCase("pt-BR")}`).join(" · ");
-      return { onde, label: onde === "__sem__" ? "Sem destino" : onde, n: ls.length, quebra };
-    }).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "pt-BR"));
+      return { n: ls.length, quebra };
+    };
+    const dim = (sistemasDim.data ?? []).slice().sort((a, b) => (a.ordem ?? 9999) - (b.ordem ?? 9999));
+    const dimSlugs = new Set(dim.map(d => d.slug));
+    const principais = dim.map(d => ({ onde: d.slug, label: d.nome, cor: d.cor ?? null, ...medir(d.slug) }));
+    const vistos = new Set(linhas.map(l => l.onde_resolver ?? "__sem__"));
+    const fallback = [...vistos].filter(k => !dimSlugs.has(k))
+      .map(k => ({ onde: k, label: k === "__sem__" ? "Sem destino" : k, cor: null, ...medir(k) }))
+      .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "pt-BR"));
+    return [...principais, ...fallback];
   // aplica depende dos parâmetros da URL
-  }, [linhas, sp]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [linhas, sp, sistemasDim.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const facet = (g: Grupo, ops: { valor: string; rotulo: string }[], chave: (l: FilaLinha) => string) =>
     ops.map(o => ({ ...o, contagem: linhas.filter(l => aplica(l, g) && chave(l) === o.valor).length }));
@@ -348,7 +369,8 @@ export default function ConciliacaoFila() {
       return <span className="block max-w-48"><span className="block truncate">{temValor(valor) ? String(valor) : "—"}</span>{temValor(campo) && <span className="block truncate text-[10px] text-muted-foreground">{campo}</span>}</span>;
     }
     if (c.key === "onde") {
-      return <span className="whitespace-nowrap">{l.onde_resolver ?? "—"}{temValor(l.rota_resolver) && <> <Link to={String(l.rota_resolver)} className="hover:underline">abrir tela →</Link></>}</span>;
+      const cor = corPorSistema.get(l.onde_resolver ?? "");
+      return <span className="whitespace-nowrap"><span style={cor ? { color: cor } : undefined}>{l.onde_resolver ?? "—"}</span>{temValor(l.rota_resolver) && <> <Link to={String(l.rota_resolver)} className="hover:underline">abrir tela →</Link></>}</span>;
     }
     if (!temValor(l.o_que_fazer)) return celulaVazia;
     return <Tooltip><TooltipTrigger asChild><span className="block max-w-64 truncate text-left">{l.o_que_fazer}</span></TooltipTrigger><TooltipContent className="max-w-sm">{l.o_que_fazer}</TooltipContent></Tooltip>;
@@ -374,13 +396,20 @@ export default function ConciliacaoFila() {
     <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por onde resolver">
       {carregando ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />) : cards.map(c => {
         const selecionado = lista("onde").includes(c.onde);
+        const cor = c.cor ?? undefined;
+        const zera = c.n === 0;
         const botao = <Button
           variant="outline"
-          className={cn("h-20 items-start justify-center border p-3 text-left", selecionado && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
+          disabled={zera}
+          className={cn("h-20 items-start justify-center border border-l-4 p-3 text-left", zera && "opacity-50", selecionado && !cor && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
+          style={{
+            ...(selecionado && cor ? { borderColor: cor, background: `${cor}1A` } : {}),
+            ...(cor ? { borderLeftColor: cor } : {}),
+          }}
           onClick={() => setLista("onde", selecionado ? [] : [c.onde])}
         >
           <span className="flex w-full flex-col">
-            <span className="text-[11px] font-normal text-muted-foreground">{c.label}</span>
+            <span className="truncate text-[11px] font-normal" style={cor ? { color: cor } : undefined}>{c.label}</span>
             <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span>
           </span>
         </Button>;
