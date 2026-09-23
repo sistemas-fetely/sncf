@@ -182,39 +182,39 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
-  /** Colunas da planilha: campo importável faltando em ao menos um produto. */
-  const colunas = useMemo(() => {
-    const faltando = new Set<string>();
-    for (const l of mesa.data ?? []) for (const c of l.falta_fase_atual ?? []) faltando.add(c);
-    return (dim.data ?? []).filter(d => faltando.has(d.campo));
-  }, [dim.data, mesa.data]);
-
-  /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
-  const faltandoCount = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const l of mesa.data ?? []) for (const c of l.falta_fase_atual ?? []) m.set(c, (m.get(c) ?? 0) + 1);
-    return m;
-  }, [mesa.data]);
+  /** Campos PRÉ-MARCADOS ao abrir a exportação: faltando no recorte + campos de contexto. */
+  const preMarcados = useMemo(() => {
+    const s = new Set<string>();
+    for (const d of dim.data ?? []) {
+      if ((faltandoCount.get(d.campo) ?? 0) > 0 || d.contexto_planilha) s.add(d.campo);
+    }
+    return s;
+  }, [dim.data, faltandoCount]);
 
   /**
    * ORDEM DE EXIBIÇÃO no diálogo de exportação: primeiro os campos que faltam
    * em pelo menos um produto do recorte (por nº de produtos faltando, empate
-   * pela ordem da ficha), depois os demais na ordem da ficha. A exportação
-   * segue usando `dim.data` — colunas sempre na ordem da ficha.
+   * pela ordem da ficha), depois os campos de contexto, depois os demais na
+   * ordem da ficha. A exportação segue usando `dim.data` — colunas sempre na
+   * ordem da ficha.
    */
   const listaExibicao = useMemo(() => {
     const todos = dim.data ?? [];
     const faltantes = todos
       .filter(d => (faltandoCount.get(d.campo) ?? 0) > 0)
       .sort((a, b) => ((faltandoCount.get(b.campo) ?? 0) - (faltandoCount.get(a.campo) ?? 0)) || (a.ordem - b.ordem));
-    const demais = todos
-      .filter(d => (faltandoCount.get(d.campo) ?? 0) === 0)
+    const faltantesSet = new Set(faltantes.map(d => d.campo));
+    const contexto = todos
+      .filter(d => d.contexto_planilha && !faltantesSet.has(d.campo))
       .sort((a, b) => a.ordem - b.ordem);
-    return { faltantes, demais };
+    const demais = todos
+      .filter(d => !faltantesSet.has(d.campo) && !d.contexto_planilha)
+      .sort((a, b) => a.ordem - b.ordem);
+    return { faltantes, contexto, demais };
   }, [dim.data, faltandoCount]);
 
   function marcarFaltantes() {
-    setSelecionados(new Set(colunas.map(c => c.campo)));
+    setSelecionados(new Set(preMarcados));
   }
 
   function abrirExportacao() {
