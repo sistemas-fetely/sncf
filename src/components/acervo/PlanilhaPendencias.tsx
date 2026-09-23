@@ -296,14 +296,38 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     const falhas: Falha[] = [];
     let ok = 0;
     for (const cod of produtosAlvo) {
-      const campos: Record<string, string> = {};
-      for (const m of mudancas.filter(x => x.cod === cod)) campos[m.campo] = m.para;
-      try {
-        await chamarFuncao("gravar-produto-fop", { cod_cadastro: cod, motivo: motivo.trim(), campos });
-        ok++;
-      } catch (e) {
-        falhas.push({ cod, motivo: mensagemErro(e) });
+      const doProduto = mudancas.filter(x => x.cod === cod);
+      const camposFop: Record<string, string> = {};
+      for (const m of doProduto.filter(x => x.porta === PORTA_FOP)) camposFop[m.campo] = m.para;
+      const inners = doProduto.filter(x => x.porta === PORTA_INNER);
+      let falhouAlguma = false;
+
+      if (Object.keys(camposFop).length > 0) {
+        try {
+          await chamarFuncao("gravar-produto-fop", { cod_cadastro: cod, motivo: motivo.trim(), campos: camposFop });
+        } catch (e) {
+          falhouAlguma = true;
+          falhas.push({ cod, motivo: `${ROTULO_PORTA[PORTA_FOP]}: ${mensagemErro(e)}` });
+        }
       }
+      for (const m of inners) {
+        const { error } = await supabase.rpc("fn_cartorio_definir_inner", {
+          p_cod_cadastro: cod,
+          p_inner: Number(m.para),
+          p_motivo: motivo.trim(),
+        });
+        if (error) {
+          falhouAlguma = true;
+          falhas.push({ cod, motivo: `${ROTULO_PORTA[PORTA_INNER]}: ${error.message}` });
+        }
+      }
+      // Porta desconhecida não é grava silenciosa: aparece como falha nomeada.
+      for (const m of doProduto.filter(x => x.porta !== PORTA_FOP && x.porta !== PORTA_INNER)) {
+        falhouAlguma = true;
+        falhas.push({ cod, motivo: `${m.rotulo}: porta de escrita "${m.porta || "vazia"}" não é conhecida por esta tela.` });
+      }
+
+      if (!falhouAlguma) ok++;
       setFeito(f => f + 1);
     }
     setRodando(false);
