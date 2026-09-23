@@ -209,7 +209,6 @@ export default function MesaProduto() {
   const faseAntesDe=(slug:string|null|undefined)=>{const atual=fasesDim.data?.find(f=>f.slug===slug);if(!atual)return null;return[...(fasesDim.data??[])].filter(f=>f.ordem<atual.ordem).sort((a,b)=>b.ordem-a.ordem)[0]??null;};
   const faseAnterior=(l:LinhaUnida)=>faseAntesDe(l.fase);
   const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
-  const predSistemaTela=(l:LinhaUnida,v:string)=>v.startsWith("imp:")?(l.impactos??[]).includes(v.slice(4)):predSistemaBase(l,v);
 
   function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
     const q=busca.trim().toLocaleLowerCase("pt-BR"); if(q&&![l.cod_cadastro,l.sku,l.nome_comercial,l.ean].filter(temValor).some(v=>String(v).toLocaleLowerCase("pt-BR").includes(q)))return false;
