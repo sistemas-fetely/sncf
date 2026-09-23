@@ -225,8 +225,6 @@ export default function MesaProduto() {
   }
   const recorte=(()=>{const base=linhas.filter(l=>aplica(l));const mult=ordem.dir==="asc"?1:-1;return [...base].sort((a,b)=>{const va=a[ordem.coluna],vb=b[ordem.coluna];if(va==null&&vb==null)return 0;if(va==null)return 1;if(vb==null)return -1;if(typeof va==="number"&&typeof vb==="number")return(va-vb)*mult;return String(va).localeCompare(String(vb),"pt-BR",{numeric:true})*mult;});})();
   useEffect(()=>{setPagina(1);},[busca,situacoes,fasesSel,colecoes,grupos,sistemas,indicador,tamanho]);
-  const ativosRecorte=recorte.filter(l=>l.fase==="ativo");
-  const faseDestinoLote=faseAntesDe("ativo");
   const conta=(pred:(l:LinhaUnida)=>boolean,ignorar?:GrupoFiltro)=>linhas.filter(l=>aplica(l,ignorar,true)&&pred(l)).length;
   // A Mesa é tela de GESTÃO de fase: ficam só Total, Prontos e Bloqueados.
   const cards=[{id:null as Indicador,label:"Total",n:linhas.filter(l=>aplica(l,undefined,true)).length,tooltip:null as string|null,gravidade:null as number|null},{id:"prontos" as Indicador,label:"Prontos para promover",n:conta(l=>l.sugestao==="pronto_para_ativo"),tooltip:null,gravidade:null},{id:"bloqueados" as Indicador,label:"Bloqueados",n:conta(l=>l.sugestao==="bloqueado"),tooltip:null,gravidade:null}];
