@@ -21,6 +21,10 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
+import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
+
+/** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
+const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
 
 /**
  * CONCILIAÇÃO DE CADASTRO (23/09/2026) — fila de trabalho, somente leitura.
@@ -261,6 +265,11 @@ export default function ConciliacaoFila() {
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
   const produtos = new Set(recorte.map(l => l.sku)).size;
+  // CICLO-PLANILHA: produtos do recorte com a regra de cadastro incompleto.
+  const codsIncompletos = useMemo(
+    () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
+    [recorte],
+  );
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
@@ -313,6 +322,7 @@ export default function ConciliacaoFila() {
       estado={estado}
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
+        {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
