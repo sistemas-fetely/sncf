@@ -139,6 +139,20 @@ serve(async (req) => {
       setNum("largura", () => atual.dimensoes?.largura, (v) => (novo.dimensoes.largura = v), num(f.largura_cm));
       setNum("altura", () => atual.dimensoes?.altura, (v) => (novo.dimensoes.altura = v), num(f.altura_cm));
       setNum("profundidade", () => atual.dimensoes?.profundidade, (v) => (novo.dimensoes.profundidade = v), num(f.profundidade_cm));
+      // Dimensões vão em centímetros: unidadeMedida 2 = cm (1 = metros). Sem isso o Bling lê 21,20 metros.
+      const dimMudou =
+        novo.dimensoes.largura !== atual.dimensoes?.largura ||
+        novo.dimensoes.altura !== atual.dimensoes?.altura ||
+        novo.dimensoes.profundidade !== atual.dimensoes?.profundidade;
+      const unidadeAtual = num(atual.dimensoes?.unidadeMedida);
+      if (dimMudou || unidadeAtual !== 2) {
+        novo.dimensoes.unidadeMedida = 2;
+        if (unidadeAtual !== 2) {
+          de_para.push({ campo: "unidadeMedida", bling: atual.dimensoes?.unidadeMedida ?? null, novo: 2 });
+        }
+      }
+      setTxt("gtinEmbalagem", () => atual.gtinEmbalagem, (v) => (novo.gtinEmbalagem = v), f.dun);
+      setNum("itensPorCaixa", () => atual.itensPorCaixa, (v) => (novo.itensPorCaixa = v), inners.get(f.cod_cadastro) ?? null);
       const soDig = (v: unknown) => (vazio(v) ? null : String(v).replace(/\D/g, "") || null);
       setTxt("ncm", () => soDig(atual.tributacao?.ncm), (v) => (novo.tributacao.ncm = v), soDig(f.ncm));
       setTxt("cest", () => soDig(atual.tributacao?.cest), (v) => (novo.tributacao.cest = v), soDig(f.cest));
