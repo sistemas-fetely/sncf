@@ -25,6 +25,7 @@ import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
+import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -386,6 +387,7 @@ export default function ConciliacaoFila() {
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
         <CorrigirXpmLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
+        <CorrigirBlingLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
         {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
