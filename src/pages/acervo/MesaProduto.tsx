@@ -48,21 +48,10 @@ type FaseProduto = { slug: string; nome: string; ordem: number };
 type TipoCol = "texto" | "num" | "bool" | "chips" | "fase" | "datahora" | "selos" | "divergencias" | "foto";
 type ColDef = { key: string; rotulo: string; tipo: TipoCol; direita?: boolean };
 type ErroFuncao = { status: number; corpo: Record<string, unknown> };
-// Indicador: "prontos" | "bloqueados" | "furo" | `imp:<slug do impacto>`.
+// Indicador: "prontos" | "bloqueados" — a Mesa é gestão de fase; os cards de
+// problema (impacto, furo, pendência separada, anúncios) moram na Conciliação.
 type Indicador = string | null;
-type GrupoFiltro = "situacao" | "fase" | "colecao" | "grupo" | "sistemas";
 
-const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
-  contagem === 0 ? ""
-  : (gravidade ?? 0) >= 90 ? "border-destructive/50"
-  : (gravidade ?? 0) >= 60 ? "border-warning/50"
-  : "";
-
-const tomNumeroImpacto = (gravidade: number | null | undefined, contagem: number) =>
-  contagem === 0 ? "text-foreground"
-  : (gravidade ?? 0) >= 90 ? "text-destructive-strong"
-  : (gravidade ?? 0) >= 60 ? "text-warning-strong"
-  : "text-foreground";
 
 
 const SITUACOES = [
@@ -211,13 +200,6 @@ export default function MesaProduto() {
   const conc=useQuery({queryKey:["mesa-produto-conciliacao-360"],queryFn:async()=>{const {data,error}=await supabase.from("vw_produto_conciliacao_360" as never).select("*");if(error)throw error;return(data??[]) as ConcLinha[];}});
   const impactosDim=useQuery({queryKey:["divergencia-impacto-dim"],queryFn:async()=>{const {data,error}=await supabase.from("divergencia_impacto_dim" as never).select("slug, nome, descricao, gravidade, ordem").order("ordem");if(error)throw error;return(data??[]) as ImpactoDim[];}});
   const regrasDim=useQuery({queryKey:["divergencia-regra"],queryFn:async()=>{const {data,error}=await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, impacto, consequencia, o_que_fazer, onde_resolver, ordem").order("ordem");if(error)throw error;return(data??[]) as RegraDiv[];}});
-  // ANÚNCIOS SEM PRODUTO: linhas da fila com cod_cadastro nulo — anúncio do
-  // Shopify que não liga a produto nosso. A Mesa conta produtos, então fica só
-  // no indicador (poucas linhas, leitura direta já filtrada).
-  const anunciosSemProduto=useQuery({queryKey:["mesa-produto-anuncios-sem-produto"],queryFn:async()=>{const {data,error}=await supabase.from("vw_conciliacao_fila" as never).select("gravidade").is("cod_cadastro",null).eq("fase","ativo");if(error)throw error;return(data??[]) as {gravidade:number|null}[];}});
-  // PENDÊNCIAS SEPARADAS: campos exigidos pela ficha que não contam como furo
-  // (ex.: inner_qtd). Rótulo vem do banco — nada de nome de campo no código.
-  const separadosDim=useQuery({queryKey:["produto-ficha-nascimento-separados"],queryFn:async()=>{const {data,error}=await supabase.from("produto_ficha_nascimento" as never).select("campo, rotulo_separado").eq("conta_como_furo",false);if(error)throw error;return(data??[]) as {campo:string;rotulo_separado:string|null}[];}});
   const impactoPorSlug=useMemo(()=>new Map((impactosDim.data??[]).map(i=>[i.slug,i])),[impactosDim.data]);
   const regraPorSlug=useMemo(()=>new Map((regrasDim.data??[]).map(r=>[r.slug,r])),[regrasDim.data]);
   const rotuloDoSlug=(slug:string)=>regraPorSlug.get(slug)?.nome??slug;
