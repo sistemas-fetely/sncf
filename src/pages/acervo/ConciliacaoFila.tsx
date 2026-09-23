@@ -396,8 +396,21 @@ export default function ConciliacaoFila() {
     {carregando ? <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-11 w-full" />)}</div>
     : recorte.length === 0 ? <div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhuma divergência neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>
     : <div className="overflow-hidden rounded-md border bg-card">
+      {selecionados.size > 0 && <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
+        <span className="font-medium">{selecionados.size} produto(s) selecionado(s)</span>
+        {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
+        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setSelecionados(new Set(skusRecorte))}>Selecionar o recorte inteiro ({skusRecorte.size} produtos)</Button>
+        <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+      </div>}
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
+          <TableHead className="sticky top-0 z-40 w-8 bg-muted">
+            <Checkbox
+              aria-label="Selecionar produtos desta página"
+              checked={skusPagina.length > 0 && paginaMarcados === skusPagina.length ? true : paginaMarcados > 0 ? "indeterminate" : false}
+              onCheckedChange={v => alternarPagina(v === true)}
+            />
+          </TableHead>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
           {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
@@ -405,6 +418,14 @@ export default function ConciliacaoFila() {
         </TableRow></TableHeader>
         <TableBody>{paginaLinhas.map(l => <Fragment key={`${l.sku}|${l.regra}`}>
           <TableRow className="border-b">
+            <TableCell className="py-2.5 align-top">
+              <Checkbox
+                aria-label={`Selecionar ${l.cod_cadastro ?? l.sku}`}
+                checked={temValor(l.sku) && selecionados.has(String(l.sku))}
+                disabled={!temValor(l.sku)}
+                onCheckedChange={() => { if (temValor(l.sku)) alternarProduto(String(l.sku)); }}
+              />
+            </TableCell>
             <TableCell className="py-2.5 align-top">
               <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido === l.sku ? `Recolher ${l.sku}` : `Expandir ${l.sku}`} onClick={() => setExpandido(e => e === l.sku ? null : l.sku)}>
                 {expandido === l.sku ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
