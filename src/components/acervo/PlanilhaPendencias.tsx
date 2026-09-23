@@ -102,6 +102,8 @@ type Falha = { cod: string; motivo: string };
 
 export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGravado: () => void }) {
   const [aberto, setAberto] = useState(false);
+  const [expAberto, setExpAberto] = useState(false);
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [motivo, setMotivo] = useState("Importação de planilha de pendências");
   const [arquivo, setArquivo] = useState<string | null>(null);
   const [mudancas, setMudancas] = useState<Mudanca[]>([]);
