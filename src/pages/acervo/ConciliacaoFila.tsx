@@ -415,9 +415,9 @@ export default function ConciliacaoFila() {
         <TableHeader><TableRow>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted">
             <Checkbox
-              aria-label="Selecionar produtos desta página"
-              checked={skusPagina.length > 0 && paginaMarcados === skusPagina.length ? true : paginaMarcados > 0 ? "indeterminate" : false}
-              onCheckedChange={v => alternarPagina(v === true)}
+              aria-label="Selecionar todos os produtos do recorte"
+              checked={recorteMarcados === skusRecorte.size ? true : recorteMarcados > 0 ? "indeterminate" : false}
+              onCheckedChange={v => alternarRecorte(v === true)}
             />
           </TableHead>
           <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
