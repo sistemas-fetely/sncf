@@ -57,7 +57,7 @@ serve(async (req) => {
     const [cacheQ, fichaQ, faseQ] = await Promise.all([
       supabase.from("bling_produtos_cache").select("sku, bling_produto_id").in("sku", skus),
       supabase.from("sncf_produtos")
-        .select("sku, nome_operacional, preco_varejo, ean, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest")
+        .select("sku, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest")
         .in("sku", skus),
       supabase.from("vw_produto_mesa_lista").select("sku, fase").in("sku", skus),
     ]);
@@ -69,6 +69,20 @@ serve(async (req) => {
     for (const c of cacheQ.data ?? []) if (c.bling_produto_id) blingIds.set(c.sku, String(c.bling_produto_id));
     const fichas = new Map<string, any>((fichaQ.data ?? []).map((f: any) => [f.sku, f]));
     const fases = new Map<string, string | null>((faseQ.data ?? []).map((f: any) => [f.sku, f.fase]));
+
+    // Inner do cartório por cod_cadastro (itensPorCaixa do Bling). Só vale inner_qtd >= 1.
+    const inners = new Map<string, number>();
+    const codCadastros = [...new Set((fichaQ.data ?? []).map((f: any) => f.cod_cadastro).filter(Boolean))] as string[];
+    if (codCadastros.length) {
+      const { data: cartQ, error: cartErr } = await supabase
+        .from("cartorio_codigo").select("cod_cadastro, inner_qtd").in("cod_cadastro", codCadastros);
+      if (cartErr) return json({ ok: false, erro: `cartorio_codigo: ${cartErr.message}` }, 500);
+      for (const c of cartQ ?? []) {
+        if (c.cod_cadastro && c.inner_qtd !== null && Number(c.inner_qtd) >= 1 && !inners.has(c.cod_cadastro)) {
+          inners.set(c.cod_cadastro, Number(c.inner_qtd));
+        }
+      }
+    }
 
     const resultados: Resultado[] = [];
     let client: ReturnType<typeof makeBlingClient> | null = null;
