@@ -415,7 +415,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Exportar planilha de cadastro</DialogTitle>
-          <DialogDescription>Escolha as colunas da planilha. Os campos que faltam no recorte vêm marcados; célula vazia na planilha significa que o produto está sem o valor.</DialogDescription>
+          <DialogDescription>Escolha as colunas da planilha. Os campos que faltam no recorte e os de contexto vêm marcados; célula vazia na planilha significa que o produto está sem o valor.</DialogDescription>
         </DialogHeader>
 
         {(mesa.error || dim.error) && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível ler os valores atuais. Detalhe: {(mesa.error ?? dim.error as Error)?.message}</AlertDescription></Alert>}
