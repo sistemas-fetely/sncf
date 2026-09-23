@@ -288,6 +288,12 @@ export default function ConciliacaoFila() {
       .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
     [selecionados, produtoPorSku],
   );
+  // Correção no XPM não olha fase: vale para qualquer produto selecionado.
+  const selecionadosProdutos = useMemo<ProdutoXpm[]>(
+    () => [...selecionados].map(s => produtoPorSku.get(s)).filter((p): p is { sku: string; cod_cadastro: string | null; fase: string | null } => !!p)
+      .map(p => ({ sku: p.sku, cod_cadastro: p.cod_cadastro })),
+    [selecionados, produtoPorSku],
+  );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const paginaMarcados = skusPagina.filter(s => selecionados.has(s)).length;
