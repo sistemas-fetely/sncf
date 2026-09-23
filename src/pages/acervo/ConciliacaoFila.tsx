@@ -20,10 +20,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
-import {
-  DeParaConciliacao, temValor,
-  type ConcLinha, type RegraDiv,
-} from "@/components/acervo/DeParaConciliacao";
+import { temValor } from "@/components/acervo/DeParaConciliacao";
 
 /**
  * CONCILIAÇÃO DE CADASTRO (23/09/2026) — fila de trabalho, somente leitura.
@@ -84,20 +81,28 @@ function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label: stri
   return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger><PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{visiveis.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">Nada neste recorte</p> : visiveis.map(o => <Button key={o.valor} variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal" onClick={() => onChange(selecionados.includes(o.valor) ? selecionados.filter(v => v !== o.valor) : [...selecionados, o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border", selecionados.includes(o.valor) && "border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor) && <Check className="h-3 w-3" />}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>{selecionados.length > 0 && <Button variant="ghost" size="sm" className="mt-1 w-full" onClick={() => onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
 }
 
-/** De-para do produto, carregado sob demanda ao expandir a linha. */
-function DeParaSobDemanda({ sku, regras }: { sku: string; regras: Map<string, RegraDiv> }) {
-  const q = useQuery({
-    queryKey: ["conciliacao-fila-360", sku],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("vw_produto_conciliacao_360" as never).select("*").eq("sku", sku).maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as ConcLinha | null;
-    },
-  });
-  if (q.isLoading) return <Skeleton className="h-40 w-full" />;
-  if (q.error) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar o de-para de {sku}. Detalhe: {(q.error as Error).message}</AlertDescription></Alert>;
-  if (!q.data) return <p className="text-xs text-muted-foreground">Nenhuma conciliação encontrada para {sku}.</p>;
-  return <DeParaConciliacao l={q.data} regras={regras} />;
+/** Um problema a resolver na expansão: regra + detalhe + o que fazer. */
+function BlocoProblema({ l }: { l: FilaLinha }) {
+  const parte = (campo: string | null, valor: string | null) => {
+    if (!temValor(valor)) return null;
+    return <>{temValor(campo) ? `${campo}: ` : ""}{valor}</>;
+  };
+  let detalhe: React.ReactNode = null;
+  if (l.campo_matriz === "campos_faltando") {
+    detalhe = <>Faltando: {temValor(l.valor_matriz) ? l.valor_matriz : "—"}</>;
+  } else {
+    const m = parte(l.campo_matriz, l.valor_matriz);
+    const d = parte(l.campo_destino, l.valor_destino);
+    if (m || d) detalhe = <>{m}{m && d ? " → " : ""}{d}</>;
+  }
+  const resolver = temValor(l.rota_resolver)
+    ? <> <Link to={String(l.rota_resolver)} className="hover:underline">abrir tela →</Link></>
+    : l.onde_resolver ? <> Resolve-se no {l.onde_resolver}.</> : null;
+  return <div className="space-y-1">
+    <p className="text-sm font-medium">{l.regra_nome ?? l.regra}</p>
+    {detalhe && <p className="text-xs text-foreground">{detalhe}</p>}
+    {(l.o_que_fazer || resolver) && <p className="text-xs text-muted-foreground">{l.o_que_fazer}{resolver}</p>}
+  </div>;
 }
 
 export default function ConciliacaoFila() {
@@ -163,20 +168,10 @@ export default function ConciliacaoFila() {
       return todas;
     },
   });
-  const regrasDim = useQuery({
-    queryKey: ["divergencia-regra"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, consequencia, o_que_fazer, onde_resolver, ordem, rota_resolver, campo_matriz, campo_destino").order("ordem");
-      if (error) throw error;
-      return (data ?? []) as RegraDiv[];
-    },
-  });
+  const carregando = fila.isLoading;
+  const erro = fila.error;
+  const atualizando = fila.isFetching;
 
-  const carregando = fila.isLoading || regrasDim.isLoading;
-  const erro = fila.error ?? regrasDim.error;
-  const atualizando = fila.isFetching || regrasDim.isFetching;
-
-  const regraPorSlug = useMemo(() => new Map((regrasDim.data ?? []).map(r => [r.slug, r])), [regrasDim.data]);
   const linhas = useMemo(() => fila.data ?? [], [fila.data]);
 
   const aplica = (l: FilaLinha, ignorar?: Grupo) => {
@@ -318,7 +313,7 @@ export default function ConciliacaoFila() {
       estado={estado}
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        <Button size="sm" disabled={atualizando} onClick={async () => { await Promise.all([fila.refetch(), regrasDim.refetch()]); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
+        <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
 
@@ -375,7 +370,7 @@ export default function ConciliacaoFila() {
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
           {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
-            <DeParaSobDemanda sku={l.sku} regras={regraPorSlug} />
+            <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={`${x.sku}|${x.regra}`} l={x} />)}</div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
       </Table>
