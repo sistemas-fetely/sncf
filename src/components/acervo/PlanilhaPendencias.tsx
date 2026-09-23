@@ -269,9 +269,19 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
           }
           paraGravar = achou.valor;
         }
+        const porta = String(dimCampo.porta_escrita ?? "").trim();
+        // Porta do cartório só aceita contagem de peça: inteiro >= 1, como no packing list.
+        if (porta === PORTA_INNER) {
+          const n = Number(paraGravar.replace(",", "."));
+          if (!Number.isInteger(n) || n < 1) {
+            avisos.push(`${cod} · ${dimCampo.campo}: "${novo}" precisa ser um inteiro >= 1 (vem do packing list)`);
+            continue;
+          }
+          paraGravar = String(n);
+        }
         const de = textoValor(atual[dimCampo.campo]);
         if (de === paraGravar) continue;
-        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar });
+        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar, porta });
       }
     }
     setMudancas(encontradas);
