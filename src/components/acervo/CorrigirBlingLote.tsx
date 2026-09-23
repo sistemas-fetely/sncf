@@ -214,7 +214,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
               <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>
               <Button disabled={carregando || aplicando || aplicaveis.length === 0} onClick={() => void aplicar()}>
                 {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length})`}
+                {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length} já iguais)`}
               </Button>
             </>}
         </DialogFooter>
