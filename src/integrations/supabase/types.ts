@@ -46685,6 +46685,7 @@ export type Database = {
           bloco: string
           campo: string
           conta_como_furo: boolean
+          contexto_planilha: boolean
           descricao: string | null
           dim_coluna: string | null
           dim_tabela: string | null
@@ -46703,6 +46704,7 @@ export type Database = {
           bloco: string
           campo: string
           conta_como_furo?: boolean
+          contexto_planilha?: boolean
           descricao?: string | null
           dim_coluna?: string | null
           dim_tabela?: string | null
@@ -46721,6 +46723,7 @@ export type Database = {
           bloco?: string
           campo?: string
           conta_como_furo?: boolean
+          contexto_planilha?: boolean
           descricao?: string | null
           dim_coluna?: string | null
           dim_tabela?: string | null

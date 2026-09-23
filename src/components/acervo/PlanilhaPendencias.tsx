@@ -32,7 +32,7 @@ const PORTA_FOP = "fop";
 const PORTA_INNER = "cartorio_inner";
 const ROTULO_PORTA: Record<string, string> = { [PORTA_FOP]: "cadastro", [PORTA_INNER]: "Inner" };
 
-type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null };
+type CampoDim = { campo: string; rotulo: string | null; ordem: number; porta_escrita: string | null; contexto_planilha: boolean | null };
 type LinhaMesa = Record<string, unknown> & { cod_cadastro: string | null; sku: string | null; nome_comercial: string | null; falta_fase_atual: string[] | null };
 
 type CorpoFuncao = Record<string, unknown>;
@@ -129,7 +129,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produto_ficha_nascimento")
-        .select("campo, rotulo, ordem, porta_escrita")
+        .select("campo, rotulo, ordem, porta_escrita, contexto_planilha")
         .eq("importavel_planilha", true)
         .order("ordem");
       if (error) throw error;
@@ -182,13 +182,6 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
-  /** Colunas da planilha: campo importável faltando em ao menos um produto. */
-  const colunas = useMemo(() => {
-    const faltando = new Set<string>();
-    for (const l of mesa.data ?? []) for (const c of l.falta_fase_atual ?? []) faltando.add(c);
-    return (dim.data ?? []).filter(d => faltando.has(d.campo));
-  }, [dim.data, mesa.data]);
-
   /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
   const faltandoCount = useMemo(() => {
     const m = new Map<string, number>();
@@ -196,25 +189,39 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
+  /** Campos PRÉ-MARCADOS ao abrir a exportação: faltando no recorte + campos de contexto. */
+  const preMarcados = useMemo(() => {
+    const s = new Set<string>();
+    for (const d of dim.data ?? []) {
+      if ((faltandoCount.get(d.campo) ?? 0) > 0 || d.contexto_planilha) s.add(d.campo);
+    }
+    return s;
+  }, [dim.data, faltandoCount]);
+
   /**
    * ORDEM DE EXIBIÇÃO no diálogo de exportação: primeiro os campos que faltam
    * em pelo menos um produto do recorte (por nº de produtos faltando, empate
-   * pela ordem da ficha), depois os demais na ordem da ficha. A exportação
-   * segue usando `dim.data` — colunas sempre na ordem da ficha.
+   * pela ordem da ficha), depois os campos de contexto, depois os demais na
+   * ordem da ficha. A exportação segue usando `dim.data` — colunas sempre na
+   * ordem da ficha.
    */
   const listaExibicao = useMemo(() => {
     const todos = dim.data ?? [];
     const faltantes = todos
       .filter(d => (faltandoCount.get(d.campo) ?? 0) > 0)
       .sort((a, b) => ((faltandoCount.get(b.campo) ?? 0) - (faltandoCount.get(a.campo) ?? 0)) || (a.ordem - b.ordem));
-    const demais = todos
-      .filter(d => (faltandoCount.get(d.campo) ?? 0) === 0)
+    const faltantesSet = new Set(faltantes.map(d => d.campo));
+    const contexto = todos
+      .filter(d => d.contexto_planilha && !faltantesSet.has(d.campo))
       .sort((a, b) => a.ordem - b.ordem);
-    return { faltantes, demais };
+    const demais = todos
+      .filter(d => !faltantesSet.has(d.campo) && !d.contexto_planilha)
+      .sort((a, b) => a.ordem - b.ordem);
+    return { faltantes, contexto, demais };
   }, [dim.data, faltandoCount]);
 
   function marcarFaltantes() {
-    setSelecionados(new Set(colunas.map(c => c.campo)));
+    setSelecionados(new Set(preMarcados));
   }
 
   function abrirExportacao() {
@@ -381,6 +388,7 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
         />
         <span>{d.rotulo ?? d.campo}</span>
         {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+        {n === 0 && d.contexto_planilha && <span className="text-xs text-muted-foreground">contexto</span>}
         {(() => {
           const ops = opcoesPorCampo.get(d.campo) ?? [];
           return ops.length > 0 && ops.length <= 6
@@ -407,21 +415,27 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle>Exportar planilha de cadastro</DialogTitle>
-          <DialogDescription>Escolha as colunas da planilha. Os campos que faltam no recorte vêm marcados; célula vazia na planilha significa que o produto está sem o valor.</DialogDescription>
+          <DialogDescription>Escolha as colunas da planilha. Os campos que faltam no recorte e os de contexto vêm marcados; célula vazia na planilha significa que o produto está sem o valor.</DialogDescription>
         </DialogHeader>
 
         {(mesa.error || dim.error) && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível ler os valores atuais. Detalhe: {(mesa.error ?? dim.error as Error)?.message}</AlertDescription></Alert>}
 
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => setSelecionados(new Set((dim.data ?? []).map(d => d.campo)))}>Marcar todos</Button>
-          <Button variant="outline" size="sm" onClick={marcarFaltantes} disabled={!colunas.length}>Só os faltantes</Button>
+          <Button variant="outline" size="sm" onClick={marcarFaltantes} disabled={preMarcados.size === 0}>Só os faltantes</Button>
           <span className="ml-auto text-xs text-muted-foreground">{selecionados.size} coluna(s) marcada(s)</span>
         </div>
 
         <div className="max-h-80 space-y-1 overflow-auto rounded-md border p-3">
-          {listaExibicao.faltantes.length > 0 && <p className="pt-1 text-xs text-muted-foreground">Faltando no recorte</p>}
+          {(() => {
+            const temContexto = listaExibicao.contexto.length > 0;
+            const temFaltantes = listaExibicao.faltantes.length > 0;
+            const titulo = temContexto ? (temFaltantes ? "Faltando no recorte e contexto" : "Contexto") : "Faltando no recorte";
+            return (temFaltantes || temContexto) && <p className="pt-1 text-xs text-muted-foreground">{titulo}</p>;
+          })()}
           {listaExibicao.faltantes.map(d => linhaCampo(d))}
-          {listaExibicao.faltantes.length > 0 && listaExibicao.demais.length > 0 && (
+          {listaExibicao.contexto.map(d => linhaCampo(d))}
+          {(listaExibicao.faltantes.length > 0 || listaExibicao.contexto.length > 0) && listaExibicao.demais.length > 0 && (
             <p className="border-t pt-2 text-xs text-muted-foreground">Demais campos (já preenchidos)</p>
           )}
           {listaExibicao.demais.map(d => linhaCampo(d))}
