@@ -158,16 +158,32 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     return (dim.data ?? []).filter(d => faltando.has(d.campo));
   }, [dim.data, mesa.data]);
 
+  /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
+  const faltandoCount = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of mesa.data ?? []) for (const c of l.falta_fase_atual ?? []) m.set(c, (m.get(c) ?? 0) + 1);
+    return m;
+  }, [mesa.data]);
+
+  function marcarFaltantes() {
+    setSelecionados(new Set(colunas.map(c => c.campo)));
+  }
+
+  function abrirExportacao() {
+    marcarFaltantes();
+    setExpAberto(true);
+  }
+
   const importaveis = useMemo(() => new Map((dim.data ?? []).map(d => [d.campo, d])), [dim.data]);
 
-  function exportar() {
-    const cab = ["cod_cadastro", "sku", "nome_comercial", ...colunas.map(c => c.campo)];
+  function exportarCom(campos: CampoDim[]) {
+    const cab = ["cod_cadastro", "sku", "nome_comercial", ...campos.map(c => c.campo)];
     const corpo = cods
       .map(cod => porCod.get(cod))
       .filter((l): l is LinhaMesa => !!l)
       .map(l => {
         const falta = new Set(l.falta_fase_atual ?? []);
-        return [l.cod_cadastro, l.sku, l.nome_comercial, ...colunas.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
+        return [l.cod_cadastro, l.sku, l.nome_comercial, ...campos.map(c => (falta.has(c.campo) ? "" : textoValor(l[c.campo])))]
           .map(csvCelula).join(";");
       }).join("\n");
     const url = URL.createObjectURL(new Blob(["\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo], { type: "text/csv;charset=utf-8;" }));
