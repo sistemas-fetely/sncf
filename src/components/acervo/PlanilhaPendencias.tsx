@@ -129,7 +129,7 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
     queryFn: async () => {
       const { data, error } = await supabase
         .from("produto_ficha_nascimento")
-        .select("campo, rotulo, ordem")
+        .select("campo, rotulo, ordem, porta_escrita")
         .eq("importavel_planilha", true)
         .order("ordem");
       if (error) throw error;
