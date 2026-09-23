@@ -38,6 +38,7 @@ const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
  * tudo vem de `vw_conciliacao_fila` e `divergencia_regra`.
  */
 type FilaLinha = {
+  linha_id: string;
   cod_cadastro: string | null; sku: string; nome_comercial: string | null;
   colecao: string | null; grupo: string | null; fase: string | null;
   regra: string; regra_nome: string | null; sistema: string | null;
