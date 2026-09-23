@@ -97,6 +97,7 @@ function lerCsv(texto: string): string[][] {
   return linhas.filter(l => l.some(x => x.trim() !== ""));
 }
 
+type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
 type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string };
 type Falha = { cod: string; motivo: string };
 
@@ -126,6 +127,27 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
       return (data ?? []) as CampoDim[];
     },
   });
+
+  // OPÇÕES VÁLIDAS: fonte única fn_ficha_opcoes(). Campo com dimensão só aceita valor da lista.
+  const opcoesQ = useQuery({
+    queryKey: ["ficha-opcoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("fn_ficha_opcoes");
+      if (error) throw error;
+      return (data ?? []) as OpcaoCampo[];
+    },
+  });
+
+  const opcoesPorCampo = useMemo(() => {
+    const m = new Map<string, OpcaoCampo[]>();
+    for (const o of opcoesQ.data ?? []) {
+      const lista = m.get(o.campo) ?? [];
+      lista.push(o);
+      m.set(o.campo, lista);
+    }
+    for (const lista of m.values()) lista.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    return m;
+  }, [opcoesQ.data]);
 
   const mesa = useQuery({
     queryKey: ["mesa-pendencias", chave],
@@ -222,9 +244,21 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
         if (!dimCampo) continue;
         const novo = (l[i] ?? "").trim();
         if (!novo) continue;
+        // Campo com dimensão: aceita valor OU rótulo digitado, sem distinguir caixa; grava o valor.
+        const opcoes = opcoesPorCampo.get(dimCampo.campo) ?? [];
+        let paraGravar = novo;
+        if (opcoes.length > 0) {
+          const alvo = novo.toLocaleLowerCase("pt-BR");
+          const achou = opcoes.find(o => o.valor.toLocaleLowerCase("pt-BR") === alvo || (o.rotulo ?? "").toLocaleLowerCase("pt-BR") === alvo);
+          if (!achou) {
+            avisos.push(`${cod} · ${dimCampo.campo}: "${novo}" não é uma opção válida (opções: ${opcoes.map(o => o.valor).join(", ")})`);
+            continue;
+          }
+          paraGravar = achou.valor;
+        }
         const de = textoValor(atual[dimCampo.campo]);
-        if (de === novo) continue;
-        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: novo });
+        if (de === paraGravar) continue;
+        encontradas.push({ cod, campo: dimCampo.campo, rotulo: dimCampo.rotulo ?? dimCampo.campo, de, para: paraGravar });
       }
     }
     setMudancas(encontradas);
@@ -306,6 +340,12 @@ export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGrav
                 />
                 <span>{d.rotulo ?? d.campo}</span>
                 {n > 0 && <span className="text-xs text-muted-foreground">falta em {n} produto(s)</span>}
+                {(() => {
+                  const ops = opcoesPorCampo.get(d.campo) ?? [];
+                  return ops.length > 0 && ops.length <= 6
+                    ? <span className="text-xs text-muted-foreground">opções: {ops.map(o => o.valor).join(", ")}</span>
+                    : null;
+                })()}
               </label>
             );
           })}

@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,6 +48,11 @@ type LinhaMatriz = {
   ordem: number | null;
   descricao: string | null;
 };
+
+type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
+
+/** Sentinela do item "— vazio —": o Select não aceita item com valor vazio. Grava null. */
+const SEM_VALOR = "__vazio__";
 
 type LinhaProduto = Record<string, unknown> & {
   cod_cadastro: string | null;
@@ -187,6 +193,28 @@ export default function FichaProduto() {
       return (data ?? []) as LinhaMatriz[];
     },
   });
+
+  // OPÇÕES DE CAMPO: fonte única fn_ficha_opcoes(). Campo que aparece aqui vira Select;
+  // o resto continua Input. Nenhum nome de campo escrito na tela.
+  const opcoesQ = useQuery({
+    queryKey: ["ficha-opcoes"],
+    queryFn: async (): Promise<OpcaoCampo[]> => {
+      const { data, error } = await supabase.rpc("fn_ficha_opcoes");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as OpcaoCampo[];
+    },
+  });
+
+  const opcoesPorCampo = useMemo(() => {
+    const m = new Map<string, OpcaoCampo[]>();
+    for (const o of opcoesQ.data ?? []) {
+      const lista = m.get(o.campo) ?? [];
+      lista.push(o);
+      m.set(o.campo, lista);
+    }
+    for (const lista of m.values()) lista.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    return m;
+  }, [opcoesQ.data]);
 
   const fasesQ = useQuery({
     queryKey: ["produto-fase-dim"],
@@ -538,6 +566,11 @@ export default function FichaProduto() {
                         const pendente = vazio && (faltaAtual.has(m.campo) || faltaProxima.has(m.campo));
 
                         const textoLongo = valor.length > 120;
+                        // Campo com dimensão vira Select; a decisão vem do Map, não de lista no código.
+                        const opcoes = opcoesPorCampo.get(m.campo) ?? [];
+                        const obrigatorioAgora = Boolean(m.obrigatorio) && (!m.fase_exigida || m.fase_exigida === produto.fase);
+                        const foraDaLista = valor.trim() !== "" && !opcoes.some((o) => o.valor === valor);
+
 
                         return (
                           <div key={m.campo} className={`min-w-0 space-y-1.5 ${textoLongo ? "sm:col-span-2" : ""}`}>
@@ -572,7 +605,27 @@ export default function FichaProduto() {
                               )}
                             </div>
 
-                            {editavel && noEspelho && textoLongo ? (
+                            {editavel && noEspelho && opcoes.length > 0 ? (
+                              <Select
+                                value={valor.trim() === "" ? SEM_VALOR : valor}
+                                onValueChange={(v) => editar(m.campo, v === SEM_VALOR ? "" : v)}
+                              >
+                                <SelectTrigger id={`campo-${m.campo}`} className="h-9 text-foreground">
+                                  <SelectValue placeholder="— vazio —" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {!obrigatorioAgora && <SelectItem value={SEM_VALOR}>— vazio —</SelectItem>}
+                                  {foraDaLista && (
+                                    <SelectItem value={valor}>{valor} (fora da lista)</SelectItem>
+                                  )}
+                                  {opcoes.map((o) => (
+                                    <SelectItem key={o.valor} value={o.valor}>
+                                      {o.rotulo === o.valor ? o.valor : `${o.rotulo} (${o.valor})`}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : editavel && noEspelho && textoLongo ? (
                               <Textarea
                                 id={`campo-${m.campo}`}
                                 className="h-32 resize-y overflow-y-auto text-foreground"
