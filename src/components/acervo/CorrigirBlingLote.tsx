@@ -65,9 +65,8 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
 
   const comDiferenca = (previa ?? []).filter(r => r.status === "tem_diferenca");
   const semDiferenca = (previa ?? []).filter(r => r.status === "sem_diferenca");
-  const semCadastro = (previa ?? []).filter(r => r.status === "sem_cadastro_no_bling");
-  const incompletos = (previa ?? []).filter(r => r.status === "matriz_incompleta");
-  const outros = (previa ?? []).filter(r => !["tem_diferenca", "sem_diferenca", "sem_cadastro_no_bling", "matriz_incompleta"].includes(r.status));
+  // Tudo que foi para o Bling (diferença ou já igual): o edge atualiza o espelho mesmo sem diferença.
+  const aplicaveis = [...comDiferenca, ...semDiferenca];
 
   const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); setProgresso(null); setAviso(null); };
   const recomparar = (v: boolean) => { setAtivarCard(v); void comparar(v); };
