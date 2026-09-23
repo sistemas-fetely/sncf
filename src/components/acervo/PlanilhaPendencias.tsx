@@ -197,6 +197,19 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
+  /** Índice por chave sem zeros à esquerda: mais de um produto na mesma chave = ambiguidade. */
+  const porCodNorm = useMemo(() => {
+    const m = new Map<string, LinhaMesa[]>();
+    for (const l of mesa.data ?? []) {
+      if (!l.cod_cadastro) continue;
+      const k = chaveCod(l.cod_cadastro);
+      const lista = m.get(k);
+      if (lista) lista.push(l);
+      else m.set(k, [l]);
+    }
+    return m;
+  }, [mesa.data]);
+
   /** Produtos do recorte em que cada campo falta (para o contador do diálogo de exportação). */
   const faltandoCount = useMemo(() => {
     const m = new Map<string, number>();
