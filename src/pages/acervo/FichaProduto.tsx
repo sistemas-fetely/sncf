@@ -48,6 +48,8 @@ type LinhaMatriz = {
   descricao: string | null;
 };
 
+type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
+
 type LinhaProduto = Record<string, unknown> & {
   cod_cadastro: string | null;
   sku: string | null;
