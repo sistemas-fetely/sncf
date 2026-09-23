@@ -408,7 +408,6 @@ export default function ConciliacaoFila() {
       {selecionados.size > 0 && <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
         <span className="font-medium">{selecionados.size} produto(s) selecionado(s)</span>
         {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
-        <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setSelecionados(new Set(skusRecorte))}>Selecionar o recorte inteiro ({skusRecorte.size} produtos)</Button>
         <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
       </div>}
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
