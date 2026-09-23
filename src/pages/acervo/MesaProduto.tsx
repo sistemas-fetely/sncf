@@ -31,7 +31,7 @@ import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/compone
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
 import { fmtData, fmtDataHora } from "@/lib/data";
 // O de-para da conciliação virou componente compartilhado com a tela Conciliação de Cadastro.
-import { tomGravidade, type ConcLinha, type ImpactoDim, type RegraDiv } from "@/components/acervo/DeParaConciliacao";
+import { type ConcLinha, type RegraDiv } from "@/components/acervo/DeParaConciliacao";
 
 type Linha = Record<string, unknown> & {
   sku: string; cod_cadastro: string | null; nome_comercial: string | null;
