@@ -97,6 +97,7 @@ function lerCsv(texto: string): string[][] {
   return linhas.filter(l => l.some(x => x.trim() !== ""));
 }
 
+type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
 type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string };
 type Falha = { cod: string; motivo: string };
 
