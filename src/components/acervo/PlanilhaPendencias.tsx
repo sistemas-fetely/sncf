@@ -107,7 +107,7 @@ function lerCsv(texto: string): string[][] {
 }
 
 type OpcaoCampo = { campo: string; valor: string; rotulo: string; ordem: number };
-type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string };
+type Mudanca = { cod: string; campo: string; rotulo: string; de: string; para: string; porta: string };
 type Falha = { cod: string; motivo: string };
 
 export function PlanilhaPendencias({ cods, onGravado }: { cods: string[]; onGravado: () => void }) {
