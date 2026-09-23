@@ -362,6 +362,7 @@ export default function ConciliacaoFila() {
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
+        <CorrigirXpmLote produtos={selecionadosProdutos} onFeito={() => { void fila.refetch(); }} />
         {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
