@@ -133,6 +133,8 @@ serve(async (req) => {
               continue;
             }
             // Espelha o que foi enviado para a leitura refletir na hora.
+            // categoria_codigo: codigo do mapa correspondente ao id enviado (quando existir).
+            const codEspelho = codigoDoMapa.get(String(p1.categoriaId));
             const { error: eUpd } = await supabase.from("xpm_produtos_cache").update({
               descricao: p1.descricao ?? null,
               ncm: p1.classificacaoFiscalNCM ?? null,
@@ -140,6 +142,7 @@ serve(async (req) => {
               altura_m: num(p1.altura),
               largura_m: num(p1.largura),
               comprimento_m: num(p1.comprimento),
+              ...(codEspelho !== undefined ? { categoria_codigo: codEspelho } : {}),
               sincronizado_em: new Date().toISOString(),
             }).eq("codigo", sku);
             if (eUpd) throw new Error(`espelho xpm_produtos_cache ${sku}: ${eUpd.message}`);
