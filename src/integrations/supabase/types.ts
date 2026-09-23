@@ -19754,33 +19754,6 @@ export type Database = {
         }
         Relationships: []
       }
-      divergencia_impacto_dim: {
-        Row: {
-          ativo: boolean
-          descricao: string
-          gravidade: number
-          nome: string
-          ordem: number
-          slug: string
-        }
-        Insert: {
-          ativo?: boolean
-          descricao: string
-          gravidade: number
-          nome: string
-          ordem: number
-          slug: string
-        }
-        Update: {
-          ativo?: boolean
-          descricao?: string
-          gravidade?: number
-          nome?: string
-          ordem?: number
-          slug?: string
-        }
-        Relationships: []
-      }
       divergencia_regra: {
         Row: {
           ativo: boolean
@@ -19788,7 +19761,6 @@ export type Database = {
           campo_destino: string | null
           campo_matriz: string | null
           consequencia: string
-          impacto: string
           nome: string
           o_que_fazer: string | null
           onde_resolver: string
@@ -19803,7 +19775,6 @@ export type Database = {
           campo_destino?: string | null
           campo_matriz?: string | null
           consequencia: string
-          impacto: string
           nome: string
           o_que_fazer?: string | null
           onde_resolver: string
@@ -19818,7 +19789,6 @@ export type Database = {
           campo_destino?: string | null
           campo_matriz?: string | null
           consequencia?: string
-          impacto?: string
           nome?: string
           o_que_fazer?: string | null
           onde_resolver?: string
@@ -19833,13 +19803,6 @@ export type Database = {
             columns: ["camada"]
             isOneToOne: false
             referencedRelation: "divergencia_camada_dim"
-            referencedColumns: ["slug"]
-          },
-          {
-            foreignKeyName: "divergencia_regra_impacto_fkey"
-            columns: ["impacto"]
-            isOneToOne: false
-            referencedRelation: "divergencia_impacto_dim"
             referencedColumns: ["slug"]
           },
         ]
@@ -72953,11 +72916,8 @@ export type Database = {
           colecao: string | null
           consequencia: string | null
           fase: string | null
-          gravidade: number | null
           grupo: string | null
           handle: string | null
-          impacto: string | null
-          impacto_nome: string | null
           nome_comercial: string | null
           o_que_fazer: string | null
           onde_resolver: string | null
@@ -72977,13 +72937,6 @@ export type Database = {
             columns: ["camada"]
             isOneToOne: false
             referencedRelation: "divergencia_camada_dim"
-            referencedColumns: ["slug"]
-          },
-          {
-            foreignKeyName: "divergencia_regra_impacto_fkey"
-            columns: ["impacto"]
-            isOneToOne: false
-            referencedRelation: "divergencia_impacto_dim"
             referencedColumns: ["slug"]
           },
         ]
@@ -87324,14 +87277,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -88278,14 +88231,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -94504,11 +94457,8 @@ export type Database = {
           existe_bling: boolean | null
           existe_xpm: boolean | null
           fase: string | null
-          gravidade: number | null
           grupo: string | null
           handle: string | null
-          impacto_maior: string | null
-          impactos: string[] | null
           inventory_items: number | null
           multiplos: number | null
           ncm: string | null
