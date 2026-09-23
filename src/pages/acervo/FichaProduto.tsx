@@ -39,6 +39,7 @@ import { formatError } from "@/lib/format-error";
 
 type LinhaMatriz = {
   campo: string;
+  rotulo: string | null;
   bloco: string | null;
   dono: string | null;
   fase_exigida: string | null;
@@ -180,7 +181,7 @@ export default function FichaProduto() {
     queryFn: async (): Promise<LinhaMatriz[]> => {
       const { data, error } = await supabase
         .from("produto_ficha_nascimento")
-        .select("campo, bloco, dono, fase_exigida, obrigatorio, ordem, descricao")
+        .select("campo, rotulo, bloco, dono, fase_exigida, obrigatorio, ordem, descricao")
         .order("ordem", { ascending: true });
       if (error) throw new Error(error.message);
       return (data ?? []) as LinhaMatriz[];
@@ -250,6 +251,17 @@ export default function FichaProduto() {
       .filter((fase) => fase.ordem < faseAtualDim.ordem)
       .sort((a, b) => b.ordem - a.ordem)[0] ?? null
     : null;
+  const rotuloPorCampo = useMemo(
+    () => new Map(matriz.map((linha) => [linha.campo, linha.rotulo?.trim() || linha.campo])),
+    [matriz],
+  );
+  const ultimaFase = useMemo(
+    () => [...(fasesQ.data ?? [])].sort((a, b) => b.ordem - a.ordem)[0] ?? null,
+    [fasesQ.data],
+  );
+  const mostrarFaltaProxima = faltaProxima.size > 0
+    && Boolean(produto?.proxima_fase)
+    && produto?.proxima_fase !== ultimaFase?.slug;
 
   useEffect(() => {
     setFotoFalhou(false);
@@ -415,7 +427,9 @@ export default function FichaProduto() {
     return (
       <div className="flex flex-wrap gap-1">
         {lista.map((c) => (
-          <Badge key={c} variant="outline" className="text-[10px] py-0">{c}</Badge>
+          <Badge key={c} variant="outline" className="text-[10px] py-0">
+            {rotuloPorCampo.get(c) ?? c}
+          </Badge>
         ))}
       </div>
     );
@@ -727,14 +741,16 @@ export default function FichaProduto() {
                       <div className="text-xs text-muted-foreground">Falta na fase atual</div>
                       <Chips itens={produto.falta_fase_atual} />
                     </div>
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">
-                        Falta para a próxima fase{" "}
-                        {produto.proxima_fase ? `(${produto.proxima_fase})` : ""} ·{" "}
-                        {produto.qtd_falta_proxima ?? 0}
+                    {mostrarFaltaProxima && (
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">
+                          Falta para a próxima fase{" "}
+                          {produto.proxima_fase ? `(${produto.proxima_fase})` : ""} ·{" "}
+                          {produto.qtd_falta_proxima ?? 0}
+                        </div>
+                        <Chips itens={produto.falta_proxima_fase} />
                       </div>
-                      <Chips itens={produto.falta_proxima_fase} />
-                    </div>
+                    )}
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-muted-foreground">Ficha no Bling</span>
                       <span className="inline-flex items-center gap-1">
