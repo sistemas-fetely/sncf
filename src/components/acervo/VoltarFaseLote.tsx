@@ -55,7 +55,7 @@ function motivoDaFalha(e: unknown): string {
   return `${err?.status || ""} ${JSON.stringify(corpo)}`.trim() || "Erro sem detalhe.";
 }
 
-export function VoltarFaseLote({ produtos, onFeito }: { produtos: ProdutoLote[]; onFeito: () => void }) {
+export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoLote[]; onFeito: () => void; sempreVisivel?: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [saldo, setSaldo] = useState(false);
@@ -101,13 +101,16 @@ export function VoltarFaseLote({ produtos, onFeito }: { produtos: ProdutoLote[];
     onFeito();
   }
 
-  if (!produtos.length || !destino) return null;
+  if ((!produtos.length && !sempreVisivel) || (!destino && !sempreVisivel)) return null;
+
+  const desabilitado = produtos.length === 0 || !destino;
+  const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : undefined;
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => { zerar(); setAberto(true); }}>
-      <ArrowDownCircle className="mr-2 h-4 w-4" />Voltar {produtos.length} ativos para {destino.nome}
+    <Button variant="outline" size="sm" onClick={() => { zerar(); setAberto(true); }} disabled={desabilitado} title={tituloDesabilitado}>
+      <ArrowDownCircle className="mr-2 h-4 w-4" />Voltar {produtos.length} ativos para {destino?.nome ?? "fase anterior"}
     </Button>
-    <Dialog open={aberto} onOpenChange={o => { if (rodando) return; if (!o) { setAberto(false); zerar(); } }}>
+    {destino && <Dialog open={aberto} onOpenChange={o => { if (rodando) return; if (!o) { setAberto(false); zerar(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Voltar {produtos.length} produtos de Ativo para {destino.nome}?</DialogTitle>
@@ -138,6 +141,6 @@ export function VoltarFaseLote({ produtos, onFeito }: { produtos: ProdutoLote[];
             </>}
         </DialogFooter>
       </DialogContent>
-    </Dialog>
+    </Dialog>}
   </>;
 }

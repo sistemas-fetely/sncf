@@ -399,11 +399,10 @@ export default function ConciliacaoFila() {
       estado={estado}
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        {codsIncompletos.length > 0 && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} />}
-        <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} />
-        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} />
-        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} />
-        {selecionadosAtivos.length > 0 && selecionadosForaDeAtivo > 0 && <span className="text-xs text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
+        <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />
+        <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
+        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel />
+        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
@@ -454,6 +453,7 @@ export default function ConciliacaoFila() {
       {selecionados.size > 0 && <div className="flex flex-wrap items-center gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
         <span className="font-medium">{selecionados.size} produto(s) selecionado(s)</span>
         {selecionadosForaDoRecorte > 0 && <span className="text-muted-foreground">({selecionadosForaDoRecorte} fora do recorte atual)</span>}
+        {selecionadosForaDeAtivo > 0 && <span className="text-muted-foreground">{selecionadosForaDeAtivo} selecionado(s) fora de Ativo não entram</span>}
         <Button variant="ghost" size="sm" className="h-auto px-2 py-1 text-xs" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
       </div>}
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">

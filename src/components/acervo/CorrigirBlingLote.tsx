@@ -51,7 +51,7 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBling[]; onFeito: () => void }) {
+export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [aplicando, setAplicando] = useState(false);
@@ -116,7 +116,7 @@ export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBlin
     }
   }
 
-  if (!produtos.length) return null;
+  if (!produtos.length && !sempreVisivel) return null;
 
   const barra = (p: Progresso) => (
     <div className="flex items-center gap-2">
@@ -128,7 +128,7 @@ export function CorrigirBlingLote({ produtos, onFeito }: { produtos: ProdutoBlin
   );
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => void abrir()}>
+    <Button variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : undefined}>
       <RefreshCw className="mr-2 h-4 w-4" />Corrigir no Bling ({produtos.length})
     </Button>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>
