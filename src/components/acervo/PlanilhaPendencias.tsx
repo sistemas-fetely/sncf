@@ -196,6 +196,23 @@ export function PlanilhaPendencias({ cods, onGravado, sempreVisivel = false }: {
     return m;
   }, [mesa.data]);
 
+  /**
+   * ORDEM DE EXIBIÇÃO no diálogo de exportação: primeiro os campos que faltam
+   * em pelo menos um produto do recorte (por nº de produtos faltando, empate
+   * pela ordem da ficha), depois os demais na ordem da ficha. A exportação
+   * segue usando `dim.data` — colunas sempre na ordem da ficha.
+   */
+  const listaExibicao = useMemo(() => {
+    const todos = dim.data ?? [];
+    const faltantes = todos
+      .filter(d => (faltandoCount.get(d.campo) ?? 0) > 0)
+      .sort((a, b) => ((faltandoCount.get(b.campo) ?? 0) - (faltandoCount.get(a.campo) ?? 0)) || (a.ordem - b.ordem));
+    const demais = todos
+      .filter(d => (faltandoCount.get(d.campo) ?? 0) === 0)
+      .sort((a, b) => a.ordem - b.ordem);
+    return { faltantes, demais };
+  }, [dim.data, faltandoCount]);
+
   function marcarFaltantes() {
     setSelecionados(new Set(colunas.map(c => c.campo)));
   }
