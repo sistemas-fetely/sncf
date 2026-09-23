@@ -270,6 +270,12 @@ export default function ConciliacaoFila() {
     () => [...new Set(recorte.filter(l => l.regra === REGRA_INCOMPLETO && temValor(l.cod_cadastro)).map(l => String(l.cod_cadastro)))],
     [recorte],
   );
+  // MUTIRÃO: produtos ativos do recorte, deduplicados, para a regressão em lote.
+  const ativosRecorte = useMemo(() => {
+    const m = new Map<string, ProdutoLote>();
+    for (const l of recorte) if (l.fase === "ativo" && temValor(l.sku)) m.set(String(l.sku), { sku: String(l.sku), cod_cadastro: l.cod_cadastro ?? null });
+    return [...m.values()];
+  }, [recorte]);
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
   function ordenar(key: string) {
