@@ -255,13 +255,6 @@ export default function FichaProduto() {
     () => new Map(matriz.map((linha) => [linha.campo, linha.rotulo?.trim() || linha.campo])),
     [matriz],
   );
-  const ultimaFase = useMemo(
-    () => [...(fasesQ.data ?? [])].sort((a, b) => b.ordem - a.ordem)[0] ?? null,
-    [fasesQ.data],
-  );
-  const mostrarFaltaProxima = faltaProxima.size > 0
-    && Boolean(produto?.proxima_fase)
-    && produto?.proxima_fase !== ultimaFase?.slug;
 
   useEffect(() => {
     setFotoFalhou(false);
@@ -286,6 +279,13 @@ export default function FichaProduto() {
     () => new Set(Array.isArray(produto?.falta_proxima_fase) ? produto!.falta_proxima_fase! : []),
     [produto],
   );
+  const ultimaFase = useMemo(
+    () => [...(fasesQ.data ?? [])].sort((a, b) => b.ordem - a.ordem)[0] ?? null,
+    [fasesQ.data],
+  );
+  const mostrarFaltaProxima = faltaProxima.size > 0
+    && Boolean(produto?.proxima_fase)
+    && produto?.proxima_fase !== ultimaFase?.slug;
 
   /** Alterações reais: rascunho ≠ view. Campo intocado não entra no payload. */
   const alteracoes = useMemo(() => {
