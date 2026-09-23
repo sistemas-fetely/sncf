@@ -203,8 +203,7 @@ serve(async (req) => {
             largura_cm: dim.largura,
             profundidade_cm: dim.profundidade,
             detalhe_payload: detalhe,
-            atualizado_em: new Date().toISOString(),
-          }).eq("bling_id", Number(blingId));
+          }).eq("bling_id", String(blingId));
           if (espErr) avisoEspelho = `atualização do espelho falhou, fila pode demorar a limpar (${espErr.message})`;
         }
       } catch (_) {
