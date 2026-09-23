@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import {
-  DeParaConciliacao, tomGravidade, temValor,
-  type ConcLinha, type ImpactoDim, type RegraDiv,
+  DeParaConciliacao, temValor,
+  type ConcLinha, type RegraDiv,
 } from "@/components/acervo/DeParaConciliacao";
 
 /**
@@ -30,15 +30,14 @@ import {
  *
  * Uma linha = um produto × uma regra de divergência. A Mesa do Produto ficou de
  * gestão (fase, promover, voltar); aqui mora o roteiro de correção, com o "onde
- * resolver" na frente. Nada de lista de regra, impacto ou sistema escrita no
- * código: tudo vem de `vw_conciliacao_fila` e `divergencia_impacto_dim`.
+ * resolver" na frente. Nada de lista de regra ou sistema escrita no código:
+ * tudo vem de `vw_conciliacao_fila` e `divergencia_regra`.
  */
 type FilaLinha = {
   cod_cadastro: string | null; sku: string; nome_comercial: string | null;
   colecao: string | null; grupo: string | null; fase: string | null;
   regra: string; regra_nome: string | null; sistema: string | null;
   camada: string | null; camada_nome: string | null; camada_ordem: number | null;
-  impacto: string | null; impacto_nome: string | null; gravidade: number | null;
   onde_resolver: string | null; rota_resolver: string | null;
   consequencia: string | null; o_que_fazer: string | null;
   campo_matriz: string | null; valor_matriz: string | null;
@@ -47,20 +46,8 @@ type FilaLinha = {
   qtd_divergencias: number | null;
 };
 
-type Grupo = "camada" | "onde" | "impacto" | "regra" | "fase" | "colecao";
-const PARAMS: Grupo[] = ["camada", "onde", "impacto", "regra", "fase", "colecao"];
-
-const tomCardImpacto = (gravidade: number | null | undefined, contagem: number) =>
-  contagem === 0 ? ""
-  : (gravidade ?? 0) >= 90 ? "border-destructive/50"
-  : (gravidade ?? 0) >= 60 ? "border-warning/50"
-  : "";
-
-const tomNumeroImpacto = (gravidade: number | null | undefined, contagem: number) =>
-  contagem === 0 ? "text-foreground"
-  : (gravidade ?? 0) >= 90 ? "text-destructive-strong"
-  : (gravidade ?? 0) >= 60 ? "text-warning-strong"
-  : "text-foreground";
+type Grupo = "camada" | "onde" | "regra" | "fase" | "colecao";
+const PARAMS: Grupo[] = ["camada", "onde", "regra", "fase", "colecao"];
 
 type ColDef = { key: keyof FilaLinha | "onde" | "matriz" | "destino"; rotulo: string; ordenavel?: boolean };
 const COLUNAS: ColDef[] = [
@@ -70,7 +57,6 @@ const COLUNAS: ColDef[] = [
   { key: "fase", rotulo: "Fase", ordenavel: true },
   { key: "regra", rotulo: "Regra", ordenavel: true },
   { key: "camada_nome", rotulo: "Camada", ordenavel: true },
-  { key: "impacto", rotulo: "Impacto", ordenavel: true },
   { key: "matriz", rotulo: "Matriz", ordenavel: true },
   { key: "destino", rotulo: "Destino", ordenavel: true },
   { key: "onde", rotulo: "Onde resolver", ordenavel: true },
@@ -84,7 +70,6 @@ function chaveOrdem(l: FilaLinha, coluna: string): string | number | null {
   if (coluna === "onde") return l.onde_resolver;
   if (coluna === "regra") return l.regra_nome ?? l.regra;
   if (coluna === "camada_nome") return l.camada_ordem;
-  if (coluna === "impacto") return l.gravidade;
   return (l as unknown as Record<string, string | number | null>)[coluna] ?? null;
 }
 
@@ -100,7 +85,7 @@ function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label: stri
 }
 
 /** De-para do produto, carregado sob demanda ao expandir a linha. */
-function DeParaSobDemanda({ sku, regras, impactos }: { sku: string; regras: Map<string, RegraDiv>; impactos: Map<string, ImpactoDim> }) {
+function DeParaSobDemanda({ sku, regras }: { sku: string; regras: Map<string, RegraDiv> }) {
   const q = useQuery({
     queryKey: ["conciliacao-fila-360", sku],
     queryFn: async () => {
@@ -112,7 +97,7 @@ function DeParaSobDemanda({ sku, regras, impactos }: { sku: string; regras: Map<
   if (q.isLoading) return <Skeleton className="h-40 w-full" />;
   if (q.error) return <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar o de-para de {sku}. Detalhe: {(q.error as Error).message}</AlertDescription></Alert>;
   if (!q.data) return <p className="text-xs text-muted-foreground">Nenhuma conciliação encontrada para {sku}.</p>;
-  return <DeParaConciliacao l={q.data} regras={regras} impactos={impactos} />;
+  return <DeParaConciliacao l={q.data} regras={regras} />;
 }
 
 export default function ConciliacaoFila() {
@@ -120,7 +105,7 @@ export default function ConciliacaoFila() {
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
-  const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "impacto", dir: "desc" });
+  const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
 
   // FILTRO-MORA-NA-URL: a Mesa e o resto do sistema linkam já filtrado.
   // Ao abrir sem nenhum parâmetro, a fila nasce no recorte que importa: fase ativo.
@@ -178,29 +163,20 @@ export default function ConciliacaoFila() {
       return todas;
     },
   });
-  const impactosDim = useQuery({
-    queryKey: ["divergencia-impacto-dim"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("divergencia_impacto_dim" as never).select("slug, nome, descricao, gravidade, ordem").order("ordem");
-      if (error) throw error;
-      return (data ?? []) as ImpactoDim[];
-    },
-  });
   const regrasDim = useQuery({
     queryKey: ["divergencia-regra"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, impacto, consequencia, o_que_fazer, onde_resolver, ordem, rota_resolver, campo_matriz, campo_destino").order("ordem");
+      const { data, error } = await supabase.from("divergencia_regra" as never).select("slug, nome, sistema, consequencia, o_que_fazer, onde_resolver, ordem, rota_resolver, campo_matriz, campo_destino").order("ordem");
       if (error) throw error;
       return (data ?? []) as RegraDiv[];
     },
   });
 
-  const carregando = fila.isLoading || impactosDim.isLoading || regrasDim.isLoading;
-  const erro = fila.error ?? impactosDim.error ?? regrasDim.error;
-  const atualizando = fila.isFetching || impactosDim.isFetching || regrasDim.isFetching;
+  const carregando = fila.isLoading || regrasDim.isLoading;
+  const erro = fila.error ?? regrasDim.error;
+  const atualizando = fila.isFetching || regrasDim.isFetching;
 
   const regraPorSlug = useMemo(() => new Map((regrasDim.data ?? []).map(r => [r.slug, r])), [regrasDim.data]);
-  const impactoPorSlug = useMemo(() => new Map((impactosDim.data ?? []).map(i => [i.slug, i])), [impactosDim.data]);
   const linhas = useMemo(() => fila.data ?? [], [fila.data]);
 
   const aplica = (l: FilaLinha, ignorar?: Grupo) => {
@@ -213,7 +189,7 @@ export default function ConciliacaoFila() {
       if (g === ignorar) continue;
       const sel = lista(g);
       if (!sel.length) continue;
-      const v = g === "camada" ? l.camada : g === "onde" ? l.onde_resolver : g === "impacto" ? l.impacto : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
+      const v = g === "camada" ? l.camada : g === "onde" ? l.onde_resolver : g === "regra" ? l.regra : g === "fase" ? l.fase : l.colecao;
       if (!sel.includes(String(v ?? "__sem__"))) return false;
     }
     return true;
@@ -241,7 +217,7 @@ export default function ConciliacaoFila() {
   useEffect(() => { setPagina(1); setExpandido(null); }, [sp, tamanho]);
 
   // INDICADOR-POR-ONDE-RESOLVE: um card por sistema de destino presente na view.
-  // Cor pela maior gravidade do grupo, com a mesma regra da Mesa; zero é neutro.
+  // Visual neutro; o tooltip quebra a contagem por regra.
   const cards = useMemo(() => {
     const base = linhas.filter(l => aplica(l, "onde"));
     const mapa = new Map<string, FilaLinha[]>();
@@ -254,16 +230,14 @@ export default function ConciliacaoFila() {
       if (!mapa.has(k)) mapa.set(k, []);
     }
     return [...mapa.entries()].map(([onde, ls]) => {
-      const gravidade = ls.reduce((m, l) => Math.max(m, l.gravidade ?? 0), 0);
-      const porImpacto = new Map<string, { nome: string; n: number; g: number }>();
+      const porRegra = new Map<string, { nome: string; n: number }>();
       for (const l of ls) {
-        const slug = l.impacto ?? "__sem__";
-        const atual = porImpacto.get(slug);
-        porImpacto.set(slug, { nome: l.impacto_nome ?? slug, n: (atual?.n ?? 0) + 1, g: l.gravidade ?? 0 });
+        const atual = porRegra.get(l.regra);
+        porRegra.set(l.regra, { nome: l.regra_nome ?? l.regra, n: (atual?.n ?? 0) + 1 });
       }
-      const quebra = [...porImpacto.values()].sort((a, b) => b.g - a.g).map(x => `${x.n} ${x.nome.toLocaleLowerCase("pt-BR")}`).join(" · ");
-      return { onde, label: onde === "__sem__" ? "Sem destino" : onde, n: ls.length, gravidade, quebra };
-    }).sort((a, b) => b.gravidade - a.gravidade || a.label.localeCompare(b.label, "pt-BR"));
+      const quebra = [...porRegra.values()].sort((a, b) => b.n - a.n).map(x => `${x.n} ${x.nome.toLocaleLowerCase("pt-BR")}`).join(" · ");
+      return { onde, label: onde === "__sem__" ? "Sem destino" : onde, n: ls.length, quebra };
+    }).sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "pt-BR"));
   // aplica depende dos parâmetros da URL
   }, [linhas, sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -279,10 +253,6 @@ export default function ConciliacaoFila() {
     return [...m.entries()].sort((a, b) => (a[1].ordem ?? 9999) - (b[1].ordem ?? 9999) || a[1].nome.localeCompare(b[1].nome, "pt-BR")).map(([valor, v]) => ({ valor, rotulo: valor === "__sem__" ? "Sem camada" : v.nome }));
   }, [linhas]);
   const opcoesOnde = useMemo(() => [...new Set(linhas.map(l => l.onde_resolver ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem destino" : v })), [linhas]);
-  const opcoesImpacto = useMemo(() => {
-    const presentes = new Set(linhas.map(l => l.impacto ?? "__sem__"));
-    return [...(impactosDim.data ?? [])].filter(i => presentes.has(i.slug)).sort((a, b) => (b.gravidade ?? 0) - (a.gravidade ?? 0) || (a.ordem ?? 999) - (b.ordem ?? 999)).map(i => ({ valor: i.slug, rotulo: i.nome }));
-  }, [linhas, impactosDim.data]);
   const opcoesRegra = useMemo(() => {
     const m = new Map<string, string>();
     for (const l of linhas) if (!m.has(l.regra)) m.set(l.regra, l.regra_nome ?? l.regra);
@@ -303,10 +273,10 @@ export default function ConciliacaoFila() {
   }
 
   function exportar() {
-    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Camada", "Impacto", "Gravidade", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
+    const cab = ["Cód. cadastro", "SKU", "Nome", "Fase", "Coleção", "Regra", "Camada", "Campo matriz", "Valor matriz", "Campo destino", "Valor destino", "Onde resolver", "Consequência", "O que fazer"];
     const corpo = recorte.map(l => [
       l.cod_cadastro, l.sku, l.nome_comercial, l.fase, l.colecao, l.regra_nome ?? l.regra, l.camada_nome ?? l.camada,
-      l.impacto_nome ?? l.impacto, l.gravidade, l.campo_matriz, l.valor_matriz,
+      l.campo_matriz, l.valor_matriz,
       l.campo_destino, l.valor_destino, l.onde_resolver, l.consequencia, l.o_que_fazer,
     ].map(csvCelula).join(";")).join("\n");
     const url = URL.createObjectURL(new Blob(["\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo], { type: "text/csv;charset=utf-8;" }));
@@ -326,9 +296,8 @@ export default function ConciliacaoFila() {
     if (c.key === "sku") return <span>{l.sku}</span>;
     if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
     if (c.key === "fase") return <Badge variant="outline" className="font-normal">{l.fase ?? "—"}</Badge>;
-    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className={cn("whitespace-nowrap font-normal", tomGravidade(l.gravidade))}>{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
+    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="whitespace-nowrap font-normal">{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
     if (c.key === "camada_nome") return <span className="whitespace-nowrap">{l.camada_nome ?? l.camada ?? "—"}</span>;
-    if (c.key === "impacto") return <span className="whitespace-nowrap">{l.impacto_nome ?? l.impacto ?? "—"}</span>;
     if (c.key === "matriz" || c.key === "destino") {
       const campo = c.key === "matriz" ? l.campo_matriz : l.campo_destino;
       const valor = c.key === "matriz" ? l.valor_matriz : l.valor_destino;
@@ -349,7 +318,7 @@ export default function ConciliacaoFila() {
       estado={estado}
       acoes={<>
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        <Button size="sm" disabled={atualizando} onClick={async () => { await Promise.all([fila.refetch(), impactosDim.refetch(), regrasDim.refetch()]); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
+        <Button size="sm" disabled={atualizando} onClick={async () => { await Promise.all([fila.refetch(), regrasDim.refetch()]); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
 
@@ -360,12 +329,12 @@ export default function ConciliacaoFila() {
         const selecionado = lista("onde").includes(c.onde);
         const botao = <Button
           variant="outline"
-          className={cn("h-20 items-start justify-center border p-3 text-left", tomCardImpacto(c.gravidade, c.n), selecionado && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
+          className={cn("h-20 items-start justify-center border p-3 text-left", selecionado && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
           onClick={() => setLista("onde", selecionado ? [] : [c.onde])}
         >
           <span className="flex w-full flex-col">
             <span className="text-[11px] font-normal text-muted-foreground">{c.label}</span>
-            <span className={cn("mt-1 text-[21px] font-medium tabular-nums", tomNumeroImpacto(c.gravidade, c.n))}>{c.n}</span>
+            <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span>
           </span>
         </Button>;
         return <Tooltip key={c.onde}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
@@ -379,7 +348,6 @@ export default function ConciliacaoFila() {
       </div>
       <FiltroFacetado label="Camada" selecionados={lista("camada")} onChange={v => setLista("camada", v)} opcoes={facet("camada", opcoesCamada, l => l.camada ?? "__sem__")} />
       <FiltroFacetado label="Onde resolver" selecionados={lista("onde")} onChange={v => setLista("onde", v)} opcoes={facet("onde", opcoesOnde, l => l.onde_resolver ?? "__sem__")} />
-      <FiltroFacetado label="Impacto" selecionados={lista("impacto")} onChange={v => setLista("impacto", v)} opcoes={facet("impacto", opcoesImpacto, l => l.impacto ?? "__sem__")} />
       <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
       <FiltroFacetado label="Fase" selecionados={lista("fase")} onChange={v => setLista("fase", v)} opcoes={facet("fase", opcoesFase, l => l.fase ?? "__sem__")} />
       <FiltroFacetado label="Coleção" selecionados={lista("colecao")} onChange={v => setLista("colecao", v)} opcoes={facet("colecao", opcoesColecao, l => l.colecao ?? "__sem__")} />
@@ -407,7 +375,7 @@ export default function ConciliacaoFila() {
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
           {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
-            <DeParaSobDemanda sku={l.sku} regras={regraPorSlug} impactos={impactoPorSlug} />
+            <DeParaSobDemanda sku={l.sku} regras={regraPorSlug} />
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
       </Table>

@@ -35,8 +35,6 @@ export type ConcLinha = {
   no_shopify: boolean | null; ativo_shopify: boolean | null; variantes_shopify: number | null;
   inventory_items: number | null; handle: string | null; preco_shopify: number | null;
   barcode_shopify: string | null;
-  // Consequência da divergência, resolvida na própria view.
-  impactos: string[] | null; impacto_maior: string | null; gravidade: number | null;
 };
 
 export type CardBling = {
@@ -47,21 +45,13 @@ export type CardBling = {
   ja_foi_usado: boolean | null; n_envios: number | null; ultimo_envio: string | null;
 };
 
-// DIVERGÊNCIA POR CONSEQUÊNCIA — nome, consequência, o que fazer e onde resolver
-// vêm de `divergencia_regra`; nome, descrição e gravidade do impacto vêm de
-// `divergencia_impacto_dim`. Slug sem regra cadastrada aparece cru.
-export type ImpactoDim = { slug: string; nome: string; descricao: string | null; gravidade: number | null; ordem: number | null };
+// DIVERGÊNCIA — nome, consequência, o que fazer e onde resolver vêm de
+// `divergencia_regra`. Slug sem regra cadastrada aparece cru.
 export type RegraDiv = {
-  slug: string; nome: string; sistema: string | null; impacto: string | null;
+  slug: string; nome: string; sistema: string | null;
   consequencia: string | null; o_que_fazer: string | null; onde_resolver: string | null; ordem: number | null;
   rota_resolver?: string | null; campo_matriz?: string | null; campo_destino?: string | null;
 };
-
-/** Tom do chip pela gravidade do impacto — nada de "crítico/atenção" escrito aqui. */
-export const tomGravidade = (g: number | null | undefined) =>
-  (g ?? 0) >= 90 ? "border-destructive/40 bg-destructive/10 text-destructive-strong"
-  : (g ?? 0) >= 60 ? "border-warning/40 bg-warning/10 text-warning-strong"
-  : "";
 
 export const temValor = (v: unknown) => v !== null && v !== undefined && String(v).trim() !== "";
 export const fmtNum = (v: number | null | undefined) =>
@@ -71,7 +61,7 @@ export const fmtMoeda = (v: number | null | undefined) =>
 
 type LinhaDePara = Partial<ConcLinha> & Record<string, unknown> & { sku: string };
 
-export function DeParaConciliacao({ l, regras, impactos }: { l: LinhaDePara; regras: Map<string, RegraDiv>; impactos: Map<string, ImpactoDim> }) {
+export function DeParaConciliacao({ l, regras }: { l: LinhaDePara; regras: Map<string, RegraDiv> }) {
   const divs = new Set(l.divergencias ?? []);
   const dash = (v: unknown) => v == null || String(v).trim() === "" ? "—" : String(v);
   const rows = [
@@ -84,14 +74,14 @@ export function DeParaConciliacao({ l, regras, impactos }: { l: LinhaDePara; reg
     { r:"Ativo", s:l.fase, b:l.bling_ativo == null ? null : l.bling_ativo ? "ativo" : "inativo", x:null, y:l.no_shopify == null ? null : l.no_shopify ? (l.ativo_shopify ? "ativo" : "inativo") : "não existe", sb:"bling_inativo_com_ativo", sy:divs.has("sem_shopify") ? "sem_shopify" : undefined },
   ] as { r:string; s:unknown; b:unknown; x:unknown; y:unknown; sb?:string; sx?:string; sy?:string }[];
   const val = (v: unknown, slug?: string) => <span className={cn(divs.has(slug ?? "") && "text-destructive-strong", !temValor(v) && "text-muted-foreground")}>{dash(v)}</span>;
-  // ROTEIRO-ANTES-DO-DIAGNÓSTICO: o que fazer com cada divergência, ordenado pela
-  // gravidade do impacto. Slug sem regra cadastrada aparece cru, sem inventar texto.
-  const roteiro = [...(l.divergencias ?? [])].map(slug => ({ slug, r: regras.get(slug) ?? null })).map(x => ({ ...x, imp: x.r?.impacto ? impactos.get(x.r.impacto) ?? null : null })).sort((a, b) => (b.imp?.gravidade ?? 0) - (a.imp?.gravidade ?? 0));
+  // ROTEIRO-ANTES-DO-DIAGNÓSTICO: o que fazer com cada divergência, na ordem da
+  // regra cadastrada. Slug sem regra cadastrada vai para o fim, cru.
+  const roteiro = [...(l.divergencias ?? [])].map(slug => ({ slug, r: regras.get(slug) ?? null })).sort((a, b) => (a.r?.ordem ?? 9999) - (b.r?.ordem ?? 9999));
   return <div className="space-y-3">
     {roteiro.length > 0 && <div className="overflow-hidden rounded-md border bg-background">
       <div className="border-b bg-muted px-3 py-2 text-xs font-medium">O que fazer</div>
       <ul className="divide-y">{roteiro.map(x => <li key={x.slug} className="space-y-0.5 px-3 py-2 text-xs">
-        <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{x.r?.nome ?? x.slug}</span>{x.imp && <Badge variant="outline" className={cn("font-normal", tomGravidade(x.imp.gravidade))}>{x.imp.nome}</Badge>}</div>
+        <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{x.r?.nome ?? x.slug}</span></div>
         {x.r?.consequencia && <p className="text-muted-foreground">{x.r.consequencia}</p>}
         {x.r?.o_que_fazer && <p>{x.r.o_que_fazer}</p>}
         {x.r?.onde_resolver && <p className="text-muted-foreground">resolve-se no {x.r.onde_resolver}</p>}

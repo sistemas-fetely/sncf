@@ -19844,6 +19844,54 @@ export type Database = {
           },
         ]
       }
+      divergencia_regra_backup_20260922: {
+        Row: {
+          ativo: boolean | null
+          camada: string | null
+          campo_destino: string | null
+          campo_matriz: string | null
+          consequencia: string | null
+          impacto: string | null
+          nome: string | null
+          o_que_fazer: string | null
+          onde_resolver: string | null
+          ordem: number | null
+          rota_resolver: string | null
+          sistema: string | null
+          slug: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          camada?: string | null
+          campo_destino?: string | null
+          campo_matriz?: string | null
+          consequencia?: string | null
+          impacto?: string | null
+          nome?: string | null
+          o_que_fazer?: string | null
+          onde_resolver?: string | null
+          ordem?: number | null
+          rota_resolver?: string | null
+          sistema?: string | null
+          slug?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          camada?: string | null
+          campo_destino?: string | null
+          campo_matriz?: string | null
+          consequencia?: string | null
+          impacto?: string | null
+          nome?: string | null
+          o_que_fazer?: string | null
+          onde_resolver?: string | null
+          ordem?: number | null
+          rota_resolver?: string | null
+          sistema?: string | null
+          slug?: string | null
+        }
+        Relationships: []
+      }
       documentos_venda: {
         Row: {
           atualizado_em: string
