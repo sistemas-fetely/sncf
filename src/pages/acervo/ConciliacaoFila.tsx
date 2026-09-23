@@ -433,7 +433,7 @@ export default function ConciliacaoFila() {
             </TableCell>
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
-          {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
+          {expandido === l.sku && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
             <div className="space-y-3">{linhas.filter(x => x.sku === l.sku).map(x => <BlocoProblema key={`${x.sku}|${x.regra}`} l={x} />)}</div>
           </TableCell></TableRow>}
         </Fragment>)}</TableBody>
