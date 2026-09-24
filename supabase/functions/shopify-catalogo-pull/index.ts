@@ -86,6 +86,7 @@ query($cursor: String) {
     pageInfo { hasNextPage endCursor }
     nodes {
       id handle title status vendor productType tags createdAt updatedAt
+      hasVariantsThatRequiresComponents
       variants(first: 100) {
         nodes {
           id sku barcode price compareAtPrice position title
@@ -121,6 +122,7 @@ Deno.serve(async (req) => {
   const reconciliar = body?.reconciliar_excluidos === true;
   const listarWebhooks = body?.listar_webhooks === true;
   const criarWebhookDelete = body?.criar_webhook_delete === true;
+  const espelhar = body?.espelhar === true;
   const dryRun = body?.dry_run !== false;
   // Guarda da reconciliacao: percentual maximo de ausentes aceito (default 30, teto 60).
   const limiteRaw = Number(body?.limite_percentual);
@@ -190,6 +192,7 @@ Deno.serve(async (req) => {
     const erros: any[] = [];
 
     let buffer: any[] = [];
+    const espelhoRows: any[] = [];
 
     const flush = async () => {
       if (buffer.length === 0) return;
@@ -246,6 +249,32 @@ Deno.serve(async (req) => {
 
         variantesTotais += variants.length;
 
+        if (espelhar) {
+          espelhoRows.push({
+            shopify_id: shopifyId,
+            admin_graphql_api_id: p?.id ?? null,
+            title: p?.title ?? null,
+            handle: p?.handle ?? null,
+            status: p?.status ? String(p.status).toLowerCase() : null,
+            vendor: p?.vendor ?? null,
+            product_type: p?.productType ?? null,
+            tags: Array.isArray(p?.tags) ? p.tags : [],
+            has_variants_that_requires_components: p?.hasVariantsThatRequiresComponents === true,
+            created_at_shopify: p?.createdAt ?? null,
+            updated_at_shopify: p?.updatedAt ?? null,
+            updated_at: new Date().toISOString(),
+            variants: variantNodes.map((v: any) => ({
+              id: v?.id ? Number(extrairIdNumerico(v.id)) : null,
+              sku: v?.sku ?? null,
+              barcode: v?.barcode ?? null,
+              price: v?.price ?? null,
+              title: v?.title ?? null,
+              position: v?.position ?? null,
+              inventory_item_id: v?.inventoryItem?.id ? Number(extrairIdNumerico(v.inventoryItem.id)) : null,
+            })),
+          });
+        }
+
         buffer.push({
           shopify_id: shopifyId,
           handle: p?.handle ?? "",
@@ -284,6 +313,38 @@ Deno.serve(async (req) => {
 
     await flush();
 
+    // deno-lint-ignore no-explicit-any
+    let espelhoRes: any = {};
+    if (espelhar) {
+      if (erros.length > 0) {
+        throw new Error(`espelhamento abortado: pull teve ${erros.length} erro(s) — ${JSON.stringify(erros).slice(0, 300)}`);
+      }
+      const t0 = Date.now();
+      const existentes = new Set<string>();
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("shopify_produtos").select("shopify_id").order("shopify_id").range(from, from + 999);
+        if (error) throw new Error(`leitura shopify_produtos (espelho) falhou: ${error.message}`);
+        for (const r of data ?? []) existentes.add(String(r.shopify_id));
+        if (!data || data.length < 1000) break;
+      }
+      let espelhados = 0;
+      for (let i = 0; i < espelhoRows.length; i += 50) {
+        const lote = espelhoRows.slice(i, i + 50);
+        const { error } = await supabase.from("shopify_produtos").upsert(lote, { onConflict: "shopify_id" });
+        if (error) throw new Error(`upsert shopify_produtos falhou apos ${espelhados} espelhados: ${error.message}`);
+        espelhados += lote.length;
+      }
+      const novos = espelhoRows.filter((r) => !existentes.has(String(r.shopify_id))).map((r) => r.shopify_id);
+      espelhoRes = { espelhados, novos_no_espelho: novos.length, novos_ids: novos };
+      const { error: logErr } = await supabase.from("integracoes_sync_log").insert({
+        sistema: "shopify", tipo: "catalogo_espelhar", status: "sucesso",
+        registros_atualizados: espelhados, duracao_ms: Date.now() - t0,
+        detalhes: JSON.stringify(espelhoRes),
+      });
+      if (logErr) console.error("log:", logErr.message);
+    }
+
     if (reconciliar) {
       // So reconcilia com pull integro: qualquer erro de gravacao aborta.
       if (erros.length > 0) {
@@ -309,7 +370,7 @@ Deno.serve(async (req) => {
       if (dryRun) {
         // Visibilidade nao e bloqueada: devolve TODOS os ausentes, mesmo acima do limite.
         return json(200, {
-          dry_run: true, vistos: vistos.size, nao_excluidos: vivos.length, ausentes: ausentes.length,
+          ...espelhoRes, dry_run: true, vistos: vistos.size, nao_excluidos: vivos.length, ausentes: ausentes.length,
           percentual: Math.round(percentual * 100) / 100, limite_percentual: limitePercentual,
           acima_do_limite: acimaDoLimite,
           exemplos: ausentes.map((a) => ({ shopify_id: a.shopify_id, title: a.title, status: a.status })),
@@ -336,7 +397,7 @@ Deno.serve(async (req) => {
         detalhes: JSON.stringify({ vistos: vistos.size, marcados_excluidos: marcados, ids }),
       });
       if (logErr) console.error("log:", logErr.message);
-      return json(200, { vistos: vistos.size, marcados_excluidos: marcados });
+      return json(200, { ...espelhoRes, vistos: vistos.size, marcados_excluidos: marcados });
     }
 
     const resposta = {
@@ -347,6 +408,7 @@ Deno.serve(async (req) => {
       ignorados,
       duracao_ms: Date.now() - inicio,
       erros,
+      ...espelhoRes,
     };
 
     return json(erros.length === 0 ? 200 : 500, resposta);

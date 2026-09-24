@@ -84004,6 +84004,7 @@ export type Database = {
           entrega_declarada_em: string | null
           entrega_fonte: string | null
           entrega_prevista: string | null
+          entregue_motivo: string | null
           estagio: string | null
           estagio_fonte: string | null
           estagio_ordem: number | null
@@ -84101,6 +84102,7 @@ export type Database = {
           entrega_declarada_em: string | null
           entrega_fonte: string | null
           entrega_prevista: string | null
+          entregue_motivo: string | null
           estagio: string | null
           estagio_fonte: string | null
           estagio_ordem: number | null
