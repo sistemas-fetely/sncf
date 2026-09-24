@@ -17,6 +17,7 @@ import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { fmtBRL, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtPct2, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
+import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
 type Col = { k: string; label: string; tipo: "brl" | "int" | "pct" | "data" };
 const COLS: Col[] = [
@@ -93,6 +94,7 @@ export default function RepresentantesPainel() {
   const [ord, setOrd] = useState<{ k: string; asc: boolean }>({ k: "valor_vendido_bruto", asc: false });
   const [sincronizando, setSincronizando] = useState(false);
   const [errosSync, setErrosSync] = useState<ErroSync[] | null>(null);
+  const [alvo, setAlvo] = useState<AlvoContraparte | null>(null);
 
   const q = useQuery({
     queryKey: ["representante-kpi"],
@@ -259,14 +261,21 @@ export default function RepresentantesPainel() {
                   <TableCell className="font-medium whitespace-nowrap">{r.representante}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
-                      {prontidao(r).map((c) => (
-                        <Dica key={c.label} texto={c.ok ? c.okTxt : c.faltaTxt}>
-                          <Badge variant="outline" className={cn("px-1.5 py-0 text-[10px] whitespace-nowrap",
-                            c.ok ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground")}>
-                            {c.label}
-                          </Badge>
-                        </Dica>
-                      ))}
+                      {prontidao(r).map((c) => {
+                        const clicavel = c.label === "Contraparte" && !c.ok;
+                        return (
+                          <Dica key={c.label} texto={clicavel ? `${c.faltaTxt} Clique para vincular.` : c.ok ? c.okTxt : c.faltaTxt}>
+                            <Badge variant="outline"
+                              onClick={clicavel ? () => setAlvo({ vendedor_id: r.vendedor_id, nome: r.representante,
+                                email: r.email_contato, telefone: r.telefone, documento: r.documento }) : undefined}
+                              className={cn("px-1.5 py-0 text-[10px] whitespace-nowrap",
+                                c.ok ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground",
+                                clicavel && "cursor-pointer underline decoration-dotted hover:bg-accent")}>
+                              {c.label}
+                            </Badge>
+                          </Dica>
+                        );
+                      })}
                     </div>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
@@ -305,6 +314,7 @@ export default function RepresentantesPainel() {
           </div>
         </DialogContent>
       </Dialog>
+      <VincularContraparteDialog alvo={alvo} onClose={() => setAlvo(null)} />
     </PageShell>
   );
 }
