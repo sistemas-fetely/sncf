@@ -66,6 +66,12 @@ Deno.serve(async (req) => {
       const skus: string[] = Array.isArray(body?.skus)
         ? [...new Set<string>(body.skus.map((x: unknown) => String(x).trim()).filter(Boolean))]
         : [];
+      const limitePresente = body?.limite != null;
+      const limiteNum = Number(body?.limite);
+      if (limitePresente && (!Number.isFinite(limiteNum) || limiteNum < 1 || limiteNum > TETO_PUSH)) {
+        return json({ ok: false, erro: `limite deve estar entre 1 e ${TETO_PUSH}.` }, 400);
+      }
+      const limite = limitePresente ? Math.trunc(limiteNum) : null;
       let q = supabase.from("vw_estoque_bling_sync")
         .select("sku, bling_produto_id, deposito_id, bling_atual, sncf_disponivel, diff, centro")
         .neq("diff", 0).order("sku");
@@ -73,23 +79,25 @@ Deno.serve(async (req) => {
       const { data: linhasView, error: vErr } = await q;
       if (vErr) throw new Error(`vw_estoque_bling_sync: ${vErr.message}`);
       const linhas = linhasView ?? [];
+      const processar = limite != null ? linhas.slice(0, limite) : linhas;
+      const restantes = limite != null ? linhas.length - processar.length : 0;
 
       if (dryRun) {
         return json({
-          ok: true, dry_run: true, total_mudariam: linhas.length,
-          exemplos: linhas.slice(0, 20).map((r: any) => ({
+          ok: true, dry_run: true, total_mudariam: processar.length, restantes,
+          exemplos: processar.slice(0, 20).map((r: any) => ({
             sku: r.sku, deposito_id: r.deposito_id, bling_atual: r.bling_atual, sncf_disponivel: r.sncf_disponivel, diff: r.diff,
           })),
         });
       }
-      if (linhas.length > TETO_PUSH) {
-        throw new Error(`Teto de ${TETO_PUSH} linhas por chamada (a view tem ${linhas.length}). Filtre por skus.`);
+      if (limite == null && linhas.length > TETO_PUSH) {
+        throw new Error(`Teto de ${TETO_PUSH} linhas por chamada (a view tem ${linhas.length}). Filtre por skus ou use limite.`);
       }
       const client = await abrirCliente();
       let empurrados = 0;
       const falhas: any[] = [];
-      for (let k = 0; k < linhas.length; k++) {
-        const r: any = linhas[k];
+      for (let k = 0; k < processar.length; k++) {
+        const r: any = processar[k];
         if (k > 0) await sleep(THROTTLE_MS);
         const quantidade = Math.trunc(Number(r.sncf_disponivel));
         try {
