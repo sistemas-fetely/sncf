@@ -218,6 +218,7 @@ const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoqu
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 
 const ConciliacaoFila = lazy(() => import("@/pages/acervo/ConciliacaoFila"));
+const ConciliacaoEstoque = lazy(() => import("@/pages/acervo/ConciliacaoEstoque"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
 const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
@@ -449,6 +450,7 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   <Route path="/vendas/produto/estoque/destinos" element={<DestinosCadastro />} />
+                  <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoEstoque />} />
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
@@ -935,8 +937,8 @@ const App = () => (
             <Route path="/produto/estoque/virtual" element={<Navigate to="/vendas/produto/estoque/virtual" replace />} />
             <Route path="/produto/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
             <Route path="/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
-            {/* CONCILIACAO-VIROU-TELA-PROPRIA (23/09/2026): a aba de estoque saiu; link salvo não quebra. */}
-            <Route path="/vendas/produto/estoque/conciliacao" element={<Navigate to="/vendas/produto/conciliacao" replace />} />
+            {/* CONCILIACAO-ESTOQUE-VIROU-TELA-PROPRIA (24/09/2026): o redirect para a
+                Conciliação de Cadastro saiu — a rota agora é da Conciliação de Estoque. */}
             <Route path="/conciliacao/orfaos" element={<Navigate to="/administrativo/conciliacao/orfaos" replace />} />
             <Route path="/acervo/estoque/recebimento-xpm" element={<Navigate to="/vendas/xpm" replace />} />
             <Route path="/acervo/estoque/saude" element={<Navigate to="/vendas/produto/estoque/saude" replace />} />
