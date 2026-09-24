@@ -77,9 +77,32 @@ function Graficos({ serie, print }: { serie: Linha[]; print?: boolean }) {
   );
 }
 
-function Resumo({ k, serie, print }: { k: Linha; serie: Linha[]; print?: boolean }) {
+function CardCadastro({ v, k }: { v?: Linha; k: Linha }) {
+  const item = (l: string, val: ReactNode) => (
+    <div><div className="text-xs text-muted-foreground">{l}</div><div>{val}</div></div>
+  );
+  const doc = String(v?.documento ?? "").trim();
+  return (
+    <Card className="break-inside-avoid">
+      <CardHeader className="pb-2"><CardTitle className="text-sm">Cadastro</CardTitle></CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
+        {item("Nome", v?.nome_exibicao ?? k.representante)}
+        {item("E-mail", v?.email_contato ?? k.email_contato ?? "—")}
+        {item("Telefone", v?.telefone || "—")}
+        {item("Região", v?.regiao || "—")}
+        {item("Documento", doc || <span className="text-warning">não informado</span>)}
+        {item("Empresa", v?.empresa || "—")}
+        {item("Último login no FOP", v?.fop_ultimo_login ? new Date(v.fop_ultimo_login).toLocaleString("pt-BR") : "nunca")}
+        {item("Última sincronia", v?.sincronizado_em ? new Date(v.sincronizado_em).toLocaleString("pt-BR") : "nunca sincronizado")}
+      </CardContent>
+    </Card>
+  );
+}
+
+function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; print?: boolean }) {
   return (
     <div className="space-y-4">
+      <CardCadastro v={v} k={k} />
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} />
         <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} />
@@ -226,6 +249,11 @@ export default function RepresentanteFicha() {
     queryKey: ["representante-pagamentos", vendedorId],
     queryFn: () => lerTudo("comissao_extrato", (x) => x.eq("vendedor_id", vendedorId), { col: "competencia", asc: false }),
   });
+  const vq = useQuery({
+    queryKey: ["vendedor-cadastro", vendedorId],
+    queryFn: () => lerTudo("vendedores", (x) => x.eq("id", vendedorId)),
+  });
+  useFailLoud(vq.error, "cadastro do representante");
   useFailLoud(kq.error, "indicadores do representante");
   useFailLoud(sq.error, "série mensal");
   useFailLoud(dq.error, "extrato de comissão");
@@ -269,7 +297,7 @@ export default function RepresentanteFicha() {
           <TabsTrigger value="extrato">Extrato</TabsTrigger>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
         </TabsList>
-        <TabsContent value="resumo" className="mt-4"><Resumo k={k} serie={serie} /></TabsContent>
+        <TabsContent value="resumo" className="mt-4"><Resumo k={k} v={vq.data?.[0]} serie={serie} /></TabsContent>
         <TabsContent value="extrato" className="mt-4">{dq.isLoading ? "Carregando…" : <Extrato det={det} />}</TabsContent>
         <TabsContent value="pagamentos" className="mt-4">{pq.isLoading ? "Carregando…" : <Pagamentos pags={pags} />}</TabsContent>
       </Tabs>
@@ -283,7 +311,7 @@ export default function RepresentanteFicha() {
           <div className="text-xs text-muted-foreground">Emitido em {hoje} · Relacionamento: {periodo}</div>
         </div>
         <h2 className="mb-2 font-medium">Resumo</h2>
-        <Resumo k={k} serie={serie} print />
+        <Resumo k={k} v={vq.data?.[0]} serie={serie} print />
         <div className="quebra" /><h2 className="mb-2 font-medium">Extrato</h2>
         <Extrato det={det} />
         <div className="quebra" /><h2 className="mb-2 font-medium">Pagamentos</h2>
