@@ -51984,6 +51984,48 @@ export type Database = {
           },
         ]
       }
+      shopify_location: {
+        Row: {
+          ativo_shopify: boolean | null
+          atualizado_em: string
+          centro_id: string | null
+          criado_em: string
+          location_id: string
+          nome: string | null
+        }
+        Insert: {
+          ativo_shopify?: boolean | null
+          atualizado_em?: string
+          centro_id?: string | null
+          criado_em?: string
+          location_id: string
+          nome?: string | null
+        }
+        Update: {
+          ativo_shopify?: boolean | null
+          atualizado_em?: string
+          centro_id?: string | null
+          criado_em?: string
+          location_id?: string
+          nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shopify_location_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shopify_location_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       shopify_pagamento_ref: {
         Row: {
           created_at: string
