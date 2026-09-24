@@ -168,6 +168,121 @@ async function cargaCompleta(supabase: any): Promise<Response> {
   }
 }
 
+const MUT_ATIVAR = `
+mutation ativar($item: ID!, $loc: ID!, $key: String!) {
+  inventoryActivate(inventoryItemId: $item, locationId: $loc, available: 0) @idempotent(key: $key) {
+    inventoryLevel { id }
+    userErrors { field message }
+  }
+}`;
+const TETO_ATIVAR = 200;
+
+async function ativarLocation(supabase: any, locationId: string | null, dryRun: boolean): Promise<Response> {
+  const t0 = Date.now();
+  if (!locationId) return json(400, { error: "location_id obrigatório" });
+  const { data: loc, error: lErr } = await supabase.from("shopify_location")
+    .select("location_id, nome, centro_id").eq("location_id", locationId).maybeSingle();
+  if (lErr) return json(500, { error: `shopify_location: ${lErr.message}` });
+  if (!loc) return json(400, { error: `location ${locationId} não existe em shopify_location` });
+  if (!loc.centro_id) return json(400, { error: `location ${locationId} (${loc.nome}) sem centro_id — amarre a um centro antes` });
+
+  const prods: any[] = [];
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await supabase.from("shopify_produtos")
+      .select("variants, status, has_variants_that_requires_components")
+      .ilike("status", "active").range(de, de + 999);
+    if (error) return json(500, { error: `shopify_produtos: ${error.message}` });
+    prods.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  const cand = new Map<string, string>();
+  for (const p of prods) {
+    if (p.has_variants_that_requires_components === true) continue; // kits/bundles
+    for (const v of Array.isArray(p.variants) ? p.variants : []) {
+      if (!v?.sku || v?.inventory_item_id == null) continue;
+      const id = String(v.inventory_item_id);
+      if (!cand.has(id)) cand.set(id, String(v.sku));
+    }
+  }
+  const ja = new Set<string>();
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await supabase.from("shopify_estoque")
+      .select("inventory_item_id").eq("location_id", locationId).range(de, de + 999);
+    if (error) return json(500, { error: `shopify_estoque: ${error.message}` });
+    for (const r of data ?? []) ja.add(String(r.inventory_item_id));
+    if (!data || data.length < 1000) break;
+  }
+  const alvos = [...cand.entries()].filter(([id]) => !ja.has(id))
+    .map(([inventory_item_id, sku]) => ({ sku, inventory_item_id }))
+    .sort((a, b) => a.sku.localeCompare(b.sku));
+
+  if (dryRun) {
+    return json(200, { dry_run: true, location: loc.nome, total_a_ativar: alvos.length, exemplos: alvos.slice(0, 20) });
+  }
+
+  const processar = alvos.slice(0, TETO_ATIVAR);
+  const restantes = alvos.length - processar.length;
+  let ativados = 0;
+  const falhas: any[] = [];
+  const log = async (status: string) => {
+    const { error } = await supabase.from("integracoes_sync_log").insert({
+      sistema: "shopify", tipo: "estoque_ativar_location", status,
+      registros_atualizados: ativados, duracao_ms: Date.now() - t0,
+      detalhes: JSON.stringify({ location_id: locationId, ativados, falhas, restantes }),
+    });
+    if (error) console.error("log:", error.message);
+  };
+  try {
+    const clientId = await getSecret(supabase, "SHOPIFY_CLIENT_ID");
+    const clientSecret = await getSecret(supabase, "SHOPIFY_CLIENT_SECRET");
+    if (!clientId || !clientSecret) throw new Error("shopify creds ausentes no vault");
+    const storedDomain = await getSecret(supabase, "SHOPIFY_STORE_DOMAIN");
+    const domainsToTry = storedDomain ? [storedDomain.trim()] : CANDIDATE_DOMAINS;
+    let domain: string | null = null, token: string | null = null;
+    for (const d of domainsToTry) {
+      const t = await exchangeToken(d, clientId, clientSecret);
+      if (t) { domain = d; token = t; break; }
+    }
+    if (!domain || !token) throw new Error(`nenhum dominio shopify autenticou: ${domainsToTry.join(", ")}`);
+
+    for (let k = 0; k < processar.length; k++) {
+      const a = processar[k];
+      if (k > 0) await dormir(250);
+      let r: any = null;
+      for (let tent = 0; tent < 8; tent++) {
+        r = await gql(domain, token, MUT_ATIVAR, {
+          item: `gid://shopify/InventoryItem/${a.inventory_item_id}`,
+          loc: `gid://shopify/Location/${locationId}`,
+          key: crypto.randomUUID(),
+        });
+        const errs = r.body?.errors;
+        const throttled = r.status === 429 ||
+          (Array.isArray(errs) && errs.some((e: any) => e?.extensions?.code === "THROTTLED"));
+        if (!throttled) break;
+        await dormir(2000 * (tent + 1));
+      }
+      if (r.status !== 200) { falhas.push({ ...a, erro: `HTTP ${r.status}`, corpo: r.body }); continue; }
+      if (Array.isArray(r.body?.errors) && r.body.errors.length) { falhas.push({ ...a, graphqlErrors: r.body.errors }); continue; }
+      const ue = r.body?.data?.inventoryActivate?.userErrors ?? [];
+      if (ue.length) { falhas.push({ ...a, userErrors: ue }); continue; }
+      ativados++;
+      const ts = new Date().toISOString();
+      const { error } = await supabase.from("shopify_estoque").upsert({
+        inventory_item_id: a.inventory_item_id, location_id: locationId, available: 0,
+        updated_at_shopify: ts, updated_at: ts,
+      }, { onConflict: "inventory_item_id,location_id" });
+      if (error) falhas.push({ ...a, erro: `Shopify ativou, espelho falhou: ${error.message}` });
+    }
+    await log(falhas.length ? (ativados ? "parcial" : "erro") : "sucesso");
+    return json(200, { ativados, falhas, restantes });
+  } catch (e) {
+    const msg = (e as Error).message;
+    falhas.push({ erro: msg });
+    await log("erro");
+    return json(500, { error: msg, ativados, falhas, restantes });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
