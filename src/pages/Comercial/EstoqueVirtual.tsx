@@ -23,6 +23,10 @@ import {
   classeStatusVenda, rotuloStatusVenda, STATUS_VENDA_ORDEM,
 } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
+import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown } from "lucide-react";
+import { formatError } from "@/lib/format-error";
 
 import { PageShell } from "@/components/layout/PageShell";
 interface EstoqueRede {
@@ -56,6 +60,31 @@ interface EstoqueRede {
 
 const COLS =
   "sku,nome_comercial,cor_nome,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
+
+/**
+ * Códigos de centro das colunas fixas "SC" e "SP" (valor de `centro` em
+ * vw_estoque_canais_centro). SC = armazém XPM Joinville; SP = estoque do Site em SP.
+ */
+const CENTRO_SC = "XPM-SC";
+const CENTRO_SP = "SITE-SP";
+
+interface CanalCentro {
+  sku: string;
+  centro: string;
+  centro_nome: string | null;
+  vende: boolean | null;
+  fiscal_total: number | null;
+  fisico_total: number | null;
+  reservado: number | null;
+  disponivel: number | null;
+  shopify_atual: number | null;
+  bling_atual: number | null;
+  shopify_diverge: boolean | null;
+  bling_diverge: boolean | null;
+}
+
+const COLS_CANAIS =
+  "sku,centro,centro_nome,vende,fiscal_total,fisico_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
 
 type Col =
   | "sku"
@@ -150,6 +179,7 @@ export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
   const [statusFiltro, setStatusFiltro] = useState<string>("todos");
   const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
+  const [centroFiltro, setCentroFiltro] = useState<string>("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [sort, setSort] = useState<SortState<Col> | null>({
     column: "descoberto",
@@ -190,6 +220,39 @@ export default function EstoqueVirtual() {
       return (data ?? []) as EstoqueRede[];
     },
   });
+
+  const canaisQuery = useQuery({
+    queryKey: ["vw_estoque_canais_centro"],
+    staleTime: 3 * 60 * 1000,
+    queryFn: async (): Promise<CanalCentro[]> => {
+      const out: CanalCentro[] = [];
+      const TAM = 1000;
+      for (let offset = 0; ; offset += TAM) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from("vw_estoque_canais_centro")
+          .select(COLS_CANAIS)
+          .order("sku").order("centro")
+          .range(offset, offset + TAM - 1);
+        if (error) throw error;
+        out.push(...((data ?? []) as CanalCentro[]));
+        if ((data ?? []).length < TAM) break;
+      }
+      return out;
+    },
+  });
+
+  const canaisPorSku = useMemo(() => {
+    const m = new Map<string, CanalCentro[]>();
+    for (const c of canaisQuery.data ?? []) m.set(c.sku, [...(m.get(c.sku) ?? []), c]);
+    return m;
+  }, [canaisQuery.data]);
+
+  const centrosPresentes = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const c of canaisQuery.data ?? []) if (!m.has(c.centro)) m.set(c.centro, c.centro_nome);
+    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+  }, [canaisQuery.data]);
 
   const lista = produtosQuery.data ?? [];
 
@@ -240,7 +303,13 @@ export default function EstoqueVirtual() {
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
+    const dispCentro = (p: EstoqueRede) => {
+      if (centroFiltro === "todos") return Number(p.disponivel ?? 0);
+      const c = (canaisPorSku.get(p.sku) ?? []).find((x) => x.centro === centroFiltro);
+      return Number(c?.disponivel ?? 0);
+    };
     const base = lista.filter((p) => {
+      if (centroFiltro !== "todos" && !(canaisPorSku.get(p.sku) ?? []).some((c) => c.centro === centroFiltro)) return false;
       if (statusFiltro !== "todos" && p.status_venda !== statusFiltro) return false;
       const bloq = Number(p.bloqueado ?? 0);
       if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
@@ -261,7 +330,7 @@ export default function EstoqueVirtual() {
       bloqueado: (p) => Number(p.bloqueado ?? 0),
       reservado: (p) => Number(p.reservado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
-      disponivel: (p) => Number(p.disponivel ?? 0),
+      disponivel: (p) => dispCentro(p),
       descoberto: (p) => Number(p.descoberto ?? 0),
       showroom: (p) => Number(p.em_showroom ?? 0),
       chegada: (p) => p.eta_prevista ?? "",
@@ -269,7 +338,7 @@ export default function EstoqueVirtual() {
 
       status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
     });
-  }, [lista, busca, statusFiltro, condicaoFiltro, sort]);
+  }, [lista, busca, statusFiltro, condicaoFiltro, sort, centroFiltro, canaisPorSku]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -303,6 +372,23 @@ export default function EstoqueVirtual() {
           </Button>
         }
       />
+
+      <Collapsible className="mb-4">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="gap-2 px-2">
+            <ChevronDown className="h-4 w-4" />Sincronização
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="pt-2">
+          <PainelSyncEstoque />
+        </CollapsibleContent>
+      </Collapsible>
+
+      {canaisQuery.isError && (
+        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar estoque por centro/canais: {formatError(canaisQuery.error)}
+        </div>
+      )}
 
       {resumo.semLastroSkus > 0 && (
         <button
@@ -409,6 +495,17 @@ export default function EstoqueVirtual() {
             <SelectItem value="com_delta_bling">Divergente do Bling</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={centroFiltro} onValueChange={(v) => { setCentroFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={centroFiltro !== "todos"} className="w-[200px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os centros</SelectItem>
+            {centrosPresentes.map(([c, nome]) => (
+              <SelectItem key={c} value={c}>{nome ? `${c} · ${nome}` : c}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}
         </span>
@@ -425,10 +522,14 @@ export default function EstoqueVirtual() {
                 <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[90px]">Vendável</SortableTableHead>
                 <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
                 <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
-                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">Disponível</SortableTableHead>
+                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">
+                  {centroFiltro !== "todos" ? `Disponível (${centroFiltro})` : "Disponível"}
+                </SortableTableHead>
+                <TableHead className="text-right w-[70px]">SC</TableHead>
+                <TableHead className="text-right w-[70px]">SP</TableHead>
                 <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
                 <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
-
+                <TableHead className="w-[85px]">Canais</TableHead>
                 <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
                 <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
                 <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
@@ -438,11 +539,11 @@ export default function EstoqueVirtual() {
             <TableBody>
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
+                  <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
+                  <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
@@ -457,6 +558,15 @@ export default function EstoqueVirtual() {
                   const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
                   const tudoNoShowroom =
                     showroom > 0 && Number(p.fiscal_vendavel ?? 0) === 0 && descoberto > 0;
+                  const canais = canaisPorSku.get(p.sku) ?? [];
+                  const cSC = canais.find((c) => c.centro === CENTRO_SC);
+                  const cSP = canais.find((c) => c.centro === CENTRO_SP);
+                  const cFiltro = centroFiltro !== "todos" ? canais.find((c) => c.centro === centroFiltro) : null;
+                  const disponivelMostrado = cFiltro ? Number(cFiltro.disponivel ?? 0) : disponivel;
+                  const divergencias = canais.flatMap((c) => [
+                    ...(c.shopify_diverge ? [`${c.centro} · Shopify`] : []),
+                    ...(c.bling_diverge ? [`${c.centro} · Bling`] : []),
+                  ]);
 
                   return (
                     <TableRow
@@ -515,7 +625,13 @@ export default function EstoqueVirtual() {
                       </TableCell>
 
                       <TableCell className="text-right tabular-nums font-medium">
-                        {formatNum(disponivel)}
+                        {formatNum(disponivelMostrado)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {cSC ? formatNum(cSC.disponivel) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {cSP ? formatNum(cSP.disponivel) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {descoberto === 0 ? (
@@ -547,6 +663,15 @@ export default function EstoqueVirtual() {
                                 : "Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível."}
                             </TooltipContent>
                           </Tooltip>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {divergencias.length === 0 ? (
+                          <Badge variant="outline" className="font-normal">OK</Badge>
+                        ) : (
+                          <Badge variant="outline" className="font-normal bg-warning/15 text-warning border-warning/30" title={divergencias.join("\n")}>
+                            Diverge
+                          </Badge>
                         )}
                       </TableCell>
                       <TableCell>
@@ -681,6 +806,44 @@ export default function EstoqueVirtual() {
         sku={detalhe?.sku ?? null}
         nome={detalhe?.nome ?? null}
         onClose={() => setDetalhe(null)}
+        extra={detalhe ? (
+          <section className="mt-6">
+            <h3 className="text-sm font-medium mb-2">Por centro</h3>
+            {canaisQuery.isError ? (
+              <p className="text-sm text-destructive">Falha ao carregar canais: {formatError(canaisQuery.error)}</p>
+            ) : (canaisPorSku.get(detalhe.sku) ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem linha por centro para este SKU.</p>
+            ) : (
+              <div className="rounded-md border overflow-x-auto">
+                <Table className="text-xs">
+                  <TableHeader><TableRow>
+                    <TableHead>Centro</TableHead><TableHead className="text-right">Fiscal</TableHead>
+                    <TableHead className="text-right">Físico</TableHead><TableHead className="text-right">Reservado</TableHead>
+                    <TableHead className="text-right">Disponível</TableHead><TableHead className="text-right">Shopify</TableHead>
+                    <TableHead className="text-right">Bling</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(canaisPorSku.get(detalhe.sku) ?? []).map((c) => (
+                      <TableRow key={c.centro}>
+                        <TableCell title={c.centro_nome ?? ""}>{c.centro}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNum(c.fiscal_total)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNum(c.fisico_total)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatNum(c.reservado)}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{formatNum(c.disponivel)}</TableCell>
+                        <TableCell className={cn("text-right tabular-nums", c.shopify_diverge && "bg-warning/15 text-warning font-medium")}>
+                          {c.shopify_atual == null ? "—" : formatNum(c.shopify_atual)}
+                        </TableCell>
+                        <TableCell className={cn("text-right tabular-nums", c.bling_diverge && "bg-warning/15 text-warning font-medium")}>
+                          {c.bling_atual == null ? "—" : formatNum(c.bling_atual)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </section>
+        ) : null}
       />
     </PageShell>
   );

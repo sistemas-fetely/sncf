@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Download, Upload, FileSpreadsheet, Loader2, CheckCircle2, Scale } from "lucide-react";
-import { SincronizacaoEstoqueShopify } from "@/components/acervo/SincronizacaoEstoqueShopify";
+import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -580,7 +580,7 @@ export default function RecebimentoXpm() {
         </CardContent>
       </Card>
 
-      <SincronizacaoEstoqueShopify />
+      <PainelSyncEstoque />
 
     </PageShell>
   );
