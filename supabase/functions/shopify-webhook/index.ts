@@ -371,7 +371,10 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
       for (const r of order.refunds) {
         if (Array.isArray(r.transactions)) {
           for (const t of r.transactions) {
-            if (t.kind === "refund" && t.status === "success") refunded_amount += num(t.amount);
+            // SEM filtro de status de propósito: filtrar só "success" zerava reembolso
+            // pendente e escondeu estornos em aberto por meses. Pendente x confirmado
+            // é distinção da shopify_reembolsos (fonte reconciliada), não daqui.
+            if (t.kind === "refund") refunded_amount += num(t.amount);
           }
         }
       }
