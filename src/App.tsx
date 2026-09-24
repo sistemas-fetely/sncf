@@ -218,6 +218,7 @@ const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoqu
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 
 const ConciliacaoFila = lazy(() => import("@/pages/acervo/ConciliacaoFila"));
+const ConciliacaoEstoque = lazy(() => import("@/pages/acervo/ConciliacaoEstoque"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
 const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
