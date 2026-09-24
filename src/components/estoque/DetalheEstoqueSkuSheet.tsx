@@ -49,9 +49,10 @@ interface Props {
   sku: string | null;
   nome: string | null;
   onClose: () => void;
+  extra?: React.ReactNode;
 }
 
-export function DetalheEstoqueSkuSheet({ sku, nome, onClose }: Props) {
+export function DetalheEstoqueSkuSheet({ sku, nome, onClose, extra }: Props) {
   const aberto = !!sku;
 
   const centrosQ = useQuery({
@@ -180,6 +181,7 @@ export function DetalheEstoqueSkuSheet({ sku, nome, onClose }: Props) {
             </Table>
           </div>
         </section>
+        {extra}
       </SheetContent>
     </Sheet>
   );

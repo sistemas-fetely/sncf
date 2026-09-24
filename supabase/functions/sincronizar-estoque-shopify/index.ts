@@ -454,6 +454,15 @@ Deno.serve(async (req) => {
       }
     }
 
+    {
+      const { error: logErr } = await supabase.from("integracoes_sync_log").insert({
+        sistema: "shopify", tipo: "estoque_push",
+        status: erros.length > 0 ? "erro" : "sucesso",
+        registros_atualizados: empurrados,
+        detalhes: JSON.stringify({ batches, erros, itens_inexistentes }),
+      });
+      if (logErr) console.error("log estoque_push:", logErr.message);
+    }
     return json(200, { dry_run: false, empurrados, erros, batches, itens_inexistentes });
   } catch (e) {
     return json(500, { error: (e as Error).message });
