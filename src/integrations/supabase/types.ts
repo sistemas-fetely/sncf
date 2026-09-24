@@ -62582,6 +62582,83 @@ export type Database = {
           },
         ]
       }
+      vendedor_sincronia_bloqueio: {
+        Row: {
+          criado_em: string
+          criado_por: string | null
+          fop_profile_id: string
+          motivo: string
+          nome_no_fop: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          criado_em?: string
+          criado_por?: string | null
+          fop_profile_id: string
+          motivo: string
+          nome_no_fop: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          criado_em?: string
+          criado_por?: string | null
+          fop_profile_id?: string
+          motivo?: string
+          nome_no_fop?: string
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_representante_kpi"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_representante_serie_mensal"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "vendedor_sincronia_bloqueio_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
       vendedores: {
         Row: {
           ativo: boolean
