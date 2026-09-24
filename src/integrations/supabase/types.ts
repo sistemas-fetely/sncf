@@ -79033,6 +79033,23 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_canais_centro: {
+        Row: {
+          bling_atual: number | null
+          bling_diverge: boolean | null
+          centro: string | null
+          centro_nome: string | null
+          disponivel: number | null
+          fiscal_total: number | null
+          fisico_total: number | null
+          reservado: number | null
+          shopify_atual: number | null
+          shopify_diverge: boolean | null
+          sku: string | null
+          vende: boolean | null
+        }
+        Relationships: []
+      }
       vw_estoque_centro: {
         Row: {
           centro: string | null
@@ -79270,6 +79287,17 @@ export type Database = {
           shopify_atual: number | null
           sku: string | null
           sncf_virtual: number | null
+        }
+        Relationships: []
+      }
+      vw_estoque_sync_status: {
+        Row: {
+          detalhes: string | null
+          registros_atualizados: number | null
+          sistema: string | null
+          status: string | null
+          tipo: string | null
+          ultima_execucao: string | null
         }
         Relationships: []
       }
@@ -89550,14 +89578,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -92165,14 +92193,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -108376,6 +108404,10 @@ export type Database = {
       }
       fn_avaliar_impacto_plano: {
         Args: { p_linhas: Json; p_pedido_id: string }
+        Returns: Json
+      }
+      fn_b2c_abrir_devolucao_por_rastreio: {
+        Args: { p_dry_run?: boolean }
         Returns: Json
       }
       fn_b2c_batimento: {
