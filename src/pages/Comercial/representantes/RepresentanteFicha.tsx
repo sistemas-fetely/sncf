@@ -250,7 +250,7 @@ export default function RepresentanteFicha() {
     <PageShell>
       <style>{PRINT_CSS}</style>
       <PageHeader
-        breadcrumb={[{ label: "Comercial" }, { label: "Representantes", href: "/comercial/representantes" }, { label: k.representante }]}
+        breadcrumb={[{ label: "Comercial" }, { label: "Representantes", to: "/comercial/representantes" }, { label: k.representante }]}
         titulo={k.representante}
         icone={User}
         estado={`${k.email_contato ?? "sem e-mail"} · Relacionamento: ${periodo}`}
