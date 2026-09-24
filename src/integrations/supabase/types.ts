@@ -62569,14 +62569,24 @@ export type Database = {
           ativo: boolean
           created_at: string
           created_by: string | null
+          documento: string | null
           email_contato: string | null
+          empresa: string | null
+          fop_ativo: boolean | null
+          fop_comissao_percent: number | null
+          fop_login_count: number | null
           fop_profile_id: string | null
+          fop_tipo_vendedor: string | null
+          fop_ultimo_login: string | null
           id: string
           nome_exibicao: string
           observacao: string | null
           parceiro_comercial_id: string | null
           pendente_vinculo: boolean
           pessoa_id: string | null
+          regiao: string | null
+          sincronizado_em: string | null
+          telefone: string | null
           tipo: string
           updated_at: string
         }
@@ -62584,14 +62594,24 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           created_by?: string | null
+          documento?: string | null
           email_contato?: string | null
+          empresa?: string | null
+          fop_ativo?: boolean | null
+          fop_comissao_percent?: number | null
+          fop_login_count?: number | null
           fop_profile_id?: string | null
+          fop_tipo_vendedor?: string | null
+          fop_ultimo_login?: string | null
           id?: string
           nome_exibicao: string
           observacao?: string | null
           parceiro_comercial_id?: string | null
           pendente_vinculo?: boolean
           pessoa_id?: string | null
+          regiao?: string | null
+          sincronizado_em?: string | null
+          telefone?: string | null
           tipo: string
           updated_at?: string
         }
@@ -62599,14 +62619,24 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           created_by?: string | null
+          documento?: string | null
           email_contato?: string | null
+          empresa?: string | null
+          fop_ativo?: boolean | null
+          fop_comissao_percent?: number | null
+          fop_login_count?: number | null
           fop_profile_id?: string | null
+          fop_tipo_vendedor?: string | null
+          fop_ultimo_login?: string | null
           id?: string
           nome_exibicao?: string
           observacao?: string | null
           parceiro_comercial_id?: string | null
           pendente_vinculo?: boolean
           pessoa_id?: string | null
+          regiao?: string | null
+          sincronizado_em?: string | null
+          telefone?: string | null
           tipo?: string
           updated_at?: string
         }
@@ -108858,6 +108888,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_vendedor_sincronizar_fop: { Args: { p_linhas: Json }; Returns: Json }
       fn_wns_consolidar: { Args: never; Returns: Json }
       fn_wns_limpar_zumbis: { Args: { p_chaves: Json }; Returns: number }
       fn_wns_truncar_linhas: { Args: never; Returns: number }

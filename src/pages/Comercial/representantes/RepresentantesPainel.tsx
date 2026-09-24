@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, ArrowUpDown, Search } from "lucide-react";
+import { Users, ArrowUpDown, Search, RefreshCw } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { fmtBRL, fmtData } from "../comissoes/fmt";
@@ -41,57 +44,142 @@ function fmt(c: Col, v: unknown) {
   return fmtData(v as string);
 }
 
-export function BadgeApto({ apto }: { apto: boolean }) {
-  if (apto) return <Badge className="bg-success/15 text-success border-success/30" variant="outline">Apto</Badge>;
+function Dica({ texto, children }: { texto: string; children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
-        <TooltipTrigger asChild>
-          <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Sem contraparte</Badge>
-        </TooltipTrigger>
-        <TooltipContent className="max-w-xs">{TOOLTIP_SEM_CONTRAPARTE}</TooltipContent>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent className="max-w-xs">{texto}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
   );
 }
 
+export function BadgeApto({ apto }: { apto: boolean }) {
+  if (apto) return <Badge className="bg-success/15 text-success border-success/30" variant="outline">Apto</Badge>;
+  return (
+    <Dica texto={TOOLTIP_SEM_CONTRAPARTE}>
+      <Badge variant="outline" className="bg-warning/15 text-warning border-warning/30">Sem contraparte</Badge>
+    </Dica>
+  );
+}
+
+type Chip = { label: string; ok: boolean; okTxt: string; faltaTxt: string };
+function prontidao(r: Linha): Chip[] {
+  return [
+    { label: "Documento", ok: !!String(r.documento ?? "").trim(), okTxt: "CPF/CNPJ cadastrado no FOP.",
+      faltaTxt: "Sem CPF/CNPJ no cadastro do FOP. Sem documento não é possível criar a contraparte nem pagar a comissão." },
+    { label: "Contraparte", ok: !!r.apto_a_pagamento, okTxt: "Tem cadastro em parceiros comerciais.", faltaTxt: TOOLTIP_SEM_CONTRAPARTE },
+    { label: "Já vendeu", ok: Number(r.pedidos_total ?? 0) > 0, okTxt: "Tem pedidos registrados.",
+      faltaTxt: "Nenhum pedido registrado para este representante ainda." },
+    { label: "Já logou", ok: Number(r.fop_login_count ?? 0) > 0, okTxt: "Já entrou no FOP.",
+      faltaTxt: "Nunca entrou no FOP — confira se recebeu o acesso." },
+  ];
+}
+
+const FILTROS = [
+  ["todos", "Todos"], ["ativos", "Ativos"], ["com_venda", "Com venda"],
+  ["prontos", "Prontos para pagamento"], ["pendencias", "Pendências"],
+] as const;
+type Filtro = (typeof FILTROS)[number][0];
+
+type ErroSync = { nome?: string; nome_completo?: string; email?: string; motivo?: string; erro?: string };
+
 export default function RepresentantesPainel() {
   const nav = useNavigate();
+  const qc = useQueryClient();
   const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ord, setOrd] = useState<{ k: string; asc: boolean }>({ k: "valor_vendido_bruto", asc: false });
+  const [sincronizando, setSincronizando] = useState(false);
+  const [errosSync, setErrosSync] = useState<ErroSync[] | null>(null);
 
   const q = useQuery({
     queryKey: ["representante-kpi"],
     queryFn: () => lerTudo("vw_representante_kpi", (x) => x.eq("tipo", "representante")),
   });
+  const vq = useQuery({
+    queryKey: ["vendedores-espelho"],
+    queryFn: () => lerTudo("vendedores", undefined, undefined, "id,documento,regiao,telefone,fop_comissao_percent,fop_login_count,sincronizado_em"),
+  });
   useEffect(() => {
     if (q.error) toast.error(`Falha ao carregar representantes: ${formatError(q.error)}`);
   }, [q.error]);
+  useEffect(() => {
+    if (vq.error) toast.error(`Falha ao carregar cadastro dos vendedores: ${formatError(vq.error)}`);
+  }, [vq.error]);
 
-  const linhas = q.data ?? [];
+  const ultimaSync = useMemo(() => {
+    let max: string | null = null;
+    for (const v of vq.data ?? []) if (v.sincronizado_em && (!max || v.sincronizado_em > max)) max = v.sincronizado_em;
+    return max;
+  }, [vq.data]);
+
+  const linhas = useMemo(() => {
+    const m = new Map((vq.data ?? []).map((v) => [v.id, v]));
+    return (q.data ?? []).map((r): Linha => {
+      const v: Linha = m.get(r.vendedor_id) ?? {};
+      return { ...v, ...r, documento: v.documento, regiao: v.regiao, telefone: v.telefone,
+        fop_comissao_percent: v.fop_comissao_percent, fop_login_count: v.fop_login_count };
+    });
+  }, [q.data, vq.data]);
+
   const tot = useMemo(() => {
     const s = (k: string) => linhas.reduce((a, r) => a + Number(r[k] ?? 0), 0);
     return {
-      vendido: s("valor_vendido_bruto"),
-      apurada: s("comissao_apurada"),
-      liberada: s("comissao_liberada"),
-      pendente: s("comissao_pendente"),
-      prev30: s("prev_comissao_30d"),
-      vencida: s("carteira_vencida"),
+      vendido: s("valor_vendido_bruto"), apurada: s("comissao_apurada"), liberada: s("comissao_liberada"),
+      pendente: s("comissao_pendente"), prev30: s("prev_comissao_30d"), vencida: s("carteira_vencida"),
     };
   }, [linhas]);
 
   const vis = useMemo(() => {
     const t = busca.trim().toLowerCase();
-    const f = t ? linhas.filter((r) => String(r.representante ?? "").toLowerCase().includes(t)) : linhas;
+    let f = t ? linhas.filter((r) => String(r.representante ?? "").toLowerCase().includes(t)) : linhas;
+    f = f.filter((r) => {
+      const doc = !!String(r.documento ?? "").trim();
+      if (filtro === "ativos") return !!r.ativo;
+      if (filtro === "com_venda") return Number(r.pedidos_total ?? 0) > 0;
+      if (filtro === "prontos") return doc && !!r.apto_a_pagamento;
+      if (filtro === "pendencias") return !doc || !r.apto_a_pagamento;
+      return true;
+    });
     return [...f].sort((a: Linha, b: Linha) => {
       const va = a[ord.k], vb = b[ord.k];
-      const cmp = ord.k === "representante" || ord.k === "ultima_venda"
+      const cmp = ["representante", "ultima_venda", "regiao"].includes(ord.k)
         ? String(va ?? "").localeCompare(String(vb ?? ""))
         : Number(va ?? 0) - Number(vb ?? 0);
       return ord.asc ? cmp : -cmp;
     });
-  }, [linhas, busca, ord]);
+  }, [linhas, busca, ord, filtro]);
+
+  async function sincronizar() {
+    setSincronizando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-vendedores-fop", { body: {} });
+      if (error) {
+        let detalhe = formatError(error);
+        try {
+          const ctx = (error as { context?: Response }).context;
+          if (ctx) { const b = await ctx.json(); if (b?.erro) detalhe = b.erro; }
+        } catch { /* mantém a mensagem original */ }
+        throw new Error(detalhe);
+      }
+      if (!data || typeof data !== "object") throw new Error("A sincronia não devolveu resultado.");
+      const d = data as { criados?: number; atualizados?: number; recebidos?: number; erros?: ErroSync[] };
+      toast.success(`${d.criados ?? 0} criados, ${d.atualizados ?? 0} atualizados`, {
+        description: d.recebidos != null ? `${d.recebidos} recebidos do FOP` : undefined,
+      });
+      if (Array.isArray(d.erros) && d.erros.length > 0) setErrosSync(d.erros);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["representante-kpi"] }),
+        qc.invalidateQueries({ queryKey: ["vendedores-espelho"] }),
+      ]);
+    } catch (e) {
+      toast.error(`Falha ao sincronizar do FOP: ${formatError(e)}`);
+    } finally {
+      setSincronizando(false);
+    }
+  }
 
   const th = (k: string, label: string) => (
     <TableHead key={k} className="whitespace-nowrap">
@@ -103,13 +191,10 @@ export default function RepresentantesPainel() {
   );
 
   const cards = [
-    ["Vendido no total", tot.vendido],
-    ["Comissão apurada", tot.apurada],
-    ["Comissão liberada", tot.liberada],
-    ["Comissão pendente", tot.pendente],
-    ["Previsto 30 dias", tot.prev30],
-    ["Carteira vencida", tot.vencida],
+    ["Vendido no total", tot.vendido], ["Comissão apurada", tot.apurada], ["Comissão liberada", tot.liberada],
+    ["Comissão pendente", tot.pendente], ["Previsto 30 dias", tot.prev30], ["Carteira vencida", tot.vencida],
   ] as const;
+  const NCOL = COLS.length + 6;
 
   return (
     <PageShell>
@@ -117,52 +202,109 @@ export default function RepresentantesPainel() {
         breadcrumb={[{ label: "Comercial" }, { label: "Representantes" }]}
         titulo="Gestão de Representantes"
         icone={Users}
-        estado="Desempenho, comissão e saúde da carteira de cada representante."
+        estado={`Espelho do cadastro do FOP. O FOP cadastra, o SNCF lê.${ultimaSync ? ` Última sincronia: ${new Date(ultimaSync).toLocaleString("pt-BR")}` : ""}`}
       />
+      <div className="mb-3 flex justify-end">
+        <Button size="sm" onClick={sincronizar} disabled={sincronizando}>
+          <RefreshCw className={cn("h-4 w-4 mr-1", sincronizando && "animate-spin")} />
+          {sincronizando ? "Sincronizando…" : "Sincronizar do FOP"}
+        </Button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {cards.map(([l, v]) => (
           <Card key={l}><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{l}</div>
-            <div className={cn("mt-1 text-lg font-medium tabular-nums",
-              l === "Carteira vencida" && v > 0 && "text-destructive")}>{fmtBRL(v)}</div>
+            <div className={cn("mt-1 text-lg font-medium tabular-nums", l === "Carteira vencida" && v > 0 && "text-destructive")}>{fmtBRL(v)}</div>
           </CardContent></Card>
         ))}
       </div>
 
-      <div className="relative mt-4 max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-8" placeholder="Buscar representante" value={busca} onChange={(e) => setBusca(e.target.value)} />
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="relative w-full max-w-sm">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-8" placeholder="Buscar representante" value={busca} onChange={(e) => setBusca(e.target.value)} />
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {FILTROS.map(([k, l]) => (
+            <Button key={k} size="sm" variant={filtro === k ? "default" : "outline"} onClick={() => setFiltro(k)}>{l}</Button>
+          ))}
+        </div>
       </div>
 
       <Card className="mt-3"><CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
             {th("representante", "Representante")}
+            <TableHead>Prontidão</TableHead>
+            {th("regiao", "Região")}
+            <TableHead>Telefone</TableHead>
+            {th("fop_comissao_percent", "% do FOP")}
             {COLS.map((c) => th(c.k, c.label))}
             <TableHead>Apto a pagamento</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {q.isLoading ? (
-              <TableRow><TableCell colSpan={COLS.length + 2} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={NCOL} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
             ) : vis.length === 0 ? (
-              <TableRow><TableCell colSpan={COLS.length + 2} className="text-center text-muted-foreground py-8">
-                {linhas.length === 0 ? "Nenhum representante encontrado na base de indicadores (vw_representante_kpi com tipo 'representante')." : "Nenhum representante bate com a busca."}
+              <TableRow><TableCell colSpan={NCOL} className="text-center text-muted-foreground py-8">
+                {linhas.length === 0
+                  ? "Nenhum representante espelhado ainda. Use \"Sincronizar do FOP\" para trazer o cadastro."
+                  : "Nenhum representante bate com a busca ou o filtro."}
               </TableCell></TableRow>
-            ) : vis.map((r) => (
-              <TableRow key={r.vendedor_id} className="cursor-pointer" onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                <TableCell className="font-medium whitespace-nowrap">{r.representante}</TableCell>
-                {COLS.map((c) => (
-                  <TableCell key={c.k} className={cn("whitespace-nowrap tabular-nums",
-                    c.k === "inadimplencia_pct" && Number(r[c.k]) > 0 && "bg-destructive/10 text-destructive")}>
-                    {fmt(c, r[c.k])}
+            ) : vis.map((r) => {
+              const semVenda = Number(r.pedidos_total ?? 0) === 0;
+              return (
+                <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
+                  onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
+                  <TableCell className="font-medium whitespace-nowrap">{r.representante}</TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <div className="flex gap-1">
+                      {prontidao(r).map((c) => (
+                        <Dica key={c.label} texto={c.ok ? c.okTxt : c.faltaTxt}>
+                          <Badge variant="outline" className={cn("px-1.5 py-0 text-[10px] whitespace-nowrap",
+                            c.ok ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground")}>
+                            {c.label}
+                          </Badge>
+                        </Dica>
+                      ))}
+                    </div>
                   </TableCell>
-                ))}
-                <TableCell onClick={(e) => e.stopPropagation()}><BadgeApto apto={!!r.apto_a_pagamento} /></TableCell>
-              </TableRow>
-            ))}
+                  <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap">{r.telefone || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    {r.fop_comissao_percent != null && r.fop_comissao_percent !== "" ? (
+                      <Dica texto="Percentual individual cadastrado no FOP, fora da régua da cartilha">
+                        <span className="underline decoration-dotted">{fmtPct2(r.fop_comissao_percent)}</span>
+                      </Dica>
+                    ) : "—"}
+                  </TableCell>
+                  {COLS.map((c) => (
+                    <TableCell key={c.k} className={cn("whitespace-nowrap tabular-nums",
+                      c.k === "inadimplencia_pct" && Number(r[c.k]) > 0 && "bg-destructive/10 text-destructive")}>
+                      {fmt(c, r[c.k])}
+                    </TableCell>
+                  ))}
+                  <TableCell onClick={(e) => e.stopPropagation()}><BadgeApto apto={!!r.apto_a_pagamento} /></TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent></Card>
+
+      <Dialog open={!!errosSync} onOpenChange={(o) => !o && setErrosSync(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Registros que o SNCF não conseguiu espelhar ({errosSync?.length ?? 0})</DialogTitle></DialogHeader>
+          <div className="max-h-80 space-y-2 overflow-y-auto text-sm">
+            {(errosSync ?? []).map((e, i) => (
+              <div key={i} className="rounded-md border p-2">
+                <div className="font-medium">{e.nome ?? e.nome_completo ?? e.email ?? "(sem nome)"}</div>
+                <div className="text-muted-foreground">{e.motivo ?? e.erro ?? JSON.stringify(e)}</div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
