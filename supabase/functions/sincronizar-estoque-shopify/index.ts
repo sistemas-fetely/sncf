@@ -260,11 +260,12 @@ Deno.serve(async (req) => {
         inventoryItemId: `gid://shopify/InventoryItem/${r.inventory_item_id}`,
         locationId: `gid://shopify/Location/${r.location_id}`,
         quantity: Math.trunc(Number(r.sncf_virtual)),
+        // Concorrência segura: só grava se o valor no Shopify ainda for o que lemos.
+        compareQuantity: Math.trunc(Number(r.shopify_atual)),
       }));
       const input = {
         name: "available",
         reason: "correction",
-        ignoreCompareQuantity: true,
         quantities,
       };
       batches++;
