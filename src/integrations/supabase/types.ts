@@ -6633,6 +6633,13 @@ export type Database = {
             referencedRelation: "bling_deposito"
             referencedColumns: ["deposito_id"]
           },
+          {
+            foreignKeyName: "bling_estoque_saldo_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_bling_sync"
+            referencedColumns: ["deposito_id"]
+          },
         ]
       }
       bling_item_nao_vendavel: {
@@ -77271,6 +77278,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_bling_sync: {
+        Row: {
+          bling_atual: number | null
+          bling_produto_id: number | null
+          centro: string | null
+          deposito_id: number | null
+          diff: number | null
+          sku: string | null
+          sncf_disponivel: number | null
+        }
+        Relationships: []
+      }
       vw_estoque_centro: {
         Row: {
           centro: string | null
@@ -88427,14 +88446,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
