@@ -21,28 +21,157 @@ interface Extrato {
   tudo_lancado_cpr: boolean | null;
 }
 
-function baixarCsv(competencia: string, linhas: Extrato[]) {
-  const cab = ["Competência", "Pagar até", "Representante", "E-mail", "NFs", "Notas", "Valor a pagar", "Lançado no CPR"];
-  const corpo = linhas.map((l) => [
-    fmtCompetencia(l.competencia_pagamento),
-    fmtData(l.pagar_ate),
-    l.representante ?? "",
-    l.email_contato ?? "",
-    l.nfs ?? "",
-    String(l.notas ?? 0),
-    String(Number(l.valor_a_pagar ?? 0).toFixed(2)).replace(".", ","),
-    l.tudo_lancado_cpr ? "Sim" : "Não",
-  ]);
-  const csv = [cab, ...corpo]
-    .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
-    .join("\r\n");
-  const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `comissoes-${competencia}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast.success(`Extrato de ${fmtCompetencia(competencia)} exportado.`);
+interface DetalheComissao {
+  representante: string | null;
+  email_contato: string | null;
+  competencia: string | null;
+  status_apuracao: string | null;
+  nf: string | null;
+  nf_emissao: string | null;
+  pedido: string | null;
+  cliente: string | null;
+  valor_pedido: number | string | null;
+  base_comissionavel: number | string | null;
+  desconto_pct: number | string | null;
+  ajuste_pp: number | string | null;
+  pct_efetivo: number | string | null;
+  comissao_da_nota: number | string | null;
+  numero_titulo: string | null;
+  numero_parcela: number | string | null;
+  total_parcelas: number | string | null;
+  valor_parcela: number | string | null;
+  vencimento: string | null;
+  status_titulo: string | null;
+  pago_em: string | null;
+  situacao_parcela: string | null;
+  dias_atraso: number | string | null;
+  comissao_da_parcela: number | string | null;
+  valor_liberado: number | string | null;
+  data_liquidacao: string | null;
+  competencia_pagamento: string | null;
+}
+
+const SITUACAO_PARCELA: Record<string, string> = {
+  liberada: "Liberada",
+  paga_aguarda_liberacao: "Paga, aguarda liberação",
+  vencida: "Vencida",
+  a_vencer: "A vencer",
+};
+
+/** Moeda no CSV: sempre 2 casas com vírgula decimal (padrão Excel BR). */
+function moedaCsv(v: number | string | null | undefined): string {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n.toFixed(2).replace(".", ",") : "";
+}
+
+/** Percentuais no CSV: até 4 casas com vírgula decimal, sem sufixo. */
+function pctCsv(v: number | string | null | undefined): string {
+  const n = Number(v ?? 0);
+  if (!Number.isFinite(n)) return "";
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+}
+
+/** Data no CSV: dd/MM/yyyy; vazio quando nulo (nada de "—" no arquivo). */
+function dataCsv(v: string | null | undefined): string {
+  if (!v) return "";
+  const d = new Date(v.length === 10 ? `${v}T00:00:00` : v);
+  return isNaN(d.getTime()) ? "" : d.toLocaleDateString("pt-BR");
+}
+
+async function baixarCsv(competencia: string) {
+  try {
+    const linhas: DetalheComissao[] = [];
+    const TAM = 1000;
+    for (let offset = 0; ; offset += TAM) {
+      const { data, error } = await (supabase as any)
+        .from("vw_comissao_detalhe")
+        .select("*")
+        .eq("competencia_pagamento", competencia)
+        .range(offset, offset + TAM - 1);
+      if (error) throw error;
+      linhas.push(...((data ?? []) as DetalheComissao[]));
+      if ((data ?? []).length < TAM) break;
+    }
+    if (linhas.length === 0) {
+      toast.error(
+        "Nenhuma parcela encontrada para esta competência — nenhum arquivo foi exportado.",
+      );
+      return;
+    }
+
+    const cab = [
+      "Representante",
+      "E-mail",
+      "Competência",
+      "Status apuração",
+      "NF",
+      "Emissão NF",
+      "Pedido",
+      "Cliente",
+      "Valor do pedido",
+      "Base comissionável",
+      "Desconto %",
+      "Ajuste p.p.",
+      "% efetivo",
+      "Comissão da nota",
+      "Título",
+      "Parcela",
+      "Valor da parcela",
+      "Vencimento",
+      "Status do título",
+      "Pago em",
+      "Situação",
+      "Dias em atraso",
+      "Comissão da parcela",
+      "Valor liberado",
+      "Data liquidação",
+      "Competência pagamento",
+    ];
+    const corpo = linhas.map((l) => [
+      l.representante ?? "",
+      l.email_contato ?? "",
+      fmtCompetencia(l.competencia),
+      l.status_apuracao ?? "",
+      l.nf ?? "",
+      dataCsv(l.nf_emissao),
+      l.pedido ?? "",
+      l.cliente ?? "",
+      moedaCsv(l.valor_pedido),
+      moedaCsv(l.base_comissionavel),
+      pctCsv(l.desconto_pct),
+      pctCsv(l.ajuste_pp),
+      pctCsv(l.pct_efetivo),
+      moedaCsv(l.comissao_da_nota),
+      l.numero_titulo ?? "",
+      l.numero_parcela != null && l.total_parcelas != null
+        ? `${l.numero_parcela}/${l.total_parcelas}`
+        : "",
+      moedaCsv(l.valor_parcela),
+      dataCsv(l.vencimento),
+      l.status_titulo ?? "",
+      dataCsv(l.pago_em),
+      SITUACAO_PARCELA[l.situacao_parcela ?? ""] ?? l.situacao_parcela ?? "",
+      String(l.dias_atraso ?? 0),
+      moedaCsv(l.comissao_da_parcela),
+      moedaCsv(l.valor_liberado),
+      dataCsv(l.data_liquidacao),
+      fmtCompetencia(l.competencia_pagamento),
+    ]);
+    const csv = [cab, ...corpo]
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(";"))
+      .join("\r\n");
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `comissoes_detalhe_${competencia.slice(0, 7)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(
+      `Extrato detalhado de ${fmtCompetencia(competencia)} exportado (${linhas.length} linha${linhas.length === 1 ? "" : "s"}).`,
+    );
+  } catch (e) {
+    toast.error(`Falha ao exportar: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 export function AbaExtrato() {
