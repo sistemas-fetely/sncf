@@ -42238,6 +42238,8 @@ export type Database = {
           endereco_entrega: Json | null
           entregue_em: string | null
           entregue_metodo: string | null
+          entregue_motivo: string | null
+          entregue_por: string | null
           estagio: string
           estagio_atualizado_em: string | null
           estagio_atualizado_por: string | null
@@ -42352,6 +42354,8 @@ export type Database = {
           endereco_entrega?: Json | null
           entregue_em?: string | null
           entregue_metodo?: string | null
+          entregue_motivo?: string | null
+          entregue_por?: string | null
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
@@ -42466,6 +42470,8 @@ export type Database = {
           endereco_entrega?: Json | null
           entregue_em?: string | null
           entregue_metodo?: string | null
+          entregue_motivo?: string | null
+          entregue_por?: string | null
           estagio?: string
           estagio_atualizado_em?: string | null
           estagio_atualizado_por?: string | null
@@ -107057,6 +107063,14 @@ export type Database = {
           assinatura: string
           total: number
         }[]
+      }
+      fn_b2c_declarar_entrega: {
+        Args: { p_data?: string; p_motivo: string; p_order_name: string }
+        Returns: Json
+      }
+      fn_b2c_desfazer_entrega_declarada: {
+        Args: { p_motivo: string; p_order_name: string }
+        Returns: Json
       }
       fn_b2c_desfazer_escolha_cd: {
         Args: { p_shopify_id: string }
