@@ -120,7 +120,11 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { body = {}; }
   const reconciliar = body?.reconciliar_excluidos === true;
   const listarWebhooks = body?.listar_webhooks === true;
+  const criarWebhookDelete = body?.criar_webhook_delete === true;
   const dryRun = body?.dry_run !== false;
+  // Guarda da reconciliacao: percentual maximo de ausentes aceito (default 30, teto 60).
+  const limiteRaw = Number(body?.limite_percentual);
+  const limitePercentual = Number.isFinite(limiteRaw) && limiteRaw > 0 ? Math.min(limiteRaw, 60) : 30;
 
   try {
     const clientId = await getSecret(supabase, "SHOPIFY_CLIENT_ID");
@@ -144,6 +148,33 @@ Deno.serve(async (req) => {
         products_delete_assinado: nodes.some((n: any) => n?.topic === "PRODUCTS_DELETE"),
         webhooks: nodes,
       });
+    }
+
+    if (criarWebhookDelete) {
+      // So cria se ainda nao houver assinatura PRODUCTS_DELETE.
+      const r = await gqlWithRetry(domain, token, `{ webhookSubscriptions(first: 50) { nodes { topic uri } } }`, {});
+      if (r.status !== 200 || r.body?.errors) {
+        throw new Error(`webhookSubscriptions falhou: status=${r.status} errors=${JSON.stringify(r.body?.errors ?? r.body).slice(0, 500)}`);
+      }
+      const nodes = r.body?.data?.webhookSubscriptions?.nodes ?? [];
+      const existente = nodes.find((n: any) => n?.topic === "PRODUCTS_DELETE");
+      if (existente) {
+        return json(200, { criado: false, motivo: "PRODUCTS_DELETE ja assinado", webhook: existente });
+      }
+      const key = `products-delete-${crypto.randomUUID()}`;
+      const MUTATION = `mutation criarWebhookDelete($key: String!) {
+        webhookSubscriptionCreate(topic: PRODUCTS_DELETE, webhookSubscription: { uri: "https://vaxzorhqzvsnkutrlvfr.supabase.co/functions/v1/shopify-webhook", format: JSON }) @idempotent(key: $key) {
+          webhookSubscription { id topic uri }
+          userErrors { field message }
+        }
+      }`;
+      const c = await gqlWithRetry(domain, token, MUTATION, { key });
+      const payload = c.body?.data?.webhookSubscriptionCreate;
+      const userErrors = payload?.userErrors ?? [];
+      if (c.status !== 200 || c.body?.errors || userErrors.length > 0) {
+        throw new Error(`webhookSubscriptionCreate falhou: status=${c.status} errors=${JSON.stringify(c.body?.errors ?? [])} userErrors=${JSON.stringify(userErrors)}`);
+      }
+      return json(200, { criado: true, webhook: payload?.webhookSubscription ?? null });
     }
 
     const vistos = new Set<string>();
@@ -259,7 +290,7 @@ Deno.serve(async (req) => {
         throw new Error(`reconciliacao abortada: pull teve ${erros.length} erro(s) — ${JSON.stringify(erros).slice(0, 300)}`);
       }
       const t0 = Date.now();
-      const vivos: { shopify_id: string; title: string | null }[] = [];
+      const vivos: { shopify_id: string; title: string | null; status: string | null }[] = [];
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("shopify_produtos")
@@ -268,19 +299,24 @@ Deno.serve(async (req) => {
           .range(from, from + 999);
         if (error) throw new Error(`leitura shopify_produtos falhou: ${error.message}`);
         for (const r of data ?? []) {
-          if (r.status !== "deleted") vivos.push({ shopify_id: String(r.shopify_id), title: r.title ?? null });
+          if (r.status !== "deleted") vivos.push({ shopify_id: String(r.shopify_id), title: r.title ?? null, status: r.status ?? null });
         }
         if (!data || data.length < 1000) break;
       }
       const ausentes = vivos.filter((r) => !vistos.has(r.shopify_id));
-      if (vivos.length > 0 && ausentes.length / vivos.length > 0.3) {
-        throw new Error(`pull suspeito: ${ausentes.length} de ${vivos.length} produtos nao-excluidos ausentes (>30%) — nada foi marcado`);
-      }
+      const percentual = vivos.length > 0 ? (ausentes.length / vivos.length) * 100 : 0;
+      const acimaDoLimite = vivos.length > 0 && percentual > limitePercentual;
       if (dryRun) {
+        // Visibilidade nao e bloqueada: devolve TODOS os ausentes, mesmo acima do limite.
         return json(200, {
           dry_run: true, vistos: vistos.size, nao_excluidos: vivos.length, ausentes: ausentes.length,
-          exemplos: ausentes.slice(0, 30),
+          percentual: Math.round(percentual * 100) / 100, limite_percentual: limitePercentual,
+          acima_do_limite: acimaDoLimite,
+          exemplos: ausentes.map((a) => ({ shopify_id: a.shopify_id, title: a.title, status: a.status })),
         });
+      }
+      if (acimaDoLimite) {
+        throw new Error(`pull suspeito: ${ausentes.length} de ${vivos.length} produtos nao-excluidos ausentes (${Math.round(percentual * 100) / 100}% > ${limitePercentual}%) — nada foi marcado`);
       }
       let marcados = 0;
       const ids = ausentes.map((a) => a.shopify_id);
