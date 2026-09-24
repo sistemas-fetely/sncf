@@ -60,6 +60,114 @@ mutation set($input: InventorySetQuantitiesInput!) {
   }
 }`;
 
+
+const numGid = (gid: string) => String(gid).match(/(\d+)\s*$/)?.[1] ?? String(gid);
+const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+const Q_LOC = `{ locations(first: 20) { nodes { id name isActive } } }`;
+const Q_LVL = `
+query lv($id: ID!, $cursor: String) {
+  location(id: $id) {
+    inventoryLevels(first: 250, after: $cursor) {
+      pageInfo { hasNextPage endCursor }
+      nodes { quantities(names: ["available"]) { name quantity } item { id sku } }
+    }
+  }
+}`;
+
+async function cargaCompleta(supabase: any): Promise<Response> {
+  const t0 = Date.now();
+  const itens_por_location: Record<string, number> = {};
+  let paginas = 0;
+  let nLoc = 0;
+  const log = async (status: string, total: number, detalhes: unknown) => {
+    const { error } = await supabase.from("integracoes_sync_log").insert({
+      sistema: "shopify", tipo: "estoque_carga_completa", status,
+      registros_atualizados: total, duracao_ms: Date.now() - t0,
+      detalhes: JSON.stringify(detalhes),
+    });
+    if (error) console.error("log:", error.message);
+  };
+  try {
+    const clientId = await getSecret(supabase, "SHOPIFY_CLIENT_ID");
+    const clientSecret = await getSecret(supabase, "SHOPIFY_CLIENT_SECRET");
+    if (!clientId || !clientSecret) throw new Error("shopify creds ausentes no vault");
+    const storedDomain = await getSecret(supabase, "SHOPIFY_STORE_DOMAIN");
+    const domainsToTry = storedDomain ? [storedDomain.trim()] : CANDIDATE_DOMAINS;
+    let domain: string | null = null, token: string | null = null;
+    for (const d of domainsToTry) {
+      const t = await exchangeToken(d, clientId, clientSecret);
+      if (t) { domain = d; token = t; break; }
+    }
+    if (!domain || !token) throw new Error(`nenhum dominio shopify autenticou: ${domainsToTry.join(", ")}`);
+
+    const chamar = async (q: string, v: unknown) => {
+      for (let tent = 0; tent < 8; tent++) {
+        const r = await gql(domain!, token!, q, v);
+        const errs = r.body?.errors;
+        const throttled = r.status === 429 ||
+          (Array.isArray(errs) && errs.some((e: any) => e?.extensions?.code === "THROTTLED"));
+        if (throttled) { await dormir(2000 * (tent + 1)); continue; }
+        if (r.status !== 200) throw new Error(`HTTP ${r.status}: ${JSON.stringify(r.body).slice(0, 400)}`);
+        if (Array.isArray(errs) && errs.length) throw new Error(`GraphQL: ${JSON.stringify(errs).slice(0, 400)}`);
+        return r.body.data;
+      }
+      throw new Error("Shopify throttled após 8 tentativas");
+    };
+
+    const dl = await chamar(Q_LOC, {});
+    const locs = (dl?.locations?.nodes ?? []) as any[];
+    nLoc = locs.length;
+    const agora = new Date().toISOString();
+    if (locs.length) {
+      const { error } = await supabase.from("shopify_location").upsert(
+        locs.map((l) => ({ location_id: numGid(l.id), nome: l.name, ativo_shopify: !!l.isActive, atualizado_em: agora })),
+        { onConflict: "location_id" },
+      );
+      if (error) throw new Error(`upsert shopify_location: ${error.message}`);
+    }
+
+    for (const l of locs) {
+      const locId = numGid(l.id);
+      itens_por_location[locId] = 0;
+      let cursor: string | null = null;
+      while (true) {
+        const d = await chamar(Q_LVL, { id: l.id, cursor });
+        paginas++;
+        const conn = d?.location?.inventoryLevels;
+        const nodes = (conn?.nodes ?? []) as any[];
+        const ts = new Date().toISOString();
+        const linhas = nodes.filter((n) => n?.item?.id).map((n) => ({
+          inventory_item_id: numGid(n.item.id),
+          location_id: locId,
+          available: Number(n.quantities?.find((q: any) => q.name === "available")?.quantity ?? 0),
+          updated_at_shopify: ts,
+          updated_at: ts,
+        }));
+        if (linhas.length) {
+          const { error } = await supabase.from("shopify_estoque")
+            .upsert(linhas, { onConflict: "inventory_item_id,location_id" });
+          if (error) throw new Error(`upsert shopify_estoque (loc ${locId}): ${error.message}`);
+        }
+        itens_por_location[locId] += linhas.length;
+        if (!conn?.pageInfo?.hasNextPage) break;
+        cursor = conn.pageInfo.endCursor;
+        await dormir(300);
+      }
+    }
+
+    const total = Object.values(itens_por_location).reduce((a, b) => a + b, 0);
+    const locsResumo = locs.map((l) => ({ location_id: numGid(l.id), nome: l.name, ativo: !!l.isActive }));
+    await log("sucesso", total, { locations: locsResumo, itens_por_location, paginas });
+    return json(200, { locations: nLoc, itens_por_location, paginas, detalhe_locations: locsResumo });
+  } catch (e) {
+    const msg = (e as Error).message;
+    const total = Object.values(itens_por_location).reduce((a, b) => a + b, 0);
+    await log("erro", total, { erro: msg, itens_por_location, paginas });
+    return json(500, { error: msg, locations: nLoc, itens_por_location, paginas });
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -73,10 +181,26 @@ Deno.serve(async (req) => {
 
     // Body — sem body ou dry_run ausente = dry_run true (safe default)
     let dryRun = true;
+    let modo: string | null = null;
     try {
       const b = await req.json();
       if (b && b.dry_run === false) dryRun = false;
+      if (b && typeof b.modo === "string") modo = b.modo;
     } catch { /* sem body → dry_run */ }
+
+    if (modo === "carga_completa") {
+      // Auth explícita: x-cron-secret OU sessão válida
+      const cron = req.headers.get("x-cron-secret");
+      if (cron) {
+        const esperado = await getSecret(supabase, "SYNC_CRON_SECRET");
+        if (!esperado || cron !== esperado) return json(401, { error: "x-cron-secret inválido" });
+      } else {
+        const tk = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "");
+        const { data: u, error: ue } = await supabase.auth.getUser(tk);
+        if (ue || !u?.user) return json(401, { error: "sessão inválida" });
+      }
+      return await cargaCompleta(supabase);
+    }
 
     // Lê view
     const { data: rows, error: viewErr } = await supabase
