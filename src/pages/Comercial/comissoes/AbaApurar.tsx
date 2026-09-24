@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Loader2, Play } from "lucide-react";
 import { fmtBRL, fmtPct, isBloqueada, motivoBloqueio } from "./fmt";
+import { MesaDiretoria } from "./MesaDiretoria";
 
 interface Candidata {
   nf_numero: string | null;
@@ -111,6 +112,8 @@ export function AbaApurar() {
   }
 
   return (
+    <div className="space-y-4">
+    <MesaDiretoria />
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div className="space-y-1">
@@ -192,5 +195,6 @@ export function AbaApurar() {
         )}
       </CardContent>
     </Card>
+    </div>
   );
 }
