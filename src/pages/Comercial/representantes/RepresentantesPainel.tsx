@@ -117,8 +117,8 @@ export default function RepresentantesPainel() {
 
   const linhas = useMemo(() => {
     const m = new Map((vq.data ?? []).map((v) => [v.id, v]));
-    return (q.data ?? []).map((r) => {
-      const v = m.get(r.vendedor_id) ?? {};
+    return (q.data ?? []).map((r): Linha => {
+      const v: Linha = m.get(r.vendedor_id) ?? {};
       return { ...v, ...r, documento: v.documento, regiao: v.regiao, telefone: v.telefone,
         fop_comissao_percent: v.fop_comissao_percent, fop_login_count: v.fop_login_count };
     });
