@@ -1,47 +1,20 @@
-// Aba de SOPS > Produto > Estoque. Empurra sncf_produtos.nome_operacional para o campo
-// `nome` do cadastro no Bling — o texto que sai na linha do pedido e na NF.
-// Fica ao lado da aba Conciliacao de proposito: aquela DIAGNOSTICA a divergencia de
-// cadastro, esta CORRIGE. A escrita no Bling exige a ação nomeada
-// `acao.renomear_produto_bling` — sem ela, o botão de aplicar fica travado.
+// Aba de SOPS > Produto > Estoque. Consulta do histórico de renomeações de `nome`
+// no Bling (o texto que sai na linha do pedido e na NF). A EXECUÇÃO migrou para a
+// Conciliação de Cadastro → "Corrigir no Bling"; esta tela vira só consulta.
+// A edge atualizar-nomes-bling segue publicada, fora da tela.
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
-import { Loader2, RefreshCw, PlayCircle, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Loader2, RefreshCw, AlertTriangle } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { PageShell } from "@/components/layout/PageShell";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-
-type Item = {
-  sku: string;
-  bling_id: string | null;
-  nome_atual: string | null;
-  nome_novo: string | null;
-  status: string;
-};
-
-type Resultado = {
-  ok: boolean;
-  dry_run: boolean;
-  candidatos: number;
-  processados: number;
-  sucesso: number;
-  falhas: number;
-  pulados: number;
-  itens: Item[];
-};
 
 type LogRow = {
   id?: string;
@@ -59,39 +32,9 @@ const fmtQuando = (v: string | null) =>
   v ? new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
 export default function NomesBling() {
-  const [limite, setLimite] = useState(50);
   const [limiteHistorico, setLimiteHistorico] = useState(50);
-  const [rodando, setRodando] = useState(false);
-  const [resultado, setResultado] = useState<Resultado | null>(null);
-  const [simulado, setSimulado] = useState(false);
-  const [confirmar, setConfirmar] = useState(false);
 
-  // Guarda de escrita: renomear no Bling exige a ação nomeada. Enquanto a
-  // verificação carrega, o botão fica travado — default seguro é bloqueado.
-  const { permitido: podeRenomear, carregando: carregandoPermissao } =
-    usePermissaoAcaoOuSuperAdmin("acao.renomear_produto_bling");
-
-  // ---- Bloco 1: situação (view instantânea) ----
-  const situacao = useQuery({
-    queryKey: ["nomes-bling-situacao"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_nomes_bling_situacao")
-        .select("*")
-        .maybeSingle();
-      if (error) throw error;
-      return data as {
-        produtos_ativos: number;
-        ok_no_bling: number;
-        faltam_empurrar: number;
-        espelho_atrasado: number;
-        falhas_a_reprocessar: number;
-        sem_nome_operacional: number;
-      } | null;
-    },
-  });
-
-  // ---- Bloco 4: histórico ----
+  // ---- Histórico ----
   const historico = useQuery({
     queryKey: ["nomes-bling-log", limiteHistorico],
     queryFn: async (): Promise<LogRow[]> => {
@@ -116,259 +59,22 @@ export default function NomesBling() {
     },
   });
 
-  async function executar(dryRun: boolean) {
-    setRodando(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("atualizar-nomes-bling", {
-        body: { limite, dry_run: dryRun },
-      });
-
-      if (error) {
-        toast.error("Falha ao chamar a função", { description: error.message });
-        return;
-      }
-      const r = data as Resultado & { erro?: string };
-      if (!r || r.ok === false) {
-        toast.error("A função devolveu erro", {
-          description: r?.erro ?? "Resposta sem detalhe do erro.",
-        });
-        return;
-      }
-
-      setResultado(r);
-      if (dryRun) {
-        setSimulado(true);
-        toast.success(`Simulação concluída — ${r.candidatos} candidato(s)`, {
-          description: `processados ${r.processados} · pulados ${r.pulados}`,
-        });
-      } else {
-        setSimulado(false); // exige nova simulação
-        if ((r.falhas ?? 0) > 0) {
-          toast.warning(`${r.falhas} produto(s) falharam`, {
-            description: `sucesso ${r.sucesso} · pulados ${r.pulados}`,
-          });
-        } else {
-          toast.success(`${r.sucesso} produto(s) atualizados no Bling`);
-        }
-        situacao.refetch();
-        historico.refetch();
-      }
-    } catch (e: any) {
-      toast.error("Erro inesperado", { description: e?.message ?? String(e) });
-    } finally {
-      setRodando(false);
-    }
-  }
-
-  const statusClass = (s: string) => {
-    const v = (s ?? "").toLowerCase();
-    if (v.includes("erro") || v.includes("falha")) return "text-destructive font-medium";
-    if (v.includes("pul")) return "text-muted-foreground";
-    if (v.includes("atualiz") || v.includes("ok") || v.includes("sucesso")) return "text-success font-medium";
-    return "";
-  };
-
   return (
     <PageShell>
       <PageHeader
-        titulo="Nomes no Bling"
-        estado="Atualiza o nome do cadastro de produto no Bling a partir do nome operacional do SNCF. Afeta o texto que sai no pedido e na NF. Não altera NF já emitida."
+        titulo="Histórico de renomeações no Bling"
+        estado="Registro das renomeações de nome de produto aplicadas no Bling. A correção de nomes agora acontece pela Conciliação de Cadastro → Corrigir no Bling."
       />
 
-      {/* Bloco 1 — Situação */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-base">Situação</CardTitle>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => situacao.refetch()}
-            disabled={situacao.isFetching}
-          >
-            {situacao.isFetching
-              ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-              : <RefreshCw className="mr-2 h-3.5 w-3.5" />}
-            Atualizar contagem
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {situacao.isError ? (
-            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>Falha ao ler a contagem: {(situacao.error as any)?.message}</span>
-            </div>
-          ) : (
-            <>
-              <div className="grid gap-6 sm:grid-cols-4">
-                <div>
-                  <div className="text-3xl font-medium tabular-nums">
-                    {situacao.isLoading ? "—" : situacao.data?.produtos_ativos}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Produtos ativos</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-medium tabular-nums text-success">
-                    {situacao.isLoading ? "—" : situacao.data?.ok_no_bling}
-                  </div>
-                  <div className="text-sm text-muted-foreground">OK no Bling</div>
-                  <div className="text-xs text-muted-foreground">nome certo no Bling, confirmado</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-medium tabular-nums text-warning">
-                    {situacao.isLoading ? "—" : situacao.data?.faltam_empurrar}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Faltam empurrar</div>
-                  <div className="text-xs text-muted-foreground">some a cada lote, até zerar</div>
-                </div>
-                <div>
-                  <div className="text-3xl font-medium tabular-nums text-destructive">
-                    {situacao.isLoading ? "—" : situacao.data?.falhas_a_reprocessar}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Falhas a reprocessar</div>
-                  <div className="text-xs text-muted-foreground">última tentativa deu erro</div>
-                </div>
-              </div>
+      <p className="text-sm text-muted-foreground">
+        Tela de consulta. Nomes agora se corrigem pela{" "}
+        <Link to="/vendas/produto/conciliacao" className="underline underline-offset-2 hover:text-foreground">
+          Conciliação de Cadastro → Corrigir no Bling
+        </Link>
+        .
+      </p>
 
-              <div className="mt-4 max-w-3xl space-y-1.5 text-xs text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground">
-                    espelho atrasado: {situacao.isLoading ? "—" : situacao.data?.espelho_atrasado}
-                  </span>{" "}
-                  — Já está certo no Bling; é só o espelho local que ainda não atualizou. Não entra
-                  na fila e não precisa de ação.
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">
-                    sem nome operacional: {situacao.isLoading ? "—" : situacao.data?.sem_nome_operacional}
-                  </span>{" "}
-                  — Produtos ativos no Bling que ainda não têm nome operacional gerado no SNCF. Não
-                  dá para empurrar.
-                </p>
-              </div>
-
-              <p className="mt-4 max-w-3xl text-xs text-muted-foreground">
-                A fila só desce. Cada lote pega SKUs novos — nada que já foi empurrado volta a
-                aparecer. Rode até ‘Faltam empurrar’ chegar a zero.
-              </p>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Bloco 2 — Executar */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Executar</CardTitle>
-          <CardDescription>
-            Simule sempre antes de aplicar. O nome novo só passa a valer para pedidos e notas futuras.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="max-w-xs space-y-1.5">
-            <Label htmlFor="limite">Tamanho do lote</Label>
-            <Input
-              id="limite"
-              type="number"
-              min={1}
-              max={100}
-              value={limite}
-              disabled={rodando}
-              onChange={(e) => {
-                const n = Number(e.target.value);
-                setLimite(Number.isFinite(n) ? Math.min(100, Math.max(1, Math.floor(n))) : 1);
-              }}
-            />
-            <p className="text-xs text-muted-foreground">
-              Máximo 100 por lote. Agora cada lote traz 100 SKUs novos de verdade — rode em
-              sequência até zerar.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Button onClick={() => executar(true)} disabled={rodando}>
-              {rodando
-                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                : <PlayCircle className="mr-2 h-4 w-4" />}
-              Simular (dry run)
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={rodando || !simulado || !resultado || !podeRenomear}
-              title={
-                !podeRenomear
-                  ? carregandoPermissao
-                    ? "Verificando permissão…"
-                    : "Requer a permissão “Renomear produto no Bling” (acao.renomear_produto_bling)"
-                  : undefined
-              }
-              onClick={() => setConfirmar(true)}
-            >
-              Aplicar no Bling
-            </Button>
-            {!podeRenomear && !carregandoPermissao && (
-              <span className="text-xs text-muted-foreground">
-                Sem a permissão “Renomear produto no Bling” — a simulação segue liberada, a escrita não.
-              </span>
-            )}
-          </div>
-
-          {rodando && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Isso pode levar alguns minutos. Não feche a página.
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Bloco 3 — Resultado */}
-      {resultado && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">
-              Resultado {resultado.dry_run ? "(simulação)" : "(aplicado)"}
-            </CardTitle>
-            <CardDescription>
-              candidatos {resultado.candidatos} · processados {resultado.processados} · sucesso{" "}
-              {resultado.sucesso} · falhas {resultado.falhas} · pulados {resultado.pulados}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Nome atual no Bling</TableHead>
-                  <TableHead>Nome novo</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(resultado.itens ?? []).length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center text-sm text-muted-foreground">
-                      Nenhum item nesta rodada.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  resultado.itens.map((it, i) => (
-                    <TableRow key={`${it.sku}-${i}`}>
-                      <TableCell className="font-mono text-xs">{it.sku}</TableCell>
-                      <TableCell className="text-sm">{it.nome_atual ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{it.nome_novo ?? "—"}</TableCell>
-                      <TableCell className={`text-sm ${statusClass(it.status)}`}>
-                        {it.status}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Bloco 4 — Histórico */}
+      {/* Histórico */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Histórico</CardTitle>
@@ -453,30 +159,6 @@ export default function NomesBling() {
           )}
         </CardContent>
       </Card>
-
-      <AlertDialog open={confirmar} onOpenChange={setConfirmar}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Aplicar no Bling?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Isto altera o cadastro de {resultado?.candidatos ?? 0} produtos no Bling. O nome novo
-              passa a sair nos próximos pedidos e nas próximas notas fiscais. Notas já emitidas não
-              mudam. Confirmar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setConfirmar(false);
-                executar(false);
-              }}
-            >
-              Sim, aplicar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </PageShell>
   );
 }
