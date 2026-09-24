@@ -1,10 +1,10 @@
 /**
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
  * ENTRADAS A RECONHECER — o que a varredura automática não reconheceu.
  *
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";

@@ -897,6 +897,7 @@ function NovoContratoDialog({
   onOpenChange: (v: boolean) => void;
   onSucesso: () => void;
 }) {
+  const pGerir = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_gerir");
   const { toast } = useToast();
   const [etapa, setEtapa] = useState<1 | 2 | 3>(1);
 

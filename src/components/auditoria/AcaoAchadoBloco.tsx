@@ -1,10 +1,10 @@
 /**
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
  * Bloco de ação do dossiê do achado.
  * A ação vem da regra (rpc_acao, rpc_acao_rotulo, rpc_acao_param, rpc_acao_valor).
  * A tela não conhece nome de regra nem elegibilidade — quem recusa é o banco.
  * SISTEMA SUGERE / HUMANO DECIDE: simular primeiro, confirmar depois.
  */
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Loader2, Play } from "lucide-react";
