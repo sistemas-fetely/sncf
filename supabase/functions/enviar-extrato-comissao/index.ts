@@ -1,7 +1,11 @@
 // Envia o extrato mensal de comissão fechado ao representante (Lei 4.886/1965).
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { RESEND_FROM_ADDRESS, sendResendEmail } from '../_shared/resend-send.ts'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
 const TEMPLATE_NAME = 'extrato-comissao'
 
@@ -18,11 +22,19 @@ const data = (v: unknown) => {
 const comp = (v: unknown) => { const m = String(v ?? '').match(/^(\d{4})-(\d{2})/); return m ? `${m[2]}/${m[1]}` : '—' }
 
 function montarHtml(nome: string, e: any) {
+  const ROTULO_ESTORNO: Record<string, string> = {
+    nf_cancelada: 'NF cancelada',
+    nf_substituida: 'NF substituída',
+    devolucao: 'Devolução',
+    titulo_revertido: 'Título revertido',
+    correcao_manual: 'Correção manual',
+  }
   const itens = Array.isArray(e.detalhe) ? e.detalhe : []
   const linhas = itens.map((i: any) => {
     if (i?.tipo === 'estorno') {
-      const v = -Math.abs(Number(i.valor ?? i.valor_abatido ?? 0))
-      return `<tr style="color:#b91c1c"><td style="padding:6px;border-bottom:1px solid #eee">${esc(i.nf ?? '—')}</td><td style="padding:6px;border-bottom:1px solid #eee" colspan="3">Estorno: ${esc(i.motivo ?? '')}</td><td style="padding:6px;border-bottom:1px solid #eee;text-align:right">${brl(v)}</td></tr>`
+      const rotulo = ROTULO_ESTORNO[String(i.estorno_tipo ?? '')] ?? String(i.estorno_tipo ?? 'Estorno')
+      const parcial = i.parcial ? ' (parcial)' : ''
+      return `<tr style="color:#b91c1c"><td style="padding:6px;border-bottom:1px solid #eee">${esc(rotulo + parcial)}</td><td style="padding:6px;border-bottom:1px solid #eee" colspan="3">Estorno: ${esc(i.motivo ?? '')}</td><td style="padding:6px;border-bottom:1px solid #eee;text-align:right">${brl(i.valor)}</td></tr>`
     }
     return `<tr><td style="padding:6px;border-bottom:1px solid #eee">${esc(i.nf ?? '—')}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(i.pedido ?? '—')}</td><td style="padding:6px;border-bottom:1px solid #eee">${esc(i.parcela ?? '—')}</td><td style="padding:6px;border-bottom:1px solid #eee">${data(i.data_liquidacao)}</td><td style="padding:6px;border-bottom:1px solid #eee;text-align:right">${brl(i.valor)}</td></tr>`
   }).join('')
