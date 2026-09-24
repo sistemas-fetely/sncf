@@ -54,8 +54,8 @@ async function gql(domain: string, token: string, query: string, variables: unkn
 }
 
 const MUT = `
-mutation set($input: InventorySetQuantitiesInput!, $key: String!) @idempotent(key: $key) {
-  inventorySetQuantities(input: $input) {
+mutation set($input: InventorySetQuantitiesInput!, $key: String!) {
+  inventorySetQuantities(input: $input) @idempotent(key: $key) {
     userErrors { field message }
   }
 }`;
