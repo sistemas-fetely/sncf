@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { fmtBRL, fmtCompetencia, fmtData } from "./fmt";
+import { ExtratosFechados, FecharCompetenciaBotao } from "./AcoesPagamento";
 
 interface Extrato {
   competencia_pagamento: string | null;
@@ -217,11 +218,14 @@ export function AbaExtrato() {
 
   if (grupos.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-10 text-center text-sm text-muted-foreground">
-          Nenhuma comissão liberada até agora. O extrato só nasce quando o cliente paga uma parcela.
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <Card>
+          <CardContent className="p-10 text-center text-sm text-muted-foreground">
+            Nenhuma comissão liberada até agora. O extrato só nasce quando o cliente paga uma parcela.
+          </CardContent>
+        </Card>
+        <ExtratosFechados />
+      </div>
     );
   }
 
@@ -243,10 +247,13 @@ export function AbaExtrato() {
                   Total a pagar {fmtBRL(total)} · pagar até {fmtData(linhas[0]?.pagar_ate)}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => baixarCsv(competencia)}>
-                <Download className="h-4 w-4" />
-                Exportar CSV
-              </Button>
+              <div className="flex gap-2">
+                {competencia !== "—" && <FecharCompetenciaBotao competencia={competencia} />}
+                <Button variant="outline" onClick={() => baixarCsv(competencia)}>
+                  <Download className="h-4 w-4" />
+                  Exportar CSV
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {atraso && (
@@ -297,6 +304,7 @@ export function AbaExtrato() {
           </Card>
         );
       })}
+      <ExtratosFechados />
     </div>
   );
 }
