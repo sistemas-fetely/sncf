@@ -243,7 +243,7 @@ export function AbaExtrato() {
                   Total a pagar {fmtBRL(total)} · pagar até {fmtData(linhas[0]?.pagar_ate)}
                 </p>
               </div>
-              <Button variant="outline" onClick={() => baixarCsv(competencia, linhas)}>
+              <Button variant="outline" onClick={() => baixarCsv(competencia)}>
                 <Download className="h-4 w-4" />
                 Exportar CSV
               </Button>
