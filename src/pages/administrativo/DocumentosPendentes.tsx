@@ -1,3 +1,4 @@
+import { useAuth } from "@/contexts/AuthContext";
 import { useMemo, useState } from "react";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
