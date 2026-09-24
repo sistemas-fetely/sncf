@@ -182,10 +182,15 @@ Deno.serve(async (req) => {
     // Body — sem body ou dry_run ausente = dry_run true (safe default)
     let dryRun = true;
     let modo: string | null = null;
+    let skus: string[] | null = null;
     try {
       const b = await req.json();
       if (b && b.dry_run === false) dryRun = false;
       if (b && typeof b.modo === "string") modo = b.modo;
+      if (b && Array.isArray(b.skus) && b.skus.length > 0) {
+        skus = b.skus.map((s: unknown) => String(s).trim()).filter((s: string) => s !== "");
+        if (skus.length === 0) skus = null;
+      }
     } catch { /* sem body → dry_run */ }
 
     if (modo === "carga_completa") {
@@ -202,11 +207,13 @@ Deno.serve(async (req) => {
       return await cargaCompleta(supabase);
     }
 
-    // Lê view
-    const { data: rows, error: viewErr } = await supabase
+    // Lê view (filtro opcional por skus)
+    let consulta = supabase
       .from("vw_estoque_shopify_sync")
       .select("sku, inventory_item_id, location_id, shopify_atual, sncf_virtual, diff")
       .neq("diff", 0);
+    if (skus) consulta = consulta.in("sku", skus);
+    const { data: rows, error: viewErr } = await consulta;
     if (viewErr) return json(500, { error: `view: ${viewErr.message}` });
 
     const alvos = rows ?? [];
