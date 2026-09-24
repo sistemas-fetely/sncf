@@ -210,6 +210,8 @@ const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
+const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
+const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -388,6 +390,8 @@ const App = () => (
 
               {/* Comercial — Comissões de Representante (menu comercial.comissoes) */}
               <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
+              <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
+              <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
 
 
               {/* ═══════════════════════════════════════════════
