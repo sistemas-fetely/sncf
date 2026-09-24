@@ -107384,6 +107384,10 @@ export type Database = {
         Returns: Json
       }
       fn_comissao_apurar_pendentes: { Args: never; Returns: Json }
+      fn_comissao_decidir_diretoria: {
+        Args: { p_apuracao_id: string; p_decisao: string; p_motivo?: string }
+        Returns: Json
+      }
       fn_comissao_estimar: {
         Args: { p_desconto_pct?: number; p_itens: Json }
         Returns: Json
