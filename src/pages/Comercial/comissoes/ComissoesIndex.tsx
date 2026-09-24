@@ -34,6 +34,9 @@ export default function ComissoesIndex() {
         <TabsContent value="apuradas" className="mt-4">
           <AbaApuradas />
         </TabsContent>
+        <TabsContent value="contestacoes" className="mt-4">
+          <AbaContestacoes />
+        </TabsContent>
         <TabsContent value="extrato" className="mt-4">
           <AbaExtrato />
         </TabsContent>
