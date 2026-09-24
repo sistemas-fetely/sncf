@@ -211,7 +211,8 @@ Deno.serve(async (req) => {
     let consulta = supabase
       .from("vw_estoque_shopify_sync")
       .select("sku, inventory_item_id, location_id, shopify_atual, sncf_virtual, diff")
-      .neq("diff", 0);
+      .neq("diff", 0)
+      .order("sku");
     if (skus) consulta = consulta.in("sku", skus);
     const { data: rows, error: viewErr } = await consulta;
     if (viewErr) return json(500, { error: `view: ${viewErr.message}` });
@@ -253,6 +254,26 @@ Deno.serve(async (req) => {
     let empurrados = 0;
     let batches = 0;
     const erros: any[] = [];
+    const itens_inexistentes: any[] = [];
+
+    // Extrai índices de entradas mortas ("inventory item could not be found")
+    const idxInexistentes = (ues: any[]): number[] => {
+      const idx: number[] = [];
+      for (const e of ues) {
+        const f = e?.field;
+        const msg = String(e?.message ?? "");
+        if (
+          Array.isArray(f) && f.length === 4 &&
+          f[0] === "input" && f[1] === "quantities" &&
+          f[3] === "inventoryItemId" &&
+          msg.includes("could not be found")
+        ) {
+          const n = Number(f[2]);
+          if (Number.isInteger(n)) idx.push(n);
+        }
+      }
+      return idx;
+    };
 
     for (let i = 0; i < alvos.length; i += BATCH) {
       const slice = alvos.slice(i, i + BATCH);
@@ -281,13 +302,41 @@ Deno.serve(async (req) => {
       }
       const ue = res.body?.data?.inventorySetQuantities?.userErrors;
       if (ue && ue.length > 0) {
-        erros.push({ batch: batches, userErrors: ue });
+        // Lote atômico: se TODOS os erros forem "item inexistente", reenvia sem eles (1x)
+        const mortos = idxInexistentes(ue);
+        if (mortos.length > 0 && mortos.length === ue.length) {
+          const vivos = quantities.filter((_: unknown, k: number) => !mortos.includes(k));
+          for (const m of mortos) {
+            itens_inexistentes.push({
+              sku: slice[m]?.sku ?? null,
+              inventory_item_id: slice[m]?.inventory_item_id ?? null,
+            });
+          }
+          if (vivos.length === 0) continue; // lote inteiro era carcaça
+          const res2 = await gql(domain, token, MUT, {
+            input: { ...input, quantities: vivos },
+            key: crypto.randomUUID(),
+          });
+          const ue2 = res2.body?.data?.inventorySetQuantities?.userErrors;
+          const top2 = res2.body?.errors;
+          if (
+            res2.status === 200 &&
+            !(Array.isArray(top2) && top2.length > 0) &&
+            !(ue2 && ue2.length > 0)
+          ) {
+            empurrados += vivos.length;
+          } else {
+            erros.push({ batch: batches, reenvio: true, http: res2.status, graphqlErrors: top2, userErrors: ue2 });
+          }
+        } else {
+          erros.push({ batch: batches, userErrors: ue });
+        }
       } else {
         empurrados += quantities.length;
       }
     }
 
-    return json(200, { dry_run: false, empurrados, erros, batches });
+    return json(200, { dry_run: false, empurrados, erros, batches, itens_inexistentes });
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }
