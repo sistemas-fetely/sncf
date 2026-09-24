@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
+import { fmtDataHora } from "@/lib/data";
 import { useItensB2c, type PedidoB2cRow } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
@@ -65,6 +67,17 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
             {txt(pedido?.cliente)} · {formatDateBR(pedido?.data_pedido)} ·{" "}
             {pedido?.estagio_rotulo ?? "—"}
           </SheetDescription>
+          {pedido && (
+            <div className="pt-2">
+              <EncerrarCasoB2c pedido={pedido} variante="botao" onFeito={() => onOpenChange(false)} />
+            </div>
+          )}
+          {pedido?.estagio === "encerrado" && pedido.encerrado_motivo && (
+            <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-sm">
+              <p className="text-xs text-muted-foreground">Encerrado sem entrega em {fmtDataHora(pedido.encerrado_em)}</p>
+              <p>{pedido.encerrado_motivo}</p>
+            </div>
+          )}
         </SheetHeader>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
