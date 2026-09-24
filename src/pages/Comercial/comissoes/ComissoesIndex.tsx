@@ -6,6 +6,7 @@ import { Percent } from "lucide-react";
 import { AbaApurar } from "./AbaApurar";
 import { AbaApuradas } from "./AbaApuradas";
 import { AbaExtrato } from "./AbaExtrato";
+import { AbaContestacoes } from "./AbaContestacoes";
 import { AbaRegras } from "./AbaRegras";
 
 export default function ComissoesIndex() {
@@ -24,6 +25,7 @@ export default function ComissoesIndex() {
         <TabsList>
           <TabsTrigger value="apurar">A apurar</TabsTrigger>
           <TabsTrigger value="apuradas">Apuradas</TabsTrigger>
+          <TabsTrigger value="contestacoes">Contestações</TabsTrigger>
           <TabsTrigger value="extrato">Extrato mensal</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
         </TabsList>
@@ -33,6 +35,9 @@ export default function ComissoesIndex() {
         </TabsContent>
         <TabsContent value="apuradas" className="mt-4">
           <AbaApuradas />
+        </TabsContent>
+        <TabsContent value="contestacoes" className="mt-4">
+          <AbaContestacoes />
         </TabsContent>
         <TabsContent value="extrato" className="mt-4">
           <AbaExtrato />

@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertTriangle, Loader2, Unlock } from "lucide-react";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPP, fmtPct } from "./fmt";
+import { EstornarBotao, EstornosLancados } from "./Estornos";
 
 interface Posicao {
   apuracao_id: string;
@@ -188,6 +189,9 @@ export function AbaApuradas() {
         </CardContent>
       </Card>
 
+      <div className="mt-4"><EstornosLancados /></div>
+
+
       <Sheet open={!!aberta} onOpenChange={(o) => !o && setAberta(null)}>
         <SheetContent className="w-full sm:max-w-xl">
           <SheetHeader>
@@ -197,6 +201,17 @@ export function AbaApuradas() {
               {fmtBRL(aberta?.liberado)}
             </SheetDescription>
           </SheetHeader>
+          {aberta && (
+            <div className="mt-3">
+              <EstornarBotao
+                apuracaoId={aberta.apuracao_id}
+                nf={aberta.nf_numero}
+                representante={aberta.representante}
+                valorDevido={aberta.valor_devido}
+                liberado={aberta.liberado}
+              />
+            </div>
+          )}
           <div className="mt-4">
             {detalhe.isError ? (
               <Alert variant="destructive">
