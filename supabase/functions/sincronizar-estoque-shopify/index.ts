@@ -273,6 +273,11 @@ Deno.serve(async (req) => {
         erros.push({ batch: batches, http: res.status, body: res.body });
         continue;
       }
+      const topErrs = res.body?.errors;
+      if (Array.isArray(topErrs) && topErrs.length > 0) {
+        erros.push({ batch: batches, graphqlErrors: topErrs });
+        continue;
+      }
       const ue = res.body?.data?.inventorySetQuantities?.userErrors;
       if (ue && ue.length > 0) {
         erros.push({ batch: batches, userErrors: ue });
