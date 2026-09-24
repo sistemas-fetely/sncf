@@ -3,7 +3,7 @@
 // + exemplo cru de /estoques/saldos de um produto, para conhecer o formato por depósito.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,10 +46,11 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch (_) { /* sem body */ }
   const modo = body?.modo ?? "retrato";
-  if (!["retrato", "carga_saldos", "push"].includes(modo)) {
-    return json({ ok: false, erro: `Modo desconhecido: ${modo}. Modos: retrato, carga_saldos, push.` }, 400);
+  if (!["retrato", "carga_saldos", "push", "deposito_considerar_saldo"].includes(modo)) {
+    return json({ ok: false, erro: `Modo desconhecido: ${modo}. Modos: retrato, carga_saldos, push, deposito_considerar_saldo.` }, 400);
   }
-  const tipoLog = modo === "retrato" ? "estoque_retrato" : modo === "carga_saldos" ? "estoque_carga_saldos" : "estoque_push";
+  const tipoLog = modo === "retrato" ? "estoque_retrato" : modo === "carga_saldos" ? "estoque_carga_saldos"
+    : modo === "deposito_considerar_saldo" ? "estoque_deposito_config" : "estoque_push";
 
   const abrirCliente = async () => {
     const { data: cfg, error: cfgErr } = await supabase.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
@@ -61,6 +62,35 @@ Deno.serve(async (req) => {
   const dryRun = body?.dry_run === false ? false : true;
 
   try {
+    // ---------- DEPÓSITO: CONSIDERAR SALDO ----------
+    // O PUT /depositos/{id} do Bling substitui o objeto inteiro: SEMPRE GET antes.
+    if (modo === "deposito_considerar_saldo") {
+      const depId = Number(body?.deposito_id);
+      if (!Number.isFinite(depId) || depId <= 0) return json({ ok: false, erro: "deposito_id obrigatório (número)." }, 400);
+      const { data: dep, error: dErr } = await supabase.from("bling_deposito")
+        .select("deposito_id, descricao, centro_id").eq("deposito_id", depId).maybeSingle();
+      if (dErr) throw new Error(`bling_deposito: ${dErr.message}`);
+      if (!dep) return json({ ok: false, erro: `Depósito ${depId} não existe em bling_deposito.` }, 400);
+      if (!dep.centro_id) return json({ ok: false, erro: `Depósito ${depId} (${dep.descricao}) não está amarrado a um centro (centro_id vazio).` }, 400);
+      const client = await abrirCliente();
+      const g: any = await client.get(`/depositos/${depId}`);
+      const atual = g?.data ?? g;
+      const mudaria = { campo: "desconsiderarSaldo", atual: atual?.desconsiderarSaldo ?? null, novo: false };
+      if (dryRun) return json({ ok: true, dry_run: true, deposito: atual, mudaria });
+      const novo = { ...atual, desconsiderarSaldo: false };
+      const res = await fetch(`${BLING_BASE}/depositos/${depId}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${client.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
+        body: JSON.stringify(novo),
+      });
+      if (!res.ok) throw new Error(`Bling PUT /depositos/${depId} ${res.status}: ${(await res.text()).slice(0, 800)}`);
+      await sleep(THROTTLE_MS);
+      const pos: any = await client.get(`/depositos/${depId}`);
+      const depois = pos?.data ?? pos;
+      await log("sucesso", 1, { deposito_id: depId, antes: mudaria.atual, depois: depois?.desconsiderarSaldo }, tipoLog);
+      return json({ ok: true, deposito: depois });
+    }
+
     // ---------- PUSH ----------
     if (modo === "push") {
       const skus: string[] = Array.isArray(body?.skus)
@@ -196,7 +226,7 @@ Deno.serve(async (req) => {
     return json({ ok: true, depositos, exemplo_saldo });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    if (!(modo === "push" && dryRun)) await log("erro", 0, { erro: msg }, tipoLog);
+    if (!((modo === "push" || modo === "deposito_considerar_saldo") && dryRun)) await log("erro", 0, { erro: msg }, tipoLog);
     return json({ ok: false, erro: msg }, 500);
   }
 });
