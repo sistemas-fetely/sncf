@@ -290,7 +290,7 @@ Deno.serve(async (req) => {
         throw new Error(`reconciliacao abortada: pull teve ${erros.length} erro(s) — ${JSON.stringify(erros).slice(0, 300)}`);
       }
       const t0 = Date.now();
-      const vivos: { shopify_id: string; title: string | null }[] = [];
+      const vivos: { shopify_id: string; title: string | null; status: string | null }[] = [];
       for (let from = 0; ; from += 1000) {
         const { data, error } = await supabase
           .from("shopify_produtos")
@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
           .range(from, from + 999);
         if (error) throw new Error(`leitura shopify_produtos falhou: ${error.message}`);
         for (const r of data ?? []) {
-          if (r.status !== "deleted") vivos.push({ shopify_id: String(r.shopify_id), title: r.title ?? null });
+          if (r.status !== "deleted") vivos.push({ shopify_id: String(r.shopify_id), title: r.title ?? null, status: r.status ?? null });
         }
         if (!data || data.length < 1000) break;
       }
@@ -312,7 +312,7 @@ Deno.serve(async (req) => {
           dry_run: true, vistos: vistos.size, nao_excluidos: vivos.length, ausentes: ausentes.length,
           percentual: Math.round(percentual * 100) / 100, limite_percentual: limitePercentual,
           acima_do_limite: acimaDoLimite,
-          exemplos: ausentes.map((a) => ({ shopify_id: a.shopify_id, title: a.title, status: "active" })),
+          exemplos: ausentes.map((a) => ({ shopify_id: a.shopify_id, title: a.title, status: a.status })),
         });
       }
       if (acimaDoLimite) {
