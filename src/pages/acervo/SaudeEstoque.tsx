@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -49,23 +50,6 @@ interface BaixaPendente {
   ultima_nf: string | null;
 }
 
-interface ShopifyRetido {
-  sku: string;
-  nome_comercial: string | null;
-  shopify_atual: number | null;
-  sncf_virtual_estimado: number | null;
-  diff_estimado: number | null;
-  motivo_retencao: string | null;
-}
-
-interface DivergenciaBling {
-  codigo: string;
-  nome: string | null;
-  saldo_bling: number | null;
-  divergencia: string | null;
-  acao: string | null;
-}
-
 type Col =
   | "sku"
   | "nome"
@@ -85,11 +69,6 @@ const FOOTER_RESERVE = 80;
 const MOTIVO_BAIXA: Record<string, string> = {
   sku_sem_razao: "SKU sem razão",
   nf_anterior_a_contagem: "NF anterior à contagem",
-};
-
-const DIVERGENCIA_BLING: Record<string, string> = {
-  inativo_no_sncf: "Inativo no FOP",
-  ausente_no_sncf: "Ausente no FOP",
 };
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
@@ -193,32 +172,6 @@ export default function SaudeEstoque() {
     },
   });
 
-  const retidoQ = useQuery({
-    queryKey: ["vw_estoque_shopify_retido"],
-    queryFn: async (): Promise<ShopifyRetido[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_estoque_shopify_retido")
-        .select("*")
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as ShopifyRetido[];
-    },
-  });
-
-  const divergQ = useQuery({
-    queryKey: ["vw_produto_divergencia_bling"],
-    queryFn: async (): Promise<DivergenciaBling[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_divergencia_bling")
-        .select("codigo,nome,saldo_bling,divergencia,acao")
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as DivergenciaBling[];
-    },
-  });
-
   const lista = estoqueQ.data ?? [];
   const listaLastreada = useMemo(() => lista.filter((p) => p.tem_razao), [lista]);
 
@@ -258,15 +211,11 @@ export default function SaudeEstoque() {
 
   const onboarding = onboardingQ.data;
   const baixas = baixasQ.data ?? [];
-  const retidos = retidoQ.data ?? [];
-  const divergencias = divergQ.data ?? [];
 
   function handleAtualizar() {
     qc.invalidateQueries({ queryKey: ["vw_estoque_onboarding_progresso"] });
     qc.invalidateQueries({ queryKey: ["vw_estoque__saude"] });
     qc.invalidateQueries({ queryKey: ["vw_baixa_estoque_pendente"] });
-    qc.invalidateQueries({ queryKey: ["vw_estoque_shopify_retido"] });
-    qc.invalidateQueries({ queryKey: ["vw_produto_divergencia_bling"] });
   }
 
   function scrollTo(id: string) {
