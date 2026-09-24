@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -43,6 +44,7 @@ export default function MarcarEnviadasDialog({
   onSuccess,
 }: Props) {
   const qc = useQueryClient();
+  const pExec = usePermissaoAcaoOuSuperAdmin("acao.pagar_executar");
 
   const [dataEnvio, setDataEnvio] = useState(format(new Date(), "yyyy-MM-dd"));
   const [descricao, setDescricao] = useState("");
@@ -241,8 +243,10 @@ export default function MarcarEnviadasDialog({
             disabled={
               mutation.isPending ||
               contasIds.length === 0 ||
-              !descricao.trim()
+              !descricao.trim() ||
+              pExec.carregando || !pExec.permitido
             }
+            title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
             className="bg-success hover:bg-success text-white"
           >
             {mutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}

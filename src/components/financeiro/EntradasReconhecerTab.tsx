@@ -4,6 +4,7 @@
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -170,6 +171,7 @@ function ehCartao(tipo: string | null | undefined) {
 }
 
 function ComprovantesAguardandoBloco() {
+  const pDin = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
   const qc = useQueryClient();
   const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState<{ coluna: ColunaComprovante; dir: DirecaoOrdenacao } | null>(null);
@@ -420,6 +422,8 @@ function ComprovantesAguardandoBloco() {
                               variant="outline"
                               className="h-7 text-xs"
                               onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
+                              disabled={pDin.carregando || !pDin.permitido}
+                              title={!pDin.permitido ? "Sem permissão: acao.pedido_dinheiro" : undefined}
                             >
                               Confirmar
                             </Button>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -90,6 +91,7 @@ export default function EnviarPeloSistemaDialog({
   onSuccess,
 }: Props) {
   const qc = useQueryClient();
+  const pExec = usePermissaoAcaoOuSuperAdmin("acao.pagar_executar");
 
   const [descricaoRemessa, setDescricaoRemessa] = useState("");
   const [assunto, setAssunto] = useState("");
@@ -487,8 +489,10 @@ export default function EnviarPeloSistemaDialog({
                 emails.length === 0 ||
                 !assunto.trim() ||
                 !corpo.trim() ||
-                !descricaoRemessa.trim()
+                !descricaoRemessa.trim() ||
+                pExec.carregando || !pExec.permitido
               }
+              title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
               className="gap-1 bg-success hover:bg-success text-white"
             >
               {processando ? (

@@ -4,6 +4,7 @@
  * A tela não conhece nome de regra nem elegibilidade — quem recusa é o banco.
  * SISTEMA SUGERE / HUMANO DECIDE: simular primeiro, confirmar depois.
  */
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AlertTriangle, CheckCircle2, Loader2, Play } from "lucide-react";
@@ -64,6 +65,7 @@ export default function AcaoAchadoBloco({
   achado: Achado;
   userId: string | undefined;
 }) {
+  const pCorr = usePermissaoAcaoOuSuperAdmin("acao.auditoria_acao_corretiva");
   const rpc = achado.rpc_acao;
   const param = achado.rpc_acao_param;
   const valor = achado.rpc_acao_valor;
@@ -226,7 +228,8 @@ export default function AcaoAchadoBloco({
             size="sm"
             className="w-full gap-2"
             onClick={aplicar}
-            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending}
+            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending || pCorr.carregando || !pCorr.permitido}
+            title={!pCorr.permitido ? "Sem permissão: acao.auditoria_acao_corretiva" : undefined}
           >
             {(confirmar.isPending || rodarRegra.isPending) && (
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -191,6 +192,8 @@ export default function Contratos() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const pGerir = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_gerir");
+  const pExcl = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_excluir");
   const [busca, setBusca] = useState("");
   const [filtroStatus, setFiltroStatus] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -402,6 +405,8 @@ export default function Contratos() {
             <Button
               size="sm"
               onClick={() => setNovoContratoOpen(true)}
+              disabled={pGerir.carregando || !pGerir.permitido}
+              title={!pGerir.permitido ? "Sem permissão: acao.contrato_recorrente_gerir" : undefined}
               style={{ background: VERDE }}
               className="text-white hover:opacity-90"
             >
@@ -659,7 +664,8 @@ export default function Contratos() {
                             e.stopPropagation();
                             setContratoParaExcluir(c);
                           }}
-                          title="Excluir contrato"
+                          disabled={pExcl.carregando || !pExcl.permitido}
+                          title={!pExcl.permitido ? "Sem permissão: acao.contrato_recorrente_excluir" : "Excluir contrato"}
                           className="hover:bg-destructive/10"
                           style={{ color: "#fca5a5" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = ROSA)}
@@ -701,7 +707,8 @@ export default function Contratos() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => contratoParaExcluir && excluirMutation.mutate(contratoParaExcluir)}
-              disabled={excluirMutation.isPending}
+              disabled={excluirMutation.isPending || pExcl.carregando || !pExcl.permitido}
+              title={!pExcl.permitido ? "Sem permissão: acao.contrato_recorrente_excluir" : undefined}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {excluirMutation.isPending ? "Excluindo..." : "Excluir"}
@@ -890,6 +897,7 @@ function NovoContratoDialog({
   onOpenChange: (v: boolean) => void;
   onSucesso: () => void;
 }) {
+  const pGerir = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_gerir");
   const { toast } = useToast();
   const [etapa, setEtapa] = useState<1 | 2 | 3>(1);
 
@@ -1562,7 +1570,8 @@ function NovoContratoDialog({
               <Button variant="outline" onClick={() => setEtapa(2)} disabled={salvando}>Voltar</Button>
               <Button
                 onClick={salvar}
-                disabled={salvando}
+                disabled={salvando || pGerir.carregando || !pGerir.permitido}
+                title={!pGerir.permitido ? "Sem permissão: acao.contrato_recorrente_gerir" : undefined}
                 style={{ background: VERDE }}
                 className="text-white"
               >
