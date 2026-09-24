@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -371,6 +372,19 @@ export default function ConsoleAcessoTab({
   const { data: niveis = [] } = usePapeisNivel();
   const definirNivel = useDefinirNivelMinimo();
   const toggleNoAr = useToggleNoAr();
+  const toggleSoLeitura = useMutation({
+    mutationFn: async ({ navChave, soLeitura }: { navChave: string; soLeitura: boolean }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("fn_declarar_tela_so_leitura", {
+        p_nav_chave: navChave,
+        p_so_leitura: soLeitura,
+        p_motivo: soLeitura ? "Declarado no Console de Acesso" : null,
+      });
+      if (error) throw error;
+    },
+    onError: (e) => toast.error(`Não foi possível declarar só leitura: ${formatError(e)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["console-acesso"] }),
+  });
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
@@ -600,6 +614,21 @@ export default function ConsoleAcessoTab({
     () => (telaAtiva?.linhas ?? []).filter(ehEscopo),
     [telaAtiva],
   );
+
+  /** Tela ativa já tem ação declarada → não pode ser só leitura (a RPC recusa). */
+  const telaTemAcao = useMemo(
+    () => (telaAtiva?.linhas ?? []).some((l) => l.tipo === "acao"),
+    [telaAtiva],
+  );
+
+  /** Nome humano do sub-cabeçalho de rota. */
+  const rotuloRota = (rota: string, itens: ConsoleAcessoRow[]): string => {
+    const base = telaAtiva?.linhas.find((l) => l.tipo === "tela")?.rota;
+    if (base && rota === base) return "Na tela";
+    if (rota.includes("?aba=")) return itens[0]?.tela_label ?? rota;
+    if (/\/:[^/]+$/.test(rota)) return "No detalhe (ao abrir um registro)";
+    return rota;
+  };
 
   /** Linhas da tela ativa agrupadas por rota (sub-cabeçalho quando > 1 rota). */
   const rotasDaTela = useMemo(() => {
