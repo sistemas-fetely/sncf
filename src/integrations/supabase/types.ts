@@ -97,6 +97,9 @@ export type Database = {
       }
       acao_superficie: {
         Row: {
+          aposentada_em: string | null
+          aposentada_motivo: string | null
+          aposentada_por: string | null
           arquivo: string
           conferido: boolean
           conferido_em: string | null
@@ -114,6 +117,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aposentada_em?: string | null
+          aposentada_motivo?: string | null
+          aposentada_por?: string | null
           arquivo: string
           conferido?: boolean
           conferido_em?: string | null
@@ -131,6 +137,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aposentada_em?: string | null
+          aposentada_motivo?: string | null
+          aposentada_por?: string | null
           arquivo?: string
           conferido?: boolean
           conferido_em?: string | null
