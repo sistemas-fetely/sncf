@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Lock, FileText } from "lucide-react";
+import { Loader2, Lock, FileText, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
@@ -77,6 +77,7 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
 interface ExtratoFechado {
   id: string; vendedor_id: string; competencia: string; pagar_ate: string | null; valor_total: number;
   liberacoes: number; notas: number; cpr_id: string | null; cpr_em: string | null; representante: string;
+  enviado_em: string | null; enviado_para: string | null;
 }
 
 export function ExtratosFechados() {
@@ -84,13 +85,36 @@ export function ExtratosFechados() {
   const [confirmar, setConfirmar] = useState<ExtratoFechado | null>(null);
   const [rodando, setRodando] = useState(false);
   const [falha, setFalha] = useState<{ erro: string; acao?: string; vendedor_id: string } | null>(null);
+  const [enviar, setEnviar] = useState<ExtratoFechado | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  async function enviarEmail() {
+    if (!enviar) return;
+    setEnviando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("enviar-extrato-comissao", { body: { extrato_id: enviar.id } });
+      if (error) {
+        let det = formatError(error);
+        try { const t = await (error as any).context?.text?.(); if (t) det = JSON.parse(t).error ?? t; } catch { /* mantém */ }
+        throw new Error(det);
+      }
+      if (!data?.ok) throw new Error(data?.error ?? JSON.stringify(data));
+      toast.success(`Extrato enviado para ${data.enviado_para}`);
+      await qc.invalidateQueries({ queryKey: ["comissao-extratos-fechados"] });
+      setEnviar(null);
+    } catch (e) {
+      toast.error(`Falha ao enviar extrato: ${formatError(e)}`);
+    } finally {
+      setEnviando(false);
+    }
+  }
 
   const q = useQuery({
     queryKey: ["comissao-extratos-fechados"],
     queryFn: async (): Promise<ExtratoFechado[]> => {
       const { data, error } = await (supabase as any)
         .from("comissao_extrato")
-        .select("id,vendedor_id,competencia,pagar_ate,valor_total,liberacoes,notas,cpr_id,cpr_em")
+        .select("id,vendedor_id,competencia,pagar_ate,valor_total,liberacoes,notas,cpr_id,cpr_em,enviado_em,enviado_para")
         .order("competencia", { ascending: false });
       if (error) throw error;
       const linhas = (data ?? []) as Omit<ExtratoFechado, "representante">[];
@@ -146,7 +170,7 @@ export function ExtratosFechados() {
             <TableHeader><TableRow>
               <TableHead>Representante</TableHead><TableHead>Competência</TableHead>
               <TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Liberações</TableHead>
-              <TableHead className="text-right">Notas</TableHead><TableHead>Pagar até</TableHead><TableHead>Título a pagar</TableHead>
+              <TableHead className="text-right">Notas</TableHead><TableHead>Pagar até</TableHead><TableHead>Título a pagar</TableHead><TableHead>E-mail</TableHead>
             </TableRow></TableHeader>
             <TableBody>
               {(q.data ?? []).map((l) => (
@@ -174,12 +198,38 @@ export function ExtratosFechados() {
                       </Button>
                     )}
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-start gap-1 text-xs">
+                      {l.enviado_em && (
+                        <span className="text-muted-foreground">Enviado em {fmtData(l.enviado_em)} para {l.enviado_para}</span>
+                      )}
+                      <Button size="sm" variant="outline" onClick={() => setEnviar(l)}>
+                        <Mail className="h-4 w-4" />{l.enviado_em ? "Reenviar" : "Enviar por e-mail"}
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         )}
       </CardContent>
+
+      <Dialog open={!!enviar} onOpenChange={(o) => !o && !enviando && setEnviar(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{enviar?.enviado_em ? "Reenviar extrato por e-mail?" : "Enviar extrato por e-mail?"}</DialogTitle>
+            <DialogDescription>
+              {enviar && `${enviar.representante} · competência ${fmtCompetencia(enviar.competencia)} · ${fmtBRL(enviar.valor_total)}. Vai para o e-mail de contato cadastrado do representante.`}
+              {enviar?.enviado_em && ` Já enviado em ${fmtData(enviar.enviado_em)} para ${enviar.enviado_para}.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEnviar(null)} disabled={enviando}>Cancelar</Button>
+            <Button onClick={enviarEmail} disabled={enviando}>{enviando && <Loader2 className="h-4 w-4 animate-spin" />}{enviar?.enviado_em ? "Reenviar" : "Enviar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!confirmar} onOpenChange={(o) => !o && !rodando && setConfirmar(null)}>
         <DialogContent>
