@@ -1184,12 +1184,9 @@ export default function ConsoleAcessoTab({
                           </Fragment>
                         );
                       const chaveGrupo = `${m.appChave}|${g.chave}`;
-                      const temSelecionada = telasDoGrupo(g).some(
-                        (t) => t.chave === telaAtiva?.chave,
-                      );
-                      // O grupo da tela selecionada nasce (e permanece) aberto.
-                      const grupoFechado =
-                        gruposFechados.has(chaveGrupo) && !temSelecionada;
+                      // O grupo nasce aberto (e a tela selecionada nasce expandida);
+                      // o usuário pode fechar mesmo com a tela selecionada dentro.
+                      const grupoFechado = gruposFechados.has(chaveGrupo);
                       const concedidasGrupo = telasDoGrupo(g).reduce(
                         (s, t) => s + (concedidasPorTela.get(t.chave) ?? 0),
                         0,
