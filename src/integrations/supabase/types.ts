@@ -6190,6 +6190,48 @@ export type Database = {
           },
         ]
       }
+      bling_deposito: {
+        Row: {
+          atualizado_em: string
+          centro_id: string | null
+          deposito_id: number
+          descricao: string | null
+          padrao: boolean | null
+          situacao: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          centro_id?: string | null
+          deposito_id: number
+          descricao?: string | null
+          padrao?: boolean | null
+          situacao?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          centro_id?: string | null
+          deposito_id?: number
+          descricao?: string | null
+          padrao?: boolean | null
+          situacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_deposito_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_deposito_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       bling_envios_log: {
         Row: {
           bling_id_retornado: number | null
