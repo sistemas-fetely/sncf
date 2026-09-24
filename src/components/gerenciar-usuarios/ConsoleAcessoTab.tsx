@@ -131,8 +131,12 @@ function renderGuarda(guarda: string | null) {
 function BadgeAltoSemGuarda({ n }: { n: number }) {
   if (n === 0) return null;
   return (
-    <Badge variant="destructive" className="px-1.5 py-0 text-[10px]">
-      {n} ALTO sem guarda
+    <Badge
+      variant="destructive"
+      className="px-1.5 py-0 text-[10px]"
+      title={`${n} ${n === 1 ? "linha" : "linhas"} ALTO sem guarda`}
+    >
+      {n}
     </Badge>
   );
 }
@@ -755,7 +759,7 @@ export default function ConsoleAcessoTab({
           !t.noAr && "opacity-55",
         )}
       >
-        <span className="min-w-0 flex-1 truncate">{t.telaLabel}</span>
+        <span className="min-w-0 flex-1 truncate" title={t.telaLabel}>{t.telaLabel}</span>
         <span className="flex shrink-0 items-center gap-1.5 text-[10px] text-muted-foreground">
           {!t.noAr && (
             <Badge variant="outline" className="px-1 py-0 text-[9px] font-normal">
@@ -1106,7 +1110,7 @@ export default function ConsoleAcessoTab({
       <div
         className={cn(
           "grid items-start gap-4",
-          detalhe ? "lg:grid-cols-[300px_1fr_320px]" : "lg:grid-cols-[300px_1fr]",
+          detalhe ? "lg:grid-cols-[370px_1fr_320px]" : "lg:grid-cols-[370px_1fr]",
         )}
       >
         {/* ── Árvore Módulo → Grupo → Tela ── */}
@@ -1135,7 +1139,7 @@ export default function ConsoleAcessoTab({
                       ) : (
                         <ChevronDown className="h-3.5 w-3.5 shrink-0" />
                       )}
-                      <span className="truncate">{m.appLabel}</span>
+                      <span className="truncate" title={m.appLabel}>{m.appLabel}</span>
                       <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
                         <span>
                           {porGrupo && grupoLenteId
@@ -1202,7 +1206,7 @@ export default function ConsoleAcessoTab({
                             ) : (
                               <ChevronDown className="h-3 w-3 shrink-0" />
                             )}
-                            <span className="min-w-0 flex-1 truncate">{g.label}</span>
+                            <span className="min-w-0 flex-1 truncate" title={g.label ?? undefined}>{g.label}</span>
                             <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-normal text-muted-foreground">
                               <span className="tabular-nums">
                                 {porGrupo && grupoLenteId
