@@ -74,7 +74,7 @@ import {
   type ConsoleAcessoRow,
   type GrupoConsole,
 } from "@/hooks/useConsoleAcesso";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 /**
  * CONSOLE DE ACESSO ÚNICO — fusão das antigas abas "Grupos de Acesso" e
