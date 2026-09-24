@@ -115,6 +115,13 @@ Deno.serve(async (req) => {
     return json(401, { error: "unauthorized" });
   }
 
+  // deno-lint-ignore no-explicit-any
+  let body: any = {};
+  try { body = await req.json(); } catch { body = {}; }
+  const reconciliar = body?.reconciliar_excluidos === true;
+  const listarWebhooks = body?.listar_webhooks === true;
+  const dryRun = body?.dry_run !== false;
+
   try {
     const clientId = await getSecret(supabase, "SHOPIFY_CLIENT_ID");
     const clientSecret = await getSecret(supabase, "SHOPIFY_CLIENT_SECRET");
@@ -125,6 +132,21 @@ Deno.serve(async (req) => {
 
     const token = await exchangeToken(domain, clientId, clientSecret);
     if (!token) throw new Error(`falha ao autenticar em ${domain} via client_credentials`);
+
+    if (listarWebhooks) {
+      const r = await gqlWithRetry(domain, token, `{ webhookSubscriptions(first: 50) { nodes { topic uri } } }`, {});
+      if (r.status !== 200 || r.body?.errors) {
+        throw new Error(`webhookSubscriptions falhou: status=${r.status} errors=${JSON.stringify(r.body?.errors ?? r.body).slice(0, 500)}`);
+      }
+      const nodes = r.body?.data?.webhookSubscriptions?.nodes ?? [];
+      return json(200, {
+        total: nodes.length,
+        products_delete_assinado: nodes.some((n: any) => n?.topic === "PRODUCTS_DELETE"),
+        webhooks: nodes,
+      });
+    }
+
+    const vistos = new Set<string>();
 
     const pullLote = crypto.randomUUID();
     const pullEm = new Date().toISOString();
@@ -168,6 +190,7 @@ Deno.serve(async (req) => {
       for (const p of nodes) {
         const shopifyId = extrairIdNumerico(p?.id);
         if (!shopifyId) { ignorados++; continue; }
+        vistos.add(shopifyId);
 
         const variantNodes: any[] = p?.variants?.nodes ?? [];
         const variants = variantNodes.map((v: any) => {
@@ -229,6 +252,56 @@ Deno.serve(async (req) => {
     }
 
     await flush();
+
+    if (reconciliar) {
+      // So reconcilia com pull integro: qualquer erro de gravacao aborta.
+      if (erros.length > 0) {
+        throw new Error(`reconciliacao abortada: pull teve ${erros.length} erro(s) — ${JSON.stringify(erros).slice(0, 300)}`);
+      }
+      const t0 = Date.now();
+      const vivos: { shopify_id: string; title: string | null }[] = [];
+      for (let from = 0; ; from += 1000) {
+        const { data, error } = await supabase
+          .from("shopify_produtos")
+          .select("shopify_id, title, status")
+          .order("shopify_id")
+          .range(from, from + 999);
+        if (error) throw new Error(`leitura shopify_produtos falhou: ${error.message}`);
+        for (const r of data ?? []) {
+          if (r.status !== "deleted") vivos.push({ shopify_id: String(r.shopify_id), title: r.title ?? null });
+        }
+        if (!data || data.length < 1000) break;
+      }
+      const ausentes = vivos.filter((r) => !vistos.has(r.shopify_id));
+      if (vivos.length > 0 && ausentes.length / vivos.length > 0.3) {
+        throw new Error(`pull suspeito: ${ausentes.length} de ${vivos.length} produtos nao-excluidos ausentes (>30%) — nada foi marcado`);
+      }
+      if (dryRun) {
+        return json(200, {
+          dry_run: true, vistos: vistos.size, nao_excluidos: vivos.length, ausentes: ausentes.length,
+          exemplos: ausentes.slice(0, 30),
+        });
+      }
+      let marcados = 0;
+      const ids = ausentes.map((a) => a.shopify_id);
+      for (let i = 0; i < ids.length; i += 200) {
+        const lote = ids.slice(i, i + 200);
+        const { data, error } = await supabase
+          .from("shopify_produtos")
+          .update({ status: "deleted", updated_at: new Date().toISOString() })
+          .in("shopify_id", lote)
+          .select("shopify_id");
+        if (error) throw new Error(`soft delete falhou apos ${marcados} marcados: ${error.message}`);
+        marcados += data?.length ?? 0;
+      }
+      const { error: logErr } = await supabase.from("integracoes_sync_log").insert({
+        sistema: "shopify", tipo: "catalogo_reconciliar_excluidos", status: "sucesso",
+        registros_atualizados: marcados, duracao_ms: Date.now() - t0,
+        detalhes: JSON.stringify({ vistos: vistos.size, marcados_excluidos: marcados, ids }),
+      });
+      if (logErr) console.error("log:", logErr.message);
+      return json(200, { vistos: vistos.size, marcados_excluidos: marcados });
+    }
 
     const resposta = {
       pull_lote: pullLote,
