@@ -450,6 +450,7 @@ const App = () => (
                     </ProtectedRoute>
                   } />
                   <Route path="/vendas/produto/estoque/destinos" element={<DestinosCadastro />} />
+                  <Route path="/vendas/produto/estoque/conciliacao" element={<ConciliacaoEstoque />} />
 
                 </Route>
                 <Route path="/vendas/xpm" element={<XpmIndex />} />
