@@ -1074,7 +1074,53 @@ export default function ConsoleAcessoTab({
         />
       </div>
 
-      {porGrupo && <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />}
+      {porGrupo && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
+            value={grupoLenteId ?? ""}
+            onValueChange={(v) => setGrupoLenteId(v || null)}
+            disabled={gruposAtivos.length === 0}
+          >
+            <SelectTrigger className="h-8 w-56 text-xs">
+              <SelectValue placeholder="Escolha o grupo" />
+            </SelectTrigger>
+            <SelectContent>
+              {gruposAtivos.map((g) => (
+                <SelectItem key={g.id} value={g.id}>
+                  {g.nome}
+                </SelectItem>
+              ))}
+              {gruposAtivos.length === 0 && (
+                <div className="px-2 py-3 text-center text-xs text-muted-foreground">
+                  Nenhum grupo ativo
+                </div>
+              )}
+            </SelectContent>
+          </Select>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8"
+            onClick={() => setPainelGrupoAberto(true)}
+          >
+            <Settings className="mr-1.5 h-3.5 w-3.5" /> Gerenciar grupo
+          </Button>
+          <Sheet open={painelGrupoAberto} onOpenChange={setPainelGrupoAberto}>
+            <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+              <SheetHeader>
+                <SheetTitle className="text-base">Gerenciar grupo</SheetTitle>
+                <SheetDescription className="text-xs">
+                  Escolher, criar, editar ou excluir o grupo e gerenciar os usuários
+                  vinculados.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-2">
+                <PainelGrupo grupoId={grupoLenteId} onGrupoChange={setGrupoLenteId} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      )}
 
       <div
         className={cn(
