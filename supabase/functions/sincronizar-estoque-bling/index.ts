@@ -116,8 +116,8 @@ Deno.serve(async (req) => {
         }, { onConflict: "bling_produto_id,deposito_id" });
         if (uErr) falhas.push({ sku: r.sku, deposito_id: r.deposito_id, quantidade, erro: `Bling aceitou, espelho falhou: ${uErr.message}` });
       }
-      await log(falhas.length ? (empurrados ? "parcial" : "erro") : "sucesso", empurrados, { empurrados, falhas }, tipoLog);
-      return json({ ok: falhas.length === 0, empurrados, falhas });
+      await log(falhas.length ? (empurrados ? "parcial" : "erro") : "sucesso", empurrados, { empurrados, falhas, restantes }, tipoLog);
+      return json({ ok: falhas.length === 0, empurrados, falhas, restantes });
     }
 
     const client = await abrirCliente();
