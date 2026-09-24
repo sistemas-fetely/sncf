@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -49,23 +50,6 @@ interface BaixaPendente {
   ultima_nf: string | null;
 }
 
-interface ShopifyRetido {
-  sku: string;
-  nome_comercial: string | null;
-  shopify_atual: number | null;
-  sncf_virtual_estimado: number | null;
-  diff_estimado: number | null;
-  motivo_retencao: string | null;
-}
-
-interface DivergenciaBling {
-  codigo: string;
-  nome: string | null;
-  saldo_bling: number | null;
-  divergencia: string | null;
-  acao: string | null;
-}
-
 type Col =
   | "sku"
   | "nome"
@@ -85,11 +69,6 @@ const FOOTER_RESERVE = 80;
 const MOTIVO_BAIXA: Record<string, string> = {
   sku_sem_razao: "SKU sem razão",
   nf_anterior_a_contagem: "NF anterior à contagem",
-};
-
-const DIVERGENCIA_BLING: Record<string, string> = {
-  inativo_no_sncf: "Inativo no FOP",
-  ausente_no_sncf: "Ausente no FOP",
 };
 
 function buildPageRange(current: number, total: number): (number | "…")[] {
@@ -193,32 +172,6 @@ export default function SaudeEstoque() {
     },
   });
 
-  const retidoQ = useQuery({
-    queryKey: ["vw_estoque_shopify_retido"],
-    queryFn: async (): Promise<ShopifyRetido[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_estoque_shopify_retido")
-        .select("*")
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as ShopifyRetido[];
-    },
-  });
-
-  const divergQ = useQuery({
-    queryKey: ["vw_produto_divergencia_bling"],
-    queryFn: async (): Promise<DivergenciaBling[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_divergencia_bling")
-        .select("codigo,nome,saldo_bling,divergencia,acao")
-        .limit(200);
-      if (error) throw error;
-      return (data ?? []) as DivergenciaBling[];
-    },
-  });
-
   const lista = estoqueQ.data ?? [];
   const listaLastreada = useMemo(() => lista.filter((p) => p.tem_razao), [lista]);
 
@@ -258,15 +211,11 @@ export default function SaudeEstoque() {
 
   const onboarding = onboardingQ.data;
   const baixas = baixasQ.data ?? [];
-  const retidos = retidoQ.data ?? [];
-  const divergencias = divergQ.data ?? [];
 
   function handleAtualizar() {
     qc.invalidateQueries({ queryKey: ["vw_estoque_onboarding_progresso"] });
     qc.invalidateQueries({ queryKey: ["vw_estoque__saude"] });
     qc.invalidateQueries({ queryKey: ["vw_baixa_estoque_pendente"] });
-    qc.invalidateQueries({ queryKey: ["vw_estoque_shopify_retido"] });
-    qc.invalidateQueries({ queryKey: ["vw_produto_divergencia_bling"] });
   }
 
   function scrollTo(id: string) {
@@ -369,20 +318,6 @@ export default function SaudeEstoque() {
           }
           tone={Number(onboarding?.unidades_nao_lancadas ?? 0) > 0 ? "amber" : "muted"}
           onClick={() => scrollTo("secao-baixas")}
-        />
-        <PendenciaCard
-          label="Retido do Shopify"
-          value={retidos.length}
-          contexto="divergências que não vão no push por falta de razão"
-          tone={retidos.length > 0 ? "amber" : "muted"}
-          onClick={() => scrollTo("secao-retido")}
-        />
-        <PendenciaCard
-          label="Divergência de cadastro"
-          value={divergencias.length}
-          contexto="ativos no Bling que não são ativos no FOP"
-          tone={divergencias.length > 0 ? "amber" : "muted"}
-          onClick={() => scrollTo("secao-divergencia")}
         />
       </div>
 
@@ -615,84 +550,17 @@ export default function SaudeEstoque() {
         </div>
       </section>
 
-      <section id="secao-retido" className="mb-10 scroll-mt-6">
-        <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-3">
-          Retido do Shopify
-        </h2>
-        <div className="rounded-md border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[120px]">SKU</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right w-[110px]">Shopify atual</TableHead>
-                <TableHead className="text-right w-[150px]">SNCF virtual (est.)</TableHead>
-                <TableHead className="text-right w-[110px]">Diff (est.)</TableHead>
-                <TableHead className="w-[180px]">Motivo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {retidoQ.isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-xs">Carregando…</TableCell></TableRow>
-              ) : retidos.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-6 text-muted-foreground text-xs">Nada retido.</TableCell></TableRow>
-              ) : (
-                retidos.slice(0, 200).map((r, i) => {
-                  const diff = Number(r.diff_estimado ?? 0);
-                  return (
-                    <TableRow key={`${r.sku}-${i}`} className="text-xs">
-                      <TableCell className="font-mono py-1.5">{r.sku}</TableCell>
-                      <TableCell className="py-1.5">{r.nome_comercial ?? "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums py-1.5">{formatNum(r.shopify_atual)}</TableCell>
-                      <TableCell className="text-right tabular-nums py-1.5">{formatNum(r.sncf_virtual_estimado)}</TableCell>
-                      <TableCell className={cn("text-right tabular-nums py-1.5", diff !== 0 && "text-destructive")}>
-                        {formatSigned(diff)}
-                      </TableCell>
-                      <TableCell className="py-1.5">{r.motivo_retencao ?? "—"}</TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
-
-      <section id="secao-divergencia" className="mb-10 scroll-mt-6">
-        <h2 className="text-sm uppercase tracking-wider text-muted-foreground mb-3">
-          Divergência de cadastro
-        </h2>
-        <div className="rounded-md border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[140px]">Código</TableHead>
-                <TableHead>Nome</TableHead>
-                <TableHead className="text-right w-[120px]">Saldo Bling</TableHead>
-                <TableHead className="w-[160px]">Divergência</TableHead>
-                <TableHead>Ação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {divergQ.isLoading ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-xs">Carregando…</TableCell></TableRow>
-              ) : divergencias.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-6 text-muted-foreground text-xs">Cadastro do Bling alinhado com o FOP.</TableCell></TableRow>
-              ) : (
-                divergencias.slice(0, 200).map((d, i) => (
-                  <TableRow key={`${d.codigo}-${i}`} className="text-xs">
-                    <TableCell className="font-mono py-1.5">{d.codigo}</TableCell>
-                    <TableCell className="py-1.5">{d.nome ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums py-1.5">{formatNum(d.saldo_bling)}</TableCell>
-                    <TableCell className="py-1.5">{DIVERGENCIA_BLING[d.divergencia ?? ""] ?? (d.divergencia ?? "—")}</TableCell>
-                    <TableCell className="py-1.5 text-muted-foreground">{d.acao ?? "—"}</TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </section>
+      <p className="text-sm text-muted-foreground mb-10">
+        Divergências de estoque por centro →{" "}
+        <Link to="/vendas/produto/estoque/conciliacao" className="underline underline-offset-2 hover:text-foreground">
+          Conciliação de Estoque
+        </Link>
+        {" · "}
+        Divergências de cadastro →{" "}
+        <Link to="/vendas/produto/conciliacao" className="underline underline-offset-2 hover:text-foreground">
+          Conciliação de Cadastro
+        </Link>
+      </p>
     </PageShell>
   );
 }
