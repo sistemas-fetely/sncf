@@ -54,7 +54,7 @@ async function gql(domain: string, token: string, query: string, variables: unkn
 }
 
 const MUT = `
-mutation set($input: InventorySetQuantitiesInput!) {
+mutation set($input: InventorySetQuantitiesInput!, $key: String!) @idempotent(key: $key) {
   inventorySetQuantities(input: $input) {
     userErrors { field message }
   }
@@ -261,7 +261,7 @@ Deno.serve(async (req) => {
         locationId: `gid://shopify/Location/${r.location_id}`,
         quantity: Math.trunc(Number(r.sncf_virtual)),
         // Concorrência segura: só grava se o valor no Shopify ainda for o que lemos.
-        compareQuantity: Math.trunc(Number(r.shopify_atual)),
+        changeFromQuantity: Math.trunc(Number(r.shopify_atual)),
       }));
       const input = {
         name: "available",
@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
         quantities,
       };
       batches++;
-      const res = await gql(domain, token, MUT, { input });
+      const res = await gql(domain, token, MUT, { input, key: crypto.randomUUID() });
       if (res.status !== 200) {
         erros.push({ batch: batches, http: res.status, body: res.body });
         continue;
