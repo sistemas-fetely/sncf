@@ -874,12 +874,12 @@ export default function ConsoleAcessoTab({
                   para em_construcao e NÃO desativa o nó — obra, não demolição. */}
               {isSuperAdmin && l.nav_chave && (
                 <span
-                  className="inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1.5"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Switch
                     id={`no-ar-${l.linha_id}`}
-                    className="h-4 w-7"
+                    className="origin-left scale-75"
                     checked={!foraDoAr}
                     disabled={toggleNoAr.isPending}
                     onCheckedChange={(v) =>
@@ -899,7 +899,7 @@ export default function ConsoleAcessoTab({
                   recusa quando já há ação declarada — o switch trava antes. */}
               {isSuperAdmin && l.nav_chave && (
                 <span
-                  className="inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1.5"
                   onClick={(e) => e.stopPropagation()}
                   title={
                     telaTemAcao
@@ -909,7 +909,7 @@ export default function ConsoleAcessoTab({
                 >
                   <Switch
                     id={`so-leitura-${l.linha_id}`}
-                    className="h-4 w-7"
+                    className="origin-left scale-75"
                     checked={l.so_leitura === true}
                     disabled={toggleSoLeitura.isPending || (telaTemAcao && l.so_leitura !== true)}
                     onCheckedChange={(v) =>
