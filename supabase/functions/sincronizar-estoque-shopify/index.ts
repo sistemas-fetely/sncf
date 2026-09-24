@@ -183,17 +183,19 @@ Deno.serve(async (req) => {
     let dryRun = true;
     let modo: string | null = null;
     let skus: string[] | null = null;
+    let locationIdBody: string | null = null;
     try {
       const b = await req.json();
       if (b && b.dry_run === false) dryRun = false;
       if (b && typeof b.modo === "string") modo = b.modo;
+      if (b && b.location_id != null) locationIdBody = String(b.location_id).trim();
       if (b && Array.isArray(b.skus) && b.skus.length > 0) {
         skus = b.skus.map((s: unknown) => String(s).trim()).filter((s: string) => s !== "");
         if (skus.length === 0) skus = null;
       }
     } catch { /* sem body → dry_run */ }
 
-    if (modo === "carga_completa") {
+    if (modo === "carga_completa" || modo === "ativar_location") {
       // Auth explícita: x-cron-secret OU sessão válida
       const cron = req.headers.get("x-cron-secret");
       if (cron) {
@@ -204,6 +206,7 @@ Deno.serve(async (req) => {
         const { data: u, error: ue } = await supabase.auth.getUser(tk);
         if (ue || !u?.user) return json(401, { error: "sessão inválida" });
       }
+      if (modo === "ativar_location") return await ativarLocation(supabase, locationIdBody, dryRun);
       return await cargaCompleta(supabase);
     }
 
