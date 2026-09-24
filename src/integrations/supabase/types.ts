@@ -41806,6 +41806,9 @@ export type Database = {
           data_pedido: string
           desconto_celebra_valor: number
           desconto_pct: number | null
+          encerrado_em: string | null
+          encerrado_motivo: string | null
+          encerrado_por: string | null
           endereco_entrega: Json | null
           entregue_em: string | null
           entregue_metodo: string | null
@@ -41917,6 +41920,9 @@ export type Database = {
           data_pedido: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
+          encerrado_em?: string | null
+          encerrado_motivo?: string | null
+          encerrado_por?: string | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
           entregue_metodo?: string | null
@@ -42028,6 +42034,9 @@ export type Database = {
           data_pedido?: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
+          encerrado_em?: string | null
+          encerrado_motivo?: string | null
+          encerrado_por?: string | null
           endereco_entrega?: Json | null
           entregue_em?: string | null
           entregue_metodo?: string | null
@@ -52197,6 +52206,7 @@ export type Database = {
         Row: {
           billing_address: Json | null
           cancelled_at: string | null
+          closed_at: string | null
           created_at: string
           created_at_shopify: string
           discount_amount: number
@@ -52231,6 +52241,7 @@ export type Database = {
         Insert: {
           billing_address?: Json | null
           cancelled_at?: string | null
+          closed_at?: string | null
           created_at?: string
           created_at_shopify: string
           discount_amount?: number
@@ -52265,6 +52276,7 @@ export type Database = {
         Update: {
           billing_address?: Json | null
           cancelled_at?: string | null
+          closed_at?: string | null
           created_at?: string
           created_at_shopify?: string
           discount_amount?: number
@@ -82915,12 +82927,15 @@ export type Database = {
           bloqueio_motivo: string | null
           bloqueio_tentativas: number | null
           cancelled_at: string | null
+          closed_at: string | null
           created_at_shopify: string | null
           data_pedido: string | null
           delta_bruto_vs_faturado: number | null
           dias_no_estagio: number | null
           discount_amount: number | null
           eh_final: boolean | null
+          encerrado_em: string | null
+          encerrado_motivo: string | null
           entrega_declarada_em: string | null
           entrega_fonte: string | null
           entrega_prevista: string | null
@@ -82953,6 +82968,9 @@ export type Database = {
           rastreio_entregue: boolean | null
           rastreio_estado: string | null
           rastreio_status: string | null
+          reembolso_em: string | null
+          reembolso_pendente: number | null
+          reembolso_total: number | null
           refunded_amount: number | null
           shipment_atualizado_em: string | null
           shipment_status: string | null
@@ -83002,6 +83020,7 @@ export type Database = {
           cd_escolhido_por: string | null
           cd_sugerido: string | null
           cliente: string | null
+          closed_at: string | null
           coerencia_status: string | null
           created_at_shopify: string | null
           data_pedido: string | null
@@ -83012,6 +83031,8 @@ export type Database = {
           divergencia_fiscal: boolean | null
           divergencia_tag: boolean | null
           eh_final: boolean | null
+          encerrado_em: string | null
+          encerrado_motivo: string | null
           entrega_declarada_em: string | null
           entrega_fonte: string | null
           entrega_prevista: string | null
@@ -83051,6 +83072,9 @@ export type Database = {
           rastreio_entregue: boolean | null
           rastreio_estado: string | null
           rastreio_status: string | null
+          reembolso_em: string | null
+          reembolso_pendente: number | null
+          reembolso_total: number | null
           refunded_amount: number | null
           shipment_atualizado_em: string | null
           shipment_status: string | null
@@ -87492,14 +87516,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -88446,14 +88470,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -90009,14 +90033,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
