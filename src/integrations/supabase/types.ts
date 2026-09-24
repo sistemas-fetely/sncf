@@ -6600,6 +6600,41 @@ export type Database = {
           },
         ]
       }
+      bling_estoque_saldo: {
+        Row: {
+          atualizado_em: string
+          bling_produto_id: number
+          deposito_id: number
+          saldo_fisico: number | null
+          saldo_virtual: number | null
+          sku: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          bling_produto_id: number
+          deposito_id: number
+          saldo_fisico?: number | null
+          saldo_virtual?: number | null
+          sku?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          bling_produto_id?: number
+          deposito_id?: number
+          saldo_fisico?: number | null
+          saldo_virtual?: number | null
+          sku?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_estoque_saldo_deposito_id_fkey"
+            columns: ["deposito_id"]
+            isOneToOne: false
+            referencedRelation: "bling_deposito"
+            referencedColumns: ["deposito_id"]
+          },
+        ]
+      }
       bling_item_nao_vendavel: {
         Row: {
           codigo: string
