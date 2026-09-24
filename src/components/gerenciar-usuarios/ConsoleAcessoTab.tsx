@@ -50,6 +50,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -73,7 +74,7 @@ import {
   type ConsoleAcessoRow,
   type GrupoConsole,
 } from "@/hooks/useConsoleAcesso";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 /**
  * CONSOLE DE ACESSO ÚNICO — fusão das antigas abas "Grupos de Acesso" e
@@ -195,6 +196,10 @@ interface TelaNodo {
   ehAba: boolean;
   /** Em aba, rótulo da tela-mãe. */
   itemLabel: string | null;
+  /** Em aba, nav_chave da tela-mãe. */
+  itemChave: string | null;
+  /** Declarada só leitura (sem ações). */
+  soLeitura: boolean;
   /** Caminho para a migalha do cabeçalho da grade. */
   appLabel: string;
   grupoLabel: string | null;
@@ -367,6 +372,19 @@ export default function ConsoleAcessoTab({
   const { data: niveis = [] } = usePapeisNivel();
   const definirNivel = useDefinirNivelMinimo();
   const toggleNoAr = useToggleNoAr();
+  const toggleSoLeitura = useMutation({
+    mutationFn: async ({ navChave, soLeitura }: { navChave: string; soLeitura: boolean }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("fn_declarar_tela_so_leitura", {
+        p_nav_chave: navChave,
+        p_so_leitura: soLeitura,
+        p_motivo: soLeitura ? "Declarado no Console de Acesso" : null,
+      });
+      if (error) throw error;
+    },
+    onError: (e) => toast.error(`Não foi possível declarar só leitura: ${formatError(e)}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["console-acesso"] }),
+  });
   const [telaSel, setTelaSel] = useState<string | null>(null);
   const [modulosFechados, setModulosFechados] = useState<Set<string>>(new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(new Set());
@@ -509,10 +527,13 @@ export default function ConsoleAcessoTab({
         mod.grupos.push(grupo);
       }
       const telaLabel = l.tela_label ?? l.rota;
-      let tela = grupo.telas.find((t) => t.telaLabel === telaLabel);
+      // Identidade da tela = nó de navegação; rótulo só quando não há nó
+      // (dois nós com o mesmo nome no mesmo grupo não podem se fundir).
+      const telaId = l.nav_chave ?? telaLabel;
+      let tela = grupo.telas.find((t) => (t.navChave ?? t.telaLabel) === telaId);
       if (!tela) {
         tela = {
-          chave: `${appChave}|${grupoChave}|${telaLabel}`,
+          chave: `${appChave}|${grupoChave}|${telaId}`,
           navChave: l.nav_chave ?? null,
           noAr: true,
           telaLabel,
@@ -520,6 +541,8 @@ export default function ConsoleAcessoTab({
           ordem: l.tela_ordem ?? 9999,
           ehAba: l.eh_aba === true,
           itemLabel: l.item_label ?? null,
+          itemChave: l.item_chave ?? null,
+          soLeitura: false,
           appLabel: mod.appLabel,
           grupoLabel: grupo.label,
           linhas: [],
@@ -533,6 +556,7 @@ export default function ConsoleAcessoTab({
       if (l.tipo === "tela") {
         tela.navChave = l.nav_chave ?? tela.navChave;
         tela.noAr = l.no_ar !== false;
+        tela.soLeitura = l.so_leitura === true;
       }
       tela.linhas.push(l);
       tela.total += 1;
@@ -549,15 +573,22 @@ export default function ConsoleAcessoTab({
       m.grupos.sort((a, b) => a.ordem - b.ordem);
       m.grupos.forEach((g) => {
         // Aba é pendurada na tela-mãe do mesmo grupo, quando ela existe na lista.
-        const maes = new Map(g.telas.filter((t) => !t.ehAba).map((t) => [t.telaLabel, t]));
+        // Casa primeiro por item_chave (nav_chave da mãe); rótulo é fallback.
+        const telasMae = g.telas.filter((t) => !t.ehAba);
+        const maesPorChave = new Map(
+          telasMae.filter((t) => t.navChave).map((t) => [t.navChave as string, t]),
+        );
+        const maes = new Map(telasMae.map((t) => [t.telaLabel, t]));
         const soltas: TelaNodo[] = [];
         g.telas.forEach((t) => {
           if (!t.ehAba) return;
-          const mae = t.itemLabel ? maes.get(t.itemLabel) : undefined;
+          const mae =
+            (t.itemChave ? maesPorChave.get(t.itemChave) : undefined) ??
+            (t.itemLabel ? maes.get(t.itemLabel) : undefined);
           if (mae) mae.abas.push(t);
           else soltas.push(t);
         });
-        g.telas = [...maes.values(), ...soltas].sort((a, b) => a.ordem - b.ordem);
+        g.telas = [...telasMae, ...soltas].sort((a, b) => a.ordem - b.ordem);
         g.telas.forEach((t) => {
           t.abas.sort((a, b) => a.ordem - b.ordem);
           [t, ...t.abas].forEach((x) =>
@@ -583,6 +614,21 @@ export default function ConsoleAcessoTab({
     () => (telaAtiva?.linhas ?? []).filter(ehEscopo),
     [telaAtiva],
   );
+
+  /** Tela ativa já tem ação declarada → não pode ser só leitura (a RPC recusa). */
+  const telaTemAcao = useMemo(
+    () => (telaAtiva?.linhas ?? []).some((l) => l.tipo === "acao"),
+    [telaAtiva],
+  );
+
+  /** Nome humano do sub-cabeçalho de rota. */
+  const rotuloRota = (rota: string, itens: ConsoleAcessoRow[]): string => {
+    const base = telaAtiva?.linhas.find((l) => l.tipo === "tela")?.rota;
+    if (base && rota === base) return "Na tela";
+    if (rota.includes("?aba=")) return itens[0]?.tela_label ?? rota;
+    if (/\/:[^/]+$/.test(rota)) return "No detalhe (ao abrir um registro)";
+    return rota;
+  };
 
   /** Linhas da tela ativa agrupadas por rota (sub-cabeçalho quando > 1 rota). */
   const rotasDaTela = useMemo(() => {
@@ -766,11 +812,17 @@ export default function ConsoleAcessoTab({
               fora do ar
             </Badge>
           )}
-          <span className="tabular-nums">
-            {porGrupo && grupoLenteId
-              ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
-              : t.total}
-          </span>
+          {t.soLeitura ? (
+            <Badge variant="outline" className="px-1 py-0 text-[9px] font-normal">
+              só leitura
+            </Badge>
+          ) : (
+            <span className="tabular-nums">
+              {porGrupo && grupoLenteId
+                ? `${concedidasPorTela.get(t.chave) ?? 0}/${t.total}`
+                : t.total}
+            </span>
+          )}
           <BadgeAltoSemGuarda n={t.altoSemGuarda} />
         </span>
       </button>
@@ -816,7 +868,7 @@ export default function ConsoleAcessoTab({
           {ehTela && (
             <span className="mb-0.5 flex flex-wrap items-center gap-2">
               <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                Acesso à tela
+                {(l.dispara ?? "Acesso à tela").toLocaleUpperCase("pt-BR")}
               </span>
               {/* TOGGLE "NO AR": ligar publica (ativo + pronta); desligar volta
                   para em_construcao e NÃO desativa o nó — obra, não demolição. */}
@@ -840,6 +892,36 @@ export default function ConsoleAcessoTab({
                     className="cursor-pointer text-[10px] font-normal text-muted-foreground"
                   >
                     No ar
+                  </Label>
+                </span>
+              )}
+              {/* SÓ LEITURA: declaração de que a tela/aba não tem ação. A RPC
+                  recusa quando já há ação declarada — o switch trava antes. */}
+              {isSuperAdmin && l.nav_chave && (
+                <span
+                  className="inline-flex items-center gap-1"
+                  onClick={(e) => e.stopPropagation()}
+                  title={
+                    telaTemAcao
+                      ? "Esta tela tem ações declaradas — não pode ser só leitura."
+                      : undefined
+                  }
+                >
+                  <Switch
+                    id={`so-leitura-${l.linha_id}`}
+                    className="h-4 w-7"
+                    checked={l.so_leitura === true}
+                    disabled={toggleSoLeitura.isPending || (telaTemAcao && l.so_leitura !== true)}
+                    onCheckedChange={(v) =>
+                      toggleSoLeitura.mutate({ navChave: l.nav_chave as string, soLeitura: v })
+                    }
+                    aria-label={`Declarar ${l.rotulo} só leitura`}
+                  />
+                  <Label
+                    htmlFor={`so-leitura-${l.linha_id}`}
+                    className="cursor-pointer text-[10px] font-normal text-muted-foreground"
+                  >
+                    Só leitura
                   </Label>
                 </span>
               )}
@@ -1455,7 +1537,10 @@ export default function ConsoleAcessoTab({
                     {rotasDaTela.length > 1 && (
                       <TableRow className="bg-muted/40 hover:bg-muted/40">
                         <TableCell colSpan={nColunas} className="py-1.5">
-                          <span className="font-mono text-[11px] text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground">
+                            {rotuloRota(rota, itens)}
+                          </span>{" "}
+                          <span className="font-mono text-[10px] text-muted-foreground">
                             {rota}
                           </span>
                         </TableCell>

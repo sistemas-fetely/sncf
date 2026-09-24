@@ -56,6 +56,8 @@ export interface ConsoleAcessoRow {
   nav_status: string | null;
   /** ativo E status='pronta'. Em linhas de ação/escopo vem sempre true. */
   no_ar: boolean | null;
+  /** Tela/aba declarada só leitura (sem ações). */
+  so_leitura: boolean | null;
 }
 
 export const CHAVE_CONSOLE_ACESSO = ["console-acesso"];
@@ -69,7 +71,7 @@ export function useConsoleAcesso() {
       const { data, error } = await (supabase as any)
         .from("vw_console_acesso")
         .select(
-          "linha_id, tipo, app_chave, app_label, app_ordem, grupo_chave, grupo_label, grupo_ordem, item_chave, item_label, eh_aba, tela_ordem, tela_descricao, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha, nav_chave, nav_ativo, nav_status, no_ar",
+          "linha_id, tipo, app_chave, app_label, app_ordem, grupo_chave, grupo_label, grupo_ordem, item_chave, item_label, eh_aba, tela_ordem, tela_descricao, tela_label, rota, rotulo, dispara, arquivo, risco, guarda_atual, sem_guarda, permissao_id, permissao_slug, permissao_nome, declarada, telas_cobertas, telas_lista, contem_dado_sensivel, feature_em_teste, apenas_super_admin, acao_superficie_id, conferido, ordem_linha, nav_chave, nav_ativo, nav_status, no_ar, so_leitura",
         )
         .order("app_ordem")
         .order("grupo_ordem")

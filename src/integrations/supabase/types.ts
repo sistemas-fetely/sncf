@@ -53705,6 +53705,10 @@ export type Database = {
           ordem: number
           pai_chave: string | null
           rota: string | null
+          so_leitura: boolean
+          so_leitura_em: string | null
+          so_leitura_motivo: string | null
+          so_leitura_por: string | null
           status: string
           superficies: string[]
           tags: string[]
@@ -53726,6 +53730,10 @@ export type Database = {
           ordem?: number
           pai_chave?: string | null
           rota?: string | null
+          so_leitura?: boolean
+          so_leitura_em?: string | null
+          so_leitura_motivo?: string | null
+          so_leitura_por?: string | null
           status?: string
           superficies?: string[]
           tags?: string[]
@@ -53747,6 +53755,10 @@ export type Database = {
           ordem?: number
           pai_chave?: string | null
           rota?: string | null
+          so_leitura?: boolean
+          so_leitura_em?: string | null
+          so_leitura_motivo?: string | null
+          so_leitura_por?: string | null
           status?: string
           superficies?: string[]
           tags?: string[]
@@ -74772,6 +74784,7 @@ export type Database = {
           rota: string | null
           rotulo: string | null
           sem_guarda: boolean | null
+          so_leitura: boolean | null
           tela_descricao: string | null
           tela_label: string | null
           tela_ordem: number | null
@@ -91077,14 +91090,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -99381,8 +99394,15 @@ export type Database = {
           comissao_pendente: number | null
           comissao_travada_inadimplencia: number | null
           desconto_medio_pct: number | null
+          documento: string | null
           email_contato: string | null
+          empresa: string | null
+          fop_ativo: boolean | null
+          fop_comissao_percent: number | null
+          fop_login_count: number | null
+          fop_ultimo_login: string | null
           inadimplencia_pct: number | null
+          ja_logou: boolean | null
           liberada_sem_cpr: number | null
           maior_atraso_dias: number | null
           notas_faturadas: number | null
@@ -99394,7 +99414,11 @@ export type Database = {
           prev_comissao_60d: number | null
           prev_comissao_90d: number | null
           primeira_venda: string | null
+          regiao: string | null
           representante: string | null
+          sincronizado_em: string | null
+          telefone: string | null
+          tem_documento: boolean | null
           ticket_medio: number | null
           tipo: string | null
           ultima_venda: string | null
@@ -100925,14 +100949,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -107530,6 +107554,10 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_declarar_tela_so_leitura: {
+        Args: { p_motivo?: string; p_nav_chave: string; p_so_leitura: boolean }
+        Returns: undefined
+      }
       fn_declarar_vinculo_nf_pedido: {
         Args: {
           p_declarado_por?: string
@@ -110163,6 +110191,10 @@ export type Database = {
           ordem: number
           pai_chave: string | null
           rota: string | null
+          so_leitura: boolean
+          so_leitura_em: string | null
+          so_leitura_motivo: string | null
+          so_leitura_por: string | null
           status: string
           superficies: string[]
           tags: string[]
