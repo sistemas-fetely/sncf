@@ -8690,12 +8690,14 @@ export type Database = {
           codigo: string
           contabil: boolean
           criado_em: string
+          exige_contagem: boolean
           id: string
           loja_bling_id: number | null
           nome: string
           ordem: number
           parceiro_id: string | null
           poder_de_terceiro: boolean
+          prazo_contagem_dias: number | null
           tipo: string
           uf: string | null
           vende: boolean
@@ -8706,12 +8708,14 @@ export type Database = {
           codigo: string
           contabil?: boolean
           criado_em?: string
+          exige_contagem?: boolean
           id?: string
           loja_bling_id?: number | null
           nome: string
           ordem?: number
           parceiro_id?: string | null
           poder_de_terceiro?: boolean
+          prazo_contagem_dias?: number | null
           tipo?: string
           uf?: string | null
           vende?: boolean
@@ -8722,12 +8726,14 @@ export type Database = {
           codigo?: string
           contabil?: boolean
           criado_em?: string
+          exige_contagem?: boolean
           id?: string
           loja_bling_id?: number | null
           nome?: string
           ordem?: number
           parceiro_id?: string | null
           poder_de_terceiro?: boolean
+          prazo_contagem_dias?: number | null
           tipo?: string
           uf?: string | null
           vende?: boolean
@@ -72953,6 +72959,36 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_conciliacao_estoque_fila: {
+        Row: {
+          campo_destino: string | null
+          campo_matriz: string | null
+          centro: string | null
+          cod_cadastro: string | null
+          colecao: string | null
+          consequencia: string | null
+          detalhe: string | null
+          fase: string | null
+          linha_id: string | null
+          nome_comercial: string | null
+          o_que_fazer: string | null
+          onde_resolver: string | null
+          regra: string | null
+          regra_nome: string | null
+          sku: string | null
+          valor_destino: string | null
+          valor_sncf: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
       vw_conciliacao_faturas_frete: {
         Row: {
           canal: string | null
@@ -90033,14 +90069,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
