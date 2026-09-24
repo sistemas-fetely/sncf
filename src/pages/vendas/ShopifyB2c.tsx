@@ -1202,6 +1202,21 @@ export default function ShopifyB2c() {
                                       </Tooltip>
                                     );
                                   }
+                                  if (p.estagio === "entregue" && p.entrega_fonte === "declarado") {
+                                    return (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex flex-col items-start gap-0.5">
+                                            {selo}
+                                            <span className="max-w-[180px] truncate text-[10px] text-muted-foreground">{p.entregue_motivo ?? "Entrega declarada à mão"}</span>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-[320px]">
+                                          Entrega declarada{p.entrega_declarada_em ? ` em ${fmtDataHora(p.entrega_declarada_em)}` : ""}{p.entregue_motivo ? `: ${p.entregue_motivo}` : ""}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    );
+                                  }
                                   const dica = p.estagio_fonte
                                     ? TOOLTIP_ESTAGIO_FONTE[p.estagio_fonte]
                                     : undefined;

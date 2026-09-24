@@ -78,6 +78,12 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
               <p>{pedido.encerrado_motivo}</p>
             </div>
           )}
+          {pedido?.estagio === "entregue" && pedido.entrega_fonte === "declarado" && (
+            <div className="mt-2 rounded-md border border-border bg-muted/40 p-2 text-sm">
+              <p className="text-xs text-muted-foreground">Entrega declarada à mão{pedido.entrega_declarada_em ? ` em ${fmtDataHora(pedido.entrega_declarada_em)}` : ""}</p>
+              {pedido.entregue_motivo && <p>{pedido.entregue_motivo}</p>}
+            </div>
+          )}
         </SheetHeader>
 
         <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
