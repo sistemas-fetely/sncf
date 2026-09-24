@@ -1,4 +1,5 @@
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -77,14 +78,23 @@ function Graficos({ serie, print }: { serie: Linha[]; print?: boolean }) {
   );
 }
 
-function CardCadastro({ v, k }: { v?: Linha; k: Linha }) {
+function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean }) {
+  const [alvo, setAlvo] = useState<AlvoContraparte | null>(null);
   const item = (l: string, val: ReactNode) => (
     <div><div className="text-xs text-muted-foreground">{l}</div><div>{val}</div></div>
   );
   const doc = String(v?.documento ?? "").trim();
   return (
     <Card className="break-inside-avoid">
-      <CardHeader className="pb-2"><CardTitle className="text-sm">Cadastro</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm">Cadastro</CardTitle>
+        {!print && !k.apto_a_pagamento && (
+          <Button size="sm" variant="outline" onClick={() => setAlvo({
+            vendedor_id: String(k.vendedor_id), nome: v?.nome_exibicao ?? k.representante,
+            email: v?.email_contato ?? k.email_contato, telefone: v?.telefone, documento: v?.documento,
+          })}>Vincular contraparte</Button>
+        )}
+      </CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
         {item("Nome", v?.nome_exibicao ?? k.representante)}
         {item("E-mail", v?.email_contato ?? k.email_contato ?? "—")}
@@ -95,6 +105,7 @@ function CardCadastro({ v, k }: { v?: Linha; k: Linha }) {
         {item("Último login no FOP", v?.fop_ultimo_login ? new Date(v.fop_ultimo_login).toLocaleString("pt-BR") : "nunca")}
         {item("Última sincronia", v?.sincronizado_em ? new Date(v.sincronizado_em).toLocaleString("pt-BR") : "nunca sincronizado")}
       </CardContent>
+      {!print && <VincularContraparteDialog alvo={alvo} onClose={() => setAlvo(null)} />}
     </Card>
   );
 }
@@ -102,7 +113,7 @@ function CardCadastro({ v, k }: { v?: Linha; k: Linha }) {
 function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; print?: boolean }) {
   return (
     <div className="space-y-4">
-      <CardCadastro v={v} k={k} />
+      <CardCadastro v={v} k={k} print={print} />
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} />
         <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} />
