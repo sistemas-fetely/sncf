@@ -84907,6 +84907,8 @@ export type Database = {
           created_at_shopify: string | null
           data_pedido: string | null
           delta_bruto_vs_faturado: number | null
+          devolucao_numero: string | null
+          devolucao_status: string | null
           dias_no_estagio: number | null
           discount_amount: number | null
           eh_final: boolean | null
@@ -84974,7 +84976,15 @@ export type Database = {
           xpm_farol_sla: string | null
           xpm_horas_ciclo: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_status_fkey"
+            columns: ["devolucao_status"]
+            isOneToOne: false
+            referencedRelation: "devolucao_status"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_gestao_b2c_pedido: {
         Row: {
@@ -85002,6 +85012,8 @@ export type Database = {
           created_at_shopify: string | null
           data_pedido: string | null
           delta_bruto_vs_faturado: number | null
+          devolucao_numero: string | null
+          devolucao_status: string | null
           dias_no_estagio: number | null
           discount_amount: number | null
           divergencia_cep_tag: boolean | null
@@ -85081,6 +85093,13 @@ export type Database = {
           xpm_horas_ciclo: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "devolucao_status_fkey"
+            columns: ["devolucao_status"]
+            isOneToOne: false
+            referencedRelation: "devolucao_status"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
             columns: ["parceiro_id"]
@@ -89578,14 +89597,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
