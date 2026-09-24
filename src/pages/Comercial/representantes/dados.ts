@@ -8,11 +8,12 @@ export async function lerTudo(
   view: string,
   filtro?: (q: any) => any,
   ordem?: { col: string; asc?: boolean },
+  colunas = "*",
 ): Promise<Linha[]> {
   const TAM = 1000;
   const out: Linha[] = [];
   for (let off = 0; ; off += TAM) {
-    let q: any = (supabase as any).from(view).select("*");
+    let q: any = (supabase as any).from(view).select(colunas);
     if (filtro) q = filtro(q);
     if (ordem) q = q.order(ordem.col, { ascending: ordem.asc ?? true });
     const { data, error } = await q.range(off, off + TAM - 1);

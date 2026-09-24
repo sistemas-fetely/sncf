@@ -100,7 +100,7 @@ export default function RepresentantesPainel() {
   });
   const vq = useQuery({
     queryKey: ["vendedores-espelho"],
-    queryFn: () => lerTudo("vendedores", (x) => x.select("id,documento,regiao,telefone,fop_comissao_percent,fop_login_count,sincronizado_em")),
+    queryFn: () => lerTudo("vendedores", undefined, undefined, "id,documento,regiao,telefone,fop_comissao_percent,fop_login_count,sincronizado_em"),
   });
   useEffect(() => {
     if (q.error) toast.error(`Falha ao carregar representantes: ${formatError(q.error)}`);
