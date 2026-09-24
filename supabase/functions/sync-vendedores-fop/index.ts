@@ -11,8 +11,7 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 const FOP_URL = "https://onalegxugtuxpfhonayq.supabase.co";
-const CAMPOS =
-  "id,nome_completo,email,telefone,regiao,cnpj_cpf,empresa,tipo_vendedor,comissao_percent,ativo,login_count,last_login_at";
+const FOP_ANON_KEY = "sb_publishable_LKB5TwMha9KGj8v_YZkquA_Zz8NyriO";
 
 function msg(e: unknown): string {
   if (!e) return "Erro desconhecido";
@@ -39,23 +38,17 @@ Deno.serve(async (req) => {
       if (uErr || !u?.user) return json({ ok: false, erro: "Sessão inválida" }, 401);
     }
 
-    const { data: chave, error: kErr } = await supabase.rpc("get_vault_secret", { p_name: "FOP_SERVICE_ROLE_KEY" });
-    if (kErr) throw new Error(`Falha ao ler FOP_SERVICE_ROLE_KEY: ${msg(kErr)}`);
-    if (!chave) throw new Error("FOP_SERVICE_ROLE_KEY ausente no vault");
+    const { data: token, error: tErr } = await supabase.rpc("get_vault_secret", { p_name: "FOP_INBOUND_TOKEN" });
+    if (tErr) throw new Error(`Falha ao ler FOP_INBOUND_TOKEN: ${msg(tErr)}`);
+    if (!token) throw new Error("FOP_INBOUND_TOKEN ausente no vault");
 
-    const fop = createClient(FOP_URL, String(chave), { auth: { persistSession: false } });
-    const linhas: unknown[] = [];
-    for (let off = 0; ; off += 1000) {
-      const { data, error } = await fop
-        .from("profiles")
-        .select(CAMPOS)
-        .eq("tipo_vendedor", "representante")
-        .order("id")
-        .range(off, off + 999);
-      if (error) throw new Error(`FOP recusou a leitura de profiles: ${msg(error)}`);
-      linhas.push(...(data ?? []));
-      if ((data ?? []).length < 1000) break;
-    }
+    // O FOP expõe fn_representantes_para_sncf(p_token), que dispensa service role key.
+    // Erros da RPC (ex.: "Token invalido") são propagados tal como vieram.
+    const fop = createClient(FOP_URL, FOP_ANON_KEY, { auth: { persistSession: false } });
+    const { data: linhasRaw, error: fErr } = await fop.rpc("fn_representantes_para_sncf", { p_token: String(token) });
+    if (fErr) throw new Error(`FOP recusou fn_representantes_para_sncf: ${msg(fErr)}`);
+    if (!Array.isArray(linhasRaw)) throw new Error("fn_representantes_para_sncf não devolveu um array de profiles");
+    const linhas = linhasRaw as unknown[];
 
     const { data: res, error: rErr } = await supabase.rpc("fn_vendedor_sincronizar_fop", { p_linhas: linhas });
     if (rErr) throw new Error(`fn_vendedor_sincronizar_fop falhou: ${msg(rErr)}`);
