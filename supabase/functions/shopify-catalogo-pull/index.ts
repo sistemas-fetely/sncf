@@ -115,6 +115,13 @@ Deno.serve(async (req) => {
     return json(401, { error: "unauthorized" });
   }
 
+  // deno-lint-ignore no-explicit-any
+  let body: any = {};
+  try { body = await req.json(); } catch { body = {}; }
+  const reconciliar = body?.reconciliar_excluidos === true;
+  const listarWebhooks = body?.listar_webhooks === true;
+  const dryRun = body?.dry_run !== false;
+
   try {
     const clientId = await getSecret(supabase, "SHOPIFY_CLIENT_ID");
     const clientSecret = await getSecret(supabase, "SHOPIFY_CLIENT_SECRET");
@@ -125,6 +132,21 @@ Deno.serve(async (req) => {
 
     const token = await exchangeToken(domain, clientId, clientSecret);
     if (!token) throw new Error(`falha ao autenticar em ${domain} via client_credentials`);
+
+    if (listarWebhooks) {
+      const r = await gqlWithRetry(domain, token, `{ webhookSubscriptions(first: 50) { nodes { topic uri } } }`, {});
+      if (r.status !== 200 || r.body?.errors) {
+        throw new Error(`webhookSubscriptions falhou: status=${r.status} errors=${JSON.stringify(r.body?.errors ?? r.body).slice(0, 500)}`);
+      }
+      const nodes = r.body?.data?.webhookSubscriptions?.nodes ?? [];
+      return json(200, {
+        total: nodes.length,
+        products_delete_assinado: nodes.some((n: any) => n?.topic === "PRODUCTS_DELETE"),
+        webhooks: nodes,
+      });
+    }
+
+    const vistos = new Set<string>();
 
     const pullLote = crypto.randomUUID();
     const pullEm = new Date().toISOString();

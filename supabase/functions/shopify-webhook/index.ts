@@ -178,6 +178,20 @@ async function processarProduto(supabase: any, p: any, topic: string, eventId: s
     await registrarLog(supabase, { topic, etapa: "ok_raw", detalhe: { eventId, motivo: "sem_id" } });
     return jsonResponse(200, { ok: true, somente_raw: true, topic });
   }
+  // products/delete: o payload so traz o id — upsert completo zeraria os campos.
+  // Soft delete: marca status='deleted', nunca apaga a linha.
+  if (topic === "products/delete") {
+    const { error: delErr } = await supabase
+      .from("shopify_produtos")
+      .update({ status: "deleted", updated_at: new Date().toISOString() })
+      .eq("shopify_id", shopify_id);
+    if (delErr) {
+      await registrarLog(supabase, { topic, etapa: "erro_delete_produto", detalhe: { shopify_id, msg: delErr.message } });
+      return jsonResponse(500, { error: delErr.message, topic, shopify_id });
+    }
+    await registrarLog(supabase, { topic, etapa: "ok_delete", detalhe: { recurso: "produto", shopify_id } });
+    return jsonResponse(200, { ok: true, topic, shopify_id, deleted: true });
+  }
   const row = {
     shopify_id,
     admin_graphql_api_id: str(p.admin_graphql_api_id),
