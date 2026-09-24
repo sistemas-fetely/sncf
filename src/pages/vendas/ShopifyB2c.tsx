@@ -25,6 +25,7 @@ import {
   abreviarCd, nomeCurtoCd,
 } from "@/components/vendas/EscolhaCdB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
+import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
 import { DashB2c } from "@/components/vendas/DashB2c";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO, type DirecaoOrdenacao } from "@/components/tabela/CabecalhoOrdenavel";
@@ -1186,6 +1187,21 @@ export default function ShopifyB2c() {
                                       {txt(p.estagio_rotulo)}
                                     </Selo>
                                   );
+                                  if (p.estagio === "encerrado" && p.encerrado_motivo) {
+                                    return (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span className="inline-flex flex-col items-start gap-0.5">
+                                            {selo}
+                                            <span className="max-w-[180px] truncate text-[10px] text-muted-foreground">{p.encerrado_motivo}</span>
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-[320px]">
+                                          Encerrado em {fmtDataHora(p.encerrado_em)}: {p.encerrado_motivo}
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    );
+                                  }
                                   const dica = p.estagio_fonte
                                     ? TOOLTIP_ESTAGIO_FONTE[p.estagio_fonte]
                                     : undefined;
@@ -1325,6 +1341,8 @@ export default function ShopifyB2c() {
                                 })()}
                               </TableCell>
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center gap-0.5">
+                                <EncerrarCasoB2c pedido={p} />
                                 {podeReprocessar(p) && (
                                    <Tooltip>
                                      <TooltipTrigger asChild>
@@ -1344,6 +1362,7 @@ export default function ShopifyB2c() {
                                      <TooltipContent>{dicaDevolverFila}</TooltipContent>
                                    </Tooltip>
                                 )}
+                                </div>
                               </TableCell>
                               <TableCell className="w-8">
                                 {p.coerencia_status === "divergente" && (
