@@ -19,12 +19,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -1001,22 +995,9 @@ export default function ConsoleAcessoTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <TooltipProvider delayDuration={150}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label="O que este console decide"
-                className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <Info className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              Uma decisão só: quem entra na tela e quem executa cada ação dela.
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <p className="text-xs text-muted-foreground">
+          Uma decisão só: quem entra na tela e quem executa cada ação dela.
+        </p>
         <div className="inline-flex rounded-md border p-0.5">
           <Button
             variant={porGrupo ? "ghost" : "secondary"}
