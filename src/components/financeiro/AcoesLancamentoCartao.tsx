@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ function detectarParcelas(descricao: string): { atual: number; total: number } |
 
 export function AcoesLancamentoCartao({ lancamento }: Props) {
   const [salvando, setSalvando] = useState(false);
+  const pCriar = usePermissaoAcaoOuSuperAdmin("acao.pagar_criar");
   const [vincularOpen, setVincularOpen] = useState(false);
   const qc = useQueryClient();
 
@@ -197,8 +199,8 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
           variant="outline"
           className="h-6 px-2 text-[10px] gap-1 border-info/40 text-info hover:bg-info/10"
           onClick={handleCriarContaAuto}
-          disabled={salvando}
-          title="Criar conta a pagar (detecta parcelas automaticamente)"
+          disabled={salvando || pCriar.carregando || !pCriar.permitido}
+          title={!pCriar.permitido ? "Sem permissão: acao.pagar_criar" : "Criar conta a pagar (detecta parcelas automaticamente)"}
         >
           {salvando ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
           Criar Conta

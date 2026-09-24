@@ -1,4 +1,5 @@
 /**
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
  * ENTRADAS A RECONHECER — o que a varredura automática não reconheceu.
  *
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
@@ -170,6 +171,7 @@ function ehCartao(tipo: string | null | undefined) {
 }
 
 function ComprovantesAguardandoBloco() {
+  const pDin = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
   const qc = useQueryClient();
   const [confirmarPedidoId, setConfirmarPedidoId] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState<{ coluna: ColunaComprovante; dir: DirecaoOrdenacao } | null>(null);
@@ -420,6 +422,8 @@ function ComprovantesAguardandoBloco() {
                               variant="outline"
                               className="h-7 text-xs"
                               onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
+                              disabled={pDin.carregando || !pDin.permitido}
+                              title={!pDin.permitido ? "Sem permissão: acao.pedido_dinheiro" : undefined}
                             >
                               Confirmar
                             </Button>

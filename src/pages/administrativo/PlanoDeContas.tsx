@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -115,6 +116,7 @@ function NodeItem({
   onDelete,
   canManage,
 }: NodeItemProps) {
+  const pPlano = usePermissaoAcaoOuSuperAdmin("acao.plano_contas_gerir");
   const isOpen = forceOpen || expanded.has(node.id);
   const hasChildren = node.children.length > 0;
   const tipoStyle = TIPO_STYLES[node.tipo] || {
@@ -182,7 +184,8 @@ function NodeItem({
             </button>
             <button
               className="p-1 hover:bg-destructive/10 rounded"
-              title="Excluir"
+              disabled={pPlano.carregando || !pPlano.permitido}
+              title={!pPlano.permitido ? "Sem permissão: acao.plano_contas_gerir" : "Excluir"}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(node);
@@ -216,6 +219,7 @@ export default function PlanoDeContas() {
   const qc = useQueryClient();
   const { roles } = useAuth();
   const canManage = roles.includes("super_admin");
+  const pPlano = usePermissaoAcaoOuSuperAdmin("acao.plano_contas_gerir");
 
   const [busca, setBusca] = useState("");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
@@ -448,6 +452,8 @@ export default function PlanoDeContas() {
                 e.preventDefault();
                 deleteMutation.mutate();
               }}
+              disabled={deleteMutation.isPending || pPlano.carregando || !pPlano.permitido}
+              title={!pPlano.permitido ? "Sem permissão: acao.plano_contas_gerir" : undefined}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleteMutation.isPending ? "Excluindo..." : "Excluir"}

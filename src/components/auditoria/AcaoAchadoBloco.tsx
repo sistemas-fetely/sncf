@@ -1,4 +1,5 @@
 /**
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
  * Bloco de ação do dossiê do achado.
  * A ação vem da regra (rpc_acao, rpc_acao_rotulo, rpc_acao_param, rpc_acao_valor).
  * A tela não conhece nome de regra nem elegibilidade — quem recusa é o banco.
@@ -64,6 +65,7 @@ export default function AcaoAchadoBloco({
   achado: Achado;
   userId: string | undefined;
 }) {
+  const pCorr = usePermissaoAcaoOuSuperAdmin("acao.auditoria_acao_corretiva");
   const rpc = achado.rpc_acao;
   const param = achado.rpc_acao_param;
   const valor = achado.rpc_acao_valor;
@@ -226,7 +228,8 @@ export default function AcaoAchadoBloco({
             size="sm"
             className="w-full gap-2"
             onClick={aplicar}
-            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending}
+            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending || pCorr.carregando || !pCorr.permitido}
+            title={!pCorr.permitido ? "Sem permissão: acao.auditoria_acao_corretiva" : undefined}
           >
             {(confirmar.isPending || rodarRegra.isPending) && (
               <Loader2 className="h-4 w-4 animate-spin" />

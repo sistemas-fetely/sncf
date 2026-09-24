@@ -1,4 +1,5 @@
 // Doutrina MESA-DE-CONCILIACAO (03/09/2026): o sistema propõe candidatos com
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 // grau de certeza (fechamento exato, identidade direta, quase-fecha, mesmo
 // cliente), o humano decide, e NENHUMA conciliação acontece sem nota que
 // prove o vínculo. A tela é de leitura sobre `vw_conciliacao_mesa`; a única
@@ -143,6 +144,7 @@ export function MesaConciliacaoConteudo({
 }: {
   paramAba?: string;
 }) {
+  const pConc = usePermissaoAcaoOuSuperAdmin("acao.fin_conciliar");
   const qc = useQueryClient();
   const [filtroConfianca, setFiltroConfianca] = useState<
     Exclude<Confianca, "sem_candidato"> | null
@@ -603,6 +605,8 @@ export function MesaConciliacaoConteudo({
                         <Button
                           size="sm"
                           onClick={() => abrirDialog(item)}
+                          disabled={pConc.carregando || !pConc.permitido}
+                          title={!pConc.permitido ? "Sem permissão: acao.fin_conciliar" : undefined}
                           className="gap-1.5"
                         >
                           <Link2 className="h-3.5 w-3.5" />
@@ -806,6 +810,8 @@ export function MesaConciliacaoConteudo({
                             <Button
                               size="sm"
                               onClick={() => abrirDialogCartao(item)}
+                              disabled={pConc.carregando || !pConc.permitido}
+                              title={!pConc.permitido ? "Sem permissão: acao.fin_conciliar" : undefined}
                               className="gap-1.5"
                             >
                               <Link2 className="h-3.5 w-3.5" />
@@ -928,7 +934,8 @@ export function MesaConciliacaoConteudo({
             </Button>
             <Button
               onClick={confirmarConciliacao}
-              disabled={enviando || nota.trim().length < 5}
+              disabled={enviando || nota.trim().length < 5 || pConc.carregando || !pConc.permitido}
+              title={!pConc.permitido ? "Sem permissão: acao.fin_conciliar" : undefined}
               className="gap-2"
             >
               {enviando && <Loader2 className="h-4 w-4 animate-spin" />}

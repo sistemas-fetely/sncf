@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -321,6 +322,9 @@ const STATUS_CONTA_LABEL: Record<string, string> = {
 };
 
 export default function DocumentosPendentes() {
+  const pExec = usePermissaoAcaoOuSuperAdmin("acao.pagar_executar");
+  const { roles: rolesAuth } = useAuth();
+  const ehSuperAdmin = (rolesAuth ?? []).includes("super_admin");
   const qc = useQueryClient();
   const [aba, setAba] = useAbaUrl("cobrar");
   const abaAtual = aba as Aba;
@@ -915,6 +919,8 @@ export default function DocumentosPendentes() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setRemessaParaDesfazer(r)}
+                                disabled={!ehSuperAdmin}
+                                title={!ehSuperAdmin ? "Só super_admin pode desfazer remessa" : undefined}
                                 className="text-xs gap-1 text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" />
@@ -954,6 +960,8 @@ export default function DocumentosPendentes() {
               <Button
                 variant="outline"
                 onClick={() => setMarcarOpen(true)}
+                disabled={pExec.carregando || !pExec.permitido}
+                title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
                 className="gap-2"
               >
                 <CheckCircle2 className="h-4 w-4" />
@@ -961,6 +969,8 @@ export default function DocumentosPendentes() {
               </Button>
               <Button
                 onClick={() => setEnviarSistemaOpen(true)}
+                disabled={pExec.carregando || !pExec.permitido}
+                title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
                 className="gap-2 bg-success hover:bg-success text-white"
               >
                 <Send className="h-4 w-4" />
@@ -1057,7 +1067,8 @@ export default function DocumentosPendentes() {
             <AlertDialogCancel disabled={desfazendo}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmarDesfazerRemessa}
-              disabled={desfazendo}
+              disabled={desfazendo || !ehSuperAdmin}
+              title={!ehSuperAdmin ? "Só super_admin pode desfazer remessa" : undefined}
               className="bg-destructive hover:bg-destructive"
             >
               {desfazendo ? "Desfazendo..." : "Sim, desfazer"}
