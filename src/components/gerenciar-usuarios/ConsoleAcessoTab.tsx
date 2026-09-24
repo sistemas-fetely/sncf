@@ -19,6 +19,12 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -43,6 +49,7 @@ import {
   Search,
   ShieldAlert,
   ShieldCheck,
+  Settings,
   Sparkles,
   Users,
   X,
@@ -51,7 +58,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTogglePermissao } from "@/hooks/useGruposAcessoV2";
+import {
+  useGruposAcessoV2,
+  useTogglePermissao,
+} from "@/hooks/useGruposAcessoV2";
 import PainelGrupo from "./PainelGrupo";
 import DeclararAcaoDialog from "./DeclararAcaoDialog";
 import CelulaConcessao from "./CelulaConcessao";
@@ -351,6 +361,7 @@ export default function ConsoleAcessoTab({
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { data: linhas = [], isLoading, isError, error } = useConsoleAcesso();
   const { data: grupos = [] } = useGruposConsole();
+  const { data: gruposAcesso = [] } = useGruposAcessoV2(true);
   const { data: matriz = [] } = useMatrizGrupoPermissoes();
   const togglePermissao = useTogglePermissao();
   const marcarConferido = useMarcarConferido();
@@ -368,6 +379,7 @@ export default function ConsoleAcessoTab({
    *  "grupo" = escolho o grupo e marco as telas. Sem duplicação de editor. */
   const [lente, setLente] = useState<"tela" | "grupo">("tela");
   const [grupoLenteId, setGrupoLenteId] = useState<string | null>(null);
+  const [painelGrupoAberto, setPainelGrupoAberto] = useState(false);
 
   // ── Filtros (apresentação pura: nunca alteram o que é gravado) ──
   const [busca, setBusca] = useState("");
@@ -409,6 +421,10 @@ export default function ConsoleAcessoTab({
   }, [matriz]);
 
   const porGrupo = lente === "grupo";
+  const gruposAtivos = useMemo(
+    () => gruposAcesso.filter((g) => g.ativo !== false),
+    [gruposAcesso],
+  );
   const filtroConcedidas = porGrupo ? null : concedidasGrupoId;
   const temFiltro =
     busca.trim().length > 0 ||
@@ -985,9 +1001,22 @@ export default function ConsoleAcessoTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          Uma decisão só: quem entra na tela e quem executa cada ação dela.
-        </p>
+        <TooltipProvider delayDuration={150}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label="O que este console decide"
+                className="inline-flex text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              Uma decisão só: quem entra na tela e quem executa cada ação dela.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <div className="inline-flex rounded-md border p-0.5">
           <Button
             variant={porGrupo ? "ghost" : "secondary"}
