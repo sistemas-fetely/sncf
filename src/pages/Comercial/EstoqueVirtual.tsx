@@ -458,10 +458,15 @@ export default function EstoqueVirtual() {
 
   const ordenados = useMemo(() => {
     const col = sort?.column;
-    if (col && (col === "total" || col.startsWith("c:"))) {
-      const val = col === "total"
-        ? (p: LinhaTabela) => totalCentros(p)
-        : (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0;
+    if (col && (col === "total" || col === "giro_total" || col.startsWith("c:") || col.startsWith("g:"))) {
+      const val =
+        col === "total"
+          ? (p: LinhaTabela) => totalCentros(p)
+          : col === "giro_total"
+            ? (p: LinhaTabela) => giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias) ?? -1
+            : col.startsWith("c:")
+              ? (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0
+              : (p: LinhaTabela) => giroAnual(p.por_centro_vendas[col.slice(2)] ?? 0, p.por_centro[col.slice(2)] ?? 0, p.janela_dias) ?? -1;
       const f = sort!.direction === "asc" ? 1 : -1;
       return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
     }
