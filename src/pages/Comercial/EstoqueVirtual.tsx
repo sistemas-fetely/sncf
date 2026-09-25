@@ -795,12 +795,12 @@ export default function EstoqueVirtual() {
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
-                  {cabecalho("total", "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
-                  {cabecalho("giro_total", "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
+                  {cabecalho("total", "Qtd", "!px-1.5 border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
-                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
                 </TableRow>
