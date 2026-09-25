@@ -28,6 +28,7 @@ import {
   CheckCircle2, XCircle, UserCheck, UserX, Users, UserPlus,
   ShieldCheck, ShieldAlert, Pencil, Trash2,
   ChevronDown, ChevronRight, FileText, Sparkles, Check, Ghost, Loader2, ScanSearch, History,
+  Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import { GrupoCell } from "@/components/gerenciar-usuarios/GrupoCell";
