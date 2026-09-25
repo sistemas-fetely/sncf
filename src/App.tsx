@@ -200,6 +200,7 @@ const RegrasCadencia = lazy(() => import("@/pages/Credito/RegrasCadencia"));
 const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
 
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
+const TransferenciasInternas = lazy(() => import("@/pages/Pedidos/TransferenciasInternas"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
