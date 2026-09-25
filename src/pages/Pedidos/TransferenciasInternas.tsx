@@ -14,6 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,6 +32,12 @@ import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { Loader2, PackageCheck } from "lucide-react";
+
+interface CentroDestino {
+  codigo: string;
+  rotulo_curto: string | null;
+  nome: string;
+}
 
 const schema = z.object({
   destino: z.string().trim().min(1, "Informe o destino da transferência"),
