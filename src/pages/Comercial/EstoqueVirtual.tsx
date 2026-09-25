@@ -377,6 +377,7 @@ export default function EstoqueVirtual() {
         divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
         saude: l.saude, em_transito: n(l.em_transito),
         por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
+        por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
       }));
     }
     const fonte = visao === "centros" ? recorteSemCentro : recorte;
@@ -397,9 +398,13 @@ export default function EstoqueVirtual() {
           divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
           saude: l.saude, em_transito: n(l.em_transito),
           por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
+          por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
         });
       } else {
-        if (l.centro) a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
+        if (l.centro) {
+          a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
+          a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
+        }
         a.contabil += n(l.contabil);
         a.fisico += n(l.fisico);
         a.virtual += n(l.virtual);
