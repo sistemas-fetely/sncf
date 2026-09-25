@@ -43,6 +43,8 @@ serve(async (req) => {
     if (!auth) return json({ ok: false, erro: "Não autorizado" }, 401);
     const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
     if (userErr || !userData.user) return json({ ok: false, erro: "Não autorizado" }, 401);
+    const { data: pode } = await supabase.rpc("usuario_tem_acao", { p_slug: "acao.produto_corrigir_externo", p_user_id: userData.user.id });
+    if (!pode) return json({ ok: false, erro: "Sem permissão para esta ação (acao.produto_corrigir_externo)." }, 403);
 
     let body: any = {};
     try { body = await req.json(); } catch (_) { /* sem body */ }

@@ -35,6 +35,10 @@ serve(async (req) => {
     if (body?.tipo === "cadastrar_api" || body?.tipo === "corrigir_categoria_xpm" || body?.tipo === "atualizar_cadastro_xpm") {
       const t0 = Date.now();
       const tipo: string = body.tipo;
+      if (tipo === "atualizar_cadastro_xpm") {
+        const { data: pode } = await supabase.rpc("usuario_tem_acao", { p_slug: "acao.produto_corrigir_externo", p_user_id: userData.user.id });
+        if (!pode) return jsonErr({ ok: false, erro: "Sem permissão para esta ação (acao.produto_corrigir_externo)." }, 403);
+      }
       const skus: string[] = Array.isArray(body.skus) ? body.skus : [];
       const dry_run: boolean = tipo === "corrigir_categoria_xpm" ? false : (body.dry_run ?? true);
       const resultados: Record<string, unknown>[] = [];

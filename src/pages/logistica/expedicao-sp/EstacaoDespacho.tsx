@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Loader2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,6 +74,9 @@ export function EstacaoDespacho({
   gruposColeta, despachandoLote, onDespacharLote,
 }: Props) {
   const [modal, setModal] = useState<string>(modalEmbalado ?? "");
+  const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
+  const semPerm = perm.carregando || !perm.permitido;
+  const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.expedicao_sp_operar" : undefined;
   const [referencia, setReferencia] = useState("");
 
   useEffect(() => {
@@ -109,7 +113,8 @@ export function EstacaoDespacho({
                       onClick={() =>
                         onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => c.pedido_id))
                       }
-                      disabled={despachandoLote}
+                      disabled={despachandoLote || semPerm}
+                      title={tituloPerm}
                     >
                       {despachandoLote
                         ? <Loader2 className="animate-spin" aria-hidden="true" />
@@ -187,7 +192,7 @@ export function EstacaoDespacho({
               Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify.
             </p>
 
-            <Button onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando}>
+            <Button onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando || semPerm} title={tituloPerm}>
               {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
               Despachar
             </Button>

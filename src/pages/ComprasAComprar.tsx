@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { ehComprador } from "@/lib/compras/permissoes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,7 +57,9 @@ const ROLES_LEITURA_EXTRA = ["admin_rh", "financeiro"];
 
 export default function ComprasAComprar() {
   const { user, roles } = useAuth();
-  const podeAgir = ehComprador(roles);
+  const permComprar = usePermissaoAcaoOuSuperAdmin("acao.compra_comprar");
+  const podeAgir = ehComprador(roles) || permComprar.permitido;
+  const tituloComprar = !podeAgir ? "Requer perfil de comprador (acao.compra_comprar)" : undefined;
   const podeVer = podeAgir || roles.some((r) => ROLES_LEITURA_EXTRA.includes(r));
 
   const [tab, setTab] = useAbaUrl("aguardando");
@@ -353,11 +356,13 @@ export default function ComprasAComprar() {
                                 Iniciar compra
                               </DropdownMenuItem>
                             )}
+                            {ehMeu && (
+                              <DropdownMenuItem onClick={() => abrirRegistrar(p)} disabled={!podeAgir} title={tituloComprar}>
+                                {rascunhoPorPedido.has(p.id) ? "Continuar compra" : "Registrar compra"}
+                              </DropdownMenuItem>
+                            )}
                             {podeAgir && ehMeu && (
                               <>
-                                <DropdownMenuItem onClick={() => abrirRegistrar(p)}>
-                                  {rascunhoPorPedido.has(p.id) ? "Continuar compra" : "Registrar compra"}
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => abrirDetalhe(p)}>
                                   Cancelar item...
                                 </DropdownMenuItem>

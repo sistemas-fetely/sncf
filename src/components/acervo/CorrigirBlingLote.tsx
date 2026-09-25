@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -52,6 +53,9 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
 }
 
 export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean }) {
+  const perm = usePermissaoAcaoOuSuperAdmin("acao.produto_corrigir_externo");
+  const semPerm = perm.carregando || !perm.permitido;
+  const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.produto_corrigir_externo" : undefined;
   const [aberto, setAberto] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [aplicando, setAplicando] = useState(false);
@@ -130,7 +134,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
   );
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : undefined}>
+    <Button variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0 || semPerm} title={tituloPerm ?? (produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : undefined)}>
       <RefreshCw className="mr-2 h-4 w-4" />Corrigir no Bling ({produtos.length})
     </Button>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>
@@ -212,7 +216,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
             ? <Button variant="outline" onClick={() => { setAberto(false); zerar(); }}>Fechar</Button>
             : <>
               <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>
-              <Button disabled={carregando || aplicando || aplicaveis.length === 0} onClick={() => void aplicar()}>
+              <Button disabled={carregando || aplicando || aplicaveis.length === 0 || semPerm} title={tituloPerm} onClick={() => void aplicar()}>
                 {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length} já iguais)`}
               </Button>
