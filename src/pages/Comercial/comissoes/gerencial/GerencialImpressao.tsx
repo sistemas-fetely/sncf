@@ -170,8 +170,8 @@ function PaginaDetalhe({
         ) : (
           <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
             <colgroup>
-              <col className="w-[21%]" /><col className="w-[7%]" /><col className="w-[14%]" /><col className="w-[11%]" />
-              <col className="w-[9%]" /><col className="w-[13%]" /><col className="w-[13%]" /><col className="w-[12%]" />
+              <col className="w-[26%]" /><col className="w-[7%]" /><col className="w-[13%]" /><col className="w-[10%]" />
+              <col className="w-[9%]" /><col className="w-[12%]" /><col className="w-[12%]" /><col className="w-[11%]" />
             </colgroup>
             <thead>
               <tr className="border-y border-border text-muted-foreground">
