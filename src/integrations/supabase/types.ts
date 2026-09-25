@@ -33851,6 +33851,7 @@ export type Database = {
       naturezas_operacao: {
         Row: {
           ativo: boolean
+          bling_natureza_id: number | null
           codigo: string
           conta_corrente_efeito: string
           created_at: string
@@ -33870,6 +33871,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          bling_natureza_id?: number | null
           codigo: string
           conta_corrente_efeito?: string
           created_at?: string
@@ -33889,6 +33891,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          bling_natureza_id?: number | null
           codigo?: string
           conta_corrente_efeito?: string
           created_at?: string
@@ -44186,6 +44189,7 @@ export type Database = {
           oportunidade_motivo: string | null
           oportunidade_origem_estagio: string | null
           origem: string | null
+          origem_centro_id: string | null
           parceiro_id: string
           pedido_origem_id: string | null
           peso_bruto_total: number | null
@@ -44304,6 +44308,7 @@ export type Database = {
           oportunidade_motivo?: string | null
           oportunidade_origem_estagio?: string | null
           origem?: string | null
+          origem_centro_id?: string | null
           parceiro_id: string
           pedido_origem_id?: string | null
           peso_bruto_total?: number | null
@@ -44422,6 +44427,7 @@ export type Database = {
           oportunidade_motivo?: string | null
           oportunidade_origem_estagio?: string | null
           origem?: string | null
+          origem_centro_id?: string | null
           parceiro_id?: string
           pedido_origem_id?: string | null
           peso_bruto_total?: number | null
@@ -44856,6 +44862,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "naturezas_operacao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
           },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
