@@ -18,7 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { fmtBRL, fmtData } from "../comissoes/fmt";
-import { lerTudo, fmtPct2, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
+import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
 type Col = { k: string; label: string; tipo: "brl" | "int" | "pct" | "data" };
