@@ -838,7 +838,8 @@ export default function FichaProduto() {
                       <Button
                         className="w-full"
                         onClick={() => promover(false)}
-                        disabled={produto.pronto_proxima_fase !== true || promovendo}
+                        disabled={produto.pronto_proxima_fase !== true || promovendo || semPermFase}
+                        title={tituloPermFase}
                       >
                         {promovendo
                           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -851,7 +852,8 @@ export default function FichaProduto() {
                         className="w-full"
                         variant="outline"
                         onClick={() => setConfirmarRegressao(true)}
-                        disabled={promovendo}
+                        disabled={promovendo || semPermFase}
+                        title={tituloPermFase}
                       >
                         <ArrowDownCircle className="mr-2 h-4 w-4" />
                         Voltar para {faseAnterior.nome}
