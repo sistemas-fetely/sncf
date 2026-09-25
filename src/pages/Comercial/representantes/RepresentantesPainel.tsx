@@ -238,17 +238,18 @@ export default function RepresentantesPainel() {
         </div>
       </div>
 
-      <Card className="mt-3"><CardContent className="p-0 overflow-x-auto">
-        <Table>
+      <Card className="mt-3"><CardContent className="p-0">
+        <Table containerClassName="max-h-[min(70vh,48rem)]">
           <TableHeader><TableRow>
-            {th("representante", "Representante")}
-            <TableHead>Prontidão</TableHead>
+            {th("representante", "Representante", thFixo)}
+            <TableHead className="sticky top-0 z-40 bg-muted">Prontidão</TableHead>
             {th("regiao", "Região")}
-            <TableHead>Telefone</TableHead>
+            <TableHead className="sticky top-0 z-40 bg-muted">Telefone</TableHead>
             {th("fop_comissao_percent", "% do FOP")}
             {COLS.map((c) => th(c.k, c.label))}
-            <TableHead>Apto a pagamento</TableHead>
+            <TableHead className="sticky top-0 z-40 whitespace-nowrap bg-muted">Apto a pagamento</TableHead>
           </TableRow></TableHeader>
+
           <TableBody>
             {q.isLoading ? (
               <TableRow><TableCell colSpan={NCOL} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
