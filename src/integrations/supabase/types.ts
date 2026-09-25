@@ -90820,14 +90820,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -91816,14 +91816,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -101935,6 +101935,7 @@ export type Database = {
           comissao_recebida: number | null
           comissao_travada_inadimplencia: number | null
           desconto_medio_pct: number | null
+          dias_sem_vender: number | null
           documento: string | null
           em_titulo_aguardando_pagamento: number | null
           email_contato: string | null
@@ -101949,6 +101950,8 @@ export type Database = {
           ja_logou: boolean | null
           liberada_sem_cpr: number | null
           maior_atraso_dias: number | null
+          media_mensal_3m: number | null
+          meses_ativos_90d: number | null
           notas_faturadas: number | null
           notas_travadas: number | null
           parcelas_vencidas: number | null
@@ -101970,9 +101973,13 @@ export type Database = {
           ticket_medio: number | null
           tipo: string | null
           ultima_venda: string | null
+          ultima_venda_data: string | null
+          ultima_venda_pedido: string | null
+          ultima_venda_valor: number | null
           ultimo_pagamento: string | null
           valor_vendido_bruto: number | null
           vendedor_id: string | null
+          vendido_90d: number | null
         }
         Relationships: []
       }
@@ -103574,14 +103581,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]

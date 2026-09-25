@@ -21,13 +21,13 @@ import { fmtBRL, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
-type Col = { k: string; label: string; tipo: "brl" | "int" };
-// Tabela reduzida a 8 colunas (Representante + Região + estas 3 + as 3 FIN).
+type Col = { k: string; label: string; tipo: "brl" | "int"; w: string };
+// Tabela com 11 colunas (Representante + Região + estas 3 + 3 novas + as 3 FIN).
 // As demais métricas continuam na ficha do representante (aba Resumo).
 const COLS: Col[] = [
-  { k: "pedidos_total", label: "Pedidos", tipo: "int" },
-  { k: "clientes_distintos", label: "Clientes", tipo: "int" },
-  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl" },
+  { k: "pedidos_total", label: "Pedidos", tipo: "int", w: "w-[64px]" },
+  { k: "clientes_distintos", label: "Cli.", tipo: "int", w: "w-[56px]" },
+  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl", w: "w-[92px]" },
 ];
 
 function fmt(c: Col, v: unknown) {
@@ -150,6 +150,8 @@ export default function RepresentantesPainel() {
       const va = a[ord.k], vb = b[ord.k];
       const cmp = ["representante", "ultima_venda", "regiao"].includes(ord.k)
         ? String(va ?? "").localeCompare(String(vb ?? ""))
+        : ord.k === "ultima_venda_data"
+        ? String(va ?? "").localeCompare(String(vb ?? ""))
         : Number(va ?? 0) - Number(vb ?? 0);
       return ord.asc ? cmp : -cmp;
     });
@@ -194,20 +196,30 @@ export default function RepresentantesPainel() {
       </button>
     );
     return (
-      <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
+      <TableHead key={k} className={cn("sticky top-0 z-40 bg-muted align-bottom leading-tight", extra)}>
         {dica ? <Dica texto={dica}>{btn}</Dica> : btn}
       </TableHead>
     );
   };
-  const thFixo = "sticky left-0 z-50 w-56 border-r bg-muted";
-  const tdFixo = "sticky left-0 z-20 w-56 border-r bg-card";
+  const thFixo = "sticky left-0 z-50 border-r bg-muted";
+  const tdFixo = "sticky left-0 z-20 border-r bg-card";
+
+  const DICA_DESCONTO = "Desconto médio concedido nas notas já apuradas. Quanto maior o desconto, menor o percentual de comissão, conforme a régua.";
+  const dicaMedia3m = (r: Linha) => {
+    const meses = Number(r.meses_ativos_90d ?? 0);
+    let t = `Média mensal dos últimos 90 dias: ${fmtBRL(Number(r.vendido_90d ?? 0))} em ${meses} mês(es) com venda.`;
+    if (meses < 3) t += " Atenção: menos de 3 meses de operação — a média ainda não é representativa.";
+    return t;
+  };
+  const fmtPct = (v: unknown) =>
+    `${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
 
   const cards = [
     ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
     ["Próximo recebimento", tot.proxima], ["Carteira vencida", tot.vencida],
   ] as const;
-  const NCOL = COLS.length + FIN.length + 2; // + Representante + Região
+  const NCOL = COLS.length + 3 + FIN.length + 2; // + Representante + Região + 3 colunas novas
 
   return (
     <PageShell>
@@ -252,12 +264,15 @@ export default function RepresentantesPainel() {
       </div>
 
       <Card className="mt-3"><CardContent className="p-0">
-        <Table containerClassName="max-h-[min(70vh,48rem)]">
+        <Table containerClassName="max-h-[min(70vh,48rem)]" className="table-fixed w-full text-[11px] [&_td]:px-2 [&_td]:py-2 [&_th]:px-2">
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
-            {th("regiao", "Região")}
-            {COLS.map((c) => th(c.k, c.label, "text-right"))}
-            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
+            {th("regiao", "Região", "w-[76px]")}
+            {COLS.map((c) => th(c.k, c.label, cn("text-right", c.w)))}
+            {th("ultima_venda_data", "Última venda", "text-right w-[96px]")}
+            {th("desconto_medio_pct", "Desconto médio %", "text-right w-[72px]", DICA_DESCONTO)}
+            {th("media_mensal_3m", "Média mensal (3m)", "text-right w-[92px]")}
+            {FIN.map((c) => th(c.k, c.label, cn("text-right", c.k === "proximo_recebimento" ? "w-[96px]" : "w-[88px]"), c.dica))}
           </TableRow></TableHeader>
 
           <TableBody>
@@ -274,9 +289,9 @@ export default function RepresentantesPainel() {
               return (
                 <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
                   onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>
-                    <span className="inline-flex items-center gap-1.5">
-                      {r.representante}
+                  <TableCell className={cn("font-medium", tdFixo)}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate" title={String(r.representante ?? "")}>{r.representante}</span>
                       {r.bloqueio_pagamento === true && (
                         <span onClick={(e) => e.stopPropagation()}>
                           <Dica texto={String(r.bloqueio_motivo ?? "")}>
@@ -286,12 +301,48 @@ export default function RepresentantesPainel() {
                       )}
                     </span>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
+                  <TableCell className="truncate" title={String(r.regiao ?? "")}>{r.regiao || "—"}</TableCell>
                   {COLS.map((c) => (
                     <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums">
                       {fmt(c, r[c.k])}
                     </TableCell>
                   ))}
+                  {(() => {
+                    const uv = r.ultima_venda_valor != null ? Number(r.ultima_venda_valor) : null;
+                    const dias = r.dias_sem_vender != null ? Number(r.dias_sem_vender) : null;
+                    const corData = dias != null && dias > 90 ? "text-destructive" : dias != null && dias > 60 ? "text-warning" : "text-muted-foreground";
+                    const dicaUv = dias != null && dias > 60
+                      ? `Sem vender há ${dias} dias.`
+                      : `Pedido ${r.ultima_venda_pedido ?? "—"}`;
+                    return (
+                      <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                        {uv == null ? <span className="text-muted-foreground/50">—</span> : (
+                          <Dica texto={dicaUv}>
+                            <span className="underline decoration-dotted">
+                              {fmtBRL(uv)}
+                              {r.ultima_venda_data && (
+                                <div className={cn("text-[10px]", corData)}>{fmtData(r.ultima_venda_data as string)}</div>
+                              )}
+                            </span>
+                          </Dica>
+                        )}
+                      </TableCell>
+                    );
+                  })()}
+                  <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    {r.desconto_medio_pct == null ? <span className="text-muted-foreground/50">—</span> : (
+                      <Dica texto={DICA_DESCONTO}>
+                        <span className="underline decoration-dotted">{fmtPct(r.desconto_medio_pct)}</span>
+                      </Dica>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    {Number(r.media_mensal_3m ?? 0) === 0 ? <span className="text-muted-foreground/50">—</span> : (
+                      <Dica texto={dicaMedia3m(r)}>
+                        <span className="underline decoration-dotted">{fmtBRL(Number(r.media_mensal_3m))}</span>
+                      </Dica>
+                    )}
+                  </TableCell>
                   {FIN.map((c) => {
                     const n = Number(r[c.k] ?? 0);
                     const vazio = c.k === "proximo_recebimento" && n === 0;
