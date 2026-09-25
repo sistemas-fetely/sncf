@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useChamadoRelacao, chaveChamadoRelacao, mensagemErroChamado } from "@/hooks/useChamadoRelacao";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -304,6 +305,10 @@ function ChamadoDetalheConteudo() {
     [id],
   );
 
+  const relacaoQ = useChamadoRelacao(id);
+  const rel = relacaoQ.data;
+  const podeMexer = rel?.pode_mexer === true;
+
   const chamadoQ = useQuery({
     queryKey: QK.chamado,
     enabled: !!id,
@@ -395,6 +400,7 @@ function ChamadoDetalheConteudo() {
       qc.invalidateQueries({ queryKey: QK.trilha }),
       qc.invalidateQueries({ queryKey: QK.lista }),
       qc.invalidateQueries({ queryKey: QK.carga }),
+      qc.invalidateQueries({ queryKey: chaveChamadoRelacao(id) }),
     ]);
   }
 
@@ -417,7 +423,7 @@ function ChamadoDetalheConteudo() {
       const { error } = await supabase.rpc("responder_chamado", {
         p_chamado_id: id,
         p_texto: texto.trim(),
-        p_interna: interna,
+        p_interna: interna && podeMexer,
       });
       if (error) throw error;
       toast.success(interna ? "Nota interna registrada." : "Resposta enviada.");
@@ -425,7 +431,7 @@ function ChamadoDetalheConteudo() {
       setInterna(false);
       await invalidar();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(mensagemErroChamado(e));
     } finally {
       setEnviando(false);
     }
@@ -443,7 +449,7 @@ function ChamadoDetalheConteudo() {
       toast.success("Solução salva.");
       await invalidar();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(mensagemErroChamado(e));
     } finally {
       setSalvandoSolucao(false);
     }
@@ -528,7 +534,7 @@ function ChamadoDetalheConteudo() {
       await invalidar();
       fechar();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(mensagemErroChamado(e));
     } finally {
       setExecutando(false);
     }
@@ -822,6 +828,7 @@ function ChamadoDetalheConteudo() {
                 )}
 
                 {/* Caixa de resposta */}
+                {rel?.pode_responder && (
                 <div className="space-y-3 rounded-lg border border-border p-3">
                   <Textarea
                     value={texto}
@@ -831,6 +838,7 @@ function ChamadoDetalheConteudo() {
                     disabled={!podeEditar || encerrado}
                   />
                   <div className="flex flex-wrap items-center justify-between gap-3">
+                    {podeMexer ? (
                     <div className="flex items-start gap-3">
                       <Switch
                         id="interna"
@@ -845,6 +853,9 @@ function ChamadoDetalheConteudo() {
                         </p>
                       </div>
                     </div>
+                    ) : (
+                      <span />
+                    )}
                     {!podeEditar ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -874,6 +885,7 @@ function ChamadoDetalheConteudo() {
                     </p>
                   )}
                 </div>
+                )}
               </CardContent>
             </Card>
 
@@ -882,7 +894,7 @@ function ChamadoDetalheConteudo() {
                 <CardTitle className="text-sm">Solução encontrada e realizada</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {emAberto && podeEditar ? (
+                {emAberto && podeEditar && podeMexer ? (
                   <>
                     <Textarea
                       value={solucao}
@@ -921,22 +933,22 @@ function ChamadoDetalheConteudo() {
                 <CardTitle className="text-sm">Ações</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                {podePegar && (
+                {podeMexer && podePegar && (
                   <BotaoAcao onClick={() => abrir("pegar")}>
                     <Hand className="mr-2 h-4 w-4" /> Pegar
                   </BotaoAcao>
                 )}
-                {podePausar && (
+                {podeMexer && podePausar && (
                   <BotaoAcao onClick={() => abrir("pausar")}>
                     <Pause className="mr-2 h-4 w-4" /> Pausar
                   </BotaoAcao>
                 )}
-                {podeRetomar && (
+                {podeMexer && podeRetomar && (
                   <BotaoAcao onClick={() => abrir("retomar")}>
                     <Play className="mr-2 h-4 w-4" /> Retomar
                   </BotaoAcao>
                 )}
-                {!encerrado && (
+                {podeMexer && !encerrado && (
                   <BotaoAcao onClick={() => abrir("passar")}>
                     <ArrowRightLeft className="mr-2 h-4 w-4" /> Passar
                   </BotaoAcao>
@@ -946,22 +958,22 @@ function ChamadoDetalheConteudo() {
                     <LogOut className="mr-2 h-4 w-4" /> Largar
                   </BotaoAcao>
                 )}
-                {c.em_triagem && (
+                {podeMexer && c.em_triagem && (
                   <BotaoAcao onClick={() => abrir("classificar")}>
                     <Tag className="mr-2 h-4 w-4" /> Classificar
                   </BotaoAcao>
                 )}
-                {!encerrado && (
+                {rel?.pode_escalar && !encerrado && (
                   <BotaoAcao onClick={() => abrir("escalar")}>
                     <ArrowUpCircle className="mr-2 h-4 w-4" /> Escalar
                   </BotaoAcao>
                 )}
-                {!encerrado && foraDoAtendimento && (
+                {podeMexer && !encerrado && foraDoAtendimento && (
                   <BotaoAcao onClick={() => abrir("devolver")}>
                     <CornerUpLeft className="mr-2 h-4 w-4" /> Devolver
                   </BotaoAcao>
                 )}
-                {emAberto && (
+                {podeMexer && emAberto && (
                   <BotaoAcao
                     variant="default"
                     onClick={() => abrir("resolver")}
