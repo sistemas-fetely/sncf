@@ -146,13 +146,11 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
 function PaginaDetalhe({
   rotulo,
   representantes,
-  atencao,
   travada,
   vencida,
 }: {
   rotulo: string;
   representantes: LinhaRepresentante[];
-  atencao: string[];
   travada: number;
   vencida: number;
 }) {
@@ -320,7 +318,6 @@ export default function GerencialImpressao() {
       <PaginaDetalhe
         rotulo={rotulo}
         representantes={g.representantes}
-        atencao={g.atencao}
         travada={g.travadaInadimplencia}
         vencida={g.carteiraVencida}
       />
