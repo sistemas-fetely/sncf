@@ -202,6 +202,7 @@ Deno.serve(async (req) => {
     await supabase.from('email_send_log').insert({
       message_id: messageId, template_name: templateName,
       recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
+      enviado_por: userData.user.id, autorizacao,
       error_message: `Vault error: ${vaultError?.message || 'RESEND_API_KEY not found in vault'}`,
     })
     return new Response(
@@ -243,6 +244,7 @@ Deno.serve(async (req) => {
   await supabase.from('email_send_log').insert({
     message_id: messageId, template_name: templateName,
     recipient_email: effectiveRecipient, status: 'pending', metadata: emailMetadata,
+    enviado_por: userData.user.id, autorizacao,
   })
 
   // Send via o único ponto de envio do sistema (_shared/resend-send.ts)
@@ -276,6 +278,7 @@ Deno.serve(async (req) => {
         await supabase.from('email_send_log').insert({
           message_id: messageId, template_name: templateName,
           recipient_email: effectiveRecipient, status: 'duplicado', metadata: emailMetadata,
+          enviado_por: userData.user.id, autorizacao,
           error_message: sendMsg,
         })
         return new Response(
@@ -288,6 +291,7 @@ Deno.serve(async (req) => {
       await supabase.from('email_send_log').insert({
         message_id: messageId, template_name: templateName,
         recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
+        enviado_por: userData.user.id, autorizacao,
         error_message: sendMsg,
       })
       return new Response(
@@ -299,6 +303,7 @@ Deno.serve(async (req) => {
     await supabase.from('email_send_log').insert({
       message_id: messageId, template_name: templateName,
       recipient_email: effectiveRecipient, status: 'sent', metadata: emailMetadata,
+      enviado_por: userData.user.id, autorizacao,
     })
 
     return new Response(
@@ -312,6 +317,7 @@ Deno.serve(async (req) => {
     await supabase.from('email_send_log').insert({
       message_id: messageId, template_name: templateName,
       recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
+      enviado_por: userData.user.id, autorizacao,
       error_message: msg,
     })
     return new Response(JSON.stringify({ error: msg }), {
