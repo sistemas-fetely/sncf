@@ -163,12 +163,13 @@ function Extrato({ det }: { det: Linha[] }) {
   }, [grupos, det]);
   if (det.length === 0) return <Vazio>Nenhuma nota comissionada para este representante ainda.</Vazio>;
   return (
-    <Card><CardContent className="p-0 overflow-x-auto">
-      <Table className="text-xs">
+    <Card><CardContent className="p-0">
+      <Table className="text-xs" containerClassName="max-h-[min(70vh,48rem)]">
         <TableHeader><TableRow>
           {["NF", "Emissão", "Pedido", "Cliente", "Base comissionável", "Desconto %", "% efetivo", "Comissão da nota", "Parcela", "Valor da parcela", "Vencimento", "Situação", "Comissão da parcela", "Valor liberado", "Data liquidação"]
-            .map((h) => <TableHead key={h} className="whitespace-nowrap">{h}</TableHead>)}
+            .map((h, i) => <TableHead key={h} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", i === 0 && "left-0 z-50 w-20 border-r")}>{h}</TableHead>)}
         </TableRow></TableHeader>
+
         <TableBody>
           {grupos.map((g) => g.map((r, i) => {
             const s = SITUACAO[r.situacao_parcela] ?? { label: r.situacao_parcela ?? "—", cls: "" };
