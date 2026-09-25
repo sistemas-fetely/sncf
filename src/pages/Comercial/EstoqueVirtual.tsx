@@ -438,12 +438,13 @@ export default function EstoqueVirtual() {
     setPagina(1);
   }
 
-  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false) => (
-    <CabecalhoOrdenavel
+  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false, title?: string) => (
+    <CabecalhoColuna
       rotulo={rotulo}
+      title={title ?? rotulo}
       dir={sort?.column === coluna ? sort.direction : null}
       onOrdenar={() => ordenarColuna(coluna)}
-      className={cn("whitespace-nowrap font-medium", className)}
+      className={cn("font-medium", className)}
       alinharDireita={alinharDireita}
     />
   );
