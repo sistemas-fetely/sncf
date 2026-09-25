@@ -242,10 +242,57 @@ export default function EstoqueVirtual() {
     },
   });
 
+  // Código de cadastro por SKU (vw_estoque_rede não traz cod_cadastro).
+  const codQuery = useQuery({
+    queryKey: ["sncf_produtos_cod_por_sku"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const m = new Map<string, string>();
+      const TAM = 1000;
+      for (let offset = 0; ; offset += TAM) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data, error } = await (supabase as any)
+          .from("sncf_produtos")
+          .select("sku,cod_cadastro")
+          .not("sku", "is", null)
+          .order("sku")
+          .range(offset, offset + TAM - 1);
+        if (error) throw error;
+        for (const r of (data ?? []) as { sku: string; cod_cadastro: string | null }[]) {
+          if (r.cod_cadastro) m.set(r.sku, r.cod_cadastro);
+        }
+        if ((data ?? []).length < TAM) break;
+      }
+      return m;
+    },
+  });
+
+  // Última sincronização (qualquer rotina) para o estado do cabeçalho.
+  const syncQuery = useQuery({
+    queryKey: ["vw_estoque_sync_status", "ultima_execucao"],
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<string | null> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_sync_status")
+        .select("ultima_execucao")
+        .order("ultima_execucao", { ascending: false, nullsFirst: false })
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0]?.ultima_execucao as string | null) ?? null;
+    },
+  });
+
   const canaisPorSku = useMemo(() => {
     const m = new Map<string, CanalCentro[]>();
     for (const c of canaisQuery.data ?? []) m.set(c.sku, [...(m.get(c.sku) ?? []), c]);
     return m;
+  }, [canaisQuery.data]);
+
+  const skusDivergentes = useMemo(() => {
+    const s = new Set<string>();
+    for (const c of canaisQuery.data ?? []) if (c.shopify_diverge || c.bling_diverge) s.add(c.sku);
+    return s;
   }, [canaisQuery.data]);
 
   const centrosPresentes = useMemo(() => {
@@ -315,9 +362,12 @@ export default function EstoqueVirtual() {
       if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
       if (condicaoFiltro === "com_showroom" && !(Number(p.em_showroom ?? 0) > 0)) return false;
       if (condicaoFiltro === "com_delta_bling" && Number(p.delta_bling ?? 0) === 0) return false;
+      if (condicaoFiltro === "com_descoberto" && !(Number(p.descoberto ?? 0) > 0)) return false;
+      if (condicaoFiltro === "com_canal_diverge" && !skusDivergentes.has(p.sku)) return false;
       if (!q) return true;
       return (
         p.sku?.toLowerCase().includes(q) ||
+        (codQuery.data?.get(p.sku) ?? "").toLowerCase().includes(q) ||
         p.nome_comercial?.toLowerCase().includes(q) ||
         p.cor_nome?.toLowerCase().includes(q)
       );
@@ -338,7 +388,7 @@ export default function EstoqueVirtual() {
 
       status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
     });
-  }, [lista, busca, statusFiltro, condicaoFiltro, sort, centroFiltro, canaisPorSku]);
+  }, [lista, busca, statusFiltro, condicaoFiltro, sort, centroFiltro, canaisPorSku, skusDivergentes, codQuery.data]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
