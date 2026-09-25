@@ -173,7 +173,7 @@ export function AbaApurar() {
                 const motivo = motivoBloqueio(n.situacao);
                 return (
                   <TableRow key={n.nf_numero} className={motivo ? "bg-destructive/5" : undefined}>
-                    <TableCell className="font-medium">{n.representante ?? "—"}</TableCell>
+                    <TableCell className="sticky left-0 z-20 w-48 border-r bg-card font-medium">{n.representante ?? "—"}</TableCell>
                     <TableCell>{n.pedido ?? "—"}</TableCell>
                     <TableCell>{n.nf_numero}</TableCell>
                     <TableCell className="text-right">{fmtBRL(n.base_comissionavel)}</TableCell>
