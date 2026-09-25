@@ -21,13 +21,13 @@ import { fmtBRL, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
-type Col = { k: string; label: string; tipo: "brl" | "int" };
-// Tabela reduzida a 8 colunas (Representante + Região + estas 3 + as 3 FIN).
+type Col = { k: string; label: string; tipo: "brl" | "int"; w: string };
+// Tabela com 11 colunas (Representante + Região + estas 3 + 3 novas + as 3 FIN).
 // As demais métricas continuam na ficha do representante (aba Resumo).
 const COLS: Col[] = [
-  { k: "pedidos_total", label: "Pedidos", tipo: "int" },
-  { k: "clientes_distintos", label: "Clientes", tipo: "int" },
-  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl" },
+  { k: "pedidos_total", label: "Pedidos", tipo: "int", w: "w-[64px]" },
+  { k: "clientes_distintos", label: "Cli.", tipo: "int", w: "w-[56px]" },
+  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl", w: "w-[92px]" },
 ];
 
 function fmt(c: Col, v: unknown) {
@@ -196,13 +196,13 @@ export default function RepresentantesPainel() {
       </button>
     );
     return (
-      <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
+      <TableHead key={k} className={cn("sticky top-0 z-40 bg-muted align-bottom leading-tight", extra)}>
         {dica ? <Dica texto={dica}>{btn}</Dica> : btn}
       </TableHead>
     );
   };
-  const thFixo = "sticky left-0 z-50 w-48 border-r bg-muted";
-  const tdFixo = "sticky left-0 z-20 w-48 border-r bg-card";
+  const thFixo = "sticky left-0 z-50 border-r bg-muted";
+  const tdFixo = "sticky left-0 z-20 border-r bg-card";
 
   const DICA_DESCONTO = "Desconto médio concedido nas notas já apuradas. Quanto maior o desconto, menor o percentual de comissão, conforme a régua.";
   const dicaMedia3m = (r: Linha) => {
@@ -264,15 +264,15 @@ export default function RepresentantesPainel() {
       </div>
 
       <Card className="mt-3"><CardContent className="p-0">
-        <Table containerClassName="max-h-[min(70vh,48rem)]">
+        <Table containerClassName="max-h-[min(70vh,48rem)]" className="table-fixed w-full text-[11px] [&_td]:px-2 [&_td]:py-2 [&_th]:px-2">
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
-            {th("regiao", "Região")}
-            {COLS.map((c) => th(c.k, c.label, "text-right"))}
-            {th("ultima_venda_data", "Última venda", "text-right")}
-            {th("desconto_medio_pct", "Desconto médio %", "text-right", DICA_DESCONTO)}
-            {th("media_mensal_3m", "Média mensal (3m)", "text-right")}
-            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
+            {th("regiao", "Região", "w-[76px]")}
+            {COLS.map((c) => th(c.k, c.label, cn("text-right", c.w)))}
+            {th("ultima_venda_data", "Última venda", "text-right w-[96px]")}
+            {th("desconto_medio_pct", "Desconto médio %", "text-right w-[72px]", DICA_DESCONTO)}
+            {th("media_mensal_3m", "Média mensal (3m)", "text-right w-[92px]")}
+            {FIN.map((c) => th(c.k, c.label, cn("text-right", c.k === "proximo_recebimento" ? "w-[96px]" : "w-[88px]"), c.dica))}
           </TableRow></TableHeader>
 
           <TableBody>
@@ -289,9 +289,9 @@ export default function RepresentantesPainel() {
               return (
                 <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
                   onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>
-                    <span className="inline-flex items-center gap-1.5">
-                      {r.representante}
+                  <TableCell className={cn("font-medium", tdFixo)}>
+                    <span className="flex items-center gap-1.5">
+                      <span className="truncate" title={String(r.representante ?? "")}>{r.representante}</span>
                       {r.bloqueio_pagamento === true && (
                         <span onClick={(e) => e.stopPropagation()}>
                           <Dica texto={String(r.bloqueio_motivo ?? "")}>
@@ -301,7 +301,7 @@ export default function RepresentantesPainel() {
                       )}
                     </span>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
+                  <TableCell className="truncate" title={String(r.regiao ?? "")}>{r.regiao || "—"}</TableCell>
                   {COLS.map((c) => (
                     <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums">
                       {fmt(c, r[c.k])}
