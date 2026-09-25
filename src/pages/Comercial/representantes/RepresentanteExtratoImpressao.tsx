@@ -277,7 +277,7 @@ function situacao(valor: unknown) {
     a_vencer: "A vencer",
   };
   const chave = String(valor ?? "");
-  return labels[chave] ?? chave.replaceAll("_", " ") || "—";
+  return labels[chave] ?? (chave.replace(/_/g, " ") || "—");
 }
 
 const ESTILOS_IMPRESSAO = `
