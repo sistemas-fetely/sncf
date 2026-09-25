@@ -167,7 +167,8 @@ export function AbaContestacoes() {
                   const dif = c.valor_esperado != null ? Number(c.valor_esperado) - Number(c.valor_apurado ?? 0) : null;
                   return (
                     <TableRow key={c.id} className={velha ? "bg-destructive/10" : ""}>
-                      <TableCell className="font-medium">{c.representante}</TableCell>
+                      <TableCell className="sticky left-0 z-20 w-48 border-r bg-card font-medium">{c.representante}</TableCell>
+
                       <TableCell>{c.nf ?? "—"}</TableCell>
                       <TableCell>{c.pedido ?? "—"}</TableCell>
                       <TableCell className={velha ? "text-destructive font-medium" : ""}>{fmtData(c.aberta_em)}</TableCell>
