@@ -885,24 +885,24 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
                 </>}
                 {visao === "centros" && <>
+                  <TableCell className="!px-1.5 text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
+                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
+                  </TableCell>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
                     const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
                       <Fragment key={c.codigo}>
-                        <TableCell className="text-right tabular-nums border-l border-border/60">
+                        <TableCell className="!px-1.5 text-right tabular-nums border-l border-border/60">
                           {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                        <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                           {formatGiro(g)}
                         </TableCell>
                       </Fragment>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
-                  </TableCell>
                 </>}
               </TableRow>
             ))}
