@@ -346,7 +346,11 @@ export default function ConciliacaoFila() {
     for (const s of skusRecorte) { if (marcar) novo.add(s); else novo.delete(s); }
     return novo;
   });
-  const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
+  const estado = <>
+    {carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`}
+    {" · "}
+    <Link to="/vendas/produto/estoque/nomes-bling" className="underline-offset-2 hover:underline hover:text-foreground">Histórico de nomes no Bling</Link>
+  </>;
 
   function ordenar(key: string) {
     setOrdem(o => o.coluna === key ? { coluna: key, dir: o.dir === "asc" ? "desc" : "asc" } : { coluna: key, dir: "asc" });
