@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -89,6 +89,8 @@ interface LinhaTabela {
   em_transito: number;
   /** Contábil por centro (código → un). */
   por_centro: Record<string, number>;
+  /** Vendas na janela por centro (código → un). */
+  por_centro_vendas: Record<string, number>;
 }
 
 interface CentroAtivo {
@@ -102,9 +104,22 @@ interface CentroAtivo {
 function totalCentros(p: LinhaTabela) {
   return Object.values(p.por_centro).reduce((s, v) => s + v, 0);
 }
+function totalCentrosVendas(p: LinhaTabela) {
+  return Object.values(p.por_centro_vendas).reduce((s, v) => s + v, 0);
+}
+/** Giro anualizado: vendas da janela ÷ contábil × (365 ÷ janela). Null sem base. */
+function giroAnual(vendas: number, contabil: number, janela: number): number | null {
+  if (!(contabil > 0) || !(vendas > 0) || !(janela > 0)) return null;
+  return (vendas / contabil) * (365 / janela);
+}
+function formatGiro(g: number | null) {
+  return g == null
+    ? <span className="text-muted-foreground">—</span>
+    : `${g.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`;
+}
 
 type Visao = "estoque" | "valor" | "centros";
-type ColSort = Col | "total" | `c:${string}`;
+type ColSort = Col | "total" | "giro_total" | `c:${string}` | `g:${string}`;
 const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
@@ -362,6 +377,7 @@ export default function EstoqueVirtual() {
         divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
         saude: l.saude, em_transito: n(l.em_transito),
         por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
+        por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
       }));
     }
     const fonte = visao === "centros" ? recorteSemCentro : recorte;
@@ -382,9 +398,13 @@ export default function EstoqueVirtual() {
           divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
           saude: l.saude, em_transito: n(l.em_transito),
           por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
+          por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
         });
       } else {
-        if (l.centro) a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
+        if (l.centro) {
+          a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
+          a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
+        }
         a.contabil += n(l.contabil);
         a.fisico += n(l.fisico);
         a.virtual += n(l.virtual);
@@ -438,10 +458,15 @@ export default function EstoqueVirtual() {
 
   const ordenados = useMemo(() => {
     const col = sort?.column;
-    if (col && (col === "total" || col.startsWith("c:"))) {
-      const val = col === "total"
-        ? (p: LinhaTabela) => totalCentros(p)
-        : (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0;
+    if (col && (col === "total" || col === "giro_total" || col.startsWith("c:") || col.startsWith("g:"))) {
+      const val =
+        col === "total"
+          ? (p: LinhaTabela) => totalCentros(p)
+          : col === "giro_total"
+            ? (p: LinhaTabela) => giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias) ?? -1
+            : col.startsWith("c:")
+              ? (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0
+              : (p: LinhaTabela) => giroAnual(p.por_centro_vendas[col.slice(2)] ?? 0, p.por_centro[col.slice(2)] ?? 0, p.janela_dias) ?? -1;
       const f = sort!.direction === "asc" ? 1 : -1;
       return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
     }
@@ -696,8 +721,10 @@ export default function EstoqueVirtual() {
                   as larguras de referência a partir de 1440px. */}
               {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
-              {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
+              {visao !== "centros" && <>
+                {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
+                {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
+              </>}
               {visao === "estoque" && <>
                 {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
@@ -725,17 +752,33 @@ export default function EstoqueVirtual() {
               </>}
               {visao === "centros" && <>
                 {centros.map((c) => (
-                  <CabecalhoColuna
-                    key={c.codigo}
-                    rotulo={c.rotulo_curto ?? c.codigo}
-                    title={c.nome ?? c.codigo}
-                    dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
-                    onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
-                    className="font-medium w-[72px] min-[1440px]:w-[84px]"
-                    alinharDireita
-                  />
+                  <Fragment key={c.codigo}>
+                    <CabecalhoColuna
+                      rotulo={c.rotulo_curto ?? c.codigo}
+                      title={c.nome ?? c.codigo}
+                      dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
+                      onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
+                      className="font-medium w-[64px] min-[1440px]:w-[76px] border-l border-border/60"
+                      alinharDireita
+                    />
+                    <CabecalhoColuna
+                      rotulo="Giro"
+                      title={`Giro anualizado do produto neste centro: vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`}
+                      dir={sort?.column === `g:${c.codigo}` ? sort.direction : null}
+                      onOrdenar={() => ordenarColuna(`g:${c.codigo}`)}
+                      className="font-medium w-[48px] min-[1440px]:w-[56px] text-muted-foreground"
+                      alinharDireita
+                    />
+                  </Fragment>
                 ))}
-                {cabecalho("total", "Total", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("total", "Total", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                {cabecalho(
+                  "giro_total",
+                  "Giro",
+                  "w-[48px] min-[1440px]:w-[56px] text-muted-foreground",
+                  true,
+                  `Giro anualizado do produto (todos os centros): vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`,
+                )}
               </>}
             </TableRow>
           </TableHeader>
@@ -754,24 +797,26 @@ export default function EstoqueVirtual() {
                   <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
                   {p.cor_nome && <div className="text-[11px] text-muted-foreground truncate">{p.cor_nome}</div>}
                 </TableCell>
-                <TableCell>
-                  {p.situacao ? (
-                    <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.situacao))}>
-                      {rotuloStatusVenda(p.situacao)}
-                    </Badge>
-                  ) : <span className="text-muted-foreground">—</span>}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
-                        aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
-                  </Tooltip>
-                </TableCell>
+                {visao !== "centros" && <>
+                  <TableCell>
+                    {p.situacao ? (
+                      <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.situacao))}>
+                        {rotuloStatusVenda(p.situacao)}
+                      </Badge>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
+                          aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                </>}
                 {visao === "estoque" && <>
                   <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
@@ -803,13 +848,22 @@ export default function EstoqueVirtual() {
                 {visao === "centros" && <>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
+                    const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
-                      <TableCell key={c.codigo} className="text-right tabular-nums">
-                        {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
-                      </TableCell>
+                      <Fragment key={c.codigo}>
+                        <TableCell className="text-right tabular-nums border-l border-border/60">
+                          {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {formatGiro(g)}
+                        </TableCell>
+                      </Fragment>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums font-medium">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
+                  </TableCell>
                 </>}
               </TableRow>
             ))}
