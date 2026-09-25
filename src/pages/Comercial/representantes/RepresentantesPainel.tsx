@@ -18,33 +18,20 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { fmtBRL, fmtData } from "../comissoes/fmt";
-import { lerTudo, fmtPct2, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
+import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
-type Col = { k: string; label: string; tipo: "brl" | "int" | "pct" | "data" };
+type Col = { k: string; label: string; tipo: "brl" | "int" };
+// Tabela reduzida a 8 colunas (Representante + Região + estas 3 + as 3 FIN).
+// As demais métricas continuam na ficha do representante (aba Resumo).
 const COLS: Col[] = [
   { k: "pedidos_total", label: "Pedidos", tipo: "int" },
-  { k: "notas_faturadas", label: "Notas", tipo: "int" },
   { k: "clientes_distintos", label: "Clientes", tipo: "int" },
   { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl" },
-  { k: "ticket_medio", label: "Ticket médio", tipo: "brl" },
-  { k: "desconto_medio_pct", label: "Desconto médio %", tipo: "pct" },
-  { k: "pct_efetivo_medio", label: "% efetivo", tipo: "pct" },
-  { k: "comissao_apurada", label: "Comissão apurada", tipo: "brl" },
-  { k: "comissao_liberada", label: "Liberada", tipo: "brl" },
-  { k: "comissao_pendente", label: "Pendente", tipo: "brl" },
-  { k: "prev_comissao_30d", label: "Previsto 30d", tipo: "brl" },
-  { k: "carteira_a_receber", label: "Carteira a receber", tipo: "brl" },
-  { k: "carteira_vencida", label: "Vencida", tipo: "brl" },
-  { k: "inadimplencia_pct", label: "Inadimplência %", tipo: "pct" },
-  { k: "ultima_venda", label: "Última venda", tipo: "data" },
 ];
 
 function fmt(c: Col, v: unknown) {
-  if (c.tipo === "brl") return fmtBRL(v as number);
-  if (c.tipo === "int") return fmtInt(v);
-  if (c.tipo === "pct") return fmtPct2(v);
-  return fmtData(v as string);
+  return c.tipo === "brl" ? fmtBRL(v as number) : fmtInt(v);
 }
 
 export function Dica({ texto, children }: { texto: string; children: React.ReactNode }) {
@@ -220,7 +207,7 @@ export default function RepresentantesPainel() {
     ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
     ["Próximo recebimento", tot.proxima], ["Carteira vencida", tot.vencida],
   ] as const;
-  const NCOL = COLS.length + FIN.length + 5;
+  const NCOL = COLS.length + FIN.length + 2; // + Representante + Região
 
   return (
     <PageShell>
@@ -269,10 +256,7 @@ export default function RepresentantesPainel() {
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
             {th("regiao", "Região")}
-            <TableHead className="sticky top-0 z-40 bg-muted">Telefone</TableHead>
-            {th("fop_comissao_percent", "% do FOP")}
-            {COLS.map((c) => th(c.k, c.label))}
-            <TableHead className="sticky top-0 z-40 whitespace-nowrap bg-muted">Apto a pagamento</TableHead>
+            {COLS.map((c) => th(c.k, c.label, "text-right"))}
             {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
           </TableRow></TableHeader>
 
@@ -303,21 +287,11 @@ export default function RepresentantesPainel() {
                     </span>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap">{r.telefone || "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums" onClick={(e) => e.stopPropagation()}>
-                    {r.fop_comissao_percent != null && r.fop_comissao_percent !== "" ? (
-                      <Dica texto="Percentual individual cadastrado no FOP, fora da régua da cartilha">
-                        <span className="underline decoration-dotted">{fmtPct2(r.fop_comissao_percent)}</span>
-                      </Dica>
-                    ) : "—"}
-                  </TableCell>
                   {COLS.map((c) => (
-                    <TableCell key={c.k} className={cn("whitespace-nowrap tabular-nums",
-                      c.k === "inadimplencia_pct" && Number(r[c.k]) > 0 && "bg-destructive/10 text-destructive")}>
+                    <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums">
                       {fmt(c, r[c.k])}
                     </TableCell>
                   ))}
-                  <TableCell onClick={(e) => e.stopPropagation()}><BadgeApto apto={!!r.apto_a_pagamento} /></TableCell>
                   {FIN.map((c) => {
                     const n = Number(r[c.k] ?? 0);
                     const vazio = c.k === "proximo_recebimento" && n === 0;
