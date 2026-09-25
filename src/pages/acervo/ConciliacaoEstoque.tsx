@@ -21,6 +21,22 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
+import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components/acervo/NotasSemBaixaDialog";
+
+function BotaoNotasSemBaixa() {
+  const notas = useNotasSemBaixa();
+  const [aberto, setAberto] = useState(false);
+  const n = notas.data?.length ?? 0;
+  const titulo = notas.error ? `Erro ao carregar notas: ${(notas.error as Error).message}` : n === 0 && !notas.isLoading ? "Nenhuma nota com baixa pendente" : undefined;
+  return <>
+    <span title={titulo}>
+      <Button variant="outline" size="sm" onClick={() => setAberto(true)} disabled={n === 0 && !notas.error} className={notas.error ? "text-destructive" : undefined}>
+        <FileWarning className="mr-2 h-4 w-4" />Notas sem baixa ({notas.isLoading ? "…" : notas.error ? "erro" : n})
+      </Button>
+    </span>
+    <NotasSemBaixaDialog open={aberto} onOpenChange={setAberto} />
+  </>;
+}
 
 /**
  * CONCILIAÇÃO DE ESTOQUE (24/09/2026) — irmã da Conciliação de Cadastro,
@@ -277,6 +293,7 @@ export default function ConciliacaoEstoque() {
       icone={Warehouse}
       estado={estado}
       acoes={<>
+        <BotaoNotasSemBaixa />
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
