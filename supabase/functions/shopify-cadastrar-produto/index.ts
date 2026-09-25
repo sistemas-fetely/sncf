@@ -21,6 +21,8 @@ const Q_SKU = `query($q: String!) {
   productVariants(first: 5, query: $q) { nodes { id sku barcode product { id title status handle } } }
 }`;
 
+const Q_COLECOES = `{ collections(first: 250) { nodes { id title } } }`;
+
 const M_SET = `mutation($input: ProductSetInput!) {
   productSet(synchronous: true, input: $input) {
     product { id handle status variants(first: 1) { nodes { id sku inventoryItem { id } } } }
@@ -31,12 +33,15 @@ const M_SET = `mutation($input: ProductSetInput!) {
 // deno-lint-ignore no-explicit-any
 type Linha = any;
 
-function montarInput(l: Linha) {
+function montarInput(l: Linha, colecaoIds: string[], locais: string[]) {
   const variante: Record<string, unknown> = {
     optionValues: [{ optionName: "Title", name: "Default Title" }],
     sku: String(l.sku).trim(),
     price: Number(l.preco_varejo).toFixed(2),
     inventoryPolicy: "DENY",
+    // Nasce estocado em TODOS os locais amarrados a um centro (XPM e SP), com 0.
+    // O push de estoque (15 min) leva a quantidade real.
+    inventoryQuantities: locais.map((loc) => ({ locationId: `gid://shopify/Location/${loc}`, name: "available", quantity: 0 })),
     inventoryItem: {
       tracked: true,
       ...(Number(l.peso_g) > 0
@@ -59,7 +64,7 @@ function montarInput(l: Linha) {
   if ((l.grupo ?? "").trim()) input.productType = String(l.grupo).trim();
 
   // Metacampos com fonte certa no SNCF (definições já existem na loja).
-  // Fora de propósito: custom.medida (formato quebrado na loja), custom.produto e custom.codigo (sem fonte no SNCF).
+  // Fora de propósito: custom.medida (formato quebrado na loja).
   const mf: Record<string, unknown>[] = [];
   const texto = (key: string, v: unknown) => {
     const s = String(v ?? "").trim();
@@ -75,10 +80,13 @@ function montarInput(l: Linha) {
   texto("tipo_produto", l.grupo);
   texto("marca", l.marca);
   texto("material", l.material);
+  texto("codigo", l.codigo_shopify);   // grupo(3)+tipo(3)+sigla — vw_shopify_atributos_produto
+  texto("produto", l.cod_cadastro);    // decisão Flavio 25/09: Produto = cód. cadastro
   decimal("altura", l.altura_cm);
   decimal("largura", l.largura_cm);
   decimal("comprimento", l.profundidade_cm);
   if (mf.length > 0) input.metafields = mf;
+  if (colecaoIds.length > 0) input.collections = colecaoIds;
   return input;
 }
 
@@ -116,7 +124,7 @@ Deno.serve(async (req) => {
     // Fonte do payload = vw_shopify_cadastro_fila (mesma regra da tela) + descricao_produto do cadastro.
     const { data: fila, error: fErr } = await supabase
       .from("vw_shopify_cadastro_fila")
-      .select("sku, cod_cadastro, fase, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, avisos, pode_enviar")
+      .select("sku, cod_cadastro, fase, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, avisos, pode_enviar, codigo_shopify, colecoes_shopify")
       .in("sku", skus);
     if (fErr) throw new Error(`leitura da fila falhou: ${fErr.message}`);
     const { data: cad, error: dErr } = await supabase
@@ -129,10 +137,27 @@ Deno.serve(async (req) => {
 
     const shop = await makeShopifyAdmin(supabase);
 
+    // Locais Shopify amarrados a um centro SNCF (fonte: shopify_location).
+    const { data: locs, error: lErr } = await supabase
+      .from("shopify_location").select("location_id").not("centro_id", "is", null).eq("ativo_shopify", true);
+    if (lErr) throw new Error(`leitura de shopify_location falhou: ${lErr.message}`);
+    const locais = (locs ?? []).map((x: Linha) => String(x.location_id));
+    if (locais.length === 0) throw new Error("nenhum local Shopify amarrado a centro em shopify_location");
+
+    // Coleções da loja, casadas por título normalizado (acento, espaço e pontuação não contam).
+    const norm = (s: unknown) => String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const qc = await shop.gql<Linha>(Q_COLECOES, {});
+    if (qc.status !== 200 || qc.errors) throw new Error(`leitura de coleções falhou: ${JSON.stringify(qc.errors ?? qc.body).slice(0, 300)}`);
+    const colecaoPorNome = new Map<string, string>();
+    for (const c of qc.data?.collections?.nodes ?? []) {
+      const k = norm(c.title);
+      if (k && !colecaoPorNome.has(k)) colecaoPorNome.set(k, c.id);
+    }
+
     for (const sku of skus) {
       const l = porSku.get(sku);
       if (!l) { resultados.push({ sku, status: "fora_da_fila", erro: "SKU não está na fila (fase/canal não elegível ou já existe no Shopify)." }); continue; }
-      if (!l.pode_enviar) { resultados.push({ sku, status: "bloqueado", erro: "Falta preço de varejo ou nome comercial.", avisos: l.avisos }); continue; }
+      if (!l.pode_enviar) { resultados.push({ sku, status: "bloqueado", erro: `Bloqueado pela fila: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}`, avisos: l.avisos }); continue; }
 
       // Anti-duplicata AO VIVO por SKU OU EAN: o espelho local pode ter fóssil, estar defasado,
       // cortar variantes (>100) ou o produto existir no Shopify com outro SKU e o mesmo EAN.
@@ -161,7 +186,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const input = montarInput(l);
+      const titulos: string[] = Array.isArray(l.colecoes_shopify) ? l.colecoes_shopify : [];
+      const faltando = titulos.filter((t) => !colecaoPorNome.has(norm(t)));
+      if (faltando.length > 0) {
+        resultados.push({ sku, status: "bloqueado", erro: `Coleção não existe na loja: ${faltando.join(", ")}. Crie no Shopify Admin antes.` });
+        continue;
+      }
+      const colecaoIds = titulos.map((t) => colecaoPorNome.get(norm(t))!) ;
+      const input = montarInput(l, colecaoIds, locais);
       if (dry_run) { resultados.push({ sku, status: "dry_run", avisos: l.avisos, payload: input }); continue; }
 
       const r = await shop.gql<Linha>(M_SET, { input });
@@ -171,6 +203,19 @@ Deno.serve(async (req) => {
         continue;
       }
       const p = r.data.productSet.product;
+      const itemGid: string = p.variants?.nodes?.[0]?.inventoryItem?.id ?? "";
+      const itemId = itemGid.split("/").pop() ?? "";
+      if (itemId) {
+        const agora = new Date().toISOString();
+        const { error: eErr } = await supabase.from("shopify_estoque").upsert(
+          locais.map((loc) => ({ inventory_item_id: itemId, location_id: loc, available: 0, updated_at: agora })),
+          { onConflict: "inventory_item_id,location_id" },
+        );
+        if (eErr) {
+          resultados.push({ sku, status: "erro", etapa: "espelho_estoque", erro: `produto criado (${p.handle}), mas espelho de estoque falhou: ${eErr.message}` });
+          continue;
+        }
+      }
       resultados.push({ sku, status: "ok", shopify_product_id: p.id, handle: p.handle, shopify_status: p.status, variante: p.variants?.nodes?.[0] ?? null });
     }
   } catch (e) {

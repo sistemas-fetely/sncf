@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -34,9 +34,12 @@ interface LinhaFila {
   peso_g: number | null;
   tem_descricao: boolean | null;
   tem_foto: boolean | null;
+  codigo_shopify: string | null;
+  colecoes_shopify: string[] | null;
   avisos: string[] | null;
   pode_enviar: boolean | null;
 }
+
 
 interface ResultadoSku {
   sku?: string;
@@ -56,11 +59,14 @@ const ROTULO_AVISO: Record<string, string> = {
   sem_preco_varejo: "Sem preço",
   sem_ean: "Sem EAN",
   sem_peso: "Sem peso",
+  sem_card_bling: "Sem card Bling",
+  sem_xpm: "Sem cadastro XPM",
+  sem_sigla_colecao: "Coleção sem sigla",
+  colecao_variante_sem_codigo: "Coleção com variante sem código no Shopify",
 };
 
-type FiltroFase = "todos" | "ativo" | "pre_venda";
-
 function jsonLegivel(v: unknown): string {
+
   if (v === null || v === undefined) return "—";
   return JSON.stringify(v, null, 2);
 }
@@ -70,11 +76,8 @@ function brl(v: number | null): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function normFase(f: string | null): string {
-  return (f ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s-]+/g, "_");
-}
-
 async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]> {
+
   const { data, error } = await supabase.functions.invoke(FN, { body: { skus, dry_run } });
   if (error) {
     // Tenta extrair a mensagem real devolvida pela função
@@ -94,8 +97,8 @@ async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]>
 
 export function ShopifyCadastroPainel() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<FiltroFase>("ativo");
   const [selecionados, setSelecionados] = useState<string[]>([]);
+
   const [payloadVisto, setPayloadVisto] = useState(false);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [payloads, setPayloads] = useState<ResultadoSku[]>([]);
@@ -113,18 +116,15 @@ export function ShopifyCadastroPainel() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_shopify_cadastro_fila")
-        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, avisos, pode_enviar")
+        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, codigo_shopify, colecoes_shopify, avisos, pode_enviar")
         .order("cod_cadastro");
       if (error) throw error;
       return (data ?? []) as LinhaFila[];
     },
   });
 
-  const visiveis = useMemo(() => {
-    const todas = linhas ?? [];
-    if (filtro === "todos") return todas;
-    return todas.filter((l) => normFase(l.fase) === filtro);
-  }, [linhas, filtro]);
+  const visiveis = linhas ?? [];
+
 
   function alternar(sku: string | null) {
     if (!sku) return;
@@ -187,19 +187,13 @@ export function ShopifyCadastroPainel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Cadastro no Shopify</CardTitle>
           <p className="text-sm text-muted-foreground">
-            SKUs em Pré-Venda ou Ativo, com canal B2C ou B2B+B2C, que ainda não existem no Shopify. Todo produto nasce como Rascunho (Draft) — ativar na vitrine é feito no Shopify Admin.
+            SKUs ativos, com canal B2C ou B2B+B2C, sem anúncio no Shopify (fonte: Conciliação de Cadastro). Todo produto nasce como Rascunho (Draft) — ativar na vitrine é feito no Shopify Admin.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={filtro} onValueChange={(v) => setFiltro(v as FiltroFase)}>
-              <TabsList className="h-8">
-                <TabsTrigger value="todos" className="text-xs">Todos</TabsTrigger>
-                <TabsTrigger value="ativo" className="text-xs">Ativo</TabsTrigger>
-                <TabsTrigger value="pre_venda" className="text-xs">Pré-Venda</TabsTrigger>
-              </TabsList>
-            </Tabs>
             <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+
             <Button
               size="sm"
               variant="outline"
@@ -245,9 +239,12 @@ export function ShopifyCadastroPainel() {
                   <TableHead>Nome comercial</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Canal</TableHead>
+                  <TableHead>Código Shopify</TableHead>
+                  <TableHead>Coleções</TableHead>
                   <TableHead className="text-right">Preço varejo</TableHead>
                   <TableHead>EAN</TableHead>
                   <TableHead>Avisos</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -257,6 +254,7 @@ export function ShopifyCadastroPainel() {
                       <Checkbox
                         checked={!!l.sku && selecionados.includes(l.sku)}
                         disabled={!l.pode_enviar || !l.sku}
+                        title={!l.pode_enviar ? `Bloqueado: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}` : undefined}
                         onCheckedChange={() => alternar(l.sku)}
                       />
                     </TableCell>
@@ -265,8 +263,11 @@ export function ShopifyCadastroPainel() {
                     <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
                     <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
                     <TableCell className="text-xs">{l.canal_venda ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{l.codigo_shopify ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{(l.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
                     <TableCell className="text-right text-xs tabular-nums">{brl(l.preco_varejo)}</TableCell>
                     <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
+
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(l.avisos ?? []).map((a) => (

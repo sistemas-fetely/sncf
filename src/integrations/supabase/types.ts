@@ -24702,6 +24702,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -29208,6 +29215,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -29570,6 +29584,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
             referencedColumns: ["sku"]
           },
           {
@@ -30570,6 +30591,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -31245,6 +31273,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
             referencedColumns: ["sku"]
           },
           {
@@ -49193,6 +49228,7 @@ export type Database = {
           no_catalogo_2026: boolean
           ordem: number
           rotulo: string
+          sigla_shopify: string | null
           variantes: string[]
         }
         Insert: {
@@ -49202,6 +49238,7 @@ export type Database = {
           no_catalogo_2026?: boolean
           ordem?: number
           rotulo: string
+          sigla_shopify?: string | null
           variantes?: string[]
         }
         Update: {
@@ -49211,6 +49248,7 @@ export type Database = {
           no_catalogo_2026?: boolean
           ordem?: number
           rotulo?: string
+          sigla_shopify?: string | null
           variantes?: string[]
         }
         Relationships: [
@@ -49502,6 +49540,7 @@ export type Database = {
         Row: {
           ativo: boolean
           codigo: string
+          colecao_shopify: string | null
           ordem: number
           rotulo: string
           variantes: string[]
@@ -49509,6 +49548,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           codigo: string
+          colecao_shopify?: string | null
           ordem?: number
           rotulo: string
           variantes?: string[]
@@ -49516,6 +49556,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           codigo?: string
+          colecao_shopify?: string | null
           ordem?: number
           rotulo?: string
           variantes?: string[]
@@ -54493,6 +54534,24 @@ export type Database = {
           updated_at?: string
           updated_at_shopify?: string | null
           verified_email?: boolean | null
+        }
+        Relationships: []
+      }
+      shopify_colecao_padrao: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          titulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          titulo: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          titulo?: string
         }
         Relationships: []
       }
@@ -69305,6 +69364,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -76224,6 +76290,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
             referencedColumns: ["sku"]
           },
           {
@@ -85753,6 +85826,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -87897,6 +87977,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_shopify_cadastro_fila"
             referencedColumns: ["sku"]
           },
@@ -88135,6 +88222,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
             referencedColumns: ["sku"]
           },
           {
@@ -92048,14 +92142,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -93051,14 +93145,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -94698,14 +94792,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -104489,11 +104583,23 @@ export type Database = {
           },
         ]
       }
+      vw_shopify_atributos_produto: {
+        Row: {
+          codigo_shopify: string | null
+          colecoes_shopify: string[] | null
+          produto_shopify: string | null
+          sigla_shopify: string | null
+          sku: string | null
+        }
+        Relationships: []
+      }
       vw_shopify_cadastro_fila: {
         Row: {
           avisos: string[] | null
           canal_venda: string | null
           cod_cadastro: string | null
+          codigo_shopify: string | null
+          colecoes_shopify: string[] | null
           ean: string | null
           familia: string | null
           fase: string | null
@@ -109301,6 +109407,13 @@ export type Database = {
             columns: ["codigo_material"]
             isOneToOne: false
             referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
             referencedColumns: ["sku"]
           },
           {
