@@ -55,8 +55,9 @@ export function AbaGerencial() {
           apurada: acc.apurada + r.comissaoApurada,
           liberada: acc.liberada + r.comissaoLiberada,
           aPagar: acc.aPagar + r.aPagar,
+          clientesNovos: acc.clientesNovos + r.clientesNovos,
         }),
-        { notas: 0, base: 0, apurada: 0, liberada: 0, aPagar: 0 },
+        { notas: 0, base: 0, apurada: 0, liberada: 0, aPagar: 0, clientesNovos: 0 },
       ),
     [g.representantes],
   );
@@ -114,7 +115,7 @@ export function AbaGerencial() {
 
       {!g.carregando && !g.erro && !g.semMovimento && (
         <>
-          <div className="grid gap-3 md:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-5">
             <Numerao titulo="Base faturada pelos representantes" valor={fmtBRL(num(g.mes?.base_faturada))} />
             <Numerao titulo="Comissão apurada" valor={fmtBRL(num(g.mes?.comissao_apurada))} />
             <Numerao
@@ -128,6 +129,11 @@ export function AbaGerencial() {
               valor={fmtBRL(num(g.mes?.total_a_pagar))}
               detalhe={g.mes?.pagar_ate ? `Pagar até ${fmtData(g.mes.pagar_ate)}` : "Sem data limite definida"}
             />
+            <Numerao
+              titulo="Clientes novos abertos"
+              valor={fmtInt(g.mes?.clientes_novos_rep)}
+              detalhe={`${fmtInt(g.mes?.clientes_recompra_rep)} recompras`}
+            />
           </div>
 
           <Card>
@@ -140,6 +146,7 @@ export function AbaGerencial() {
                   <TableRow>
                     <TableHead>Competência</TableHead>
                     <TableHead className="text-right">Representantes ativos</TableHead>
+                    <TableHead className="text-right">Clientes novos</TableHead>
                     <TableHead className="text-right">Notas</TableHead>
                     <TableHead className="text-right">Base faturada</TableHead>
                     <TableHead className="text-right">Comissão apurada</TableHead>
@@ -153,6 +160,7 @@ export function AbaGerencial() {
                     <TableRow key={String(l.competencia)}>
                       <TableCell>{fmtCompetencia(l.competencia)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(l.representantes_ativos)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtInt(l.clientes_novos_rep)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(l.notas)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.base_faturada))}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.comissao_apurada))}</TableCell>
@@ -184,6 +192,7 @@ export function AbaGerencial() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Representante</TableHead>
+                      <TableHead className="text-right">Novos</TableHead>
                       <TableHead className="text-right">Notas</TableHead>
                       <TableHead className="text-right">Base faturada</TableHead>
                       <TableHead className="text-right">Desconto médio %</TableHead>
@@ -197,6 +206,7 @@ export function AbaGerencial() {
                     {g.representantes.map((r) => (
                       <TableRow key={r.vendedorId}>
                         <TableCell className="font-medium">{r.representante}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(r.clientesNovos)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtInt(r.notas)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.baseFaturada)}</TableCell>
                         <TableCell className="text-right tabular-nums">{pct(r.descontoMedioPct)}</TableCell>
@@ -208,6 +218,7 @@ export function AbaGerencial() {
                     ))}
                     <TableRow className="border-t-2 border-foreground/30 font-medium">
                       <TableCell>Total</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtInt(totais.clientesNovos)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(totais.notas)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.base)}</TableCell>
                       <TableCell />
@@ -267,6 +278,9 @@ export function AbaGerencial() {
               </CardContent>
             </Card>
           </div>
+          <p className="text-xs text-muted-foreground">
+            Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
+          </p>
         </>
       )}
     </div>
