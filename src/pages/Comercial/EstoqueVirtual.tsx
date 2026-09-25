@@ -89,6 +89,8 @@ interface LinhaTabela {
   em_transito: number;
   /** Contábil por centro (código → un). */
   por_centro: Record<string, number>;
+  /** Vendas na janela por centro (código → un). */
+  por_centro_vendas: Record<string, number>;
 }
 
 interface CentroAtivo {
@@ -102,9 +104,22 @@ interface CentroAtivo {
 function totalCentros(p: LinhaTabela) {
   return Object.values(p.por_centro).reduce((s, v) => s + v, 0);
 }
+function totalCentrosVendas(p: LinhaTabela) {
+  return Object.values(p.por_centro_vendas).reduce((s, v) => s + v, 0);
+}
+/** Giro anualizado: vendas da janela ÷ contábil × (365 ÷ janela). Null sem base. */
+function giroAnual(vendas: number, contabil: number, janela: number): number | null {
+  if (!(contabil > 0) || !(vendas > 0) || !(janela > 0)) return null;
+  return (vendas / contabil) * (365 / janela);
+}
+function formatGiro(g: number | null) {
+  return g == null
+    ? <span className="text-muted-foreground">—</span>
+    : `${g.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`;
+}
 
 type Visao = "estoque" | "valor" | "centros";
-type ColSort = Col | "total" | `c:${string}`;
+type ColSort = Col | "total" | "giro_total" | `c:${string}` | `g:${string}`;
 const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
