@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useChamadoRelacao, mensagemErroChamado, type ChamadoRelacao } from "@/hooks/useChamadoRelacao";
 import {
   AlertTriangle,
   Hand,
@@ -274,6 +275,10 @@ function ChamadosConteudo() {
 
   const [acao, setAcao] = useState<AcaoTipo | null>(null);
   const [alvo, setAlvo] = useState<Chamado | null>(null);
+  const [relAlvo, setRelAlvo] = useState<ChamadoRelacao | null>(null);
+  // Relação com o chamado só é buscada ao abrir o menu da linha.
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const relMenu = useChamadoRelacao(menuId ?? undefined, !!menuId);
   const [motivo, setMotivo] = useState("");
   const [texto, setTexto] = useState("");
   const [interna, setInterna] = useState(false);
@@ -386,6 +391,7 @@ function ChamadosConteudo() {
   function abrir(tipoAcao: AcaoTipo, chamado: Chamado) {
     setAcao(tipoAcao);
     setAlvo(chamado);
+    setRelAlvo(relMenu.data ?? null);
     setMotivo("");
     setTexto("");
     setInterna(false);
@@ -416,7 +422,7 @@ function ChamadosConteudo() {
         const { error } = await supabase.rpc("responder_chamado", {
           p_chamado_id: alvo.chamado_id,
           p_texto: texto.trim(),
-          p_interna: interna,
+          p_interna: interna && relAlvo?.pode_mexer === true,
         });
         if (error) throw error;
         toast.success(interna ? "Nota interna registrada." : "Resposta enviada.");
@@ -452,7 +458,7 @@ function ChamadosConteudo() {
       await invalidar();
       fechar();
     } catch (e) {
-      toast.error(formatError(e));
+      toast.error(mensagemErroChamado(e));
     } finally {
       setExecutando(false);
     }
@@ -777,7 +783,9 @@ function ChamadosConteudo() {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         {podeEditar ? (
-                          <DropdownMenu>
+                          <DropdownMenu
+                            onOpenChange={(o) => setMenuId(o ? c.chamado_id : null)}
+                          >
                             <DropdownMenuTrigger asChild>
                               <Button
                                 variant="ghost"
@@ -789,31 +797,45 @@ function ChamadosConteudo() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              {podePegar && (
+                              {menuId !== c.chamado_id || relMenu.isLoading ? (
+                                <DropdownMenuItem disabled>Carregando…</DropdownMenuItem>
+                              ) : relMenu.isError ? (
+                                <DropdownMenuItem disabled>
+                                  {mensagemErroChamado(relMenu.error)}
+                                </DropdownMenuItem>
+                              ) : (
+                              <>
+                              {relMenu.data?.pode_mexer && podePegar && (
                                 <DropdownMenuItem onClick={() => abrir("pegar", c)}>
                                   <Hand className="mr-2 h-4 w-4" /> Pegar
                                 </DropdownMenuItem>
                               )}
+                              {relMenu.data?.pode_responder && (
                               <DropdownMenuItem onClick={() => abrir("responder", c)}>
                                 <MessageSquare className="mr-2 h-4 w-4" /> Responder
                               </DropdownMenuItem>
-                              {podePausar && (
+                              )}
+                              {relMenu.data?.pode_mexer && podePausar && (
                                 <DropdownMenuItem onClick={() => abrir("pausar", c)}>
                                   <Pause className="mr-2 h-4 w-4" /> Pausar
                                 </DropdownMenuItem>
                               )}
-                              {podeRetomar && (
+                              {relMenu.data?.pode_mexer && podeRetomar && (
                                 <DropdownMenuItem onClick={() => abrir("retomar", c)}>
                                   <Play className="mr-2 h-4 w-4" /> Retomar
                                 </DropdownMenuItem>
                               )}
+                              {relMenu.data?.pode_mexer && (
                               <DropdownMenuItem onClick={() => abrir("passar", c)}>
                                 <ArrowRightLeft className="mr-2 h-4 w-4" /> Passar
                               </DropdownMenuItem>
+                              )}
                               {meu && (
                                 <DropdownMenuItem onClick={() => abrir("largar", c)}>
                                   <LogOut className="mr-2 h-4 w-4" /> Largar
                                 </DropdownMenuItem>
+                              )}
+                              </>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -881,6 +903,7 @@ function ChamadosConteudo() {
                     placeholder="Escreva a resposta ao solicitante"
                   />
                 </div>
+                {relAlvo?.pode_mexer && (
                 <div className="flex items-start gap-3 rounded-md border border-border p-3">
                   <Switch
                     id="interna"
@@ -895,6 +918,7 @@ function ChamadosConteudo() {
                     </p>
                   </div>
                 </div>
+                )}
               </>
             )}
 

@@ -8900,6 +8900,7 @@ export type Database = {
           cnpj_emitente: string | null
           codigo: string
           contabil: boolean
+          contagem_pelo_armazem: boolean
           criado_em: string
           exige_contagem: boolean
           id: string
@@ -8918,6 +8919,7 @@ export type Database = {
           cnpj_emitente?: string | null
           codigo: string
           contabil?: boolean
+          contagem_pelo_armazem?: boolean
           criado_em?: string
           exige_contagem?: boolean
           id?: string
@@ -8936,6 +8938,7 @@ export type Database = {
           cnpj_emitente?: string | null
           codigo?: string
           contabil?: boolean
+          contagem_pelo_armazem?: boolean
           criado_em?: string
           exige_contagem?: boolean
           id?: string
@@ -93976,14 +93979,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -104120,14 +104123,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -110478,6 +110481,10 @@ export type Database = {
         }[]
       }
       fn_casar_sinteticas_extrato: { Args: never; Returns: Json }
+      fn_chamado_minha_relacao: {
+        Args: { p_chamado_id: string }
+        Returns: Json
+      }
       fn_chamado_pode_mexer: {
         Args: { p_chamado: Database["public"]["Tables"]["chamado"]["Row"] }
         Returns: boolean
