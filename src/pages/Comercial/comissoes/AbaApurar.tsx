@@ -155,24 +155,25 @@ export function AbaApurar() {
             Nenhuma nota pendente de apuração.
           </p>
         ) : (
-          <Table>
+          <Table containerClassName="max-h-[min(70vh,48rem)]">
             <TableHeader>
               <TableRow>
-                <TableHead>Representante</TableHead>
-                <TableHead>Pedido</TableHead>
-                <TableHead>NF</TableHead>
-                <TableHead className="text-right">Base comissionável</TableHead>
-                <TableHead className="text-right">Desconto</TableHead>
-                <TableHead className="text-right">Comissão da nota</TableHead>
-                <TableHead>Situação</TableHead>
+                <TableHead className="sticky left-0 top-0 z-50 w-48 border-r bg-muted">Representante</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">NF</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Base comissionável</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Desconto</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Comissão da nota</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">Situação</TableHead>
               </TableRow>
             </TableHeader>
+
             <TableBody>
               {notas.map((n) => {
                 const motivo = motivoBloqueio(n.situacao);
                 return (
                   <TableRow key={n.nf_numero} className={motivo ? "bg-destructive/5" : undefined}>
-                    <TableCell className="font-medium">{n.representante ?? "—"}</TableCell>
+                    <TableCell className="sticky left-0 z-20 w-48 border-r bg-card font-medium">{n.representante ?? "—"}</TableCell>
                     <TableCell>{n.pedido ?? "—"}</TableCell>
                     <TableCell>{n.nf_numero}</TableCell>
                     <TableCell className="text-right">{fmtBRL(n.base_comissionavel)}</TableCell>

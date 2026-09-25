@@ -152,21 +152,24 @@ export function AbaContestacoes() {
           {ativas.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma contestação em aberto.</p>
           ) : (
-            <Table>
+            <Table containerClassName="max-h-[min(70vh,48rem)]">
               <TableHeader><TableRow>
-                <TableHead>Representante</TableHead><TableHead>NF</TableHead><TableHead>Pedido</TableHead>
-                <TableHead>Aberta em</TableHead><TableHead>Origem</TableHead><TableHead>Motivo</TableHead>
-                <TableHead className="text-right">Valor apurado</TableHead><TableHead className="text-right">Esperado</TableHead>
-                <TableHead className="text-right">Diferença</TableHead><TableHead>Status</TableHead><TableHead />
+                <TableHead className="sticky left-0 top-0 z-50 w-48 border-r bg-muted">Representante</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">NF</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">Aberta em</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Origem</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Motivo</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Valor apurado</TableHead><TableHead className="sticky top-0 z-40 bg-muted text-right">Esperado</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Diferença</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Status</TableHead><TableHead className="sticky top-0 z-40 bg-muted" />
               </TableRow></TableHeader>
+
               <TableBody>
                 {ativas.map((c) => {
                   const velha = new Date(c.aberta_em).getTime() < seteDias;
                   const dif = c.valor_esperado != null ? Number(c.valor_esperado) - Number(c.valor_apurado ?? 0) : null;
                   return (
                     <TableRow key={c.id} className={velha ? "bg-destructive/10" : ""}>
-                      <TableCell className="font-medium">{c.representante}</TableCell>
+                      <TableCell className="sticky left-0 z-20 w-48 border-r bg-card font-medium">{c.representante}</TableCell>
                       <TableCell>{c.nf ?? "—"}</TableCell>
+
                       <TableCell>{c.pedido ?? "—"}</TableCell>
                       <TableCell className={velha ? "text-destructive font-medium" : ""}>{fmtData(c.aberta_em)}</TableCell>
                       <TableCell>{c.origem ?? "—"}</TableCell>

@@ -183,14 +183,19 @@ export default function RepresentantesPainel() {
     }
   }
 
-  const th = (k: string, label: string) => (
-    <TableHead key={k} className="whitespace-nowrap">
+  // Mesmo padrão de tabela fixa da Mesa de Produto / Conciliação: cabeçalho sticky top-0
+  // dentro do container rolável da Table, e primeira coluna sticky left-0.
+  const th = (k: string, label: string, extra?: string) => (
+    <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
       <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
         onClick={() => setOrd((o) => ({ k, asc: o.k === k ? !o.asc : false }))}>
         {label}<ArrowUpDown className="h-3 w-3" />
       </button>
     </TableHead>
   );
+  const thFixo = "sticky left-0 z-50 w-56 border-r bg-muted";
+  const tdFixo = "sticky left-0 z-20 w-56 border-r bg-card";
+
 
   const cards = [
     ["Vendido no total", tot.vendido], ["Comissão apurada", tot.apurada], ["Comissão liberada", tot.liberada],
@@ -233,17 +238,18 @@ export default function RepresentantesPainel() {
         </div>
       </div>
 
-      <Card className="mt-3"><CardContent className="p-0 overflow-x-auto">
-        <Table>
+      <Card className="mt-3"><CardContent className="p-0">
+        <Table containerClassName="max-h-[min(70vh,48rem)]">
           <TableHeader><TableRow>
-            {th("representante", "Representante")}
-            <TableHead>Prontidão</TableHead>
+            {th("representante", "Representante", thFixo)}
+            <TableHead className="sticky top-0 z-40 bg-muted">Prontidão</TableHead>
             {th("regiao", "Região")}
-            <TableHead>Telefone</TableHead>
+            <TableHead className="sticky top-0 z-40 bg-muted">Telefone</TableHead>
             {th("fop_comissao_percent", "% do FOP")}
             {COLS.map((c) => th(c.k, c.label))}
-            <TableHead>Apto a pagamento</TableHead>
+            <TableHead className="sticky top-0 z-40 whitespace-nowrap bg-muted">Apto a pagamento</TableHead>
           </TableRow></TableHeader>
+
           <TableBody>
             {q.isLoading ? (
               <TableRow><TableCell colSpan={NCOL} className="text-center text-muted-foreground py-8">Carregando…</TableCell></TableRow>
@@ -258,7 +264,7 @@ export default function RepresentantesPainel() {
               return (
                 <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
                   onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                  <TableCell className="font-medium whitespace-nowrap">{r.representante}</TableCell>
+                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>{r.representante}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                       {prontidao(r).map((c) => {
