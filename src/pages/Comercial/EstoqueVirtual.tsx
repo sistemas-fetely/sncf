@@ -745,11 +745,6 @@ export default function EstoqueVirtual() {
           }}
         >
           <TableHeader>
-            <TableRow className={LINHA_CABECALHO_COLADO}>
-              {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
-                  as larguras de referência a partir de 1440px. */}
-              {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
-              {cabecalho("nome", "Produto", "")}
             {visao === "centros" ? (
               <>
                 {/* Nível 1: rótulo do centro ocupando o par (Qtd · Giro) */}
