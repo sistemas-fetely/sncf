@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AbaReconciliacao } from "./AbaReconciliacao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Users, ArrowUpDown, Search, RefreshCw } from "lucide-react";
@@ -89,6 +91,8 @@ type ErroSync = { nome?: string; nome_completo?: string; email?: string; motivo?
 export default function RepresentantesPainel() {
   const nav = useNavigate();
   const qc = useQueryClient();
+  const [params, setParams] = useSearchParams();
+  const aba = params.get("aba") === "reconciliacao" ? "reconciliacao" : "painel";
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ord, setOrd] = useState<{ k: string; asc: boolean }>({ k: "valor_vendido_bruto", asc: false });
@@ -211,6 +215,13 @@ export default function RepresentantesPainel() {
         icone={Users}
         estado={`Espelho do cadastro do FOP. O FOP cadastra, o SNCF lê.${ultimaSync ? ` Última sincronia: ${new Date(ultimaSync).toLocaleString("pt-BR")}` : ""}`}
       />
+      <Tabs value={aba} onValueChange={(v) => setParams((p) => { const n = new URLSearchParams(p); n.set("aba", v); return n; }, { replace: true })}>
+        <TabsList className="mb-3">
+          <TabsTrigger value="painel">Painel</TabsTrigger>
+          <TabsTrigger value="reconciliacao">Reconciliação</TabsTrigger>
+        </TabsList>
+        <TabsContent value="reconciliacao"><AbaReconciliacao /></TabsContent>
+        <TabsContent value="painel">
       <div className="mb-3 flex justify-end">
         <Button size="sm" onClick={sincronizar} disabled={sincronizando}>
           <RefreshCw className={cn("h-4 w-4 mr-1", sincronizando && "animate-spin")} />
@@ -306,6 +317,8 @@ export default function RepresentantesPainel() {
           </TableBody>
         </Table>
       </CardContent></Card>
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={!!errosSync} onOpenChange={(o) => !o && setErrosSync(null)}>
         <DialogContent className="max-w-lg">
