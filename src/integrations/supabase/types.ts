@@ -47759,6 +47759,39 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_fase_evento: {
+        Row: {
+          ator_id: string | null
+          created_at: string
+          fase_de: string | null
+          fase_para: string | null
+          id: number
+          motivo: string | null
+          origem: string
+          sku: string
+        }
+        Insert: {
+          ator_id?: string | null
+          created_at?: string
+          fase_de?: string | null
+          fase_para?: string | null
+          id?: never
+          motivo?: string | null
+          origem: string
+          sku: string
+        }
+        Update: {
+          ator_id?: string | null
+          created_at?: string
+          fase_de?: string | null
+          fase_para?: string | null
+          id?: never
+          motivo?: string | null
+          origem?: string
+          sku?: string
+        }
+        Relationships: []
+      }
       produto_ficha_nascimento: {
         Row: {
           bloco: string
@@ -54392,6 +54425,8 @@ export type Database = {
           estampa: string | null
           familia: string | null
           fase: string | null
+          fase_alterada_motivo: string | null
+          fase_alterada_por: string | null
           grupo: string | null
           largura_cm: number | null
           linha: string | null
@@ -54434,6 +54469,8 @@ export type Database = {
           estampa?: string | null
           familia?: string | null
           fase?: string | null
+          fase_alterada_motivo?: string | null
+          fase_alterada_por?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
@@ -54476,6 +54513,8 @@ export type Database = {
           estampa?: string | null
           familia?: string | null
           fase?: string | null
+          fase_alterada_motivo?: string | null
+          fase_alterada_por?: string | null
           grupo?: string | null
           largura_cm?: number | null
           linha?: string | null
