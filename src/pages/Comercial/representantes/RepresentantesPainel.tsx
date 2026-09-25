@@ -21,13 +21,15 @@ import { fmtBRL, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
-type Col = { k: string; label: string; tipo: "brl" | "int"; w: string };
+type Col = { k: string; label: string; tipo: "brl" | "int" };
 // Tabela com 11 colunas (Representante + Região + estas 3 + 3 novas + as 3 FIN).
 // As demais métricas continuam na ficha do representante (aba Resumo).
+// Mesmo padrão de fonte e proporções das outras tabelas grandes (Títulos a Receber):
+// fonte padrão, larguras naturais — legibilidade vem antes de caber.
 const COLS: Col[] = [
-  { k: "pedidos_total", label: "Pedidos", tipo: "int", w: "w-[64px]" },
-  { k: "clientes_distintos", label: "Cli.", tipo: "int", w: "w-[56px]" },
-  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl", w: "w-[92px]" },
+  { k: "pedidos_total", label: "Pedidos", tipo: "int" },
+  { k: "clientes_distintos", label: "Clientes", tipo: "int" },
+  { k: "valor_vendido_bruto", label: "Vendido", tipo: "brl" },
 ];
 
 function fmt(c: Col, v: unknown) {
@@ -75,6 +77,10 @@ const FIN: { k: string; label: string; dica?: string }[] = [
 
 function dicaAReceber(r: Linha) {
   return `Tudo que ainda falta o representante receber pelos pedidos já vendidos. Direito adquirido (cliente já pagou): ${fmtBRL(Number(r.a_receber_direito_adquirido ?? 0))} · Depende do cliente pagar: ${fmtBRL(Number(r.a_receber_depende_do_cliente ?? 0))}`;
+}
+
+function dicaInadimplencia(r: Linha) {
+  return `Carteira vencida: ${fmtBRL(Number(r.carteira_vencida ?? 0))} em ${Number(r.parcelas_vencidas ?? 0)} parcela(s). Maior atraso: ${Number(r.maior_atraso_dias ?? 0)} dias. Comissão travada por inadimplência: ${fmtBRL(Number(r.comissao_travada_inadimplencia ?? 0))}.`;
 }
 
 const FILTROS = [
@@ -264,15 +270,15 @@ export default function RepresentantesPainel() {
       </div>
 
       <Card className="mt-3"><CardContent className="p-0">
-        <Table containerClassName="max-h-[min(70vh,48rem)]" className="table-fixed w-full text-[11px] [&_td]:px-2 [&_td]:py-2 [&_th]:px-2">
+        <Table containerClassName="max-h-[min(70vh,48rem)]" className="w-full">
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
-            {th("regiao", "Região", "w-[76px]")}
-            {COLS.map((c) => th(c.k, c.label, cn("text-right", c.w)))}
-            {th("ultima_venda_data", "Última venda", "text-right w-[96px]")}
-            {th("desconto_medio_pct", "Desconto médio %", "text-right w-[72px]", DICA_DESCONTO)}
-            {th("media_mensal_3m", "Média mensal (3m)", "text-right w-[92px]")}
-            {FIN.map((c) => th(c.k, c.label, cn("text-right", c.k === "proximo_recebimento" ? "w-[96px]" : "w-[88px]"), c.dica))}
+            {th("regiao", "Região")}
+            {COLS.map((c) => th(c.k, c.label, "text-right"))}
+            {th("ultima_venda_data", "Última venda", "text-right")}
+            {th("desconto_medio_pct", "Desconto médio %", "text-right", DICA_DESCONTO)}
+            {th("media_mensal_3m", "Média mensal (3m)", "text-right")}
+            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
           </TableRow></TableHeader>
 
           <TableBody>
@@ -357,9 +363,16 @@ export default function RepresentantesPainel() {
                     return (
                       <TableCell key={c.k} className={cn("whitespace-nowrap text-right tabular-nums", !vazio && n === 0 && "text-muted-foreground/50")}
                         onClick={c.k === "comissao_a_receber" ? (e) => e.stopPropagation() : undefined}>
-                        {c.k === "comissao_a_receber"
-                          ? <Dica texto={dicaAReceber(r)}><span className="underline decoration-dotted">{valor}</span></Dica>
-                          : valor}
+                        {c.k === "comissao_a_receber" ? (
+                          <span className="inline-flex items-center justify-end gap-1.5">
+                            <Dica texto={dicaAReceber(r)}><span className="underline decoration-dotted">{valor}</span></Dica>
+                            {Number(r.carteira_vencida ?? 0) > 0 && (
+                              <Dica texto={dicaInadimplencia(r)}>
+                                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive cursor-help" aria-label="Carteira vencida" />
+                              </Dica>
+                            )}
+                          </span>
+                        ) : valor}
                       </TableCell>
                     );
                   })}
