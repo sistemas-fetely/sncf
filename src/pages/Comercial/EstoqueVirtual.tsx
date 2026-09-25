@@ -736,18 +736,69 @@ export default function EstoqueVirtual() {
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
       ) : <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
-        <Table className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2" containerClassName="max-h-[min(62vh,46rem)]">
+        <Table
+          className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2"
+          containerClassName="max-h-[min(62vh,46rem)]"
+          style={{
+            ["--fila-topo-colado" as string]: "0px",
+            ["--fila-topo-colado-2" as string]: visao === "centros" ? `${alturaGrupo}px` : undefined,
+          }}
+        >
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
               {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
                   as larguras de referência a partir de 1440px. */}
               {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {visao !== "centros" && <>
+            {visao === "centros" ? (
+              <>
+                {/* Nível 1: rótulo do centro ocupando o par (Qtd · Giro) */}
+                <TableRow ref={grupoRef} className={LINHA_CABECALHO_COLADO}>
+                  <CabecalhoColuna
+                    rotulo="Código"
+                    rowSpan={2}
+                    dir={sort?.column === "cod" ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna("cod")}
+                    className="font-medium w-[59px] min-[1440px]:w-[76px] align-bottom"
+                  />
+                  <CabecalhoColuna
+                    rotulo="Produto"
+                    rowSpan={2}
+                    dir={sort?.column === "nome" ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna("nome")}
+                    className="font-medium align-bottom"
+                  />
+                  {centros.map((c) => (
+                    <TableHead
+                      key={c.codigo}
+                      colSpan={2}
+                      className="border-l border-border/60 text-center font-semibold"
+                      title={c.nome ?? c.codigo}
+                    >
+                      {c.rotulo_curto ?? c.codigo}
+                    </TableHead>
+                  ))}
+                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
+                </TableRow>
+                {/* Nível 2: o par Qtd · Giro de cada centro */}
+                <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
+                  {centros.map((c) => (
+                    <Fragment key={c.codigo}>
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                    </Fragment>
+                  ))}
+                  {cabecalho("total", "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
+                </TableRow>
+              </>
+            ) : (
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
+                {cabecalho("nome", "Produto", "")}
                 {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
                 {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
-              </>}
-              {visao === "estoque" && <>
+                {visao === "estoque" && <>
                 {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("realxpm", "Real XPM", "w-[72px] min-[1440px]:w-[84px]", true)}
