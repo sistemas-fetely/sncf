@@ -763,6 +763,7 @@ export default function EstoqueVirtual() {
                     onOrdenar={() => ordenarColuna("nome")}
                     className="font-medium align-bottom"
                   />
+                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
                   {centros.map((c) => (
                     <TableHead
                       key={c.codigo}
@@ -773,18 +774,17 @@ export default function EstoqueVirtual() {
                       {c.rotulo_curto ?? c.codigo}
                     </TableHead>
                   ))}
-                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
+                  {cabecalho("total", "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                      {cabecalho(`g:${c.codigo}`, "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
-                  {cabecalho("total", "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                  {cabecalho("giro_total", "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                 </TableRow>
               </>
             ) : (
@@ -885,24 +885,24 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
                 </>}
                 {visao === "centros" && <>
+                  <TableCell className="!px-1.5 text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
+                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
+                  </TableCell>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
                     const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
                       <Fragment key={c.codigo}>
-                        <TableCell className="text-right tabular-nums border-l border-border/60">
+                        <TableCell className="!px-1.5 text-right tabular-nums border-l border-border/60">
                           {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                        <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                           {formatGiro(g)}
                         </TableCell>
                       </Fragment>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
-                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
-                  </TableCell>
                 </>}
               </TableRow>
             ))}
