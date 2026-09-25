@@ -721,8 +721,10 @@ export default function EstoqueVirtual() {
                   as larguras de referência a partir de 1440px. */}
               {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
-              {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
+              {visao !== "centros" && <>
+                {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
+                {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
+              </>}
               {visao === "estoque" && <>
                 {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
@@ -750,17 +752,33 @@ export default function EstoqueVirtual() {
               </>}
               {visao === "centros" && <>
                 {centros.map((c) => (
-                  <CabecalhoColuna
-                    key={c.codigo}
-                    rotulo={c.rotulo_curto ?? c.codigo}
-                    title={c.nome ?? c.codigo}
-                    dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
-                    onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
-                    className="font-medium w-[72px] min-[1440px]:w-[84px]"
-                    alinharDireita
-                  />
+                  <Fragment key={c.codigo}>
+                    <CabecalhoColuna
+                      rotulo={c.rotulo_curto ?? c.codigo}
+                      title={c.nome ?? c.codigo}
+                      dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
+                      onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
+                      className="font-medium w-[64px] min-[1440px]:w-[76px] border-l border-border/60"
+                      alinharDireita
+                    />
+                    <CabecalhoColuna
+                      rotulo="Giro"
+                      title={`Giro anualizado do produto neste centro: vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`}
+                      dir={sort?.column === `g:${c.codigo}` ? sort.direction : null}
+                      onOrdenar={() => ordenarColuna(`g:${c.codigo}`)}
+                      className="font-medium w-[48px] min-[1440px]:w-[56px] text-muted-foreground"
+                      alinharDireita
+                    />
+                  </Fragment>
                 ))}
-                {cabecalho("total", "Total", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("total", "Total", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                {cabecalho(
+                  "giro_total",
+                  "Giro",
+                  "w-[48px] min-[1440px]:w-[56px] text-muted-foreground",
+                  true,
+                  `Giro anualizado do produto (todos os centros): vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`,
+                )}
               </>}
             </TableRow>
           </TableHeader>
