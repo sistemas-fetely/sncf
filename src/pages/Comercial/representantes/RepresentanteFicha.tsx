@@ -177,7 +177,7 @@ function Extrato({ det }: { det: Linha[] }) {
             const s = SITUACAO[r.situacao_parcela] ?? { label: r.situacao_parcela ?? "—", cls: "" };
             return (
               <TableRow key={`${r.nf_id}-${r.titulo_id ?? i}`} className={i === 0 ? "border-t-2" : ""}>
-                <TableCell>{i === 0 ? r.nf : ""}</TableCell>
+                <TableCell className="sticky left-0 z-20 w-20 border-r bg-card">{i === 0 ? r.nf : ""}</TableCell>
                 <TableCell>{i === 0 ? fmtData(r.nf_emissao) : ""}</TableCell>
                 <TableCell>{i === 0 ? r.pedido : ""}</TableCell>
                 <TableCell className="max-w-[180px] truncate" title={r.cliente}>{i === 0 ? r.cliente : ""}</TableCell>
