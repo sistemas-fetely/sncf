@@ -55284,6 +55284,10 @@ export type Database = {
       sncf_navegacao: {
         Row: {
           acesso_por: string
+          acesso_por_vinculo: boolean
+          acesso_por_vinculo_em: string | null
+          acesso_por_vinculo_motivo: string | null
+          acesso_por_vinculo_por: string | null
           apenas_super_admin: boolean
           ativo: boolean
           badge_fonte: string | null
@@ -55309,6 +55313,10 @@ export type Database = {
         }
         Insert: {
           acesso_por?: string
+          acesso_por_vinculo?: boolean
+          acesso_por_vinculo_em?: string | null
+          acesso_por_vinculo_motivo?: string | null
+          acesso_por_vinculo_por?: string | null
           apenas_super_admin?: boolean
           ativo?: boolean
           badge_fonte?: string | null
@@ -55334,6 +55342,10 @@ export type Database = {
         }
         Update: {
           acesso_por?: string
+          acesso_por_vinculo?: boolean
+          acesso_por_vinculo_em?: string | null
+          acesso_por_vinculo_motivo?: string | null
+          acesso_por_vinculo_por?: string | null
           apenas_super_admin?: boolean
           ativo?: boolean
           badge_fonte?: string | null
@@ -110264,6 +110276,10 @@ export type Database = {
         Args: { p_motivo?: string; p_nav_chave: string; p_so_leitura: boolean }
         Returns: undefined
       }
+      fn_declarar_tela_vinculo: {
+        Args: { p_motivo?: string; p_nav_chave: string; p_vinculo: boolean }
+        Returns: undefined
+      }
       fn_declarar_vinculo_nf_pedido: {
         Args: {
           p_declarado_por?: string
@@ -112900,6 +112916,10 @@ export type Database = {
         Args: { p_rota: string; p_status: string }
         Returns: {
           acesso_por: string
+          acesso_por_vinculo: boolean
+          acesso_por_vinculo_em: string | null
+          acesso_por_vinculo_motivo: string | null
+          acesso_por_vinculo_por: string | null
           apenas_super_admin: boolean
           ativo: boolean
           badge_fonte: string | null
