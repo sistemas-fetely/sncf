@@ -186,6 +186,19 @@ Deno.serve(async (req) => {
       return json(data)
     }
 
+    // ---------- extratos (meses fechados + situação do documento fiscal) ----------
+    if (acao === 'extratos') {
+      const sessao = typeof body.sessao === 'string' ? body.sessao : ''
+      if (!sessao) return json({ ok: false, erro: 'Sessão inválida.' }, 400)
+
+      const { data, error } = await supabase.rpc('fn_portal_extratos', { p_sessao: sessao })
+      if (error) throw new Error(`fn_portal_extratos: ${error.message}`)
+      // O formato do JSON é o contrato: repassado inteiro, sem remodelar.
+      return json(data)
+    }
+
+
+
     // ---------- estimar ----------
     if (acao === 'estimar') {
       const sessao = typeof body.sessao === 'string' ? body.sessao : ''

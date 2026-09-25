@@ -16,7 +16,8 @@ export type PortalAcao =
   | "sair"
   | "estimar"
   | "contestar"
-  | "aceitar_cartilha";
+  | "aceitar_cartilha"
+  | "extratos";
 
 const ERRO_REDE =
   "Não foi possível falar com o servidor agora. Verifique sua conexão e tente novamente.";
