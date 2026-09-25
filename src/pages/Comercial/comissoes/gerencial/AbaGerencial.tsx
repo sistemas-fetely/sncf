@@ -233,7 +233,7 @@ export function AbaGerencial() {
             </CardContent>
           </Card>
 
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle className="text-base">Inadimplência que trava comissão</CardTitle>
               </CardHeader>
@@ -256,7 +256,6 @@ export function AbaGerencial() {
                 )}
               </CardContent>
             </Card>
-          </div>
           <p className="text-xs text-muted-foreground">
             Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
           </p>
