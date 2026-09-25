@@ -428,7 +428,7 @@ function ComprovantesAguardandoBloco() {
                               onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
                             >
                               Confirmar
-                            </Button>
+                            </BotaoGuardado>
                           )}
                         </TableCell>
                       </TableRow>

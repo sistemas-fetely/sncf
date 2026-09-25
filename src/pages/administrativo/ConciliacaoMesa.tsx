@@ -612,7 +612,7 @@ export function MesaConciliacaoConteudo({
                         >
                           <Link2 className="h-3.5 w-3.5" />
                           {item.nota_sugerida ? "Conciliar" : "Analisar"}
-                        </Button>
+                        </BotaoGuardado>
                       </div>
                     </div>
                   </div>
@@ -817,7 +817,7 @@ export function MesaConciliacaoConteudo({
                             >
                               <Link2 className="h-3.5 w-3.5" />
                               Conciliar
-                            </Button>
+                            </BotaoGuardado>
                           </div>
                         </div>
                       </div>

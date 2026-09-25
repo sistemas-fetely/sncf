@@ -238,7 +238,7 @@ export default function AcaoAchadoBloco({
               <Loader2 className="h-4 w-4 animate-spin" />
             )}
             Confirmar e gravar
-          </Button>
+          </BotaoGuardado>
         </div>
       )}
 

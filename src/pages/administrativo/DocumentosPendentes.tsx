@@ -968,7 +968,7 @@ export default function DocumentosPendentes() {
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Marcar como enviadas
-              </Button>
+              </BotaoGuardado>
               <BotaoGuardado
                 slug="acao.pagar_executar"
                 rotuloAcao="Enviar pagamentos pelo sistema"
@@ -977,7 +977,7 @@ export default function DocumentosPendentes() {
               >
                 <Send className="h-4 w-4" />
                 Enviar pelo sistema
-              </Button>
+              </BotaoGuardado>
             </div>
           </div>
         </div>

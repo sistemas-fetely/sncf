@@ -208,7 +208,7 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
         >
           {salvando ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
           Criar Conta
-        </Button>
+        </BotaoGuardado>
         <Button
           size="sm"
           variant="outline"

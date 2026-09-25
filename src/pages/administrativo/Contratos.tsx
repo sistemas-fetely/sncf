@@ -413,7 +413,7 @@ export default function Contratos() {
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Novo Contrato
-            </Button>
+            </BotaoGuardado>
           </div>
         }
       />
@@ -675,7 +675,7 @@ export default function Contratos() {
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#fca5a5")}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </BotaoGuardado>
                       </div>
                     </TableCell>
                   </TableRow>
