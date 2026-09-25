@@ -89,11 +89,10 @@ interface LinhaTabela {
   em_transito: number;
 }
 
-type Visao = "estoque" | "valor" | "suprimento";
+type Visao = "estoque" | "valor";
 const SORT_PADRAO: Record<Visao, SortState<Col>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
-  suprimento: { column: "tempo", direction: "asc" },
 };
 const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
 function piorSaude(a: string | null, b: string | null) {
@@ -508,7 +507,6 @@ export default function EstoqueVirtual() {
         >
           <ToggleGroupItem value="estoque" size="sm" className="h-8 px-3 text-xs">Estoque</ToggleGroupItem>
           <ToggleGroupItem value="valor" size="sm" className="h-8 px-3 text-xs">Valor</ToggleGroupItem>
-          <ToggleGroupItem value="suprimento" size="sm" className="h-8 px-3 text-xs">Suprimento</ToggleGroupItem>
         </ToggleGroup>
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -540,16 +538,18 @@ export default function EstoqueVirtual() {
             <TableRow className={LINHA_CABECALHO_COLADO}>
               {cabecalho("cod", "Código", "w-[110px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[130px]")}
-              {cabecalho("saude", "Saúde", "w-[64px] text-center")}
+              {cabecalho("situacao", "Situação", "w-[120px]")}
+              {cabecalho("saude", "Saúde", "w-[56px] text-center")}
               {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[84px]", true)}
-                {cabecalho("fisico", "Físico", "w-[84px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[84px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[84px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[96px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
-                {cabecalho("tempo", "Tempo de estoque", "w-[124px]", true)}
+                {cabecalho("contabil", "Contábil", "w-[76px]", true)}
+                {cabecalho("fisico", "Físico", "w-[76px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[76px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[76px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[88px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[76px]", true)}
+                {cabecalho("tempo", "Tempo de estoque", "w-[76px]", true)}
+                {cabecalho("transito", "Em trânsito", "w-[76px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[80px]")}
               </>}
               {visao === "valor" && <>
                 {cabecalho("virtual", "Virtual", "w-[84px]", true)}
@@ -558,12 +558,6 @@ export default function EstoqueVirtual() {
                 {cabecalho("vcusto", "Valor custo", "w-[124px]", true)}
                 {cabecalho("vvenda", "Valor venda", "w-[124px]", true)}
                 {cabecalho("vemp", "Valor empenhado", "w-[132px]", true)}
-              </>}
-              {visao === "suprimento" && <>
-                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
-                {cabecalho("tempo", "Tempo de estoque", "w-[124px]", true)}
-                {cabecalho("transito", "Em trânsito", "w-[96px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[90px]")}
               </>}
             </TableRow>
           </TableHeader>
@@ -610,6 +604,10 @@ export default function EstoqueVirtual() {
                   </TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
+                  <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
+                    {formatDataCurta(p.eta_embarque)}
+                  </TableCell>
                 </>}
                 {visao === "valor" && <>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
@@ -623,14 +621,6 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_custo)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatBRL(p.valor_venda)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
-                </>}
-                {visao === "suprimento" && <>
-                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
-                  <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
-                    {formatDataCurta(p.eta_embarque)}
-                  </TableCell>
                 </>}
               </TableRow>
             ))}
