@@ -109,6 +109,19 @@ serve(async (req) => {
       p_user_id: userData.user.id,
     });
     if (!pode) {
+      // Registra a tentativa negada antes de devolver o 403; falha aqui nao muda a resposta.
+      const skuTentado = typeof body?.sku === "string" ? body.sku.trim() : "";
+      if (skuTentado) {
+        const { error: errNegado } = await supabase.from("produto_fase_evento").insert({
+          sku: skuTentado,
+          fase_de: null,
+          fase_para: typeof body?.fase_destino === "string" ? body.fase_destino.trim() || null : null,
+          ator_id: userData.user.id,
+          motivo: typeof body?.motivo === "string" && body.motivo.trim() ? body.motivo.trim() : null,
+          origem: "negado",
+        });
+        if (errNegado) console.error("[promover-fase-produto] falha ao registrar tentativa negada", errNegado);
+      }
       return json({ ok: false, erro: "Sem permissão para esta ação (acao.produto_promover_fase)." }, 403);
     }
 
