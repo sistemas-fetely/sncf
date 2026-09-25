@@ -118,9 +118,12 @@ function PaginaResumo({ representante, serie }: { representante: Linha; serie: L
       <section className="mt-4 grid grid-cols-[1fr_auto] gap-6">
         <div>
           <h1 className="text-[18pt] font-medium leading-tight">{representante.representante}</h1>
-          <p className="mt-1 text-[8.5pt] text-muted-foreground">
-            {representante.email_contato || "E-mail não informado"} · {representante.regiao || "Região não informada"}
-          </p>
+            <p className="mt-1 text-[8.5pt] text-muted-foreground">
+              {representante.email_contato || "E-mail não informado"}
+            </p>
+            {representante.regiao && (
+              <p className="text-[8.5pt] text-muted-foreground">Região: {representante.regiao}</p>
+            )}
         </div>
         <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-[7.5pt]">
           <dt className="text-muted-foreground">Relacionamento</dt><dd className="text-right tabular-nums">{periodo}</dd>
@@ -135,10 +138,6 @@ function PaginaResumo({ representante, serie }: { representante: Linha; serie: L
           <ValorGrande titulo="A receber" valor={representante.comissao_a_receber} />
           <ValorGrande titulo="Próximo recebimento" valor={representante.proximo_recebimento} detalhe={proximaData} />
         </div>
-        <p className="mt-3 text-[7.5pt] text-muted-foreground">
-          Direito adquirido (cliente já pagou): <span className="tabular-nums">{fmtBRL(numero(representante.a_receber_direito_adquirido))}</span>
-          {" · "}Aguardando o cliente pagar: <span className="tabular-nums">{fmtBRL(numero(representante.a_receber_depende_do_cliente))}</span>
-        </p>
       </section>
 
       <div className="mt-5 grid grid-cols-2 gap-7">
