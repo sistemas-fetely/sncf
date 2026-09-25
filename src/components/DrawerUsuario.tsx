@@ -301,8 +301,8 @@ export function DrawerUsuario({ userId, open, onOpenChange }: Props) {
                   className="w-full justify-start gap-2"
                   onClick={() => {
                     onOpenChange(false);
-                    if (data.clt?.id) navigate(`/colaboradores/${data.clt.id}`);
-                    else if (data.pj?.id) navigate(`/contratos-pj/${data.pj.id}`);
+                    // LEGADO→PESSOAS fatia 1 (25/09/2026): ramo CLT removido — /colaboradores/:id agora redireciona pra /pessoas (tabela colaboradores_clt vazia).
+                    if (data.pj?.id) navigate(`/contratos-pj/${data.pj.id}`);
                   }}
                 >
                   <ExternalLink className="h-4 w-4" />

@@ -631,7 +631,8 @@ const App = () => (
               {/* Protected routes */}
               <Route element={<AppLayout />}>
                 {/* /dashboard, /gestao-a-vista, /relatorios MIGRADOS pra GestaoVistaLayout (Sprint 2 — 29/04/2026) */}
-                <Route path="/desligamento/:id" element={<DesligamentoDetalhe />} />
+                {/* MUNDO MORTO (25/09/2026): ficha CLT fora do módulo Pessoas — colaboradores_clt com 0 linhas. Detalhe vive em /pessoas. */}
+                <Route path="/desligamento/:id" element={<Navigate to="/pessoas" replace />} />
                 <Route path="/pessoas" element={<Pessoas />} />
                 <Route path="/pessoas/panorama" element={<PanoramaAreas />} />
                 
@@ -682,11 +683,8 @@ const App = () => (
                     <RedirectToPessoasNovo />
                   </ProtectedRoute>
                 } />
-                <Route path="/colaboradores/:id" element={
-                  <ProtectedRoute>
-                    <ColaboradorDetalhe />
-                  </ProtectedRoute>
-                } />
+                {/* MUNDO MORTO (25/09/2026): ficha CLT fora do módulo Pessoas — colaboradores_clt com 0 linhas. Detalhe vive em /pessoas. */}
+                <Route path="/colaboradores/:id" element={<Navigate to="/pessoas" replace />} />
                 <Route path="/movimentacoes" element={
                   <ProtectedRoute>
                     <Movimentacoes />
@@ -732,11 +730,8 @@ const App = () => (
                     <RedirectToPessoasNovo />
                   </ProtectedRoute>
                 } />
-                <Route path="/contratos-pj/novo-manual" element={
-                  <ProtectedRoute>
-                    <CadastroManualContratoPJ />
-                  </ProtectedRoute>
-                } />
+                {/* MUNDO MORTO (25/09/2026): cadastro manual PJ fora do módulo Pessoas. Vínculo PJ novo nasce em /pessoas/novo. */}
+                <Route path="/contratos-pj/novo-manual" element={<Navigate to="/pessoas/novo" replace />} />
                 <Route path="/contratos-pj/:id" element={
                   <ProtectedRoute>
                     <ContratoPJDetalhe />
