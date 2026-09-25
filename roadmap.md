@@ -8,4 +8,4 @@
 - [x] Corrigir a Ficha do Produto: foto em destaque, campos longos sem transbordo, contraste dos valores e tipo de `canal_venda` atualizado.
 - [x] Adicionar regressão de fase com confirmação e motivo obrigatório na Ficha e na Mesa do Produto.
 
-- [ ] Refazer o extrato do representante em rota A4 dedicada de exatamente duas páginas; validar o PDF real.
+- [x] Refazer o extrato do representante em rota A4 dedicada de exatamente duas páginas; validar o PDF real.
