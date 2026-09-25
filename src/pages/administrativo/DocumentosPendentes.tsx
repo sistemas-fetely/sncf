@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo, useState } from "react";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -958,20 +959,20 @@ export default function DocumentosPendentes() {
                 <Package className="h-4 w-4" />
                 {exportando ? "Exportando..." : "Exportar Pacote"}
               </Button>
-              <Button
+              <BotaoGuardado
+                slug="acao.pagar_executar"
+                rotuloAcao="Marcar contas como enviadas"
                 variant="outline"
                 onClick={() => setMarcarOpen(true)}
-                disabled={pExec.carregando || !pExec.permitido}
-                title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
                 className="gap-2"
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Marcar como enviadas
               </Button>
-              <Button
+              <BotaoGuardado
+                slug="acao.pagar_executar"
+                rotuloAcao="Enviar pagamentos pelo sistema"
                 onClick={() => setEnviarSistemaOpen(true)}
-                disabled={pExec.carregando || !pExec.permitido}
-                title={!pExec.permitido ? "Sem permissão: acao.pagar_executar" : undefined}
                 className="gap-2 bg-success hover:bg-success text-white"
               >
                 <Send className="h-4 w-4" />

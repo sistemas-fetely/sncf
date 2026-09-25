@@ -4,6 +4,7 @@
  * Um clique ensina o sistema: ao dizer "é deste cliente", o pagador passa a
  * ser reconhecido sozinho nas próximas vezes.
  */
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
@@ -417,13 +418,14 @@ function ComprovantesAguardandoBloco() {
                               )}
                             </Badge>
                           ) : (
-                            <Button
+                            <BotaoGuardado
+                              slug="acao.pedido_dinheiro"
+                              rotuloAcao="Confirmar comprovante de pagamento"
+                              contexto={{ pedido_id: c.pedido_id ?? null }}
                               size="sm"
                               variant="outline"
                               className="h-7 text-xs"
                               onClick={() => c.pedido_id && setConfirmarPedidoId(c.pedido_id)}
-                              disabled={pDin.carregando || !pDin.permitido}
-                              title={!pDin.permitido ? "Sem permissão: acao.pedido_dinheiro" : undefined}
                             >
                               Confirmar
                             </Button>

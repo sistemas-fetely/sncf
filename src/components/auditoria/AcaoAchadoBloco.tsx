@@ -4,6 +4,7 @@
  * A tela não conhece nome de regra nem elegibilidade — quem recusa é o banco.
  * SISTEMA SUGERE / HUMANO DECIDE: simular primeiro, confirmar depois.
  */
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -224,12 +225,14 @@ export default function AcaoAchadoBloco({
               <Linhas pares={gravaria} />
             </div>
           </div>
-          <Button
+          <BotaoGuardado
+            slug="acao.auditoria_acao_corretiva"
+            rotuloAcao="Aplicar ação corretiva"
+            contexto={{ achado_id: (achado as { id?: unknown }).id ?? null }}
             size="sm"
             className="w-full gap-2"
             onClick={aplicar}
-            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending || pCorr.carregando || !pCorr.permitido}
-            title={!pCorr.permitido ? "Sem permissão: acao.auditoria_acao_corretiva" : undefined}
+            disabled={bloqueado || confirmar.isPending || rodarRegra.isPending}
           >
             {(confirmar.isPending || rodarRegra.isPending) && (
               <Loader2 className="h-4 w-4 animate-spin" />
