@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 type LinhaMatriz = {
   campo: string;
@@ -389,6 +390,10 @@ export default function FichaProduto() {
       setConfirmar(false);
     }
   }
+
+  const { permitido: podeFase, carregando: carregandoPermFase } = usePermissaoAcaoOuSuperAdmin("acao.produto_promover_fase");
+  const semPermFase = carregandoPermFase || !podeFase;
+  const tituloPermFase = !podeFase && !carregandoPermFase ? "Sem permissão: acao.produto_promover_fase" : undefined;
 
   async function mudarFase(faseDestino: string, motivoMudanca?: string, confirmarSaldoMudanca = false) {
     if (!produto?.sku || !faseDestino) return;
