@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { XpmCadastroPainel } from "@/components/acervo/XpmCadastroPainel";
+import { ShopifyCadastroPainel } from "@/components/acervo/ShopifyCadastroPainel";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -1068,11 +1069,7 @@ export default function DestinosCadastro() {
         </TabsContent>
 
         <TabsContent value="shopify" className="mt-4">
-          <Card>
-            <CardContent className="py-12 text-center">
-              <p className="text-sm text-muted-foreground">Em construção</p>
-            </CardContent>
-          </Card>
+          <ShopifyCadastroPainel />
         </TabsContent>
       </Tabs>
     </PageShell>
