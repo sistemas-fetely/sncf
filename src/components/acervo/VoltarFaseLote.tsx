@@ -4,6 +4,7 @@ import { ArrowDownCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -103,8 +104,11 @@ export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { p
 
   if ((!produtos.length && !sempreVisivel) || (!destino && !sempreVisivel)) return null;
 
-  const desabilitado = produtos.length === 0 || !destino;
-  const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : undefined;
+  const { permitido: podeFase, carregando: carregandoPermFase } = usePermissaoAcaoOuSuperAdmin("acao.produto_promover_fase");
+  const semPermFase = carregandoPermFase || !podeFase;
+
+  const desabilitado = produtos.length === 0 || !destino || semPermFase;
+  const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : (!podeFase && !carregandoPermFase) ? "Sem permissão: acao.produto_promover_fase" : undefined;
 
   return <>
     <Button variant="outline" size="sm" onClick={() => { zerar(); setAberto(true); }} disabled={desabilitado} title={tituloDesabilitado}>
