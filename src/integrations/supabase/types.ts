@@ -8961,6 +8961,7 @@ export type Database = {
           parceiro_id: string | null
           poder_de_terceiro: boolean
           prazo_contagem_dias: number | null
+          rotulo_curto: string | null
           tipo: string
           uf: string | null
           vende: boolean
@@ -8980,6 +8981,7 @@ export type Database = {
           parceiro_id?: string | null
           poder_de_terceiro?: boolean
           prazo_contagem_dias?: number | null
+          rotulo_curto?: string | null
           tipo?: string
           uf?: string | null
           vende?: boolean
@@ -8999,6 +9001,7 @@ export type Database = {
           parceiro_id?: string | null
           poder_de_terceiro?: boolean
           prazo_contagem_dias?: number | null
+          rotulo_curto?: string | null
           tipo?: string
           uf?: string | null
           vende?: boolean
