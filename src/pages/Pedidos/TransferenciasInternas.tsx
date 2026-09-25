@@ -104,6 +104,8 @@ export default function TransferenciasInternas() {
   });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "itens" });
 
+  const centrosQ = useCentrosDestino();
+
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
