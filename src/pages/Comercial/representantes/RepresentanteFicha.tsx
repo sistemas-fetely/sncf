@@ -344,7 +344,7 @@ export default function RepresentanteFicha() {
 
   const periodo = `${fmtData(k.primeira_venda)} → ${fmtData(k.ultima_venda)}`;
   const competencia = sp.get("competencia");
-  const parametrosImpressao = new URLSearchParams({ imprimir: "1" });
+  const parametrosImpressao = new URLSearchParams();
   if (competencia) parametrosImpressao.set("competencia", competencia);
   const rotaImpressao = `/comercial/representantes/${vendedorId}/extrato-impressao?${parametrosImpressao.toString()}`;
 
@@ -362,7 +362,7 @@ export default function RepresentanteFicha() {
         <BadgeApto apto={!!k.apto_a_pagamento} />
         <div className="flex-1" />
         <Button asChild size="sm" variant="outline">
-          <Link to={rotaImpressao} target="_blank" rel="noopener noreferrer"><Printer className="h-4 w-4 mr-1" />Baixar PDF</Link>
+          <Link to={rotaImpressao}><Printer className="h-4 w-4 mr-1" />Baixar PDF</Link>
         </Button>
       </div>
 

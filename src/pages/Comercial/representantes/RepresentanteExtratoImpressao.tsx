@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
+import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -304,7 +305,6 @@ export default function RepresentanteExtratoImpressao() {
   const competenciaValida = RE_COMPETENCIA.test(competencia);
   const inicio = competenciaValida ? `${competencia}-01` : "";
   const fim = competenciaValida ? proximoMes(competencia) : "";
-  const jaImprimiu = useRef(false);
 
   const representanteQ = useQuery({
     queryKey: ["representante-extrato-impressao", vendedorId],
@@ -350,16 +350,6 @@ export default function RepresentanteExtratoImpressao() {
   const representante = representanteQ.data?.[0];
   const pronto = competenciaValida && !carregando && !erro && Boolean(representante);
 
-  useEffect(() => {
-    if (!pronto || params.get("imprimir") !== "1" || jaImprimiu.current) return;
-    jaImprimiu.current = true;
-    const imprimir = async () => {
-      await document.fonts.ready;
-      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
-      window.print();
-    };
-    void imprimir();
-  }, [params, pronto]);
 
   if (!competenciaValida) {
     return <div className="flex min-h-screen items-center justify-center bg-background p-8 text-destructive-strong">Competência inválida. Use o formato AAAA-MM.</div>;
@@ -377,6 +367,7 @@ export default function RepresentanteExtratoImpressao() {
   return (
     <main className="documento-extrato">
       <style>{ESTILOS_IMPRESSAO}</style>
+        <BarraImpressao />
       <PaginaResumo representante={representante} serie={serieQ.data ?? []} />
       <PaginaExtrato competencia={competencia} detalhes={detalhesQ.data ?? []} estornos={estornosQ.data ?? []} />
     </main>
