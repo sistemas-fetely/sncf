@@ -88,6 +88,7 @@ query($cursor: String) {
       id handle title status vendor productType tags createdAt updatedAt
       hasVariantsThatRequiresComponents
       variants(first: 100) {
+        pageInfo { hasNextPage endCursor }
         nodes {
           id sku barcode price compareAtPrice position title
           inventoryPolicy
@@ -99,6 +100,25 @@ query($cursor: String) {
     }
   }
 }`;
+
+// Produto com mais de 100 variantes: busca o restante paginando no próprio produto.
+// Sem isso o espelho perde variantes (caso real: velas numéricas, 25/09/2026).
+const VARIANTS_QUERY = `
+query($id: ID!, $cursor: String) {
+  product(id: $id) {
+    variants(first: 250, after: $cursor) {
+      pageInfo { hasNextPage endCursor }
+      nodes {
+        id sku barcode price compareAtPrice position title
+        inventoryPolicy
+        selectedOptions { name value }
+        inventoryItem { id }
+        inventoryQuantity
+      }
+    }
+  }
+}`;
+const MAX_VARIANT_PAGES = 20; // 20 x 250 = 5.000 variantes por produto (teto do Shopify é 2.048)
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -226,7 +246,23 @@ Deno.serve(async (req) => {
         if (!shopifyId) { ignorados++; continue; }
         vistos.add(shopifyId);
 
-        const variantNodes: any[] = p?.variants?.nodes ?? [];
+        let variantNodes: any[] = p?.variants?.nodes ?? [];
+        // FAIL-LOUD: se não conseguir completar as variantes, aborta o pull (espelho incompleto é pior que pull falho).
+        let vPage = p?.variants?.pageInfo;
+        let vPaginas = 0;
+        while (vPage?.hasNextPage) {
+          if (vPaginas >= MAX_VARIANT_PAGES) {
+            throw new Error(`produto ${p?.id}: mais de ${MAX_VARIANT_PAGES} paginas de variantes — abortado`);
+          }
+          const rv = await gqlWithRetry(domain, token, VARIANTS_QUERY, { id: p.id, cursor: vPage.endCursor });
+          if (rv.status !== 200 || rv.body?.errors) {
+            throw new Error(`variantes de ${p?.id} falharam: status=${rv.status} errors=${JSON.stringify(rv.body?.errors ?? rv.body).slice(0, 500)}`);
+          }
+          const vv = rv.body?.data?.product?.variants;
+          variantNodes = variantNodes.concat(vv?.nodes ?? []);
+          vPage = vv?.pageInfo;
+          vPaginas++;
+        }
         const variants = variantNodes.map((v: any) => {
           const vid = extrairIdNumerico(v?.id);
           const invId = extrairIdNumerico(v?.inventoryItem?.id);
