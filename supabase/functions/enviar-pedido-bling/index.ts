@@ -1236,6 +1236,10 @@ if (itensSemProdutoBling.length > 0) {
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
+      // Natureza de operação (ex.: transferência interna → CFOP 6152 da filial).
+      // Id vem de naturezas_operacao.bling_natureza_id; sem id na dimensão, a chave
+      // não vai e o pedido segue como antes.
+      ...(blingNaturezaId ? { naturezaOperacao: { id: blingNaturezaId } } : {}),
     };
 
     // DIMENSÃO-VIA-TABELA: a regra de modal de frete mora em `frete_tipos.mod_frete_nf`,
