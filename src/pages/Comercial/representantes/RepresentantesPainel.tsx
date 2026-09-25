@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbaReconciliacao } from "./AbaReconciliacao";
+import { AbaCicloMensal } from "./AbaCicloMensal";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Users, ArrowUpDown, Search, RefreshCw, AlertTriangle } from "lucide-react";
@@ -239,8 +240,10 @@ export default function RepresentantesPainel() {
         <TabsList className="mb-3">
           <TabsTrigger value="painel">Painel</TabsTrigger>
           <TabsTrigger value="reconciliacao">Reconciliação</TabsTrigger>
+          <TabsTrigger value="ciclo">Ciclo mensal</TabsTrigger>
         </TabsList>
         <TabsContent value="reconciliacao"><AbaReconciliacao /></TabsContent>
+        <TabsContent value="ciclo"><AbaCicloMensal /></TabsContent>
         <TabsContent value="painel">
       <div className="mb-3 flex justify-end">
         <Button size="sm" onClick={sincronizar} disabled={sincronizando}>
