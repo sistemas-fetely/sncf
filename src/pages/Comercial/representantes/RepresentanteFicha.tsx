@@ -343,7 +343,15 @@ export default function RepresentanteFicha() {
     );
 
   const periodo = `${fmtData(k.primeira_venda)} → ${fmtData(k.ultima_venda)}`;
-  const competencia = sp.get("competencia");
+  const extratos = eq.data ?? [];
+  const opcoes = opcoesCompetencia(extratos);
+  const competencia = sp.get("competencia") ?? opcoes[0] ?? "";
+  const extratoSel = extratoDaCompetencia(extratos, competencia);
+  const seloCompetencia = extratoSel
+    ? `Extrato fechado em ${fmtData(extratoSel.fechado_em)}`
+    : competencia
+      ? `Prévia — sujeita a alteração até o fechamento em ${dataDoFechamento(competencia)}`
+      : "";
   const parametrosImpressao = new URLSearchParams();
   if (competencia) parametrosImpressao.set("competencia", competencia);
   const rotaImpressao = `/comercial/representantes/${vendedorId}/extrato-impressao?${parametrosImpressao.toString()}`;
