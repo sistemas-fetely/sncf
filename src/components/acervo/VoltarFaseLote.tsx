@@ -102,10 +102,10 @@ export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { p
     onFeito();
   }
 
-  if ((!produtos.length && !sempreVisivel) || (!destino && !sempreVisivel)) return null;
-
   const { permitido: podeFase, carregando: carregandoPermFase } = usePermissaoAcaoOuSuperAdmin("acao.produto_promover_fase");
   const semPermFase = carregandoPermFase || !podeFase;
+
+  if ((!produtos.length && !sempreVisivel) || (!destino && !sempreVisivel)) return null;
 
   const desabilitado = produtos.length === 0 || !destino || semPermFase;
   const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : (!podeFase && !carregandoPermFase) ? "Sem permissão: acao.produto_promover_fase" : undefined;
@@ -141,7 +141,7 @@ export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { p
             ? <Button variant="outline" onClick={() => { setAberto(false); zerar(); }}>Fechar</Button>
             : <>
               <Button variant="outline" onClick={() => setAberto(false)} disabled={rodando}>Cancelar</Button>
-              <Button disabled={rodando || !motivo.trim() || !produtos.length} onClick={executar}>{rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button>
+              <Button disabled={rodando || !motivo.trim() || !produtos.length || semPermFase} title={!podeFase && !carregandoPermFase ? "Sem permissão: acao.produto_promover_fase" : undefined} onClick={executar}>{rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button>
             </>}
         </DialogFooter>
       </DialogContent>
