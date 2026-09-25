@@ -97,8 +97,8 @@ async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]>
 
 export function ShopifyCadastroPainel() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<FiltroFase>("ativo");
   const [selecionados, setSelecionados] = useState<string[]>([]);
+
   const [payloadVisto, setPayloadVisto] = useState(false);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [payloads, setPayloads] = useState<ResultadoSku[]>([]);
@@ -116,18 +116,15 @@ export function ShopifyCadastroPainel() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_shopify_cadastro_fila")
-        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, avisos, pode_enviar")
+        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, codigo_shopify, colecoes_shopify, avisos, pode_enviar")
         .order("cod_cadastro");
       if (error) throw error;
       return (data ?? []) as LinhaFila[];
     },
   });
 
-  const visiveis = useMemo(() => {
-    const todas = linhas ?? [];
-    if (filtro === "todos") return todas;
-    return todas.filter((l) => normFase(l.fase) === filtro);
-  }, [linhas, filtro]);
+  const visiveis = linhas ?? [];
+
 
   function alternar(sku: string | null) {
     if (!sku) return;
@@ -190,19 +187,13 @@ export function ShopifyCadastroPainel() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Cadastro no Shopify</CardTitle>
           <p className="text-sm text-muted-foreground">
-            SKUs em Pré-Venda ou Ativo, com canal B2C ou B2B+B2C, que ainda não existem no Shopify. Todo produto nasce como Rascunho (Draft) — ativar na vitrine é feito no Shopify Admin.
+            SKUs ativos, com canal B2C ou B2B+B2C, sem anúncio no Shopify (fonte: Conciliação de Cadastro). Todo produto nasce como Rascunho (Draft) — ativar na vitrine é feito no Shopify Admin.
           </p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Tabs value={filtro} onValueChange={(v) => setFiltro(v as FiltroFase)}>
-              <TabsList className="h-8">
-                <TabsTrigger value="todos" className="text-xs">Todos</TabsTrigger>
-                <TabsTrigger value="ativo" className="text-xs">Ativo</TabsTrigger>
-                <TabsTrigger value="pre_venda" className="text-xs">Pré-Venda</TabsTrigger>
-              </TabsList>
-            </Tabs>
             <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+
             <Button
               size="sm"
               variant="outline"
