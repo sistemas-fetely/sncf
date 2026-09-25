@@ -239,9 +239,12 @@ export function ShopifyCadastroPainel() {
                   <TableHead>Nome comercial</TableHead>
                   <TableHead>Fase</TableHead>
                   <TableHead>Canal</TableHead>
+                  <TableHead>Código Shopify</TableHead>
+                  <TableHead>Coleções</TableHead>
                   <TableHead className="text-right">Preço varejo</TableHead>
                   <TableHead>EAN</TableHead>
                   <TableHead>Avisos</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -251,6 +254,7 @@ export function ShopifyCadastroPainel() {
                       <Checkbox
                         checked={!!l.sku && selecionados.includes(l.sku)}
                         disabled={!l.pode_enviar || !l.sku}
+                        title={!l.pode_enviar ? `Bloqueado: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}` : undefined}
                         onCheckedChange={() => alternar(l.sku)}
                       />
                     </TableCell>
@@ -259,8 +263,11 @@ export function ShopifyCadastroPainel() {
                     <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
                     <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
                     <TableCell className="text-xs">{l.canal_venda ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-xs">{l.codigo_shopify ?? "—"}</TableCell>
+                    <TableCell className="text-xs">{(l.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
                     <TableCell className="text-right text-xs tabular-nums">{brl(l.preco_varejo)}</TableCell>
                     <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
+
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         {(l.avisos ?? []).map((a) => (
