@@ -2,7 +2,8 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
@@ -45,7 +57,8 @@ const schema = z.object({
   itens: z
     .array(
       z.object({
-        sku: z.string().trim().min(1, "Informe o SKU"),
+        sku: z.string().trim().min(1, "Selecione um produto do catálogo"),
+        nome: z.string().optional(),
         quantidade: z.coerce.number().int().positive("Quantidade deve ser maior que zero"),
       })
     )
@@ -54,7 +67,135 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", quantidade: 1 }] };
+const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", nome: "", quantidade: 1 }] };
+
+interface ProdutoCatalogo {
+  sku: string;
+  nome_completo: string | null;
+  preco_custo: number | null;
+}
+
+interface LinhaColada {
+  sku: string;
+  quantidade: number;
+  qtdValida: boolean;
+  produto: ProdutoCatalogo | null;
+}
+
+/** Combobox de SKU: só aceita SKU vindo de uma seleção real do catálogo. */
+function SkuCombobox({
+  value,
+  nome,
+  onSelect,
+  invalido,
+  ariaLabel,
+}: {
+  value: string;
+  nome?: string;
+  onSelect: (p: ProdutoCatalogo) => void;
+  invalido?: boolean;
+  ariaLabel: string;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [termo, setTermo] = useState("");
+  const [debounced, setDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(termo.trim()), 300);
+    return () => clearTimeout(t);
+  }, [termo]);
+
+  const buscaQ = useQuery({
+    queryKey: ["transferencia-busca-sku", debounced],
+    enabled: aberto && debounced.length >= 2,
+    queryFn: async (): Promise<ProdutoCatalogo[]> => {
+      const t = debounced.replace(/[,()%*]/g, " ").trim();
+      const { data, error } = await supabase
+        .from("sncf_produtos")
+        .select("sku, nome_completo, preco_custo")
+        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%`)
+        .order("sku")
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as ProdutoCatalogo[];
+    },
+  });
+
+  return (
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-label={ariaLabel}
+          aria-expanded={aberto}
+          className={cn(
+            "w-full justify-between font-normal",
+            !value && "text-muted-foreground",
+            invalido && "border-destructive"
+          )}
+        >
+          <span className="truncate">{value || "Buscar SKU ou nome…"}</span>
+          <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[420px] p-0" align="start">
+        <Command shouldFilter={false}>
+          <CommandInput placeholder="Digite SKU ou nome…" value={termo} onValueChange={setTermo} />
+          <CommandList>
+            {debounced.length < 2 ? (
+              <CommandEmpty>Digite ao menos 2 caracteres.</CommandEmpty>
+            ) : buscaQ.isFetching ? (
+              <div className="flex justify-center p-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : buscaQ.isError ? (
+              <p className="p-3 text-sm text-destructive">
+                Falha na busca: {(buscaQ.error as Error).message}
+              </p>
+            ) : (
+              <>
+                <CommandEmpty>Nenhum produto encontrado.</CommandEmpty>
+                <CommandGroup>
+                  {(buscaQ.data ?? []).map((p) => (
+                    <CommandItem
+                      key={p.sku}
+                      value={p.sku}
+                      onSelect={() => {
+                        onSelect(p);
+                        setAberto(false);
+                        setTermo("");
+                      }}
+                    >
+                      <Check className={cn("h-4 w-4", value === p.sku ? "opacity-100" : "opacity-0")} />
+                      <span className="font-medium tabular-nums">{p.sku}</span>
+                      <span className="truncate text-muted-foreground">{p.nome_completo ?? ""}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** Quebra o texto colado do Excel: TAB; senão vírgula/;; senão múltiplos espaços. */
+function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
+  return texto
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+    .map((l) => {
+      let partes = l.split("\t");
+      if (partes.length < 2) partes = l.split(/[,;]/);
+      if (partes.length < 2) partes = l.split(/\s{2,}|\s+/);
+      return { sku: (partes[0] ?? "").trim(), qtdTexto: (partes[partes.length > 1 ? 1 : 0] ?? "").trim() };
+    })
+    .filter((p) => p.sku.length > 0);
+}
 
 /** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
 function useCentrosDestino() {
@@ -102,7 +243,84 @@ export default function TransferenciasInternas() {
     resolver: zodResolver(schema),
     defaultValues: { ...VAZIO },
   });
-  const { fields, append, remove } = useFieldArray({ control: form.control, name: "itens" });
+  const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
+
+  const [modo, setModo] = useState<"item" | "colar">("item");
+  const [textoColado, setTextoColado] = useState("");
+  const [textoProcessado, setTextoProcessado] = useState<string | null>(null);
+  const [previa, setPrevia] = useState<LinhaColada[] | null>(null);
+  const [processando, setProcessando] = useState(false);
+  const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+
+  const limparColagem = () => {
+    setTextoColado("");
+    setTextoProcessado(null);
+    setPrevia(null);
+    setErroPrevia(null);
+  };
+
+  const trocarModo = (novo: string) => {
+    const m = novo as "item" | "colar";
+    if (m === modo) return;
+    setModo(m);
+    limparColagem();
+    replace(m === "item" ? [{ sku: "", nome: "", quantidade: 1 }] : []);
+    form.clearErrors("itens");
+  };
+
+  const processarColagem = async () => {
+    setErroPrevia(null);
+    const linhas = parsearColagem(textoColado);
+    if (linhas.length === 0) {
+      setPrevia(null);
+      setTextoProcessado(textoColado);
+      replace([]);
+      setErroPrevia("Nada para processar: cole ao menos uma linha com SKU e quantidade.");
+      return;
+    }
+    setProcessando(true);
+    try {
+      const skus = Array.from(new Set(linhas.map((l) => l.sku)));
+      const { data, error } = await supabase
+        .from("sncf_produtos")
+        .select("sku, nome_completo, preco_custo")
+        .in("sku", skus);
+      if (error) throw error;
+      const mapa = new Map((data ?? []).map((p) => [p.sku as string, p as ProdutoCatalogo]));
+      const resultado: LinhaColada[] = linhas.map((l) => {
+        const q = Number(l.qtdTexto.replace(/\./g, "").replace(",", "."));
+        return {
+          sku: l.sku,
+          quantidade: q,
+          qtdValida: Number.isInteger(q) && q > 0,
+          produto: mapa.get(l.sku) ?? null,
+        };
+      });
+      setPrevia(resultado);
+      setTextoProcessado(textoColado);
+      const tudoOk = resultado.every((r) => r.produto && r.qtdValida);
+      replace(
+        tudoOk
+          ? resultado.map((r) => ({ sku: r.sku, nome: r.produto?.nome_completo ?? "", quantidade: r.quantidade }))
+          : []
+      );
+      form.clearErrors("itens");
+    } catch (e) {
+      setPrevia(null);
+      replace([]);
+      setErroPrevia((e as Error).message);
+      toast.error((e as Error).message);
+    } finally {
+      setProcessando(false);
+    }
+  };
+
+  const previaComErro = !!previa?.some((r) => !r.produto || !r.qtdValida);
+  const colagemPendente = modo === "colar" && (!previa || textoProcessado !== textoColado || previaComErro);
+  const totalPrevia = (previa ?? []).reduce(
+    (acc, r) => acc + (r.produto && r.qtdValida ? (r.produto.preco_custo ?? 0) * r.quantidade : 0),
+    0
+  );
 
   const centrosQ = useCentrosDestino();
 
@@ -137,7 +355,8 @@ export default function TransferenciasInternas() {
         return;
       }
       toast.success(`${res.id_externo} criado — pedido entrou em Pré-Separação.`);
-      form.reset({ ...VAZIO });
+      form.reset({ ...VAZIO, itens: modo === "item" ? VAZIO.itens : [] });
+      limparColagem();
       qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
     },
     onError: (err: Error) => {
@@ -214,65 +433,171 @@ export default function TransferenciasInternas() {
             </div>
 
             <div className="space-y-2">
-              <p className="text-sm font-medium">Itens</p>
-              <div className="space-y-2">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-start gap-2">
-                    <div className="w-full max-w-xs">
-                      <Input
-                        placeholder="SKU"
-                        aria-label={`SKU do item ${index + 1}`}
-                        {...form.register(`itens.${index}.sku`)}
-                      />
-                      {form.formState.errors.itens?.[index]?.sku && (
-                        <p className="mt-1 text-xs text-destructive">
-                          {form.formState.errors.itens[index]?.sku?.message}
-                        </p>
-                      )}
-                    </div>
-                    <div className="w-28">
-                      <Input
-                        type="number"
-                        min={1}
-                        placeholder="Qtd."
-                        aria-label={`Quantidade do item ${index + 1}`}
-                        {...form.register(`itens.${index}.quantidade`)}
-                      />
-                      {form.formState.errors.itens?.[index]?.quantidade && (
-                        <p className="mt-1 text-xs text-destructive">
-                          {form.formState.errors.itens[index]?.quantidade?.message}
-                        </p>
-                      )}
-                    </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-sm font-medium">Itens</p>
+                <Tabs value={modo} onValueChange={trocarModo}>
+                  <TabsList>
+                    <TabsTrigger value="item">Item a item</TabsTrigger>
+                    <TabsTrigger value="colar">Colar da planilha</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+
+              {modo === "item" ? (
+                <>
+                  <div className="space-y-2">
+                    {fields.map((field, index) => {
+                      const sku = form.watch(`itens.${index}.sku`);
+                      const nome = form.watch(`itens.${index}.nome`);
+                      const erroSku = form.formState.errors.itens?.[index]?.sku;
+                      return (
+                        <div key={field.id} className="flex items-start gap-2">
+                          <div className="w-full max-w-xs">
+                            <SkuCombobox
+                              value={sku}
+                              nome={nome}
+                              invalido={!!erroSku}
+                              ariaLabel={`SKU do item ${index + 1}`}
+                              onSelect={(p) => {
+                                form.setValue(`itens.${index}.sku`, p.sku, { shouldValidate: true });
+                                form.setValue(`itens.${index}.nome`, p.nome_completo ?? "");
+                              }}
+                            />
+                            {erroSku && <p className="mt-1 text-xs text-destructive">{erroSku.message}</p>}
+                          </div>
+                          <div className="w-28">
+                            <Input
+                              type="number"
+                              min={1}
+                              placeholder="Qtd."
+                              aria-label={`Quantidade do item ${index + 1}`}
+                              {...form.register(`itens.${index}.quantidade`)}
+                            />
+                            {form.formState.errors.itens?.[index]?.quantidade && (
+                              <p className="mt-1 text-xs text-destructive">
+                                {form.formState.errors.itens[index]?.quantidade?.message}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={`Remover item ${index + 1}`}
+                            onClick={() => remove(index)}
+                            disabled={fields.length === 1}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {nome && (
+                            <p className="self-center truncate text-xs text-muted-foreground">{nome}</p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {form.formState.errors.itens?.message && (
+                    <p className="text-xs text-destructive">{form.formState.errors.itens.message}</p>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => append({ sku: "", nome: "", quantidade: 1 })}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar item
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-3">
+                  <Textarea
+                    rows={8}
+                    value={textoColado}
+                    onChange={(e) => setTextoColado(e.target.value)}
+                    placeholder="Cole aqui 2 colunas do Excel: SKU e Quantidade, uma linha por item"
+                    className="font-mono text-xs"
+                    aria-label="Itens colados da planilha"
+                  />
+                  <div className="flex items-center gap-3">
                     <Button
                       type="button"
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Remover item ${index + 1}`}
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
+                      variant="outline"
+                      size="sm"
+                      onClick={processarColagem}
+                      disabled={processando || !textoColado.trim()}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      {processando && <Loader2 className="h-4 w-4 animate-spin" />}
+                      Processar
                     </Button>
+                    {previa && textoProcessado !== textoColado && (
+                      <p className="text-xs text-warning">Texto alterado — clique em Processar de novo.</p>
+                    )}
+                    {previaComErro && textoProcessado === textoColado && (
+                      <p className="text-xs text-destructive">
+                        Corrija as linhas em vermelho e processe de novo.
+                      </p>
+                    )}
                   </div>
-                ))}
-              </div>
-              {form.formState.errors.itens?.message && (
-                <p className="text-xs text-destructive">{form.formState.errors.itens.message}</p>
+                  {erroPrevia && <p className="text-xs text-destructive">{erroPrevia}</p>}
+                  {previa && previa.length > 0 && (
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>SKU</TableHead>
+                            <TableHead>Nome</TableHead>
+                            <TableHead className="text-right">Quantidade</TableHead>
+                            <TableHead className="text-right">Custo unitário</TableHead>
+                            <TableHead className="text-right">Subtotal</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {previa.map((r, i) => (
+                            <TableRow key={`${r.sku}-${i}`} className={!r.produto || !r.qtdValida ? "bg-destructive/5" : ""}>
+                              <TableCell className="font-medium tabular-nums">{r.sku}</TableCell>
+                              <TableCell className="text-sm">
+                                {r.produto ? (
+                                  r.produto.nome_completo ?? "—"
+                                ) : (
+                                  <Badge variant="destructive">SKU não encontrado</Badge>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm">
+                                {r.qtdValida ? (
+                                  r.quantidade
+                                ) : (
+                                  <span className="text-destructive">Quantidade inválida</span>
+                                )}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm">
+                                {r.produto ? formatBRL(r.produto.preco_custo) : "—"}
+                              </TableCell>
+                              <TableCell className="text-right tabular-nums text-sm">
+                                {r.produto && r.qtdValida
+                                  ? formatBRL((r.produto.preco_custo ?? 0) * r.quantidade)
+                                  : "—"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-right text-sm font-medium">
+                              Total
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums text-sm font-medium">
+                              {formatBRL(totalPrevia)}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </div>
               )}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => append({ sku: "", quantidade: 1 })}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar item
-              </Button>
             </div>
 
             <div className="flex justify-end">
-              <Button type="submit" disabled={criar.isPending}>
+              <Button type="submit" disabled={criar.isPending || colagemPendente}>
                 {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Criar transferência
               </Button>
