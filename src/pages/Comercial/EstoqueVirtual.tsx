@@ -12,9 +12,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { ChevronDown, Info, RefreshCw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
