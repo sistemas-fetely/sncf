@@ -16,7 +16,9 @@ import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { formatError } from "@/lib/format-error";
 import type { PedidoB2cRow } from "@/hooks/vendas/useB2c";
 
-const ESTAGIOS_SEM_RESOLVER = ["entregue", "cancelado", "encerrado"];
+// "devolvido": pedido devolvido sai da carteira da Loja B2C e vive no módulo de
+// devolução (número próprio DEV-B2C-*) — não se resolve aqui, então nem mostra o botão.
+const ESTAGIOS_SEM_RESOLVER = ["entregue", "cancelado", "encerrado", "devolvido"];
 const MIN_MOTIVO = 5;
 
 type Saida = "entregue" | "encerrar";
