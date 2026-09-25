@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -797,24 +797,26 @@ export default function EstoqueVirtual() {
                   <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
                   {p.cor_nome && <div className="text-[11px] text-muted-foreground truncate">{p.cor_nome}</div>}
                 </TableCell>
-                <TableCell>
-                  {p.situacao ? (
-                    <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.situacao))}>
-                      {rotuloStatusVenda(p.situacao)}
-                    </Badge>
-                  ) : <span className="text-muted-foreground">—</span>}
-                </TableCell>
-                <TableCell className="text-center">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span
-                        className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
-                        aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
-                  </Tooltip>
-                </TableCell>
+                {visao !== "centros" && <>
+                  <TableCell>
+                    {p.situacao ? (
+                      <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.situacao))}>
+                        {rotuloStatusVenda(p.situacao)}
+                      </Badge>
+                    ) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span
+                          className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
+                          aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                </>}
                 {visao === "estoque" && <>
                   <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
@@ -846,13 +848,22 @@ export default function EstoqueVirtual() {
                 {visao === "centros" && <>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
+                    const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
-                      <TableCell key={c.codigo} className="text-right tabular-nums">
-                        {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
-                      </TableCell>
+                      <Fragment key={c.codigo}>
+                        <TableCell className="text-right tabular-nums border-l border-border/60">
+                          {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {formatGiro(g)}
+                        </TableCell>
+                      </Fragment>
                     );
                   })}
-                  <TableCell className="text-right tabular-nums font-medium">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium border-l border-border/60">{formatNum(totalCentros(p))}</TableCell>
+                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                    {formatGiro(giroAnual(totalCentrosVendas(p), totalCentros(p), p.janela_dias))}
+                  </TableCell>
                 </>}
               </TableRow>
             ))}
