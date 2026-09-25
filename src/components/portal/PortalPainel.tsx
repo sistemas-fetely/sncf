@@ -1,21 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "@/lib/portal/api";
+import { fmtBRL, fmtPct } from "@/lib/portal/api";
 import { PortalCartilha } from "./PortalCartilha";
 import { PortalComissoes } from "./PortalComissoes";
+import { PortalMeusExtratos } from "./PortalMeusExtratos";
 import { PortalSimulador } from "./PortalSimulador";
 
 interface Props {
   sessao: string;
   painel: any;
+  /** Quando a sessão foi aberta por um link de extrato, abre direto no envio da nota desse mês. */
+  extratoId?: string | null;
   onRecarregar: () => void;
   onSair: () => void;
 }
 
-export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
+export function PortalPainel({ sessao, painel, extratoId, onRecarregar, onSair }: Props) {
   const resumo = painel?.resumo ?? {};
   const cartilha = painel?.cartilha ?? null;
-  const extrato: any[] = Array.isArray(painel?.extrato) ? painel.extrato : [];
   const regras = painel?.regras ?? {};
 
   return (
@@ -71,31 +73,7 @@ export function PortalPainel({ sessao, painel, onRecarregar, onSair }: Props) {
 
       <PortalSimulador sessao={sessao} />
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Extrato por competência</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {extrato.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhuma competência fechada ainda.</p>
-          ) : (
-            extrato.map((e: any, i: number) => (
-              <div
-                key={i}
-                className="flex flex-wrap items-baseline justify-between gap-2 rounded-md border border-border/60 p-3"
-              >
-                <div>
-                  <p className="text-sm font-medium">{fmtCompetencia(e.competencia)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {e.notas} NF(s): {e.nfs} · pagamento até {fmtData(e.pagar_ate)}
-                  </p>
-                </div>
-                <p className="text-lg font-medium">{fmtBRL(e.valor_a_pagar)}</p>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <PortalMeusExtratos sessao={sessao} extratoDestacado={extratoId} />
 
       <Card>
         <CardHeader className="pb-2">
