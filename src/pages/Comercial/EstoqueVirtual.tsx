@@ -12,9 +12,9 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { ChevronDown, Info, RefreshCw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
@@ -137,6 +137,60 @@ function tempoDias(virtual: number, vendas: number, janela: number): number | nu
   return Math.round(virtual / (vendas / janela));
 }
 const chaveProduto = (l: LinhaCockpit) => l.sku ?? l.cod_cadastro ?? "";
+
+/**
+ * Cabeçalho ordenável com title no <th>: igual ao CabecalhoOrdenavel
+ * compartilhado, mas permite tooltip com o rótulo completo e garante que
+ * nenhum cabeçalho ultrapasse a própria coluna (table-fixed).
+ */
+function CabecalhoColuna({
+  rotulo, title, dir, onOrdenar, className, alinharDireita = false,
+}: {
+  rotulo: string;
+  /** Tooltip do cabeçalho; default = o próprio rótulo. */
+  title?: string;
+  dir: DirecaoOrdenacao | null;
+  onOrdenar: () => void;
+  className?: string;
+  alinharDireita?: boolean;
+}) {
+  return (
+    <TableHead
+      className={cn(
+        "overflow-hidden text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate",
+        className,
+      )}
+      title={title ?? rotulo}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <button
+        type="button"
+        onClick={onOrdenar}
+        className={cn(
+          "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          dir && "text-foreground",
+          alinharDireita && "w-full justify-end",
+        )}
+        title={
+          dir === "asc"
+            ? "Crescente — clique para inverter"
+            : dir === "desc"
+              ? "Decrescente — clique para voltar à ordenação padrão"
+              : `Ordenar por ${rotulo}`
+        }
+      >
+        {rotulo}
+        {/* O ícone só existe quando há ordenação ativa: o placeholder invisível
+            consumia espaço e fazia cabeçalhos numéricos estourarem a coluna. */}
+        {dir === "asc" ? (
+          <ArrowUp className="h-3 w-3 shrink-0" />
+        ) : dir === "desc" ? (
+          <ArrowDown className="h-3 w-3 shrink-0" />
+        ) : null}
+      </button>
+    </TableHead>
+  );
+}
 
 async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]): Promise<T[]> {
   const out: T[] = [];
@@ -384,12 +438,13 @@ export default function EstoqueVirtual() {
     setPagina(1);
   }
 
-  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false) => (
-    <CabecalhoOrdenavel
+  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false, title?: string) => (
+    <CabecalhoColuna
       rotulo={rotulo}
+      title={title ?? rotulo}
       dir={sort?.column === coluna ? sort.direction : null}
       onOrdenar={() => ordenarColuna(coluna)}
-      className={cn("whitespace-nowrap font-medium", className)}
+      className={cn("font-medium", className)}
       alinharDireita={alinharDireita}
     />
   );
@@ -533,31 +588,39 @@ export default function EstoqueVirtual() {
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
       ) : <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
-        <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3" containerClassName="max-h-[min(62vh,46rem)]">
+        <Table className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2" containerClassName="max-h-[min(62vh,46rem)]">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
-              {cabecalho("cod", "Código", "w-[110px]")}
+              {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
+                  as larguras de referência a partir de 1440px. */}
+              {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[120px]")}
-              {cabecalho("saude", "Saúde", "w-[56px] text-center")}
+              {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
+              {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
               {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[76px]", true)}
-                {cabecalho("fisico", "Físico", "w-[76px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[76px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[76px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[88px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[76px]", true)}
-                {cabecalho("tempo", "Tempo de estoque", "w-[76px]", true)}
-                {cabecalho("transito", "Em trânsito", "w-[76px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[80px]")}
+                {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[86px] min-[1440px]:w-[94px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho(
+                  "tempo",
+                  "Cobertura",
+                  "w-[78px] min-[1440px]:w-[88px]",
+                  true,
+                  "Tempo de estoque em dias (virtual ÷ venda diária dos últimos 90 dias)",
+                )}
+                {cabecalho("transito", "Em trânsito", "w-[84px] min-[1440px]:w-[92px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[70px] min-[1440px]:w-[80px]", true)}
               </>}
               {visao === "valor" && <>
-                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[88px]", true)}
-                {cabecalho("ticket", "Ticket médio", "w-[104px]", true)}
-                {cabecalho("vcusto", "Valor custo", "w-[124px]", true)}
-                {cabecalho("vvenda", "Valor venda", "w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[132px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
+                {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
+                {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
               </>}
             </TableRow>
           </TableHeader>
@@ -605,7 +668,7 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
-                  <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
+                  <TableCell className={cn("tabular-nums text-right text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
                     {formatDataCurta(p.eta_embarque)}
                   </TableCell>
                 </>}
