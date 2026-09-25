@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -543,6 +544,9 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
 
   // ---------------- Exclusão de pedido ----------------
   const [excluirAlvo, setExcluirAlvo] = useState<PedidoListaRow | null>(null);
+  const permExcluir = usePermissaoAcaoOuSuperAdmin("acao.excluir_pedido_importacao");
+  const semPermExcluir = permExcluir.carregando || !permExcluir.permitido;
+  const tituloPermExcluir = !permExcluir.permitido && !permExcluir.carregando ? "Sem permissão: acao.excluir_pedido_importacao" : undefined;
   const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusao | null>(null);
   const [checandoExclusao, setChecandoExclusao] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -1120,7 +1124,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive"
-                            title="Excluir pedido"
+                            title={tituloPermExcluir ?? "Excluir pedido"}
+                            disabled={semPermExcluir}
                             aria-label={`Excluir pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1521,7 +1526,8 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             </Button>
             <Button
               variant="destructive"
-              disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao}
+              disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao || semPermExcluir}
+              title={tituloPermExcluir}
               onClick={() => void confirmarExclusao()}
             >
               {excluindo && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
