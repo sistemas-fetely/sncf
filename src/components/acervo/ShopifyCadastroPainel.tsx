@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -34,9 +34,12 @@ interface LinhaFila {
   peso_g: number | null;
   tem_descricao: boolean | null;
   tem_foto: boolean | null;
+  codigo_shopify: string | null;
+  colecoes_shopify: string[] | null;
   avisos: string[] | null;
   pode_enviar: boolean | null;
 }
+
 
 interface ResultadoSku {
   sku?: string;
@@ -56,11 +59,14 @@ const ROTULO_AVISO: Record<string, string> = {
   sem_preco_varejo: "Sem preço",
   sem_ean: "Sem EAN",
   sem_peso: "Sem peso",
+  sem_card_bling: "Sem card Bling",
+  sem_xpm: "Sem cadastro XPM",
+  sem_sigla_colecao: "Coleção sem sigla",
+  colecao_variante_sem_codigo: "Coleção com variante sem código no Shopify",
 };
 
-type FiltroFase = "todos" | "ativo" | "pre_venda";
-
 function jsonLegivel(v: unknown): string {
+
   if (v === null || v === undefined) return "—";
   return JSON.stringify(v, null, 2);
 }
@@ -70,11 +76,8 @@ function brl(v: number | null): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function normFase(f: string | null): string {
-  return (f ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s-]+/g, "_");
-}
-
 async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]> {
+
   const { data, error } = await supabase.functions.invoke(FN, { body: { skus, dry_run } });
   if (error) {
     // Tenta extrair a mensagem real devolvida pela função
