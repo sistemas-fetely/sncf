@@ -124,7 +124,7 @@ export default function TransferenciasInternas() {
     mutationFn: async (valores: FormValues) => {
       const { data, error } = await supabase.rpc("criar_pedido_transferencia", {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
-        p_destino: valores.destino.trim(),
+        p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
       });
       if (error) throw error;
