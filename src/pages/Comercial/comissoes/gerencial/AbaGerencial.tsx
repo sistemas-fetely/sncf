@@ -233,27 +233,6 @@ export function AbaGerencial() {
             </CardContent>
           </Card>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Pontos de atenção</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {g.atencao.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhum ponto de atenção nesta competência.</p>
-                ) : (
-                  <ul className="space-y-1.5 text-sm">
-                    {g.atencao.map((item) => (
-                      <li key={item} className="flex gap-2">
-                        <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-warning" />
-                        <span>{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Inadimplência que trava comissão</CardTitle>

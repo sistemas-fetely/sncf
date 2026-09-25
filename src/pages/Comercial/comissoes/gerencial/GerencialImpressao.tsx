@@ -225,22 +225,6 @@ function PaginaDetalhe({
       </section>
 
       <section className="mt-5">
-        <h2 className="text-[10.5pt] font-medium">Pontos de atenção</h2>
-        {atencao.length === 0 ? (
-          <p className="mt-2 text-[8pt] text-muted-foreground">Nenhum ponto de atenção nesta competência.</p>
-        ) : (
-          <ul className="mt-2 space-y-1">
-            {atencao.map((item) => (
-              <li key={item} className="flex gap-2 text-[8pt] leading-relaxed">
-                <span className="mt-[0.35em] h-[3px] w-[3px] shrink-0 rounded-full bg-warning" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="mt-5">
         <h2 className="text-[10.5pt] font-medium">Inadimplência que trava comissão</h2>
         {travada === 0 && vencida === 0 ? (
           <p className="mt-2 text-[8pt] text-muted-foreground">Não há inadimplência travando comissão.</p>
