@@ -310,10 +310,15 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
                 <><Sparkles className="h-4 w-4 mr-2" /> Gerar contrato com IA</>
               )}
             </BotaoGuardado>
-            <Button variant="outline" onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}>
+            <BotaoGuardado
+              variant="outline"
+              onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}
+              slug="acao.contrato_recorrente_gerir"
+              rotuloAcao="Criar contrato na pasta"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Criar manual
-            </Button>
+            </BotaoGuardado>
           </div>
           <p className="text-xs text-muted-foreground mt-3">
             A IA analisa os documentos da pasta e preenche automaticamente.
@@ -392,10 +397,15 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
               <><Sparkles className="h-4 w-4 mr-2" /> Gerar com IA</>
             )}
           </BotaoGuardado>
-          <Button variant="outline" onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}>
+          <BotaoGuardado
+            variant="outline"
+            onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}
+            slug="acao.contrato_recorrente_gerir"
+            rotuloAcao="Criar contrato na pasta"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Adicionar contrato manual
-          </Button>
+          </BotaoGuardado>
         </div>
       )}
 
@@ -524,14 +534,28 @@ function ContratoCard({
       )}
 
       <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button variant="outline" size="sm" onClick={onEditar}>
+        <BotaoGuardado
+          variant="outline"
+          size="sm"
+          onClick={onEditar}
+          slug="acao.contrato_recorrente_gerir"
+          rotuloAcao="Editar contrato"
+          contexto={{ contrato_id: contrato.id }}
+        >
           <FileSignature className="h-3.5 w-3.5 mr-1.5" />
           Editar
-        </Button>
-        <Button variant="outline" size="sm" onClick={encerrar}>
+        </BotaoGuardado>
+        <BotaoGuardado
+          variant="outline"
+          size="sm"
+          onClick={encerrar}
+          slug="acao.contrato_recorrente_gerir"
+          rotuloAcao="Encerrar contrato"
+          contexto={{ contrato_id: contrato.id }}
+        >
           <Clock className="h-3.5 w-3.5 mr-1.5" />
           Encerrar
-        </Button>
+        </BotaoGuardado>
       </div>
     </div>
   );
