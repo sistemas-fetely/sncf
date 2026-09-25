@@ -59,7 +59,6 @@ export default function ComprasAComprar() {
   const { user, roles } = useAuth();
   const permComprar = usePedirAcesso("acao.compra_comprar", "Registrar compra");
   const podeAgir = ehComprador(roles) || permComprar.permitido;
-  const tituloComprar = !podeAgir ? "Requer perfil de comprador (acao.compra_comprar)" : undefined;
   const podeVer = podeAgir || roles.some((r) => ROLES_LEITURA_EXTRA.includes(r));
 
   const [tab, setTab] = useAbaUrl("aguardando");
