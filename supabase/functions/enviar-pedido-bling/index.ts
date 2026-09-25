@@ -793,25 +793,11 @@ serve(async (req) => {
     };
 
     const blingFormaIdBruto = forma.bling_id_forma_pagamento ?? null;
-
-    if (blingFormaIdBruto === null || blingFormaIdBruto === undefined) {
-      return await abortarForma(
-        `A forma de pagamento "${forma.nome}" não tem cadastro correspondente no Bling. ` +
-        `Cadastre a forma no Bling e preencha o ID em Formas de Pagamento antes de enviar este pedido.`,
-      );
-    }
-
-    const blingFormaId = Number(blingFormaIdBruto);
-
-    // Limiar 1000: todo ID real da conta Bling da Fetély tem 7-8 dígitos; todo código
-    // legado de TIPO de pagamento da NFe (1, 2, 18, 99...) é menor que 100.
-    if (!Number.isFinite(blingFormaId) || blingFormaId < 1000) {
-      return await abortarForma(
-        `A forma de pagamento "${forma.nome}" está com um ID inválido no cadastro (${blingFormaIdBruto}) — ` +
-        `esse número é código de tipo de pagamento, não ID de forma de pagamento do Bling. ` +
-        `Corrija em Formas de Pagamento antes de enviar.`,
-      );
-    }
+    // As duas validações de ID (nulo e < 1000) foram MOVIDAS para depois do cálculo
+    // de `titulosAPrazo` (bloco 8): a forma só é exigida quando há parcela a prazo.
+    // Pedido sem cobrança (gera_duplicata = false, ex. sem_pagamento) vai com
+    // `parcelas: []` e a forma nem desce ao Bling — travar aqui bloqueava algo que
+    // não é enviado (transferência interna TRS-, 25/09/2026).
 
 
     // 7.5 Canal/Loja Fetely
