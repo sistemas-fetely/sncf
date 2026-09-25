@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/table";
 import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 type LinhaMatriz = {
@@ -835,29 +836,33 @@ export default function FichaProduto() {
                     )}
 
                     {produto.proxima_fase && (
-                      <Button
+                      <BotaoGuardado
+                        slug="acao.produto_promover_fase"
+                        rotuloAcao="Promover fase"
+                        contexto={{ sku: produto.sku }}
                         className="w-full"
                         onClick={() => promover(false)}
-                        disabled={produto.pronto_proxima_fase !== true || promovendo || semPermFase}
-                        title={tituloPermFase}
+                        disabled={produto.pronto_proxima_fase !== true || promovendo}
                       >
                         {promovendo
                           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           : <ArrowUpCircle className="mr-2 h-4 w-4" />}
                         Promover para {produto.proxima_fase}
-                      </Button>
+                      </BotaoGuardado>
                     )}
                     {faseAnterior && (
-                      <Button
+                      <BotaoGuardado
+                        slug="acao.produto_promover_fase"
+                        rotuloAcao="Voltar fase"
+                        contexto={{ sku: produto.sku }}
                         className="w-full"
                         variant="outline"
                         onClick={() => setConfirmarRegressao(true)}
-                        disabled={promovendo || semPermFase}
-                        title={tituloPermFase}
+                        disabled={promovendo}
                       >
                         <ArrowDownCircle className="mr-2 h-4 w-4" />
                         Voltar para {faseAnterior.nome}
-                      </Button>
+                      </BotaoGuardado>
                     )}
                   </CardContent>
                 </Card>

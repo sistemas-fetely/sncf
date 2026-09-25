@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Loader2, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -108,19 +109,21 @@ export function EstacaoDespacho({
                     {grupo.modalNome} · {grupo.caixas.length}
                   </p>
                   {grupo.temRastreioAutomatico && (
-                    <Button
+                    <BotaoGuardado
+                      slug="acao.expedicao_sp_operar"
+                      rotuloAcao="Despachar lote"
+                      contexto={{ modal: grupo.modalCodigo }}
                       size="sm"
                       onClick={() =>
                         onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => c.pedido_id))
                       }
-                      disabled={despachandoLote || semPerm}
-                      title={tituloPerm}
+                      disabled={despachandoLote}
                     >
                       {despachandoLote
                         ? <Loader2 className="animate-spin" aria-hidden="true" />
                         : <Truck aria-hidden="true" />}
                       {grupo.modalNome} coletou — despachar {grupo.caixas.length}
-                    </Button>
+                    </BotaoGuardado>
                   )}
                 </div>
 
@@ -192,10 +195,10 @@ export function EstacaoDespacho({
               Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify.
             </p>
 
-            <Button onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando || semPerm} title={tituloPerm}>
+            <BotaoGuardado slug="acao.expedicao_sp_operar" rotuloAcao="Despachar pedido" onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando}>
               {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
               Despachar
-            </Button>
+            </BotaoGuardado>
           </CardContent>
         </Card>
       )}

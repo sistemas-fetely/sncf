@@ -1,4 +1,5 @@
 // Doutrina MESA-DE-CONCILIACAO (03/09/2026): o sistema propõe candidatos com
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 // grau de certeza (fechamento exato, identidade direta, quase-fecha, mesmo
 // cliente), o humano decide, e NENHUMA conciliação acontece sem nota que
@@ -602,16 +603,16 @@ export function MesaConciliacaoConteudo({
                         </p>
                       )}
                       <div className="md:justify-end flex pt-1">
-                        <Button
+                        <BotaoGuardado
+                          slug="acao.fin_conciliar"
+                          rotuloAcao="Conciliar crédito"
                           size="sm"
                           onClick={() => abrirDialog(item)}
-                          disabled={pConc.carregando || !pConc.permitido}
-                          title={!pConc.permitido ? "Sem permissão: acao.fin_conciliar" : undefined}
                           className="gap-1.5"
                         >
                           <Link2 className="h-3.5 w-3.5" />
                           {item.nota_sugerida ? "Conciliar" : "Analisar"}
-                        </Button>
+                        </BotaoGuardado>
                       </div>
                     </div>
                   </div>
@@ -807,16 +808,16 @@ export function MesaConciliacaoConteudo({
                             </p>
                           )}
                           <div className="md:justify-end flex pt-1">
-                            <Button
+                            <BotaoGuardado
+                              slug="acao.fin_conciliar"
+                              rotuloAcao="Conciliar cartão"
                               size="sm"
                               onClick={() => abrirDialogCartao(item)}
-                              disabled={pConc.carregando || !pConc.permitido}
-                              title={!pConc.permitido ? "Sem permissão: acao.fin_conciliar" : undefined}
                               className="gap-1.5"
                             >
                               <Link2 className="h-3.5 w-3.5" />
                               Conciliar
-                            </Button>
+                            </BotaoGuardado>
                           </div>
                         </div>
                       </div>

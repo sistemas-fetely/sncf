@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { usePedirAcesso } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
@@ -116,7 +117,7 @@ function NodeItem({
   onDelete,
   canManage,
 }: NodeItemProps) {
-  const pPlano = usePermissaoAcaoOuSuperAdmin("acao.plano_contas_gerir");
+  const pPlano = usePedirAcesso("acao.plano_contas_gerir", "Excluir conta do plano de contas", { conta_id: node.id });
   const isOpen = forceOpen || expanded.has(node.id);
   const hasChildren = node.children.length > 0;
   const tipoStyle = TIPO_STYLES[node.tipo] || {
@@ -183,11 +184,13 @@ function NodeItem({
               <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
             <button
-              className="p-1 hover:bg-destructive/10 rounded"
-              disabled={pPlano.carregando || !pPlano.permitido}
-              title={!pPlano.permitido ? "Sem permissão: acao.plano_contas_gerir" : "Excluir"}
+              className={pPlano.permitido || pPlano.carregando ? "p-1 hover:bg-destructive/10 rounded" : "p-1 rounded opacity-50 cursor-not-allowed"}
+              disabled={pPlano.carregando}
+              aria-disabled={!pPlano.permitido && !pPlano.carregando ? "true" : undefined}
+              title={!pPlano.permitido && !pPlano.carregando ? "Sem permissão (acao.plano_contas_gerir) — clique para pedir acesso" : "Excluir"}
               onClick={(e) => {
                 e.stopPropagation();
+                if (!pPlano.permitido) { void pPlano.pedir(); return; }
                 onDelete(node);
               }}
             >

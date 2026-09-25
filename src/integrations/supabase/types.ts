@@ -238,6 +238,54 @@ export type Database = {
         }
         Relationships: []
       }
+      acesso_pedido: {
+        Row: {
+          contexto: Json
+          id: number
+          permissao_slug: string
+          primeiro_em: string
+          resolucao_nota: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          rota: string | null
+          rotulo_acao: string | null
+          status: string
+          ultimo_em: string
+          user_id: string
+          vezes: number
+        }
+        Insert: {
+          contexto?: Json
+          id?: never
+          permissao_slug: string
+          primeiro_em?: string
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rota?: string | null
+          rotulo_acao?: string | null
+          status?: string
+          ultimo_em?: string
+          user_id: string
+          vezes?: number
+        }
+        Update: {
+          contexto?: Json
+          id?: never
+          permissao_slug?: string
+          primeiro_em?: string
+          resolucao_nota?: string | null
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          rota?: string | null
+          rotulo_acao?: string | null
+          status?: string
+          ultimo_em?: string
+          user_id?: string
+          vezes?: number
+        }
+        Relationships: []
+      }
       acrescimo_situacao_fiscal_regra: {
         Row: {
           base_calculo: string
@@ -69961,6 +70009,27 @@ export type Database = {
           },
         ]
       }
+      vw_acesso_pedido: {
+        Row: {
+          contexto: Json | null
+          id: number | null
+          permissao_nome: string | null
+          permissao_slug: string | null
+          primeiro_em: string | null
+          resolucao_nota: string | null
+          resolvido_em: string | null
+          resolvido_por: string | null
+          resolvido_por_nome: string | null
+          rota: string | null
+          rotulo_acao: string | null
+          status: string | null
+          ultimo_em: string | null
+          user_id: string | null
+          usuario_nome: string | null
+          vezes: number | null
+        }
+        Relationships: []
+      }
       vw_adiantamento_sem_nf: {
         Row: {
           adiantamento_id: string | null
@@ -103316,14 +103385,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -110757,6 +110826,15 @@ export type Database = {
       fn_pedido_vendedor_sincronizar:
         | { Args: { p_linhas: Json }; Returns: Json }
         | { Args: { p_linhas: Json; p_simular?: boolean }; Returns: Json }
+      fn_pedir_acesso: {
+        Args: {
+          p_contexto?: Json
+          p_rota?: string
+          p_rotulo?: string
+          p_slug: string
+        }
+        Returns: Json
+      }
       fn_pi_conferir_lote: { Args: { p_lote_id: string }; Returns: Json }
       fn_pi_efetivar_lote: {
         Args: { p_dry_run?: boolean; p_lote_id: string; p_motivo: string }
@@ -111058,6 +111136,10 @@ export type Database = {
           p_uf: string
         }
         Returns: string
+      }
+      fn_resolver_pedido_acesso: {
+        Args: { p_id: number; p_nota?: string; p_status: string }
+        Returns: undefined
       }
       fn_resolver_pedido_por_ref_bling: {
         Args: { p_ref: string }

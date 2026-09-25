@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -194,17 +195,20 @@ export function AcoesLancamentoCartao({ lancamento }: Props) {
           <Link2 className="h-2.5 w-2.5" />
           Vincular
         </Button>
-        <Button
+        <BotaoGuardado
+          slug="acao.pagar_criar"
+          rotuloAcao="Criar conta a pagar do cartão"
+          contexto={{ lancamento_id: (lancamento as { id?: unknown }).id ?? null }}
           size="sm"
           variant="outline"
           className="h-6 px-2 text-[10px] gap-1 border-info/40 text-info hover:bg-info/10"
           onClick={handleCriarContaAuto}
-          disabled={salvando || pCriar.carregando || !pCriar.permitido}
-          title={!pCriar.permitido ? "Sem permissão: acao.pagar_criar" : "Criar conta a pagar (detecta parcelas automaticamente)"}
+          disabled={salvando}
+          title="Criar conta a pagar (detecta parcelas automaticamente)"
         >
           {salvando ? <Loader2 className="h-2.5 w-2.5 animate-spin" /> : <Plus className="h-2.5 w-2.5" />}
           Criar Conta
-        </Button>
+        </BotaoGuardado>
         <Button
           size="sm"
           variant="outline"

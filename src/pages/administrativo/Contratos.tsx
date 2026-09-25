@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useMemo, useEffect } from "react";
@@ -402,17 +403,17 @@ export default function Contratos() {
               Como criar
               {mostrarBanner ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
             </Button>
-            <Button
+            <BotaoGuardado
+              slug="acao.contrato_recorrente_gerir"
+              rotuloAcao="Novo contrato recorrente"
               size="sm"
               onClick={() => setNovoContratoOpen(true)}
-              disabled={pGerir.carregando || !pGerir.permitido}
-              title={!pGerir.permitido ? "Sem permissão: acao.contrato_recorrente_gerir" : undefined}
               style={{ background: VERDE }}
               className="text-white hover:opacity-90"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Novo Contrato
-            </Button>
+            </BotaoGuardado>
           </div>
         }
       />
@@ -657,22 +658,24 @@ export default function Contratos() {
                         >
                           <FolderOpen className="h-4 w-4" />
                         </Button>
-                        <Button
+                        <BotaoGuardado
+                          slug="acao.contrato_recorrente_excluir"
+                          rotuloAcao="Excluir contrato"
+                          contexto={{ contrato_id: c.id }}
                           variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
                             setContratoParaExcluir(c);
                           }}
-                          disabled={pExcl.carregando || !pExcl.permitido}
-                          title={!pExcl.permitido ? "Sem permissão: acao.contrato_recorrente_excluir" : "Excluir contrato"}
+                          title="Excluir contrato"
                           className="hover:bg-destructive/10"
                           style={{ color: "#fca5a5" }}
                           onMouseEnter={(e) => (e.currentTarget.style.color = ROSA)}
                           onMouseLeave={(e) => (e.currentTarget.style.color = "#fca5a5")}
                         >
                           <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </BotaoGuardado>
                       </div>
                     </TableCell>
                   </TableRow>

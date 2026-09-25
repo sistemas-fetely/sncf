@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,9 +130,9 @@ export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { 
   );
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0 || semPerm} title={tituloPerm ?? (produtos.length === 0 ? "Nenhum produto selecionado com pendência no XPM" : undefined)}>
+    <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Corrigir no XPM" contexto={{ skus: produtos.map((p) => p.sku) }} variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no XPM" : undefined}>
       <Wand2 className="mr-2 h-4 w-4" />Corrigir no XPM ({produtos.length})
-    </Button>
+    </BotaoGuardado>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>

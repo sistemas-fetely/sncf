@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { usePedirAcesso } from "@/components/acesso/BotaoGuardado";
 import { ehComprador } from "@/lib/compras/permissoes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,9 +57,8 @@ const ROLES_LEITURA_EXTRA = ["admin_rh", "financeiro"];
 
 export default function ComprasAComprar() {
   const { user, roles } = useAuth();
-  const permComprar = usePermissaoAcaoOuSuperAdmin("acao.compra_comprar");
+  const permComprar = usePedirAcesso("acao.compra_comprar", "Registrar compra");
   const podeAgir = ehComprador(roles) || permComprar.permitido;
-  const tituloComprar = !podeAgir ? "Requer perfil de comprador (acao.compra_comprar)" : undefined;
   const podeVer = podeAgir || roles.some((r) => ROLES_LEITURA_EXTRA.includes(r));
 
   const [tab, setTab] = useAbaUrl("aguardando");
@@ -357,7 +356,13 @@ export default function ComprasAComprar() {
                               </DropdownMenuItem>
                             )}
                             {ehMeu && (
-                              <DropdownMenuItem onClick={() => abrirRegistrar(p)} disabled={!podeAgir} title={tituloComprar}>
+                              <DropdownMenuItem
+                                onClick={() => (podeAgir ? abrirRegistrar(p) : void permComprar.pedir())}
+                                disabled={!podeAgir && permComprar.carregando}
+                                aria-disabled={!podeAgir ? "true" : undefined}
+                                className={!podeAgir ? "opacity-50 cursor-not-allowed" : undefined}
+                                title={!podeAgir ? "Sem permissão (acao.compra_comprar) — clique para pedir acesso" : undefined}
+                              >
                                 {rascunhoPorPedido.has(p.id) ? "Continuar compra" : "Registrar compra"}
                               </DropdownMenuItem>
                             )}
