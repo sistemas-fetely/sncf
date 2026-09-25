@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
-import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
 import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import {
-  AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search,
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -129,13 +129,6 @@ function formatDelta(n: number | null | undefined) {
   const s = new Intl.NumberFormat("pt-BR").format(Math.abs(v));
   if (v === 0) return "0";
   return `${v > 0 ? "+" : "−"}${s}`;
-}
-
-function adaptiveValueClass(text: string): string {
-  const len = text.length;
-  if (len <= 9) return "text-2xl";
-  if (len <= 13) return "text-xl";
-  return "text-lg";
 }
 
 const MESES = [
@@ -397,23 +390,36 @@ export default function EstoqueVirtual() {
   const fimRange = Math.min(paginaAtual * pageSize, filtrados.length);
   const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
+  const totalDisponivel = lista.reduce((s, p) => s + Number(p.disponivel ?? 0), 0);
+  const estadoCabecalho = produtosQuery.isLoading
+    ? "Carregando…"
+    : `${formatNum(lista.length)} produtos · ${formatNum(totalDisponivel)} un disponíveis · ${
+        syncQuery.data ? `sincronizado ${tempoRelativo(syncQuery.data)}` : "sem sincronização registrada"
+      }`;
+  const detalheLinha = detalhe ? lista.find((p) => p.sku === detalhe.sku) ?? null : null;
+
+  function aplicarRecorte(tipo: "status" | "condicao", valor: string) {
+    if (tipo === "status") { setStatusFiltro(valor); setCondicaoFiltro("todos"); }
+    else { setCondicaoFiltro(valor); setStatusFiltro("todos"); }
+    setPagina(1);
+  }
+
   return (
-    <PageShell className="md:px-8 animate-casa-fade-in">
-      <CasaPageHeader
+    <PageShell variant="dados" className="animate-casa-fade-in">
+      <PageHeader
         breadcrumb={[
           { label: "Casa", to: "/" },
           { label: "SOPs" },
           { label: "Produto" },
-          { label: "Estoque" },
-          { label: "Geral" },
+          { label: "Cockpit do Estoque" },
         ]}
-        title="Estoque Geral"
-        subtitle="Rede consolidada pelo razão do SNCF (SKU × centro × condição). O Bling é apenas referência."
-        actions={
+        titulo="Cockpit do Estoque"
+        estado={estadoCabecalho}
+        acoes={
           <Button
             variant="outline"
             size="sm"
-            onClick={() => produtosQuery.refetch()}
+            onClick={() => { void produtosQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); }}
             disabled={produtosQuery.isFetching}
             className="gap-2"
           >
@@ -423,7 +429,7 @@ export default function EstoqueVirtual() {
         }
       />
 
-      <Collapsible className="mb-4">
+      <Collapsible>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm" className="gap-2 px-2">
             <ChevronDown className="h-4 w-4" />Sincronização
@@ -434,249 +440,184 @@ export default function EstoqueVirtual() {
         </CollapsibleContent>
       </Collapsible>
 
+      {produtosQuery.isError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar o estoque: {formatError(produtosQuery.error)}
+        </div>
+      )}
       {canaisQuery.isError && (
-        <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           Falha ao carregar estoque por centro/canais: {formatError(canaisQuery.error)}
         </div>
       )}
-
-      {resumo.semLastroSkus > 0 && (
-        <button
-          type="button"
-          onClick={() => { setStatusFiltro("vendido_sem_lastro"); setPagina(1); }}
-          className="w-full text-left mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 flex items-start gap-3 hover:bg-destructive/15 transition-colors"
-        >
-          <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-          <div>
-            <div className="font-medium text-destructive">
-              {formatNum(resumo.semLastroSkus)} SKUs vendidos sem lastro
-            </div>
-            <div className="text-xs text-destructive/90">
-              {formatNum(resumo.semLastroUn)} unidades comprometidas com clientes e nenhum pedido de suprimento — nacional ou importado — para cobrir. Clique para filtrar.
-            </div>
-          </div>
-        </button>
+      {codQuery.isError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar códigos de cadastro: {formatError(codQuery.error)}
+        </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-4 text-sm">
-        <StatPill
-          label="Vendido sem lastro"
-          value={formatNum(resumo.semLastroSkus)}
-          dotClass="bg-destructive"
-          valueClassName="text-destructive"
-          sublabel={`${formatNum(resumo.semLastroUn)} un prometidas`}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <CartaoNumero
+          rotulo="Vendido sem lastro"
+          valor={`${formatNum(resumo.semLastroUn)} un`}
+          sub={`${formatNum(resumo.semLastroSkus)} SKUs`}
+          alerta={resumo.semLastroUn > 0 ? "destructive" : null}
+          ativo={statusFiltro === "vendido_sem_lastro"}
+          onClick={() => aplicarRecorte("status", "vendido_sem_lastro")}
         />
-        <StatPill
-          label="Descoberto"
-          value={`${formatNum(resumo.descobertoUn)} un`}
-          dotClass="bg-destructive"
-          valueClassName="text-destructive"
-          sublabel={`${formatNum(resumo.descobertoSkus)} SKUs sem cobertura`}
+        <CartaoNumero
+          rotulo="Descoberto"
+          valor={`${formatNum(resumo.descobertoUn)} un`}
+          sub={`${formatNum(resumo.descobertoSkus)} SKUs`}
+          alerta={resumo.descobertoUn > 0 ? "destructive" : null}
+          ativo={condicaoFiltro === "com_descoberto"}
+          onClick={() => aplicarRecorte("condicao", "com_descoberto")}
         />
-        <StatPill
-          label="A chegar"
-          value={formatNum(resumo.aChegar)}
-          dotClass="bg-info"
-          sublabel="SKUs com pedido de suprimento"
+        <CartaoNumero
+          rotulo="Sem previsão de chegada"
+          valor={`${formatNum(resumo.semPrevisao)} SKUs`}
+          alerta={resumo.semPrevisao > 0 ? "warning" : null}
+          ativo={statusFiltro === "sem_previsao"}
+          onClick={() => aplicarRecorte("status", "sem_previsao")}
         />
-        <StatPill
-          label="Sem previsão"
-          value={formatNum(resumo.semPrevisao)}
-          dotClass="bg-warning"
-          valueClassName="text-warning"
-          sublabel="SKUs sem pedido de suprimento"
-        />
-
-        <StatPill
-          label="Pré-venda"
-          value={formatNum(resumo.preVenda)}
-          dotClass="bg-info"
-          sublabel={`${formatNum(resumo.unAguardando)} un aguardando`}
-        />
-        <StatPill
-          label="Não vendável"
-          value={`${formatNum(resumo.bloqueadoUn)} un`}
-          dotClass="bg-warning"
-          valueClassName="text-warning"
-          sublabel={`${formatNum(resumo.bloqueadoSkus)} SKUs`}
-        />
-        <StatPill
-          label="Show Room SP"
-          value={`${formatNum(resumo.showroomUn)} un`}
-          dotClass="bg-muted-foreground"
-          sublabel="fora do disponível"
-        />
-        <StatPill
-          label="Indisponível"
-          value={formatNum(resumo.indisponivel)}
-          dotClass="bg-muted-foreground"
+        <CartaoNumero
+          rotulo="Canais divergentes"
+          valor={`${formatNum(skusDivergentes.size)} SKUs`}
+          alerta={skusDivergentes.size > 0 ? "warning" : null}
+          ativo={condicaoFiltro === "com_canal_diverge"}
+          onClick={() => aplicarRecorte("condicao", "com_canal_diverge")}
         />
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-[260px] max-w-md">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <FilterInput
             value={busca}
             onChange={(e) => { setBusca(e.target.value); setPagina(1); }}
-            placeholder="Buscar por SKU ou nome"
+            placeholder="Buscar por código, SKU ou nome"
             className="pl-9"
           />
         </div>
-        <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={statusFiltro !== "todos"} className="w-[210px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            {STATUS_VENDA_ORDEM.map((s) => (
-              <SelectItem key={s} value={s}>{rotuloStatusVenda(s)}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={condicaoFiltro} onValueChange={(v) => { setCondicaoFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[220px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todas as posições</SelectItem>
-            <SelectItem value="com_bloqueio">Com não vendável</SelectItem>
-            <SelectItem value="com_showroom">Com Show Room</SelectItem>
-            <SelectItem value="com_delta_bling">Divergente do Bling</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={centroFiltro} onValueChange={(v) => { setCentroFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={centroFiltro !== "todos"} className="w-[200px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os centros</SelectItem>
-            {centrosPresentes.map(([c, nome]) => (
-              <SelectItem key={c} value={c}>{nome ? `${c} · ${nome}` : c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="text-xs text-muted-foreground ml-auto">
-          {filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}
-        </span>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
+          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPagina(1); }}>
+            <FilterSelectTrigger active={statusFiltro !== "todos"} className="w-[190px]">
+              <SelectValue />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os status</SelectItem>
+              {STATUS_VENDA_ORDEM.map((s) => (
+                <SelectItem key={s} value={s}>{rotuloStatusVenda(s)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={condicaoFiltro} onValueChange={(v) => { setCondicaoFiltro(v); setPagina(1); }}>
+            <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[200px]">
+              <SelectValue />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas as posições</SelectItem>
+              <SelectItem value="com_descoberto">Com descoberto</SelectItem>
+              <SelectItem value="com_bloqueio">Com não vendável</SelectItem>
+              <SelectItem value="com_showroom">Com Show Room</SelectItem>
+              <SelectItem value="com_canal_diverge">Canal divergente</SelectItem>
+              <SelectItem value="com_delta_bling">Divergente do Bling</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={centroFiltro} onValueChange={(v) => { setCentroFiltro(v); setPagina(1); }}>
+            <FilterSelectTrigger active={centroFiltro !== "todos"} className="w-[190px]">
+              <SelectValue />
+            </FilterSelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos os centros</SelectItem>
+              {centrosPresentes.map(([c, nome]) => (
+                <SelectItem key={c} value={c}>{nome ? `${c} · ${nome}` : c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <div ref={tableWrapperRef} className="rounded-md border bg-card overflow-x-auto">
+      <div ref={tableWrapperRef} className="rounded-md border bg-card">
         <TooltipProvider delayDuration={200}>
-          <Table className="[&_td]:py-2 [&_td]:px-3 [&_th]:px-3 text-[13px]">
+          <Table className="table-fixed text-[12px] [&_td]:py-[10px] [&_td]:px-3 [&_th]:px-3 [&_tr]:border-b">
             <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
               <TableRow>
-                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[110px]">SKU</SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort} className="min-w-[180px]">Produto</SortableTableHead>
-                <SortableTableHead column="cor" sort={sort} onSort={setSort} className="w-[150px]">Cor</SortableTableHead>
-                <SortableTableHead column="vendavel" sort={sort} onSort={setSort} align="right" className="w-[90px]">Vendável</SortableTableHead>
-                <SortableTableHead column="bloqueado" sort={sort} onSort={setSort} align="right" className="w-[100px]">Não vendável</SortableTableHead>
-                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
+                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[120px]">Código</SortableTableHead>
+                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
+                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[150px]">Situação</SortableTableHead>
+                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[90px]">Chegada</SortableTableHead>
                 <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  {centroFiltro !== "todos" ? `Disponível (${centroFiltro})` : "Disponível"}
+                  {centroFiltro !== "todos" ? `Disp. (${centroFiltro})` : "Disponível"}
                 </SortableTableHead>
                 <TableHead className="text-right w-[70px]">SC</TableHead>
                 <TableHead className="text-right w-[70px]">SP</TableHead>
-                <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
                 <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
-                <TableHead className="w-[85px]">Canais</TableHead>
-                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[145px]">Status</SortableTableHead>
-                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[175px]">Chegada</SortableTableHead>
-                <SortableTableHead column="bling" sort={sort} onSort={setSort} align="right" className="w-[105px]">Ref. Bling</SortableTableHead>
-
+                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
+                <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="[&_tr:nth-child(even)]:bg-transparent">
               {produtosQuery.isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
                 </TableRow>
               ) : pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={15} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
+                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
                 </TableRow>
               ) : (
                 pageItems.map((p) => {
-                  const alarme = p.status_venda === "vendido_sem_lastro";
-                  const bloqueado = Number(p.bloqueado ?? 0);
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const showroom = Number(p.em_showroom ?? 0);
-                  const disponivel = Number(p.disponivel ?? 0);
                   const descoberto = Number(p.descoberto ?? 0);
-                  const delta = Number(p.delta_bling ?? 0);
-                  const etaTexto = formatEta(p.eta_prevista, p.eta_precisao, p.status_suprimento);
-                  const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
-                  const tudoNoShowroom =
-                    showroom > 0 && Number(p.fiscal_vendavel ?? 0) === 0 && descoberto > 0;
                   const canais = canaisPorSku.get(p.sku) ?? [];
                   const cSC = canais.find((c) => c.centro === CENTRO_SC);
                   const cSP = canais.find((c) => c.centro === CENTRO_SP);
                   const cFiltro = centroFiltro !== "todos" ? canais.find((c) => c.centro === centroFiltro) : null;
-                  const disponivelMostrado = cFiltro ? Number(cFiltro.disponivel ?? 0) : disponivel;
-                  const divergencias = canais.flatMap((c) => [
-                    ...(c.shopify_diverge ? [`${c.centro} · Shopify`] : []),
-                    ...(c.bling_diverge ? [`${c.centro} · Bling`] : []),
-                  ]);
+                  const disponivelMostrado = cFiltro ? Number(cFiltro.disponivel ?? 0) : Number(p.disponivel ?? 0);
+                  const divergencias = divergenciasDe(canais);
+                  const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
+                  const cod = codQuery.data?.get(p.sku);
 
                   return (
                     <TableRow
                       key={p.sku}
-                      className={cn(
-                        "cursor-pointer",
-                        alarme && "bg-destructive/5 hover:bg-destructive/10",
-                      )}
+                      className="cursor-pointer"
                       onClick={() => setDetalhe({ sku: p.sku, nome: p.nome_comercial })}
                     >
-                      <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                      <TableCell className="font-medium">
-                        <span className="flex items-center gap-2">
-                          {alarme && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
-                          <span className="block w-[300px] truncate" title={p.nome_comercial ?? ""}>
-                            {p.nome_comercial ?? "—"}
-                          </span>
-                        </span>
+                      <TableCell className="leading-tight">
+                        <div className="font-mono truncate">{cod ?? <span className="text-muted-foreground">—</span>}</div>
+                        <div className="text-[11px] text-muted-foreground truncate">{p.sku}</div>
                       </TableCell>
-                      <TableCell className="text-[13px] whitespace-nowrap">
-                        {p.cor_nome ? p.cor_nome : <span className="text-muted-foreground">—</span>}
+                      <TableCell className="leading-tight">
+                        <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
+                        {p.cor_nome && <div className="text-[11px] text-muted-foreground truncate">{p.cor_nome}</div>}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNum(p.fiscal_vendavel)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {bloqueado === 0 ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help text-warning font-medium">{formatNum(bloqueado)}</span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              Posição em condição não vendável (avaria, quarentena, não conforme). O furo dessas condições é esperado por desenho — não é divergência a investigar.
-                            </TooltipContent>
-                          </Tooltip>
+                      <TableCell className="leading-tight">
+                        <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.status_venda))}>
+                          {rotuloStatusVenda(p.status_venda)}
+                        </Badge>
+                        {divergencias.length > 0 && (
+                          <div className="mt-1 text-[11px] text-warning" title={divergencias.join("\n")}>canal diverge</div>
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {aguardando > 0 ? (
+                      <TableCell className="text-muted-foreground tabular-nums">
+                        {p.pedido_suprimento || p.eta_prevista ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className="cursor-help">
-                                {formatNum(p.reservado)}
-                                <span className={cn("ml-1 text-xs", alarme ? "text-destructive" : "text-info")}>
-                                  ({formatNum(aguardando)})
-                                </span>
+                              <span className={cn("cursor-help", !temEta && "text-warning")}>
+                                {temEta ? formatDataCurta(p.eta_prevista) : "—"}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent className="max-w-xs text-xs">
-                              {formatNum(aguardando)} unidades reservadas aguardando o produto chegar.
+                              {p.pedido_suprimento ? `${rotuloOrigem(p.origem_suprimento)} · ${p.pedido_suprimento} — ` : ""}
+                              {formatEta(p.eta_prevista, p.eta_precisao, p.status_suprimento)}
                             </TooltipContent>
                           </Tooltip>
-                        ) : (
-                          formatNum(p.reservado)
-                        )}
+                        ) : "—"}
                       </TableCell>
-
-                      <TableCell className="text-right tabular-nums font-medium">
-                        {formatNum(disponivelMostrado)}
-                      </TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{formatNum(disponivelMostrado)}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {cSC ? formatNum(cSC.disponivel) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
@@ -684,97 +625,24 @@ export default function EstoqueVirtual() {
                         {cSP ? formatNum(cSP.disponivel) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {descoberto === 0 ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="cursor-help text-destructive font-medium">{formatNum(descoberto)}</span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {formatNum(descoberto)} unidades já prometidas a cliente sem cobertura de estoque vendável.
-                            </TooltipContent>
-                          </Tooltip>
+                        {showroom === 0 ? <span className="text-muted-foreground">—</span> : formatNum(showroom)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNum(p.reservado)}
+                        {aguardando > 0 && (
+                          <span className="ml-1 text-[11px] text-info" title={`${formatNum(aguardando)} un aguardando o produto chegar`}>
+                            ({formatNum(aguardando)})
+                          </span>
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {showroom === 0 ? (
+                        {descoberto === 0 ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className={cn("cursor-help", tudoNoShowroom ? "text-warning font-medium" : "text-muted-foreground")}>
-                                {formatNum(showroom)}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {tudoNoShowroom
-                                ? "Toda a mercadoria deste SKU está no Show Room de SP: vendável zerado no armazém e há unidades descobertas."
-                                : "Posição no Show Room de SP. Controle interno — não é vendável e não entra no disponível."}
-                            </TooltipContent>
-                          </Tooltip>
+                          <span className="text-destructive font-medium" title={`${formatNum(descoberto)} un prometidas sem cobertura de estoque vendável`}>
+                            {formatNum(descoberto)}
+                          </span>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        {divergencias.length === 0 ? (
-                          <Badge variant="outline" className="font-normal">OK</Badge>
-                        ) : (
-                          <Badge variant="outline" className="font-normal bg-warning/15 text-warning border-warning/30" title={divergencias.join("\n")}>
-                            Diverge
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.status_venda))}>
-                          {rotuloStatusVenda(p.status_venda)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs">
-                        {p.pedido_suprimento ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="cursor-help leading-tight max-w-[190px]">
-                                <div className="font-medium truncate">
-                                  <span className="text-muted-foreground font-normal">{rotuloOrigem(p.origem_suprimento)} · </span>
-                                  {p.pedido_suprimento}
-                                </div>
-                                <div className={cn("truncate", temEta ? "text-muted-foreground" : "text-warning")}>
-                                  {etaTexto}
-                                </div>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {rotuloOrigem(p.origem_suprimento)} · {p.pedido_suprimento} — {temEta
-                                ? etaTexto
-                                : `${p.status_suprimento ?? "situação não informada"} · sem data de previsão`}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-
-
-                      <TableCell className="text-right text-xs">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="cursor-help leading-tight">
-                              <div className="tabular-nums text-muted-foreground">
-                                {p.referencia_bling === null || p.referencia_bling === undefined
-                                  ? "—"
-                                  : formatNum(p.referencia_bling)}
-                              </div>
-                              {delta !== 0 && (
-                                <div className="tabular-nums text-muted-foreground">
-                                  Δ {formatDelta(delta)}
-                                </div>
-                              )}
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs text-xs">
-                            Saldo do Bling apenas como referência de conferência. Não é fonte de verdade e não influencia status nem disponibilidade.
-                          </TooltipContent>
-                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   );
@@ -785,12 +653,11 @@ export default function EstoqueVirtual() {
         </TooltipProvider>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 mt-4 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <span>
-            {filtrados.length === 0
-              ? "Nenhum resultado"
-              : <>Mostrando <span className="font-medium text-foreground tabular-nums">{inicioRange}</span>–<span className="font-medium text-foreground tabular-nums">{fimRange}</span> de <span className="font-medium text-foreground tabular-nums">{filtrados.length}</span></>}
+          <span className="tabular-nums">
+            {formatNum(filtrados.length)} produtos · {formatNum(pageItems.length)} exibidos
+            {filtrados.length > 0 && <> ({inicioRange}–{fimRange})</>}
           </span>
           <span className="hidden sm:inline">·</span>
           <div className="hidden sm:flex items-center gap-1.5">
@@ -824,7 +691,6 @@ export default function EstoqueVirtual() {
             <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina((p) => Math.max(1, p - 1))} aria-label="Página anterior">
               <ChevronLeft className="h-4 w-4" />
             </Button>
-
             {pageRange.map((p, idx) =>
               p === "…" ? (
                 <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
@@ -841,7 +707,6 @@ export default function EstoqueVirtual() {
                 </Button>
               ),
             )}
-
             <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} aria-label="Próxima página">
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -857,73 +722,136 @@ export default function EstoqueVirtual() {
         nome={detalhe?.nome ?? null}
         onClose={() => setDetalhe(null)}
         extra={detalhe ? (
-          <section className="mt-6">
-            <h3 className="text-sm font-medium mb-2">Por centro</h3>
-            {canaisQuery.isError ? (
-              <p className="text-sm text-destructive">Falha ao carregar canais: {formatError(canaisQuery.error)}</p>
-            ) : (canaisPorSku.get(detalhe.sku) ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sem linha por centro para este SKU.</p>
-            ) : (
-              <div className="rounded-md border overflow-x-auto">
-                <Table className="text-xs">
-                  <TableHeader><TableRow>
-                    <TableHead>Centro</TableHead><TableHead className="text-right">Fiscal</TableHead>
-                    <TableHead className="text-right">Físico</TableHead><TableHead className="text-right">Reservado</TableHead>
-                    <TableHead className="text-right">Disponível</TableHead><TableHead className="text-right">Shopify</TableHead>
-                    <TableHead className="text-right">Bling</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {(canaisPorSku.get(detalhe.sku) ?? []).map((c) => (
-                      <TableRow key={c.centro}>
-                        <TableCell title={c.centro_nome ?? ""}>{c.centro}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatNum(c.fiscal_total)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatNum(c.fisico_total)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{formatNum(c.reservado)}</TableCell>
-                        <TableCell className="text-right tabular-nums font-medium">{formatNum(c.disponivel)}</TableCell>
-                        <TableCell className={cn("text-right tabular-nums", c.shopify_diverge && "bg-warning/15 text-warning font-medium")}>
-                          {c.shopify_atual == null ? "—" : formatNum(c.shopify_atual)}
-                        </TableCell>
-                        <TableCell className={cn("text-right tabular-nums", c.bling_diverge && "bg-warning/15 text-warning font-medium")}>
-                          {c.bling_atual == null ? "—" : formatNum(c.bling_atual)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+          <>
+            {detalheLinha && (
+              <section className="mt-6">
+                <h3 className="text-sm font-medium mb-2">Cadastro e posição</h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+                  <dt className="text-muted-foreground">Código</dt>
+                  <dd className="font-mono">{codQuery.data?.get(detalheLinha.sku) ?? "—"}</dd>
+                  <dt className="text-muted-foreground">Cor</dt>
+                  <dd>{detalheLinha.cor_nome ?? "—"}</dd>
+                  <dt className="text-muted-foreground">Vendável</dt>
+                  <dd className="tabular-nums">{formatNum(detalheLinha.fiscal_vendavel)}</dd>
+                  <dt className="text-muted-foreground">Não vendável</dt>
+                  <dd className={cn("tabular-nums", Number(detalheLinha.bloqueado ?? 0) > 0 && "text-warning font-medium")}>
+                    {Number(detalheLinha.bloqueado ?? 0) === 0 ? "—" : formatNum(detalheLinha.bloqueado)}
+                  </dd>
+                  <dt className="text-muted-foreground">Ref. Bling</dt>
+                  <dd className="tabular-nums">
+                    {detalheLinha.referencia_bling == null ? "—" : formatNum(detalheLinha.referencia_bling)}
+                    {Number(detalheLinha.delta_bling ?? 0) !== 0 && (
+                      <span className="ml-2 text-muted-foreground">Δ {formatDelta(detalheLinha.delta_bling)}</span>
+                    )}
+                  </dd>
+                  <dt className="text-muted-foreground">Chegada</dt>
+                  <dd>
+                    {detalheLinha.pedido_suprimento
+                      ? `${rotuloOrigem(detalheLinha.origem_suprimento)} · ${detalheLinha.pedido_suprimento} — ${formatEta(detalheLinha.eta_prevista, detalheLinha.eta_precisao, detalheLinha.status_suprimento)}`
+                      : "—"}
+                  </dd>
+                  <dt className="text-muted-foreground">Canais</dt>
+                  <dd className={cn(divergenciasDe(canaisPorSku.get(detalheLinha.sku) ?? []).length > 0 && "text-warning")}>
+                    {divergenciasDe(canaisPorSku.get(detalheLinha.sku) ?? []).join(" · ") || "OK"}
+                  </dd>
+                </dl>
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  Saldo do Bling é só referência de conferência — não é fonte de verdade.
+                </p>
+              </section>
             )}
-          </section>
+            <section className="mt-6">
+              <h3 className="text-sm font-medium mb-2">Por centro</h3>
+              {canaisQuery.isError ? (
+                <p className="text-sm text-destructive">Falha ao carregar canais: {formatError(canaisQuery.error)}</p>
+              ) : (canaisPorSku.get(detalhe.sku) ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">Sem linha por centro para este SKU.</p>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="text-xs">
+                    <TableHeader><TableRow>
+                      <TableHead>Centro</TableHead><TableHead className="text-right">Fiscal</TableHead>
+                      <TableHead className="text-right">Físico</TableHead><TableHead className="text-right">Reservado</TableHead>
+                      <TableHead className="text-right">Disponível</TableHead><TableHead className="text-right">Shopify</TableHead>
+                      <TableHead className="text-right">Bling</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {(canaisPorSku.get(detalhe.sku) ?? []).map((c) => (
+                        <TableRow key={c.centro}>
+                          <TableCell title={c.centro_nome ?? ""}>{c.centro}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatNum(c.fiscal_total)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatNum(c.fisico_total)}</TableCell>
+                          <TableCell className="text-right tabular-nums">{formatNum(c.reservado)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{formatNum(c.disponivel)}</TableCell>
+                          <TableCell className={cn("text-right tabular-nums", c.shopify_diverge && "bg-warning/15 text-warning font-medium")}>
+                            {c.shopify_atual == null ? "—" : formatNum(c.shopify_atual)}
+                          </TableCell>
+                          <TableCell className={cn("text-right tabular-nums", c.bling_diverge && "bg-warning/15 text-warning font-medium")}>
+                            {c.bling_atual == null ? "—" : formatNum(c.bling_atual)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </section>
+          </>
         ) : null}
       />
     </PageShell>
   );
 }
 
-function StatPill({
-  label,
-  value,
-  dotClass,
-  sublabel,
-  valueClassName,
+function divergenciasDe(canais: CanalCentro[]): string[] {
+  return canais.flatMap((c) => [
+    ...(c.shopify_diverge ? [`${c.centro} · Shopify`] : []),
+    ...(c.bling_diverge ? [`${c.centro} · Bling`] : []),
+  ]);
+}
+
+function formatDataCurta(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+
+function tempoRelativo(iso: string) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (!isFinite(min)) return "—";
+  if (min < 1) return "agora";
+  if (min < 60) return `há ${min} min`;
+  const h = Math.round(min / 60);
+  if (h < 24) return `há ${h} h`;
+  return `há ${Math.round(h / 24)} d`;
+}
+
+function CartaoNumero({
+  rotulo, valor, sub, alerta, ativo, onClick,
 }: {
-  label: string;
-  value: string;
-  dotClass: string;
-  sublabel?: string;
-  valueClassName?: string;
+  rotulo: string;
+  valor: string;
+  sub?: string;
+  alerta: "destructive" | "warning" | null;
+  ativo: boolean;
+  onClick: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className={cn("h-2 w-2 rounded-full", dotClass)} aria-hidden />
-      <div className="flex flex-col leading-tight">
-        <div className="flex items-baseline gap-2">
-          <span className="text-xs text-muted-foreground">{label}</span>
-          <span className={cn("font-medium tabular-nums", adaptiveValueClass(value), valueClassName)}>
-            {value}
-          </span>
-        </div>
-        {sublabel && <span className="text-[10px] text-muted-foreground">{sublabel}</span>}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={cn(
+        "rounded-md border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50",
+        alerta === "destructive" && "border-l-[3px] border-l-destructive",
+        alerta === "warning" && "border-l-[3px] border-l-warning",
+        ativo && "ring-1 ring-ring",
+      )}
+    >
+      <div className="text-xs text-muted-foreground">{rotulo}</div>
+      <div className="mt-1 text-2xl font-medium tabular-nums text-foreground">{valor}</div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+    </button>
   );
 }
