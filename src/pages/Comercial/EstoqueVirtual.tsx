@@ -215,9 +215,25 @@ export default function EstoqueVirtual() {
   const [situacaoFiltro, setSituacaoFiltro] = useState("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [visao, setVisao] = useState<Visao>("estoque");
-  const [sort, setSort] = useState<SortState<Col> | null>(SORT_PADRAO.estoque);
+  const [sort, setSort] = useState<SortState<ColSort> | null>(SORT_PADRAO.estoque);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  const centrosQuery = useQuery({
+    queryKey: ["centro_distribuicao_ativos_cockpit"],
+    queryFn: async (): Promise<CentroAtivo[]> => {
+      const { data, error } = await (supabase as any)
+        .from("centro_distribuicao")
+        .select("codigo, nome, rotulo_curto, tipo, vende, ordem")
+        .eq("ativo", true)
+        .order("ordem", { nullsFirst: false })
+        .order("codigo");
+      if (error) throw error;
+      return (data ?? []) as CentroAtivo[];
+    },
+  });
+  const centros = centrosQuery.data ?? [];
+
 
   const cockpitQuery = useQuery({
     queryKey: ["vw_estoque_cockpit"],
@@ -279,11 +295,10 @@ export default function EstoqueVirtual() {
     return m;
   }, [canaisQuery.data]);
 
-  // Linhas produto×centro do recorte (todos os filtros).
-  const recorte = useMemo(() => {
+  // Linhas produto×centro com todos os filtros exceto Centro.
+  const recorteSemCentro = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (centroFiltro !== "todos" && l.centro !== centroFiltro) return false;
       if (faseFiltro !== "todos" && l.fase !== faseFiltro) return false;
       if (colecaoFiltro !== "todos" && l.colecao !== colecaoFiltro) return false;
       if (situacaoFiltro !== "todos" && l.situacao !== situacaoFiltro) return false;
@@ -295,10 +310,28 @@ export default function EstoqueVirtual() {
         (l.cor_nome ?? "").toLowerCase().includes(q)
       );
     });
-  }, [linhas, busca, centroFiltro, faseFiltro, colecaoFiltro, situacaoFiltro]);
+  }, [linhas, busca, faseFiltro, colecaoFiltro, situacaoFiltro]);
+
+  // Linhas produto×centro do recorte (todos os filtros).
+  const recorte = useMemo(
+    () => (centroFiltro === "todos" ? recorteSemCentro : recorteSemCentro.filter((l) => l.centro === centroFiltro)),
+    [recorteSemCentro, centroFiltro],
+  );
+
+  const resumoCentros = useMemo(() => {
+    const m = new Map<string, { un: number; valor: number }>();
+    for (const l of recorteSemCentro) {
+      if (!l.centro) continue;
+      const a = m.get(l.centro) ?? { un: 0, valor: 0 };
+      a.un += n(l.contabil);
+      a.valor += n(l.valor_custo);
+      m.set(l.centro, a);
+    }
+    return m;
+  }, [recorteSemCentro]);
 
   const tabela = useMemo((): LinhaTabela[] => {
-    if (centroFiltro !== "todos") {
+    if (centroFiltro !== "todos" && visao !== "centros") {
       return recorte.map((l) => ({
         chave: `${chaveProduto(l)}|${l.centro}`,
         cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial, cor_nome: l.cor_nome,
@@ -312,10 +345,12 @@ export default function EstoqueVirtual() {
         real_site: l.centro === "SITE-SP" ? l.real_centro : null,
         divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
         saude: l.saude, em_transito: n(l.em_transito),
+        por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
       }));
     }
+    const fonte = visao === "centros" ? recorteSemCentro : recorte;
     const m = new Map<string, LinhaTabela>();
-    for (const l of recorte) {
+    for (const l of fonte) {
       const k = chaveProduto(l);
       const a = m.get(k);
       if (!a) {
@@ -330,8 +365,10 @@ export default function EstoqueVirtual() {
           real_site: l.centro === "SITE-SP" ? l.real_centro : null,
           divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
           saude: l.saude, em_transito: n(l.em_transito),
+          por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
         });
       } else {
+        if (l.centro) a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
         a.contabil += n(l.contabil);
         a.fisico += n(l.fisico);
         a.virtual += n(l.virtual);
@@ -351,13 +388,16 @@ export default function EstoqueVirtual() {
         if (l.eta_embarque && (!a.eta_embarque || l.eta_embarque < a.eta_embarque)) a.eta_embarque = l.eta_embarque;
       }
     }
-    const out = [...m.values()];
+    let out = [...m.values()];
     for (const a of out) {
       a.tempo = tempoDias(a.virtual, a.vendas_janela, a.janela_dias);
       if (a.contabil > 0) a.ticket = a.valor_venda / a.contabil;
     }
+    if (visao === "centros" && centroFiltro !== "todos") {
+      out = out.filter((a) => (a.por_centro[centroFiltro] ?? 0) !== 0);
+    }
     return out;
-  }, [recorte, centroFiltro]);
+  }, [recorte, recorteSemCentro, centroFiltro, visao]);
 
   const cartoes = useMemo(() => {
     let contabil = 0, valor = 0, valorVenda = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
@@ -380,9 +420,16 @@ export default function EstoqueVirtual() {
     return { contabil, valor, valorVenda, vendas, janela, giro, tempo, saude, emTransito };
   }, [recorte]);
 
-  const ordenados = useMemo(
-    () =>
-      ordenarPor<LinhaTabela, Col>(tabela, sort, {
+  const ordenados = useMemo(() => {
+    const col = sort?.column;
+    if (col && (col === "total" || col.startsWith("c:"))) {
+      const val = col === "total"
+        ? (p: LinhaTabela) => totalCentros(p)
+        : (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0;
+      const f = sort!.direction === "asc" ? 1 : -1;
+      return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
+    }
+    return ordenarPor<LinhaTabela, Col>(tabela, sort as SortState<Col> | null, {
         cod: (p) => p.cod_cadastro ?? "",
         nome: (p) => p.nome_comercial ?? "",
         situacao: (p) => p.situacao ?? "",
@@ -402,9 +449,8 @@ export default function EstoqueVirtual() {
         vvenda: (p) => p.valor_venda,
         vemp: (p) => p.valor_empenhado,
         transito: (p) => p.em_transito,
-      }),
-    [tabela, sort],
-  );
+    });
+  }, [tabela, sort]);
 
   const totalPaginas = Math.max(1, Math.ceil(ordenados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -420,7 +466,7 @@ export default function EstoqueVirtual() {
       }`;
   const detalheLinha = detalhe ? tabela.find((p) => p.sku === detalhe.sku) ?? null : null;
 
-  function ordenarColuna(coluna: Col) {
+  function ordenarColuna(coluna: ColSort) {
     setSort((atual) => {
       if (atual?.column !== coluna) return { column: coluna, direction: "asc" };
       if (atual.direction === "asc") return { column: coluna, direction: "desc" };
