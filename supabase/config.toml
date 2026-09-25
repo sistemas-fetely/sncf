@@ -117,3 +117,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
     verify_jwt = true
     [functions.ler-relatorio-consignado.runtime]
       wall_clock_limit_sec = 400
+
+[functions.shopify-cadastrar-produto]
+    verify_jwt = true
