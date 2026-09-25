@@ -500,7 +500,7 @@ export default function EstoqueVirtual() {
     setPagina(1);
   }
 
-  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false, title?: string) => (
+  const cabecalho = (coluna: ColSort, rotulo: string, className: string, alinharDireita = false, title?: string) => (
     <CabecalhoColuna
       rotulo={rotulo}
       title={title ?? rotulo}
