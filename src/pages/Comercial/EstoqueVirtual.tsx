@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -14,10 +14,10 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { SortableTableHead, type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import {
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, RefreshCw, Search,
-} from "lucide-react";
+import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
+import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
+import { RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   classeStatusVenda, rotuloStatusVenda, STATUS_VENDA_ORDEM,
@@ -95,30 +95,13 @@ type Col =
   | "reservado"
   | "aguardando"
   | "disponivel"
+  | "sc"
+  | "sp"
   | "descoberto"
   | "showroom"
   | "chegada"
   | "bling"
   | "status";
-
-const PAGE_SIZE_OPTIONS = ["auto", 50, 100, 200, 500] as const;
-type PageSizeOption = (typeof PAGE_SIZE_OPTIONS)[number];
-const DEFAULT_PAGE_SIZE: PageSizeOption = "auto";
-const ROW_HEIGHT = 53;
-const FOOTER_RESERVE = 80;
-
-
-function buildPageRange(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "…")[] = [1];
-  const start = Math.max(2, current - 1);
-  const end = Math.min(total - 1, current + 1);
-  if (start > 2) pages.push("…");
-  for (let i = start; i <= end; i++) pages.push(i);
-  if (end < total - 1) pages.push("…");
-  pages.push(total);
-  return pages;
-}
 
 function formatNum(n: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(Number(n ?? 0));
@@ -175,28 +158,11 @@ export default function EstoqueVirtual() {
   const [centroFiltro, setCentroFiltro] = useState<string>("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "descoberto",
+    column: "disponivel",
     direction: "desc",
   });
   const [pagina, setPagina] = useState(1);
-  const [pageSizeOpt, setPageSizeOpt] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
-  const [autoPageSize, setAutoPageSize] = useState<number>(20);
-  const tableWrapperRef = useRef<HTMLDivElement | null>(null);
-  const pageSize = pageSizeOpt === "auto" ? autoPageSize : pageSizeOpt;
-
-  useLayoutEffect(() => {
-    function recompute() {
-      const el = tableWrapperRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top;
-      const available = window.innerHeight - top - FOOTER_RESERVE;
-      const rows = Math.max(5, Math.floor((available - 48) / ROW_HEIGHT));
-      setAutoPageSize(rows);
-    }
-    recompute();
-    window.addEventListener("resize", recompute);
-    return () => window.removeEventListener("resize", recompute);
-  }, []);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const produtosQuery = useQuery({
     queryKey: ["vw_estoque_rede"],
@@ -374,6 +340,8 @@ export default function EstoqueVirtual() {
       reservado: (p) => Number(p.reservado ?? 0),
       aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
       disponivel: (p) => dispCentro(p),
+      sc: (p) => Number((canaisPorSku.get(p.sku) ?? []).find((c) => c.centro === CENTRO_SC)?.disponivel ?? 0),
+      sp: (p) => Number((canaisPorSku.get(p.sku) ?? []).find((c) => c.centro === CENTRO_SP)?.disponivel ?? 0),
       descoberto: (p) => Number(p.descoberto ?? 0),
       showroom: (p) => Number(p.em_showroom ?? 0),
       chegada: (p) => p.eta_prevista ?? "",
@@ -386,9 +354,6 @@ export default function EstoqueVirtual() {
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const pageItems = filtrados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
-  const inicioRange = filtrados.length === 0 ? 0 : (paginaAtual - 1) * pageSize + 1;
-  const fimRange = Math.min(paginaAtual * pageSize, filtrados.length);
-  const pageRange = buildPageRange(paginaAtual, totalPaginas);
 
   const totalDisponivel = lista.reduce((s, p) => s + Number(p.disponivel ?? 0), 0);
   const estadoCabecalho = produtosQuery.isLoading
@@ -403,6 +368,33 @@ export default function EstoqueVirtual() {
     else { setCondicaoFiltro(valor); setStatusFiltro("todos"); }
     setPagina(1);
   }
+
+  function ordenarColuna(coluna: Col) {
+    setSort((atual) => {
+      if (atual?.column !== coluna) return { column: coluna, direction: "asc" };
+      if (atual.direction === "asc") return { column: coluna, direction: "desc" };
+      return null;
+    });
+    setPagina(1);
+  }
+
+  function limparFiltros() {
+    setBusca("");
+    setStatusFiltro("todos");
+    setCondicaoFiltro("todos");
+    setCentroFiltro("todos");
+    setPagina(1);
+  }
+
+  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false) => (
+    <CabecalhoOrdenavel
+      rotulo={rotulo}
+      dir={sort?.column === coluna ? sort.direction : null}
+      onOrdenar={() => ordenarColuna(coluna)}
+      className={cn("whitespace-nowrap font-medium", className)}
+      alinharDireita={alinharDireita}
+    />
+  );
 
   return (
     <PageShell variant="dados" className="animate-casa-fade-in">
@@ -456,7 +448,7 @@ export default function EstoqueVirtual() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores do estoque">
         <CartaoNumero
           rotulo="Vendido sem lastro"
           valor={`${formatNum(resumo.semLastroUn)} un`}
@@ -487,7 +479,7 @@ export default function EstoqueVirtual() {
           ativo={condicaoFiltro === "com_canal_diverge"}
           onClick={() => aplicarRecorte("condicao", "com_canal_diverge")}
         />
-      </div>
+      </section>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative flex-1 min-w-[240px] max-w-md">
@@ -538,36 +530,32 @@ export default function EstoqueVirtual() {
         </div>
       </div>
 
-      <div ref={tableWrapperRef} className="rounded-md border bg-card">
+      {produtosQuery.isLoading ? (
+        <div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>
+      ) : filtrados.length === 0 ? (
+        <div className="py-12 text-center">
+          <p className="text-sm text-muted-foreground">Nenhum produto neste recorte</p>
+          <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
+        </div>
+      ) : <div className="overflow-hidden rounded-md border bg-card">
         <TooltipProvider delayDuration={200}>
-          <Table className="table-fixed text-[12px] [&_td]:py-[10px] [&_td]:px-3 [&_th]:px-3 [&_tr]:border-b">
-            <TableHeader className="[&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:bg-card [&_th]:shadow-[inset_0_-1px_0_hsl(var(--border))]">
-              <TableRow>
-                <SortableTableHead column="sku" sort={sort} onSort={setSort} className="w-[120px]">Código</SortableTableHead>
-                <SortableTableHead column="nome" sort={sort} onSort={setSort}>Produto</SortableTableHead>
-                <SortableTableHead column="status" sort={sort} onSort={setSort} className="w-[150px]">Situação</SortableTableHead>
-                <SortableTableHead column="chegada" sort={sort} onSort={setSort} className="w-[90px]">Chegada</SortableTableHead>
-                <SortableTableHead column="disponivel" sort={sort} onSort={setSort} align="right" className="w-[100px]">
-                  {centroFiltro !== "todos" ? `Disp. (${centroFiltro})` : "Disponível"}
-                </SortableTableHead>
-                <TableHead className="text-right w-[70px]">SC</TableHead>
-                <TableHead className="text-right w-[70px]">SP</TableHead>
-                <SortableTableHead column="showroom" sort={sort} onSort={setSort} align="right" className="w-[95px]">Show Room</SortableTableHead>
-                <SortableTableHead column="reservado" sort={sort} onSort={setSort} align="right" className="w-[95px]">Reservado</SortableTableHead>
-                <SortableTableHead column="descoberto" sort={sort} onSort={setSort} align="right" className="w-[100px]">Descoberto</SortableTableHead>
+          <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3">
+            <TableHeader>
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                {cabecalho("sku", "Código", "w-[110px]")}
+                {cabecalho("nome", "Produto", "")}
+                {cabecalho("status", "Situação", "w-[130px]")}
+                {cabecalho("chegada", "Chegada", "w-[90px]")}
+                {cabecalho("disponivel", centroFiltro !== "todos" ? `Disp. (${centroFiltro})` : "Disponível", "w-[84px]", true)}
+                {cabecalho("sc", "SC", "w-[84px]", true)}
+                {cabecalho("sp", "SP", "w-[84px]", true)}
+                {cabecalho("showroom", "Show Room", "w-[84px]", true)}
+                {cabecalho("reservado", "Reservado", "w-[84px]", true)}
+                {cabecalho("descoberto", "Descoberto", "w-[84px]", true)}
               </TableRow>
             </TableHeader>
-            <TableBody className="[&_tr:nth-child(even)]:bg-transparent">
-              {produtosQuery.isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Carregando…</TableCell>
-                </TableRow>
-              ) : pageItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-center py-12 text-muted-foreground">Nenhum produto encontrado.</TableCell>
-                </TableRow>
-              ) : (
-                pageItems.map((p) => {
+            <TableBody>
+              {pageItems.map((p) => {
                   const aguardando = Number(p.reservado_aguardando_produto ?? 0);
                   const showroom = Number(p.em_showroom ?? 0);
                   const descoberto = Number(p.descoberto ?? 0);
@@ -587,8 +575,8 @@ export default function EstoqueVirtual() {
                       onClick={() => setDetalhe({ sku: p.sku, nome: p.nome_comercial })}
                     >
                       <TableCell className="leading-tight">
-                        <div className="font-mono truncate">{cod ?? <span className="text-muted-foreground">—</span>}</div>
-                        <div className="text-[11px] text-muted-foreground truncate">{p.sku}</div>
+                        <div className="truncate font-mono">{cod ?? <span className="text-muted-foreground">—</span>}</div>
+                        {p.sku !== cod && <div className="truncate text-[11px] text-muted-foreground">{p.sku}</div>}
                       </TableCell>
                       <TableCell className="leading-tight">
                         <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
@@ -646,76 +634,20 @@ export default function EstoqueVirtual() {
                       </TableCell>
                     </TableRow>
                   );
-                })
-              )}
+                })}
             </TableBody>
           </Table>
         </TooltipProvider>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <span className="tabular-nums">
-            {formatNum(filtrados.length)} produtos · {formatNum(pageItems.length)} exibidos
-            {filtrados.length > 0 && <> ({inicioRange}–{fimRange})</>}
-          </span>
-          <span className="hidden sm:inline">·</span>
-          <div className="hidden sm:flex items-center gap-1.5">
-            <span>Por página:</span>
-            <Select
-              value={String(pageSizeOpt)}
-              onValueChange={(v) => {
-                setPageSizeOpt(v === "auto" ? "auto" : (Number(v) as PageSizeOption));
-                setPagina(1);
-              }}
-            >
-              <FilterSelectTrigger className="h-8 w-[110px]">
-                <SelectValue />
-              </FilterSelectTrigger>
-              <SelectContent>
-                {PAGE_SIZE_OPTIONS.map((n) => (
-                  <SelectItem key={n} value={String(n)}>
-                    {n === "auto" ? `Auto (${autoPageSize})` : n}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {totalPaginas > 1 && (
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina(1)} aria-label="Primeira página">
-              <ChevronsLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual <= 1} onClick={() => setPagina((p) => Math.max(1, p - 1))} aria-label="Página anterior">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            {pageRange.map((p, idx) =>
-              p === "…" ? (
-                <span key={`e-${idx}`} className="px-2 text-muted-foreground select-none">…</span>
-              ) : (
-                <Button
-                  key={p}
-                  variant={p === paginaAtual ? "default" : "outline"}
-                  size="sm"
-                  className={cn("h-8 min-w-8 px-2 tabular-nums", p === paginaAtual && "pointer-events-none")}
-                  onClick={() => setPagina(p)}
-                  aria-current={p === paginaAtual ? "page" : undefined}
-                >
-                  {p}
-                </Button>
-              ),
-            )}
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))} aria-label="Próxima página">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" className="h-8 w-8" disabled={paginaAtual >= totalPaginas} onClick={() => setPagina(totalPaginas)} aria-label="Última página">
-              <ChevronsRight className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-      </div>
+        <RodapePaginacao
+          total={filtrados.length}
+          pagina={paginaAtual}
+          tamanhoPagina={pageSize}
+          tela="cockpit_estoque"
+          onPagina={setPagina}
+          onTamanhoPagina={setPageSize}
+          extraDireita={<span className="text-sm text-muted-foreground tabular-nums">{formatNum(lista.length)} produtos · {formatNum(pageItems.length)} exibidos</span>}
+        />
+      </div>}
 
       <DetalheEstoqueSkuSheet
         sku={detalhe?.sku ?? null}
@@ -838,20 +770,22 @@ function CartaoNumero({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="outline"
       onClick={onClick}
       aria-pressed={ativo}
       className={cn(
-        "rounded-md border bg-card px-4 py-3 text-left transition-colors hover:bg-muted/50",
+        "h-20 items-start justify-center border p-3 text-left",
         alerta === "destructive" && "border-l-[3px] border-l-destructive",
         alerta === "warning" && "border-l-[3px] border-l-warning",
-        ativo && "ring-1 ring-ring",
+        ativo && "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
     >
-      <div className="text-xs text-muted-foreground">{rotulo}</div>
-      <div className="mt-1 text-2xl font-medium tabular-nums text-foreground">{valor}</div>
-      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
-    </button>
+      <span className="flex w-full flex-col">
+        <span className="truncate text-[11px] font-normal text-muted-foreground">{rotulo}</span>
+        <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{valor}</span>
+        {sub && <span className="text-[11px] font-normal text-muted-foreground">{sub}</span>}
+      </span>
+    </Button>
   );
 }
