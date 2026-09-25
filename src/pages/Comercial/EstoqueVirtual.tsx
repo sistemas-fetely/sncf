@@ -814,46 +814,17 @@ export default function EstoqueVirtual() {
                 )}
                 {cabecalho("transito", "Em trânsito", "w-[84px] min-[1440px]:w-[92px]", true)}
                 {cabecalho("chegada", "Chegada", "w-[70px] min-[1440px]:w-[80px]", true)}
-              </>}
-              {visao === "valor" && <>
-                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
-                {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
-                {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
-              </>}
-              {visao === "centros" && <>
-                {centros.map((c) => (
-                  <Fragment key={c.codigo}>
-                    <CabecalhoColuna
-                      rotulo={c.rotulo_curto ?? c.codigo}
-                      title={c.nome ?? c.codigo}
-                      dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
-                      onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
-                      className="font-medium w-[64px] min-[1440px]:w-[76px] border-l border-border/60"
-                      alinharDireita
-                    />
-                    <CabecalhoColuna
-                      rotulo="Giro"
-                      title={`Giro anualizado do produto neste centro: vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`}
-                      dir={sort?.column === `g:${c.codigo}` ? sort.direction : null}
-                      onOrdenar={() => ordenarColuna(`g:${c.codigo}`)}
-                      className="font-medium w-[48px] min-[1440px]:w-[56px] text-muted-foreground"
-                      alinharDireita
-                    />
-                  </Fragment>
-                ))}
-                {cabecalho("total", "Total", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                {cabecalho(
-                  "giro_total",
-                  "Giro",
-                  "w-[48px] min-[1440px]:w-[56px] text-muted-foreground",
-                  true,
-                  `Giro anualizado do produto (todos os centros): vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`,
-                )}
-              </>}
-            </TableRow>
+                </>}
+                {visao === "valor" && <>
+                  {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                  {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
+                  {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
+                  {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
+                  {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
+                  {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
+                </>}
+              </TableRow>
+            )}
           </TableHeader>
           <TooltipProvider delayDuration={150}>
           <TableBody>
