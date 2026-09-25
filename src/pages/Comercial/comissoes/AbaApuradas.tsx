@@ -155,7 +155,7 @@ export function AbaApuradas() {
                       onClick={() => setAberta(p)}
                       className={`cursor-pointer ${vencidas > 0 ? "bg-destructive/5" : ""}`}
                     >
-                      <TableCell className="font-medium">{p.representante ?? "—"}</TableCell>
+                      <TableCell className="sticky left-0 z-20 w-48 border-r bg-card font-medium">{p.representante ?? "—"}</TableCell>
                       <TableCell>{p.nf_numero ?? "—"}</TableCell>
                       <TableCell>{p.pedido ?? "—"}</TableCell>
                       <TableCell>{fmtCompetencia(p.competencia)}</TableCell>
