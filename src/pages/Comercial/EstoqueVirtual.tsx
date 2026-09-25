@@ -87,12 +87,28 @@ interface LinhaTabela {
   fonte_ticket: string | null;
   saude: string | null;
   em_transito: number;
+  /** Contábil por centro (código → un). */
+  por_centro: Record<string, number>;
 }
 
-type Visao = "estoque" | "valor";
-const SORT_PADRAO: Record<Visao, SortState<Col>> = {
+interface CentroAtivo {
+  codigo: string;
+  nome: string | null;
+  rotulo_curto: string | null;
+  tipo: string | null;
+  vende: boolean | null;
+  ordem: number | null;
+}
+function totalCentros(p: LinhaTabela) {
+  return Object.values(p.por_centro).reduce((s, v) => s + v, 0);
+}
+
+type Visao = "estoque" | "valor" | "centros";
+type ColSort = Col | "total" | `c:${string}`;
+const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
+  centros: { column: "total", direction: "desc" },
 };
 const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
 function piorSaude(a: string | null, b: string | null) {
@@ -215,9 +231,25 @@ export default function EstoqueVirtual() {
   const [situacaoFiltro, setSituacaoFiltro] = useState("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
   const [visao, setVisao] = useState<Visao>("estoque");
-  const [sort, setSort] = useState<SortState<Col> | null>(SORT_PADRAO.estoque);
+  const [sort, setSort] = useState<SortState<ColSort> | null>(SORT_PADRAO.estoque);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  const centrosQuery = useQuery({
+    queryKey: ["centro_distribuicao_ativos_cockpit"],
+    queryFn: async (): Promise<CentroAtivo[]> => {
+      const { data, error } = await (supabase as any)
+        .from("centro_distribuicao")
+        .select("codigo, nome, rotulo_curto, tipo, vende, ordem")
+        .eq("ativo", true)
+        .order("ordem", { nullsFirst: false })
+        .order("codigo");
+      if (error) throw error;
+      return (data ?? []) as CentroAtivo[];
+    },
+  });
+  const centros = centrosQuery.data ?? [];
+
 
   const cockpitQuery = useQuery({
     queryKey: ["vw_estoque_cockpit"],
@@ -279,11 +311,10 @@ export default function EstoqueVirtual() {
     return m;
   }, [canaisQuery.data]);
 
-  // Linhas produto×centro do recorte (todos os filtros).
-  const recorte = useMemo(() => {
+  // Linhas produto×centro com todos os filtros exceto Centro.
+  const recorteSemCentro = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return linhas.filter((l) => {
-      if (centroFiltro !== "todos" && l.centro !== centroFiltro) return false;
       if (faseFiltro !== "todos" && l.fase !== faseFiltro) return false;
       if (colecaoFiltro !== "todos" && l.colecao !== colecaoFiltro) return false;
       if (situacaoFiltro !== "todos" && l.situacao !== situacaoFiltro) return false;
@@ -295,10 +326,28 @@ export default function EstoqueVirtual() {
         (l.cor_nome ?? "").toLowerCase().includes(q)
       );
     });
-  }, [linhas, busca, centroFiltro, faseFiltro, colecaoFiltro, situacaoFiltro]);
+  }, [linhas, busca, faseFiltro, colecaoFiltro, situacaoFiltro]);
+
+  // Linhas produto×centro do recorte (todos os filtros).
+  const recorte = useMemo(
+    () => (centroFiltro === "todos" ? recorteSemCentro : recorteSemCentro.filter((l) => l.centro === centroFiltro)),
+    [recorteSemCentro, centroFiltro],
+  );
+
+  const resumoCentros = useMemo(() => {
+    const m = new Map<string, { un: number; valor: number }>();
+    for (const l of recorteSemCentro) {
+      if (!l.centro) continue;
+      const a = m.get(l.centro) ?? { un: 0, valor: 0 };
+      a.un += n(l.contabil);
+      a.valor += n(l.valor_custo);
+      m.set(l.centro, a);
+    }
+    return m;
+  }, [recorteSemCentro]);
 
   const tabela = useMemo((): LinhaTabela[] => {
-    if (centroFiltro !== "todos") {
+    if (centroFiltro !== "todos" && visao !== "centros") {
       return recorte.map((l) => ({
         chave: `${chaveProduto(l)}|${l.centro}`,
         cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial, cor_nome: l.cor_nome,
@@ -312,10 +361,12 @@ export default function EstoqueVirtual() {
         real_site: l.centro === "SITE-SP" ? l.real_centro : null,
         divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
         saude: l.saude, em_transito: n(l.em_transito),
+        por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
       }));
     }
+    const fonte = visao === "centros" ? recorteSemCentro : recorte;
     const m = new Map<string, LinhaTabela>();
-    for (const l of recorte) {
+    for (const l of fonte) {
       const k = chaveProduto(l);
       const a = m.get(k);
       if (!a) {
@@ -330,8 +381,10 @@ export default function EstoqueVirtual() {
           real_site: l.centro === "SITE-SP" ? l.real_centro : null,
           divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
           saude: l.saude, em_transito: n(l.em_transito),
+          por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
         });
       } else {
+        if (l.centro) a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
         a.contabil += n(l.contabil);
         a.fisico += n(l.fisico);
         a.virtual += n(l.virtual);
@@ -351,13 +404,16 @@ export default function EstoqueVirtual() {
         if (l.eta_embarque && (!a.eta_embarque || l.eta_embarque < a.eta_embarque)) a.eta_embarque = l.eta_embarque;
       }
     }
-    const out = [...m.values()];
+    let out = [...m.values()];
     for (const a of out) {
       a.tempo = tempoDias(a.virtual, a.vendas_janela, a.janela_dias);
       if (a.contabil > 0) a.ticket = a.valor_venda / a.contabil;
     }
+    if (visao === "centros" && centroFiltro !== "todos") {
+      out = out.filter((a) => (a.por_centro[centroFiltro] ?? 0) !== 0);
+    }
     return out;
-  }, [recorte, centroFiltro]);
+  }, [recorte, recorteSemCentro, centroFiltro, visao]);
 
   const cartoes = useMemo(() => {
     let contabil = 0, valor = 0, valorVenda = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
@@ -380,9 +436,16 @@ export default function EstoqueVirtual() {
     return { contabil, valor, valorVenda, vendas, janela, giro, tempo, saude, emTransito };
   }, [recorte]);
 
-  const ordenados = useMemo(
-    () =>
-      ordenarPor<LinhaTabela, Col>(tabela, sort, {
+  const ordenados = useMemo(() => {
+    const col = sort?.column;
+    if (col && (col === "total" || col.startsWith("c:"))) {
+      const val = col === "total"
+        ? (p: LinhaTabela) => totalCentros(p)
+        : (p: LinhaTabela) => p.por_centro[col.slice(2)] ?? 0;
+      const f = sort!.direction === "asc" ? 1 : -1;
+      return [...tabela].sort((a, b) => (val(a) - val(b)) * f);
+    }
+    return ordenarPor<LinhaTabela, Col>(tabela, sort as SortState<Col> | null, {
         cod: (p) => p.cod_cadastro ?? "",
         nome: (p) => p.nome_comercial ?? "",
         situacao: (p) => p.situacao ?? "",
@@ -402,9 +465,8 @@ export default function EstoqueVirtual() {
         vvenda: (p) => p.valor_venda,
         vemp: (p) => p.valor_empenhado,
         transito: (p) => p.em_transito,
-      }),
-    [tabela, sort],
-  );
+    });
+  }, [tabela, sort]);
 
   const totalPaginas = Math.max(1, Math.ceil(ordenados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -420,7 +482,7 @@ export default function EstoqueVirtual() {
       }`;
   const detalheLinha = detalhe ? tabela.find((p) => p.sku === detalhe.sku) ?? null : null;
 
-  function ordenarColuna(coluna: Col) {
+  function ordenarColuna(coluna: ColSort) {
     setSort((atual) => {
       if (atual?.column !== coluna) return { column: coluna, direction: "asc" };
       if (atual.direction === "asc") return { column: coluna, direction: "desc" };
@@ -438,7 +500,7 @@ export default function EstoqueVirtual() {
     setPagina(1);
   }
 
-  const cabecalho = (coluna: Col, rotulo: string, className: string, alinharDireita = false, title?: string) => (
+  const cabecalho = (coluna: ColSort, rotulo: string, className: string, alinharDireita = false, title?: string) => (
     <CabecalhoColuna
       rotulo={rotulo}
       title={title ?? rotulo}
@@ -552,6 +614,44 @@ export default function EstoqueVirtual() {
         />
       </section>
 
+      {centrosQuery.isError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar os centros: {formatError(centrosQuery.error)}
+        </div>
+      )}
+      {centros.length > 0 && (
+        <section
+          className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
+          aria-label="Estoque por centro"
+        >
+          {centros.map((c) => {
+            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0 };
+            const sel = centroFiltro === c.codigo;
+            return (
+              <button
+                key={c.codigo}
+                type="button"
+                title={c.nome ?? c.codigo}
+                aria-pressed={sel}
+                onClick={() => { setCentroFiltro(sel ? "todos" : c.codigo); setPagina(1); }}
+                className={cn(
+                  "rounded-md border bg-card px-3 py-2 text-left transition-colors hover:border-primary/60",
+                  sel && "border-primary",
+                  r.un === 0 && !sel && "opacity-50",
+                )}
+              >
+                <div className="text-[11px] text-muted-foreground truncate">{c.rotulo_curto ?? c.codigo}</div>
+                <div className="text-base font-medium tabular-nums">{formatNum(r.un)} un</div>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+                  <span className="truncate">{formatBRL(r.valor)}</span>
+                  {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                </div>
+              </button>
+            );
+          })}
+        </section>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <ToggleGroup
           type="single"
@@ -562,6 +662,7 @@ export default function EstoqueVirtual() {
         >
           <ToggleGroupItem value="estoque" size="sm" className="h-8 px-3 text-xs">Estoque</ToggleGroupItem>
           <ToggleGroupItem value="valor" size="sm" className="h-8 px-3 text-xs">Valor</ToggleGroupItem>
+          <ToggleGroupItem value="centros" size="sm" className="h-8 px-3 text-xs">Centros</ToggleGroupItem>
         </ToggleGroup>
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -621,6 +722,20 @@ export default function EstoqueVirtual() {
                 {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
                 {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
                 {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
+              </>}
+              {visao === "centros" && <>
+                {centros.map((c) => (
+                  <CabecalhoColuna
+                    key={c.codigo}
+                    rotulo={c.rotulo_curto ?? c.codigo}
+                    title={c.nome ?? c.codigo}
+                    dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
+                    className="font-medium w-[72px] min-[1440px]:w-[84px]"
+                    alinharDireita
+                  />
+                ))}
+                {cabecalho("total", "Total", "w-[72px] min-[1440px]:w-[84px]", true)}
               </>}
             </TableRow>
           </TableHeader>
@@ -684,6 +799,17 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_custo)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatBRL(p.valor_venda)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
+                </>}
+                {visao === "centros" && <>
+                  {centros.map((c) => {
+                    const v = p.por_centro[c.codigo] ?? 0;
+                    return (
+                      <TableCell key={c.codigo} className="text-right tabular-nums">
+                        {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="text-right tabular-nums font-medium">{formatNum(totalCentros(p))}</TableCell>
                 </>}
               </TableRow>
             ))}
