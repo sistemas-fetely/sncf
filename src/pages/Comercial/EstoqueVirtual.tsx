@@ -591,20 +591,26 @@ export default function EstoqueVirtual() {
         <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3" containerClassName="max-h-[min(62vh,46rem)]">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
-              {cabecalho("cod", "Código", "w-[110px]")}
+              {cabecalho("cod", "Código", "w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[120px]")}
-              {cabecalho("saude", "Saúde", "w-[56px] text-center")}
+              {cabecalho("situacao", "Situação", "w-[108px]")}
+              {cabecalho("saude", "Saúde", "w-[52px] text-center")}
               {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[76px]", true)}
-                {cabecalho("fisico", "Físico", "w-[76px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[76px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[76px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[88px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[76px]", true)}
-                {cabecalho("tempo", "Tempo de estoque", "w-[76px]", true)}
-                {cabecalho("transito", "Em trânsito", "w-[76px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[80px]")}
+                {cabecalho("contabil", "Contábil", "w-[84px]", true)}
+                {cabecalho("fisico", "Físico", "w-[84px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[84px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[84px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[84px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
+                {cabecalho(
+                  "tempo",
+                  "Cobertura",
+                  "w-[88px]",
+                  true,
+                  "Tempo de estoque em dias (virtual ÷ venda diária dos últimos 90 dias)",
+                )}
+                {cabecalho("transito", "Em trânsito", "w-[92px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[80px]", true)}
               </>}
               {visao === "valor" && <>
                 {cabecalho("virtual", "Virtual", "w-[84px]", true)}
