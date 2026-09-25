@@ -100,6 +100,43 @@ Deno.serve(async (req) => {
     })
   }
 
+  // AUTORIZACAO-POR-MODELO: o banco decide quem pode disparar cada template.
+  // FAIL-CLOSED: erro ao avaliar NEGA (500, nada enviado). 'recusado'/'sem_regra'
+  // devolve 403 com registro blocked. 'recusaria' (modo sombra) segue o envio.
+  let autorizacao: string | null = null
+  {
+    const { data: aut, error: autErr } = await supabaseAdmin.rpc('fn_email_pode_enviar', {
+      p_template: templateName,
+      p_user_id: userData.user.id,
+    })
+    if (autErr) {
+      const msg = `Falha ao verificar autorização: ${autErr.message}`
+      console.error('[send-transactional-email] autorizacao', msg)
+      await supabaseAdmin.from('email_send_log').insert({
+        message_id: messageId, template_name: templateName,
+        recipient_email: effectiveRecipient, status: 'failed', metadata: emailMetadata,
+        enviado_por: userData.user.id,
+        error_message: msg,
+      })
+      return new Response(JSON.stringify({ error: msg }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    autorizacao = (aut as any)?.autorizacao ?? null
+    if (autorizacao === 'recusado' || autorizacao === 'sem_regra') {
+      await supabaseAdmin.from('email_send_log').insert({
+        message_id: messageId, template_name: templateName,
+        recipient_email: effectiveRecipient, status: 'blocked', metadata: emailMetadata,
+        enviado_por: userData.user.id, autorizacao,
+        error_message: 'Sem permissão para enviar este modelo',
+      })
+      return new Response(
+        JSON.stringify({ error: `Sem permissão para enviar o e-mail "${templateName}".` }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      )
+    }
+  }
+
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   // Suppression check
@@ -119,6 +156,7 @@ Deno.serve(async (req) => {
     await supabase.from('email_send_log').insert({
       message_id: messageId, template_name: templateName,
       recipient_email: effectiveRecipient, status: 'suppressed', metadata: emailMetadata,
+      enviado_por: userData.user.id, autorizacao,
     })
     return new Response(
       JSON.stringify({ success: false, reason: 'email_suppressed' }),
