@@ -158,7 +158,7 @@ function SituacaoFinanceira({ k }: { k: Linha }) {
           {destaque("Próximo recebimento", k.proximo_recebimento)}
           <div className="text-xs text-muted-foreground">
             {k.proximo_recebimento_data && <div>{fmtData(k.proximo_recebimento_data)}</div>}
-            {k.proximo_recebimento_competencia && <div>Competência {fmtCompetencia(k.proximo_recebimento_competencia)}</div>}
+            {k.proximo_recebimento_competencia && <div>Competência {fmtCompetencia(String(k.proximo_recebimento_competencia))}</div>}
           </div>
         </div>
         <div><div className="text-xs text-muted-foreground">Cliente pagou, aguardando liberação</div>
