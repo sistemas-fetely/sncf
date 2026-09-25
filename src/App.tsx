@@ -35,7 +35,6 @@ const PanoramaAreas = lazy(() => import("@/pages/PanoramaAreas"));
 
 const CustoPessoas = lazy(() => import("@/pages/CustoPessoas"));
 const FolhaMensal = lazy(() => import("@/pages/FolhaMensal"));
-const ColaboradorDetalhe = lazy(() => import("@/pages/ColaboradorDetalhe"));
 const CadastroColaboradorCLTWrapper = lazy(() => import("@/components/colaborador-clt/CadastroColaboradorCLT").then(m => ({ default: m.CadastroColaboradorCLTWrapper })));
 const PlaceholderPage = lazy(() => import("@/pages/PlaceholderPage"));
 
@@ -57,7 +56,6 @@ const SlaOperacao = lazy(() => import("@/pages/parametros/SlaOperacao"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
-const CadastroManualContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroManualContratoPJ").then(m => ({ default: m.CadastroManualContratoPJ })));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const NotaFiscalDetalhe = lazy(() => import("@/pages/NotaFiscalDetalhe"));
 const FolhaPagamento = lazy(() => import("@/pages/FolhaPagamento"));
@@ -119,7 +117,6 @@ const Processos = lazy(() => import("@/pages/Processos"));
 const ProcessoDetalhe = lazy(() => import("@/pages/ProcessoDetalhe"));
 const ProcessoEditor = lazy(() => import("@/pages/ProcessoEditor"));
 const ImportarProcessoPdf = lazy(() => import("@/pages/processos/ImportarProcessoPdf"));
-const DesligamentoDetalhe = lazy(() => import("@/pages/DesligamentoDetalhe"));
 const FalaFetely = lazy(() => import("@/pages/FalaFetely"));
 const FalaFetelyConhecimento = lazy(() => import("@/pages/fala-fetely/Conhecimento"));
 const MinhasMemorias = lazy(() => import("@/pages/fala-fetely/MinhasMemorias"));
