@@ -106,7 +106,7 @@ export default function PagamentoPJRelatorio() {
             estado={`${nome} — CNPJ: ${contrato?.cnpj || "—"}`}
             acoes={
               <Button variant="outline" onClick={() => navigate(`/contratos-pj/${contratoId}`)}>
-                <FileText className="h-4 w-4 mr-2" /> Ver Contrato
+                <FileText className="h-4 w-4 mr-2" /> Abrir ficha da pessoa
               </Button>
             }
           />

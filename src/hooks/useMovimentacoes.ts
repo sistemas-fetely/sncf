@@ -138,11 +138,17 @@ export function useAtualizarStatusMovimentacao() {
           if (mov.departamento_novo) updates.departamento = mov.departamento_novo;
           if (mov.salario_novo != null) updates.valor_mensal = mov.salario_novo;
           if (Object.keys(updates).length > 0) {
+            // LEGADO→PESSOAS fatia 2 (25/09/2026): contratos_pj é somente leitura — FAIL-LOUD
+            // com a mensagem real, sem marcar a movimentação como aplicada.
             const { error: updErr } = await supabase
               .from("contratos_pj")
               .update(updates as any)
               .eq("id", mov.contrato_pj_id);
-            if (updErr) throw updErr;
+            if (updErr) {
+              throw new Error(
+                `Reajuste de PJ ainda grava no contrato antigo (somente leitura). Ajuste o valor no vínculo em Pessoas. (${updErr.message})`
+              );
+            }
           }
         }
       }

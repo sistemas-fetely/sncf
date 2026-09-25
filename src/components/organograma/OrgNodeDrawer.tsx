@@ -153,7 +153,7 @@ export function OrgNodeDrawer({ node, open, onClose, allNodes, onEditPosition }:
                   <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefone" value={node.contrato_pj.contato_telefone || "—"} />
                   <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Vínculo" value="PJ" />
                   <Button variant="outline" size="sm" className="w-full mt-3" onClick={() => navigate(`/contratos-pj/${node.contrato_pj!.id}`)}>
-                    Ver contrato
+                    Abrir ficha da pessoa
                   </Button>
                 </>
               )}
