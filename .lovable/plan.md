@@ -1,15 +1,17 @@
-# Regressão de fase do produto
+# Alinhamento visual do Cockpit do Estoque
 
 ## Implementação
-- Ler as fases e seus rótulos de `produto_fase_dim`, usando a ordem cadastrada para identificar a fase imediatamente anterior.
-- Na Ficha, mostrar “Voltar para <fase anterior>” somente quando houver anterior; abrir confirmação com produto, de-para, efeito comercial e motivo obrigatório.
-- Reusar a chamada existente de `promover-fase-produto`, preservando os tratamentos de saldo, resposta do FOP e erros de autorização; no sucesso, recarregar a ficha e apresentar o de-para da fase.
-- Na Mesa, adicionar a ação compacta “Voltar fase” por linha, com tooltip, confirmação e motivo obrigatório, usando a mesma fase anterior cadastrada e os mesmos tratamentos de resposta.
+- Substituir a paginação própria pelo `RodapePaginacao`, com 20 itens iniciais, opções 20/50/100/200 e preferência da tela `cockpit_estoque`.
+- Trocar os cabeçalhos próprios por `CabecalhoOrdenavel` e pela linha de cabeçalho colado usada na Conciliação de Cadastro.
+- Ajustar larguras e alinhamentos das dez colunas, mantendo Produto flexível, truncado e sem quebra nos títulos.
+- Abrir com ordenação por Disponível decrescente, preservando a ordenação interativa das demais colunas.
+- Aplicar aos quatro indicadores a mesma composição visual dos cartões da tela de referência, sem mudar seus recortes.
+- Mostrar o estado vazio com “Nenhum produto neste recorte” e ação “Limpar filtros”.
 
 ## Validação
-- Rodar o typecheck exigido pelo projeto e lint apenas nos dois arquivos alterados.
-- Conferir na prévia um produto ativo: botão, diálogo, rótulos e motivo obrigatório; confirmar também que a primeira fase não oferece regressão.
+- Rodar o typecheck exigido pelo projeto.
+- Conferir com sessão em 1440px: sem rolagem horizontal, rodapé visível e primeira página ordenada pelos maiores disponíveis.
 
 ## Escopo
-- Alterar somente `src/pages/acervo/FichaProduto.tsx` e `src/pages/acervo/MesaProduto.tsx`, além da atualização de acompanhamento no roadmap.
-- Não alterar banco, fotos, campos, filtros ou regras de avanço.
+- Alterar somente `src/pages/Comercial/EstoqueVirtual.tsx`.
+- Não alterar consultas, dados, regras de filtro ou banco.
