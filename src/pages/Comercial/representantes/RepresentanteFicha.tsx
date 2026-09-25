@@ -20,6 +20,9 @@ import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtPct2, fmtInt, SITUACAO, type Linha } from "./dados";
 import { BadgeApto, Dica, prontidao } from "./RepresentantesPainel";
+import {
+  dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
+} from "./extratoCompetencias";
 
 function useFailLoud(err: unknown, oque: string) {
   useEffect(() => {
