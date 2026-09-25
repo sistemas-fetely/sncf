@@ -324,6 +324,11 @@ export default function RepresentanteFicha() {
     queryKey: ["vendedor-cadastro", vendedorId],
     queryFn: () => lerTudo("vendedores", (x) => x.eq("id", vendedorId)),
   });
+  const eq = useQuery({
+    queryKey: ["representante-extratos-fechados", vendedorId],
+    queryFn: () => lerExtratosDoRepresentante(vendedorId),
+  });
+  useFailLoud(eq.error, "competências do extrato");
   useFailLoud(vq.error, "cadastro do representante");
   useFailLoud(kq.error, "indicadores do representante");
   useFailLoud(sq.error, "série mensal");
