@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,9 @@ import { FetelyAuthLayout } from "@/components/auth/FetelyAuthLayout";
 
 export default function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromState = (location.state as { from?: unknown } | null)?.from;
+  const destino = typeof fromState === "string" && fromState.startsWith("/") && !fromState.startsWith("//") && !fromState.startsWith("/login") ? fromState : "/";
   const { user, roles, approved, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,8 +25,8 @@ export default function Login() {
   useEffect(() => {
     if (authLoading || !user) return;
     const isSuperAdmin = roles.includes("super_admin");
-    navigate(approved || isSuperAdmin ? "/" : "/aguardando-aprovacao", { replace: true });
-  }, [approved, authLoading, navigate, roles, user]);
+    navigate(approved || isSuperAdmin ? destino : "/aguardando-aprovacao", { replace: true });
+  }, [approved, authLoading, destino, navigate, roles, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

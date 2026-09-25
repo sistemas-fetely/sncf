@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useMemo } from "react";
+import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { useSearchParams } from "react-router-dom";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
@@ -271,22 +272,9 @@ export default function GerencialImpressao() {
   const valida = RE_COMPETENCIA.test(competencia);
   const g = useGerencial(valida ? competencia : competenciaPadrao());
   const rotulo = useMemo(() => fmtCompetencia(primeiroDia(valida ? competencia : competenciaPadrao())), [competencia, valida]);
-  const jaImprimiu = useRef(false);
 
   const pronto = valida && !g.carregando && !g.erro;
 
-  useEffect(() => {
-    if (!pronto || params.get("imprimir") !== "1" || jaImprimiu.current) return;
-    jaImprimiu.current = true;
-    const imprimir = async () => {
-      await document.fonts.ready;
-      await new Promise<void>((resolve) =>
-        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-      );
-      window.print();
-    };
-    void imprimir();
-  }, [params, pronto]);
 
   if (!valida) {
     return (
@@ -313,6 +301,7 @@ export default function GerencialImpressao() {
     return (
       <main className="documento-gerencial">
         <style>{ESTILOS_IMPRESSAO}</style>
+        <BarraImpressao />
         <section className="pagina-a4 relative bg-card text-card-foreground">
           <Cabecalho rotulo={rotulo} />
           <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
@@ -327,6 +316,7 @@ export default function GerencialImpressao() {
   return (
     <main className="documento-gerencial">
       <style>{ESTILOS_IMPRESSAO}</style>
+        <BarraImpressao />
       <PaginaResumo mes={g.mes} historico={g.historico} rotulo={rotulo} />
       <PaginaDetalhe
         rotulo={rotulo}

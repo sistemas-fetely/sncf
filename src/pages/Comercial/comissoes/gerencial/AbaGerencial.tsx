@@ -79,9 +79,7 @@ export function AbaGerencial() {
         <div className="flex-1" />
         <Button asChild size="sm" variant="outline">
           <Link
-            to={`/comercial/comissoes/gerencial-impressao?competencia=${competencia}&imprimir=1`}
-            target="_blank"
-            rel="noopener noreferrer"
+            to={`/comercial/comissoes/gerencial-impressao?competencia=${competencia}`}
           >
             <Printer className="mr-1 h-4 w-4" />
             Baixar PDF
