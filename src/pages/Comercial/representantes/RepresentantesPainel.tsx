@@ -150,6 +150,8 @@ export default function RepresentantesPainel() {
       const va = a[ord.k], vb = b[ord.k];
       const cmp = ["representante", "ultima_venda", "regiao"].includes(ord.k)
         ? String(va ?? "").localeCompare(String(vb ?? ""))
+        : ord.k === "ultima_venda_data"
+        ? String(va ?? "").localeCompare(String(vb ?? ""))
         : Number(va ?? 0) - Number(vb ?? 0);
       return ord.asc ? cmp : -cmp;
     });
@@ -199,15 +201,25 @@ export default function RepresentantesPainel() {
       </TableHead>
     );
   };
-  const thFixo = "sticky left-0 z-50 w-56 border-r bg-muted";
-  const tdFixo = "sticky left-0 z-20 w-56 border-r bg-card";
+  const thFixo = "sticky left-0 z-50 w-48 border-r bg-muted";
+  const tdFixo = "sticky left-0 z-20 w-48 border-r bg-card";
+
+  const DICA_DESCONTO = "Desconto médio concedido nas notas já apuradas. Quanto maior o desconto, menor o percentual de comissão, conforme a régua.";
+  const dicaMedia3m = (r: Linha) => {
+    const meses = Number(r.meses_ativos_90d ?? 0);
+    let t = `Média mensal dos últimos 90 dias: ${fmtBRL(Number(r.vendido_90d ?? 0))} em ${meses} mês(es) com venda.`;
+    if (meses < 3) t += " Atenção: menos de 3 meses de operação — a média ainda não é representativa.";
+    return t;
+  };
+  const fmtPct = (v: unknown) =>
+    `${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
 
 
   const cards = [
     ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
     ["Próximo recebimento", tot.proxima], ["Carteira vencida", tot.vencida],
   ] as const;
-  const NCOL = COLS.length + FIN.length + 2; // + Representante + Região
+  const NCOL = COLS.length + 3 + FIN.length + 2; // + Representante + Região + 3 colunas novas
 
   return (
     <PageShell>
@@ -257,6 +269,9 @@ export default function RepresentantesPainel() {
             {th("representante", "Representante", thFixo)}
             {th("regiao", "Região")}
             {COLS.map((c) => th(c.k, c.label, "text-right"))}
+            {th("ultima_venda_data", "Última venda", "text-right")}
+            {th("desconto_medio_pct", "Desconto médio %", "text-right", DICA_DESCONTO)}
+            {th("media_mensal_3m", "Média mensal (3m)", "text-right")}
             {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
           </TableRow></TableHeader>
 
@@ -292,6 +307,42 @@ export default function RepresentantesPainel() {
                       {fmt(c, r[c.k])}
                     </TableCell>
                   ))}
+                  {(() => {
+                    const uv = r.ultima_venda_valor != null ? Number(r.ultima_venda_valor) : null;
+                    const dias = r.dias_sem_vender != null ? Number(r.dias_sem_vender) : null;
+                    const corData = dias != null && dias > 90 ? "text-destructive" : dias != null && dias > 60 ? "text-warning" : "text-muted-foreground";
+                    const dicaUv = dias != null && dias > 60
+                      ? `Sem vender há ${dias} dias.`
+                      : `Pedido ${r.ultima_venda_pedido ?? "—"}`;
+                    return (
+                      <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                        {uv == null ? <span className="text-muted-foreground/50">—</span> : (
+                          <Dica texto={dicaUv}>
+                            <span className="underline decoration-dotted">
+                              {fmtBRL(uv)}
+                              {r.ultima_venda_data && (
+                                <div className={cn("text-[10px]", corData)}>{fmtData(r.ultima_venda_data as string)}</div>
+                              )}
+                            </span>
+                          </Dica>
+                        )}
+                      </TableCell>
+                    );
+                  })()}
+                  <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    {r.desconto_medio_pct == null ? <span className="text-muted-foreground/50">—</span> : (
+                      <Dica texto={DICA_DESCONTO}>
+                        <span className="underline decoration-dotted">{fmtPct(r.desconto_medio_pct)}</span>
+                      </Dica>
+                    )}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                    {Number(r.media_mensal_3m ?? 0) === 0 ? <span className="text-muted-foreground/50">—</span> : (
+                      <Dica texto={dicaMedia3m(r)}>
+                        <span className="underline decoration-dotted">{fmtBRL(Number(r.media_mensal_3m))}</span>
+                      </Dica>
+                    )}
+                  </TableCell>
                   {FIN.map((c) => {
                     const n = Number(r[c.k] ?? 0);
                     const vazio = c.k === "proximo_recebimento" && n === 0;
