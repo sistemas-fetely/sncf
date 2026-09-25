@@ -102,6 +102,11 @@ function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean })
         {item("E-mail", v?.email_contato ?? k.email_contato ?? "—")}
         {item("Telefone", v?.telefone || "—")}
         {item("Região", v?.regiao || "—")}
+        {item("% do FOP", v?.fop_comissao_percent != null && v?.fop_comissao_percent !== ""
+          ? <Dica texto="Percentual individual cadastrado no FOP, fora da régua da cartilha">
+              <span className="underline decoration-dotted">{fmtPct2(v.fop_comissao_percent)}</span>
+            </Dica>
+          : "—")}
         {item("Documento", doc || <span className="text-warning">não informado</span>)}
         {item("Empresa", v?.empresa || "—")}
         {item("Último login no FOP", v?.fop_ultimo_login ? new Date(v.fop_ultimo_login).toLocaleString("pt-BR") : "nunca")}
@@ -182,6 +187,7 @@ function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; p
       <SituacaoFinanceira k={k} />
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} />
+        <Kpi l="Notas faturadas" v={fmtInt(k.notas_faturadas)} />
         <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} />
         <Kpi l="Comissão apurada" v={fmtBRL(k.comissao_apurada)} />
         <Kpi l="Liberada" v={fmtBRL(k.comissao_liberada)} />
