@@ -21243,9 +21243,44 @@ export type Database = {
         }
         Relationships: []
       }
+      email_modelo_autorizacao: {
+        Row: {
+          atualizado_por: string | null
+          created_at: string
+          modo: string
+          observacao: string | null
+          permissoes: string[]
+          somente_super_admin: boolean
+          template_name: string
+          updated_at: string
+        }
+        Insert: {
+          atualizado_por?: string | null
+          created_at?: string
+          modo?: string
+          observacao?: string | null
+          permissoes?: string[]
+          somente_super_admin?: boolean
+          template_name: string
+          updated_at?: string
+        }
+        Update: {
+          atualizado_por?: string | null
+          created_at?: string
+          modo?: string
+          observacao?: string | null
+          permissoes?: string[]
+          somente_super_admin?: boolean
+          template_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       email_send_log: {
         Row: {
+          autorizacao: string | null
           created_at: string
+          enviado_por: string | null
           error_message: string | null
           id: string
           message_id: string | null
@@ -21255,7 +21290,9 @@ export type Database = {
           template_name: string
         }
         Insert: {
+          autorizacao?: string | null
           created_at?: string
+          enviado_por?: string | null
           error_message?: string | null
           id?: string
           message_id?: string | null
@@ -21265,7 +21302,9 @@ export type Database = {
           template_name: string
         }
         Update: {
+          autorizacao?: string | null
           created_at?: string
+          enviado_por?: string | null
           error_message?: string | null
           id?: string
           message_id?: string | null
@@ -80080,6 +80119,18 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_email_autorizacao_sombra: {
+        Row: {
+          autorizacao: string | null
+          enviado_por: string | null
+          envios: number | null
+          primeiro: string | null
+          remetente: string | null
+          template_name: string | null
+          ultimo: string | null
+        }
+        Relationships: []
+      }
       vw_embalagem_calibracao: {
         Row: {
           atendimento_declarado: boolean | null
@@ -91357,14 +91408,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -93979,14 +94030,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -109760,6 +109811,10 @@ export type Database = {
             Args: { p_confirmar?: boolean; p_header: Json; p_linhas: Json }
             Returns: Json
           }
+      criar_pedido_transferencia: {
+        Args: { p_destino: string; p_itens: Json; p_observacao?: string }
+        Returns: Json
+      }
       criar_portao_provisorio: {
         Args: { p_pedido_id: string; p_titulos_editados: Json }
         Returns: Json
@@ -110906,6 +110961,10 @@ export type Database = {
       fn_email_identifica_pessoa: {
         Args: { p_email: string }
         Returns: boolean
+      }
+      fn_email_pode_enviar: {
+        Args: { p_template: string; p_user_id: string }
+        Returns: Json
       }
       fn_email_tem_login: { Args: { p_email: string }; Returns: boolean }
       fn_email_usuario: { Args: { p_user_id: string }; Returns: string }
