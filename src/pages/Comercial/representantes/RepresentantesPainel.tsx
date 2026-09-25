@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbaReconciliacao } from "./AbaReconciliacao";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, ArrowUpDown, Search, RefreshCw } from "lucide-react";
+import { Users, ArrowUpDown, Search, RefreshCw, AlertTriangle } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -47,7 +47,7 @@ function fmt(c: Col, v: unknown) {
   return fmtData(v as string);
 }
 
-function Dica({ texto, children }: { texto: string; children: React.ReactNode }) {
+export function Dica({ texto, children }: { texto: string; children: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
@@ -67,8 +67,8 @@ export function BadgeApto({ apto }: { apto: boolean }) {
   );
 }
 
-type Chip = { label: string; ok: boolean; okTxt: string; faltaTxt: string };
-function prontidao(r: Linha): Chip[] {
+export type Chip = { label: string; ok: boolean; okTxt: string; faltaTxt: string };
+export function prontidao(r: Linha): Chip[] {
   return [
     { label: "Documento", ok: !!String(r.documento ?? "").trim(), okTxt: "CPF/CNPJ cadastrado no FOP.",
       faltaTxt: "Sem CPF/CNPJ no cadastro do FOP. Sem documento não é possível criar a contraparte nem pagar a comissão." },
@@ -78,6 +78,18 @@ function prontidao(r: Linha): Chip[] {
     { label: "Já logou", ok: Number(r.fop_login_count ?? 0) > 0, okTxt: "Já entrou no FOP.",
       faltaTxt: "Nunca entrou no FOP — confira se recebeu o acesso." },
   ];
+}
+
+const FIN: { k: string; label: string; dica: string }[] = [
+  { k: "comissao_recebida", label: "Recebida", dica: "Comissão já paga ao representante — título quitado." },
+  { k: "comissao_a_receber", label: "A receber", dica: "Direito adquirido: o cliente já pagou e a comissão foi liberada, mas ainda não foi paga ao representante." },
+  { k: "proxima_comissao_30d", label: "Próxima (30d)", dica: "Previsto para os próximos 30 dias, conforme os vencimentos dos títulos do cliente." },
+  { k: "aguardando_cliente_pagar", label: "Aguardando cliente", dica: "Comissão já calculada na nota fiscal, mas só é liberada quando o cliente pagar cada parcela." },
+];
+
+function fmtDiaMes(d: string) {
+  const [, m, dia] = String(d).slice(0, 10).split("-");
+  return `${dia}/${m}`;
 }
 
 const FILTROS = [
@@ -102,7 +114,7 @@ export default function RepresentantesPainel() {
 
   const q = useQuery({
     queryKey: ["representante-kpi"],
-    queryFn: () => lerTudo("vw_representante_kpi", (x) => x.eq("tipo", "representante")),
+    queryFn: () => lerTudo("vw_representante_financeiro", (x) => x.eq("tipo", "representante")),
   });
   const vq = useQuery({
     queryKey: ["vendedores-espelho"],
@@ -133,8 +145,8 @@ export default function RepresentantesPainel() {
   const tot = useMemo(() => {
     const s = (k: string) => linhas.reduce((a, r) => a + Number(r[k] ?? 0), 0);
     return {
-      vendido: s("valor_vendido_bruto"), apurada: s("comissao_apurada"), liberada: s("comissao_liberada"),
-      pendente: s("comissao_pendente"), prev30: s("prev_comissao_30d"), vencida: s("carteira_vencida"),
+      vendido: s("valor_vendido_bruto"), recebida: s("comissao_recebida"), aReceber: s("comissao_a_receber"),
+      proxima: s("proxima_comissao_30d"), aguardando: s("aguardando_cliente_pagar"), vencida: s("carteira_vencida"),
     };
   }, [linhas]);
 
@@ -189,23 +201,28 @@ export default function RepresentantesPainel() {
 
   // Mesmo padrão de tabela fixa da Mesa de Produto / Conciliação: cabeçalho sticky top-0
   // dentro do container rolável da Table, e primeira coluna sticky left-0.
-  const th = (k: string, label: string, extra?: string) => (
-    <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
+  const th = (k: string, label: string, extra?: string, dica?: string) => {
+    const btn = (
       <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
         onClick={() => setOrd((o) => ({ k, asc: o.k === k ? !o.asc : false }))}>
         {label}<ArrowUpDown className="h-3 w-3" />
       </button>
-    </TableHead>
-  );
+    );
+    return (
+      <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
+        {dica ? <Dica texto={dica}>{btn}</Dica> : btn}
+      </TableHead>
+    );
+  };
   const thFixo = "sticky left-0 z-50 w-56 border-r bg-muted";
   const tdFixo = "sticky left-0 z-20 w-56 border-r bg-card";
 
 
   const cards = [
-    ["Vendido no total", tot.vendido], ["Comissão apurada", tot.apurada], ["Comissão liberada", tot.liberada],
-    ["Comissão pendente", tot.pendente], ["Previsto 30 dias", tot.prev30], ["Carteira vencida", tot.vencida],
+    ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
+    ["Próxima 30 dias", tot.proxima], ["Aguardando cliente", tot.aguardando], ["Carteira vencida", tot.vencida],
   ] as const;
-  const NCOL = COLS.length + 6;
+  const NCOL = COLS.length + FIN.length + 5;
 
   return (
     <PageShell>
@@ -253,7 +270,7 @@ export default function RepresentantesPainel() {
         <Table containerClassName="max-h-[min(70vh,48rem)]">
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
-            <TableHead className="sticky top-0 z-40 bg-muted">Prontidão</TableHead>
+            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
             {th("regiao", "Região")}
             <TableHead className="sticky top-0 z-40 bg-muted">Telefone</TableHead>
             {th("fop_comissao_percent", "% do FOP")}
@@ -275,26 +292,29 @@ export default function RepresentantesPainel() {
               return (
                 <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
                   onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>{r.representante}</TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-1">
-                      {prontidao(r).map((c) => {
-                        const clicavel = c.label === "Contraparte" && !c.ok;
-                        return (
-                          <Dica key={c.label} texto={clicavel ? `${c.faltaTxt} Clique para vincular.` : c.ok ? c.okTxt : c.faltaTxt}>
-                            <Badge variant="outline"
-                              onClick={clicavel ? () => setAlvo({ vendedor_id: r.vendedor_id, nome: r.representante,
-                                email: r.email_contato, telefone: r.telefone, documento: r.documento }) : undefined}
-                              className={cn("px-1.5 py-0 text-[10px] whitespace-nowrap",
-                                c.ok ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground",
-                                clicavel && "cursor-pointer underline decoration-dotted hover:bg-accent")}>
-                              {c.label}
-                            </Badge>
+                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>
+                    <span className="inline-flex items-center gap-1.5">
+                      {r.representante}
+                      {r.bloqueio_pagamento === true && (
+                        <span onClick={(e) => e.stopPropagation()}>
+                          <Dica texto={String(r.bloqueio_motivo ?? "")}>
+                            <AlertTriangle className="h-3.5 w-3.5 text-warning" aria-label="Pagamento bloqueado" />
                           </Dica>
-                        );
-                      })}
-                    </div>
+                        </span>
+                      )}
+                    </span>
                   </TableCell>
+                  {FIN.map((c) => {
+                    const n = Number(r[c.k] ?? 0);
+                    return (
+                      <TableCell key={c.k} className={cn("whitespace-nowrap text-right tabular-nums", n === 0 && "text-muted-foreground/50")}>
+                        {fmtBRL(n)}
+                        {c.k === "proxima_comissao_30d" && r.proxima_comissao_data && (
+                          <div className="text-[10px] text-muted-foreground">{fmtDiaMes(r.proxima_comissao_data)}</div>
+                        )}
+                      </TableCell>
+                    );
+                  })}
                   <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.telefone || "—"}</TableCell>
                   <TableCell className="whitespace-nowrap tabular-nums" onClick={(e) => e.stopPropagation()}>

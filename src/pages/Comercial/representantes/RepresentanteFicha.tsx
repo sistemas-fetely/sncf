@@ -19,7 +19,7 @@ import { formatError } from "@/lib/format-error";
 
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtPct2, fmtInt, SITUACAO, type Linha } from "./dados";
-import { BadgeApto } from "./RepresentantesPainel";
+import { BadgeApto, Dica, prontidao } from "./RepresentantesPainel";
 
 const RODAPE =
   "A comissão nasce na nota fiscal, sobre o valor da NF menos frete, e só é liberada quando o cliente paga. Pagamento até o dia 15 do mês subsequente à liquidação, contra NF de serviço (Lei 4.886/1965, art. 32).";
@@ -106,8 +106,61 @@ function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean })
         {item("Empresa", v?.empresa || "—")}
         {item("Último login no FOP", v?.fop_ultimo_login ? new Date(v.fop_ultimo_login).toLocaleString("pt-BR") : "nunca")}
         {item("Última sincronia", v?.sincronizado_em ? new Date(v.sincronizado_em).toLocaleString("pt-BR") : "nunca sincronizado")}
+        <div className="sm:col-span-4">
+          <div className="text-xs text-muted-foreground mb-1">Prontidão</div>
+          <div className="flex flex-wrap gap-1">
+            {prontidao({ ...k, documento: v?.documento ?? k.documento, fop_login_count: v?.fop_login_count ?? k.fop_login_count }).map((c) => {
+              const clicavel = !print && c.label === "Contraparte" && !c.ok;
+              return (
+                <Dica key={c.label} texto={clicavel ? `${c.faltaTxt} Clique para vincular.` : c.ok ? c.okTxt : c.faltaTxt}>
+                  <Badge variant="outline"
+                    onClick={clicavel ? () => setAlvo({ vendedor_id: String(k.vendedor_id), nome: v?.nome_exibicao ?? k.representante,
+                      email: v?.email_contato ?? k.email_contato, telefone: v?.telefone, documento: v?.documento }) : undefined}
+                    className={cn("px-1.5 py-0 text-[10px] whitespace-nowrap",
+                      c.ok ? "bg-success/15 text-success border-success/30" : "bg-muted text-muted-foreground",
+                      clicavel && "cursor-pointer underline decoration-dotted hover:bg-accent")}>
+                    {c.label}
+                  </Badge>
+                </Dica>
+              );
+            })}
+          </div>
+        </div>
       </CardContent>
       {!print && <VincularContraparteDialog alvo={alvo} onClose={() => setAlvo(null)} />}
+    </Card>
+  );
+}
+
+function SituacaoFinanceira({ k }: { k: Linha }) {
+  const destaque = (l: string, val: unknown) => (
+    <div><div className="text-xs text-muted-foreground">{l}</div>
+      <div className={cn("mt-1 text-lg font-medium tabular-nums", Number(val ?? 0) === 0 && "text-muted-foreground/50")}>{fmtBRL(Number(val ?? 0))}</div></div>
+  );
+  const estorno = Number(k.estorno_a_compensar ?? 0);
+  return (
+    <Card className="break-inside-avoid">
+      <CardHeader className="pb-2"><CardTitle className="text-sm">Situação financeira</CardTitle></CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
+        {destaque("Recebida", k.comissao_recebida)}
+        {destaque("A receber", k.comissao_a_receber)}
+        <div>
+          {destaque("Próxima (30d)", k.proxima_comissao_30d)}
+          {k.proxima_comissao_data && <div className="text-xs text-muted-foreground">{fmtData(k.proxima_comissao_data)}</div>}
+        </div>
+        {destaque("Aguardando cliente", k.aguardando_cliente_pagar)}
+        <div><div className="text-xs text-muted-foreground">Cliente pagou, aguardando liberação</div>
+          <div className="tabular-nums">{fmtBRL(Number(k.a_liberar_cliente_ja_pagou ?? 0))}</div></div>
+        {estorno > 0 && (
+          <div><div className="text-xs text-muted-foreground">Estorno a compensar</div>
+            <div className="tabular-nums text-destructive">{fmtBRL(estorno)}</div></div>
+        )}
+        <div><div className="text-xs text-muted-foreground">Último pagamento recebido</div>
+          <div>{k.ultimo_pagamento ? new Date(k.ultimo_pagamento).toLocaleDateString("pt-BR") : "Nunca recebeu"}</div></div>
+        {k.bloqueio_pagamento === true && (
+          <p className="sm:col-span-4 text-xs text-warning">{String(k.bloqueio_motivo ?? "")}</p>
+        )}
+      </CardContent>
     </Card>
   );
 }
@@ -116,6 +169,7 @@ function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; p
   return (
     <div className="space-y-4">
       <CardCadastro v={v} k={k} print={print} />
+      <SituacaoFinanceira k={k} />
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} />
         <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} />
@@ -249,7 +303,7 @@ export default function RepresentanteFicha() {
 
   const kq = useQuery({
     queryKey: ["representante-kpi", vendedorId],
-    queryFn: () => lerTudo("vw_representante_kpi", (x) => x.eq("vendedor_id", vendedorId)),
+    queryFn: () => lerTudo("vw_representante_financeiro", (x) => x.eq("vendedor_id", vendedorId)),
   });
   const sq = useQuery({
     queryKey: ["representante-serie", vendedorId],
