@@ -41,7 +41,7 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const VAZIO = { destino: "", observacao: "", itens: [{ sku: "", quantidade: 1 }] } as const;
+const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", quantidade: 1 }] };
 
 interface TransferenciaRow {
   id: string;
