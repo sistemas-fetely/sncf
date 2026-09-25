@@ -388,10 +388,6 @@ const App = () => (
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
               <Route path="/cliente/:id" element={<ClientePainel />} />
 
-              {/* Comercial — Comissões de Representante (menu comercial.comissoes) */}
-              <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
-              <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
-              <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
 
 
               {/* ═══════════════════════════════════════════════
