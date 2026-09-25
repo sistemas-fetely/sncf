@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
  * Sino único do SNCF — INBOX-ÚNICO-OU-DECORAÇÃO.
  *
  * Duas fontes, uma superfície:
- *   `notificacoes_rh`  — legado de People/RH, aceita broadcast (user_id nulo)
+ *   `notificacoes_rh`  — legado de People/RH, sempre com dono (aviso por pessoa)
  *   `notificacoes`     — tabela do módulo Tarefas (e futuros), sempre com dono
  *
  * Aviso que só aparece dentro do módulo que o gerou não é aviso: é decoração.
@@ -54,7 +54,7 @@ function useItensSino(userId: string | undefined) {
         supabase
           .from("notificacoes_rh")
           .select("id,titulo,mensagem,link,lida,created_at")
-          .or(`user_id.eq.${userId},user_id.is.null`)
+          .eq("user_id", userId!)
           .eq("lida", false)
           .order("created_at", { ascending: false })
           .limit(50),
@@ -68,7 +68,7 @@ function useItensSino(userId: string | undefined) {
         supabase
           .from("notificacoes_rh")
           .select("id", { count: "exact", head: true })
-          .or(`user_id.eq.${userId},user_id.is.null`)
+          .eq("user_id", userId!)
           .eq("lida", false),
         supabase
           .from("notificacoes")

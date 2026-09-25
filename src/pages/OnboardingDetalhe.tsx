@@ -259,18 +259,23 @@ export default function OnboardingDetalhe() {
       );
       const allDone = updatedTarefas.every((t) => t.status === "concluida");
       if (allDone && checklist.status !== "concluido") {
-        await supabase
+        const upd = await supabase
           .from("onboarding_checklists")
           .update({ status: "concluido", concluido_em: new Date().toISOString() } as any)
           .eq("id", checklist.id);
-        await supabase.from("notificacoes_rh").insert({
-          tipo: "onboarding_concluido",
-          titulo: `Onboarding concluído: ${checklist.nome}`,
-          mensagem: `Todas as tarefas de onboarding de ${checklist.nome} foram concluídas.`,
-          link: "/onboarding",
-          user_id: null,
+        if (upd.error) throw upd.error;
+        // Aviso por pessoa: o banco distribui para quem tem a.avisos_rh_receber
+        // (ou super_admins). O onboarding já está concluído — se o aviso falhar,
+        // avisamos, sem desfazer.
+        const { error: erroAviso } = await supabase.rpc("fn_notificar_permissao", {
+          p_slug: "acao.avisos_rh_receber",
+          p_tipo: "onboarding_concluido",
+          p_titulo: `Onboarding concluído: ${checklist.nome}`,
+          p_mensagem: `Todas as tarefas de onboarding de ${checklist.nome} foram concluídas.`,
+          p_link: "/onboarding",
         });
-        toast.success("Onboarding concluído!");
+        if (erroAviso) toast.error(`Onboarding concluído, mas o aviso ao RH falhou: ${erroAviso.message}`);
+        else toast.success("Onboarding concluído!");
       } else {
         toast.success("Tarefa concluída");
       }
