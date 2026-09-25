@@ -96,7 +96,8 @@ export default function RepresentantesPainel() {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [params, setParams] = useSearchParams();
-  const aba = params.get("aba") === "reconciliacao" ? "reconciliacao" : "painel";
+  const abaParam = params.get("aba");
+  const aba = abaParam === "reconciliacao" || abaParam === "ciclo" ? abaParam : "painel";
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [ord, setOrd] = useState<{ k: string; asc: boolean }>({ k: "valor_vendido_bruto", asc: false });
