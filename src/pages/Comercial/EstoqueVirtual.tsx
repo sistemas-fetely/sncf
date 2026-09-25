@@ -87,12 +87,28 @@ interface LinhaTabela {
   fonte_ticket: string | null;
   saude: string | null;
   em_transito: number;
+  /** Contábil por centro (código → un). */
+  por_centro: Record<string, number>;
 }
 
-type Visao = "estoque" | "valor";
-const SORT_PADRAO: Record<Visao, SortState<Col>> = {
+interface CentroAtivo {
+  codigo: string;
+  nome: string | null;
+  rotulo_curto: string | null;
+  tipo: string | null;
+  vende: boolean | null;
+  ordem: number | null;
+}
+function totalCentros(p: LinhaTabela) {
+  return Object.values(p.por_centro).reduce((s, v) => s + v, 0);
+}
+
+type Visao = "estoque" | "valor" | "centros";
+type ColSort = Col | "total" | `c:${string}`;
+const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
+  centros: { column: "total", direction: "desc" },
 };
 const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
 function piorSaude(a: string | null, b: string | null) {
