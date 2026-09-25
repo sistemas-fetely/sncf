@@ -65,7 +65,9 @@ function Rodape({ pagina, legal = false }: { pagina: 1 | 2; legal?: boolean }) {
 }
 
 function TabelaHistorico({ serie }: { serie: Linha[] }) {
+  const mesAtual = hojeISO().slice(0, 7);
   const linhas = [...serie]
+    .filter((linha) => String(linha.mes ?? "").slice(0, 7) <= mesAtual)
     .sort((a, b) => String(b.mes ?? "").localeCompare(String(a.mes ?? "")))
     .slice(0, 6)
     .reverse();
@@ -281,6 +283,7 @@ function situacao(valor: unknown) {
 }
 
 const ESTILOS_IMPRESSAO = `
+  [aria-label="Minhas tarefas"] { display: none !important; }
   .documento-extrato { min-height: 100vh; background: hsl(var(--muted)); padding: 12mm 0; }
   .pagina-a4 { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
   @page { size: A4; margin: 15mm; }
