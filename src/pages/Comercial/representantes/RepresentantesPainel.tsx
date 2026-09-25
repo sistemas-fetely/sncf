@@ -80,16 +80,14 @@ export function prontidao(r: Linha): Chip[] {
   ];
 }
 
-const FIN: { k: string; label: string; dica: string }[] = [
-  { k: "comissao_recebida", label: "Recebida", dica: "Comissão já paga ao representante — título quitado." },
-  { k: "comissao_a_receber", label: "A receber", dica: "Direito adquirido: o cliente já pagou e a comissão foi liberada, mas ainda não foi paga ao representante." },
-  { k: "proxima_comissao_30d", label: "Próxima (30d)", dica: "Previsto para os próximos 30 dias, conforme os vencimentos dos títulos do cliente." },
-  { k: "aguardando_cliente_pagar", label: "Aguardando cliente", dica: "Comissão já calculada na nota fiscal, mas só é liberada quando o cliente pagar cada parcela." },
+const FIN: { k: string; label: string; dica?: string }[] = [
+  { k: "comissao_recebida", label: "Recebida", dica: "Tudo que o representante já recebeu de fato — título de comissão quitado." },
+  { k: "comissao_a_receber", label: "A receber" },
+  { k: "proximo_recebimento", label: "Próximo recebimento", dica: "Valor da comissão a ser paga no próximo ciclo de pagamento." },
 ];
 
-function fmtDiaMes(d: string) {
-  const [, m, dia] = String(d).slice(0, 10).split("-");
-  return `${dia}/${m}`;
+function dicaAReceber(r: Linha) {
+  return `Tudo que ainda falta o representante receber pelos pedidos já vendidos. Direito adquirido (cliente já pagou): ${fmtBRL(Number(r.a_receber_direito_adquirido ?? 0))} · Depende do cliente pagar: ${fmtBRL(Number(r.a_receber_depende_do_cliente ?? 0))}`;
 }
 
 const FILTROS = [
@@ -146,7 +144,7 @@ export default function RepresentantesPainel() {
     const s = (k: string) => linhas.reduce((a, r) => a + Number(r[k] ?? 0), 0);
     return {
       vendido: s("valor_vendido_bruto"), recebida: s("comissao_recebida"), aReceber: s("comissao_a_receber"),
-      proxima: s("proxima_comissao_30d"), aguardando: s("aguardando_cliente_pagar"), vencida: s("carteira_vencida"),
+      proxima: s("proximo_recebimento"), vencida: s("carteira_vencida"),
     };
   }, [linhas]);
 
@@ -220,7 +218,7 @@ export default function RepresentantesPainel() {
 
   const cards = [
     ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
-    ["Próxima 30 dias", tot.proxima], ["Aguardando cliente", tot.aguardando], ["Carteira vencida", tot.vencida],
+    ["Próximo recebimento", tot.proxima], ["Carteira vencida", tot.vencida],
   ] as const;
   const NCOL = COLS.length + FIN.length + 5;
 
@@ -245,7 +243,7 @@ export default function RepresentantesPainel() {
           {sincronizando ? "Sincronizando…" : "Sincronizar do FOP"}
         </Button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map(([l, v]) => (
           <Card key={l}><CardContent className="p-4">
             <div className="text-xs text-muted-foreground">{l}</div>
@@ -270,12 +268,12 @@ export default function RepresentantesPainel() {
         <Table containerClassName="max-h-[min(70vh,48rem)]">
           <TableHeader><TableRow>
             {th("representante", "Representante", thFixo)}
-            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
             {th("regiao", "Região")}
             <TableHead className="sticky top-0 z-40 bg-muted">Telefone</TableHead>
             {th("fop_comissao_percent", "% do FOP")}
             {COLS.map((c) => th(c.k, c.label))}
             <TableHead className="sticky top-0 z-40 whitespace-nowrap bg-muted">Apto a pagamento</TableHead>
+            {FIN.map((c) => th(c.k, c.label, "text-right", c.dica))}
           </TableRow></TableHeader>
 
           <TableBody>
@@ -304,17 +302,6 @@ export default function RepresentantesPainel() {
                       )}
                     </span>
                   </TableCell>
-                  {FIN.map((c) => {
-                    const n = Number(r[c.k] ?? 0);
-                    return (
-                      <TableCell key={c.k} className={cn("whitespace-nowrap text-right tabular-nums", n === 0 && "text-muted-foreground/50")}>
-                        {fmtBRL(n)}
-                        {c.k === "proxima_comissao_30d" && r.proxima_comissao_data && (
-                          <div className="text-[10px] text-muted-foreground">{fmtDiaMes(r.proxima_comissao_data)}</div>
-                        )}
-                      </TableCell>
-                    );
-                  })}
                   <TableCell className="whitespace-nowrap">{r.regiao || "—"}</TableCell>
                   <TableCell className="whitespace-nowrap">{r.telefone || "—"}</TableCell>
                   <TableCell className="whitespace-nowrap tabular-nums" onClick={(e) => e.stopPropagation()}>
@@ -331,6 +318,26 @@ export default function RepresentantesPainel() {
                     </TableCell>
                   ))}
                   <TableCell onClick={(e) => e.stopPropagation()}><BadgeApto apto={!!r.apto_a_pagamento} /></TableCell>
+                  {FIN.map((c) => {
+                    const n = Number(r[c.k] ?? 0);
+                    const vazio = c.k === "proximo_recebimento" && n === 0;
+                    const valor = (
+                      <span className={cn(vazio && "text-muted-foreground/50")}>
+                        {vazio ? "—" : fmtBRL(n)}
+                        {c.k === "proximo_recebimento" && !vazio && r.proximo_recebimento_data && (
+                          <div className="text-[10px] text-muted-foreground">{fmtData(r.proximo_recebimento_data as string)}</div>
+                        )}
+                      </span>
+                    );
+                    return (
+                      <TableCell key={c.k} className={cn("whitespace-nowrap text-right tabular-nums", !vazio && n === 0 && "text-muted-foreground/50")}
+                        onClick={c.k === "comissao_a_receber" ? (e) => e.stopPropagation() : undefined}>
+                        {c.k === "comissao_a_receber"
+                          ? <Dica texto={dicaAReceber(r)}><span className="underline decoration-dotted">{valor}</span></Dica>
+                          : valor}
+                      </TableCell>
+                    );
+                  })}
                 </TableRow>
               );
             })}

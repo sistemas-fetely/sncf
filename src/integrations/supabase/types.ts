@@ -90820,14 +90820,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -91816,14 +91816,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -101916,7 +101916,8 @@ export type Database = {
       vw_representante_financeiro: {
         Row: {
           a_liberar_cliente_ja_pagou: number | null
-          aguardando_cliente_pagar: number | null
+          a_receber_depende_do_cliente: number | null
+          a_receber_direito_adquirido: number | null
           apto_a_pagamento: boolean | null
           ativo: boolean | null
           base_faturada: number | null
@@ -101947,7 +101948,6 @@ export type Database = {
           inadimplencia_pct: number | null
           ja_logou: boolean | null
           liberada_sem_cpr: number | null
-          liberado_sem_extrato: number | null
           maior_atraso_dias: number | null
           notas_faturadas: number | null
           notas_travadas: number | null
@@ -101958,8 +101958,10 @@ export type Database = {
           prev_comissao_60d: number | null
           prev_comissao_90d: number | null
           primeira_venda: string | null
-          proxima_comissao_30d: number | null
-          proxima_comissao_data: string | null
+          proxima_parcela_cliente: string | null
+          proximo_recebimento: number | null
+          proximo_recebimento_competencia: string | null
+          proximo_recebimento_data: string | null
           regiao: string | null
           representante: string | null
           sincronizado_em: string | null
@@ -103572,14 +103574,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]

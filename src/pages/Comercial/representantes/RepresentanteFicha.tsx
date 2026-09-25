@@ -143,20 +143,30 @@ function SituacaoFinanceira({ k }: { k: Linha }) {
       <CardHeader className="pb-2"><CardTitle className="text-sm">Situação financeira</CardTitle></CardHeader>
       <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
         {destaque("Recebida", k.comissao_recebida)}
-        {destaque("A receber", k.comissao_a_receber)}
+        <div><div className="text-xs text-muted-foreground">Último pagamento</div>
+          <div className="mt-1">{k.ultimo_pagamento ? new Date(k.ultimo_pagamento).toLocaleDateString("pt-BR") : "Nunca recebeu"}</div></div>
         <div>
-          {destaque("Próxima (30d)", k.proxima_comissao_30d)}
-          {k.proxima_comissao_data && <div className="text-xs text-muted-foreground">{fmtData(k.proxima_comissao_data)}</div>}
+          {destaque("A receber", k.comissao_a_receber)}
+          <div className="mt-1 pl-3 text-xs text-muted-foreground space-y-0.5">
+            <div className="flex justify-between gap-2"><span>Direito adquirido — cliente já pagou</span>
+              <span className="tabular-nums">{fmtBRL(Number(k.a_receber_direito_adquirido ?? 0))}</span></div>
+            <div className="flex justify-between gap-2"><span>Depende do cliente pagar</span>
+              <span className="tabular-nums">{fmtBRL(Number(k.a_receber_depende_do_cliente ?? 0))}</span></div>
+          </div>
         </div>
-        {destaque("Aguardando cliente", k.aguardando_cliente_pagar)}
+        <div>
+          {destaque("Próximo recebimento", k.proximo_recebimento)}
+          <div className="text-xs text-muted-foreground">
+            {k.proximo_recebimento_data && <div>{fmtData(k.proximo_recebimento_data)}</div>}
+            {k.proximo_recebimento_competencia && <div>Competência {fmtCompetencia(String(k.proximo_recebimento_competencia))}</div>}
+          </div>
+        </div>
         <div><div className="text-xs text-muted-foreground">Cliente pagou, aguardando liberação</div>
           <div className="tabular-nums">{fmtBRL(Number(k.a_liberar_cliente_ja_pagou ?? 0))}</div></div>
         {estorno > 0 && (
           <div><div className="text-xs text-muted-foreground">Estorno a compensar</div>
             <div className="tabular-nums text-destructive">{fmtBRL(estorno)}</div></div>
         )}
-        <div><div className="text-xs text-muted-foreground">Último pagamento recebido</div>
-          <div>{k.ultimo_pagamento ? new Date(k.ultimo_pagamento).toLocaleDateString("pt-BR") : "Nunca recebeu"}</div></div>
         {k.bloqueio_pagamento === true && (
           <p className="sm:col-span-4 text-xs text-warning">{String(k.bloqueio_motivo ?? "")}</p>
         )}
