@@ -183,14 +183,19 @@ export default function RepresentantesPainel() {
     }
   }
 
-  const th = (k: string, label: string) => (
-    <TableHead key={k} className="whitespace-nowrap">
+  // Mesmo padrão de tabela fixa da Mesa de Produto / Conciliação: cabeçalho sticky top-0
+  // dentro do container rolável da Table, e primeira coluna sticky left-0.
+  const th = (k: string, label: string, extra?: string) => (
+    <TableHead key={k} className={cn("sticky top-0 z-40 whitespace-nowrap bg-muted", extra)}>
       <button type="button" className="inline-flex items-center gap-1 hover:text-foreground"
         onClick={() => setOrd((o) => ({ k, asc: o.k === k ? !o.asc : false }))}>
         {label}<ArrowUpDown className="h-3 w-3" />
       </button>
     </TableHead>
   );
+  const thFixo = "sticky left-0 z-50 w-56 border-r bg-muted";
+  const tdFixo = "sticky left-0 z-20 w-56 border-r bg-card";
+
 
   const cards = [
     ["Vendido no total", tot.vendido], ["Comissão apurada", tot.apurada], ["Comissão liberada", tot.liberada],
