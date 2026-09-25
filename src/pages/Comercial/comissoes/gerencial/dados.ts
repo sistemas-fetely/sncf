@@ -44,6 +44,7 @@ export interface LinhaRepresentante {
   comissaoApurada: number;
   comissaoLiberada: number;
   aPagar: number;
+  clientesNovos: number;
 }
 
 export interface Gerencial {
@@ -99,6 +100,13 @@ export function useGerencial(competencia: string): Gerencial {
     enabled: valida,
   });
 
+  const clientesNovosQ = useQuery({
+    queryKey: ["comissao-gerencial-clientes-novos", competencia],
+    queryFn: () =>
+      lerTudo("vw_cliente_abertura", (q) => q.gte("mes_abertura", inicio).lt("mes_abertura", fim)),
+    enabled: valida,
+  });
+
   const historico = gerencialQ.data ?? [];
   const mes = useMemo(
     () => historico.find((l) => String(l.competencia ?? "").slice(0, 7) === competencia) ?? null,
@@ -106,6 +114,11 @@ export function useGerencial(competencia: string): Gerencial {
   );
 
   const representantes = useMemo<LinhaRepresentante[]>(() => {
+    const clientesNovosPorVendedor = new Map<string, number>();
+    for (const l of clientesNovosQ.data ?? []) {
+      const id = String(l.vendedor_abertura_id ?? "");
+      if (id) clientesNovosPorVendedor.set(id, (clientesNovosPorVendedor.get(id) ?? 0) + 1);
+    }
     const aPagarPorVendedor = new Map<string, number>();
     for (const l of extratoQ.data ?? []) {
       const id = String(l.vendedor_id ?? "");
@@ -159,9 +172,10 @@ export function useGerencial(competencia: string): Gerencial {
         comissaoApurada: acc.comissaoApurada,
         comissaoLiberada: acc.comissaoLiberada,
         aPagar: aPagarPorVendedor.get(vendedorId) ?? 0,
+        clientesNovos: clientesNovosPorVendedor.get(vendedorId) ?? 0,
       }))
       .sort((a, b) => b.comissaoApurada - a.comissaoApurada);
-  }, [detalheQ.data, extratoQ.data]);
+  }, [clientesNovosQ.data, detalheQ.data, extratoQ.data]);
 
   const reps = repFinQ.data ?? [];
   const semContraparte = reps.filter((r) => r.bloqueio_pagamento === true && num(r.comissao_a_receber) > 0);
@@ -212,8 +226,8 @@ export function useGerencial(competencia: string): Gerencial {
     return itens;
   }, [mes, semContraparte.length, valorSemContraparte]);
 
-  const carregando = gerencialQ.isLoading || repFinQ.isLoading || detalheQ.isLoading || extratoQ.isLoading;
-  const erro = gerencialQ.error || repFinQ.error || detalheQ.error || extratoQ.error;
+  const carregando = gerencialQ.isLoading || repFinQ.isLoading || detalheQ.isLoading || extratoQ.isLoading || clientesNovosQ.isLoading;
+  const erro = gerencialQ.error || repFinQ.error || detalheQ.error || extratoQ.error || clientesNovosQ.error;
   const semMovimento =
     !carregando && !erro && (!mes || (num(mes.notas) === 0 && num(mes.comissao_apurada) === 0)) && representantes.length === 0;
 

@@ -148,6 +148,9 @@ function PaginaResumo({ representante, serie }: { representante: Linha; serie: L
             <Metrica titulo="Vendido no total">{fmtBRL(numero(representante.valor_vendido_bruto))}</Metrica>
             <Metrica titulo="Pedidos"><Inteiro valor={representante.pedidos_total} /></Metrica>
             <Metrica titulo="Clientes atendidos"><Inteiro valor={representante.clientes_distintos} /></Metrica>
+            <Metrica titulo="Clientes abertos por você"><Inteiro valor={representante.clientes_novos_total} /></Metrica>
+            <Metrica titulo="Clientes novos nos últimos 90 dias"><Inteiro valor={representante.clientes_novos_90d} /></Metrica>
+            <Metrica titulo="Clientes que já eram da Fetély"><Inteiro valor={representante.clientes_recompra} /></Metrica>
             <Metrica titulo="Ticket médio">{fmtBRL(numero(representante.ticket_medio))}</Metrica>
             <Metrica titulo="Última venda">
               {representante.ultima_venda_valor == null ? "—" : `${fmtBRL(numero(representante.ultima_venda_valor))} · ${fmtData(representante.ultima_venda_data)}`}

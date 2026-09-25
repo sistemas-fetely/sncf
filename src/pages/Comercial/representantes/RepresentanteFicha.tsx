@@ -196,6 +196,9 @@ function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; p
         <Kpi l="Desconto médio %" v={fmtPct2(k.desconto_medio_pct)} />
         <Kpi l="% efetivo médio" v={fmtPct2(k.pct_efetivo_medio)} />
         <Kpi l="Clientes atendidos" v={fmtInt(k.clientes_distintos)} />
+        <Kpi l="Clientes abertos por você" v={fmtInt(k.clientes_novos_total)} />
+        <Kpi l="Clientes novos nos últimos 90 dias" v={fmtInt(k.clientes_novos_90d)} />
+        <Kpi l="Clientes que já eram da Fetély" v={fmtInt(k.clientes_recompra)} />
       </div>
       <Graficos serie={serie} print={print} />
       <Card className="break-inside-avoid">
