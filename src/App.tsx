@@ -212,6 +212,7 @@ const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
 const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
+const RepresentanteExtratoImpressao = lazy(() => import("@/pages/Comercial/representantes/RepresentanteExtratoImpressao"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -358,6 +359,13 @@ const App = () => (
 
             {/* Bling OAuth callback — público (recebe redirect externo), fora da Casa */}
             <Route path="/administrativo/bling-callback" element={<BlingCallback />} />
+
+            {/* Documento autenticado, sem a casca visual do sistema. A rota herda
+                temporariamente a porta comercial até nascer no banco com slug próprio. */}
+            <Route
+              path="/comercial/representantes/:vendedorId/extrato-impressao"
+              element={<ProtectedRoute><RotaGate><RepresentanteExtratoImpressao /></RotaGate></ProtectedRoute>}
+            />
 
             {/* ═══════════════════════════════════════════════
                 Casa Fetély — wrapper de auth + visual global
