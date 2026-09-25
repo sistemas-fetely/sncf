@@ -1,44 +1,13 @@
-import { NavLink, Outlet } from "react-router-dom";
-import { Warehouse, HeartPulse, Tags, PackagePlus } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/AuthContext";
+import { Outlet } from "react-router-dom";
 
-const TABS = [
-  { to: "/vendas/produto/estoque/virtual", label: "Estoque Geral", icon: Warehouse },
-  { to: "/vendas/produto/estoque/saude", label: "Saúde do Estoque", icon: HeartPulse },
-  { to: "/vendas/produto/estoque/entradas", label: "Entradas", icon: PackagePlus },
-  { to: "/vendas/produto/estoque/nomes-bling", label: "Nomes no Bling", icon: Tags, superAdmin: true },
-];
-
-
+/**
+ * Casca das telas de Estoque. A barra de abas (Estoque Geral / Saúde / Entradas /
+ * Nomes no Bling) foi aposentada em 25/09/2026 — cada tela tem item próprio no
+ * menu lateral (sncf_navegacao). As rotas filhas continuam aqui.
+ */
 export default function ProdutoEstoqueLayout() {
-  const { roles } = useAuth();
-  const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const tabs = TABS.filter((t) => !t.superAdmin || isSuperAdmin);
   return (
     <div className="flex flex-col min-h-full">
-      <div className="border-b bg-card">
-        <nav className="flex gap-1 px-4 pt-2">
-          {tabs.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-2 px-4 py-2.5 text-sm border-b-2 transition-colors -mb-px whitespace-nowrap",
-                  isActive
-                    ? "font-medium text-foreground border-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-                )
-              }
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-      </div>
       <div className="flex-1 min-w-0">
         <Outlet />
       </div>
