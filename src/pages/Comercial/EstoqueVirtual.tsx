@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO, LINHA_CABECALHO_COLADO_NIVEL2 } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -112,10 +112,15 @@ function giroAnual(vendas: number, contabil: number, janela: number): number | n
   if (!(contabil > 0) || !(vendas > 0) || !(janela > 0)) return null;
   return (vendas / contabil) * (365 / janela);
 }
+/** Giro em % do estoque ao ano (mesmo número do giro anualizado × 100, inteiro). */
 function formatGiro(g: number | null) {
   return g == null
     ? <span className="text-muted-foreground">—</span>
-    : `${g.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`;
+    : `${Math.round(g * 100).toLocaleString("pt-BR")}%`;
+}
+function tooltipGiro(janela: number, escopo: "centro" | "total") {
+  const onde = escopo === "centro" ? "neste centro" : "no total (todos os centros)";
+  return `Giro anual do produto ${onde}, em % do estoque: vendas dos últimos ${formatNum(janela)} dias ÷ quantidade × 365 ÷ ${formatNum(janela)}. 100% = o estoque inteiro gira uma vez por ano.`;
 }
 
 type Visao = "estoque" | "valor" | "centros";
@@ -175,7 +180,7 @@ const chaveProduto = (l: LinhaCockpit) => l.sku ?? l.cod_cadastro ?? "";
  * nenhum cabeçalho ultrapasse a própria coluna (table-fixed).
  */
 function CabecalhoColuna({
-  rotulo, title, dir, onOrdenar, className, alinharDireita = false,
+  rotulo, title, dir, onOrdenar, className, alinharDireita = false, rowSpan,
 }: {
   rotulo: string;
   /** Tooltip do cabeçalho; default = o próprio rótulo. */
@@ -184,9 +189,12 @@ function CabecalhoColuna({
   onOrdenar: () => void;
   className?: string;
   alinharDireita?: boolean;
+  /** Em cabeçalho de dois níveis: célula que desce as duas linhas. */
+  rowSpan?: number;
 }) {
   return (
     <TableHead
+      rowSpan={rowSpan}
       className={cn(
         "overflow-hidden text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate",
         className,
@@ -498,6 +506,20 @@ export default function EstoqueVirtual() {
   const pageItems = ordenados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
   const hoje = new Date().toISOString().slice(0, 10);
 
+  // TOPO-COLADO-SE-MEDE: na visão Centros o cabeçalho tem dois níveis; o 2º
+  // cola logo abaixo do 1º, cuja altura é medida (nenhuma altura fixa).
+  const grupoRef = useRef<HTMLTableRowElement>(null);
+  const [alturaGrupo, setAlturaGrupo] = useState(0);
+  useEffect(() => {
+    const el = grupoRef.current;
+    if (!el || visao !== "centros") return;
+    const medir = () => setAlturaGrupo(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [visao, centros.length, cockpitQuery.isLoading]);
+
   const totalProdutos = useMemo(() => new Set(linhas.map(chaveProduto)).size, [linhas]);
   const totalVirtual = linhas.reduce((s, l) => s + n(l.virtual), 0);
   const estadoCabecalho = cockpitQuery.isLoading
@@ -618,7 +640,7 @@ export default function EstoqueVirtual() {
         />
         <CartaoNumero
           rotulo="Giro"
-          valor={cartoes.giro == null ? "—" : `${cartoes.giro.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} x/ano`}
+          valor={cartoes.giro == null ? "—" : `${Math.round(cartoes.giro * 100).toLocaleString("pt-BR")}% ao ano`}
           sub={`${formatNum(cartoes.vendas)} un vendidas em ${formatNum(cartoes.janela)} dias`}
         />
         <CartaoNumero
