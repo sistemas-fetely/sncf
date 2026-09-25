@@ -264,7 +264,7 @@ export default function RepresentantesPainel() {
               return (
                 <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
                   onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
-                  <TableCell className="font-medium whitespace-nowrap">{r.representante}</TableCell>
+                  <TableCell className={cn("font-medium whitespace-nowrap", tdFixo)}>{r.representante}</TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-1">
                       {prontidao(r).map((c) => {
