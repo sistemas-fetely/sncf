@@ -377,6 +377,17 @@ export default function RepresentanteFicha() {
         <Badge variant="outline" className="capitalize">{k.tipo}</Badge>
         <BadgeApto apto={!!k.apto_a_pagamento} />
         <div className="flex-1" />
+        <span className="text-xs text-muted-foreground">{seloCompetencia}</span>
+        <select
+          aria-label="Competência do extrato"
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={competencia}
+          onChange={(e) => setSp((p) => { p.set("competencia", e.target.value); return p; }, { replace: true })}
+        >
+          {opcoes.map((c) => (
+            <option key={c} value={c}>{fmtCompetencia(`${c}-01`)}</option>
+          ))}
+        </select>
         <Button asChild size="sm" variant="outline">
           <Link to={rotaImpressao}><Printer className="h-4 w-4 mr-1" />Baixar PDF</Link>
         </Button>
