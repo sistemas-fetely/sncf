@@ -18,7 +18,7 @@ const TETO = 10;
 const ACAO = "acao.cadastrar_produto_shopify";
 
 const Q_SKU = `query($q: String!) {
-  productVariants(first: 5, query: $q) { nodes { id sku product { id title status handle } } }
+  productVariants(first: 5, query: $q) { nodes { id sku barcode product { id title status handle } } }
 }`;
 
 const M_SET = `mutation($input: ProductSetInput!) {
@@ -110,15 +110,30 @@ Deno.serve(async (req) => {
       if (!l) { resultados.push({ sku, status: "fora_da_fila", erro: "SKU não está na fila (fase/canal não elegível ou já existe no Shopify)." }); continue; }
       if (!l.pode_enviar) { resultados.push({ sku, status: "bloqueado", erro: "Falta preço de varejo ou nome comercial.", avisos: l.avisos }); continue; }
 
-      // Anti-duplicata AO VIVO: o espelho local pode ter fóssil ou estar defasado.
-      const q = await shop.gql<Linha>(Q_SKU, { q: `sku:"${sku.replace(/"/g, '\\"')}"` });
+      // Anti-duplicata AO VIVO por SKU OU EAN: o espelho local pode ter fóssil, estar defasado,
+      // cortar variantes (>100) ou o produto existir no Shopify com outro SKU e o mesmo EAN.
+      const eanNorm = (l.ean ?? "").replace(/\D/g, "");
+      const eanSemZero = eanNorm.replace(/^0+/, "");
+      const termos = [`sku:"${sku.replace(/"/g, '\\"')}"`];
+      if (eanNorm) termos.push(`barcode:${eanNorm}`);
+      if (eanSemZero && eanSemZero !== eanNorm) termos.push(`barcode:${eanSemZero}`);
+      const q = await shop.gql<Linha>(Q_SKU, { q: termos.join(" OR ") });
       if (q.status !== 200 || q.errors) {
         resultados.push({ sku, status: "erro", etapa: "consulta_sku", erro: JSON.stringify(q.errors ?? q.body).slice(0, 500) });
         continue;
       }
-      const achados = (q.data?.productVariants?.nodes ?? []).filter((n: Linha) => String(n.sku ?? "").trim().toUpperCase() === sku.toUpperCase());
+      const normBar = (b: unknown) => String(b ?? "").replace(/\D/g, "").replace(/^0+/, "");
+      const achados = (q.data?.productVariants?.nodes ?? []).filter((n: Linha) =>
+        String(n.sku ?? "").trim().toUpperCase() === sku.toUpperCase() ||
+        (!!eanSemZero && normBar(n.barcode) === eanSemZero));
       if (achados.length > 0) {
-        resultados.push({ sku, status: "ja_existe", produto: achados[0].product });
+        const a = achados[0];
+        const porEan = String(a.sku ?? "").trim().toUpperCase() !== sku.toUpperCase();
+        resultados.push({
+          sku, status: "ja_existe",
+          motivo: porEan ? "mesmo_ean_outro_sku" : "mesmo_sku",
+          sku_no_shopify: a.sku ?? null, barcode_no_shopify: a.barcode ?? null, produto: a.product,
+        });
         continue;
       }
 
