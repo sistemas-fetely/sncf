@@ -204,6 +204,7 @@ export default function PortalRepresentante() {
           <PortalPainel
             sessao={sessao}
             painel={painel}
+            extratoId={extratoId}
             onRecarregar={() => void carregarPainel(sessao)}
             onSair={sair}
           />
