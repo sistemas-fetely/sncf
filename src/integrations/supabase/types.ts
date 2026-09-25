@@ -5544,7 +5544,10 @@ export type Database = {
           nf_data: string | null
           nf_numero: string | null
           quantidade: number
+          resolucao: string | null
+          resolucao_motivo: string | null
           resolvido_em: string | null
+          resolvido_por: string | null
           sku: string
         }
         Insert: {
@@ -5555,7 +5558,10 @@ export type Database = {
           nf_data?: string | null
           nf_numero?: string | null
           quantidade: number
+          resolucao?: string | null
+          resolucao_motivo?: string | null
           resolvido_em?: string | null
+          resolvido_por?: string | null
           sku: string
         }
         Update: {
@@ -5566,7 +5572,10 @@ export type Database = {
           nf_data?: string | null
           nf_numero?: string | null
           quantidade?: number
+          resolucao?: string | null
+          resolucao_motivo?: string | null
           resolvido_em?: string | null
+          resolvido_por?: string | null
           sku?: string
         }
         Relationships: []
@@ -71413,6 +71422,20 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_baixa_pendente_nf: {
+        Row: {
+          centro_sugerido: string | null
+          cfops: string | null
+          cnpj_emitente: string | null
+          destinatario: string | null
+          itens: number | null
+          nf_chave: string | null
+          nf_data: string | null
+          nf_numero: string | null
+          unidades: number | null
+        }
+        Relationships: []
+      }
       vw_bem_imobilizado_painel: {
         Row: {
           classe: string | null
@@ -110999,6 +111022,17 @@ export type Database = {
       fn_estoque_registrar_disputa: {
         Args: { p_ator: string; p_motivo: string; p_pedido_id: string }
         Returns: number
+      }
+      fn_estoque_resolver_baixa_pendente: {
+        Args: {
+          p_centro_entrada?: string
+          p_centro_saida?: string
+          p_dry_run?: boolean
+          p_modo: string
+          p_motivo?: string
+          p_nf_chave: string
+        }
+        Returns: Json
       }
       fn_estoque_veredito_frase: { Args: { p_ver: Json }; Returns: string }
       fn_exigir_edicao_permitida: {
