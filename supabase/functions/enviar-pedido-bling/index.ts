@@ -249,6 +249,26 @@ serve(async (req) => {
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
 
+    // 1c. Natureza de operação — DIMENSÃO-VIA-TABELA (25/09/2026).
+    // O id da natureza no Bling (ex.: CFOP 6152 da filial para transferência interna)
+    // mora em naturezas_operacao.bling_natureza_id — nenhum id hardcoded aqui.
+    // Pedido sem natureza ou sem o campo preenchido segue exatamente como antes,
+    // sem a chave no payload.
+    let blingNaturezaId: number | null = null;
+    if (pedido.natureza_operacao_id) {
+      const { data: natDim, error: natDimErr } = await supabase
+        .from("naturezas_operacao")
+        .select("bling_natureza_id")
+        .eq("id", pedido.natureza_operacao_id)
+        .maybeSingle();
+      if (natDimErr) {
+        return err(`Falha ao ler a natureza de operação do pedido: ${natDimErr.message}`, 500);
+      }
+      if (natDim?.bling_natureza_id != null) {
+        blingNaturezaId = Number(natDim.bling_natureza_id);
+      }
+    }
+
     // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
     //   pre_separacao   — envio inicial (comportamento atual, será aposentado).
     //   em_separacao    — envio de remessa adicional (/02+) em split.
@@ -793,25 +813,11 @@ serve(async (req) => {
     };
 
     const blingFormaIdBruto = forma.bling_id_forma_pagamento ?? null;
-
-    if (blingFormaIdBruto === null || blingFormaIdBruto === undefined) {
-      return await abortarForma(
-        `A forma de pagamento "${forma.nome}" não tem cadastro correspondente no Bling. ` +
-        `Cadastre a forma no Bling e preencha o ID em Formas de Pagamento antes de enviar este pedido.`,
-      );
-    }
-
-    const blingFormaId = Number(blingFormaIdBruto);
-
-    // Limiar 1000: todo ID real da conta Bling da Fetély tem 7-8 dígitos; todo código
-    // legado de TIPO de pagamento da NFe (1, 2, 18, 99...) é menor que 100.
-    if (!Number.isFinite(blingFormaId) || blingFormaId < 1000) {
-      return await abortarForma(
-        `A forma de pagamento "${forma.nome}" está com um ID inválido no cadastro (${blingFormaIdBruto}) — ` +
-        `esse número é código de tipo de pagamento, não ID de forma de pagamento do Bling. ` +
-        `Corrija em Formas de Pagamento antes de enviar.`,
-      );
-    }
+    // As duas validações de ID (nulo e < 1000) foram MOVIDAS para depois do cálculo
+    // de `titulosAPrazo` (bloco 8): a forma só é exigida quando há parcela a prazo.
+    // Pedido sem cobrança (gera_duplicata = false, ex. sem_pagamento) vai com
+    // `parcelas: []` e a forma nem desce ao Bling — travar aqui bloqueava algo que
+    // não é enviado (transferência interna TRS-, 25/09/2026).
 
 
     // 7.5 Canal/Loja Fetely
@@ -876,6 +882,33 @@ serve(async (req) => {
     // Sai do array o que nunca será cobrado do cliente: dinheiro que já entrou
     // (portão) ou que não é dinheiro a receber (gera_duplicata = false na dimensão).
     const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao && !semDuplicata.has(t.tipo_pagamento));
+
+    // FORMA-SO-COM-PARCELA (25/09/2026): o ID da forma de pagamento só é usado DENTRO
+    // de `blingParcelas`. Sem parcela a prazo (pedido sem cobrança, ex. transferência
+    // interna com forma sem_pagamento), a forma nem desce ao Bling — não valida e não usa.
+    // Com parcela a prazo, as duas validações FAIL-LOUD abaixo valem exatamente como antes
+    // (mesma mensagem, mesmo log em bling_envios_log via abortarForma).
+    let blingFormaId: number | null = null;
+    if (titulosAPrazo.length > 0) {
+      if (blingFormaIdBruto === null || blingFormaIdBruto === undefined) {
+        return await abortarForma(
+          `A forma de pagamento "${forma.nome}" não tem cadastro correspondente no Bling. ` +
+          `Cadastre a forma no Bling e preencha o ID em Formas de Pagamento antes de enviar este pedido.`,
+        );
+      }
+
+      blingFormaId = Number(blingFormaIdBruto);
+
+      // Limiar 1000: todo ID real da conta Bling da Fetély tem 7-8 dígitos; todo código
+      // legado de TIPO de pagamento da NFe (1, 2, 18, 99...) é menor que 100.
+      if (!Number.isFinite(blingFormaId) || blingFormaId < 1000) {
+        return await abortarForma(
+          `A forma de pagamento "${forma.nome}" está com um ID inválido no cadastro (${blingFormaIdBruto}) — ` +
+          `esse número é código de tipo de pagamento, não ID de forma de pagamento do Bling. ` +
+          `Corrija em Formas de Pagamento antes de enviar.`,
+        );
+      }
+    }
     const valorPortaoPlano = parseFloat(
       titulos.filter((t: any) => t.eh_portao)
         .reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
@@ -1203,6 +1236,10 @@ if (itensSemProdutoBling.length > 0) {
       total: totalExato,
       observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
+      // Natureza de operação (ex.: transferência interna → CFOP 6152 da filial).
+      // Id vem de naturezas_operacao.bling_natureza_id; sem id na dimensão, a chave
+      // não vai e o pedido segue como antes.
+      ...(blingNaturezaId ? { naturezaOperacao: { id: blingNaturezaId } } : {}),
     };
 
     // DIMENSÃO-VIA-TABELA: a regra de modal de frete mora em `frete_tipos.mod_frete_nf`,
@@ -1369,11 +1406,43 @@ if (itensSemProdutoBling.length > 0) {
       // bling_enviado_em e bling_enviado_por na tabela pedidos, mas nao inseria
       // em pedido_eventos — o historico do pedido pulava da ancora direto pro nada
       // e ninguem conseguia ver quem enviou nem quando. FAIL-LOUD.
+      // NATUREZA-LEITURA-DE-VOLTA (25/09/2026): quando a natureza de operação foi
+      // enviada no payload, relê o pedido no Bling e confere se ela ficou gravada.
+      // Falha no GET NÃO derruba o envio (o pedido já foi criado lá) — só registra
+      // e loga. natureza_confirmada: true | false | null (GET falhou).
+      let naturezaConfirmada: boolean | null = null;
+      if (sucesso && blingNaturezaId) {
+        try {
+          const resNat = await client.get(`/pedidos/vendas/${blingId}`);
+          const idLido = Number(resNat?.data?.naturezaOperacao?.id ?? 0);
+          naturezaConfirmada = idLido === blingNaturezaId;
+        } catch (eNat) {
+          naturezaConfirmada = null;
+          console.warn("[enviar-pedido-bling] leitura de volta da natureza falhou", {
+            pedido_id,
+            bling_id: blingId,
+            natureza_enviada: blingNaturezaId,
+            erro: (eNat as Error).message,
+          });
+        }
+        if (naturezaConfirmada !== true) {
+          console.warn("[enviar-pedido-bling] natureza de operação NÃO confirmada no Bling", {
+            pedido_id,
+            bling_id: blingId,
+            natureza_enviada: blingNaturezaId,
+            natureza_confirmada: naturezaConfirmada,
+          });
+        }
+      }
+
       const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
         pedido_id,
         tipo_evento: "bling_enviado",
         descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling` +
-          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : ""),
+          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : "") +
+          (blingNaturezaId && naturezaConfirmada !== true
+            ? " · ATENÇÃO: o Bling não confirmou a natureza de operação — ao emitir a NF, selecione a natureza de transferência (CFOP 6152)"
+            : ""),
         metadata: {
           bling_id: String(blingId),
           remessa_id: remessa.id,
@@ -1382,6 +1451,8 @@ if (itensSemProdutoBling.length > 0) {
           carimbou_destino: carimbarDestino,
           enviado_por: userId,
           motivo_override: motivoOverride || null,
+          natureza_enviada: blingNaturezaId,
+          natureza_confirmada: naturezaConfirmada,
         },
         automatico: false,
       });
