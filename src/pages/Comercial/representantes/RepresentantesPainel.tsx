@@ -312,11 +312,29 @@ export default function RepresentantesPainel() {
                     </span>
                   </TableCell>
                   <TableCell className="truncate" title={String(r.regiao ?? "")}>{r.regiao || "—"}</TableCell>
-                  {COLS.map((c) => (
-                    <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums">
-                      {fmt(c, r[c.k])}
-                    </TableCell>
-                  ))}
+                  {COLS.map((c) => {
+                    if (c.k !== "clientes_distintos") {
+                      return (
+                        <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums">
+                          {fmt(c, r[c.k])}
+                        </TableCell>
+                      );
+                    }
+                    const clientes = Number(r.clientes_distintos ?? 0);
+                    const novos = Number(r.clientes_novos_total ?? 0);
+                    const recompras = Number(r.clientes_recompra ?? 0);
+                    const dicaClientes = `${clientes} clientes atendidos: ${novos} abertos por ele e ${recompras} que já eram clientes da Fetély. Cliente novo é aquele cujo PRIMEIRO pedido na história da Fetély foi feito por este representante. Cliente que já comprava da Fetély antes (por outro vendedor ou canal) conta como recompra, não como novo.`;
+                    return (
+                      <TableCell key={c.k} className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
+                        <Dica texto={dicaClientes}>
+                          <span className="inline-block cursor-help underline decoration-dotted">
+                            <span className="block">{fmt(c, clientes)}</span>
+                            <span className={cn("block text-[10px] text-muted-foreground", clientes > 0 && novos === 0 && "text-warning")}>{fmtInt(novos)} novos</span>
+                          </span>
+                        </Dica>
+                      </TableCell>
+                    );
+                  })}
                   {(() => {
                     const uv = r.ultima_venda_valor != null ? Number(r.ultima_venda_valor) : null;
                     const dias = r.dias_sem_vender != null ? Number(r.dias_sem_vender) : null;

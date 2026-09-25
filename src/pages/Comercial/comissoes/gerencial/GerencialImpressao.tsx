@@ -72,7 +72,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
     <section className="pagina-a4 relative bg-card text-card-foreground">
       <Cabecalho rotulo={rotulo} />
 
-      <section className="mt-5 grid grid-cols-4 gap-4 border-b border-border pb-4">
+      <section className="mt-5 grid grid-cols-5 gap-4 border-b border-border pb-4">
         <Numerao titulo="Base faturada pelos representantes" valor={fmtBRL(num(mes?.base_faturada))} />
         <Numerao titulo="Comissão apurada" valor={fmtBRL(num(mes?.comissao_apurada))} />
         <Numerao
@@ -86,19 +86,25 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
           valor={fmtBRL(num(mes?.total_a_pagar))}
           detalhe={mes?.pagar_ate ? `Pagar até ${fmtData(mes.pagar_ate)}` : "Sem data limite definida"}
         />
+        <Numerao
+          titulo="Clientes novos abertos"
+          valor={inteiro(mes?.clientes_novos_rep)}
+          detalhe={`${inteiro(mes?.clientes_recompra_rep)} recompras`}
+        />
       </section>
 
       <section className="mt-5">
         <h2 className="text-[10.5pt] font-medium">Comparativo com os meses anteriores</h2>
         <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
           <colgroup>
-            <col className="w-[11%]" /><col className="w-[11%]" /><col className="w-[7%]" /><col className="w-[15%]" />
-            <col className="w-[15%]" /><col className="w-[10%]" /><col className="w-[14%]" /><col className="w-[17%]" />
+            <col className="w-[10%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[6%]" /><col className="w-[14%]" />
+            <col className="w-[14%]" /><col className="w-[9%]" /><col className="w-[13%]" /><col className="w-[16%]" />
           </colgroup>
           <thead>
             <tr className="border-y border-border text-muted-foreground">
               <th className="py-1.5 text-left font-medium">Competência</th>
               <th className="px-1 py-1.5 text-right font-medium">Repres.</th>
+              <th className="px-1 py-1.5 text-right font-medium">Clientes novos</th>
               <th className="px-1 py-1.5 text-right font-medium">Notas</th>
               <th className="px-1 py-1.5 text-right font-medium">Base faturada</th>
               <th className="px-1 py-1.5 text-right font-medium">Comissão apurada</th>
@@ -112,6 +118,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
               <tr key={String(l.competencia)} className="border-b border-border/70">
                 <td className="py-1.5">{fmtCompetencia(l.competencia)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(l.representantes_ativos)}</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(l.clientes_novos_rep)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(l.notas)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.base_faturada))}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.comissao_apurada))}</td>
@@ -156,8 +163,9 @@ function PaginaDetalhe({
       apurada: acc.apurada + r.comissaoApurada,
       liberada: acc.liberada + r.comissaoLiberada,
       aPagar: acc.aPagar + r.aPagar,
+      clientesNovos: acc.clientesNovos + r.clientesNovos,
     }),
-    { notas: 0, base: 0, apurada: 0, liberada: 0, aPagar: 0 },
+    { notas: 0, base: 0, apurada: 0, liberada: 0, aPagar: 0, clientesNovos: 0 },
   );
 
   return (
@@ -171,12 +179,13 @@ function PaginaDetalhe({
         ) : (
           <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
             <colgroup>
-              <col className="w-[26%]" /><col className="w-[7%]" /><col className="w-[13%]" /><col className="w-[10%]" />
-              <col className="w-[9%]" /><col className="w-[12%]" /><col className="w-[12%]" /><col className="w-[11%]" />
+              <col className="w-[22%]" /><col className="w-[7%]" /><col className="w-[7%]" /><col className="w-[12%]" /><col className="w-[9%]" />
+              <col className="w-[8%]" /><col className="w-[12%]" /><col className="w-[12%]" /><col className="w-[11%]" />
             </colgroup>
             <thead>
               <tr className="border-y border-border text-muted-foreground">
                 <th className="py-1.5 text-left font-medium">Representante</th>
+                <th className="px-1 py-1.5 text-right font-medium">Novos</th>
                 <th className="px-1 py-1.5 text-right font-medium">Notas</th>
                 <th className="px-1 py-1.5 text-right font-medium">Base faturada</th>
                 <th className="px-1 py-1.5 text-right font-medium">Desconto %</th>
@@ -190,6 +199,7 @@ function PaginaDetalhe({
               {representantes.map((r) => (
                 <tr key={r.vendedorId} className="border-b border-border/70">
                   <td className="truncate py-1.5" title={r.representante}>{r.representante}</td>
+                  <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(r.clientesNovos)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(r.notas)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(r.baseFaturada)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{pct(r.descontoMedioPct)}</td>
@@ -201,6 +211,7 @@ function PaginaDetalhe({
               ))}
               <tr className="border-t border-foreground/40 font-medium">
                 <td className="py-1.5">Total</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(totais.clientesNovos)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(totais.notas)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(totais.base)}</td>
                 <td /><td />
@@ -246,6 +257,10 @@ function PaginaDetalhe({
           </div>
         )}
       </section>
+
+      <p className="mt-4 text-[6.5pt] leading-relaxed text-muted-foreground">
+        Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
+      </p>
 
       <Rodape pagina={2} />
     </section>
