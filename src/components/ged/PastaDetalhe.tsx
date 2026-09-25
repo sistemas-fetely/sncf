@@ -49,6 +49,7 @@ import { useParametros } from "@/hooks/useParametros";
 import { useFormasPagamento } from "@/hooks/financeiro/useFormasPagamento";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { hojeISO } from "@/lib/data";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 
 interface Pasta {
   id: string;
@@ -297,13 +298,18 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
             Nenhum contrato registrado nesta pasta ainda.
           </p>
           <div className="flex gap-2 justify-center">
-            <Button onClick={gerarComIA} disabled={gerandoIA}>
+            <BotaoGuardado
+              onClick={gerarComIA}
+              disabled={gerandoIA}
+              slug="acao.contrato_recorrente_gerir"
+              rotuloAcao="Gerar contrato a partir da pasta"
+            >
               {gerandoIA ? (
                 <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Lendo documentos...</>
               ) : (
                 <><Sparkles className="h-4 w-4 mr-2" /> Gerar contrato com IA</>
               )}
-            </Button>
+            </BotaoGuardado>
             <Button variant="outline" onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}>
               <Plus className="h-4 w-4 mr-2" />
               Criar manual
@@ -373,13 +379,19 @@ function AbaContrato({ pasta, onAtualizado }: { pasta: Pasta; onAtualizado: () =
       {/* Botão adicionar contrato (renovação) */}
       {contratos.length > 0 && (
         <div className="flex gap-2 pt-2">
-          <Button variant="outline" onClick={gerarComIA} disabled={gerandoIA}>
+          <BotaoGuardado
+            variant="outline"
+            onClick={gerarComIA}
+            disabled={gerandoIA}
+            slug="acao.contrato_recorrente_gerir"
+            rotuloAcao="Gerar contrato a partir da pasta"
+          >
             {gerandoIA ? (
               <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Lendo...</>
             ) : (
               <><Sparkles className="h-4 w-4 mr-2" /> Gerar com IA</>
             )}
-          </Button>
+          </BotaoGuardado>
           <Button variant="outline" onClick={() => { setDadosIA(null); setNovoContratoOpen(true); }}>
             <Plus className="h-4 w-4 mr-2" />
             Adicionar contrato manual
@@ -1105,9 +1117,12 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
                     </p>
                   )}
                 </div>
-                <Button
+                <BotaoGuardado
                   variant="ghost"
                   size="sm"
+                  slug="acao.ged_gerir"
+                  rotuloAcao="Excluir documento do GED"
+                  contexto={{ documento_id: d.id }}
                   onClick={(e) => {
                     e.stopPropagation();
                     excluir(d);
@@ -1115,7 +1130,7 @@ function AbaDocumentos({ pastaId }: { pastaId: string }) {
                   title="Excluir"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+                </BotaoGuardado>
               </div>
             </div>
           ))}
@@ -1239,14 +1254,17 @@ function DocumentoVisualizadorSheet({
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button
+                    <BotaoGuardado
                       size="sm"
+                      slug="acao.ged_gerir"
+                      rotuloAcao="Alterar documento do GED"
+                      contexto={{ documento_id: documento.id }}
                       onClick={salvarTipo}
                       disabled={salvando}
                       className="h-7 text-xs"
                     >
                       {salvando ? "..." : "Salvar"}
-                    </Button>
+                    </BotaoGuardado>
                     <Button
                       size="sm"
                       variant="ghost"

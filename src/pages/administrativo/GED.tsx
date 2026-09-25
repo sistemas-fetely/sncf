@@ -46,6 +46,7 @@ import {
 import { useParametros } from "@/hooks/useParametros";
 import { formatDateBR } from "@/lib/format-currency";
 import { PastaDetalhe } from "@/components/ged/PastaDetalhe";
+import { BotaoGuardado, usePedirAcesso } from "@/components/acesso/BotaoGuardado";
 
 interface Pasta {
   id: string;
@@ -526,6 +527,11 @@ function PastaNoArvore({
   const expandida = pastasExpandidas.has(pasta.id);
   const isSelecionada = pastaSelecionada === pasta.id;
   const paddingLeft = 12 + nivel * 16;
+  const { permitido, carregando, pedir } = usePedirAcesso(
+    "acao.ged_gerir",
+    "Excluir pasta do GED",
+    { pasta_id: pasta.id }
+  );
 
   return (
     <>
@@ -574,10 +580,12 @@ function PastaNoArvore({
         {!temFilhas && (
           <button
             className="hidden group-hover:flex h-6 w-6 items-center justify-center rounded hover:bg-destructive/10 hover:text-destructive shrink-0"
-            title={`Excluir pasta "${pasta.nome}"`}
+            title={permitido ? `Excluir pasta "${pasta.nome}"` : "Sem permissão (acao.ged_gerir) — clique para pedir acesso"}
             onClick={(e) => {
               e.stopPropagation();
-              handleExcluirPasta(pasta);
+              if (carregando) return;
+              if (permitido) handleExcluirPasta(pasta);
+              else void pedir();
             }}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -1390,21 +1398,30 @@ function DocumentoDetalheSheet({
             )}
 
             <div className="flex justify-between pt-4 border-t">
-              <Button
+              <BotaoGuardado
                 variant="destructive"
                 size="sm"
+                slug="acao.ged_gerir"
+                rotuloAcao="Excluir documento do GED"
+                contexto={{ documento_id: documento.id }}
                 onClick={() => onExcluir(documento)}
               >
                 <Trash2 className="h-4 w-4 mr-2" />
                 Excluir
-              </Button>
+              </BotaoGuardado>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={onClose}>
                   Fechar
                 </Button>
-                <Button onClick={salvarAlteracoes} disabled={salvando}>
+                <BotaoGuardado
+                  slug="acao.ged_gerir"
+                  rotuloAcao="Alterar documento do GED"
+                  contexto={{ documento_id: documento.id }}
+                  onClick={salvarAlteracoes}
+                  disabled={salvando}
+                >
                   {salvando ? "Salvando..." : "Salvar"}
-                </Button>
+                </BotaoGuardado>
               </div>
             </div>
           </div>

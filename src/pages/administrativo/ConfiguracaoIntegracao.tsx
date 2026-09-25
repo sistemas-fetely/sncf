@@ -47,7 +47,6 @@ export default function ConfiguracaoIntegracao() {
   const [syncResult, setSyncResult] = useState<any>(null);
   const [manualCode, setManualCode] = useState("");
   const [processingCode, setProcessingCode] = useState(false);
-  const [fixExecutado, setFixExecutado] = useState(false);
   const [logsLimit, setLogsLimit] = useState(5);
 
   // XPM / ZenLOG — inspeção somente leitura
@@ -433,20 +432,6 @@ export default function ConfiguracaoIntegracao() {
       url.searchParams.set("state", "oauth");
       window.open(url.toString(), "_blank");
     });
-  }
-
-  async function corrigirConstraintLancamentos() {
-    try {
-      const { data, error } = await supabase.rpc("fix_lancamentos_origem_constraint" as any);
-      if (error) {
-        toast.error("Erro: " + error.message);
-      } else {
-        toast.success("Correção aplicada: " + (data || "OK"));
-        setFixExecutado(true);
-      }
-    } catch (e) {
-      toast.error("Erro: " + String(e));
-    }
   }
 
   const statusBadge = () => {
