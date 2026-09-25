@@ -666,7 +666,7 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
-                  <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
+                  <TableCell className={cn("tabular-nums text-right text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
                     {formatDataCurta(p.eta_embarque)}
                   </TableCell>
                 </>}
