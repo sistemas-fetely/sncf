@@ -177,7 +177,7 @@ function PaginaResumo({ representante, serie }: { representante: Linha; serie: L
   );
 }
 
-function PaginaExtrato({ competencia, detalhes, estornos }: { competencia: string; detalhes: Linha[]; estornos: Linha[] }) {
+function PaginaExtrato({ competencia, selo, detalhes, estornos }: { competencia: string; selo: string; detalhes: Linha[]; estornos: Linha[] }) {
   const grupos = useMemo(() => {
     const porApuracao = new Map<string, Linha[]>();
     for (const linha of detalhes) {
@@ -199,6 +199,7 @@ function PaginaExtrato({ competencia, detalhes, estornos }: { competencia: strin
         <div>
           <div className="font-display text-[17pt] font-medium leading-none text-gold">FETÉLY</div>
           <h1 className="mt-2 text-[16pt] font-medium">Extrato de {rotuloCompetencia(competencia)}</h1>
+          <p className="mt-1 text-[7.5pt] text-muted-foreground">{selo}</p>
         </div>
         <div className="text-[7.5pt] text-muted-foreground">Emitido em {fmtData(hojeISO())}</div>
       </header>
@@ -272,6 +273,94 @@ function PaginaExtrato({ competencia, detalhes, estornos }: { competencia: strin
   );
 }
 
+/* Competência FECHADA: o documento lê o detalhe congelado em comissao_extrato.
+   Nada é recalculado aqui — é o mesmo conteúdo que o representante recebeu. */
+type ItemCongelado = Record<string, any>;
+
+function PaginaExtratoCongelado({ competencia, selo, itens, valorTotal }: {
+  competencia: string; selo: string; itens: ItemCongelado[]; valorTotal: number;
+}) {
+  const liberacoes = itens.filter((i) => String(i.tipo ?? "liberacao") !== "estorno");
+  const estornos = itens.filter((i) => String(i.tipo) === "estorno");
+  const totalLiberado = liberacoes.reduce((s, i) => s + numero(i.valor), 0);
+  const totalEstornado = estornos.reduce((s, i) => s + Math.abs(numero(i.valor)), 0);
+
+  return (
+    <section className="pagina-a4 quebra-pagina relative bg-card text-card-foreground">
+      <header className="flex items-end justify-between border-b border-border pb-3">
+        <div>
+          <div className="font-display text-[17pt] font-medium leading-none text-gold">FETÉLY</div>
+          <h1 className="mt-2 text-[16pt] font-medium">Extrato de {rotuloCompetencia(competencia)}</h1>
+          <p className="mt-1 text-[7.5pt] text-muted-foreground">{selo}</p>
+        </div>
+        <div className="text-[7.5pt] text-muted-foreground">Emitido em {fmtData(hojeISO())}</div>
+      </header>
+
+      {liberacoes.length === 0 ? (
+        <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
+          Nenhuma comissão liberada nesta competência.
+        </div>
+      ) : (
+        <table className="mt-4 w-full table-fixed border-collapse text-[6.8pt] leading-tight">
+          <colgroup>
+            <col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[10%]" />
+            <col className="w-[16%]" /><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[18%]" />
+          </colgroup>
+          <thead>
+            <tr className="border-y border-border text-muted-foreground">
+              <th className="py-1.5 pr-1 text-left font-medium">NF</th>
+              <th className="px-1 py-1.5 text-left font-medium">Pedido</th>
+              <th className="px-1 py-1.5 text-center font-medium">Parc.</th>
+              <th className="px-1 py-1.5 text-center font-medium">Liquidação</th>
+              <th className="px-1 py-1.5 text-right font-medium">Comissão da NF</th>
+              <th className="px-1 py-1.5 text-right font-medium">Proporção</th>
+              <th className="py-1.5 pl-1 text-right font-medium">Valor liberado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {liberacoes.map((i, indice) => (
+              <tr key={String(i.liberacao_id ?? indice)} className="border-b border-border/70">
+                <td className="py-1.5 pr-1 align-top">{i.nf || "—"}</td>
+                <td className="px-1 py-1.5 align-top">{i.pedido || "—"}</td>
+                <td className="px-1 py-1.5 text-center align-top tabular-nums">{i.parcela ?? "—"}</td>
+                <td className="px-1 py-1.5 text-center align-top tabular-nums">{fmtData(i.data_liquidacao)}</td>
+                <td className="px-1 py-1.5 text-right align-top tabular-nums">{fmtBRL(numero(i.comissao_da_nota))}</td>
+                <td className="px-1 py-1.5 text-right align-top tabular-nums">{i.proporcao != null ? fmtPct(numero(i.proporcao) * 100) : "—"}</td>
+                <td className="py-1.5 pl-1 text-right align-top tabular-nums">{fmtBRL(numero(i.valor))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {estornos.length > 0 && (
+        <section className="mt-4">
+          <h2 className="text-[8pt] font-medium">Estornos abatidos nesta competência</h2>
+          <div className="mt-1 border-y border-border">
+            {estornos.map((e, indice) => (
+              <div key={String(e.estorno_id ?? indice)} className="grid grid-cols-[25mm_1fr_28mm] gap-2 border-b border-border/70 py-1.5 text-[6.8pt] last:border-b-0">
+                <span>{TIPOS_ESTORNO[String(e.estorno_tipo)] ?? e.estorno_tipo ?? "Estorno"}</span>
+                <span className="break-words text-muted-foreground">
+                  {e.motivo}{e.parcial ? " (abatimento parcial)" : ""}
+                </span>
+                <span className="text-right tabular-nums text-destructive-strong">− {fmtBRL(Math.abs(numero(e.valor)))}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className="mt-4 ml-auto grid w-[92mm] grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-t border-foreground pt-2 text-[8pt]">
+        <span>Comissão liberada</span><span className="text-right font-medium tabular-nums">{fmtBRL(totalLiberado)}</span>
+        <span>Estornos abatidos</span><span className="text-right font-medium tabular-nums">− {fmtBRL(totalEstornado)}</span>
+        <span className="font-medium">Valor do extrato</span><span className="text-right font-medium tabular-nums">{fmtBRL(valorTotal)}</span>
+      </section>
+
+      <Rodape pagina={2} legal />
+    </section>
+  );
+}
+
 function situacao(valor: unknown) {
   const labels: Record<string, string> = {
     liberada: "Liberada",
@@ -293,6 +382,7 @@ const ESTILOS_IMPRESSAO = `
     .documento-extrato { min-height: 0; padding: 0; background: hsl(var(--card)); }
     .pagina-a4 { width: 180mm; height: 267mm; min-height: 267mm; margin: 0; padding: 0; box-shadow: none; overflow: hidden; }
     .quebra-pagina { break-before: page; page-break-before: always; }
+    .seletor-competencia { display: none !important; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
