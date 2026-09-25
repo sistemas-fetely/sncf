@@ -552,6 +552,44 @@ export default function EstoqueVirtual() {
         />
       </section>
 
+      {centrosQuery.isError && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar os centros: {formatError(centrosQuery.error)}
+        </div>
+      )}
+      {centros.length > 0 && (
+        <section
+          className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]"
+          aria-label="Estoque por centro"
+        >
+          {centros.map((c) => {
+            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0 };
+            const sel = centroFiltro === c.codigo;
+            return (
+              <button
+                key={c.codigo}
+                type="button"
+                title={c.nome ?? c.codigo}
+                aria-pressed={sel}
+                onClick={() => { setCentroFiltro(sel ? "todos" : c.codigo); setPagina(1); }}
+                className={cn(
+                  "rounded-md border bg-card px-3 py-2 text-left transition-colors hover:border-primary/60",
+                  sel && "border-primary",
+                  r.un === 0 && !sel && "opacity-50",
+                )}
+              >
+                <div className="text-[11px] text-muted-foreground truncate">{c.rotulo_curto ?? c.codigo}</div>
+                <div className="text-base font-medium tabular-nums">{formatNum(r.un)} un</div>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+                  <span className="truncate">{formatBRL(r.valor)}</span>
+                  {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                </div>
+              </button>
+            );
+          })}
+        </section>
+      )}
+
       <div className="flex flex-wrap items-center gap-3">
         <ToggleGroup
           type="single"
@@ -562,6 +600,7 @@ export default function EstoqueVirtual() {
         >
           <ToggleGroupItem value="estoque" size="sm" className="h-8 px-3 text-xs">Estoque</ToggleGroupItem>
           <ToggleGroupItem value="valor" size="sm" className="h-8 px-3 text-xs">Valor</ToggleGroupItem>
+          <ToggleGroupItem value="centros" size="sm" className="h-8 px-3 text-xs">Centros</ToggleGroupItem>
         </ToggleGroup>
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
@@ -621,6 +660,20 @@ export default function EstoqueVirtual() {
                 {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
                 {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
                 {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
+              </>}
+              {visao === "centros" && <>
+                {centros.map((c) => (
+                  <CabecalhoColuna
+                    key={c.codigo}
+                    rotulo={c.rotulo_curto ?? c.codigo}
+                    title={c.nome ?? c.codigo}
+                    dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
+                    className="font-medium w-[72px] min-[1440px]:w-[84px]"
+                    alinharDireita
+                  />
+                ))}
+                {cabecalho("total", "Total", "w-[72px] min-[1440px]:w-[84px]", true)}
               </>}
             </TableRow>
           </TableHeader>
@@ -684,6 +737,17 @@ export default function EstoqueVirtual() {
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_custo)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatBRL(p.valor_venda)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
+                </>}
+                {visao === "centros" && <>
+                  {centros.map((c) => {
+                    const v = p.por_centro[c.codigo] ?? 0;
+                    return (
+                      <TableCell key={c.codigo} className="text-right tabular-nums">
+                        {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="text-right tabular-nums font-medium">{formatNum(totalCentros(p))}</TableCell>
                 </>}
               </TableRow>
             ))}
