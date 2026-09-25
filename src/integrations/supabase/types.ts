@@ -70604,6 +70604,7 @@ export type Database = {
           cancelado_em: string | null
           cancelado_motivo: string | null
           data_pedido: string | null
+          destino_centro_id: string | null
           destino_interno: string | null
           estagio: string | null
           id: string | null
@@ -70617,6 +70618,20 @@ export type Database = {
           xpm_expedicao_codigo: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
           {
             foreignKeyName: "pedidos_estagio_fkey"
             columns: ["estagio"]
@@ -112268,6 +112283,16 @@ export type Database = {
       fn_normalizar_nsu: { Args: { p_nsu: string }; Returns: string }
       fn_normalizar_uf: { Args: { p_uf: string }; Returns: string }
       fn_notificacoes_retencao: { Args: { _dias?: number }; Returns: number }
+      fn_notificar_permissao: {
+        Args: {
+          p_link?: string
+          p_mensagem: string
+          p_slug: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: number
+      }
       fn_num_safe: { Args: { p_txt: string }; Returns: number }
       fn_obter_ou_criar_pasta_parceiro: {
         Args: { p_parceiro_id: string }

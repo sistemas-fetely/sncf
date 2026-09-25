@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
-import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO, LINHA_CABECALHO_COLADO_NIVEL2 } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
 import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -112,10 +112,15 @@ function giroAnual(vendas: number, contabil: number, janela: number): number | n
   if (!(contabil > 0) || !(vendas > 0) || !(janela > 0)) return null;
   return (vendas / contabil) * (365 / janela);
 }
+/** Giro em % do estoque ao ano (mesmo número do giro anualizado × 100, inteiro). */
 function formatGiro(g: number | null) {
   return g == null
     ? <span className="text-muted-foreground">—</span>
-    : `${g.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}x`;
+    : `${Math.round(g * 100).toLocaleString("pt-BR")}%`;
+}
+function tooltipGiro(janela: number, escopo: "centro" | "total") {
+  const onde = escopo === "centro" ? "neste centro" : "no total (todos os centros)";
+  return `Giro anual do produto ${onde}, em % do estoque: vendas dos últimos ${formatNum(janela)} dias ÷ quantidade × 365 ÷ ${formatNum(janela)}. 100% = o estoque inteiro gira uma vez por ano.`;
 }
 
 type Visao = "estoque" | "valor" | "centros";
@@ -175,7 +180,7 @@ const chaveProduto = (l: LinhaCockpit) => l.sku ?? l.cod_cadastro ?? "";
  * nenhum cabeçalho ultrapasse a própria coluna (table-fixed).
  */
 function CabecalhoColuna({
-  rotulo, title, dir, onOrdenar, className, alinharDireita = false,
+  rotulo, title, dir, onOrdenar, className, alinharDireita = false, rowSpan,
 }: {
   rotulo: string;
   /** Tooltip do cabeçalho; default = o próprio rótulo. */
@@ -184,9 +189,12 @@ function CabecalhoColuna({
   onOrdenar: () => void;
   className?: string;
   alinharDireita?: boolean;
+  /** Em cabeçalho de dois níveis: célula que desce as duas linhas. */
+  rowSpan?: number;
 }) {
   return (
     <TableHead
+      rowSpan={rowSpan}
       className={cn(
         "overflow-hidden text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate",
         className,
@@ -498,6 +506,20 @@ export default function EstoqueVirtual() {
   const pageItems = ordenados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
   const hoje = new Date().toISOString().slice(0, 10);
 
+  // TOPO-COLADO-SE-MEDE: na visão Centros o cabeçalho tem dois níveis; o 2º
+  // cola logo abaixo do 1º, cuja altura é medida (nenhuma altura fixa).
+  const grupoRef = useRef<HTMLTableRowElement>(null);
+  const [alturaGrupo, setAlturaGrupo] = useState(0);
+  useEffect(() => {
+    const el = grupoRef.current;
+    if (!el || visao !== "centros") return;
+    const medir = () => setAlturaGrupo(el.offsetHeight);
+    medir();
+    const ro = new ResizeObserver(medir);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [visao, centros.length, cockpitQuery.isLoading]);
+
   const totalProdutos = useMemo(() => new Set(linhas.map(chaveProduto)).size, [linhas]);
   const totalVirtual = linhas.reduce((s, l) => s + n(l.virtual), 0);
   const estadoCabecalho = cockpitQuery.isLoading
@@ -618,7 +640,7 @@ export default function EstoqueVirtual() {
         />
         <CartaoNumero
           rotulo="Giro"
-          valor={cartoes.giro == null ? "—" : `${cartoes.giro.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} x/ano`}
+          valor={cartoes.giro == null ? "—" : `${Math.round(cartoes.giro * 100).toLocaleString("pt-BR")}% ao ano`}
           sub={`${formatNum(cartoes.vendas)} un vendidas em ${formatNum(cartoes.janela)} dias`}
         />
         <CartaoNumero
@@ -714,18 +736,64 @@ export default function EstoqueVirtual() {
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
       ) : <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
-        <Table className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2" containerClassName="max-h-[min(62vh,46rem)]">
+        <Table
+          className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2"
+          containerClassName="max-h-[min(62vh,46rem)]"
+          style={{
+            ["--fila-topo-colado" as string]: "0px",
+            ["--fila-topo-colado-2" as string]: visao === "centros" ? `${alturaGrupo}px` : undefined,
+          }}
+        >
           <TableHeader>
-            <TableRow className={LINHA_CABECALHO_COLADO}>
-              {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
-                  as larguras de referência a partir de 1440px. */}
-              {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
-              {cabecalho("nome", "Produto", "")}
-              {visao !== "centros" && <>
+            {visao === "centros" ? (
+              <>
+                {/* Nível 1: rótulo do centro ocupando o par (Qtd · Giro) */}
+                <TableRow ref={grupoRef} className={LINHA_CABECALHO_COLADO}>
+                  <CabecalhoColuna
+                    rotulo="Código"
+                    rowSpan={2}
+                    dir={sort?.column === "cod" ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna("cod")}
+                    className="font-medium w-[59px] min-[1440px]:w-[76px] align-bottom"
+                  />
+                  <CabecalhoColuna
+                    rotulo="Produto"
+                    rowSpan={2}
+                    dir={sort?.column === "nome" ? sort.direction : null}
+                    onOrdenar={() => ordenarColuna("nome")}
+                    className="font-medium align-bottom"
+                  />
+                  {centros.map((c) => (
+                    <TableHead
+                      key={c.codigo}
+                      colSpan={2}
+                      className="border-l border-border/60 text-center font-semibold"
+                      title={c.nome ?? c.codigo}
+                    >
+                      {c.rotulo_curto ?? c.codigo}
+                    </TableHead>
+                  ))}
+                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
+                </TableRow>
+                {/* Nível 2: o par Qtd · Giro de cada centro */}
+                <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
+                  {centros.map((c) => (
+                    <Fragment key={c.codigo}>
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                    </Fragment>
+                  ))}
+                  {cabecalho("total", "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
+                </TableRow>
+              </>
+            ) : (
+              <TableRow className={LINHA_CABECALHO_COLADO}>
+                {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
+                {cabecalho("nome", "Produto", "")}
                 {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
                 {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
-              </>}
-              {visao === "estoque" && <>
+                {visao === "estoque" && <>
                 {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("realxpm", "Real XPM", "w-[72px] min-[1440px]:w-[84px]", true)}
@@ -741,46 +809,17 @@ export default function EstoqueVirtual() {
                 )}
                 {cabecalho("transito", "Em trânsito", "w-[84px] min-[1440px]:w-[92px]", true)}
                 {cabecalho("chegada", "Chegada", "w-[70px] min-[1440px]:w-[80px]", true)}
-              </>}
-              {visao === "valor" && <>
-                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
-                {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
-                {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
-              </>}
-              {visao === "centros" && <>
-                {centros.map((c) => (
-                  <Fragment key={c.codigo}>
-                    <CabecalhoColuna
-                      rotulo={c.rotulo_curto ?? c.codigo}
-                      title={c.nome ?? c.codigo}
-                      dir={sort?.column === `c:${c.codigo}` ? sort.direction : null}
-                      onOrdenar={() => ordenarColuna(`c:${c.codigo}`)}
-                      className="font-medium w-[64px] min-[1440px]:w-[76px] border-l border-border/60"
-                      alinharDireita
-                    />
-                    <CabecalhoColuna
-                      rotulo="Giro"
-                      title={`Giro anualizado do produto neste centro: vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`}
-                      dir={sort?.column === `g:${c.codigo}` ? sort.direction : null}
-                      onOrdenar={() => ordenarColuna(`g:${c.codigo}`)}
-                      className="font-medium w-[48px] min-[1440px]:w-[56px] text-muted-foreground"
-                      alinharDireita
-                    />
-                  </Fragment>
-                ))}
-                {cabecalho("total", "Total", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                {cabecalho(
-                  "giro_total",
-                  "Giro",
-                  "w-[48px] min-[1440px]:w-[56px] text-muted-foreground",
-                  true,
-                  `Giro anualizado do produto (todos os centros): vendas dos últimos ${formatNum(cartoes.janela)} dias ÷ contábil × (365 ÷ ${formatNum(cartoes.janela)})`,
-                )}
-              </>}
-            </TableRow>
+                </>}
+                {visao === "valor" && <>
+                  {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                  {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
+                  {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
+                  {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
+                  {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
+                  {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
+                </>}
+              </TableRow>
+            )}
           </TableHeader>
           <TooltipProvider delayDuration={150}>
           <TableBody>
