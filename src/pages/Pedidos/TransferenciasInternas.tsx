@@ -167,10 +167,32 @@ export default function TransferenciasInternas() {
                 <label htmlFor="destino" className="text-sm font-medium">
                   Destino
                 </label>
-                <Input
-                  id="destino"
-                  placeholder="Site SP"
-                  {...form.register("destino")}
+                <Controller
+                  control={form.control}
+                  name="destino"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="destino"
+                        className={form.formState.errors.destino ? "border-destructive" : ""}
+                      >
+                        <SelectValue
+                          placeholder={
+                            centrosQ.isLoading
+                              ? "Carregando destinos…"
+                              : "Selecione o destino"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(centrosQ.data ?? []).map((c) => (
+                          <SelectItem key={c.codigo} value={c.codigo}>
+                            {c.rotulo_curto ?? c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 {form.formState.errors.destino && (
                   <p className="text-xs text-destructive">
