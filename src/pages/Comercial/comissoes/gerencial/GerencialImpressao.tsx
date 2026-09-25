@@ -27,11 +27,11 @@ function inteiro(v: unknown) {
   return num(v).toLocaleString("pt-BR");
 }
 
-function Rodape({ pagina }: { pagina: 1 | 2 }) {
+function Rodape({ pagina, total = 2 }: { pagina: 1 | 2; total?: 1 | 2 }) {
   return (
     <footer className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 border-t border-border pt-2 text-[6.5pt] leading-snug text-muted-foreground">
       <span>{EMPRESA}</span>
-      <span className="shrink-0 tabular-nums">Página {pagina} de 2</span>
+      <span className="shrink-0 tabular-nums">Página {pagina} de {total}</span>
     </footer>
   );
 }
