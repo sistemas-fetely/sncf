@@ -11,68 +11,70 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import {
-  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import { CabecalhoOrdenavel, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { RefreshCw, Search } from "lucide-react";
+import { ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
-import {
-  classeStatusVenda, rotuloStatusVenda, STATUS_VENDA_ORDEM,
-} from "@/lib/estoque/status-venda";
+import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
 import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
 import { formatError } from "@/lib/format-error";
-
 import { PageShell } from "@/components/layout/PageShell";
-interface EstoqueRede {
-  sku: string;
+
+/** Uma linha por SKU × centro (centro null = produto sem razão). */
+interface LinhaCockpit {
+  cod_cadastro: string | null;
+  sku: string | null;
   nome_comercial: string | null;
   cor_nome: string | null;
-  ativo: boolean;
-  fiscal_vendavel: number | null;
-  bloqueado: number | null;
+  fase: string | null;
+  colecao: string | null;
+  centro: string | null;
+  contabil: number | null;
   fisico: number | null;
-  furo: number | null;
+  virtual: number | null;
   reservado: number | null;
-  reservado_aguardando_produto: number | null;
-  disponivel: number | null;
-  descoberto: number | null;
-  em_showroom: number | null;
-  nao_contabil: number | null;
-  tem_razao: boolean;
-  estoque_minimo: number | null;
-  referencia_bling: number | null;
-  delta_bling: number | null;
-  status_venda: string;
-  contagem_em: string | null;
-  dias_desde_contagem: number | null;
-  pedido_suprimento: string | null;
-  origem_suprimento: string | null;
-  eta_prevista: string | null;
-  eta_precisao: string | null;
-  status_suprimento: string | null;
+  custo_unitario: number | null;
+  valor_custo: number | null;
+  vendas_janela: number | null;
+  janela_dias: number | null;
+  tempo_estoque_dias: number | null;
+  furo: number | null;
+  contagem_em_dia: boolean | null;
+  exige_contagem: boolean | null;
+  situacao: string | null;
+  em_transito: number | null;
+  eta_embarque: string | null;
 }
 
 const COLS =
-  "sku,nome_comercial,cor_nome,ativo,fiscal_vendavel,bloqueado,fisico,furo,reservado,reservado_aguardando_produto,disponivel,descoberto,em_showroom,nao_contabil,tem_razao,estoque_minimo,referencia_bling,delta_bling,status_venda,contagem_em,dias_desde_contagem,pedido_suprimento,origem_suprimento,eta_prevista,eta_precisao,status_suprimento";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fisico,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,furo,contagem_em_dia,exige_contagem,situacao,em_transito,eta_embarque";
 
-/**
- * Códigos de centro das colunas fixas "SC" e "SP" (valor de `centro` em
- * vw_estoque_canais_centro). SC = armazém XPM Joinville; SP = estoque do Site em SP.
- */
-const CENTRO_SC = "XPM-SC";
-const CENTRO_SP = "SITE-SP";
+/** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
+interface LinhaTabela {
+  chave: string;
+  cod_cadastro: string | null;
+  sku: string | null;
+  nome_comercial: string | null;
+  cor_nome: string | null;
+  situacao: string | null;
+  contabil: number;
+  fisico: number;
+  virtual: number;
+  reservado: number;
+  valor_custo: number;
+  vendas_janela: number;
+  janela_dias: number;
+  tempo: number | null;
+  eta_embarque: string | null;
+}
 
 interface CanalCentro {
   sku: string;
   centro: string;
   centro_nome: string | null;
-  vende: boolean | null;
   fiscal_total: number | null;
   fisico_total: number | null;
   reservado: number | null;
@@ -82,151 +84,78 @@ interface CanalCentro {
   shopify_diverge: boolean | null;
   bling_diverge: boolean | null;
 }
-
 const COLS_CANAIS =
-  "sku,centro,centro_nome,vende,fiscal_total,fisico_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
+  "sku,centro,centro_nome,fiscal_total,fisico_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
 
-type Col =
-  | "sku"
-  | "nome"
-  | "cor"
-  | "vendavel"
-  | "bloqueado"
-  | "reservado"
-  | "aguardando"
-  | "disponivel"
-  | "sc"
-  | "sp"
-  | "descoberto"
-  | "showroom"
-  | "chegada"
-  | "bling"
-  | "status";
+interface Onboarding { com_razao: number; skus_ativos: number; seguro_desligar_bling: boolean }
 
-function formatNum(n: number | null | undefined) {
-  return new Intl.NumberFormat("pt-BR").format(Number(n ?? 0));
+type Col = "cod" | "nome" | "situacao" | "contabil" | "fisico" | "virtual" | "tempo" | "chegada";
+
+const n = (v: number | null | undefined) => Number(v ?? 0);
+function formatNum(v: number | null | undefined) {
+  return new Intl.NumberFormat("pt-BR").format(n(v));
 }
-
-function formatDelta(n: number | null | undefined) {
-  const v = Number(n ?? 0);
-  const s = new Intl.NumberFormat("pt-BR").format(Math.abs(v));
-  if (v === 0) return "0";
-  return `${v > 0 ? "+" : "−"}${s}`;
+function formatBRL(v: number) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 }
-
-const MESES = [
-
-  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
-];
-
-function rotuloOrigem(origem: string | null | undefined) {
-  if (origem === "nacional") return "Nacional";
-  if (origem === "importacao") return "Importação";
-  return "Suprimento";
+function tempoDias(virtual: number, vendas: number, janela: number): number | null {
+  if (!(vendas > 0) || !(janela > 0)) return null;
+  return Math.round(virtual / (vendas / janela));
 }
+const chaveProduto = (l: LinhaCockpit) => l.sku ?? l.cod_cadastro ?? "";
 
-function temPrevisao(iso: string | null | undefined, precisao: string | null | undefined) {
-  return !!iso && precisao !== "sem_previsao";
-}
-
-/** Renderiza a ETA com a precisão que ela realmente tem — nunca mais precisa que isso. */
-function formatEta(
-  iso: string | null | undefined,
-  precisao: string | null | undefined,
-  statusSuprimento: string | null | undefined,
-) {
-  if (!temPrevisao(iso, precisao)) {
-    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
+async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]): Promise<T[]> {
+  const out: T[] = [];
+  const TAM = 1000;
+  for (let offset = 0; ; offset += TAM) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (supabase as any).from(tabela).select(cols);
+    for (const o of ordem) q = q.order(o, { nullsFirst: false });
+    const { data, error } = await q.range(offset, offset + TAM - 1);
+    if (error) throw error;
+    out.push(...((data ?? []) as T[]));
+    if ((data ?? []).length < TAM) break;
   }
-  const d = new Date(iso!.length === 10 ? `${iso}T00:00:00` : iso!);
-  if (isNaN(d.getTime())) {
-    return `${statusSuprimento ?? "Situação não informada"} · sem previsão de data`;
-  }
-  if (precisao === "mes") return `Previsão ${MESES[d.getMonth()]}/${d.getFullYear()}`;
-  if (precisao === "trimestre") {
-    return `Previsão ${Math.floor(d.getMonth() / 3) + 1}º trimestre/${d.getFullYear()}`;
-  }
-  return `Previsão ${d.toLocaleDateString("pt-BR")}`;
+  return out;
 }
-
 
 export default function EstoqueVirtual() {
   const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState<string>("todos");
-  const [condicaoFiltro, setCondicaoFiltro] = useState<string>("todos");
-  const [centroFiltro, setCentroFiltro] = useState<string>("todos");
+  const [faseFiltro, setFaseFiltro] = useState("todos");
+  const [colecaoFiltro, setColecaoFiltro] = useState("todos");
+  const [centroFiltro, setCentroFiltro] = useState("todos");
+  const [situacaoFiltro, setSituacaoFiltro] = useState("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
-  const [sort, setSort] = useState<SortState<Col> | null>({
-    column: "disponivel",
-    direction: "desc",
-  });
+  const [sort, setSort] = useState<SortState<Col> | null>({ column: "virtual", direction: "desc" });
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
-  const produtosQuery = useQuery({
-    queryKey: ["vw_estoque_rede"],
-    // CARGA-DO-BANCO (09/09/2026): view composta, cara. Cache maior evita
-    // refetch em cascata quando várias abas estão abertas.
+  const cockpitQuery = useQuery({
+    queryKey: ["vw_estoque_cockpit"],
     staleTime: 3 * 60 * 1000,
-    queryFn: async (): Promise<EstoqueRede[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_estoque_rede")
-        .select(COLS)
-        .limit(2000);
-      if (error) throw error;
-      return (data ?? []) as EstoqueRede[];
-    },
+    queryFn: () => carregarPaginado<LinhaCockpit>("vw_estoque_cockpit", COLS, ["sku", "centro"]),
   });
 
   const canaisQuery = useQuery({
     queryKey: ["vw_estoque_canais_centro"],
     staleTime: 3 * 60 * 1000,
-    queryFn: async (): Promise<CanalCentro[]> => {
-      const out: CanalCentro[] = [];
-      const TAM = 1000;
-      for (let offset = 0; ; offset += TAM) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from("vw_estoque_canais_centro")
-          .select(COLS_CANAIS)
-          .order("sku").order("centro")
-          .range(offset, offset + TAM - 1);
-        if (error) throw error;
-        out.push(...((data ?? []) as CanalCentro[]));
-        if ((data ?? []).length < TAM) break;
-      }
-      return out;
+    queryFn: () => carregarPaginado<CanalCentro>("vw_estoque_canais_centro", COLS_CANAIS, ["sku", "centro"]),
+  });
+
+  const onboardingQuery = useQuery({
+    queryKey: ["vw_estoque_onboarding_progresso"],
+    staleTime: 3 * 60 * 1000,
+    queryFn: async (): Promise<Onboarding | null> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_onboarding_progresso")
+        .select("com_razao,skus_ativos,seguro_desligar_bling")
+        .limit(1);
+      if (error) throw error;
+      return (data?.[0] as Onboarding) ?? null;
     },
   });
 
-  // Código de cadastro por SKU (vw_estoque_rede não traz cod_cadastro).
-  const codQuery = useQuery({
-    queryKey: ["sncf_produtos_cod_por_sku"],
-    staleTime: 10 * 60 * 1000,
-    queryFn: async (): Promise<Map<string, string>> => {
-      const m = new Map<string, string>();
-      const TAM = 1000;
-      for (let offset = 0; ; offset += TAM) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data, error } = await (supabase as any)
-          .from("sncf_produtos")
-          .select("sku,cod_cadastro")
-          .not("sku", "is", null)
-          .order("sku")
-          .range(offset, offset + TAM - 1);
-        if (error) throw error;
-        for (const r of (data ?? []) as { sku: string; cod_cadastro: string | null }[]) {
-          if (r.cod_cadastro) m.set(r.sku, r.cod_cadastro);
-        }
-        if ((data ?? []).length < TAM) break;
-      }
-      return m;
-    },
-  });
-
-  // Última sincronização (qualquer rotina) para o estado do cabeçalho.
   const syncQuery = useQuery({
     queryKey: ["vw_estoque_sync_status", "ultima_execucao"],
     staleTime: 60 * 1000,
@@ -242,132 +171,133 @@ export default function EstoqueVirtual() {
     },
   });
 
+  const linhas = cockpitQuery.data ?? [];
+
+  const opcoes = useMemo(() => {
+    const uniq = (f: (l: LinhaCockpit) => string | null) =>
+      [...new Set(linhas.map(f).filter((v): v is string => !!v))].sort((a, b) => a.localeCompare(b));
+    return {
+      fases: uniq((l) => l.fase),
+      colecoes: uniq((l) => l.colecao),
+      centros: uniq((l) => l.centro),
+      situacoes: uniq((l) => l.situacao),
+    };
+  }, [linhas]);
+
   const canaisPorSku = useMemo(() => {
     const m = new Map<string, CanalCentro[]>();
     for (const c of canaisQuery.data ?? []) m.set(c.sku, [...(m.get(c.sku) ?? []), c]);
     return m;
   }, [canaisQuery.data]);
 
-  const skusDivergentes = useMemo(() => {
-    const s = new Set<string>();
-    for (const c of canaisQuery.data ?? []) if (c.shopify_diverge || c.bling_diverge) s.add(c.sku);
-    return s;
-  }, [canaisQuery.data]);
-
-  const centrosPresentes = useMemo(() => {
-    const m = new Map<string, string | null>();
-    for (const c of canaisQuery.data ?? []) if (!m.has(c.centro)) m.set(c.centro, c.centro_nome);
-    return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [canaisQuery.data]);
-
-  const lista = produtosQuery.data ?? [];
-
-  const resumo = useMemo(() => {
-    let semLastroSkus = 0;
-    let semLastroUn = 0;
-    let preVenda = 0;
-    let unAguardando = 0;
-    let aChegar = 0;
-    let semPrevisao = 0;
-    let indisponivel = 0;
-    let bloqueadoUn = 0;
-    let bloqueadoSkus = 0;
-    let showroomUn = 0;
-    let descobertoUn = 0;
-    let descobertoSkus = 0;
-    for (const p of lista) {
-      if (p.status_venda === "vendido_sem_lastro") {
-        semLastroSkus++;
-        semLastroUn += Number(p.reservado ?? 0);
-      }
-      if (p.status_venda === "pre_venda") {
-        preVenda++;
-        unAguardando += Number(p.reservado_aguardando_produto ?? 0);
-      }
-      if (p.status_venda === "a_chegar") aChegar++;
-      if (p.status_venda === "sem_previsao") semPrevisao++;
-      if (p.status_venda === "indisponivel") indisponivel++;
-      const bloq = Number(p.bloqueado ?? 0);
-      if (bloq > 0) {
-        bloqueadoUn += bloq;
-        bloqueadoSkus++;
-      }
-      showroomUn += Number(p.em_showroom ?? 0);
-      const desc = Number(p.descoberto ?? 0);
-      if (desc > 0) {
-        descobertoUn += desc;
-        descobertoSkus++;
-      }
-    }
-    return {
-      semLastroSkus, semLastroUn, preVenda, unAguardando, aChegar,
-      semPrevisao, indisponivel, bloqueadoUn, bloqueadoSkus, showroomUn,
-      descobertoUn, descobertoSkus,
-    };
-
-  }, [lista]);
-
-  const filtrados = useMemo(() => {
+  // Linhas produto×centro do recorte (todos os filtros).
+  const recorte = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    const dispCentro = (p: EstoqueRede) => {
-      if (centroFiltro === "todos") return Number(p.disponivel ?? 0);
-      const c = (canaisPorSku.get(p.sku) ?? []).find((x) => x.centro === centroFiltro);
-      return Number(c?.disponivel ?? 0);
-    };
-    const base = lista.filter((p) => {
-      if (centroFiltro !== "todos" && !(canaisPorSku.get(p.sku) ?? []).some((c) => c.centro === centroFiltro)) return false;
-      if (statusFiltro !== "todos" && p.status_venda !== statusFiltro) return false;
-      const bloq = Number(p.bloqueado ?? 0);
-      if (condicaoFiltro === "com_bloqueio" && !(bloq > 0)) return false;
-      if (condicaoFiltro === "com_showroom" && !(Number(p.em_showroom ?? 0) > 0)) return false;
-      if (condicaoFiltro === "com_delta_bling" && Number(p.delta_bling ?? 0) === 0) return false;
-      if (condicaoFiltro === "com_descoberto" && !(Number(p.descoberto ?? 0) > 0)) return false;
-      if (condicaoFiltro === "com_canal_diverge" && !skusDivergentes.has(p.sku)) return false;
+    return linhas.filter((l) => {
+      if (centroFiltro !== "todos" && l.centro !== centroFiltro) return false;
+      if (faseFiltro !== "todos" && l.fase !== faseFiltro) return false;
+      if (colecaoFiltro !== "todos" && l.colecao !== colecaoFiltro) return false;
+      if (situacaoFiltro !== "todos" && l.situacao !== situacaoFiltro) return false;
       if (!q) return true;
       return (
-        p.sku?.toLowerCase().includes(q) ||
-        (codQuery.data?.get(p.sku) ?? "").toLowerCase().includes(q) ||
-        p.nome_comercial?.toLowerCase().includes(q) ||
-        p.cor_nome?.toLowerCase().includes(q)
+        (l.sku ?? "").toLowerCase().includes(q) ||
+        (l.cod_cadastro ?? "").toLowerCase().includes(q) ||
+        (l.nome_comercial ?? "").toLowerCase().includes(q) ||
+        (l.cor_nome ?? "").toLowerCase().includes(q)
       );
     });
-    return ordenarPor<EstoqueRede, Col>(base, sort, {
-      sku: (p) => p.sku,
-      nome: (p) => p.nome_comercial ?? "",
-      cor: (p) => p.cor_nome ?? "",
-      vendavel: (p) => Number(p.fiscal_vendavel ?? 0),
-      bloqueado: (p) => Number(p.bloqueado ?? 0),
-      reservado: (p) => Number(p.reservado ?? 0),
-      aguardando: (p) => Number(p.reservado_aguardando_produto ?? 0),
-      disponivel: (p) => dispCentro(p),
-      sc: (p) => Number((canaisPorSku.get(p.sku) ?? []).find((c) => c.centro === CENTRO_SC)?.disponivel ?? 0),
-      sp: (p) => Number((canaisPorSku.get(p.sku) ?? []).find((c) => c.centro === CENTRO_SP)?.disponivel ?? 0),
-      descoberto: (p) => Number(p.descoberto ?? 0),
-      showroom: (p) => Number(p.em_showroom ?? 0),
-      chegada: (p) => p.eta_prevista ?? "",
-      bling: (p) => Number(p.delta_bling ?? 0),
+  }, [linhas, busca, centroFiltro, faseFiltro, colecaoFiltro, situacaoFiltro]);
 
-      status: (p) => STATUS_VENDA_ORDEM.indexOf(p.status_venda as never),
-    });
-  }, [lista, busca, statusFiltro, condicaoFiltro, sort, centroFiltro, canaisPorSku, skusDivergentes, codQuery.data]);
+  const tabela = useMemo((): LinhaTabela[] => {
+    if (centroFiltro !== "todos") {
+      return recorte.map((l) => ({
+        chave: `${chaveProduto(l)}|${l.centro}`,
+        cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial, cor_nome: l.cor_nome,
+        situacao: l.situacao, contabil: n(l.contabil), fisico: n(l.fisico), virtual: n(l.virtual),
+        reservado: n(l.reservado), valor_custo: n(l.valor_custo), vendas_janela: n(l.vendas_janela),
+        janela_dias: n(l.janela_dias),
+        tempo: l.tempo_estoque_dias ?? tempoDias(n(l.virtual), n(l.vendas_janela), n(l.janela_dias)),
+        eta_embarque: l.eta_embarque,
+      }));
+    }
+    const m = new Map<string, LinhaTabela>();
+    for (const l of recorte) {
+      const k = chaveProduto(l);
+      const a = m.get(k);
+      if (!a) {
+        m.set(k, {
+          chave: k, cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial,
+          cor_nome: l.cor_nome, situacao: l.situacao, contabil: n(l.contabil), fisico: n(l.fisico),
+          virtual: n(l.virtual), reservado: n(l.reservado), valor_custo: n(l.valor_custo),
+          vendas_janela: n(l.vendas_janela), janela_dias: n(l.janela_dias), tempo: null,
+          eta_embarque: l.eta_embarque,
+        });
+      } else {
+        a.contabil += n(l.contabil);
+        a.fisico += n(l.fisico);
+        a.virtual += n(l.virtual);
+        a.reservado += n(l.reservado);
+        a.valor_custo += n(l.valor_custo);
+        a.vendas_janela += n(l.vendas_janela);
+        a.janela_dias = Math.max(a.janela_dias, n(l.janela_dias));
+        a.situacao ??= l.situacao;
+        a.cod_cadastro ??= l.cod_cadastro;
+        if (l.eta_embarque && (!a.eta_embarque || l.eta_embarque < a.eta_embarque)) a.eta_embarque = l.eta_embarque;
+      }
+    }
+    const out = [...m.values()];
+    for (const a of out) a.tempo = tempoDias(a.virtual, a.vendas_janela, a.janela_dias);
+    return out;
+  }, [recorte, centroFiltro]);
 
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / pageSize));
+  const cartoes = useMemo(() => {
+    let contabil = 0, valor = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
+    const transito = new Map<string, number>();
+    for (const l of recorte) {
+      contabil += n(l.contabil);
+      valor += n(l.valor_custo);
+      vendas += n(l.vendas_janela);
+      virtual += n(l.virtual);
+      janela = Math.max(janela, n(l.janela_dias));
+      if (n(l.furo) === 0 && (l.contagem_em_dia || l.exige_contagem === false)) saudaveis++;
+      const k = chaveProduto(l);
+      transito.set(k, Math.max(transito.get(k) ?? 0, n(l.em_transito)));
+    }
+    const giro = contabil > 0 && janela > 0 ? (vendas / contabil) * (365 / janela) : null;
+    const tempo = tempoDias(virtual, vendas, janela);
+    const saude = recorte.length > 0 ? (saudaveis / recorte.length) * 100 : null;
+    const emTransito = [...transito.values()].reduce((s, v) => s + v, 0);
+    return { contabil, valor, vendas, janela, giro, tempo, saude, emTransito };
+  }, [recorte]);
+
+  const ordenados = useMemo(
+    () =>
+      ordenarPor<LinhaTabela, Col>(tabela, sort, {
+        cod: (p) => p.cod_cadastro ?? "",
+        nome: (p) => p.nome_comercial ?? "",
+        situacao: (p) => p.situacao ?? "",
+        contabil: (p) => p.contabil,
+        fisico: (p) => p.fisico,
+        virtual: (p) => p.virtual,
+        tempo: (p) => p.tempo ?? -1,
+        chegada: (p) => p.eta_embarque ?? "",
+      }),
+    [tabela, sort],
+  );
+
+  const totalPaginas = Math.max(1, Math.ceil(ordenados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
-  const pageItems = filtrados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
+  const pageItems = ordenados.slice((paginaAtual - 1) * pageSize, paginaAtual * pageSize);
+  const hoje = new Date().toISOString().slice(0, 10);
 
-  const totalDisponivel = lista.reduce((s, p) => s + Number(p.disponivel ?? 0), 0);
-  const estadoCabecalho = produtosQuery.isLoading
+  const totalProdutos = useMemo(() => new Set(linhas.map(chaveProduto)).size, [linhas]);
+  const totalVirtual = linhas.reduce((s, l) => s + n(l.virtual), 0);
+  const estadoCabecalho = cockpitQuery.isLoading
     ? "Carregando…"
-    : `${formatNum(lista.length)} produtos · ${formatNum(totalDisponivel)} un disponíveis · ${
+    : `${formatNum(totalProdutos)} produtos · ${formatNum(totalVirtual)} un virtuais · ${
         syncQuery.data ? `sincronizado ${tempoRelativo(syncQuery.data)}` : "sem sincronização registrada"
       }`;
-  const detalheLinha = detalhe ? lista.find((p) => p.sku === detalhe.sku) ?? null : null;
-
-  function aplicarRecorte(tipo: "status" | "condicao", valor: string) {
-    if (tipo === "status") { setStatusFiltro(valor); setCondicaoFiltro("todos"); }
-    else { setCondicaoFiltro(valor); setStatusFiltro("todos"); }
-    setPagina(1);
-  }
+  const detalheLinha = detalhe ? tabela.find((p) => p.sku === detalhe.sku) ?? null : null;
 
   function ordenarColuna(coluna: Col) {
     setSort((atual) => {
@@ -380,9 +310,10 @@ export default function EstoqueVirtual() {
 
   function limparFiltros() {
     setBusca("");
-    setStatusFiltro("todos");
-    setCondicaoFiltro("todos");
+    setFaseFiltro("todos");
+    setColecaoFiltro("todos");
     setCentroFiltro("todos");
+    setSituacaoFiltro("todos");
     setPagina(1);
   }
 
@@ -395,6 +326,21 @@ export default function EstoqueVirtual() {
       alinharDireita={alinharDireita}
     />
   );
+
+  const filtroSelect = (
+    valor: string, set: (v: string) => void, todos: string, itens: string[], w: string,
+    rotulo: (v: string) => string = (v) => v,
+  ) => (
+    <Select value={valor} onValueChange={(v) => { set(v); setPagina(1); }}>
+      <FilterSelectTrigger active={valor !== "todos"} className={w}><SelectValue /></FilterSelectTrigger>
+      <SelectContent>
+        <SelectItem value="todos">{todos}</SelectItem>
+        {itens.map((v) => <SelectItem key={v} value={v}>{rotulo(v)}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  );
+
+  const onb = onboardingQuery.data;
 
   return (
     <PageShell variant="dados" className="animate-casa-fade-in">
@@ -411,15 +357,22 @@ export default function EstoqueVirtual() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { void produtosQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); }}
-            disabled={produtosQuery.isFetching}
+            onClick={() => { void cockpitQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); void onboardingQuery.refetch(); }}
+            disabled={cockpitQuery.isFetching}
             className="gap-2"
           >
-            <RefreshCw className={cn("h-4 w-4", produtosQuery.isFetching && "animate-spin")} />
+            <RefreshCw className={cn("h-4 w-4", cockpitQuery.isFetching && "animate-spin")} />
             Atualizar
           </Button>
         }
       />
+
+      {onb && !onb.seguro_desligar_bling && (
+        <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          Migração do controle: {formatNum(onb.com_razao)} de {formatNum(onb.skus_ativos)} SKUs controlados pelo SNCF — não desligar o estoque do Bling
+        </p>
+      )}
 
       <Collapsible>
         <CollapsibleTrigger asChild>
@@ -432,52 +385,48 @@ export default function EstoqueVirtual() {
         </CollapsibleContent>
       </Collapsible>
 
-      {produtosQuery.isError && (
+      {cockpitQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          Falha ao carregar o estoque: {formatError(produtosQuery.error)}
+          Falha ao carregar o estoque: {formatError(cockpitQuery.error)}
         </div>
       )}
       {canaisQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          Falha ao carregar estoque por centro/canais: {formatError(canaisQuery.error)}
+          Falha ao carregar estoque por centro: {formatError(canaisQuery.error)}
         </div>
       )}
-      {codQuery.isError && (
+      {onboardingQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          Falha ao carregar códigos de cadastro: {formatError(codQuery.error)}
+          Falha ao carregar o progresso da migração: {formatError(onboardingQuery.error)}
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores do estoque">
+      <section className="grid grid-cols-2 gap-2 md:grid-cols-5" aria-label="Indicadores do estoque">
         <CartaoNumero
-          rotulo="Vendido sem lastro"
-          valor={`${formatNum(resumo.semLastroUn)} un`}
-          sub={`${formatNum(resumo.semLastroSkus)} SKUs`}
-          alerta={resumo.semLastroUn > 0 ? "destructive" : null}
-          ativo={statusFiltro === "vendido_sem_lastro"}
-          onClick={() => aplicarRecorte("status", "vendido_sem_lastro")}
+          rotulo="Estoque total"
+          valor={`${formatNum(cartoes.contabil)} un`}
+          sub={`${formatBRL(cartoes.valor)} a custo`}
         />
         <CartaoNumero
-          rotulo="Descoberto"
-          valor={`${formatNum(resumo.descobertoUn)} un`}
-          sub={`${formatNum(resumo.descobertoSkus)} SKUs`}
-          alerta={resumo.descobertoUn > 0 ? "destructive" : null}
-          ativo={condicaoFiltro === "com_descoberto"}
-          onClick={() => aplicarRecorte("condicao", "com_descoberto")}
+          rotulo="Giro"
+          valor={cartoes.giro == null ? "—" : `${cartoes.giro.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} x/ano`}
+          sub={`${formatNum(cartoes.vendas)} un vendidas em ${formatNum(cartoes.janela)} dias`}
         />
         <CartaoNumero
-          rotulo="Sem previsão de chegada"
-          valor={`${formatNum(resumo.semPrevisao)} SKUs`}
-          alerta={resumo.semPrevisao > 0 ? "warning" : null}
-          ativo={statusFiltro === "sem_previsao"}
-          onClick={() => aplicarRecorte("status", "sem_previsao")}
+          rotulo="Tempo de estoque"
+          valor={cartoes.tempo == null ? "—" : `${formatNum(cartoes.tempo)} dias`}
+          sub="de cobertura"
         />
         <CartaoNumero
-          rotulo="Canais divergentes"
-          valor={`${formatNum(skusDivergentes.size)} SKUs`}
-          alerta={skusDivergentes.size > 0 ? "warning" : null}
-          ativo={condicaoFiltro === "com_canal_diverge"}
-          onClick={() => aplicarRecorte("condicao", "com_canal_diverge")}
+          rotulo="Saúde"
+          valor={cartoes.saude == null ? "—" : `${cartoes.saude.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+          sub="sem furo e com contagem em dia"
+          alerta={cartoes.saude != null && cartoes.saude < 90 ? "warning" : null}
+        />
+        <CartaoNumero
+          rotulo="Em trânsito"
+          valor={`${formatNum(cartoes.emTransito)} un`}
+          sub="un embarcadas"
         />
       </section>
 
@@ -492,160 +441,76 @@ export default function EstoqueVirtual() {
           />
         </div>
         <div className="ml-auto flex flex-wrap items-center gap-3">
-          <Select value={statusFiltro} onValueChange={(v) => { setStatusFiltro(v); setPagina(1); }}>
-            <FilterSelectTrigger active={statusFiltro !== "todos"} className="w-[190px]">
-              <SelectValue />
-            </FilterSelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os status</SelectItem>
-              {STATUS_VENDA_ORDEM.map((s) => (
-                <SelectItem key={s} value={s}>{rotuloStatusVenda(s)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={condicaoFiltro} onValueChange={(v) => { setCondicaoFiltro(v); setPagina(1); }}>
-            <FilterSelectTrigger active={condicaoFiltro !== "todos"} className="w-[200px]">
-              <SelectValue />
-            </FilterSelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todas as posições</SelectItem>
-              <SelectItem value="com_descoberto">Com descoberto</SelectItem>
-              <SelectItem value="com_bloqueio">Com não vendável</SelectItem>
-              <SelectItem value="com_showroom">Com Show Room</SelectItem>
-              <SelectItem value="com_canal_diverge">Canal divergente</SelectItem>
-              <SelectItem value="com_delta_bling">Divergente do Bling</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={centroFiltro} onValueChange={(v) => { setCentroFiltro(v); setPagina(1); }}>
-            <FilterSelectTrigger active={centroFiltro !== "todos"} className="w-[190px]">
-              <SelectValue />
-            </FilterSelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos os centros</SelectItem>
-              {centrosPresentes.map(([c, nome]) => (
-                <SelectItem key={c} value={c}>{nome ? `${c} · ${nome}` : c}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {filtroSelect(faseFiltro, setFaseFiltro, "Todas as fases", opcoes.fases, "w-[160px]")}
+          {filtroSelect(colecaoFiltro, setColecaoFiltro, "Todas as coleções", opcoes.colecoes, "w-[180px]")}
+          {filtroSelect(centroFiltro, setCentroFiltro, "Todos os centros", opcoes.centros, "w-[180px]")}
+          {filtroSelect(situacaoFiltro, setSituacaoFiltro, "Todas as situações", opcoes.situacoes, "w-[170px]", rotuloStatusVenda)}
         </div>
       </div>
 
-      {produtosQuery.isLoading ? (
+      {cockpitQuery.isLoading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>
-      ) : filtrados.length === 0 ? (
+      ) : ordenados.length === 0 ? (
         <div className="py-12 text-center">
           <p className="text-sm text-muted-foreground">Nenhum produto neste recorte</p>
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
       ) : <div className="overflow-hidden rounded-md border bg-card">
-        <TooltipProvider delayDuration={200}>
-          <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3">
-            <TableHeader>
-              <TableRow className={LINHA_CABECALHO_COLADO}>
-                {cabecalho("sku", "Código", "w-[110px]")}
-                {cabecalho("nome", "Produto", "")}
-                {cabecalho("status", "Situação", "w-[130px]")}
-                {cabecalho("chegada", "Chegada", "w-[90px]")}
-                {cabecalho("disponivel", centroFiltro !== "todos" ? `Disp. (${centroFiltro})` : "Disponível", "w-[84px]", true)}
-                {cabecalho("sc", "SC", "w-[84px]", true)}
-                {cabecalho("sp", "SP", "w-[84px]", true)}
-                {cabecalho("showroom", "Show Room", "w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[84px]", true)}
-                {cabecalho("descoberto", "Descoberto", "w-[84px]", true)}
+        <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3">
+          <TableHeader>
+            <TableRow className={LINHA_CABECALHO_COLADO}>
+              {cabecalho("cod", "Código", "w-[110px]")}
+              {cabecalho("nome", "Produto", "")}
+              {cabecalho("situacao", "Situação", "w-[130px]")}
+              {cabecalho("contabil", "Contábil", "w-[90px]", true)}
+              {cabecalho("fisico", "Físico", "w-[90px]", true)}
+              {cabecalho("virtual", "Virtual", "w-[90px]", true)}
+              {cabecalho("tempo", "Tempo de estoque", "w-[130px]", true)}
+              {cabecalho("chegada", "Chegada", "w-[90px]")}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pageItems.map((p) => (
+              <TableRow
+                key={p.chave}
+                className={cn(p.sku && "cursor-pointer")}
+                onClick={() => p.sku && setDetalhe({ sku: p.sku, nome: p.nome_comercial })}
+              >
+                <TableCell className="truncate font-mono">
+                  {p.cod_cadastro ?? <span className="text-muted-foreground">—</span>}
+                </TableCell>
+                <TableCell className="leading-tight">
+                  <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
+                  {p.cor_nome && <div className="text-[11px] text-muted-foreground truncate">{p.cor_nome}</div>}
+                </TableCell>
+                <TableCell>
+                  {p.situacao ? (
+                    <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.situacao))}>
+                      {rotuloStatusVenda(p.situacao)}
+                    </Badge>
+                  ) : <span className="text-muted-foreground">—</span>}
+                </TableCell>
+                <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
+                <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
+                <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                <TableCell className="text-right tabular-nums">
+                  {p.tempo == null ? <span className="text-muted-foreground">—</span> : formatNum(p.tempo)}
+                </TableCell>
+                <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
+                  {formatDataCurta(p.eta_embarque)}
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pageItems.map((p) => {
-                  const aguardando = Number(p.reservado_aguardando_produto ?? 0);
-                  const showroom = Number(p.em_showroom ?? 0);
-                  const descoberto = Number(p.descoberto ?? 0);
-                  const canais = canaisPorSku.get(p.sku) ?? [];
-                  const cSC = canais.find((c) => c.centro === CENTRO_SC);
-                  const cSP = canais.find((c) => c.centro === CENTRO_SP);
-                  const cFiltro = centroFiltro !== "todos" ? canais.find((c) => c.centro === centroFiltro) : null;
-                  const disponivelMostrado = cFiltro ? Number(cFiltro.disponivel ?? 0) : Number(p.disponivel ?? 0);
-                  const divergencias = divergenciasDe(canais);
-                  const temEta = temPrevisao(p.eta_prevista, p.eta_precisao);
-                  const cod = codQuery.data?.get(p.sku);
-
-                  return (
-                    <TableRow
-                      key={p.sku}
-                      className="cursor-pointer"
-                      onClick={() => setDetalhe({ sku: p.sku, nome: p.nome_comercial })}
-                    >
-                      <TableCell className="leading-tight">
-                        <div className="truncate font-mono">{cod ?? <span className="text-muted-foreground">—</span>}</div>
-                        {p.sku !== cod && <div className="truncate text-[11px] text-muted-foreground">{p.sku}</div>}
-                      </TableCell>
-                      <TableCell className="leading-tight">
-                        <div className="font-medium truncate" title={p.nome_comercial ?? ""}>{p.nome_comercial ?? "—"}</div>
-                        {p.cor_nome && <div className="text-[11px] text-muted-foreground truncate">{p.cor_nome}</div>}
-                      </TableCell>
-                      <TableCell className="leading-tight">
-                        <Badge variant="outline" className={cn("font-normal", classeStatusVenda(p.status_venda))}>
-                          {rotuloStatusVenda(p.status_venda)}
-                        </Badge>
-                        {divergencias.length > 0 && (
-                          <div className="mt-1 text-[11px] text-warning" title={divergencias.join("\n")}>canal diverge</div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground tabular-nums">
-                        {p.pedido_suprimento || p.eta_prevista ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className={cn("cursor-help", !temEta && "text-warning")}>
-                                {temEta ? formatDataCurta(p.eta_prevista) : "—"}
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent className="max-w-xs text-xs">
-                              {p.pedido_suprimento ? `${rotuloOrigem(p.origem_suprimento)} · ${p.pedido_suprimento} — ` : ""}
-                              {formatEta(p.eta_prevista, p.eta_precisao, p.status_suprimento)}
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : "—"}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">{formatNum(disponivelMostrado)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {cSC ? formatNum(cSC.disponivel) : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {cSP ? formatNum(cSP.disponivel) : <span className="text-muted-foreground">—</span>}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {showroom === 0 ? <span className="text-muted-foreground">—</span> : formatNum(showroom)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {formatNum(p.reservado)}
-                        {aguardando > 0 && (
-                          <span className="ml-1 text-[11px] text-info" title={`${formatNum(aguardando)} un aguardando o produto chegar`}>
-                            ({formatNum(aguardando)})
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {descoberto === 0 ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <span className="text-destructive font-medium" title={`${formatNum(descoberto)} un prometidas sem cobertura de estoque vendável`}>
-                            {formatNum(descoberto)}
-                          </span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-            </TableBody>
-          </Table>
-        </TooltipProvider>
+            ))}
+          </TableBody>
+        </Table>
         <RodapePaginacao
-          total={filtrados.length}
+          total={ordenados.length}
           pagina={paginaAtual}
           tamanhoPagina={pageSize}
           tela="cockpit_estoque"
           onPagina={setPagina}
           onTamanhoPagina={setPageSize}
-          extraDireita={<span className="text-sm text-muted-foreground tabular-nums">{formatNum(lista.length)} produtos · {formatNum(pageItems.length)} exibidos</span>}
+          extraDireita={<span className="text-sm text-muted-foreground tabular-nums">{formatNum(ordenados.length)} linhas · {formatNum(pageItems.length)} exibidas</span>}
         />
       </div>}
 
@@ -660,36 +525,18 @@ export default function EstoqueVirtual() {
                 <h3 className="text-sm font-medium mb-2">Cadastro e posição</h3>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                   <dt className="text-muted-foreground">Código</dt>
-                  <dd className="font-mono">{codQuery.data?.get(detalheLinha.sku) ?? "—"}</dd>
+                  <dd className="font-mono">{detalheLinha.cod_cadastro ?? "—"}</dd>
+                  <dt className="text-muted-foreground">SKU</dt>
+                  <dd className="font-mono">{detalheLinha.sku ?? "—"}</dd>
                   <dt className="text-muted-foreground">Cor</dt>
                   <dd>{detalheLinha.cor_nome ?? "—"}</dd>
-                  <dt className="text-muted-foreground">Vendável</dt>
-                  <dd className="tabular-nums">{formatNum(detalheLinha.fiscal_vendavel)}</dd>
-                  <dt className="text-muted-foreground">Não vendável</dt>
-                  <dd className={cn("tabular-nums", Number(detalheLinha.bloqueado ?? 0) > 0 && "text-warning font-medium")}>
-                    {Number(detalheLinha.bloqueado ?? 0) === 0 ? "—" : formatNum(detalheLinha.bloqueado)}
-                  </dd>
-                  <dt className="text-muted-foreground">Ref. Bling</dt>
-                  <dd className="tabular-nums">
-                    {detalheLinha.referencia_bling == null ? "—" : formatNum(detalheLinha.referencia_bling)}
-                    {Number(detalheLinha.delta_bling ?? 0) !== 0 && (
-                      <span className="ml-2 text-muted-foreground">Δ {formatDelta(detalheLinha.delta_bling)}</span>
-                    )}
-                  </dd>
-                  <dt className="text-muted-foreground">Chegada</dt>
-                  <dd>
-                    {detalheLinha.pedido_suprimento
-                      ? `${rotuloOrigem(detalheLinha.origem_suprimento)} · ${detalheLinha.pedido_suprimento} — ${formatEta(detalheLinha.eta_prevista, detalheLinha.eta_precisao, detalheLinha.status_suprimento)}`
-                      : "—"}
-                  </dd>
-                  <dt className="text-muted-foreground">Canais</dt>
-                  <dd className={cn(divergenciasDe(canaisPorSku.get(detalheLinha.sku) ?? []).length > 0 && "text-warning")}>
-                    {divergenciasDe(canaisPorSku.get(detalheLinha.sku) ?? []).join(" · ") || "OK"}
-                  </dd>
+                  <dt className="text-muted-foreground">Reservado</dt>
+                  <dd className="tabular-nums">{formatNum(detalheLinha.reservado)}</dd>
+                  <dt className="text-muted-foreground">Valor a custo</dt>
+                  <dd className="tabular-nums">{formatBRL(detalheLinha.valor_custo)}</dd>
+                  <dt className="text-muted-foreground">Vendas na janela</dt>
+                  <dd className="tabular-nums">{formatNum(detalheLinha.vendas_janela)} un em {formatNum(detalheLinha.janela_dias)} dias</dd>
                 </dl>
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  Saldo do Bling é só referência de conferência — não é fonte de verdade.
-                </p>
               </section>
             )}
             <section className="mt-6">
@@ -735,13 +582,6 @@ export default function EstoqueVirtual() {
   );
 }
 
-function divergenciasDe(canais: CanalCentro[]): string[] {
-  return canais.flatMap((c) => [
-    ...(c.shopify_diverge ? [`${c.centro} · Shopify`] : []),
-    ...(c.bling_diverge ? [`${c.centro} · Bling`] : []),
-  ]);
-}
-
 function formatDataCurta(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso.length === 10 ? `${iso}T00:00:00` : iso);
@@ -760,32 +600,24 @@ function tempoRelativo(iso: string) {
 }
 
 function CartaoNumero({
-  rotulo, valor, sub, alerta, ativo, onClick,
+  rotulo, valor, sub, alerta = null,
 }: {
   rotulo: string;
   valor: string;
   sub?: string;
-  alerta: "destructive" | "warning" | null;
-  ativo: boolean;
-  onClick: () => void;
+  alerta?: "destructive" | "warning" | null;
 }) {
   return (
-    <Button
-      variant="outline"
-      onClick={onClick}
-      aria-pressed={ativo}
+    <div
       className={cn(
-        "h-20 items-start justify-center border p-3 text-left",
+        "flex h-20 flex-col justify-center rounded-md border bg-card p-3",
         alerta === "destructive" && "border-l-[3px] border-l-destructive",
         alerta === "warning" && "border-l-[3px] border-l-warning",
-        ativo && "ring-2 ring-primary ring-offset-2 ring-offset-background",
       )}
     >
-      <span className="flex w-full flex-col">
-        <span className="truncate text-[11px] font-normal text-muted-foreground">{rotulo}</span>
-        <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{valor}</span>
-        {sub && <span className="text-[11px] font-normal text-muted-foreground">{sub}</span>}
-      </span>
-    </Button>
+      <span className="truncate text-[11px] text-muted-foreground">{rotulo}</span>
+      <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground leading-tight">{valor}</span>
+      {sub && <span className="truncate text-[11px] text-muted-foreground">{sub}</span>}
+    </div>
   );
 }
