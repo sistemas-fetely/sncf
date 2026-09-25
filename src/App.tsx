@@ -388,10 +388,6 @@ const App = () => (
               <Route path="/parceiros/:id" element={<ParceiroDetalhe />} />
               <Route path="/cliente/:id" element={<ClientePainel />} />
 
-              {/* Comercial — Comissões de Representante (menu comercial.comissoes) */}
-              <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
-              <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
-              <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
 
 
               {/* ═══════════════════════════════════════════════
@@ -508,6 +504,12 @@ const App = () => (
               <Route element={<VendasLayout />}>
                 <Route path="/comercial/consignados" element={<Consignados />} />
                 <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
+                {/* Comercial — Comissões de Representante (menu comercial.comissoes):
+                    MESMA-CASCA-DO-PILAR — movidas para dentro do VendasLayout para
+                    ganharem a sidebar, como os consignados. */}
+                <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
+                <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
+                <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
               </Route>
 
 
