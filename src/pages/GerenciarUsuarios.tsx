@@ -36,6 +36,7 @@ import MesaUsuariosTab from "@/components/gerenciar-usuarios/MesaUsuariosTab";
 import DiagnosticoAcessoTab from "@/components/gerenciar-usuarios/DiagnosticoAcessoTab";
 import RastroAcessoTab from "@/components/gerenciar-usuarios/RastroAcessoTab";
 import ConsoleAcessoTab from "@/components/gerenciar-usuarios/ConsoleAcessoTab";
+import PedidosAcessoTab, { useContagemPedidosAbertos } from "@/components/gerenciar-usuarios/PedidosAcessoTab";
 import { PageHeader } from "@/components/layout/PageHeader";
 
 
@@ -164,6 +165,7 @@ export default function GerenciarUsuarios() {
   // catálogo. Agora vêm de tela.acesso_auditoria, que já está declarada em
   // sncf_navegacao e concedida aos mesmos grupos de hoje.
   const { data: permitidas } = usePermissoesDoUsuario();
+  const pedidosAbertos = useContagemPedidosAbertos(isSuperAdmin);
   const podeAuditarAcesso = isSuperAdmin || temPermissaoTela("tela.acesso_auditoria", permitidas);
   const isAdminRH = myRoles.includes("admin_rh");
   const queryClient = useQueryClient();
@@ -596,6 +598,12 @@ export default function GerenciarUsuarios() {
         <TabsList>
           <TabsTrigger value="usuarios" className="gap-2"><Users className="h-4 w-4" /> Usuários</TabsTrigger>
           <TabsTrigger value="acesso" className="gap-2"><ShieldCheck className="h-4 w-4" /> Console de Acesso</TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="pedidos" className="gap-2">
+              <Inbox className="h-4 w-4" /> Pedidos de acesso
+              {(pedidosAbertos.data ?? 0) > 0 && <Badge variant="destructive" className="h-5 px-1.5 text-[11px]">{pedidosAbertos.data}</Badge>}
+            </TabsTrigger>
+          )}
           {podeAuditarAcesso && (
             <TabsTrigger value="fantasmas" className="gap-2">
               <Ghost className="h-4 w-4" /> Contas sem perfil
@@ -627,6 +635,12 @@ export default function GerenciarUsuarios() {
         <TabsContent value="acesso" className="mt-4">
           <ConsoleAcessoTab niveisAbertoInicial={veioDePapeis} />
         </TabsContent>
+
+        {isSuperAdmin && (
+          <TabsContent value="pedidos" className="mt-4">
+            <PedidosAcessoTab />
+          </TabsContent>
+        )}
 
         {podeAuditarAcesso && (
           <TabsContent value="fantasmas" className="mt-4">
