@@ -249,6 +249,26 @@ serve(async (req) => {
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
 
+    // 1c. Natureza de operação — DIMENSÃO-VIA-TABELA (25/09/2026).
+    // O id da natureza no Bling (ex.: CFOP 6152 da filial para transferência interna)
+    // mora em naturezas_operacao.bling_natureza_id — nenhum id hardcoded aqui.
+    // Pedido sem natureza ou sem o campo preenchido segue exatamente como antes,
+    // sem a chave no payload.
+    let blingNaturezaId: number | null = null;
+    if (pedido.natureza_operacao_id) {
+      const { data: natDim, error: natDimErr } = await supabase
+        .from("naturezas_operacao")
+        .select("bling_natureza_id")
+        .eq("id", pedido.natureza_operacao_id)
+        .maybeSingle();
+      if (natDimErr) {
+        return err(`Falha ao ler a natureza de operação do pedido: ${natDimErr.message}`, 500);
+      }
+      if (natDim?.bling_natureza_id != null) {
+        blingNaturezaId = Number(natDim.bling_natureza_id);
+      }
+    }
+
     // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
     //   pre_separacao   — envio inicial (comportamento atual, será aposentado).
     //   em_separacao    — envio de remessa adicional (/02+) em split.
