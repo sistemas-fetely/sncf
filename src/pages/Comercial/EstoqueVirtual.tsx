@@ -22,6 +22,8 @@ import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** Uma linha por SKU × centro (centro null = produto sem razão). */
 interface LinhaCockpit {
@@ -47,10 +49,17 @@ interface LinhaCockpit {
   situacao: string | null;
   em_transito: number | null;
   eta_embarque: string | null;
+  real_centro: number | null;
+  divergencia_real: number | null;
+  ticket_medio: number | null;
+  fonte_ticket: string | null;
+  valor_venda: number | null;
+  valor_empenhado: number | null;
+  saude: string | null;
 }
 
 const COLS =
-  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fisico,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,furo,contagem_em_dia,exige_contagem,situacao,em_transito,eta_embarque";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fisico,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,furo,contagem_em_dia,exige_contagem,situacao,em_transito,eta_embarque,real_centro,divergencia_real,ticket_medio,fonte_ticket,valor_venda,valor_empenhado,saude";
 
 /** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
 interface LinhaTabela {
@@ -69,7 +78,33 @@ interface LinhaTabela {
   janela_dias: number;
   tempo: number | null;
   eta_embarque: string | null;
+  valor_venda: number;
+  valor_empenhado: number;
+  real_xpm: number | null;
+  real_site: number | null;
+  divergencia: number;
+  ticket: number | null;
+  fonte_ticket: string | null;
+  saude: string | null;
+  em_transito: number;
 }
+
+type Visao = "estoque" | "valor" | "suprimento";
+const SORT_PADRAO: Record<Visao, SortState<Col>> = {
+  estoque: { column: "virtual", direction: "desc" },
+  valor: { column: "vvenda", direction: "desc" },
+  suprimento: { column: "tempo", direction: "asc" },
+};
+const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
+function piorSaude(a: string | null, b: string | null) {
+  return (PESO_SAUDE[b ?? ""] ?? 0) > (PESO_SAUDE[a ?? ""] ?? 0) ? b : a;
+}
+const SAUDE_INFO: Record<string, { cor: string; texto: string }> = {
+  ok: { cor: "bg-success", texto: "Sem pendências" },
+  contagem_vencida: { cor: "bg-warning", texto: "Contagem vencida" },
+  furo: { cor: "bg-destructive", texto: "Furo entre contábil e físico" },
+  diverge_real: { cor: "bg-destructive", texto: "Armazém difere do SNCF" },
+};
 
 interface CanalCentro {
   sku: string;
@@ -89,7 +124,7 @@ const COLS_CANAIS =
 
 interface Onboarding { com_razao: number; skus_ativos: number; seguro_desligar_bling: boolean }
 
-type Col = "cod" | "nome" | "situacao" | "contabil" | "fisico" | "virtual" | "tempo" | "chegada";
+type Col = "cod" | "nome" | "situacao" | "saude" | "contabil" | "fisico" | "realxpm" | "realsite" | "diverg" | "virtual" | "tempo" | "chegada" | "reservado" | "ticket" | "vcusto" | "vvenda" | "vemp" | "transito";
 
 const n = (v: number | null | undefined) => Number(v ?? 0);
 function formatNum(v: number | null | undefined) {
@@ -126,7 +161,8 @@ export default function EstoqueVirtual() {
   const [centroFiltro, setCentroFiltro] = useState("todos");
   const [situacaoFiltro, setSituacaoFiltro] = useState("todos");
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
-  const [sort, setSort] = useState<SortState<Col> | null>({ column: "virtual", direction: "desc" });
+  const [visao, setVisao] = useState<Visao>("estoque");
+  const [sort, setSort] = useState<SortState<Col> | null>(SORT_PADRAO.estoque);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
@@ -218,6 +254,11 @@ export default function EstoqueVirtual() {
         janela_dias: n(l.janela_dias),
         tempo: l.tempo_estoque_dias ?? tempoDias(n(l.virtual), n(l.vendas_janela), n(l.janela_dias)),
         eta_embarque: l.eta_embarque,
+        valor_venda: n(l.valor_venda), valor_empenhado: n(l.valor_empenhado),
+        real_xpm: l.centro === "XPM-SC" ? l.real_centro : null,
+        real_site: l.centro === "SITE-SP" ? l.real_centro : null,
+        divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
+        saude: l.saude, em_transito: n(l.em_transito),
       }));
     }
     const m = new Map<string, LinhaTabela>();
@@ -231,6 +272,11 @@ export default function EstoqueVirtual() {
           virtual: n(l.virtual), reservado: n(l.reservado), valor_custo: n(l.valor_custo),
           vendas_janela: n(l.vendas_janela), janela_dias: n(l.janela_dias), tempo: null,
           eta_embarque: l.eta_embarque,
+          valor_venda: n(l.valor_venda), valor_empenhado: n(l.valor_empenhado),
+          real_xpm: l.centro === "XPM-SC" ? l.real_centro : null,
+          real_site: l.centro === "SITE-SP" ? l.real_centro : null,
+          divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
+          saude: l.saude, em_transito: n(l.em_transito),
         });
       } else {
         a.contabil += n(l.contabil);
@@ -242,20 +288,31 @@ export default function EstoqueVirtual() {
         a.janela_dias = Math.max(a.janela_dias, n(l.janela_dias));
         a.situacao ??= l.situacao;
         a.cod_cadastro ??= l.cod_cadastro;
+        a.valor_venda += n(l.valor_venda);
+        a.valor_empenhado += n(l.valor_empenhado);
+        a.divergencia += n(l.divergencia_real);
+        if (l.centro === "XPM-SC") a.real_xpm = l.real_centro;
+        if (l.centro === "SITE-SP") a.real_site = l.real_centro;
+        a.saude = piorSaude(a.saude, l.saude);
+        a.em_transito = Math.max(a.em_transito, n(l.em_transito));
         if (l.eta_embarque && (!a.eta_embarque || l.eta_embarque < a.eta_embarque)) a.eta_embarque = l.eta_embarque;
       }
     }
     const out = [...m.values()];
-    for (const a of out) a.tempo = tempoDias(a.virtual, a.vendas_janela, a.janela_dias);
+    for (const a of out) {
+      a.tempo = tempoDias(a.virtual, a.vendas_janela, a.janela_dias);
+      if (a.contabil > 0) a.ticket = a.valor_venda / a.contabil;
+    }
     return out;
   }, [recorte, centroFiltro]);
 
   const cartoes = useMemo(() => {
-    let contabil = 0, valor = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
+    let contabil = 0, valor = 0, valorVenda = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
     const transito = new Map<string, number>();
     for (const l of recorte) {
       contabil += n(l.contabil);
       valor += n(l.valor_custo);
+      valorVenda += n(l.valor_venda);
       vendas += n(l.vendas_janela);
       virtual += n(l.virtual);
       janela = Math.max(janela, n(l.janela_dias));
@@ -267,7 +324,7 @@ export default function EstoqueVirtual() {
     const tempo = tempoDias(virtual, vendas, janela);
     const saude = recorte.length > 0 ? (saudaveis / recorte.length) * 100 : null;
     const emTransito = [...transito.values()].reduce((s, v) => s + v, 0);
-    return { contabil, valor, vendas, janela, giro, tempo, saude, emTransito };
+    return { contabil, valor, valorVenda, vendas, janela, giro, tempo, saude, emTransito };
   }, [recorte]);
 
   const ordenados = useMemo(
@@ -276,11 +333,22 @@ export default function EstoqueVirtual() {
         cod: (p) => p.cod_cadastro ?? "",
         nome: (p) => p.nome_comercial ?? "",
         situacao: (p) => p.situacao ?? "",
+        saude: (p) => PESO_SAUDE[p.saude ?? ""] ?? 0,
         contabil: (p) => p.contabil,
         fisico: (p) => p.fisico,
+        realxpm: (p) => p.real_xpm ?? -Infinity,
+        realsite: (p) => p.real_site ?? -Infinity,
+        diverg: (p) => p.divergencia,
         virtual: (p) => p.virtual,
-        tempo: (p) => p.tempo ?? -1,
+        // nulos por último na ordem crescente (menor cobertura primeiro)
+        tempo: (p) => p.tempo ?? Number.MAX_SAFE_INTEGER,
         chegada: (p) => p.eta_embarque ?? "",
+        reservado: (p) => p.reservado,
+        ticket: (p) => p.ticket ?? -1,
+        vcusto: (p) => p.valor_custo,
+        vvenda: (p) => p.valor_venda,
+        vemp: (p) => p.valor_empenhado,
+        transito: (p) => p.em_transito,
       }),
     [tabela, sort],
   );
@@ -405,7 +473,7 @@ export default function EstoqueVirtual() {
         <CartaoNumero
           rotulo="Estoque total"
           valor={`${formatNum(cartoes.contabil)} un`}
-          sub={`${formatBRL(cartoes.valor)} a custo`}
+          sub={`${formatBRL(cartoes.valor)} a custo · ${formatBRL(cartoes.valorVenda)} a venda`}
         />
         <CartaoNumero
           rotulo="Giro"
@@ -431,6 +499,17 @@ export default function EstoqueVirtual() {
       </section>
 
       <div className="flex flex-wrap items-center gap-3">
+        <ToggleGroup
+          type="single"
+          value={visao}
+          onValueChange={(v) => { if (!v) return; setVisao(v as Visao); setSort(SORT_PADRAO[v as Visao]); setPagina(1); }}
+          className="rounded-md border bg-card p-0.5"
+          aria-label="Visão da tabela"
+        >
+          <ToggleGroupItem value="estoque" size="sm" className="h-8 px-3 text-xs">Estoque</ToggleGroupItem>
+          <ToggleGroupItem value="valor" size="sm" className="h-8 px-3 text-xs">Valor</ToggleGroupItem>
+          <ToggleGroupItem value="suprimento" size="sm" className="h-8 px-3 text-xs">Suprimento</ToggleGroupItem>
+        </ToggleGroup>
         <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <FilterInput
@@ -462,13 +541,33 @@ export default function EstoqueVirtual() {
               {cabecalho("cod", "Código", "w-[110px]")}
               {cabecalho("nome", "Produto", "")}
               {cabecalho("situacao", "Situação", "w-[130px]")}
-              {cabecalho("contabil", "Contábil", "w-[90px]", true)}
-              {cabecalho("fisico", "Físico", "w-[90px]", true)}
-              {cabecalho("virtual", "Virtual", "w-[90px]", true)}
-              {cabecalho("tempo", "Tempo de estoque", "w-[130px]", true)}
-              {cabecalho("chegada", "Chegada", "w-[90px]")}
+              {cabecalho("saude", "Saúde", "w-[64px] text-center")}
+              {visao === "estoque" && <>
+                {cabecalho("contabil", "Contábil", "w-[84px]", true)}
+                {cabecalho("fisico", "Físico", "w-[84px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[84px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[84px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[96px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
+                {cabecalho("tempo", "Tempo de estoque", "w-[124px]", true)}
+              </>}
+              {visao === "valor" && <>
+                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
+                {cabecalho("reservado", "Reservado", "w-[88px]", true)}
+                {cabecalho("ticket", "Ticket médio", "w-[104px]", true)}
+                {cabecalho("vcusto", "Valor custo", "w-[124px]", true)}
+                {cabecalho("vvenda", "Valor venda", "w-[124px]", true)}
+                {cabecalho("vemp", "Valor empenhado", "w-[132px]", true)}
+              </>}
+              {visao === "suprimento" && <>
+                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
+                {cabecalho("tempo", "Tempo de estoque", "w-[124px]", true)}
+                {cabecalho("transito", "Em trânsito", "w-[96px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[90px]")}
+              </>}
             </TableRow>
           </TableHeader>
+          <TooltipProvider delayDuration={150}>
           <TableBody>
             {pageItems.map((p) => (
               <TableRow
@@ -490,18 +589,53 @@ export default function EstoqueVirtual() {
                     </Badge>
                   ) : <span className="text-muted-foreground">—</span>}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
-                <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
-                <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {p.tempo == null ? <span className="text-muted-foreground">—</span> : formatNum(p.tempo)}
+                <TableCell className="text-center">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
+                        aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
+                      />
+                    </TooltipTrigger>
+                    <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
+                  </Tooltip>
                 </TableCell>
-                <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
-                  {formatDataCurta(p.eta_embarque)}
-                </TableCell>
+                {visao === "estoque" && <>
+                  <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numOuTraco(p.real_xpm)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numOuTraco(p.real_site)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", p.divergencia !== 0 && "font-medium text-destructive")}>
+                    {p.divergencia === 0 ? <span className="text-muted-foreground">—</span> : `${p.divergencia > 0 ? "+" : "−"}${formatNum(Math.abs(p.divergencia))}`}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
+                </>}
+                {visao === "valor" && <>
+                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatNum(p.reservado)}</TableCell>
+                  <TableCell
+                    className={cn("text-right tabular-nums", p.fonte_ticket === "tabela" && "text-muted-foreground")}
+                    title={p.fonte_ticket === "tabela" ? "sem venda em 90 dias — preço de atacado" : undefined}
+                  >
+                    {p.ticket == null ? "—" : formatBRL(p.ticket)}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{formatBRL(p.valor_custo)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-medium">{formatBRL(p.valor_venda)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatBRL(p.valor_empenhado)}</TableCell>
+                </>}
+                {visao === "suprimento" && <>
+                  <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
+                  <TableCell className={cn("tabular-nums text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
+                    {formatDataCurta(p.eta_embarque)}
+                  </TableCell>
+                </>}
               </TableRow>
             ))}
           </TableBody>
+          </TooltipProvider>
         </Table>
         <RodapePaginacao
           total={ordenados.length}
@@ -580,6 +714,10 @@ export default function EstoqueVirtual() {
       />
     </PageShell>
   );
+}
+
+function numOuTraco(v: number | null | undefined) {
+  return v == null ? <span className="text-muted-foreground">—</span> : formatNum(v);
 }
 
 function formatDataCurta(iso: string | null | undefined) {

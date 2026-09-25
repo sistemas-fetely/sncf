@@ -80136,19 +80136,26 @@ export type Database = {
           contagem_em_dia: boolean | null
           cor_nome: string | null
           custo_unitario: number | null
+          divergencia_real: number | null
           em_transito: number | null
           eta_embarque: string | null
           exige_contagem: boolean | null
           fase: string | null
           fisico: number | null
+          fonte_ticket: string | null
           furo: number | null
           janela_dias: number | null
           nome_comercial: string | null
+          real_centro: number | null
           reservado: number | null
+          saude: string | null
           situacao: string | null
           sku: string | null
           tempo_estoque_dias: number | null
+          ticket_medio: number | null
           valor_custo: number | null
+          valor_empenhado: number | null
+          valor_venda: number | null
           vendas_janela: number | null
           virtual: number | null
         }
