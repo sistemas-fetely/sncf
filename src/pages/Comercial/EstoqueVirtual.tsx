@@ -620,7 +620,7 @@ export default function EstoqueVirtual() {
                 {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
                 {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
                 {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[100px] min-[1440px]:w-[132px]", true)}
+                {cabecalho("vemp", "Valor empenhado", "w-[120px] min-[1440px]:w-[132px]", true)}
               </>}
             </TableRow>
           </TableHeader>
