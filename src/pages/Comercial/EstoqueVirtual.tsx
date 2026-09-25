@@ -744,6 +744,24 @@ export default function EstoqueVirtual() {
             ["--fila-topo-colado-2" as string]: visao === "centros" ? `${alturaGrupo}px` : undefined,
           }}
         >
+          {/* FIX-COLGROUP-CENTROS (25/09/2026): com cabeçalho em dois níveis, o
+              navegador calcula as larguras pela 1ª linha do thead (colSpan=2 sem
+              largura) e divide tudo por igual. O colgroup dita as larguras na
+              visão Centros; Produto fica sem largura e leva o espaço restante. */}
+          {visao === "centros" && (
+            <colgroup>
+              <col style={{ width: 64 }} />
+              <col />
+              <col style={{ width: 60 }} />
+              <col style={{ width: 44 }} />
+              {centros.map((c) => (
+                <Fragment key={c.codigo}>
+                  <col style={{ width: 60 }} />
+                  <col style={{ width: 44 }} />
+                </Fragment>
+              ))}
+            </colgroup>
+          )}
           <TableHeader>
             {visao === "centros" ? (
               <>
@@ -754,7 +772,7 @@ export default function EstoqueVirtual() {
                     rowSpan={2}
                     dir={sort?.column === "cod" ? sort.direction : null}
                     onOrdenar={() => ordenarColuna("cod")}
-                    className="font-medium w-[59px] min-[1440px]:w-[76px] align-bottom"
+                    className="font-medium align-bottom"
                   />
                   <CabecalhoColuna
                     rotulo="Produto"
@@ -777,12 +795,12 @@ export default function EstoqueVirtual() {
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
-                  {cabecalho("total", "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
-                  {cabecalho("giro_total", "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
+                  {cabecalho("total", "Qtd", "!px-1.5 border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
-                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
                 </TableRow>
