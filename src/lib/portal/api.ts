@@ -81,3 +81,48 @@ export function fmtCompetencia(v: string | null | undefined): string {
   if (isNaN(d.getTime())) return String(v);
   return d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
 }
+
+/**
+ * Envio da nota fiscal pelo representante (multipart).
+ * Vai para a edge `portal-documento-upload`, que valida a sessão com service role.
+ */
+export async function enviarDocumentoPortal(dados: {
+  sessao: string;
+  extrato_id: string;
+  tipo: "nf_servico" | "rpa";
+  numero: string;
+  data_emissao: string;
+  valor: string;
+  arquivo: File;
+}): Promise<any> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/portal-documento-upload`;
+  const form = new FormData();
+  form.append("sessao", dados.sessao);
+  form.append("extrato_id", dados.extrato_id);
+  form.append("tipo", dados.tipo);
+  form.append("numero", dados.numero);
+  form.append("data_emissao", dados.data_emissao);
+  form.append("valor", dados.valor);
+  form.append("arquivo", dados.arquivo, dados.arquivo.name);
+
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: { apikey: ANON, Authorization: `Bearer ${ANON}` },
+      body: form,
+    });
+  } catch {
+    throw new Error(ERRO_REDE);
+  }
+  let json: any = null;
+  try {
+    json = await resp.json();
+  } catch {
+    throw new Error(ERRO_REDE);
+  }
+  if (!resp.ok || json?.ok === false) {
+    throw new Error(json?.erro || json?.error || json?.mensagem || ERRO_REDE);
+  }
+  return json;
+}
