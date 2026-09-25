@@ -56,6 +56,23 @@ type FormValues = z.infer<typeof schema>;
 
 const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", quantidade: 1 }] };
 
+/** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
+function useCentrosDestino() {
+  return useQuery({
+    queryKey: ["centros-destino-transferencia"],
+    queryFn: async (): Promise<CentroDestino[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, rotulo_curto, nome")
+        .eq("ativo", true)
+        .in("tipo", ["armazem", "showroom"])
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as CentroDestino[];
+    },
+  });
+}
+
 interface TransferenciaRow {
   id: string;
   id_externo: string | null;
