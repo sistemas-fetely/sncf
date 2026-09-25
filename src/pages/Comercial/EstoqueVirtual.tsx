@@ -752,14 +752,16 @@ export default function EstoqueVirtual() {
             <colgroup>
               <col style={{ width: 64 }} />
               <col />
-              <col style={{ width: 60 }} />
-              <col style={{ width: 44 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 52 }} />
               {centros.map((c) => (
                 <Fragment key={c.codigo}>
-                  <col style={{ width: 60 }} />
-                  <col style={{ width: 44 }} />
+                  <col style={{ width: 72 }} />
+                  <col style={{ width: 52 }} />
                 </Fragment>
               ))}
+              {/* respiro entre a última coluna de Giro e a borda direita */}
+              <col style={{ width: 12 }} />
             </colgroup>
           )}
           <TableHeader>
@@ -792,6 +794,7 @@ export default function EstoqueVirtual() {
                       {c.rotulo_curto ?? c.codigo}
                     </TableHead>
                   ))}
+                  <TableHead aria-hidden className="p-0" />
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
@@ -803,6 +806,7 @@ export default function EstoqueVirtual() {
                       {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
+                  <TableHead aria-hidden className="p-0" />
                 </TableRow>
               </>
             ) : (
@@ -921,6 +925,7 @@ export default function EstoqueVirtual() {
                       </Fragment>
                     );
                   })}
+                  <TableCell aria-hidden className="!px-0" />
                 </>}
               </TableRow>
             ))}
