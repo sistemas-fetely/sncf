@@ -132,11 +132,6 @@ function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean })
   );
 }
 
-function fmtCompetencia(c: unknown) {
-  const m = String(c ?? "").match(/(\d{4})-(\d{2})/);
-  return m ? `${m[2]}/${m[1]}` : String(c ?? "");
-}
-
 function SituacaoFinanceira({ k }: { k: Linha }) {
   const destaque = (l: string, val: unknown) => (
     <div><div className="text-xs text-muted-foreground">{l}</div>
