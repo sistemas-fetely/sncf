@@ -54,7 +54,7 @@ const NotFound = lazy(() => import("@/pages/NotFound"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const SlaOperacao = lazy(() => import("@/pages/parametros/SlaOperacao"));
 const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
-const ContratoPJDetalhe = lazy(() => import("@/pages/ContratoPJDetalhe"));
+const RedirecionarContratoPJ = lazy(() => import("@/pages/pessoas/RedirecionarContratoPJ"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
 const NotaFiscalDetalhe = lazy(() => import("@/pages/NotaFiscalDetalhe"));
@@ -734,9 +734,10 @@ const App = () => (
                 } />
                 {/* MUNDO MORTO (25/09/2026): cadastro manual PJ fora do módulo Pessoas. Vínculo PJ novo nasce em /pessoas/novo. */}
                 <Route path="/contratos-pj/novo-manual" element={<Navigate to="/pessoas/novo" replace />} />
+                {/* MUNDO MORTO (25/09/2026): contratos_pj somente leitura; ficha oficial = vínculo em /pessoas */}
                 <Route path="/contratos-pj/:id" element={
                   <ProtectedRoute>
-                    <ContratoPJDetalhe />
+                    <RedirecionarContratoPJ />
                   </ProtectedRoute>
                 } />
                 <Route path="/notas-fiscais" element={
