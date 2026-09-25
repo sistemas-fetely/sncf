@@ -772,7 +772,7 @@ export default function EstoqueVirtual() {
                     rowSpan={2}
                     dir={sort?.column === "cod" ? sort.direction : null}
                     onOrdenar={() => ordenarColuna("cod")}
-                    className="font-medium w-[59px] min-[1440px]:w-[76px] align-bottom"
+                    className="font-medium align-bottom"
                   />
                   <CabecalhoColuna
                     rotulo="Produto"
