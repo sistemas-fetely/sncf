@@ -102,6 +102,16 @@ serve(async (req) => {
       return json({ ok: true, tipo: "registrar_pi", resultado: j.resultado ?? j });
     }
 
+    // Guarda de permissao: so o modo "mudar fase" exige acao.produto_promover_fase;
+    // o branch registrar_pi acima continua livre.
+    const { data: pode } = await supabase.rpc("usuario_tem_acao", {
+      p_slug: "acao.produto_promover_fase",
+      p_user_id: userData.user.id,
+    });
+    if (!pode) {
+      return json({ ok: false, erro: "Sem permissão para esta ação (acao.produto_promover_fase)." }, 403);
+    }
+
     const sku = typeof body?.sku === "string" ? body.sku.trim() : "";
     const faseDestino = typeof body?.fase_destino === "string" ? body.fase_destino.trim() : "";
     const confirmarSaldo = body?.confirmar_saldo === true;
@@ -249,10 +259,17 @@ serve(async (req) => {
 
     console.log("[promover-fase-produto] FOP aceitou", sku, faseDestino);
 
-    // 8) espelho otimista — o sync das 03:00 reconcilia; o FOP é o mestre
+    // 8) espelho otimista — o sync das 03:00 reconcilia; o FOP é o mestre.
+    //    fase_alterada_por/motivo sao "carimbo de passagem": o trigger
+    //    trg_produto_fase_evento le, grava o evento em produto_fase_evento e zera.
     const { error: errEspelho } = await (supabase as any)
       .from("sncf_produtos")
-      .update({ fase: faseDestino })
+      .update({
+        fase: faseDestino,
+        fase_alterada_por: userData.user.id,
+        fase_alterada_motivo:
+          typeof body?.motivo === "string" && body.motivo.trim() ? body.motivo.trim() : null,
+      })
       .eq("sku", sku);
     if (errEspelho) {
       console.error("[promover-fase-produto] falha no espelho local", errEspelho);
