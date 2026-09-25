@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export default function RedirecionarContratoPJ() {
   const { id } = useParams<{ id: string }>();
+  const avisou = useRef(false);
 
   const vinculoQ = useQuery({
     queryKey: ["redirecionar-contrato-pj", id],
@@ -29,13 +30,18 @@ export default function RedirecionarContratoPJ() {
   });
 
   useEffect(() => {
+    if (avisou.current) return;
     if (vinculoQ.isError) {
       // FAIL-LOUD: erro real (inclusive RLS negando) vai com a mensagem do banco.
+      avisou.current = true;
       toast.error((vinculoQ.error as Error)?.message ?? "Erro ao localizar o vínculo do contrato.");
+    } else if (!vinculoQ.isLoading && !vinculoQ.data?.pessoa_id) {
+      avisou.current = true;
+      toast.info("Este contrato PJ antigo foi migrado para Pessoas.");
     }
-  }, [vinculoQ.isError, vinculoQ.error]);
+  }, [vinculoQ.isLoading, vinculoQ.isError, vinculoQ.data, vinculoQ.error]);
 
-  if (vinculoQ.isLoading || vinculoQ.isFetching) {
+  if (vinculoQ.isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -47,9 +53,5 @@ export default function RedirecionarContratoPJ() {
     return <Navigate to={`/pessoas/${vinculoQ.data.pessoa_id}/editar`} replace />;
   }
 
-  // Não achou vínculo (ou erro já avisado acima).
-  if (!vinculoQ.isError) {
-    toast.info("Este contrato PJ antigo foi migrado para Pessoas.");
-  }
   return <Navigate to="/pessoas?tipo=PJ" replace />;
 }
