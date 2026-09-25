@@ -9,6 +9,9 @@ import { cn } from "@/lib/utils";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../comissoes/fmt";
 import { TIPOS_ESTORNO } from "../comissoes/Estornos";
 import { lerTudo, type Linha } from "./dados";
+import {
+  dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
+} from "./extratoCompetencias";
 
 const EMPRESA = "Fetély Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48";
 const NOTA_LEGAL =
@@ -389,7 +392,7 @@ const ESTILOS_IMPRESSAO = `
 
 export default function RepresentanteExtratoImpressao() {
   const { vendedorId = "" } = useParams();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const competenciaParam = params.get("competencia");
   const competencia = competenciaParam ?? hojeISO().slice(0, 7);
   const competenciaValida = RE_COMPETENCIA.test(competencia);
@@ -406,6 +409,15 @@ export default function RepresentanteExtratoImpressao() {
     queryFn: () => lerTudo("vw_representante_serie_mensal", (q) => q.eq("vendedor_id", vendedorId), { col: "mes" }),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
+  const extratosQ = useQuery({
+    queryKey: ["representante-extratos-fechados", vendedorId],
+    queryFn: () => lerExtratosDoRepresentante(vendedorId),
+    enabled: Boolean(vendedorId),
+  });
+  const extrato = extratosQ.data ? extratoDaCompetencia(extratosQ.data, competencia) : undefined;
+  const fechada = Boolean(extrato);
+  const aoVivo = extratosQ.isSuccess && !fechada;
+
   const detalhesQ = useQuery({
     queryKey: ["representante-extrato-competencia", vendedorId, competencia],
     queryFn: () => lerTudo(
@@ -413,7 +425,7 @@ export default function RepresentanteExtratoImpressao() {
       (q) => q.eq("vendedor_id", vendedorId).gte("competencia", inicio).lt("competencia", fim),
       { col: "nf_emissao", asc: true },
     ),
-    enabled: Boolean(vendedorId) && competenciaValida,
+    enabled: Boolean(vendedorId) && competenciaValida && aoVivo,
   });
   const apuracoes = useMemo(
     () => [...new Set((detalhesQ.data ?? []).map((linha) => String(linha.apuracao_id ?? "")).filter(Boolean))],
@@ -432,14 +444,13 @@ export default function RepresentanteExtratoImpressao() {
       if (error) throw error;
       return (data ?? []) as Linha[];
     },
-    enabled: detalhesQ.isSuccess,
+    enabled: detalhesQ.isSuccess && aoVivo,
   });
 
-  const carregando = representanteQ.isLoading || serieQ.isLoading || detalhesQ.isLoading || estornosQ.isLoading;
-  const erro = representanteQ.error || serieQ.error || detalhesQ.error || estornosQ.error;
+  const carregando = representanteQ.isLoading || serieQ.isLoading || extratosQ.isLoading
+    || (aoVivo && (detalhesQ.isLoading || estornosQ.isLoading));
+  const erro = representanteQ.error || serieQ.error || extratosQ.error || detalhesQ.error || estornosQ.error;
   const representante = representanteQ.data?.[0];
-  const pronto = competenciaValida && !carregando && !erro && Boolean(representante);
-
 
   if (!competenciaValida) {
     return <div className="flex min-h-screen items-center justify-center bg-background p-8 text-destructive-strong">Competência inválida. Use o formato AAAA-MM.</div>;
@@ -454,12 +465,44 @@ export default function RepresentanteExtratoImpressao() {
     return <div className="flex min-h-screen items-center justify-center bg-background p-8 text-muted-foreground">Representante não encontrado.</div>;
   }
 
+  const selo = extrato
+    ? `Extrato fechado em ${fmtData(extrato.fechado_em)}`
+    : `Prévia — sujeita a alteração até o fechamento em ${dataDoFechamento(competencia)}`;
+  const opcoes = opcoesCompetencia(extratosQ.data ?? []);
+
   return (
     <main className="documento-extrato">
       <style>{ESTILOS_IMPRESSAO}</style>
-        <BarraImpressao />
+      <BarraImpressao />
+      <div className="seletor-competencia mx-auto mb-3 flex w-[210mm] max-w-full items-center gap-2 px-4 text-sm">
+        <label htmlFor="competencia-extrato" className="text-muted-foreground">Competência</label>
+        <select
+          id="competencia-extrato"
+          className="h-9 rounded-md border border-input bg-background px-2"
+          value={competencia}
+          onChange={(e) => setParams((p) => {
+            const n = new URLSearchParams(p);
+            n.set("competencia", e.target.value);
+            return n;
+          }, { replace: true })}
+        >
+          {opcoes.map((c) => (
+            <option key={c} value={c}>{rotuloCompetencia(c)}</option>
+          ))}
+        </select>
+        <span className="text-muted-foreground">{selo}</span>
+      </div>
       <PaginaResumo representante={representante} serie={serieQ.data ?? []} />
-      <PaginaExtrato competencia={competencia} detalhes={detalhesQ.data ?? []} estornos={estornosQ.data ?? []} />
+      {extrato ? (
+        <PaginaExtratoCongelado
+          competencia={competencia}
+          selo={selo}
+          itens={Array.isArray(extrato.detalhe) ? extrato.detalhe : []}
+          valorTotal={numero(extrato.valor_total)}
+        />
+      ) : (
+        <PaginaExtrato competencia={competencia} selo={selo} detalhes={detalhesQ.data ?? []} estornos={estornosQ.data ?? []} />
+      )}
     </main>
   );
 }
