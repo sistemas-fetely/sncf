@@ -16,6 +16,7 @@ import { PortalPainel } from "@/components/portal/PortalPainel";
  */
 export default function PortalRepresentante() {
   const [sessao, setSessao] = useState<string | null>(null);
+  const [extratoId, setExtratoId] = useState<string | null>(null);
 
   // Token da URL, lido uma única vez e imediatamente apagado do histórico.
   const tokenRef = useRef<string | null>(null);
@@ -55,6 +56,8 @@ export default function PortalRepresentante() {
           setErroAbrir(data?.erro || "Este link não é mais válido.");
           return;
         }
+        // Link vindo do e-mail do extrato: abre direto no envio da nota desse mês.
+        setExtratoId(typeof data?.extrato_id === "string" ? data.extrato_id : null);
         setSessao(s);
       })
       .catch((e) => setErroAbrir(e instanceof Error ? e.message : String(e)))
@@ -201,6 +204,7 @@ export default function PortalRepresentante() {
           <PortalPainel
             sessao={sessao}
             painel={painel}
+            extratoId={extratoId}
             onRecarregar={() => void carregarPainel(sessao)}
             onSair={sair}
           />

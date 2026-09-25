@@ -20,6 +20,9 @@ import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtPct2, fmtInt, SITUACAO, type Linha } from "./dados";
 import { BadgeApto, Dica, prontidao } from "./RepresentantesPainel";
+import {
+  dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
+} from "./extratoCompetencias";
 
 function useFailLoud(err: unknown, oque: string) {
   useEffect(() => {
@@ -324,6 +327,11 @@ export default function RepresentanteFicha() {
     queryKey: ["vendedor-cadastro", vendedorId],
     queryFn: () => lerTudo("vendedores", (x) => x.eq("id", vendedorId)),
   });
+  const eq = useQuery({
+    queryKey: ["representante-extratos-fechados", vendedorId],
+    queryFn: () => lerExtratosDoRepresentante(vendedorId),
+  });
+  useFailLoud(eq.error, "competências do extrato");
   useFailLoud(vq.error, "cadastro do representante");
   useFailLoud(kq.error, "indicadores do representante");
   useFailLoud(sq.error, "série mensal");
@@ -343,7 +351,15 @@ export default function RepresentanteFicha() {
     );
 
   const periodo = `${fmtData(k.primeira_venda)} → ${fmtData(k.ultima_venda)}`;
-  const competencia = sp.get("competencia");
+  const extratos = eq.data ?? [];
+  const opcoes = opcoesCompetencia(extratos);
+  const competencia = sp.get("competencia") ?? opcoes[0] ?? "";
+  const extratoSel = extratoDaCompetencia(extratos, competencia);
+  const seloCompetencia = extratoSel
+    ? `Extrato fechado em ${fmtData(extratoSel.fechado_em)}`
+    : competencia
+      ? `Prévia — sujeita a alteração até o fechamento em ${dataDoFechamento(competencia)}`
+      : "";
   const parametrosImpressao = new URLSearchParams();
   if (competencia) parametrosImpressao.set("competencia", competencia);
   const rotaImpressao = `/comercial/representantes/${vendedorId}/extrato-impressao?${parametrosImpressao.toString()}`;
@@ -361,6 +377,17 @@ export default function RepresentanteFicha() {
         <Badge variant="outline" className="capitalize">{k.tipo}</Badge>
         <BadgeApto apto={!!k.apto_a_pagamento} />
         <div className="flex-1" />
+        <span className="text-xs text-muted-foreground">{seloCompetencia}</span>
+        <select
+          aria-label="Competência do extrato"
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+          value={competencia}
+          onChange={(e) => setSp((p) => { p.set("competencia", e.target.value); return p; }, { replace: true })}
+        >
+          {opcoes.map((c) => (
+            <option key={c} value={c}>{fmtCompetencia(`${c}-01`)}</option>
+          ))}
+        </select>
         <Button asChild size="sm" variant="outline">
           <Link to={rotaImpressao}><Printer className="h-4 w-4 mr-1" />Baixar PDF</Link>
         </Button>

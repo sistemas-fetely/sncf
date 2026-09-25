@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Lock, FileText, Mail } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,9 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
   );
 }
 
-/* ---------------- Extratos fechados + gerar CPR ---------------- */
+/* ---------------- Extratos fechados (somente leitura) ----------------
+   Enviar e-mail e gerar título a pagar vivem num único lugar:
+   Representantes · Ciclo mensal. Aqui só se consulta o que já foi congelado. */
 interface ExtratoFechado {
   id: string; vendedor_id: string; competencia: string; pagar_ate: string | null; valor_total: number;
   liberacoes: number; notas: number; cpr_id: string | null; cpr_em: string | null; representante: string;
@@ -81,34 +83,6 @@ interface ExtratoFechado {
 }
 
 export function ExtratosFechados() {
-  const qc = useQueryClient();
-  const [confirmar, setConfirmar] = useState<ExtratoFechado | null>(null);
-  const [rodando, setRodando] = useState(false);
-  const [falha, setFalha] = useState<{ erro: string; acao?: string; vendedor_id: string } | null>(null);
-  const [enviar, setEnviar] = useState<ExtratoFechado | null>(null);
-  const [enviando, setEnviando] = useState(false);
-
-  async function enviarEmail() {
-    if (!enviar) return;
-    setEnviando(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("enviar-extrato-comissao", { body: { extrato_id: enviar.id } });
-      if (error) {
-        let det = formatError(error);
-        try { const t = await (error as any).context?.text?.(); if (t) det = JSON.parse(t).error ?? t; } catch { /* mantém */ }
-        throw new Error(det);
-      }
-      if (!data?.ok) throw new Error(data?.error ?? JSON.stringify(data));
-      toast.success(`Extrato enviado para ${data.enviado_para}`);
-      await qc.invalidateQueries({ queryKey: ["comissao-extratos-fechados"] });
-      setEnviar(null);
-    } catch (e) {
-      toast.error(`Falha ao enviar extrato: ${formatError(e)}`);
-    } finally {
-      setEnviando(false);
-    }
-  }
-
   const q = useQuery({
     queryKey: ["comissao-extratos-fechados"],
     queryFn: async (): Promise<ExtratoFechado[]> => {
@@ -129,35 +103,14 @@ export function ExtratosFechados() {
     },
   });
 
-  async function gerar() {
-    if (!confirmar) return;
-    const alvo = confirmar;
-    setRodando(true);
-    try {
-      const r = await rpc("fn_comissao_gerar_cpr", { p_extrato_id: alvo.id });
-      if (r.ok !== true) {
-        setConfirmar(null);
-        setFalha({ erro: r.erro ?? JSON.stringify(r), acao: r.acao, vendedor_id: alvo.vendedor_id });
-        return;
-      }
-      toast.success(`Título a pagar gerado: ${fmtBRL(r.valor ?? alvo.valor_total)}`, {
-        description: `Vencimento ${fmtData(r.vencimento ?? r.data_vencimento ?? alvo.pagar_ate)}`,
-      });
-      await Promise.all([
-        qc.invalidateQueries({ queryKey: ["comissao-extratos-fechados"] }),
-        qc.invalidateQueries({ queryKey: ["comissao-extrato"] }),
-      ]);
-      setConfirmar(null);
-    } catch (e) {
-      toast.error(`Falha ao gerar título: ${formatError(e)}`);
-    } finally {
-      setRodando(false);
-    }
-  }
-
   return (
     <Card>
-      <CardHeader><CardTitle className="text-base">Extratos fechados</CardTitle></CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between gap-3">
+        <CardTitle className="text-base">Extratos fechados</CardTitle>
+        <Link className="text-sm text-gold underline" to="/comercial/representantes?aba=ciclo">
+          Operar o ciclo do mês → Representantes · Ciclo mensal
+        </Link>
+      </CardHeader>
       <CardContent>
         {q.isError ? (
           <Alert variant="destructive"><AlertDescription>Falha ao carregar extratos fechados: {formatError(q.error)}</AlertDescription></Alert>
@@ -192,21 +145,10 @@ export function ExtratosFechados() {
                         </Link>
                         <span className="text-muted-foreground">{fmtData(l.cpr_em)}</span>
                       </div>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => setConfirmar(l)}>
-                        <FileText className="h-4 w-4" />Gerar título a pagar
-                      </Button>
-                    )}
+                    ) : <span className="text-xs text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1 text-xs">
-                      {l.enviado_em && (
-                        <span className="text-muted-foreground">Enviado em {fmtData(l.enviado_em)} para {l.enviado_para}</span>
-                      )}
-                      <Button size="sm" variant="outline" onClick={() => setEnviar(l)}>
-                        <Mail className="h-4 w-4" />{l.enviado_em ? "Reenviar" : "Enviar por e-mail"}
-                      </Button>
-                    </div>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {l.enviado_em ? `Enviado em ${fmtData(l.enviado_em)} para ${l.enviado_para}` : "—"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -214,49 +156,6 @@ export function ExtratosFechados() {
           </Table>
         )}
       </CardContent>
-
-      <Dialog open={!!enviar} onOpenChange={(o) => !o && !enviando && setEnviar(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{enviar?.enviado_em ? "Reenviar extrato por e-mail?" : "Enviar extrato por e-mail?"}</DialogTitle>
-            <DialogDescription>
-              {enviar && `${enviar.representante} · competência ${fmtCompetencia(enviar.competencia)} · ${fmtBRL(enviar.valor_total)}. Vai para o e-mail de contato cadastrado do representante.`}
-              {enviar?.enviado_em && ` Já enviado em ${fmtData(enviar.enviado_em)} para ${enviar.enviado_para}.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEnviar(null)} disabled={enviando}>Cancelar</Button>
-            <Button onClick={enviarEmail} disabled={enviando}>{enviando && <Loader2 className="h-4 w-4 animate-spin" />}{enviar?.enviado_em ? "Reenviar" : "Enviar"}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!confirmar} onOpenChange={(o) => !o && !rodando && setConfirmar(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gerar título a pagar?</DialogTitle>
-            <DialogDescription>
-              {confirmar && `${confirmar.representante} · competência ${fmtCompetencia(confirmar.competencia)} · ${fmtBRL(confirmar.valor_total)} · pagar até ${fmtData(confirmar.pagar_ate)}. O lançamento entra em contas a pagar.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmar(null)} disabled={rodando}>Cancelar</Button>
-            <Button onClick={gerar} disabled={rodando}>{rodando && <Loader2 className="h-4 w-4 animate-spin" />}Gerar título</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={!!falha} onOpenChange={(o) => !o && setFalha(null)}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>O título não foi gerado</DialogTitle></DialogHeader>
-          <p className="text-sm text-destructive">{falha?.erro}</p>
-          {falha?.acao && <p className="text-sm"><span className="font-medium">O que fazer: </span>{falha.acao}</p>}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFalha(null)}>Fechar</Button>
-            {falha && <Button asChild><Link to={`/comercial/representantes/${falha.vendedor_id}`}>Abrir ficha do representante</Link></Button>}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }
