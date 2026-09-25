@@ -938,7 +938,8 @@ export default function FichaProduto() {
               </Button>
               <Button
                 onClick={() => faseAnterior && void mudarFase(faseAnterior.slug, motivoRegressao.trim())}
-                disabled={!faseAnterior || !motivoRegressao.trim() || promovendo}
+                disabled={!faseAnterior || !motivoRegressao.trim() || promovendo || semPermFase}
+                title={tituloPermFase}
               >
                 {promovendo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar
@@ -1061,6 +1062,8 @@ export default function FichaProduto() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
+                disabled={semPermFase}
+                title={tituloPermFase}
                 onClick={() => {
                   const pendente = confirmSaldo;
                   setConfirmSaldo(null);
