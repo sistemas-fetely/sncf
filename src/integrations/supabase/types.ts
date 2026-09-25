@@ -44107,6 +44107,7 @@ export type Database = {
           data_pedido: string
           desconto_celebra_valor: number
           desconto_pct: number | null
+          destino_centro_id: string | null
           destino_interno: string | null
           encerrado_em: string | null
           encerrado_motivo: string | null
@@ -44224,6 +44225,7 @@ export type Database = {
           data_pedido: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
+          destino_centro_id?: string | null
           destino_interno?: string | null
           encerrado_em?: string | null
           encerrado_motivo?: string | null
@@ -44341,6 +44343,7 @@ export type Database = {
           data_pedido?: string
           desconto_celebra_valor?: number
           desconto_pct?: number | null
+          destino_centro_id?: string | null
           destino_interno?: string | null
           encerrado_em?: string | null
           encerrado_motivo?: string | null
@@ -44776,6 +44779,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
@@ -110484,7 +110501,7 @@ export type Database = {
             Returns: Json
           }
       criar_pedido_transferencia: {
-        Args: { p_destino: string; p_itens: Json; p_observacao?: string }
+        Args: { p_destino_codigo: string; p_itens: Json; p_observacao?: string }
         Returns: Json
       }
       criar_portao_provisorio: {

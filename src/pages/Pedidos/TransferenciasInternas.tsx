@@ -1,4 +1,4 @@
-import { useFieldArray, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -14,6 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,6 +32,12 @@ import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { Loader2, PackageCheck } from "lucide-react";
+
+interface CentroDestino {
+  codigo: string;
+  rotulo_curto: string | null;
+  nome: string;
+}
 
 const schema = z.object({
   destino: z.string().trim().min(1, "Informe o destino da transferência"),
@@ -42,6 +55,23 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", quantidade: 1 }] };
+
+/** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
+function useCentrosDestino() {
+  return useQuery({
+    queryKey: ["centros-destino-transferencia"],
+    queryFn: async (): Promise<CentroDestino[]> => {
+      const { data, error } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo, rotulo_curto, nome")
+        .eq("ativo", true)
+        .in("tipo", ["armazem", "showroom"])
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as CentroDestino[];
+    },
+  });
+}
 
 interface TransferenciaRow {
   id: string;
@@ -74,6 +104,8 @@ export default function TransferenciasInternas() {
   });
   const { fields, append, remove } = useFieldArray({ control: form.control, name: "itens" });
 
+  const centrosQ = useCentrosDestino();
+
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
@@ -92,7 +124,7 @@ export default function TransferenciasInternas() {
     mutationFn: async (valores: FormValues) => {
       const { data, error } = await supabase.rpc("criar_pedido_transferencia", {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
-        p_destino: valores.destino.trim(),
+        p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
       });
       if (error) throw error;
@@ -135,10 +167,32 @@ export default function TransferenciasInternas() {
                 <label htmlFor="destino" className="text-sm font-medium">
                   Destino
                 </label>
-                <Input
-                  id="destino"
-                  placeholder="Site SP"
-                  {...form.register("destino")}
+                <Controller
+                  control={form.control}
+                  name="destino"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger
+                        id="destino"
+                        className={form.formState.errors.destino ? "border-destructive" : ""}
+                      >
+                        <SelectValue
+                          placeholder={
+                            centrosQ.isLoading
+                              ? "Carregando destinos…"
+                              : "Selecione o destino"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(centrosQ.data ?? []).map((c) => (
+                          <SelectItem key={c.codigo} value={c.codigo}>
+                            {c.rotulo_curto ?? c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
                 {form.formState.errors.destino && (
                   <p className="text-xs text-destructive">
