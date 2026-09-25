@@ -79,6 +79,10 @@ function dicaAReceber(r: Linha) {
   return `Tudo que ainda falta o representante receber pelos pedidos já vendidos. Direito adquirido (cliente já pagou): ${fmtBRL(Number(r.a_receber_direito_adquirido ?? 0))} · Depende do cliente pagar: ${fmtBRL(Number(r.a_receber_depende_do_cliente ?? 0))}`;
 }
 
+function dicaInadimplencia(r: Linha) {
+  return `Carteira vencida: ${fmtBRL(Number(r.carteira_vencida ?? 0))} em ${Number(r.parcelas_vencidas ?? 0)} parcela(s). Maior atraso: ${Number(r.maior_atraso_dias ?? 0)} dias. Comissão travada por inadimplência: ${fmtBRL(Number(r.comissao_travada_inadimplencia ?? 0))}.`;
+}
+
 const FILTROS = [
   ["todos", "Todos"], ["ativos", "Ativos"], ["com_venda", "Com venda"],
   ["prontos", "Prontos para pagamento"], ["pendencias", "Pendências"],
