@@ -407,6 +407,10 @@ const App = () => (
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
+                {/* Fatia 2 — Naturezas de Operação: transferência interna nasce nativamente
+                    (canal='interno'), ao lado da Casa dos Pedidos. Nó em sncf_navegacao
+                    (sops.transferencias_internas) — ativo/status são virados fora do front. */}
+                <Route path="/pedidos/transferencias" element={<TransferenciasInternas />} />
                 {/* /cliente = lista (porta); /cliente/:id = detalhe */}
                 <Route path="/cliente" element={<ClientesLista />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
