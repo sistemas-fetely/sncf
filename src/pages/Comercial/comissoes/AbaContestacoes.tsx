@@ -152,13 +152,15 @@ export function AbaContestacoes() {
           {ativas.length === 0 ? (
             <p className="p-6 text-center text-sm text-muted-foreground">Nenhuma contestação em aberto.</p>
           ) : (
-            <Table>
+            <Table containerClassName="max-h-[min(70vh,48rem)]">
               <TableHeader><TableRow>
-                <TableHead>Representante</TableHead><TableHead>NF</TableHead><TableHead>Pedido</TableHead>
-                <TableHead>Aberta em</TableHead><TableHead>Origem</TableHead><TableHead>Motivo</TableHead>
-                <TableHead className="text-right">Valor apurado</TableHead><TableHead className="text-right">Esperado</TableHead>
-                <TableHead className="text-right">Diferença</TableHead><TableHead>Status</TableHead><TableHead />
+                <TableHead className="sticky left-0 top-0 z-50 w-48 border-r bg-muted">Representante</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">NF</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted">Aberta em</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Origem</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Motivo</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Valor apurado</TableHead><TableHead className="sticky top-0 z-40 bg-muted text-right">Esperado</TableHead>
+                <TableHead className="sticky top-0 z-40 bg-muted text-right">Diferença</TableHead><TableHead className="sticky top-0 z-40 bg-muted">Status</TableHead><TableHead className="sticky top-0 z-40 bg-muted" />
               </TableRow></TableHeader>
+
               <TableBody>
                 {ativas.map((c) => {
                   const velha = new Date(c.aberta_em).getTime() < seteDias;
