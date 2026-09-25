@@ -4,6 +4,7 @@ import { ArrowDownCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -107,13 +108,13 @@ export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { p
 
   if ((!produtos.length && !sempreVisivel) || (!destino && !sempreVisivel)) return null;
 
-  const desabilitado = produtos.length === 0 || !destino || semPermFase;
-  const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : (!podeFase && !carregandoPermFase) ? "Sem permissão: acao.produto_promover_fase" : undefined;
+  const desabilitado = produtos.length === 0 || !destino;
+  const tituloDesabilitado = produtos.length === 0 ? "Nenhum selecionado em Ativo" : !destino ? "Carregando fase anterior" : undefined;
 
   return <>
-    <Button variant="outline" size="sm" onClick={() => { zerar(); setAberto(true); }} disabled={desabilitado} title={tituloDesabilitado}>
+    <BotaoGuardado slug="acao.produto_promover_fase" rotuloAcao="Voltar fase em lote" contexto={{ skus: produtos.map((p) => p.sku) }} variant="outline" size="sm" onClick={() => { zerar(); setAberto(true); }} disabled={desabilitado} title={tituloDesabilitado}>
       <ArrowDownCircle className="mr-2 h-4 w-4" />Voltar {produtos.length} ativos para {destino?.nome ?? "fase anterior"}
-    </Button>
+    </BotaoGuardado>
     {destino && <Dialog open={aberto} onOpenChange={o => { if (rodando) return; if (!o) { setAberto(false); zerar(); } }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>

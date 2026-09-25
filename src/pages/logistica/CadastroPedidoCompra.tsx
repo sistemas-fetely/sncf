@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -1120,12 +1121,14 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                           >
                             <Pencil className="h-4 w-4" aria-hidden="true" />
                           </Button>
-                          <Button
+                          <BotaoGuardado
+                            slug="acao.excluir_pedido_importacao"
+                            rotuloAcao="Excluir pedido de importação"
+                            contexto={{ pedido_id: p.id }}
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 text-destructive"
-                            title={tituloPermExcluir ?? "Excluir pedido"}
-                            disabled={semPermExcluir}
+                            title="Excluir pedido"
                             aria-label={`Excluir pedido ${p.numero_pedido}`}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1133,7 +1136,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                             }}
                           >
                             <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </Button>
+                          </BotaoGuardado>
                         </div>
                       </TableCell>
 
