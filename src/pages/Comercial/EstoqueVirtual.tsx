@@ -763,6 +763,7 @@ export default function EstoqueVirtual() {
                     onOrdenar={() => ordenarColuna("nome")}
                     className="font-medium align-bottom"
                   />
+                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
                   {centros.map((c) => (
                     <TableHead
                       key={c.codigo}
@@ -773,18 +774,17 @@ export default function EstoqueVirtual() {
                       {c.rotulo_curto ?? c.codigo}
                     </TableHead>
                   ))}
-                  <TableHead colSpan={2} className="border-l border-border/60 text-center font-semibold">Total</TableHead>
                 </TableRow>
                 {/* Nível 2: o par Qtd · Giro de cada centro */}
                 <TableRow className={LINHA_CABECALHO_COLADO_NIVEL2}>
+                  {cabecalho("total", "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
+                  {cabecalho("giro_total", "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                   {centros.map((c) => (
                     <Fragment key={c.codigo}>
-                      {cabecalho(`c:${c.codigo}`, "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                      {cabecalho(`g:${c.codigo}`, "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
+                      {cabecalho(`c:${c.codigo}`, "Qtd", "!px-1.5 w-[60px] border-l border-border/60", true)}
+                      {cabecalho(`g:${c.codigo}`, "Giro", "!px-1.5 w-[44px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "centro"))}
                     </Fragment>
                   ))}
-                  {cabecalho("total", "Qtd", "w-[64px] min-[1440px]:w-[76px] border-l border-border/60", true)}
-                  {cabecalho("giro_total", "Giro", "w-[48px] min-[1440px]:w-[56px] text-muted-foreground", true, tooltipGiro(cartoes.janela, "total"))}
                 </TableRow>
               </>
             ) : (
