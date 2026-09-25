@@ -138,6 +138,60 @@ function tempoDias(virtual: number, vendas: number, janela: number): number | nu
 }
 const chaveProduto = (l: LinhaCockpit) => l.sku ?? l.cod_cadastro ?? "";
 
+/**
+ * Cabeçalho ordenável com title no <th>: igual ao CabecalhoOrdenavel
+ * compartilhado, mas permite tooltip com o rótulo completo e garante que
+ * nenhum cabeçalho ultrapasse a própria coluna (table-fixed).
+ */
+function CabecalhoColuna({
+  rotulo, title, dir, onOrdenar, className, alinharDireita = false,
+}: {
+  rotulo: string;
+  /** Tooltip do cabeçalho; default = o próprio rótulo. */
+  title?: string;
+  dir: DirecaoOrdenacao | null;
+  onOrdenar: () => void;
+  className?: string;
+  alinharDireita?: boolean;
+}) {
+  return (
+    <TableHead
+      className={cn(
+        "overflow-hidden text-ellipsis whitespace-nowrap [&>button]:max-w-full [&>button]:truncate",
+        className,
+      )}
+      title={title ?? rotulo}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <button
+        type="button"
+        onClick={onOrdenar}
+        className={cn(
+          "group inline-flex items-center gap-1 transition-colors hover:text-foreground",
+          dir && "text-foreground",
+          alinharDireita && "w-full justify-end",
+        )}
+        title={
+          dir === "asc"
+            ? "Crescente — clique para inverter"
+            : dir === "desc"
+              ? "Decrescente — clique para voltar à ordenação padrão"
+              : `Ordenar por ${rotulo}`
+        }
+      >
+        {rotulo}
+        {dir === "asc" ? (
+          <ArrowUp className="h-3 w-3 shrink-0" />
+        ) : dir === "desc" ? (
+          <ArrowDown className="h-3 w-3 shrink-0" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" />
+        )}
+      </button>
+    </TableHead>
+  );
+}
+
 async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]): Promise<T[]> {
   const out: T[] = [];
   const TAM = 1000;
