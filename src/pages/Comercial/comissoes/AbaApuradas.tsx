@@ -127,24 +127,25 @@ export function AbaApuradas() {
               Nenhuma comissão apurada ainda. Use a aba “A apurar”.
             </p>
           ) : (
-            <Table>
+            <Table containerClassName="max-h-[min(70vh,48rem)]">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Representante</TableHead>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead>Competência</TableHead>
-                  <TableHead className="text-right">Base</TableHead>
-                  <TableHead className="text-right">Desconto</TableHead>
-                  <TableHead className="text-right">Ajuste</TableHead>
-                  <TableHead className="text-right">Valor devido</TableHead>
-                  <TableHead className="text-right">Liberado</TableHead>
-                  <TableHead className="text-right">Pendente</TableHead>
-                  <TableHead className="text-right">Parcelas</TableHead>
-                  <TableHead>Próx. vencimento</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="sticky left-0 top-0 z-50 w-48 border-r bg-muted">Representante</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted">NF</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted">Competência</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Base</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Desconto</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Ajuste</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Valor devido</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Liberado</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Pendente</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Parcelas</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted">Próx. vencimento</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted">Status</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {(q.data ?? []).map((p) => {
                   const vencidas = Number(p.vencidas ?? 0);
