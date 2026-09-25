@@ -21,9 +21,6 @@ import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtPct2, fmtInt, SITUACAO, type Linha } from "./dados";
 import { BadgeApto, Dica, prontidao } from "./RepresentantesPainel";
 
-const RODAPE =
-  "A comissão nasce na nota fiscal, sobre o valor da NF menos frete, e só é liberada quando o cliente paga. Pagamento até o dia 15 do mês subsequente à liquidação, contra NF de serviço (Lei 4.886/1965, art. 32).";
-
 function useFailLoud(err: unknown, oque: string) {
   useEffect(() => {
     if (err) toast.error(`Falha ao carregar ${oque}: ${formatError(err)}`);
@@ -302,16 +299,6 @@ function Pagamentos({ pags }: { pags: Linha[] }) {
   );
 }
 
-const PRINT_CSS = `
-@media print {
-  @page { size: A4 landscape; margin: 12mm; }
-  body * { visibility: hidden !important; }
-  #extrato-print, #extrato-print * { visibility: visible !important; }
-  #extrato-print { display: block !important; position: absolute; left: 0; top: 0; width: 100%; }
-  .quebra { page-break-before: always; break-before: page; }
-  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}`;
-
 export default function RepresentanteFicha() {
   const { vendedorId = "" } = useParams();
   const [sp, setSp] = useSearchParams();
@@ -356,11 +343,13 @@ export default function RepresentanteFicha() {
     );
 
   const periodo = `${fmtData(k.primeira_venda)} → ${fmtData(k.ultima_venda)}`;
-  const hoje = new Date().toLocaleDateString("pt-BR");
+  const competencia = sp.get("competencia");
+  const parametrosImpressao = new URLSearchParams({ imprimir: "1" });
+  if (competencia) parametrosImpressao.set("competencia", competencia);
+  const rotaImpressao = `/comercial/representantes/${vendedorId}/extrato-impressao?${parametrosImpressao.toString()}`;
 
   return (
     <PageShell>
-      <style>{PRINT_CSS}</style>
       <PageHeader
         breadcrumb={[{ label: "Comercial" }, { label: "Representantes", to: "/comercial/representantes" }, { label: k.representante }]}
         titulo={k.representante}
@@ -372,7 +361,9 @@ export default function RepresentanteFicha() {
         <Badge variant="outline" className="capitalize">{k.tipo}</Badge>
         <BadgeApto apto={!!k.apto_a_pagamento} />
         <div className="flex-1" />
-        <Button size="sm" variant="outline" onClick={() => window.print()}><Printer className="h-4 w-4 mr-1" />Baixar PDF</Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to={rotaImpressao} target="_blank" rel="noopener noreferrer"><Printer className="h-4 w-4 mr-1" />Baixar PDF</Link>
+        </Button>
       </div>
 
       <Tabs value={aba} onValueChange={(v) => setSp((p) => { p.set("aba", v); return p; }, { replace: true })} className="mt-4">
@@ -385,23 +376,6 @@ export default function RepresentanteFicha() {
         <TabsContent value="extrato" className="mt-4">{dq.isLoading ? "Carregando…" : <Extrato det={det} />}</TabsContent>
         <TabsContent value="pagamentos" className="mt-4">{pq.isLoading ? "Carregando…" : <Pagamentos pags={pags} />}</TabsContent>
       </Tabs>
-
-      {/* Versão de impressão: as três abas em sequência */}
-      <div id="extrato-print" className="hidden bg-background text-foreground">
-        <div className="mb-4 border-b pb-3">
-          <div className="text-xl font-medium">Fetély</div>
-          <div className="text-sm">Extrato do Representante</div>
-          <div className="text-lg">{k.representante}</div>
-          <div className="text-xs text-muted-foreground">Emitido em {hoje} · Relacionamento: {periodo}</div>
-        </div>
-        <h2 className="mb-2 font-medium">Resumo</h2>
-        <Resumo k={k} v={vq.data?.[0]} serie={serie} print />
-        <div className="quebra" /><h2 className="mb-2 font-medium">Extrato</h2>
-        <Extrato det={det} />
-        <div className="quebra" /><h2 className="mb-2 font-medium">Pagamentos</h2>
-        <Pagamentos pags={pags} />
-        <p className="mt-6 border-t pt-2 text-xs text-muted-foreground">{RODAPE}</p>
-      </div>
     </PageShell>
   );
 }
