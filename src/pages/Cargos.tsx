@@ -1,4 +1,3 @@
-import { useAuth } from "@/contexts/AuthContext";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAllCargos, type Cargo } from "@/hooks/useCargos";
@@ -25,6 +24,8 @@ import { Lock, Plus, Search, Pencil, Sparkles, MoreHorizontal, Trash2 } from "lu
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { BotaoGuardado, usePedirAcesso } from "@/components/acesso/BotaoGuardado";
+import { cn } from "@/lib/utils";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -197,14 +198,17 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
 
           {/* Botão editar */}
           <div className="pt-4 border-t">
-            <Button
+            <BotaoGuardado
+              slug="acao.cargo_editar"
+              rotuloAcao="Editar cargo"
+              contexto={{ cargo_id: cargo.id, cargo: cargo.nome }}
               className="w-full"
               variant="outline"
               onClick={() => navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}
             >
               <Pencil className="h-4 w-4 mr-2" />
               Editar cargo completo
-            </Button>
+            </BotaoGuardado>
           </div>
         </div>
       </SheetContent>
@@ -216,9 +220,8 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
 export default function Cargos() {
   const navigate = useNavigate();
   const { data: cargos, isLoading } = useAllCargos();
-  const { roles: authRoles } = useAuth();
-  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
-  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
+  const edGuard = usePedirAcesso("acao.cargo_editar", "Editar cargo");
+  const exGuard = usePedirAcesso("acao.cargo_editar", "Excluir cargo");
   const [search, setSearch] = useState("");
   const [filtroDepartamento, setFiltroDepartamento] = useState("todos");
   const [filtroTipo, setFiltroTipo] = useState("todos");
@@ -284,15 +287,13 @@ export default function Cargos() {
         estado="Plano de Posições e Remuneração"
         acoes={
           <div className="flex gap-2">
-            {(isSuperAdmin || isAdminRH) && (
-              <Button variant="outline" onClick={() => navigate("/cargos/enriquecimento")}>
-                <Sparkles className="h-4 w-4 mr-2" />
-                Enriquecer em lote
-              </Button>
-            )}
-            <Button className="gap-2" onClick={() => navigate("/pessoas/cargos/novo", { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}>
+            <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Enriquecer com IA" variant="outline" onClick={() => navigate("/cargos/enriquecimento")}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Enriquecer em lote
+            </BotaoGuardado>
+            <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Novo cargo" className="gap-2" onClick={() => navigate("/pessoas/cargos/novo", { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}>
               <Plus className="h-4 w-4" /> Novo Cargo
-            </Button>
+            </BotaoGuardado>
           </div>
         }
       />
@@ -390,17 +391,24 @@ export default function Cargos() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })} className="gap-2">
+                        <DropdownMenuItem
+                          onClick={() => { if (edGuard.permitido) navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } }); else void edGuard.pedir(); }}
+                          disabled={edGuard.carregando}
+                          aria-disabled={!edGuard.permitido}
+                          title={!edGuard.permitido && !edGuard.carregando ? "Sem permissão (acao.cargo_editar) — clique para pedir acesso" : undefined}
+                          className={cn("gap-2", !edGuard.permitido && "opacity-50 cursor-not-allowed")}
+                        >
                           <Pencil className="h-4 w-4" /> Editar
                         </DropdownMenuItem>
-                        {(isSuperAdmin || isAdminRH) && (
-                          <DropdownMenuItem
-                            onClick={() => { setDeleteTarget(cargo); setDeleteError(null); }}
-                            className="gap-2 text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" /> Excluir
-                          </DropdownMenuItem>
-                        )}
+                        <DropdownMenuItem
+                          onClick={() => { if (exGuard.permitido) { setDeleteTarget(cargo); setDeleteError(null); } else void exGuard.pedir(); }}
+                          disabled={exGuard.carregando}
+                          aria-disabled={!exGuard.permitido}
+                          title={!exGuard.permitido && !exGuard.carregando ? "Sem permissão (acao.cargo_editar) — clique para pedir acesso" : undefined}
+                          className={cn("gap-2 text-destructive focus:text-destructive", !exGuard.permitido && "opacity-50 cursor-not-allowed")}
+                        >
+                          <Trash2 className="h-4 w-4" /> Excluir
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

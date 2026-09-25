@@ -1,4 +1,3 @@
-import { useAuth } from "@/contexts/AuthContext";
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Pause, Play, RefreshCw } from "lucide-react";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -16,9 +16,6 @@ const DELAY_MS = 3500;
 export default function CargosEnriquecimento() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { roles: authRoles } = useAuth();
-  const isSuperAdmin = (authRoles ?? []).includes("super_admin");
-  const isAdminRH = (authRoles ?? []).includes("admin_rh") || (authRoles ?? []).includes("rh" as never);
   const pausadoRef = useRef(false);
 
   const { data: cargos = [] } = useAllCargos();
@@ -31,14 +28,6 @@ export default function CargosEnriquecimento() {
   const [totalFila, setTotalFila] = useState(0);
   const [erros, setErros] = useState<{ nome: string; erro: string }[]>([]);
   const [filtro, setFiltro] = useState<"todos" | "pendentes" | "enriquecidos" | "erros">("todos");
-
-  if (!isSuperAdmin && !isAdminRH) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <p className="text-muted-foreground">Acesso restrito a Super Admin e Admin RH.</p>
-      </div>
-    );
-  }
 
   function getStatusInicial(cargo: any): string {
     if (statusMap[cargo.id]) return statusMap[cargo.id];
@@ -233,10 +222,10 @@ export default function CargosEnriquecimento() {
       {/* Ações */}
       <div className="flex gap-3">
         {!rodando && !pausado && (
-          <Button onClick={iniciarEmLote} disabled={counts.pendentes === 0}>
+          <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Enriquecer com IA" onClick={iniciarEmLote} disabled={counts.pendentes === 0}>
             <Sparkles className="h-4 w-4 mr-2" />
             Enriquecer {counts.pendentes} cargo{counts.pendentes !== 1 ? "s" : ""} pendente{counts.pendentes !== 1 ? "s" : ""}
-          </Button>
+          </BotaoGuardado>
         )}
         {rodando && !pausado && (
           <Button variant="outline" onClick={pausar}>
@@ -244,12 +233,12 @@ export default function CargosEnriquecimento() {
           </Button>
         )}
         {pausado && (
-          <Button onClick={retomar}>
+          <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Enriquecer com IA" onClick={retomar}>
             <Play className="h-4 w-4 mr-2" /> Retomar
-          </Button>
+          </BotaoGuardado>
         )}
         {counts.erros > 0 && !rodando && (
-          <Button variant="outline" onClick={() => {
+          <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Enriquecer com IA" variant="outline" onClick={() => {
             setStatusMap(s => {
               const novo = { ...s };
               cargos.filter(c => s[c.id] === "erro").forEach(c => { novo[c.id] = "pendente"; });
@@ -258,7 +247,7 @@ export default function CargosEnriquecimento() {
           }}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Retentar {counts.erros} erro{counts.erros !== 1 ? "s" : ""}
-          </Button>
+          </BotaoGuardado>
         )}
       </div>
 
@@ -299,9 +288,9 @@ export default function CargosEnriquecimento() {
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className={cfg.className}>{cfg.label}</Badge>
                 {(st === "pendente" || st === "erro") && !rodando && (
-                  <Button variant="outline" size="sm" onClick={() => enriquecerUm(cargo)}>
+                  <BotaoGuardado slug="acao.cargo_editar" rotuloAcao="Enriquecer com IA" contexto={{ cargo_id: cargo.id, cargo: cargo.nome }} variant="outline" size="sm" onClick={() => enriquecerUm(cargo)}>
                     Enriquecer
-                  </Button>
+                  </BotaoGuardado>
                 )}
               </div>
             </div>

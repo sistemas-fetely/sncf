@@ -12,6 +12,7 @@ import { ArrowLeft, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { SelectDepartamentoHierarquico } from "@/components/shared/SelectDepartamentoHierarquico";
 import { useTemplates } from "@/hooks/useTemplates";
 import { mesclarFaixasSalariais } from "@/hooks/useCargos";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -300,7 +301,9 @@ export default function CargoForm() {
           <Label>Nome do cargo *</Label>
           <div className="flex gap-2">
             <Input value={form.nome} onChange={(e) => setField("nome", e.target.value)} placeholder="Ex: Analista Design Jr" className="flex-1" />
-            <Button
+            <BotaoGuardado
+              slug="acao.cargo_editar"
+              rotuloAcao="Enriquecer com IA"
               type="button"
               variant="outline"
               onClick={enriquecerComIA}
@@ -312,7 +315,7 @@ export default function CargoForm() {
               ) : (
                 <><Sparkles className="h-4 w-4 mr-2" />Enriquecer com IA</>
               )}
-            </Button>
+            </BotaoGuardado>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             Preencha o nome e o nível, depois clique em "Enriquecer com IA" para sugerir missão, skills e faixas salariais.
@@ -490,9 +493,9 @@ export default function CargoForm() {
           ))}
         </div>
 
-        <Button className="w-full" disabled={!form.nome || salvar.isPending} onClick={() => salvar.mutate()}>
+        <BotaoGuardado slug="acao.cargo_editar" rotuloAcao={isNovo ? "Novo cargo" : "Editar cargo"} contexto={isNovo ? undefined : { cargo_id: id }} className="w-full" disabled={!form.nome || salvar.isPending} onClick={() => salvar.mutate()}>
           {salvar.isPending ? "Salvando..." : isNovo ? "Criar cargo" : "Salvar alterações"}
-        </Button>
+        </BotaoGuardado>
       </div>
     </PageShell>
   );
