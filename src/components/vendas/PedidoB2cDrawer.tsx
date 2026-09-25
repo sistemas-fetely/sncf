@@ -7,18 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
 import { fmtDataHora } from "@/lib/data";
-import { useItensB2c, type PedidoB2cRow } from "@/hooks/vendas/useB2c";
+import { useItensB2c, usePedidoAlertaDim, type PedidoB2cRow, type AlertaDim } from "@/hooks/vendas/useB2c";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 
 function txt(v: string | null | undefined): string {
   return v && String(v).trim() !== "" ? String(v) : "—";
-}
-
-function farolEstado(farol: string | null): EstadoSelo {
-  if (farol === "no_prazo") return "success";
-  if (farol === "atencao") return "warning";
-  if (farol === "estourado") return "destructive";
-  return "muted";
 }
 
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
@@ -48,6 +41,27 @@ interface Props {
 export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { data: itens, isLoading } = useItensB2c(open ? pedido?.shopify_id ?? null : null);
+
+  // Mesmo padrao da ShopifyB2c: o codigo do alerta vira rotulo/severidade via a
+  // tabela pedido_alerta_dim — nunca mapa fixo no codigo.
+  const { data: alertasDim } = usePedidoAlertaDim();
+  const mapaAlerta = new Map<string, AlertaDim>();
+  (alertasDim ?? []).forEach((a) => mapaAlerta.set(a.codigo, a));
+  const severidadeDoAlerta = (codigo: string | null): EstadoSelo => {
+    if (!codigo) return "muted";
+    const s = mapaAlerta.get(codigo)?.severidade;
+    if (s === "success" || s === "warning" || s === "destructive" || s === "info" || s === "muted") {
+      return s;
+    }
+    return "muted";
+  };
+  const rotuloDoAlerta = (codigo: string | null): string => {
+    if (!codigo) return "";
+    const a = mapaAlerta.get(codigo);
+    if (a?.rotulo) return a.rotulo;
+    return codigo.replace(/_/g, " ");
+  };
+
 
   // quantity e o original da compra; current_quantity e o que vale apos edicao na
   // loja. Linhas legadas (current_quantity nulo) caem para quantity. Linha com
@@ -194,9 +208,9 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
             <div className="space-y-1">
               <Linha rotulo="XPM">{txt(pedido?.xpm_codigo)}</Linha>
               <Linha rotulo="Estágio XPM">{txt(pedido?.xpm_estagio)}</Linha>
-              <Linha rotulo="Farol SLA">
-                {pedido?.xpm_farol_sla ? (
-                  <Selo estado={farolEstado(pedido.xpm_farol_sla)}>{pedido.xpm_farol_sla}</Selo>
+              <Linha rotulo="Situação">
+                {pedido?.alerta ? (
+                  <Selo estado={severidadeDoAlerta(pedido.alerta)}>{rotuloDoAlerta(pedido.alerta)}</Selo>
                 ) : (
                   "—"
                 )}
