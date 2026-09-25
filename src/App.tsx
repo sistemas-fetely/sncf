@@ -213,6 +213,7 @@ const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
 const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
 const RepresentanteExtratoImpressao = lazy(() => import("@/pages/Comercial/representantes/RepresentanteExtratoImpressao"));
+const GerencialImpressao = lazy(() => import("@/pages/Comercial/comissoes/gerencial/GerencialImpressao"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -365,6 +366,10 @@ const App = () => (
             <Route
               path="/comercial/representantes/:vendedorId/extrato-impressao"
               element={<ProtectedRoute><RotaGate><RepresentanteExtratoImpressao /></RotaGate></ProtectedRoute>}
+            />
+            <Route
+              path="/comercial/comissoes/gerencial-impressao"
+              element={<ProtectedRoute><RotaGate><GerencialImpressao /></RotaGate></ProtectedRoute>}
             />
 
             {/* ═══════════════════════════════════════════════

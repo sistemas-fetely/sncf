@@ -74913,6 +74913,32 @@ export type Database = {
           },
         ]
       }
+      vw_comissao_gerencial_mensal: {
+        Row: {
+          base_faturada: number | null
+          comissao_apurada: number | null
+          comissao_liberada: number | null
+          competencia: string | null
+          contestacoes: number | null
+          contestacoes_procedentes: number | null
+          custo_comissao_pct: number | null
+          desconto_medio_pct: number | null
+          estornos: number | null
+          extratos_com_titulo: number | null
+          extratos_enviados: number | null
+          extratos_fechados: number | null
+          notas: number | null
+          notas_aguardando_diretoria: number | null
+          notas_bloqueadas: number | null
+          pagar_ate: string | null
+          representantes_ativos: number | null
+          representantes_com_liberacao: number | null
+          total_a_pagar: number | null
+          total_pago: number | null
+          valor_estornado: number | null
+        }
+        Relationships: []
+      }
       vw_comissao_posicao: {
         Row: {
           ajuste_pp: number | null
@@ -90832,14 +90858,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
