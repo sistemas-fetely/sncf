@@ -8,6 +8,7 @@ import { AbaApuradas } from "./AbaApuradas";
 import { AbaExtrato } from "./AbaExtrato";
 import { AbaContestacoes } from "./AbaContestacoes";
 import { AbaRegras } from "./AbaRegras";
+import { AbaGerencial } from "./gerencial/AbaGerencial";
 
 export default function ComissoesIndex() {
   const [aba, setAba] = useState("apurar");
@@ -28,6 +29,7 @@ export default function ComissoesIndex() {
           <TabsTrigger value="contestacoes">Contestações</TabsTrigger>
           <TabsTrigger value="extrato">Extrato mensal</TabsTrigger>
           <TabsTrigger value="regras">Regras</TabsTrigger>
+          <TabsTrigger value="gerencial">Gerencial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="apurar" className="mt-4">
@@ -44,6 +46,9 @@ export default function ComissoesIndex() {
         </TabsContent>
         <TabsContent value="regras" className="mt-4">
           <AbaRegras />
+        </TabsContent>
+        <TabsContent value="gerencial" className="mt-4">
+          <AbaGerencial />
         </TabsContent>
       </Tabs>
     </PageShell>
