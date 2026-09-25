@@ -14,7 +14,7 @@ import {
 import { type SortState, ordenarPor } from "@/components/shared/SortableTableHead";
 import { type DirecaoOrdenacao, LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { DEFAULT_PAGE_SIZE, RodapePaginacao } from "@/components/tabela/RodapePaginacao";
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
@@ -180,13 +180,13 @@ function CabecalhoColuna({
         }
       >
         {rotulo}
+        {/* O ícone só existe quando há ordenação ativa: o placeholder invisível
+            consumia espaço e fazia cabeçalhos numéricos estourarem a coluna. */}
         {dir === "asc" ? (
           <ArrowUp className="h-3 w-3 shrink-0" />
         ) : dir === "desc" ? (
           <ArrowDown className="h-3 w-3 shrink-0" />
-        ) : (
-          <ArrowUpDown className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover:opacity-40" />
-        )}
+        ) : null}
       </button>
     </TableHead>
   );
@@ -591,34 +591,36 @@ export default function EstoqueVirtual() {
         <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3" containerClassName="max-h-[min(62vh,46rem)]">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
-              {cabecalho("cod", "Código", "w-[76px]")}
+              {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
+                  as larguras de referência a partir de 1440px. */}
+              {cabecalho("cod", "Código", "w-[67px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[108px]")}
-              {cabecalho("saude", "Saúde", "w-[52px] text-center")}
+              {cabecalho("situacao", "Situação", "w-[96px] min-[1440px]:w-[108px]")}
+              {cabecalho("saude", "Saúde", "w-[62px] text-center")}
               {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[84px]", true)}
-                {cabecalho("fisico", "Físico", "w-[84px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[84px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[84px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[84px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
+                {cabecalho("contabil", "Contábil", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("fisico", "Físico", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[76px] min-[1440px]:w-[84px]", true)}
                 {cabecalho(
                   "tempo",
                   "Cobertura",
-                  "w-[88px]",
+                  "w-[74px] min-[1440px]:w-[88px]",
                   true,
                   "Tempo de estoque em dias (virtual ÷ venda diária dos últimos 90 dias)",
                 )}
-                {cabecalho("transito", "Em trânsito", "w-[92px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[80px]", true)}
+                {cabecalho("transito", "Em trânsito", "w-[78px] min-[1440px]:w-[92px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[74px] min-[1440px]:w-[80px]", true)}
               </>}
               {visao === "valor" && <>
-                {cabecalho("virtual", "Virtual", "w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[88px]", true)}
-                {cabecalho("ticket", "Ticket médio", "w-[104px]", true)}
-                {cabecalho("vcusto", "Valor custo", "w-[124px]", true)}
-                {cabecalho("vvenda", "Valor venda", "w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[132px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("reservado", "Reservado", "w-[76px] min-[1440px]:w-[88px]", true)}
+                {cabecalho("ticket", "Ticket médio", "w-[88px] min-[1440px]:w-[104px]", true)}
+                {cabecalho("vcusto", "Valor custo", "w-[104px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vvenda", "Valor venda", "w-[104px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vemp", "Valor empenhado", "w-[104px] min-[1440px]:w-[132px]", true)}
               </>}
             </TableRow>
           </TableHeader>
