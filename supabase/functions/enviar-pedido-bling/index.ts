@@ -862,6 +862,33 @@ serve(async (req) => {
     // Sai do array o que nunca será cobrado do cliente: dinheiro que já entrou
     // (portão) ou que não é dinheiro a receber (gera_duplicata = false na dimensão).
     const titulosAPrazo = titulos.filter((t: any) => !t.eh_portao && !semDuplicata.has(t.tipo_pagamento));
+
+    // FORMA-SO-COM-PARCELA (25/09/2026): o ID da forma de pagamento só é usado DENTRO
+    // de `blingParcelas`. Sem parcela a prazo (pedido sem cobrança, ex. transferência
+    // interna com forma sem_pagamento), a forma nem desce ao Bling — não valida e não usa.
+    // Com parcela a prazo, as duas validações FAIL-LOUD abaixo valem exatamente como antes
+    // (mesma mensagem, mesmo log em bling_envios_log via abortarForma).
+    let blingFormaId: number | null = null;
+    if (titulosAPrazo.length > 0) {
+      if (blingFormaIdBruto === null || blingFormaIdBruto === undefined) {
+        return await abortarForma(
+          `A forma de pagamento "${forma.nome}" não tem cadastro correspondente no Bling. ` +
+          `Cadastre a forma no Bling e preencha o ID em Formas de Pagamento antes de enviar este pedido.`,
+        );
+      }
+
+      blingFormaId = Number(blingFormaIdBruto);
+
+      // Limiar 1000: todo ID real da conta Bling da Fetély tem 7-8 dígitos; todo código
+      // legado de TIPO de pagamento da NFe (1, 2, 18, 99...) é menor que 100.
+      if (!Number.isFinite(blingFormaId) || blingFormaId < 1000) {
+        return await abortarForma(
+          `A forma de pagamento "${forma.nome}" está com um ID inválido no cadastro (${blingFormaIdBruto}) — ` +
+          `esse número é código de tipo de pagamento, não ID de forma de pagamento do Bling. ` +
+          `Corrija em Formas de Pagamento antes de enviar.`,
+        );
+      }
+    }
     const valorPortaoPlano = parseFloat(
       titulos.filter((t: any) => t.eh_portao)
         .reduce((s: number, t: any) => s + Number(t.valor_bruto), 0).toFixed(2),
