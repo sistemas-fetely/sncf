@@ -1406,11 +1406,43 @@ if (itensSemProdutoBling.length > 0) {
       // bling_enviado_em e bling_enviado_por na tabela pedidos, mas nao inseria
       // em pedido_eventos — o historico do pedido pulava da ancora direto pro nada
       // e ninguem conseguia ver quem enviou nem quando. FAIL-LOUD.
+      // NATUREZA-LEITURA-DE-VOLTA (25/09/2026): quando a natureza de operação foi
+      // enviada no payload, relê o pedido no Bling e confere se ela ficou gravada.
+      // Falha no GET NÃO derruba o envio (o pedido já foi criado lá) — só registra
+      // e loga. natureza_confirmada: true | false | null (GET falhou).
+      let naturezaConfirmada: boolean | null = null;
+      if (sucesso && blingNaturezaId) {
+        try {
+          const resNat = await client.get(`/pedidos/vendas/${blingId}`);
+          const idLido = Number(resNat?.data?.naturezaOperacao?.id ?? 0);
+          naturezaConfirmada = idLido === blingNaturezaId;
+        } catch (eNat) {
+          naturezaConfirmada = null;
+          console.warn("[enviar-pedido-bling] leitura de volta da natureza falhou", {
+            pedido_id,
+            bling_id: blingId,
+            natureza_enviada: blingNaturezaId,
+            erro: (eNat as Error).message,
+          });
+        }
+        if (naturezaConfirmada !== true) {
+          console.warn("[enviar-pedido-bling] natureza de operação NÃO confirmada no Bling", {
+            pedido_id,
+            bling_id: blingId,
+            natureza_enviada: blingNaturezaId,
+            natureza_confirmada: naturezaConfirmada,
+          });
+        }
+      }
+
       const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
         pedido_id,
         tipo_evento: "bling_enviado",
         descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling` +
-          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : ""),
+          (motivoOverride ? ` · override declarado: "${motivoOverride}"` : "") +
+          (blingNaturezaId && naturezaConfirmada !== true
+            ? " · ATENÇÃO: o Bling não confirmou a natureza de operação — ao emitir a NF, selecione a natureza de transferência (CFOP 6152)"
+            : ""),
         metadata: {
           bling_id: String(blingId),
           remessa_id: remessa.id,
@@ -1419,6 +1451,8 @@ if (itensSemProdutoBling.length > 0) {
           carimbou_destino: carimbarDestino,
           enviado_por: userId,
           motivo_override: motivoOverride || null,
+          natureza_enviada: blingNaturezaId,
+          natureza_confirmada: naturezaConfirmada,
         },
         automatico: false,
       });
