@@ -588,39 +588,39 @@ export default function EstoqueVirtual() {
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
       ) : <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
-        <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3" containerClassName="max-h-[min(62vh,46rem)]">
+        <Table className="table-fixed text-[12px] [&_td]:px-2 [&_td]:py-2.5 [&_th]:px-2" containerClassName="max-h-[min(62vh,46rem)]">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
               {/* Larguras: base compacta (cabe em 1280px com sidebar aberta) e
                   as larguras de referência a partir de 1440px. */}
-              {cabecalho("cod", "Código", "w-[67px] min-[1440px]:w-[76px]")}
+              {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
               {cabecalho("nome", "Produto", "")}
-              {cabecalho("situacao", "Situação", "w-[96px] min-[1440px]:w-[108px]")}
-              {cabecalho("saude", "Saúde", "w-[62px] text-center")}
+              {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
+              {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
               {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("fisico", "Físico", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("virtual", "Virtual", "w-[76px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realxpm", "Real XPM", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("realsite", "Site SP", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("diverg", "Divergência", "w-[86px] min-[1440px]:w-[94px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho(
                   "tempo",
                   "Cobertura",
-                  "w-[74px] min-[1440px]:w-[88px]",
+                  "w-[78px] min-[1440px]:w-[88px]",
                   true,
                   "Tempo de estoque em dias (virtual ÷ venda diária dos últimos 90 dias)",
                 )}
-                {cabecalho("transito", "Em trânsito", "w-[78px] min-[1440px]:w-[92px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[74px] min-[1440px]:w-[80px]", true)}
+                {cabecalho("transito", "Em trânsito", "w-[84px] min-[1440px]:w-[92px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[70px] min-[1440px]:w-[80px]", true)}
               </>}
               {visao === "valor" && <>
-                {cabecalho("virtual", "Virtual", "w-[76px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("reservado", "Reservado", "w-[76px] min-[1440px]:w-[88px]", true)}
-                {cabecalho("ticket", "Ticket médio", "w-[88px] min-[1440px]:w-[104px]", true)}
-                {cabecalho("vcusto", "Valor custo", "w-[104px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vvenda", "Valor venda", "w-[104px] min-[1440px]:w-[124px]", true)}
-                {cabecalho("vemp", "Valor empenhado", "w-[104px] min-[1440px]:w-[132px]", true)}
+                {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("reservado", "Reservado", "w-[80px] min-[1440px]:w-[88px]", true)}
+                {cabecalho("ticket", "Ticket médio", "w-[94px] min-[1440px]:w-[104px]", true)}
+                {cabecalho("vcusto", "Valor custo", "w-[100px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vvenda", "Valor venda", "w-[100px] min-[1440px]:w-[124px]", true)}
+                {cabecalho("vemp", "Valor empenhado", "w-[100px] min-[1440px]:w-[132px]", true)}
               </>}
             </TableRow>
           </TableHeader>
