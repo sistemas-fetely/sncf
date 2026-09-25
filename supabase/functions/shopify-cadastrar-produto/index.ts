@@ -57,6 +57,28 @@ function montarInput(l: Linha) {
   if (desc) input.descriptionHtml = desc;
   if ((l.marca ?? "").trim()) input.vendor = String(l.marca).trim();
   if ((l.grupo ?? "").trim()) input.productType = String(l.grupo).trim();
+
+  // Metacampos com fonte certa no SNCF (definições já existem na loja).
+  // Fora de propósito: custom.medida (formato quebrado na loja), custom.produto e custom.codigo (sem fonte no SNCF).
+  const mf: Record<string, unknown>[] = [];
+  const texto = (key: string, v: unknown) => {
+    const s = String(v ?? "").trim();
+    if (s) mf.push({ namespace: "custom", key, type: "single_line_text_field", value: s });
+  };
+  const decimal = (key: string, v: unknown) => {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) mf.push({ namespace: "meucorreios", key, type: "number_decimal", value: String(n) });
+  };
+  texto("nome_produto", l.nome_comercial);
+  texto("linha", l.linha);
+  texto("colecao", l.colecao);
+  texto("tipo_produto", l.grupo);
+  texto("marca", l.marca);
+  texto("material", l.material);
+  decimal("altura", l.altura_cm);
+  decimal("largura", l.largura_cm);
+  decimal("comprimento", l.profundidade_cm);
+  if (mf.length > 0) input.metafields = mf;
   return input;
 }
 
@@ -97,11 +119,13 @@ Deno.serve(async (req) => {
       .select("sku, cod_cadastro, fase, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, avisos, pode_enviar")
       .in("sku", skus);
     if (fErr) throw new Error(`leitura da fila falhou: ${fErr.message}`);
-    const { data: desc, error: dErr } = await supabase
-      .from("sncf_produtos").select("sku, descricao_produto").in("sku", skus);
-    if (dErr) throw new Error(`leitura de descrição falhou: ${dErr.message}`);
-    const descPorSku = new Map((desc ?? []).map((d: Linha) => [d.sku, d.descricao_produto]));
-    const porSku = new Map((fila ?? []).map((l: Linha) => [l.sku, { ...l, descricao_produto: descPorSku.get(l.sku) ?? null }]));
+    const { data: cad, error: dErr } = await supabase
+      .from("sncf_produtos")
+      .select("sku, descricao_produto, linha, colecao, material, altura_cm, largura_cm, profundidade_cm")
+      .in("sku", skus);
+    if (dErr) throw new Error(`leitura do cadastro falhou: ${dErr.message}`);
+    const cadPorSku = new Map((cad ?? []).map((d: Linha) => [d.sku, d]));
+    const porSku = new Map((fila ?? []).map((l: Linha) => [l.sku, { ...l, ...(cadPorSku.get(l.sku) ?? {}) }]));
 
     const shop = await makeShopifyAdmin(supabase);
 
