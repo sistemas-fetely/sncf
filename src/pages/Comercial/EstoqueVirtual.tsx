@@ -455,8 +455,8 @@ export default function EstoqueVirtual() {
           <p className="text-sm text-muted-foreground">Nenhum produto neste recorte</p>
           <Button variant="link" onClick={limparFiltros}>Limpar filtros</Button>
         </div>
-      ) : <div className="overflow-hidden rounded-md border bg-card">
-        <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3">
+      ) : <div className="overflow-hidden rounded-md border bg-card" style={{ ["--fila-topo-colado" as string]: "0px" }}>
+        <Table className="table-fixed text-[12px] [&_td]:px-3 [&_td]:py-2.5 [&_th]:px-3" containerClassName="max-h-[min(62vh,46rem)]">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
               {cabecalho("cod", "Código", "w-[110px]")}
