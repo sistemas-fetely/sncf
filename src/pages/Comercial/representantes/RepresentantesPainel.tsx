@@ -21,7 +21,7 @@ import { fmtBRL, fmtData } from "../comissoes/fmt";
 import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
-type Col = { k: string; label: string; tipo: "brl" | "int" | "pct" | "data" };
+type Col = { k: string; label: string; tipo: "brl" | "int" };
 // Tabela reduzida a 8 colunas (Representante + Região + estas 3 + as 3 FIN).
 // As demais métricas continuam na ficha do representante (aba Resumo).
 const COLS: Col[] = [
@@ -31,10 +31,7 @@ const COLS: Col[] = [
 ];
 
 function fmt(c: Col, v: unknown) {
-  if (c.tipo === "brl") return fmtBRL(v as number);
-  if (c.tipo === "int") return fmtInt(v);
-  if (c.tipo === "pct") return fmtPct2(v);
-  return fmtData(v as string);
+  return c.tipo === "brl" ? fmtBRL(v as number) : fmtInt(v);
 }
 
 export function Dica({ texto, children }: { texto: string; children: React.ReactNode }) {
