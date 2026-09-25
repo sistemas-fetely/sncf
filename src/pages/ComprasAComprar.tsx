@@ -363,9 +363,6 @@ export default function ComprasAComprar() {
                             )}
                             {podeAgir && ehMeu && (
                               <>
-                                <DropdownMenuItem className="hidden" onClick={() => abrirRegistrar(p)}>
-                                  {rascunhoPorPedido.has(p.id) ? "Continuar compra" : "Registrar compra"}
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => abrirDetalhe(p)}>
                                   Cancelar item...
                                 </DropdownMenuItem>
