@@ -744,6 +744,24 @@ export default function EstoqueVirtual() {
             ["--fila-topo-colado-2" as string]: visao === "centros" ? `${alturaGrupo}px` : undefined,
           }}
         >
+          {/* FIX-COLGROUP-CENTROS (25/09/2026): com cabeçalho em dois níveis, o
+              navegador calcula as larguras pela 1ª linha do thead (colSpan=2 sem
+              largura) e divide tudo por igual. O colgroup dita as larguras na
+              visão Centros; Produto fica sem largura e leva o espaço restante. */}
+          {visao === "centros" && (
+            <colgroup>
+              <col style={{ width: 64 }} />
+              <col />
+              <col style={{ width: 60 }} />
+              <col style={{ width: 44 }} />
+              {centros.map((c) => (
+                <Fragment key={c.codigo}>
+                  <col style={{ width: 60 }} />
+                  <col style={{ width: 44 }} />
+                </Fragment>
+              ))}
+            </colgroup>
+          )}
           <TableHeader>
             {visao === "centros" ? (
               <>
