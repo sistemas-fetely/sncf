@@ -119,6 +119,10 @@ export function FaixaAniversariantes() {
     return <Skeleton className="h-32 w-full rounded-lg" />;
   }
 
+  if (isError) {
+    return <p className="text-xs text-destructive">Não foi possível carregar os aniversariantes: {(error as Error)?.message}</p>;
+  }
+
   if (!temEventos) {
     return null;
   }

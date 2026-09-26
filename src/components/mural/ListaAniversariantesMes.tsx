@@ -92,6 +92,15 @@ export function ListaAniversariantesMes() {
     );
   }
 
+  if (isError) {
+    return (
+      <div className="h-full min-h-[220px] rounded-xl border border-border bg-card p-4 flex flex-col items-center justify-center text-center">
+        <Cake className="h-5 w-5 text-destructive mb-2" />
+        <p className="text-[11px] text-destructive">Não foi possível carregar os aniversariantes: {(error as Error)?.message}</p>
+      </div>
+    );
+  }
+
   if (!eventos || eventos.length === 0) {
     return (
       <div className="h-full min-h-[220px] rounded-xl border border-dashed border-muted-foreground/30 bg-card/50 p-4 flex flex-col items-center justify-center text-center">
