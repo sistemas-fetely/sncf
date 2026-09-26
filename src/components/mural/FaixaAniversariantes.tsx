@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { Cake, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAniversariantesDoMes, type EventoDoMes } from "@/hooks/useAniversariantesDoMes";
-import { DrawerUsuario } from "@/components/DrawerUsuario";
 import { cn } from "@/lib/utils";
 
 function initials(nome: string): string {
@@ -32,18 +30,16 @@ const MESES_PT = [
   "dezembro",
 ];
 
-function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () => void }) {
+function AvatarEvento({ evento }: { evento: EventoDoMes }) {
   const ehHoje = evento.eh_hoje;
   const tamanho = ehHoje ? "h-20 w-20" : "h-14 w-14";
   const anelClasse = ehHoje
     ? "ring-[3px] ring-warning ring-offset-2 ring-offset-background"
-    : "ring-1 ring-border hover:ring-primary/50";
+    : "ring-1 ring-border";
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex flex-col items-center gap-1.5 shrink-0 group focus:outline-none"
+    <div
+      className="flex flex-col items-center gap-1.5 shrink-0"
       aria-label={`${evento.nome} — ${evento.label_destaque}`}
     >
       <div className="relative">
@@ -83,7 +79,7 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
       <div className="flex flex-col items-center min-w-0 max-w-[90px]">
         <span
           className={cn(
-            "text-xs font-medium truncate w-full text-center group-hover:text-primary transition-colors",
+            "text-xs font-medium truncate w-full text-center",
             ehHoje && "text-sm font-medium",
           )}
         >
@@ -103,13 +99,12 @@ function AvatarEvento({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
           </span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
 export function FaixaAniversariantes() {
-  const { data: eventos, isLoading } = useAniversariantesDoMes();
-  const [drawerUserId, setDrawerUserId] = useState<string | null>(null);
+  const { data: eventos, isLoading, isError, error } = useAniversariantesDoMes();
 
   const mesAtual = MESES_PT[new Date().getMonth()];
   const temEventos = eventos && eventos.length > 0;
@@ -122,6 +117,10 @@ export function FaixaAniversariantes() {
 
   if (isLoading) {
     return <Skeleton className="h-32 w-full rounded-lg" />;
+  }
+
+  if (isError) {
+    return <p className="text-xs text-destructive">Não foi possível carregar os aniversariantes: {(error as Error)?.message}</p>;
   }
 
   if (!temEventos) {
@@ -178,19 +177,10 @@ export function FaixaAniversariantes() {
             <AvatarEvento
               key={ev.key}
               evento={ev}
-              onClick={() => {
-                if (ev.user_id) setDrawerUserId(ev.user_id);
-              }}
             />
           ))}
         </div>
       </div>
-
-      <DrawerUsuario
-        userId={drawerUserId}
-        open={!!drawerUserId}
-        onOpenChange={(open) => !open && setDrawerUserId(null)}
-      />
     </>
   );
 }

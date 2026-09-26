@@ -111217,6 +111217,18 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_aniversariantes: {
+        Args: { p_mes?: number }
+        Returns: {
+          dia: number
+          eh_hoje: boolean
+          eh_voce: boolean
+          foto_url: string
+          mes: number
+          nome: string
+          pessoa_id: string
+        }[]
+      }
       fn_aplicar_cadencia_credito: {
         Args: { p_analise_id: string }
         Returns: string

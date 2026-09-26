@@ -8,6 +8,29 @@ import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { hojeISO } from "@/lib/data";
+import { MuralRotativo } from "@/components/mural/MuralRotativo";
+import { ListaAniversariantesMes } from "@/components/mural/ListaAniversariantesMes";
+import { FaixaAniversariantes } from "@/components/mural/FaixaAniversariantes";
+import { useAniversariantesDoMes } from "@/hooks/useAniversariantesDoMes";
+
+function MuralFetely() {
+  const { data } = useAniversariantesDoMes();
+  const temHoje = (data ?? []).some((e) => e.eh_hoje);
+  return (
+    <section className="space-y-4">
+      <p className="text-[10px] uppercase tracking-[2px] text-gold">Mural Fetely</p>
+      {temHoje && <FaixaAniversariantes />}
+      <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-4 items-stretch">
+        <div className="min-w-0 h-full">
+          <MuralRotativo />
+        </div>
+        <div className="min-w-0 h-full">
+          <ListaAniversariantesMes />
+        </div>
+      </div>
+    </section>
+  );
+}
 const saudacao = () => {
   const h = new Date().getHours();
   if (h < 6) return "Boa madrugada";
@@ -190,15 +213,8 @@ export default function CasaHome() {
         )}
       </div>
 
-      {/* Mural Fetely placeholder */}
-      <div className="rounded-xl border border-dashed border-border bg-card/50 p-8 text-center">
-        <p className="text-[10px] uppercase tracking-[2px] text-gold mb-2">Mural Fetely</p>
-        <h3 className="font-display text-2xl text-foreground mb-3">A vida da casa</h3>
-        <p className="text-sm text-muted-foreground max-w-lg mx-auto">
-          Aqui vai morar o feed humano da Fetély: aniversariantes, conquistas, posts internos,
-          Fala Fetely em destaque. Em construção — vai chegar logo.
-        </p>
-      </div>
+      {/* Mural Fetely */}
+      <MuralFetely />
     </PageShell>
   );
 }

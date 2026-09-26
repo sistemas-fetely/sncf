@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { Cake, Sparkles } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAniversariantesDoMes, type EventoDoMes } from "@/hooks/useAniversariantesDoMes";
-import { DrawerUsuario } from "@/components/DrawerUsuario";
 
 function initials(nome: string): string {
   return nome.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
@@ -15,12 +13,10 @@ const MESES_PT = [
 ];
 
 // ═══ Item de hoje — destaque dourado compacto ═══
-function ItemDestaqueHoje({ evento, onClick }: { evento: EventoDoMes; onClick: () => void }) {
+function ItemDestaqueHoje({ evento }: { evento: EventoDoMes }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full relative rounded-lg bg-gradient-to-br from-warning to-warning border border-warning/40 p-2.5 hover:shadow-sm transition-all hover:-translate-y-0.5 text-left"
+    <div
+      className="w-full relative rounded-lg bg-gradient-to-br from-warning to-warning border border-warning/40 p-2.5 text-left"
     >
       <div className="absolute -top-2 left-3 text-base leading-none">👑</div>
       <div className="flex items-center gap-2.5">
@@ -44,18 +40,16 @@ function ItemDestaqueHoje({ evento, onClick }: { evento: EventoDoMes; onClick: (
           </p>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
 // ═══ Item compacto regular (linha) ═══
-function ItemCompacto({ evento, onClick }: { evento: EventoDoMes; onClick: () => void }) {
+function ItemCompacto({ evento }: { evento: EventoDoMes }) {
   const Icon = evento.tipo_evento === "aniversario" ? Cake : Sparkles;
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full flex items-center gap-1.5 py-1 px-1 rounded-md hover:bg-muted/50 transition-colors text-left"
+    <div
+      className="w-full flex items-center gap-1.5 py-1 px-1 rounded-md text-left"
       title={`${evento.nome} · dia ${evento.dia} · ${evento.tipo_evento === "aniversario" ? "aniversário" : evento.subtitulo}`}
     >
       <Avatar className="h-6 w-6 shrink-0">
@@ -78,13 +72,12 @@ function ItemCompacto({ evento, onClick }: { evento: EventoDoMes; onClick: () =>
           <span className="truncate">dia {evento.dia}</span>
         </p>
       </div>
-    </button>
+    </div>
   );
 }
 
 export function ListaAniversariantesMes() {
-  const { data: eventos, isLoading } = useAniversariantesDoMes();
-  const [drawerUserId, setDrawerUserId] = useState<string | null>(null);
+  const { data: eventos, isLoading, isError, error } = useAniversariantesDoMes();
 
   const mesAtual = MESES_PT[new Date().getMonth()];
 
@@ -95,6 +88,15 @@ export function ListaAniversariantesMes() {
         <div className="space-y-1.5">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="h-full min-h-[220px] rounded-xl border border-border bg-card p-4 flex flex-col items-center justify-center text-center">
+        <Cake className="h-5 w-5 text-destructive mb-2" />
+        <p className="text-[11px] text-destructive">Não foi possível carregar os aniversariantes: {(error as Error)?.message}</p>
       </div>
     );
   }
@@ -131,7 +133,6 @@ export function ListaAniversariantesMes() {
               <ItemDestaqueHoje
                 key={ev.key}
                 evento={ev}
-                onClick={() => ev.user_id && setDrawerUserId(ev.user_id)}
               />
             ))}
           </div>
@@ -154,19 +155,12 @@ export function ListaAniversariantesMes() {
                 <ItemCompacto
                   key={ev.key}
                   evento={ev}
-                  onClick={() => ev.user_id && setDrawerUserId(ev.user_id)}
                 />
               ))}
             </div>
           </div>
         )}
       </div>
-
-      <DrawerUsuario
-        userId={drawerUserId}
-        open={!!drawerUserId}
-        onOpenChange={(open) => !open && setDrawerUserId(null)}
-      />
     </>
   );
 }

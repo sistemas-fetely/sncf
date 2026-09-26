@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function MuralRotativo({ intervalo = 8000, controlesManuais = true }: Props) {
-  const { data: publicacoes, isLoading } = usePublicacoesAtivas(20);
+  const { data: publicacoes, isLoading, isError, error } = usePublicacoesAtivas(20);
   const [indice, setIndice] = useState(0);
   const [pausado, setPausado] = useState(false);
 
@@ -33,6 +33,14 @@ export function MuralRotativo({ intervalo = 8000, controlesManuais = true }: Pro
 
   if (isLoading) {
     return <Skeleton className="h-40 w-full rounded-2xl" />;
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-2xl border border-border p-6 text-center">
+        <p className="text-sm text-destructive">Não foi possível carregar o mural: {(error as Error)?.message}</p>
+      </div>
+    );
   }
 
   if (!publicacoes || publicacoes.length === 0) {
