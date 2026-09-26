@@ -145,6 +145,10 @@ export default function MeuCadastro() {
 
   const valores = form ?? base;
 
+  // Preferência do Mural Fetely (aparecer ou não na lista de aniversariantes).
+  const { data: aparecerMural, isLoading: prefCarregando } = useMinhaPreferenciaMural();
+  const atualizarPrefMural = useAtualizarPreferenciaMural();
+
   const obrigatorias = useMemo(
     () => (pendencias || []).filter((p) => p.obrigatorio),
     [pendencias]
