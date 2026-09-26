@@ -24,7 +24,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import UploadDocumentosCadastro, { type UploadedFile } from "@/components/pessoas/UploadDocumentosCadastro";
+import { useMinhaPreferenciaMural, useAtualizarPreferenciaMural } from "@/hooks/useMural";
 import { fmtData } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 
@@ -143,6 +145,10 @@ export default function MeuCadastro() {
 
   const valores = form ?? base;
 
+  // Preferência do Mural Fetely (aparecer ou não na lista de aniversariantes).
+  const { data: aparecerMural, isLoading: prefCarregando } = useMinhaPreferenciaMural();
+  const atualizarPrefMural = useAtualizarPreferenciaMural();
+
   const obrigatorias = useMemo(
     () => (pendencias || []).filter((p) => p.obrigatorio),
     [pendencias]
@@ -211,6 +217,34 @@ export default function MeuCadastro() {
       : `${obrigatorias.length} ${obrigatorias.length === 1 ? "item pendente" : "itens pendentes"}${
           prazoMaisProximo ? ` · o mais urgente vence em ${fmtData(prazoMaisProximo)}` : ""
         }`;
+
+  const cardMural = (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base">Mural Fetely</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Seu aniversário (só dia e mês — nunca o ano) aparece no mural da tela inicial para a equipe celebrar com você.
+        </p>
+        <div className="flex items-center gap-3">
+          <Switch
+            id="aparecer_mural"
+            checked={!!aparecerMural}
+            disabled={prefCarregando || atualizarPrefMural.isPending}
+            onCheckedChange={(v) =>
+              atualizarPrefMural.mutate(v, {
+                onSuccess: () => {
+                  qc.invalidateQueries({ queryKey: ["aniversariantes-mes"] });
+                },
+              })
+            }
+          />
+          <Label htmlFor="aparecer_mural">Aparecer no mural de aniversariantes</Label>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <PageShell variant="leitura">
@@ -371,7 +405,10 @@ export default function MeuCadastro() {
             </CardContent>
           </Card>
 
-          {/* Bloco 3 — Seus documentos */}
+          {/* Bloco 3 — Mural Fetely (preferência de aniversariantes) */}
+          {cardMural}
+
+          {/* Bloco 4 — Seus documentos */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Seus documentos</CardTitle>
@@ -414,6 +451,7 @@ export default function MeuCadastro() {
           </div>
         </>
       )}
+      {!pessoaId && cardMural}
     </PageShell>
   );
 }
