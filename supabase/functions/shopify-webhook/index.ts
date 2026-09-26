@@ -192,6 +192,23 @@ async function processarProduto(supabase: any, p: any, topic: string, eventId: s
     await registrarLog(supabase, { topic, etapa: "ok_delete", detalhe: { recurso: "produto", shopify_id } });
     return jsonResponse(200, { ok: true, topic, shopify_id, deleted: true });
   }
+  // Webhook do Shopify traz no máximo 100 variantes. Produto com mais: MESCLA com o espelho
+  // (gravado completo pelo shopify-catalogo-pull) em vez de truncar — senão estoque e
+  // conciliação perdem as variantes acima da 100ª. Variante apagada além da 100ª sai no pull noturno.
+  let variantesFinal: unknown = p.variants;
+  if (Array.isArray(p.variants) && p.variants.length >= 100) {
+    const { data: atual, error: aErr } = await supabase
+      .from("shopify_produtos").select("variants").eq("shopify_id", shopify_id).maybeSingle();
+    if (aErr) {
+      await registrarLog(supabase, { topic, etapa: "erro_merge_variantes", detalhe: { shopify_id, msg: aErr.message } });
+      return jsonResponse(500, { error: aErr.message, topic, shopify_id });
+    }
+    const vistos = new Set(p.variants.map((v: any) => String(v?.id)));
+    const resto = Array.isArray(atual?.variants)
+      ? (atual!.variants as any[]).filter((v: any) => !vistos.has(String(v?.id)))
+      : [];
+    variantesFinal = [...p.variants, ...resto];
+  }
   const row = {
     shopify_id,
     admin_graphql_api_id: str(p.admin_graphql_api_id),
@@ -208,7 +225,7 @@ async function processarProduto(supabase: any, p: any, topic: string, eventId: s
     created_at_shopify: iso(p.created_at),
     updated_at_shopify: iso(p.updated_at),
     category: jsonN(p.category),
-    variants: jsonN(p.variants),
+    variants: jsonN(variantesFinal),
     options: jsonN(p.options),
     image: jsonN(p.image),
     images: jsonN(p.images),
