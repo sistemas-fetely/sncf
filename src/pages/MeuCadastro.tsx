@@ -377,7 +377,34 @@ export default function MeuCadastro() {
             </CardContent>
           </Card>
 
-          {/* Bloco 3 — Seus documentos */}
+          {/* Bloco 3 — Mural Fetely (preferência de aniversariantes) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Mural Fetely</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Seu aniversário (só dia e mês — nunca o ano) aparece no mural da tela inicial para a equipe celebrar com você.
+              </p>
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="aparecer_mural"
+                  checked={!!aparecerMural}
+                  disabled={prefCarregando || atualizarPrefMural.isPending}
+                  onCheckedChange={(v) =>
+                    atualizarPrefMural.mutate(v, {
+                      onSuccess: () => {
+                        qc.invalidateQueries({ queryKey: ["aniversariantes-mes"] });
+                      },
+                    })
+                  }
+                />
+                <Label htmlFor="aparecer_mural">Aparecer no mural de aniversariantes</Label>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Bloco 4 — Seus documentos */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base">Seus documentos</CardTitle>
