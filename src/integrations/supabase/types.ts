@@ -112485,6 +112485,16 @@ export type Database = {
           usuario_id: string
         }[]
       }
+      fn_mural_pessoas_para_homenagear: {
+        Args: never
+        Returns: {
+          alvo_tipo: string
+          foto_url: string
+          nome: string
+          nome_curto: string
+          pessoa_id: string
+        }[]
+      }
       fn_nascer_pedido_b2c: {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
         Returns: Json
