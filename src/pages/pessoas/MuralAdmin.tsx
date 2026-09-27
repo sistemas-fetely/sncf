@@ -64,6 +64,7 @@ interface Linha {
   mensagem: string | null;
   emoji: string | null;
   foto_url: string | null;
+  pessoa_alvo_id: string | null;
   pessoa_alvo_nome: string | null;
   pessoa_alvo_tipo: string | null;
   cor_tema: string | null;
@@ -100,14 +101,128 @@ interface Form {
   mensagem: string;
   emoji: string;
   pessoa: string;
+  pessoaId: string | null;
+  pessoaTipo: string | null;
+  fotoUrl: string | null;
   ate: string;
   fixado: boolean;
   cor_tema: string;
 }
 const formVazio = (): Form => ({
   id: null, tipo: "celebracao_pessoa", titulo: "", mensagem: "", emoji: "", pessoa: "",
+  pessoaId: null, pessoaTipo: null, fotoUrl: null,
   ate: somarDias(hojeSP(), 7), fixado: false, cor_tema: "rosa",
 });
+
+const CORES: { valor: string; rotulo: string }[] = [
+  { valor: "rosa", rotulo: "Rosa" },
+  { valor: "verde", rotulo: "Verde" },
+  { valor: "creme", rotulo: "Creme" },
+  { valor: "sage", rotulo: "Sálvia" },
+  { valor: "bordo", rotulo: "Bordô" },
+];
+
+interface PessoaHomenagear {
+  pessoa_id: string;
+  nome: string;
+  nome_curto: string | null;
+  foto_url: string | null;
+  alvo_tipo: string | null;
+}
+
+function iniciais(nome: string): string {
+  return nome.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
+
+function PessoaCombobox({ form, onChange }: { form: Form; onChange: (f: Form) => void }) {
+  const [open, setOpen] = useState(false);
+  const [busca, setBusca] = useState("");
+  const pessoas = useQuery({
+    queryKey: ["mural-pessoas-homenagear"],
+    queryFn: async (): Promise<PessoaHomenagear[]> => {
+      const { data, error } = await supabase.rpc("fn_mural_pessoas_para_homenagear");
+      if (error) throw error;
+      return (data ?? []) as PessoaHomenagear[];
+    },
+    staleTime: 60_000,
+  });
+
+  const livre = busca.trim();
+  const escolherPessoa = (p: PessoaHomenagear) => {
+    onChange({
+      ...form,
+      pessoa: p.nome,
+      pessoaId: p.pessoa_id,
+      pessoaTipo: p.alvo_tipo,
+      fotoUrl: form.fotoUrl ?? p.foto_url,
+    });
+    setOpen(false);
+  };
+  const escolherLivre = () => {
+    onChange({ ...form, pessoa: livre, pessoaId: null, pessoaTipo: null });
+    setOpen(false);
+  };
+  const limpar = () => onChange({ ...form, pessoa: "", pessoaId: null, pessoaTipo: null, fotoUrl: null });
+
+  return (
+    <div className="flex items-center gap-1">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            className={cn("w-full justify-between font-normal", !form.pessoa && "text-muted-foreground")}
+          >
+            <span className="truncate">{form.pessoa || "Buscar pessoa ou digitar nome..."}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar pessoa..." value={busca} onValueChange={setBusca} />
+            <CommandList className="max-h-[320px]">
+              {pessoas.error ? (
+                <p className="p-3 text-sm text-destructive">Erro ao carregar pessoas: {formatError(pessoas.error)}</p>
+              ) : (
+                <>
+                  <CommandEmpty>Nenhuma pessoa encontrada.</CommandEmpty>
+                  <CommandGroup heading="Pessoas">
+                    {(pessoas.data ?? []).map((p) => (
+                      <CommandItem
+                        key={p.pessoa_id}
+                        value={p.nome}
+                        onSelect={() => escolherPessoa(p)}
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", form.pessoaId === p.pessoa_id ? "opacity-100" : "opacity-0")} />
+                        <Avatar className="mr-2 h-6 w-6">
+                          <AvatarImage src={p.foto_url ?? undefined} alt={p.nome} />
+                          <AvatarFallback className="text-[10px]">{iniciais(p.nome)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{p.nome}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                  {livre && (
+                    <CommandGroup heading="Sem vínculo">
+                      <CommandItem value={`__livre__${livre}`} onSelect={escolherLivre}>
+                        <span className="text-sm">Usar “{livre}” sem vincular a uma pessoa</span>
+                      </CommandItem>
+                    </CommandGroup>
+                  )}
+                </>
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      {form.pessoa && (
+        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0" title="Limpar escolha" onClick={limpar}>
+          <X className="h-4 w-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
 
 export default function MuralAdmin() {
   const { user, roles } = useAuth();
