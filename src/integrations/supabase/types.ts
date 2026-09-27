@@ -112472,6 +112472,19 @@ export type Database = {
           cand_usada: boolean
         }[]
       }
+      fn_mural_pessoas_celebraveis: {
+        Args: never
+        Returns: {
+          alvo_tipo: string
+          data_entrada: string
+          data_nascimento: string
+          foto_url: string
+          nome: string
+          nome_curto: string
+          pessoa_id: string
+          usuario_id: string
+        }[]
+      }
       fn_nascer_pedido_b2c: {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
         Returns: Json
