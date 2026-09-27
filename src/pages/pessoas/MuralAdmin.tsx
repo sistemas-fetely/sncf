@@ -473,7 +473,33 @@ export default function MuralAdmin() {
                   </div>
                   <div className="space-y-1">
                     <Label>Pessoa homenageada (opcional)</Label>
-                    <Input value={form.pessoa} onChange={(e) => setForm({ ...form, pessoa: e.target.value })} />
+                    <PessoaCombobox form={form} onChange={setForm} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label>Cor do cartão</Label>
+                  <div className="flex items-center gap-2 pt-1">
+                    {CORES.map((c) => {
+                      const t = temas[c.valor] ?? temas.rosa;
+                      const ativa = form.cor_tema === c.valor;
+                      return (
+                        <button
+                          key={c.valor}
+                          type="button"
+                          title={c.rotulo}
+                          aria-label={`Cor ${c.rotulo}`}
+                          onClick={() => setForm({ ...form, cor_tema: c.valor })}
+                          className={cn(
+                            "h-8 w-8 rounded-full border-2 transition-all",
+                            t.bg, t.border,
+                            ativa ? "ring-2 ring-foreground/60 ring-offset-2 ring-offset-background" : "opacity-70 hover:opacity-100",
+                          )}
+                        />
+                      );
+                    })}
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      {CORES.find((c) => c.valor === form.cor_tema)?.rotulo ?? form.cor_tema}
+                    </span>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-end gap-6">
