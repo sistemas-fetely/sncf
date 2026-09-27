@@ -238,7 +238,7 @@ export default function MuralAdmin() {
     queryFn: async (): Promise<Linha[]> => {
       let q = supabase
         .from("mural_publicacoes")
-        .select("id, tipo, subtipo, titulo, mensagem, emoji, foto_url, pessoa_alvo_nome, pessoa_alvo_tipo, cor_tema, data_evento, publicado_em, expira_em, fixado, origem, status, created_at")
+        .select("id, tipo, subtipo, titulo, mensagem, emoji, foto_url, pessoa_alvo_id, pessoa_alvo_nome, pessoa_alvo_tipo, cor_tema, data_evento, publicado_em, expira_em, fixado, origem, status, created_at")
         .order("created_at", { ascending: false });
       if (filtro !== "todas") q = q.eq("status", filtro);
       const { data, error } = await q;
@@ -264,8 +264,11 @@ export default function MuralAdmin() {
         titulo: f.titulo.trim(),
         mensagem: f.mensagem.trim(),
         emoji: f.emoji.trim() || null,
+        pessoa_alvo_id: f.pessoaId,
         pessoa_alvo_nome: f.pessoa.trim() || null,
-        pessoa_alvo_tipo: null,
+        pessoa_alvo_tipo: f.pessoaTipo,
+        foto_url: f.fotoUrl,
+        cor_tema: f.cor_tema,
         expira_em: `${f.ate}T23:59:00-03:00`,
         fixado: f.fixado,
         ...(publicar
@@ -278,7 +281,7 @@ export default function MuralAdmin() {
       } else {
         const { error } = await supabase
           .from("mural_publicacoes")
-          .insert({ ...base, origem: "rh_manual", criado_por: user?.id ?? null, cor_tema: f.cor_tema });
+          .insert({ ...base, origem: "rh_manual", criado_por: user?.id ?? null });
         if (error) throw error;
       }
     },
@@ -316,14 +319,15 @@ export default function MuralAdmin() {
   const abrirEdicao = (l: Linha) =>
     setForm({
       id: l.id, tipo: l.tipo, titulo: l.titulo, mensagem: l.mensagem ?? "", emoji: l.emoji ?? "",
-      pessoa: l.pessoa_alvo_nome ?? "", ate: isoSP(l.expira_em), fixado: !!l.fixado, cor_tema: l.cor_tema ?? "rosa",
+      pessoa: l.pessoa_alvo_nome ?? "", pessoaId: l.pessoa_alvo_id, pessoaTipo: l.pessoa_alvo_tipo, fotoUrl: l.foto_url,
+      ate: isoSP(l.expira_em), fixado: !!l.fixado, cor_tema: l.cor_tema ?? "rosa",
     });
 
   const previa: Publicacao | null = form
     ? {
         id: "previa", tipo: form.tipo, subtipo: null, titulo: form.titulo || "Título da publicação",
-        mensagem: form.mensagem || null, emoji: form.emoji || null, foto_url: null,
-        pessoa_alvo_nome: form.pessoa || null, pessoa_alvo_tipo: null, cor_tema: form.cor_tema,
+        mensagem: form.mensagem || null, emoji: form.emoji || null, foto_url: form.fotoUrl,
+        pessoa_alvo_nome: form.pessoa || null, pessoa_alvo_tipo: form.pessoaTipo, cor_tema: form.cor_tema,
         data_evento: null, publicado_em: new Date().toISOString(), fixado: form.fixado,
       }
     : null;
