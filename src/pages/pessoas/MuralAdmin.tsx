@@ -173,7 +173,7 @@ export default function MuralAdmin() {
 
   const mudarStatus = useMutation({
     mutationFn: async ({ l, status }: { l: Linha; status: string }) => {
-      const patch: Record<string, unknown> = { status };
+      const patch: { status: string; publicado_em?: string; data_evento?: string } = { status };
       if (status === "publicada" && l.status === "rascunho") {
         patch.publicado_em = new Date().toISOString();
         patch.data_evento = hojeSP();
