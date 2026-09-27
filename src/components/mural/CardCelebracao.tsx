@@ -13,7 +13,7 @@ interface Tema {
   destaque: string;
 }
 
-const temas: Record<string, Tema> = {
+export const temas: Record<string, Tema> = {
   rosa: {
     bg: "bg-info/10",
     border: "border-info/40",
