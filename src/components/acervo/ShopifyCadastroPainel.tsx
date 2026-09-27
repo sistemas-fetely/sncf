@@ -143,6 +143,12 @@ export function ShopifyCadastroPainel() {
     onError: (e) => toast.error(`Falha ao gerar payload: ${formatError(e)}`),
   });
 
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Limpa o revalidate agendado quando o painel sai da tela.
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
   const cadastrar = useMutation({
     mutationFn: (skus: string[]) => chamar(skus, false),
     onSuccess: (res) => {
@@ -163,10 +169,10 @@ export function ShopifyCadastroPainel() {
       setPayloadVisto(false);
       void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
       // Revalida depois de um tempo, para a tela bater com o banco quando o webhook chegar.
-      const t = setTimeout(() => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
         void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
       }, 8000);
-      return () => clearTimeout(t);
     },
     onError: (e) => toast.error(`Falha ao cadastrar no Shopify: ${formatError(e)}`),
   });
