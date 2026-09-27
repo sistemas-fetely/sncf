@@ -324,7 +324,7 @@ export default function MuralAdmin() {
             <DialogTitle>{form?.id ? "Editar publicação" : "Nova publicação"}</DialogTitle>
           </DialogHeader>
           {form && (
-            <div className="grid gap-6 md:grid-cols-[1fr_320px]">
+            <div className="grid items-start gap-6 md:grid-cols-[1fr_320px]">
               <div className="space-y-3">
                 <div className="space-y-1">
                   <Label>Tipo</Label>
