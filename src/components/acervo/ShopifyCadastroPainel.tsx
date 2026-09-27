@@ -151,9 +151,22 @@ export function ShopifyCadastroPainel() {
       const problema = res.filter((r) => r.status !== "ok").length;
       if (ok > 0) toast.success(`${ok} SKU(s) cadastrado(s) no Shopify como Rascunho`);
       if (problema > 0) toast.error(`${problema} SKU(s) não cadastrado(s) — veja o resultado abaixo`);
+      // Remove da lista exibida (e da seleção) os SKUs criados com sucesso — o webhook
+      // do Shopify ainda não gravou o produto no espelho, então a view ainda os devolve.
+      const okSkus = new Set(res.filter((r) => r.status === "ok").map((r) => r.sku).filter(Boolean) as string[]);
+      if (okSkus.size > 0) {
+        qc.setQueryData<LinhaFila[]>(["shopify-cadastro-fila"], (old) =>
+          old?.filter((l) => !okSkus.has(l.sku ?? ""))
+        );
+      }
       setSelecionados([]);
       setPayloadVisto(false);
       void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
+      // Revalida depois de um tempo, para a tela bater com o banco quando o webhook chegar.
+      const t = setTimeout(() => {
+        void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
+      }, 8000);
+      return () => clearTimeout(t);
     },
     onError: (e) => toast.error(`Falha ao cadastrar no Shopify: ${formatError(e)}`),
   });
