@@ -9187,6 +9187,7 @@ export type Database = {
           movimenta_estoque: boolean
           natureza: string | null
           observacao: string | null
+          origem_por_emitente: boolean
           origem_por_parceiro: boolean
           sentido: string | null
           updated_at: string
@@ -9212,6 +9213,7 @@ export type Database = {
           movimenta_estoque?: boolean
           natureza?: string | null
           observacao?: string | null
+          origem_por_emitente?: boolean
           origem_por_parceiro?: boolean
           sentido?: string | null
           updated_at?: string
@@ -9237,6 +9239,7 @@ export type Database = {
           movimenta_estoque?: boolean
           natureza?: string | null
           observacao?: string | null
+          origem_por_emitente?: boolean
           origem_por_parceiro?: boolean
           sentido?: string | null
           updated_at?: string
