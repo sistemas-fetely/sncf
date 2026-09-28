@@ -364,7 +364,7 @@ export function BlocoReposicaoCentro() {
                             onValueChange={(v) => alterar(l.centro_id, { dia_cadencia: v })}
                           >
                             <SelectTrigger className="h-9">
-                              <SelectValue placeholder="Sem cadência" />
+                              <SelectValue placeholder="Escolha o dia" />
                             </SelectTrigger>
                             <SelectContent>
                               {DIAS_SEMANA.map((d) => (
