@@ -16,8 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight,
-  Download, Loader2, RefreshCw, Search, Tags,
+  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Download, Loader2, RefreshCw, Search, Tags,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
