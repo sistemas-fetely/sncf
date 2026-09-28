@@ -186,6 +186,62 @@ function formatDateBRShort(iso: string | null | undefined) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
+/**
+ * Cabeçalho ordenável de métrica: mesmo comportamento do CabecalhoOrdenavel,
+ * com o "i" do InfoMetrica ao lado do rótulo. Vive aqui (e não no componente
+ * compartilhado) porque o InfoMetrica é peça desta tela.
+ */
+function CabMetrica({
+  rotulo,
+  slug,
+  className,
+  alinharDireita,
+  dir,
+  onOrdenar,
+}: {
+  rotulo: string;
+  slug: string;
+  className?: string;
+  alinharDireita?: boolean;
+  dir: DirecaoOrdenacao | null;
+  onOrdenar: () => void;
+}) {
+  return (
+    <TableHead
+      className={cn("group", className)}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <span className={cn("inline-flex items-center gap-1", alinharDireita && "w-full justify-end")}>
+        <button
+          type="button"
+          onClick={onOrdenar}
+          className={cn(
+            "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+            dir && "text-foreground",
+          )}
+          title={
+            dir === "asc"
+              ? "Crescente — clique para inverter"
+              : dir === "desc"
+                ? "Decrescente — clique para voltar à ordenação padrão"
+                : `Ordenar por ${rotulo}`
+          }
+        >
+          {rotulo}
+          {dir === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : dir === "desc" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+          )}
+        </button>
+        <InfoMetrica slug={slug} />
+      </span>
+    </TableHead>
+  );
+}
+
 function formatDateBR(iso: string | null | undefined) {
   if (!iso) return "—";
   const d = new Date(iso);
