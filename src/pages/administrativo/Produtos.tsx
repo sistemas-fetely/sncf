@@ -324,18 +324,6 @@ export default function Produtos() {
     setPagina(1);
   }, [ordenacao]);
 
-  const resumoQuery = useQuery({
-    queryKey: ["vw_produto_carteira_resumo"],
-    queryFn: async (): Promise<CarteiraResumo | null> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_carteira_resumo")
-        .select("*")
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as CarteiraResumo | null;
-    },
-  });
 
   const cockpitQuery = useQuery({
     queryKey: ["vw_produto_cockpit"],
