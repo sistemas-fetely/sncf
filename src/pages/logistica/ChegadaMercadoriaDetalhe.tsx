@@ -288,6 +288,7 @@ export default function ChegadaMercadoriaDetalhe() {
   const [invAberta, setInvAberta] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [vincNfDialog, setVincNfDialog] = useState(false);
+  const [receberNf, setReceberNf] = useState<NfRow | null>(null);
 
 
   const pedidoQ = useQuery({
@@ -849,33 +850,48 @@ export default function ChegadaMercadoriaDetalhe() {
                         const linhas = nfLinhasPor(nf.id);
                         return (
                           <div key={nf.id} className="rounded-md border">
-                            <button
-                              type="button"
-                              className="w-full flex items-center gap-3 p-3 text-left text-sm hover:bg-muted/50"
-                              onClick={() => setNfAberta(aberto ? null : nf.id)}
-                            >
-                              {aberto ? (
-                                <ChevronDown className="h-4 w-4" />
+                            <div className="flex items-center gap-3 p-3 text-sm hover:bg-muted/50">
+                              <button
+                                type="button"
+                                className="flex flex-1 items-center gap-3 text-left"
+                                onClick={() => setNfAberta(aberto ? null : nf.id)}
+                              >
+                                {aberto ? (
+                                  <ChevronDown className="h-4 w-4" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4" />
+                                )}
+                                <span className="font-medium">
+                                  NF {nf.numero}
+                                  {nf.serie ? `/${nf.serie}` : ""}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {fmtDate(nf.data_emissao)}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {fmtMoeda(nf.valor_total, "BRL")}
+                                </span>
+                                <span className="text-muted-foreground">
+                                  {nf.container ?? "sem container"}
+                                </span>
+                                <span className="ml-auto text-xs text-muted-foreground">
+                                  {linhas.length} linha(s)
+                                </span>
+                              </button>
+                              {recebimentosQ.data?.has(Number(nf.id)) ? (
+                                <Badge variant="secondary">
+                                  Recebida · {recebimentosQ.data.get(Number(nf.id))}
+                                </Badge>
                               ) : (
-                                <ChevronRight className="h-4 w-4" />
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => setReceberNf(nf)}
+                                >
+                                  Receber fora do XPM
+                                </Button>
                               )}
-                              <span className="font-medium">
-                                NF {nf.numero}
-                                {nf.serie ? `/${nf.serie}` : ""}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {fmtDate(nf.data_emissao)}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {fmtMoeda(nf.valor_total, "BRL")}
-                              </span>
-                              <span className="text-muted-foreground">
-                                {nf.container ?? "sem container"}
-                              </span>
-                              <span className="ml-auto text-xs text-muted-foreground">
-                                {linhas.length} linha(s)
-                              </span>
-                            </button>
+                            </div>
                             {aberto && (
                               <div className="border-t p-3 overflow-x-auto">
                                 {linhas.length === 0 ? (
