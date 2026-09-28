@@ -170,4 +170,5 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     duplicatas,
     _source: "xml_nfe",
   };
+  return resultado;
 }
