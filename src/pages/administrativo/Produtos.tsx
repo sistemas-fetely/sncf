@@ -193,7 +193,7 @@ interface CarteiraResumo {
 
 type ColunaProduto =
   | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
-  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
+  | "markup" | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -207,7 +207,7 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
   cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  margem: "desc", custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  margem: "desc", custo: "desc", markup: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
   cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
@@ -486,6 +486,7 @@ export default function Produtos() {
         case "receita": return Number(p.receita ?? 0);
         case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
         case "custo": return p.custo == null ? null : Number(p.custo);
+        case "markup": return p.markup == null ? null : Number(p.markup);
         case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
         case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
         case "virtual": return Number(p.estoque_virtual ?? 0);
@@ -563,7 +564,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 14;
+  const totalCols = 15;
 
   return (
     <PageShell className="animate-casa-fade-in">
