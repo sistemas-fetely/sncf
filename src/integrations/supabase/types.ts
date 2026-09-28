@@ -33935,6 +33935,8 @@ export type Database = {
           desconto_pct: number | null
           dispensa_analise: boolean
           entra_receita: boolean
+          estoque_centro_origem_id: string | null
+          estoque_estorna_consumo_origem: boolean
           exige_expedicao: boolean
           forma_pagamento_default_id: string | null
           gera_despesa: boolean
@@ -33955,6 +33957,8 @@ export type Database = {
           desconto_pct?: number | null
           dispensa_analise?: boolean
           entra_receita?: boolean
+          estoque_centro_origem_id?: string | null
+          estoque_estorna_consumo_origem?: boolean
           exige_expedicao?: boolean
           forma_pagamento_default_id?: string | null
           gera_despesa?: boolean
@@ -33975,6 +33979,8 @@ export type Database = {
           desconto_pct?: number | null
           dispensa_analise?: boolean
           entra_receita?: boolean
+          estoque_centro_origem_id?: string | null
+          estoque_estorna_consumo_origem?: boolean
           exige_expedicao?: boolean
           forma_pagamento_default_id?: string | null
           gera_despesa?: boolean
@@ -33987,6 +33993,20 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "naturezas_operacao_estoque_centro_origem_id_fkey"
+            columns: ["estoque_centro_origem_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_centro_origem_id_fkey"
+            columns: ["estoque_centro_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
           {
             foreignKeyName: "naturezas_operacao_forma_pagamento_default_id_fkey"
             columns: ["forma_pagamento_default_id"]
@@ -111092,7 +111112,12 @@ export type Database = {
             Returns: Json
           }
       criar_pedido_transferencia: {
-        Args: { p_destino_codigo: string; p_itens: Json; p_observacao?: string }
+        Args: {
+          p_destino_codigo: string
+          p_itens: Json
+          p_observacao?: string
+          p_regularizacao?: boolean
+        }
         Returns: Json
       }
       criar_portao_provisorio: {
