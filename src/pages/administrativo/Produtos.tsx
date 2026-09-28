@@ -831,6 +831,13 @@ export default function Produtos() {
                           </div>
                         )}
                       </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.markup == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          `${Number(p.markup).toFixed(1)}×`
+                        )}
+                      </TableCell>
                       <TableCell className={cn(
                         "text-right tabular-nums",
                         p.abaixo_piso_b2b && "text-destructive font-medium",
