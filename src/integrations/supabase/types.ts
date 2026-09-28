@@ -32289,6 +32289,47 @@ export type Database = {
         }
         Relationships: []
       }
+      metrica_faixa: {
+        Row: {
+          ativo: boolean
+          id: string
+          maximo: number | null
+          metrica_slug: string
+          minimo: number | null
+          ordem: number
+          rotulo: string
+          tom: string
+        }
+        Insert: {
+          ativo?: boolean
+          id?: string
+          maximo?: number | null
+          metrica_slug: string
+          minimo?: number | null
+          ordem?: number
+          rotulo: string
+          tom?: string
+        }
+        Update: {
+          ativo?: boolean
+          id?: string
+          maximo?: number | null
+          metrica_slug?: string
+          minimo?: number | null
+          ordem?: number
+          rotulo?: string
+          tom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metrica_faixa_metrica_slug_fkey"
+            columns: ["metrica_slug"]
+            isOneToOne: false
+            referencedRelation: "metrica_definicao"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       motivos_concessao: {
         Row: {
           ativo: boolean
@@ -93382,14 +93423,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -95029,14 +95070,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -99769,8 +99810,10 @@ export type Database = {
           dias_sem_vender: number | null
           estoque_base: number | null
           estoque_bloqueado: number | null
+          estoque_por_centro: Json | null
           estoque_sadio: number | null
           estoque_virtual: number | null
+          fase: string | null
           foto_url: string | null
           gmroi: number | null
           grupo: string | null
@@ -105428,14 +105471,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
