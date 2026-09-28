@@ -68,7 +68,7 @@ const ROTULO_AVISO: Record<string, string> = {
   sem_xpm: "Sem cadastro XPM",
   sem_sigla_colecao: "Coleção sem sigla",
   colecao_variante_sem_codigo: "Coleção com variante sem código no Shopify",
-  produto_agrupado_existe: "Produto agrupado já existe — adicionar como variante",
+  produto_agrupado_existe: "Já existe produto agrupado — adicionar como variante",
   mais_de_um_produto_agrupado: "Mais de um produto agrupado com o mesmo código",
 };
 
@@ -310,7 +310,7 @@ export function ShopifyCadastroPainel() {
                     <TableCell className="text-xs">{l.canal_venda ?? "—"}</TableCell>
                     <TableCell className="font-mono text-xs">{l.codigo_shopify ?? "—"}</TableCell>
                     <TableCell className="text-xs">{(l.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
-                    <TableCell className="text-xs">{l.produto_agrupado ?? ""}</TableCell>
+                    <TableCell className="text-xs">{l.produto_agrupado ?? "—"}</TableCell>
                     <TableCell className="text-right text-xs tabular-nums">{brl(l.preco_varejo)}</TableCell>
                     <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
 
@@ -682,7 +682,7 @@ function EstoqueRetidoCard({ liberado, tituloSemPermissao }: { liberado: boolean
       const { data, error } = await (supabase as any)
         .from("vw_shopify_estoque_retencao_aberta")
         .select("id, sku, nome_comercial, motivo, retido_em, estoque_sncf")
-        .order("retido_em");
+        .order("retido_em", { ascending: false });
       if (error) throw error;
       return (data ?? []) as LinhaRetida[];
     },
@@ -734,7 +734,7 @@ function EstoqueRetidoCard({ liberado, tituloSemPermissao }: { liberado: boolean
             <AlertDescription className="text-xs">{formatError(error)}</AlertDescription>
           </Alert>
         ) : linhas.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nenhum SKU com estoque segurado.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Nenhum estoque retido.</p>
         ) : (
           <Table>
             <TableHeader>
