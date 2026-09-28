@@ -36,10 +36,19 @@ export function nomeCurtoCd(c: CentroB2c): string {
   return c.nome?.trim() || c.codigo;
 }
 
+/** Sugestão de CD vinda de vw_b2c_sugestao_cd — olha o estoque, avisa e nunca bloqueia. */
+export interface SugestaoCdB2c {
+  cd_sugerido_original: string | null;
+  cd_sugerido_efetivo: string | null;
+  motivo_troca: string | null;
+  saldo_por_cd: Record<string, { itens: number; sem_saldo: number; skus: string[] }> | null;
+}
+
 interface CelulaProps {
   pedido: PedidoB2cRow;
   centros: CentroB2c[];
   processando: boolean;
+  sugestao?: SugestaoCdB2c;
   onEscolher: (pedido: PedidoB2cRow, centro: CentroB2c) => void;
 }
 
@@ -68,8 +77,8 @@ function SeloTag({ tag }: { tag: string }) {
 }
 
 /** Célula de "Próxima ação" para pedido parado aguardando o destino. */
-export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: CelulaProps) {
-  const sugerido = pedido.cd_sugerido;
+export function EscolhaCdCelula({ pedido, centros, processando, sugestao, onEscolher }: CelulaProps) {
+  const sugerido = sugestao?.cd_sugerido_efetivo ?? pedido.cd_sugerido;
   const sugeridoCentro = centros.find((c) => c.codigo === sugerido);
   const siglaSugerido = abreviarCd(sugerido, sugeridoCentro?.nome);
   const tag = tagDoPedido(pedido);
@@ -90,9 +99,14 @@ export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: Ce
           Escolha o CD para liberar a descida
         </div>
       )}
+      {sugestao?.motivo_troca && (
+        <div className="text-[11px] text-warning">{sugestao.motivo_troca}</div>
+      )}
       <div className="flex flex-wrap items-center gap-1">
         {centros.map((c) => {
           const ehSugerido = c.codigo === sugerido;
+          const saldoCd = sugestao?.saldo_por_cd?.[c.codigo];
+          const semSaldo = Number(saldoCd?.sem_saldo ?? 0);
           return (
             <Button
               key={c.codigo}
@@ -101,6 +115,7 @@ export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: Ce
               variant={ehSugerido ? "default" : "outline"}
               disabled={processando}
               className="h-7 px-2 text-xs"
+              title={semSaldo > 0 ? (saldoCd?.skus ?? []).join(", ") : undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 onEscolher(pedido, c);
@@ -108,6 +123,11 @@ export function EscolhaCdCelula({ pedido, centros, processando, onEscolher }: Ce
             >
               {processando && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
               {nomeCurtoCd(c)}
+              {semSaldo > 0 && (
+                <span className="ml-1 text-[10px] font-normal text-warning-strong">
+                  · sem saldo ({semSaldo})
+                </span>
+              )}
             </Button>
           );
         })}
@@ -209,15 +229,17 @@ interface ConfirmaProps {
   onOpenChange: (v: boolean) => void;
   sugeridoNome: string | null;
   escolhidoNome: string | null;
+  avisoSemSaldo?: string | null;
   onConfirmar: () => void;
 }
 
-/** Divergiu da sugestão: confirma, não bloqueia. */
+/** Divergiu da sugestão (ou há pedido sem saldo no CD): confirma, não bloqueia. */
 export function ConfirmaCdDivergente({
   open,
   onOpenChange,
   sugeridoNome,
   escolhidoNome,
+  avisoSemSaldo,
   onConfirmar,
 }: ConfirmaProps) {
   return (
@@ -226,10 +248,11 @@ export function ConfirmaCdDivergente({
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmar {escolhidoNome ?? "o CD escolhido"}?</AlertDialogTitle>
           <AlertDialogDescription>
-            A sugestão é {sugeridoNome ?? "outro CD"}. A escolha do humano vale — confirme para
-            liberar a descida ao Bling.
+            {sugeridoNome && <>A sugestão é {sugeridoNome}. </>}A escolha do humano vale — confirme
+            para liberar a descida ao Bling.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        {avisoSemSaldo && <p className="text-sm text-warning">{avisoSemSaldo}</p>}
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction onClick={onConfirmar}>Confirmar</AlertDialogAction>

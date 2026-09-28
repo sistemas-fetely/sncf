@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PipelineB2c, type ContagemEstagio } from "@/components/vendas/PipelineB2c";
 import {
   BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c,
-  abreviarCd, nomeCurtoCd,
+  abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
@@ -288,6 +288,7 @@ export default function ShopifyB2c() {
     pedidos: PedidoB2cRow[];
     centro: CentroB2c;
     sugeridoNome: string | null;
+    avisoSemSaldo: string | null;
   } | null>(null);
   const [reprocesso, setReprocesso] = useState<PedidoB2cRow[] | null>(null);
   const [motivoReprocesso, setMotivoReprocesso] = useState("");
@@ -421,6 +422,24 @@ export default function ShopifyB2c() {
 
   const qc = useQueryClient();
 
+  // SUGESTÃO-OLHA-O-ESTOQUE: vw_b2c_sugestao_cd traz, por pedido aguardando
+  // destino, o CD sugerido efetivo (pode ter trocado por saldo) e o saldo por
+  // CD. SISTEMA SUGERE / HUMANO DECIDE — avisa, nunca bloqueia.
+  const { data: sugestoesData } = useQuery({
+    queryKey: ["b2c-sugestao-cd"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_b2c_sugestao_cd")
+        .select("shopify_pedido_id, cd_sugerido_original, cd_sugerido_efetivo, motivo_troca, saldo_por_cd");
+      if (error) throw error;
+      return data as (SugestaoCdB2c & { shopify_pedido_id: string })[];
+    },
+  });
+  const sugestoesPorPedido = useMemo(
+    () => new Map((sugestoesData ?? []).map((s) => [s.shopify_pedido_id, s])),
+    [sugestoesData],
+  );
+
   // ── SENTINELA-B2C · 22/09/2026 ───────────────────────────────────────────
   // A lista da fila vem de vw_gestao_b2c_pedido (~2,9s por execução), então
   // ela NÃO tem refetchInterval. Pedido novo nasce de webhook Shopify e
@@ -470,19 +489,29 @@ export default function ShopifyB2c() {
     setGravandoCd(true);
     const sucessos: PedidoB2cRow[] = [];
     const falhas: string[] = [];
+    const semSaldoItens: number[] = [];
+    const skusSemSaldo = new Set<string>();
     try {
       for (const p of alvos) {
-        const { error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
+        const { data: rpcData, error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
           p_shopify_id: p.shopify_id!,
           p_centro_codigo: centro.codigo,
         });
         if (erroRpc) falhas.push(`${p.order_name ?? p.shopify_id}: ${erroRpc.message}`);
-        else sucessos.push(p);
+        else {
+          sucessos.push(p);
+          const r = (rpcData ?? null) as { itens_sem_saldo?: number; skus_sem_saldo?: string[] } | null;
+          if (Number(r?.itens_sem_saldo ?? 0) > 0) {
+            semSaldoItens.push(Number(r!.itens_sem_saldo));
+            (r?.skus_sem_saldo ?? []).forEach((s) => skusSemSaldo.add(s));
+          }
+        }
       }
     } finally {
       setGravandoCd(false);
       await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
     if (falhas.length > 0) {
       toast.error(
@@ -503,6 +532,12 @@ export default function ShopifyB2c() {
           },
         },
       );
+      if (semSaldoItens.length > 0) {
+        toast.warning(
+          `Enviado para ${nomeCurtoCd(centro)} sem saldo de ${semSaldoItens.reduce((a, b) => a + b, 0)} item(ns)`,
+          { description: [...skusSemSaldo].join(", ") },
+        );
+      }
       setMarcados(new Set());
     }
   }
@@ -531,6 +566,7 @@ export default function ShopifyB2c() {
       setGravandoCd(false);
       await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
     if (falhas.length > 0) {
       toast.error(
@@ -549,14 +585,38 @@ export default function ShopifyB2c() {
     }
   }
 
-  /** Divergir da sugestão pede confirmação, nunca bloqueia. */
+  /** Divergir da sugestão (ou escolher CD sem saldo) pede confirmação, nunca bloqueia. */
   function pedirEscolha(pedidos: PedidoB2cRow[], centro: CentroB2c) {
-    const divergentes = pedidos.filter(
-      (p) => p.cd_sugerido && p.cd_sugerido !== centro.codigo,
-    );
-    if (divergentes.length > 0) {
-      const sug = centros.find((c) => c.codigo === divergentes[0].cd_sugerido);
-      setConfirmacao({ pedidos, centro, sugeridoNome: sug ? nomeCurtoCd(sug) : divergentes[0].cd_sugerido });
+    const divergentes = pedidos.filter((p) => {
+      const sug = p.shopify_id ? sugestoesPorPedido.get(p.shopify_id) : undefined;
+      const sugerido = sug?.cd_sugerido_efetivo ?? p.cd_sugerido;
+      return !!sugerido && sugerido !== centro.codigo;
+    });
+    const semSaldo = pedidos.filter((p) => {
+      if (!p.shopify_id) return false;
+      const saldos = sugestoesPorPedido.get(p.shopify_id)?.saldo_por_cd;
+      return Number(saldos?.[centro.codigo]?.sem_saldo ?? 0) > 0;
+    });
+    if (divergentes.length > 0 || semSaldo.length > 0) {
+      let sugeridoNome: string | null = null;
+      if (divergentes.length > 0) {
+        const p0 = divergentes[0];
+        const sug = p0.shopify_id ? sugestoesPorPedido.get(p0.shopify_id) : undefined;
+        const codigo = sug?.cd_sugerido_efetivo ?? p0.cd_sugerido;
+        const c = centros.find((x) => x.codigo === codigo);
+        sugeridoNome = c ? nomeCurtoCd(c) : codigo;
+      }
+      const skusSemSaldo = new Set<string>();
+      semSaldo.forEach((p) => {
+        (sugestoesPorPedido.get(p.shopify_id!)?.saldo_por_cd?.[centro.codigo]?.skus ?? []).forEach(
+          (s) => skusSemSaldo.add(s),
+        );
+      });
+      const avisoSemSaldo =
+        semSaldo.length > 0
+          ? `${semSaldo.length} pedido(s) sem saldo em ${nomeCurtoCd(centro)}: ${[...skusSemSaldo].slice(0, 5).join(", ")}. O pedido desce mesmo assim e vai faltar produto para separar.`
+          : null;
+      setConfirmacao({ pedidos, centro, sugeridoNome, avisoSemSaldo });
       return;
     }
     void escolherCd(pedidos, centro);
@@ -1244,6 +1304,7 @@ export default function ShopifyB2c() {
                                         pedido={p}
                                         centros={centros}
                                         processando={gravandoCd}
+                                        sugestao={p.shopify_id ? sugestoesPorPedido.get(p.shopify_id) : undefined}
                                         onEscolher={(ped, c) => pedirEscolha([ped], c)}
                                       />
                                     );
@@ -1430,6 +1491,7 @@ export default function ShopifyB2c() {
         onOpenChange={(v) => !v && setConfirmacao(null)}
         sugeridoNome={confirmacao?.sugeridoNome ?? null}
         escolhidoNome={confirmacao ? nomeCurtoCd(confirmacao.centro) : null}
+        avisoSemSaldo={confirmacao?.avisoSemSaldo ?? null}
         onConfirmar={() => {
           if (confirmacao) void escolherCd(confirmacao.pedidos, confirmacao.centro);
           setConfirmacao(null);
