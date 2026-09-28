@@ -37828,6 +37828,7 @@ export type Database = {
           ativo: boolean
           atualizado_em: string
           base: string | null
+          canal: string | null
           chave: string
           criado_em: string
           descricao: string | null
@@ -37843,6 +37844,7 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           base?: string | null
+          canal?: string | null
           chave: string
           criado_em?: string
           descricao?: string | null
@@ -37858,6 +37860,7 @@ export type Database = {
           ativo?: boolean
           atualizado_em?: string
           base?: string | null
+          canal?: string | null
           chave?: string
           criado_em?: string
           descricao?: string | null
@@ -92486,14 +92489,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -95136,14 +95139,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -99846,6 +99849,8 @@ export type Database = {
           grupo: string | null
           linha: string | null
           margem_contribuicao: number | null
+          margem_contribuicao_b2b: number | null
+          margem_contribuicao_b2c: number | null
           margem_contribuicao_pct: number | null
           margem_contribuicao_un: number | null
           nome_comercial: string | null
@@ -99853,9 +99858,13 @@ export type Database = {
           preco_b2b: number | null
           preco_b2c: number | null
           preco_divergente_bling: boolean | null
+          preco_medio_b2b: number | null
+          preco_medio_b2c: number | null
           preco_medio_realizado: number | null
           preco_no_bling: number | null
           receita: number | null
+          receita_b2b: number | null
+          receita_b2c: number | null
           receita_cancelada: number | null
           receita_perdida: number | null
           receita_reprocessada: number | null
@@ -99867,6 +99876,8 @@ export type Database = {
           status_venda: string | null
           tem_razao: boolean | null
           ultima_venda: string | null
+          un_b2b: number | null
+          un_b2c: number | null
           un_canceladas: number | null
           un_perdidas: number | null
           un_por_dia: number | null
@@ -100365,11 +100376,15 @@ export type Database = {
           pedidos: number | null
           primeira_venda: string | null
           receita: number | null
+          receita_b2b: number | null
+          receita_b2c: number | null
           receita_cancelada: number | null
           receita_perdida: number | null
           receita_reprocessada: number | null
           sku: string | null
           ultima_venda: string | null
+          un_b2b: number | null
+          un_b2c: number | null
           un_canceladas: number | null
           un_perdidas: number | null
           un_por_dia: number | null
@@ -110694,9 +110709,37 @@ export type Database = {
           preco: number
         }[]
       }
+      calcular_margem_contribuicao_canal: {
+        Args: { p_canal: string; p_custo: number; p_preco: number }
+        Returns: {
+          credito: number
+          custo: number
+          despesas_variaveis: number
+          margem: number
+          margem_pct: number
+          preco: number
+        }[]
+      }
       calcular_peso_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       calcular_resultado_precificacao: {
         Args: { p_base_credito?: number; p_custo: number; p_preco: number }
+        Returns: {
+          abaixo_piso: boolean
+          cogs: number
+          credito: number
+          despesas: number
+          faturamento: number
+          resultado: number
+          resultado_pct: number
+        }[]
+      }
+      calcular_resultado_precificacao_canal: {
+        Args: {
+          p_base_credito?: number
+          p_canal: string
+          p_custo: number
+          p_preco: number
+        }
         Returns: {
           abaixo_piso: boolean
           cogs: number
