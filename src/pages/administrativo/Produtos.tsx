@@ -8,7 +8,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
-import { Select, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectValue,
+} from "@/components/ui/select";
+
+type TomFaixa = "alerta" | "atencao" | "neutro" | "bom";
+interface MetricaFaixa {
+  metrica_slug: string;
+  rotulo: string;
+  minimo: number | null;
+  maximo: number | null;
+  tom: TomFaixa | null;
+  ordem: number | null;
+}
+function dentroFaixa(f: MetricaFaixa, v: number | null | undefined): boolean {
+  if (v == null) return false;
+  const n = Number(v);
+  if (f.minimo != null && n < Number(f.minimo)) return false;
+  if (f.maximo != null && n >= Number(f.maximo)) return false;
+  return true;
+}
+function faixaDe(faixas: MetricaFaixa[], v: number | null | undefined): MetricaFaixa | undefined {
+  return faixas.find((f) => dentroFaixa(f, v));
+}
+function classeTom(tom: TomFaixa | null | undefined): string | undefined {
+  if (tom === "alerta") return "text-destructive font-medium";
+  if (tom === "atencao") return "text-warning font-medium";
+  if (tom === "bom") return "text-success";
+  return undefined;
+}
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -86,6 +114,8 @@ interface CockpitRow {
   reservado: number | null;
   estoque_virtual: number | null;
   tem_razao: boolean | null;
+  fase: string | null;
+  estoque_por_centro: Record<string, number> | null;
   status_venda: string | null;
   dias_desde_contagem: number | null;
   cobertura_dias: number | null;
@@ -264,9 +294,12 @@ export default function Produtos() {
   const qc = useQueryClient();
   const [busca, setBusca] = useState("");
   const [curvaFiltro, setCurvaFiltro] = useState("todas");
-  const [custoFiltro, setCustoFiltro] = useState("todos");
-  const [estoqueFiltro, setEstoqueFiltro] = useState("todos");
+  const [cdFiltro, setCdFiltro] = useState("todos");
   const [margemFiltro, setMargemFiltro] = useState("todas");
+  const [gmroiFiltro, setGmroiFiltro] = useState("todos");
+  const [colecaoFiltro, setColecaoFiltro] = useState("todas");
+  const [grupoFiltro, setGrupoFiltro] = useState("todos");
+  const [faseFiltro, setFaseFiltro] = useState("todas");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
   const [pagina, setPagina] = useState(1);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
@@ -318,17 +351,108 @@ export default function Produtos() {
 
   const lista = cockpitQuery.data ?? [];
 
+  const faixasQuery = useQuery({
+    queryKey: ["metrica-faixa"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<MetricaFaixa[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("metrica_faixa")
+        .select("metrica_slug, rotulo, minimo, maximo, tom, ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as MetricaFaixa[];
+    },
+  });
+  const centrosQuery = useQuery({
+    queryKey: ["centros-distribuicao"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<{ codigo: string; rotulo_curto: string | null; nome: string | null; ordem: number | null }[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("centro_distribuicao")
+        .select("codigo, rotulo_curto, nome, ordem")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const fasesQuery = useQuery({
+    queryKey: ["produto-fase-dim"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<{ slug: string; nome: string | null; ordem: number | null }[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("produto_fase_dim")
+        .select("slug, nome, ordem")
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const faixas = faixasQuery.data ?? [];
+  const faixasMargem = useMemo(() => faixas.filter((f) => f.metrica_slug === "margem_contribuicao"), [faixas]);
+  const faixasGmroi = useMemo(() => faixas.filter((f) => f.metrica_slug === "gmroi"), [faixas]);
+  const centros = centrosQuery.data ?? [];
+  const fasesDim = fasesQuery.data ?? [];
+
+  const rotuloCd = (codigo: string) => {
+    const c = centros.find((x) => x.codigo === codigo);
+    return c?.rotulo_curto ?? c?.nome ?? codigo;
+  };
+  const rotuloFase = (slug: string) => fasesDim.find((f) => f.slug === slug)?.nome ?? slug;
+
+  const cdsOpcoes = useMemo(() => {
+    const presentes = new Set<string>();
+    lista.forEach((p) => Object.keys(p.estoque_por_centro ?? {}).forEach((k) => presentes.add(k)));
+    return centros.map((c) => c.codigo).filter((c) => presentes.has(c));
+  }, [lista, centros]);
+  const colecoesOpcoes = useMemo(
+    () => [...new Set(lista.map((p) => p.colecao).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [lista],
+  );
+  const gruposOpcoes = useMemo(
+    () => [...new Set(lista.map((p) => p.grupo).filter((x): x is string => !!x))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [lista],
+  );
+  const fasesOpcoes = useMemo(() => {
+    const ord = (s: string) => fasesDim.find((f) => f.slug === s)?.ordem ?? 9999;
+    return [...new Set(lista.map((p) => p.fase).filter((x): x is string => !!x))].sort((a, b) => ord(a) - ord(b));
+  }, [lista, fasesDim]);
+
+  const filtroAtivo =
+    busca.trim() !== "" || curvaFiltro !== "todas" || cdFiltro !== "todos" || margemFiltro !== "todas" ||
+    gmroiFiltro !== "todos" || colecaoFiltro !== "todas" || grupoFiltro !== "todos" || faseFiltro !== "todas";
+
+  function limparFiltros() {
+    setBusca(""); setCurvaFiltro("todas"); setCdFiltro("todos"); setMargemFiltro("todas");
+    setGmroiFiltro("todos"); setColecaoFiltro("todas"); setGrupoFiltro("todos"); setFaseFiltro("todas");
+    setPagina(1);
+  }
+
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
+    const faixaMargemSel = margemFiltro.startsWith("f") ? faixasMargem[Number(margemFiltro.slice(1))] : undefined;
+    const faixaGmroiSel = gmroiFiltro.startsWith("f") ? faixasGmroi[Number(gmroiFiltro.slice(1))] : undefined;
     const base = lista.filter((p) => {
       if (curvaFiltro !== "todas") {
         if (curvaFiltro === "sem_venda" && p.curva !== "sem_venda") return false;
         if (curvaFiltro !== "sem_venda" && p.curva !== curvaFiltro) return false;
       }
-      if (custoFiltro !== "todos" && p.custo_status !== custoFiltro) return false;
-      if (estoqueFiltro === "razao" && !p.tem_razao) return false;
-      if (estoqueFiltro === "bling" && p.tem_razao) return false;
+      if (cdFiltro === "sem") {
+        if (Object.keys(p.estoque_por_centro ?? {}).length > 0) return false;
+      } else if (cdFiltro !== "todos") {
+        if (!(Number(p.estoque_por_centro?.[cdFiltro] ?? 0) > 0)) return false;
+      }
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
+      if (faixaMargemSel && !dentroFaixa(faixaMargemSel, p.margem_contribuicao_pct)) return false;
+      if (faixaGmroiSel && !dentroFaixa(faixaGmroiSel, p.gmroi)) return false;
+      if (colecaoFiltro !== "todas" && p.colecao !== colecaoFiltro) return false;
+      if (grupoFiltro !== "todos" && p.grupo !== grupoFiltro) return false;
+      if (faseFiltro !== "todas" && p.fase !== faseFiltro) return false;
       if (!q) return true;
       return (
         p.cod_cadastro?.toLowerCase().includes(q) ||
@@ -366,7 +490,7 @@ export default function Produtos() {
       }
       return (Number(va) - Number(vb)) * dir;
     });
-  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, ordenacao]);
+  }, [lista, busca, curvaFiltro, cdFiltro, margemFiltro, gmroiFiltro, colecaoFiltro, grupoFiltro, faseFiltro, faixasMargem, faixasGmroi, ordenacao]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -450,36 +574,79 @@ export default function Produtos() {
             <SelectItem value="sem_venda">Sem venda</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={custoFiltro} onValueChange={(v) => { setCustoFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={custoFiltro !== "todos"} className="w-[150px]">
+        <Select value={cdFiltro} onValueChange={(v) => { setCdFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={cdFiltro !== "todos"} className="w-[150px]">
             <SelectValue />
           </FilterSelectTrigger>
           <SelectContent>
-            <SelectItem value="todos">Todos os custos</SelectItem>
-            <SelectItem value="real">Custo real</SelectItem>
-            <SelectItem value="interino">Custo interino</SelectItem>
-            <SelectItem value="ausente">Custo ausente</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={estoqueFiltro} onValueChange={(v) => { setEstoqueFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={estoqueFiltro !== "todos"} className="w-[160px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todo estoque</SelectItem>
-            <SelectItem value="razao">Lastreado (razão)</SelectItem>
-            <SelectItem value="bling">Saldo Bling</SelectItem>
+            <SelectItem value="todos">Todos os CDs</SelectItem>
+            {cdsOpcoes.map((c) => (
+              <SelectItem key={c} value={c}>{rotuloCd(c)}</SelectItem>
+            ))}
+            <SelectItem value="sem">Sem estoque</SelectItem>
           </SelectContent>
         </Select>
         <Select value={margemFiltro} onValueChange={(v) => { setMargemFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={margemFiltro !== "todas"} className="w-[160px]">
+          <FilterSelectTrigger active={margemFiltro !== "todas"} className="w-[170px]">
             <SelectValue />
           </FilterSelectTrigger>
           <SelectContent>
             <SelectItem value="todas">Todas margens</SelectItem>
             <SelectItem value="abaixo">Abaixo do piso</SelectItem>
+            {faixasMargem.length > 0 && (
+              <>
+                <SelectSeparator />
+                <SelectGroup>
+                  <SelectLabel>Margem de contribuição</SelectLabel>
+                  {faixasMargem.map((f, i) => (
+                    <SelectItem key={i} value={`f${i}`}>{f.rotulo}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </>
+            )}
           </SelectContent>
         </Select>
+        <Select value={gmroiFiltro} onValueChange={(v) => { setGmroiFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={gmroiFiltro !== "todos"} className="w-[150px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todo GMROI</SelectItem>
+            {faixasGmroi.map((f, i) => (
+              <SelectItem key={i} value={`f${i}`}>{f.rotulo}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={colecaoFiltro} onValueChange={(v) => { setColecaoFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={colecaoFiltro !== "todas"} className="w-[160px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as coleções</SelectItem>
+            {colecoesOpcoes.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={grupoFiltro} onValueChange={(v) => { setGrupoFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={grupoFiltro !== "todos"} className="w-[150px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os grupos</SelectItem>
+            {gruposOpcoes.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={faseFiltro} onValueChange={(v) => { setFaseFiltro(v); setPagina(1); }}>
+          <FilterSelectTrigger active={faseFiltro !== "todas"} className="w-[150px]">
+            <SelectValue />
+          </FilterSelectTrigger>
+          <SelectContent>
+            <SelectItem value="todas">Todas as fases</SelectItem>
+            {fasesOpcoes.map((f) => <SelectItem key={f} value={f}>{rotuloFase(f)}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {filtroAtivo && (
+          <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>
+        )}
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}
         </span>
@@ -633,6 +800,11 @@ export default function Produtos() {
                             </TooltipContent>
                           </Tooltip>
                         </div>
+                        {cdFiltro !== "todos" && cdFiltro !== "sem" && (
+                          <div className="text-[10px] text-muted-foreground">
+                            {formatNum(Number(p.estoque_por_centro?.[cdFiltro] ?? 0))} no {rotuloCd(cdFiltro)}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {cobertura == null ? (
@@ -659,7 +831,7 @@ export default function Produtos() {
                         {p.gmroi == null ? (
                           <span className="text-muted-foreground">—</span>
                         ) : (
-                          <span className={cn(Number(p.gmroi) < 0.5 && "text-warning font-medium")}>
+                          <span className={classeTom(faixaDe(faixasGmroi, Number(p.gmroi))?.tom)}>
                             {Number(p.gmroi).toFixed(2)}×
                           </span>
                         )}
