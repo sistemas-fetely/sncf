@@ -164,10 +164,6 @@ export function BlocoReposicaoCentro() {
       const teto = inteiro(r.teto, { obrigatorio: true, maiorQueZero: true });
       const caudaLimite = numero(r.cauda_limite);
       const caudaPiso = inteiro(r.cauda_piso);
-      const falhas = [
-        inteiro(r.lead_time, {}) === undefined ? null : null,
-      ];
-      void falhas;
       const problemas: Record<string, string> = {};
       if (ehErroInteiro(lead)) problemas.lead_time = lead;
       if (ehErroInteiro(seg)) problemas.seguranca = seg;
