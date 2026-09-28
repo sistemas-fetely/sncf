@@ -466,6 +466,7 @@ Deno.serve(async (req) => {
       paginas,
       produtos_gravados: produtosGravados,
       variantes_totais: variantesTotais,
+      pesos_gravados: pesoRows.length,
       ignorados,
       duracao_ms: Date.now() - inicio,
       erros,
