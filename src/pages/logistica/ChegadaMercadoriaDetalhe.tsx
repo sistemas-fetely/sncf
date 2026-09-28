@@ -1351,6 +1351,17 @@ export default function ChegadaMercadoriaDetalhe() {
             onSaved={() => invalidarCompras(qc)}
           />
 
+          {receberNf && (
+            <ReceberForaXpmDialog
+              open={!!receberNf}
+              onOpenChange={(v) => {
+                if (!v) setReceberNf(null);
+              }}
+              nfId={Number(receberNf.id)}
+              nfNumero={`${receberNf.numero}${receberNf.serie ? `/${receberNf.serie}` : ""}`}
+            />
+          )}
+
         </>
       )}
     </div>
