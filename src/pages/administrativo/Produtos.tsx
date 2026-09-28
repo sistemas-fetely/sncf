@@ -811,8 +811,11 @@ export default function Produtos() {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div>{formatBRL(p.receita ?? 0)}</div>
+                        {Number(p.receita_b2b ?? 0) > 0 && (
+                          <div className="text-[11px] text-muted-foreground tabular-nums">B2B {formatBRL(p.receita_b2b)}</div>
+                        )}
                         {Number(p.receita_b2c ?? 0) > 0 && (
-                          <div className="text-xs text-muted-foreground">B2C {formatBRL(p.receita_b2c)}</div>
+                          <div className="text-[11px] text-muted-foreground tabular-nums">B2C {formatBRL(p.receita_b2c)}</div>
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
