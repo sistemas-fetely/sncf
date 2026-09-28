@@ -1234,6 +1234,9 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               )}
             </Secao>
 
+            {/* 8. Como calculamos — memória de cálculo com os números da linha */}
+            {row && <ComoCalculamos row={row} />}
+
             <div className="h-8" />
           </>
         )}
