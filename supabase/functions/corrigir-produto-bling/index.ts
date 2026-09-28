@@ -141,16 +141,16 @@ serve(async (req) => {
       setNum("largura", () => atual.dimensoes?.largura, (v) => (novo.dimensoes.largura = v), num(f.largura_cm));
       setNum("altura", () => atual.dimensoes?.altura, (v) => (novo.dimensoes.altura = v), num(f.altura_cm));
       setNum("profundidade", () => atual.dimensoes?.profundidade, (v) => (novo.dimensoes.profundidade = v), num(f.profundidade_cm));
-      // Dimensões vão em centímetros: unidadeMedida 2 = cm (1 = metros). Sem isso o Bling lê 21,20 metros.
+      // Dimensões vão em centímetros: no Bling unidadeMedida 1 = Centímetros (2 = Milímetros; 0 = Metros) — confirmado na tela do Bling em 28/09.
       const dimMudou =
         novo.dimensoes.largura !== atual.dimensoes?.largura ||
         novo.dimensoes.altura !== atual.dimensoes?.altura ||
         novo.dimensoes.profundidade !== atual.dimensoes?.profundidade;
       const unidadeAtual = num(atual.dimensoes?.unidadeMedida);
-      if (dimMudou || unidadeAtual !== 2) {
-        novo.dimensoes.unidadeMedida = 2;
-        if (unidadeAtual !== 2) {
-          de_para.push({ campo: "unidadeMedida", bling: atual.dimensoes?.unidadeMedida ?? null, novo: 2 });
+      if (dimMudou || unidadeAtual !== 1) {
+        novo.dimensoes.unidadeMedida = 1;
+        if (unidadeAtual !== 1) {
+          de_para.push({ campo: "unidadeMedida", bling: atual.dimensoes?.unidadeMedida ?? null, novo: 1 });
         }
       }
       setTxt("gtinEmbalagem", () => atual.gtinEmbalagem, (v) => (novo.gtinEmbalagem = v), f.dun);
