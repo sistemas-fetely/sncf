@@ -501,6 +501,7 @@ export default function TransferenciasInternas() {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
         p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
+        p_regularizacao: regularizacao,
       });
       if (error) throw error;
       return data as { ok: boolean; id_externo: string; valor_bruto: number };
@@ -511,8 +512,13 @@ export default function TransferenciasInternas() {
         toast.error("A transferência não foi criada. Tente novamente.");
         return;
       }
-      toast.success(`${res.id_externo} criado — pedido entrou em Pré-Separação.`);
+      toast.success(
+        regularizacao
+          ? `${res.id_externo} criado — regularização, em Pré-faturamento.`
+          : `${res.id_externo} criado — pedido entrou em Pré-Separação.`
+      );
       form.reset({ ...VAZIO, itens: modo === "item" ? VAZIO.itens : [] });
+      setRegularizacao(false);
       limparColagem();
       limparSugestao();
       qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
