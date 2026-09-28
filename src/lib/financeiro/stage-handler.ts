@@ -195,6 +195,19 @@ export async function moverParaStage(
       if (r?.stage_id && r.acao === "criada") {
         result.stageIdsCriados.push(r.stage_id);
       }
+
+      // Destinatário (matriz x filial): gravado fora do merge para não mexer na RPC.
+      // FAIL-LOUD: falha vira erro do item, como os demais.
+      const destCnpj = (nf as any).destinatario_cnpj as string | undefined;
+      if (destCnpj && nf.nf_chave_acesso) {
+        const { error: destErr } = await (supabase as any).rpc("nfs_stage_definir_destinatario", {
+          p_nf_chave_acesso: nf.nf_chave_acesso,
+          p_destinatario_cnpj: String(destCnpj).replace(/\D/g, ""),
+        });
+        if (destErr) {
+          result.erros.push(`Destinatário: ${destErr.message}`);
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       result.erros.push(msg);

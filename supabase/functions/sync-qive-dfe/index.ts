@@ -213,6 +213,7 @@ interface XmlParsed {
   referenciada: string | null;
   cnpj: string | null;
   razao_social: string | null;
+  destinatarioCnpj: string | null;
   valor: number | null;
   itens: Record<string, unknown>[];
 }
@@ -222,6 +223,7 @@ function parseXml(xml: string): XmlParsed {
   const chave = m1(xml, /Id\s*=\s*"NFe(\d{44})"/);
 
   const emitBloco = xml.match(/<emit>([\s\S]*?)<\/emit>/)?.[1] ?? "";
+  const destBloco = xml.match(/<dest>([\s\S]*?)<\/dest>/)?.[1] ?? "";
   const totalBloco = xml.match(/<ICMSTot>([\s\S]*?)<\/ICMSTot>/)?.[1] ?? xml;
 
   const itens: Record<string, unknown>[] = [];
@@ -258,6 +260,9 @@ function parseXml(xml: string): XmlParsed {
     }),
     cnpj: m1(emitBloco, /<CNPJ>(\d{14})<\/CNPJ>/),
     razao_social: m1(emitBloco, /<xNome>([^<]*)<\/xNome>/),
+    // Destinatário: em NF de compra é a própria Fetely — distingue matriz SP da filial SC.
+    destinatarioCnpj:
+      m1(destBloco, /<CNPJ>(\d{14})<\/CNPJ>/) ?? m1(destBloco, /<CPF>(\d{11})<\/CPF>/),
     valor: num(m1(totalBloco, /<vNF>([\d.]+)<\/vNF>/)),
     itens,
   };
@@ -588,6 +593,22 @@ Deno.serve(async (req) => {
                   // autoritativa; quem chegou primeiro fica.
                   if (p?.cnpj && !p.cnpj.startsWith(CNPJ_FETELY_PREFIXO)) {
                     console.log(`[${entidade}] nota de fornecedor externo: ${chave}`);
+                  }
+                }
+
+                // DESTINATARIO-BACKFILL: roda também quando ja_existia — um re-sync
+                // preenche o destinatário das notas antigas sem regravar a NF.
+                if (p?.destinatarioCnpj) {
+                  const { error: destErr } = await supabase.rpc(
+                    "nfs_stage_definir_destinatario",
+                    {
+                      p_nf_chave_acesso: chave,
+                      p_destinatario_cnpj: p.destinatarioCnpj.replace(/\D/g, ""),
+                    },
+                  );
+                  if (destErr) {
+                    anotarErro(resumo, `destinatário falhou (${chave}): ${destErr.message}`);
+                    console.error(`[${entidade}] destinatário falhou (${chave}):`, destErr.message);
                   }
                 }
               } catch (e) {

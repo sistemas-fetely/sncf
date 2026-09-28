@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -119,6 +119,40 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
 
   const linhas = linhasQ.data ?? [];
 
+  // Centro sugerido pelo destinatário da NF (matriz SP x filial SC).
+  const sugestaoQ = useQuery({
+    queryKey: ["nf-centro-sugerido", nfId],
+    enabled: open && Number.isFinite(nfId),
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("nf_centro_sugerido", {
+        p_nf_id: nfId,
+      });
+      if (error) throw error;
+      return (data ?? null) as {
+        destinatario_cnpj: string | null;
+        centro_codigo: string | null;
+        centro_rotulo: string | null;
+      } | null;
+    },
+  });
+  const sugestao = sugestaoQ.data ?? null;
+
+  const formatarCnpj = (c: string) =>
+    c.replace(/\D/g, "").replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*$/, "$1.$2.$3/$4-$5");
+
+  // Pré-seleciona o centro sugerido (quando não é XPM) ao abrir.
+  useEffect(() => {
+    if (
+      open &&
+      sugestao?.centro_codigo &&
+      sugestao.centro_codigo !== "XPM-SC" &&
+      !centro
+    ) {
+      setCentro(sugestao.centro_codigo);
+    }
+  }, [open, sugestao, centro]);
+
   const valorDe = (sku: string, declarado: number) =>
     valores[sku] ?? { recebido: String(declarado), avaria: "0" };
 
@@ -210,6 +244,20 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
                 ))}
               </SelectContent>
             </Select>
+            {sugestao?.centro_codigo && sugestao.centro_codigo !== "XPM-SC" && (
+              <p className="text-xs text-muted-foreground">
+                Sugerido pelo destinatário da NF (CNPJ{" "}
+                {sugestao.destinatario_cnpj ? formatarCnpj(sugestao.destinatario_cnpj) : "—"})
+              </p>
+            )}
+            {sugestao?.centro_codigo &&
+              sugestao.centro_codigo !== "XPM-SC" &&
+              centro &&
+              centro !== sugestao.centro_codigo && (
+                <p className="text-xs text-warning">
+                  Centro diferente do destinatário da NF ({sugestao.centro_rotulo ?? sugestao.centro_codigo})
+                </p>
+              )}
           </div>
           <div className="space-y-1.5">
             <Label>Data do recebimento</Label>
@@ -221,6 +269,16 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
             />
           </div>
         </div>
+
+        {sugestao?.centro_codigo === "XPM-SC" && (
+          <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              Esta NF foi emitida para a filial SC (XPM). O recebimento normal é pelo termo de
+              conferência do XPM. Só continue se a mercadoria realmente chegou em outro centro.
+            </span>
+          </div>
+        )}
 
         {linhasQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">

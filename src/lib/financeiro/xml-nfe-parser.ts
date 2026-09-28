@@ -38,6 +38,7 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
 
   const ide = firstChild(nfe, "ide");
   const emit = firstChild(nfe, "emit");
+  const dest = firstChild(nfe, "dest");
   const total = firstChild(nfe, "total");
   const icmsTot = total ? firstChild(total, "ICMSTot") : null;
   const infProt = firstChild(doc, "infProt");
@@ -144,7 +145,12 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     fonte: "xml_nfe (tela)",
   });
 
-  return {
+  // Destinatário (<dest>): em NF de compra é a própria Fetely — distingue
+  // matriz SP da filial SC. CNPJ ou CPF, só dígitos.
+  const destinatario_cnpj = (tag(dest, "CNPJ") || tag(dest, "CPF")).replace(/\D/g, "") || undefined;
+
+  const resultado: NFParsed & { destinatario_cnpj?: string } = {
+    destinatario_cnpj,
     fin_nfe,
     nf_referenciada_chave,
     nf_chave_acesso: chave || undefined,
@@ -164,4 +170,5 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
     duplicatas,
     _source: "xml_nfe",
   };
+  return resultado;
 }

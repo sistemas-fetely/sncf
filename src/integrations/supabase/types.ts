@@ -35534,6 +35534,7 @@ export type Database = {
           criada_por: string | null
           data_vencimento: string | null
           descricao: string | null
+          destinatario_cnpj: string | null
           destino_codigo: string | null
           destino_definido_em: string | null
           destino_definido_por: string | null
@@ -35594,6 +35595,7 @@ export type Database = {
           criada_por?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          destinatario_cnpj?: string | null
           destino_codigo?: string | null
           destino_definido_em?: string | null
           destino_definido_por?: string | null
@@ -35654,6 +35656,7 @@ export type Database = {
           criada_por?: string | null
           data_vencimento?: string | null
           descricao?: string | null
+          destinatario_cnpj?: string | null
           destino_codigo?: string | null
           destino_definido_em?: string | null
           destino_definido_por?: string | null
@@ -63011,6 +63014,27 @@ export type Database = {
         Update: {
           delta?: number | null
           sku?: string | null
+        }
+        Relationships: []
+      }
+      tmp_amostra_difal: {
+        Row: {
+          nf_id: string
+          req: number | null
+          uf: string | null
+          valor: number | null
+        }
+        Insert: {
+          nf_id: string
+          req?: number | null
+          uf?: string | null
+          valor?: number | null
+        }
+        Update: {
+          nf_id?: string
+          req?: number | null
+          uf?: string | null
+          valor?: number | null
         }
         Relationships: []
       }
@@ -114242,6 +114266,11 @@ export type Database = {
           source_queue: string
         }
         Returns: number
+      }
+      nf_centro_sugerido: { Args: { p_nf_id: number }; Returns: Json }
+      nfs_stage_definir_destinatario: {
+        Args: { p_destinatario_cnpj: string; p_nf_chave_acesso: string }
+        Returns: Json
       }
       nivel_do_usuario: { Args: { _user_id?: string }; Returns: number }
       nivel_rank: { Args: { _nivel: string }; Returns: number }
