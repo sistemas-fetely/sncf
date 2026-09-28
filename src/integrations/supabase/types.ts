@@ -99663,10 +99663,14 @@ export type Database = {
           custo_real: number | null
           estoque_com_razao: number | null
           estoque_saldo_bling: number | null
+          gmroi_carteira: number | null
           janela_fim: string | null
           janela_inicio: string | null
+          margem_contribuicao_pct: number | null
+          margem_contribuicao_total: number | null
           pct_cancelado: number | null
           pct_perda_real: number | null
+          pct_receita_com_margem: number | null
           preco_divergente_bling: number | null
           receita_cancelada: number | null
           receita_perdida: number | null
@@ -99675,6 +99679,7 @@ export type Database = {
           sem_venda: number | null
           skus_ativos: number | null
           skus_com_bloqueio: number | null
+          skus_gmroi_baixo: number | null
           skus_pre_venda: number | null
           un_aguardando_produto: number | null
           un_bloqueadas: number | null
@@ -99689,6 +99694,7 @@ export type Database = {
           capital_parado: number | null
           clientes: number | null
           cobertura_dias: number | null
+          cod_cadastro: string | null
           colecao: string | null
           cor_nome: string | null
           curva: string | null
@@ -99700,8 +99706,12 @@ export type Database = {
           estoque_bloqueado: number | null
           estoque_sadio: number | null
           estoque_virtual: number | null
+          foto_url: string | null
+          gmroi: number | null
           grupo: string | null
           linha: string | null
+          margem_contribuicao: number | null
+          margem_contribuicao_pct: number | null
           nome_comercial: string | null
           pedidos: number | null
           preco_b2b: number | null
@@ -105351,14 +105361,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
