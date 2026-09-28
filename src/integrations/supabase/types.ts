@@ -93492,14 +93492,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -99858,6 +99858,7 @@ export type Database = {
           markup: number | null
           markup_b2b: number | null
           markup_b2c: number | null
+          mix_b2c: number | null
           nome_comercial: string | null
           pedidos: number | null
           preco_b2b: number | null
@@ -99887,6 +99888,7 @@ export type Database = {
           un_perdidas: number | null
           un_por_dia: number | null
           un_vendidas: number | null
+          valor_venda_estoque: number | null
         }
         Relationships: [
           {
