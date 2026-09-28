@@ -121,6 +121,7 @@ interface CockpitRow {
   custo: number | null;
   custo_status: CustoStatus | null;
   preco_b2b: number | null;
+  resultado_pct_ponderado: number | null;
   resultado_pct_b2b: number | null;
   abaixo_piso_b2b: boolean | null;
   preco_b2c: number | null;
@@ -197,8 +198,8 @@ interface CarteiraResumo {
 }
 
 type ColunaProduto =
-  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
-  | "markup" | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
+  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem"
+  | "markup" | "resultado" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -212,7 +213,7 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
   cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  margem: "desc", custo: "desc", markup: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  margem: "desc", markup: "desc", resultado: "desc", virtual: "desc",
   cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
@@ -503,10 +504,8 @@ export default function Produtos() {
         case "vendido": return Number(p.un_vendidas ?? 0);
         case "receita": return Number(p.receita ?? 0);
         case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
-        case "custo": return p.custo == null ? null : Number(p.custo);
         case "markup": return p.markup == null ? null : Number(p.markup);
-        case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
-        case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
+        case "resultado": return p.resultado_pct_ponderado == null ? null : Number(p.resultado_pct_ponderado);
         case "virtual": return Number(p.estoque_virtual ?? 0);
         case "cobertura": return p.cobertura_dias == null ? null : Number(p.cobertura_dias);
         case "capital": return p.capital_parado == null ? null : Number(p.capital_parado);
