@@ -615,39 +615,14 @@ export default function Produtos() {
                           <span className="text-muted-foreground">—</span>
                         ) : formatBRL(p.capital_parado)}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {p.preco_divergente_bling && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <AlertTriangle className="h-4 w-4 text-warning" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">
-                                FOP {formatBRL(p.preco_b2c)} · Bling {formatBRL(p.preco_no_bling)}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {Number(p.un_perdidas ?? 0) > 0 && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">
-                                {formatNum(p.un_perdidas)} un de venda perdida · {formatBRL(p.receita_perdida)}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0 && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs max-w-[240px]">
-                                Cancelamento por reprocessamento — a venda migrou para outro pedido, não foi perdida.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
+                      <TableCell className="text-right tabular-nums">
+                        {p.gmroi == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className={cn(Number(p.gmroi) < 0.5 && "text-warning font-medium")}>
+                            {Number(p.gmroi).toFixed(2)}×
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
