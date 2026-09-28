@@ -494,43 +494,17 @@ export default function Produtos() {
                 <CabecalhoOrdenavel rotulo="Cód." className="w-[110px]" dir={ordenacao.coluna === "cod" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cod")} />
                 <TableHead className="w-[52px]" aria-label="Foto" />
                 <CabecalhoOrdenavel rotulo="Produto" dir={ordenacao.coluna === "nome" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("nome")} />
-                <CabecalhoOrdenavel rotulo="Curva" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
-                <CabecalhoOrdenavel rotulo="Vendido" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
-                <CabecalhoOrdenavel rotulo="Receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
-                <CabecalhoOrdenavel rotulo="Margem" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
-                <CabecalhoOrdenavel rotulo="Custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
-                <CabecalhoOrdenavel rotulo="MB B2B" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
-                <CabecalhoOrdenavel rotulo="MB B2C" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
-                <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
-                <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
-                <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
-                <TableHead
-                  className="w-[90px] text-right"
-                  aria-sort={ordenacao.coluna === "gmroi" ? (ordenacao.dir === "asc" ? "ascending" : "descending") : "none"}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => ordenarColuna("gmroi")}
-                        className={cn(
-                          "group inline-flex w-full items-center justify-end gap-1 transition-colors hover:text-foreground",
-                          ordenacao.coluna === "gmroi" && "text-foreground",
-                        )}
-                      >
-                        GMROI
-                        {ordenacao.coluna === "gmroi" ? (
-                          ordenacao.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
-                    </TooltipContent>
-                  </Tooltip>
-                </TableHead>
+                <CabMetrica rotulo="Curva" slug="curva_abc" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
+                <CabMetrica rotulo="Vendido" slug="unidades_vendidas" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
+                <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
+                <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
+                <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
+                <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
+                <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
+                <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
+                <CabMetrica rotulo="Cobertura" slug="cobertura_dias" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
+                <CabMetrica rotulo="Capital" slug="capital_estoque" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
+                <CabMetrica rotulo="GMROI" slug="gmroi" className="w-[90px] text-right" alinharDireita dir={ordenacao.coluna === "gmroi" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("gmroi")} />
               </TableRow>
             </TableHeader>
             <TableBody>
