@@ -196,7 +196,7 @@ function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
       let partes = l.split("\t");
       if (partes.length < 2) partes = l.split(/[,;]/);
       if (partes.length < 2) partes = l.split(/\s{2,}|\s+/);
-      return { sku: (partes[0] ?? "").trim(), qtdTexto: (partes[partes.length > 1 ? 1 : 0] ?? "").trim() };
+      return { sku: (partes[0] ?? "").trim(), qtdTexto: (partes.length > 1 ? (partes[1] ?? "") : "").trim() };
     })
     .filter((p) => p.sku.length > 0);
 }
@@ -298,6 +298,7 @@ export default function TransferenciasInternas() {
   const [previa, setPrevia] = useState<LinhaColada[] | null>(null);
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+  const [ignoradas, setIgnoradas] = useState(0);
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
@@ -308,6 +309,7 @@ export default function TransferenciasInternas() {
     setTextoProcessado(null);
     setPrevia(null);
     setErroPrevia(null);
+    setIgnoradas(0);
   };
 
   const limparSugestao = () => {
@@ -398,6 +400,7 @@ export default function TransferenciasInternas() {
 
   const processarColagem = async () => {
     setErroPrevia(null);
+    setIgnoradas(0);
     const linhas = parsearColagem(textoColado);
     if (linhas.length === 0) {
       setPrevia(null);
@@ -408,15 +411,30 @@ export default function TransferenciasInternas() {
     }
     setProcessando(true);
     try {
-      const skus = Array.from(new Set(linhas.map((l) => l.sku)));
+      // Quantidade vazia ou 0 → linha ignorada (não é erro). Negativa ou não inteira segue erro.
+      const comQtd = linhas.map((l) => ({
+        ...l,
+        q: l.qtdTexto === "" ? null : Number(l.qtdTexto.replace(/\./g, "").replace(",", ".")),
+      }));
+      const ignoradasLista = comQtd.filter((l) => l.q === null || l.q === 0);
+      const consideradas = comQtd.filter((l) => l.q !== null && l.q !== 0);
+      setIgnoradas(ignoradasLista.length);
+      if (consideradas.length === 0) {
+        setPrevia(null);
+        setTextoProcessado(textoColado);
+        replace([]);
+        setErroPrevia("Nada para processar: cole ao menos uma linha com SKU e quantidade.");
+        return;
+      }
+      const skus = Array.from(new Set(consideradas.map((l) => l.sku)));
       const { data, error } = await supabase
         .from("sncf_produtos")
         .select("sku, nome_completo, preco_custo")
         .in("sku", skus);
       if (error) throw error;
       const mapa = new Map((data ?? []).map((p) => [p.sku as string, p as ProdutoCatalogo]));
-      const resultado: LinhaColada[] = linhas.map((l) => {
-        const q = Number(l.qtdTexto.replace(/\./g, "").replace(",", "."));
+      const resultado: LinhaColada[] = consideradas.map((l) => {
+        const q = l.q as number;
         return {
           sku: l.sku,
           quantidade: q,
@@ -449,6 +467,12 @@ export default function TransferenciasInternas() {
     (acc, r) => acc + (r.produto && r.qtdValida ? (r.produto.preco_custo ?? 0) * r.quantidade : 0),
     0
   );
+
+  // Resumo da barra fixa: calculado dos itens atuais do formulário (só os com SKU).
+  const itensAtuais = form.watch("itens") ?? [];
+  const itensComSku = itensAtuais.filter((i) => i.sku?.trim());
+  const totalPecasForm = itensComSku.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
+  const previaValida = modo === "colar" && !!previa && !previaComErro && textoProcessado === textoColado;
 
   const centrosQ = useCentrosDestino();
 
@@ -634,9 +658,9 @@ export default function TransferenciasInternas() {
                           {marcadas.reduce((acc, l) => acc + (sugSelecao[l.sku]?.qtd ?? 0), 0)} peças)
                         </Button>
                       </div>
-                      <div className="overflow-x-auto rounded-md border">
+                      <div className="max-h-[420px] overflow-auto rounded-md border">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="sticky top-0 z-10 bg-background">
                             <TableRow>
                               <TableHead className="w-8" />
                               <TableHead>SKU</TableHead>
@@ -832,6 +856,11 @@ export default function TransferenciasInternas() {
                       {processando && <Loader2 className="h-4 w-4 animate-spin" />}
                       Processar
                     </Button>
+                    {ignoradas > 0 && previa && (
+                      <p className="text-xs text-muted-foreground">
+                        {ignoradas} {ignoradas === 1 ? "linha ignorada" : "linhas ignoradas"} (quantidade 0 ou vazia)
+                      </p>
+                    )}
                     {previa && textoProcessado !== textoColado && (
                       <p className="text-xs text-warning">Texto alterado — clique em Processar de novo.</p>
                     )}
@@ -843,9 +872,9 @@ export default function TransferenciasInternas() {
                   </div>
                   {erroPrevia && <p className="text-xs text-destructive">{erroPrevia}</p>}
                   {previa && previa.length > 0 && (
-                    <div className="rounded-md border">
+                    <div className="max-h-[420px] overflow-y-auto rounded-md border">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
                             <TableHead>SKU</TableHead>
                             <TableHead>Nome</TableHead>
@@ -882,14 +911,6 @@ export default function TransferenciasInternas() {
                               </TableCell>
                             </TableRow>
                           ))}
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-right text-sm font-medium">
-                              Total
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums text-sm font-medium">
-                              {formatBRL(totalPrevia)}
-                            </TableCell>
-                          </TableRow>
                         </TableBody>
                       </Table>
                     </div>
@@ -898,7 +919,15 @@ export default function TransferenciasInternas() {
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
+              <div className="text-sm text-muted-foreground">
+                {!destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
+                <span className="font-medium text-foreground">
+                  {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
+                  {totalPecasForm === 1 ? "peça" : "peças"}
+                </span>
+                {previaValida && <span> · Total a custo {formatBRL(totalPrevia)}</span>}
+              </div>
               <Button type="submit" disabled={criar.isPending || colagemPendente}>
                 {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Criar transferência
