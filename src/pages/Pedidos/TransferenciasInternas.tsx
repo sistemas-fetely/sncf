@@ -567,6 +567,7 @@ export default function TransferenciasInternas() {
                   <TabsList>
                     <TabsTrigger value="item">Item a item</TabsTrigger>
                     <TabsTrigger value="colar">Colar da planilha</TabsTrigger>
+                    <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
