@@ -42,6 +42,7 @@ import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
 import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 import SaldoPedidoTab from "@/components/compras/SaldoPedidoTab";
 import VincularNfDialog from "@/components/compras/VincularNfDialog";
+import ReceberForaXpmDialog from "@/components/compras/ReceberForaXpmDialog";
 
 
 
@@ -372,6 +373,51 @@ export default function ChegadaMercadoriaDetalhe() {
         .order("item_seq");
       if (e3) throw e3;
       return { nfs: (nfs ?? []) as NfRow[], linhas: (linhas ?? []) as NfLinha[] };
+    },
+  });
+
+  const nfIds = useMemo(
+    () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)),
+    [nfsQ.data],
+  );
+
+  const recebimentosQ = useQuery({
+    queryKey: ["nf-recebimento", nfIds],
+    enabled: nfIds.length > 0,
+    queryFn: async () => {
+      const { data: movs, error: e1 } = await (supabase as any)
+        .from("movimentacao_estoque")
+        .select("nf_entrada_id, centro_id, referencia")
+        .in("nf_entrada_id", nfIds)
+        .eq("motivo", "recebimento_importacao");
+      if (e1) throw e1;
+      const lista = (movs ?? []) as Array<{
+        nf_entrada_id: number;
+        centro_id: string;
+        referencia: string | null;
+      }>;
+      if (lista.length === 0) return new Map<number, string>();
+      const centroIds = [...new Set(lista.map((m) => m.centro_id))];
+      const { data: centros, error: e2 } = await (supabase as any)
+        .from("centro_distribuicao")
+        .select("id, codigo, nome, rotulo_curto")
+        .in("id", centroIds);
+      if (e2) throw e2;
+      const centroPorId = new Map(
+        ((centros ?? []) as Array<{
+          id: string;
+          codigo: string;
+          nome: string;
+          rotulo_curto: string | null;
+        }>).map((c) => [c.id, c.rotulo_curto ?? c.nome ?? c.codigo]),
+      );
+      const mapa = new Map<number, string>();
+      lista.forEach((m) => {
+        if (!mapa.has(m.nf_entrada_id)) {
+          mapa.set(m.nf_entrada_id, centroPorId.get(m.centro_id) ?? m.referencia ?? "—");
+        }
+      });
+      return mapa;
     },
   });
 
