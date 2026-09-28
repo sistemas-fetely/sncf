@@ -21,7 +21,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  RefreshCw, Search, AlertTriangle, XCircle,
+  RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown,
 } from "lucide-react";
 import {
   CabecalhoOrdenavel,
@@ -45,6 +45,11 @@ type CustoStatus = "real" | "interino" | "ausente" | string;
 
 interface CockpitRow {
   sku: string;
+  cod_cadastro: string | null;
+  foto_url: string | null;
+  margem_contribuicao: number | null;
+  margem_contribuicao_pct: number | null;
+  gmroi: number | null;
   nome_comercial: string | null;
   linha: string | null;
   colecao: string | null;
@@ -89,6 +94,11 @@ interface CarteiraResumo {
   janela_inicio: string | null;
   janela_fim: string | null;
   receita_periodo: number | null;
+  margem_contribuicao_total: number | null;
+  margem_contribuicao_pct: number | null;
+  pct_receita_com_margem: number | null;
+  gmroi_carteira: number | null;
+  skus_gmroi_baixo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
   receita_perdida: number | null;
@@ -114,8 +124,8 @@ interface CarteiraResumo {
 }
 
 type ColunaProduto =
-  | "sku" | "nome" | "curva" | "vendido" | "receita" | "custo"
-  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital";
+  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
+  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -128,9 +138,9 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
-  sku: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
-  cobertura: "desc", capital: "desc",
+  cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
+  margem: "desc", custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
 /** Ordem de negocio da curva — nao alfabetica. */
@@ -191,7 +201,6 @@ export default function Produtos() {
   const [custoFiltro, setCustoFiltro] = useState("todos");
   const [estoqueFiltro, setEstoqueFiltro] = useState("todos");
   const [margemFiltro, setMargemFiltro] = useState("todas");
-  const [alertaFiltro, setAlertaFiltro] = useState("todos");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
   const [pagina, setPagina] = useState(1);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
@@ -254,11 +263,9 @@ export default function Produtos() {
       if (estoqueFiltro === "razao" && !p.tem_razao) return false;
       if (estoqueFiltro === "bling" && p.tem_razao) return false;
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
-      if (alertaFiltro === "divergente" && !p.preco_divergente_bling) return false;
-      if (alertaFiltro === "perdida" && !(Number(p.un_perdidas ?? 0) > 0)) return false;
-      if (alertaFiltro === "reprocessamento" && !(Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0)) return false;
       if (!q) return true;
       return (
+        p.cod_cadastro?.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q) ||
         p.nome_comercial?.toLowerCase().includes(q)
       );
@@ -266,17 +273,19 @@ export default function Produtos() {
     const dir = ordenacao.dir === "asc" ? 1 : -1;
     const valorDe = (p: CockpitRow): string | number | null => {
       switch (ordenacao.coluna) {
-        case "sku": return p.sku || null;
+        case "cod": return p.cod_cadastro || null;
         case "nome": return p.nome_comercial ?? null;
         case "curva": return p.curva ? ORDEM_CURVA[p.curva] ?? null : null;
         case "vendido": return Number(p.un_vendidas ?? 0);
         case "receita": return Number(p.receita ?? 0);
+        case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
         case "custo": return p.custo == null ? null : Number(p.custo);
         case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
         case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
         case "virtual": return Number(p.estoque_virtual ?? 0);
         case "cobertura": return p.cobertura_dias == null ? null : Number(p.cobertura_dias);
         case "capital": return p.capital_parado == null ? null : Number(p.capital_parado);
+        case "gmroi": return p.gmroi == null ? null : Number(p.gmroi);
         default: return null;
       }
     };
@@ -291,7 +300,7 @@ export default function Produtos() {
       }
       return (Number(va) - Number(vb)) * dir;
     });
-  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, alertaFiltro, ordenacao]);
+  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, ordenacao]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -319,7 +328,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 12;
+  const totalCols = 14;
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -334,7 +343,7 @@ export default function Produtos() {
           { label: "Produto" },
         ]}
         title="Produtos"
-        subtitle="Cockpit analítico. Cadastro e preço são do FOP — esta tela lê e analisa, não edita."
+        subtitle="Cockpit de negócio: venda, margem e capital por produto. Cadastro e correções ficam na Mesa do Produto e na Conciliação."
         actions={
           <Button
             variant="outline"
@@ -352,56 +361,6 @@ export default function Produtos() {
       {/* NÍVEL 1 — Faixa de carteira */}
       <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
 
-      {resumo && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-6 text-xs text-muted-foreground">
-          {Number(resumo.custo_ausente ?? 0) > 0 && (
-            <button
-              type="button"
-              className="hover:text-foreground underline-offset-2 hover:underline"
-              onClick={() => { setCustoFiltro("ausente"); setPagina(1); }}
-            >
-              {formatNum(resumo.custo_ausente)} SKUs sem custo
-            </button>
-          )}
-          {Number(resumo.abaixo_do_piso ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setMargemFiltro("abaixo"); setPagina(1); }}
-              >
-                {formatNum(resumo.abaixo_do_piso)} abaixo do piso
-              </button>
-            </>
-          )}
-          {Number(resumo.preco_divergente_bling ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setAlertaFiltro("divergente"); setPagina(1); }}
-              >
-                {formatNum(resumo.preco_divergente_bling)} com preço divergente do Bling
-              </button>
-            </>
-          )}
-          {Number(resumo.estoque_saldo_bling ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setEstoqueFiltro("bling"); setPagina(1); }}
-              >
-                {formatNum(resumo.estoque_saldo_bling)} com estoque não lastreado
-              </button>
-            </>
-          )}
-        </div>
-      )}
-
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[260px] max-w-md">
@@ -409,7 +368,7 @@ export default function Produtos() {
           <FilterInput
             value={busca}
             onChange={(e) => { setBusca(e.target.value); setPagina(1); }}
-            placeholder="Buscar por SKU ou nome"
+            placeholder="Buscar por código, SKU ou nome"
             className="pl-9"
           />
         </div>
@@ -455,17 +414,6 @@ export default function Produtos() {
             <SelectItem value="abaixo">Abaixo do piso</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={alertaFiltro} onValueChange={(v) => { setAlertaFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={alertaFiltro !== "todos"} className="w-[190px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos alertas</SelectItem>
-            <SelectItem value="divergente">Preço divergente</SelectItem>
-            <SelectItem value="perdida">Com venda perdida</SelectItem>
-            <SelectItem value="reprocessamento">Com reprocessamento</SelectItem>
-          </SelectContent>
-        </Select>
         <span className="text-xs text-muted-foreground ml-auto">
           {filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}
         </span>
@@ -477,18 +425,46 @@ export default function Produtos() {
           <Table containerClassName="overflow-visible">
             <TableHeader>
               <TableRow className={LINHA_CABECALHO_COLADO}>
-                <CabecalhoOrdenavel rotulo="SKU" className="w-[120px]" dir={ordenacao.coluna === "sku" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("sku")} />
+                <CabecalhoOrdenavel rotulo="Cód." className="w-[110px]" dir={ordenacao.coluna === "cod" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cod")} />
+                <TableHead className="w-[52px]" aria-label="Foto" />
                 <CabecalhoOrdenavel rotulo="Produto" dir={ordenacao.coluna === "nome" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("nome")} />
                 <CabecalhoOrdenavel rotulo="Curva" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
                 <CabecalhoOrdenavel rotulo="Vendido" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
                 <CabecalhoOrdenavel rotulo="Receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
+                <CabecalhoOrdenavel rotulo="Margem" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
                 <CabecalhoOrdenavel rotulo="Custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
                 <CabecalhoOrdenavel rotulo="MB B2B" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
                 <CabecalhoOrdenavel rotulo="MB B2C" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
                 <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
                 <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
                 <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
-                <TableHead className="w-[90px]">Alertas</TableHead>
+                <TableHead
+                  className="w-[90px] text-right"
+                  aria-sort={ordenacao.coluna === "gmroi" ? (ordenacao.dir === "asc" ? "ascending" : "descending") : "none"}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => ordenarColuna("gmroi")}
+                        className={cn(
+                          "group inline-flex w-full items-center justify-end gap-1 transition-colors hover:text-foreground",
+                          ordenacao.coluna === "gmroi" && "text-foreground",
+                        )}
+                      >
+                        GMROI
+                        {ordenacao.coluna === "gmroi" ? (
+                          ordenacao.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -520,7 +496,21 @@ export default function Produtos() {
                       className="cursor-pointer"
                       onClick={() => setSkuAberto(p.sku)}
                     >
-                      <TableCell className="font-mono text-xs">{p.sku}</TableCell>
+                      <TableCell className="font-mono text-xs">{p.cod_cadastro ?? p.sku}</TableCell>
+                      <TableCell className="w-[52px]">
+                        {p.foto_url ? (
+                          <img
+                            src={p.foto_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                            <ImageOff className="h-4 w-4" />
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <div className="font-medium leading-tight">{p.nome_comercial ?? "—"}</div>
@@ -544,6 +534,18 @@ export default function Produtos() {
                         <div className="text-xs text-muted-foreground">{formatNum(p.un_por_dia, 1)}/dia</div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatBRL(p.receita ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.margem_contribuicao == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <>
+                            <div>{formatBRL(p.margem_contribuicao)}</div>
+                            {p.margem_contribuicao_pct != null && (
+                              <div className="text-xs text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</div>
+                            )}
+                          </>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {p.custo == null ? (
                           <span className="text-muted-foreground">—</span>
@@ -613,39 +615,14 @@ export default function Produtos() {
                           <span className="text-muted-foreground">—</span>
                         ) : formatBRL(p.capital_parado)}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          {p.preco_divergente_bling && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <AlertTriangle className="h-4 w-4 text-warning" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">
-                                FOP {formatBRL(p.preco_b2c)} · Bling {formatBRL(p.preco_no_bling)}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {Number(p.un_perdidas ?? 0) > 0 && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <XCircle className="h-4 w-4 text-destructive" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs">
-                                {formatNum(p.un_perdidas)} un de venda perdida · {formatBRL(p.receita_perdida)}
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                          {Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0 && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <RefreshCw className="h-4 w-4 text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent className="text-xs max-w-[240px]">
-                                Cancelamento por reprocessamento — a venda migrou para outro pedido, não foi perdida.
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
+                      <TableCell className="text-right tabular-nums">
+                        {p.gmroi == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <span className={cn(Number(p.gmroi) < 0.5 && "text-warning font-medium")}>
+                            {Number(p.gmroi).toFixed(2)}×
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   );
@@ -717,8 +694,8 @@ function FaixaCarteira({
 }) {
   if (isLoading) {
     return (
-      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
-        {Array.from({ length: 7 }).map((_, i) => (
+      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
+        {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
@@ -734,11 +711,35 @@ function FaixaCarteira({
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
+    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
+      />
+      <FaixaBloco
+        label="Margem de contribuição"
+        valor={formatBRL(resumo.margem_contribuicao_total ?? 0)}
+        contexto={
+          <div className="space-y-0.5">
+            <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
+            <div className="text-[11px] text-muted-foreground">
+              após impostos, despesas e crédito · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
+            </div>
+          </div>
+        }
+      />
+      <FaixaBloco
+        label="GMROI"
+        valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
+        contexto={
+          <div className="space-y-0.5">
+            <div>margem/ano por R$ 1 em estoque</div>
+            <div className="text-[11px] text-muted-foreground">
+              {formatNum(resumo.skus_gmroi_baixo)} SKUs abaixo de 0,5
+            </div>
+          </div>
+        }
       />
       <FaixaBloco
         label="Venda perdida"
@@ -958,6 +959,16 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               <SheetTitle className="font-mono text-sm">{sku}</SheetTitle>
               <SheetDescription>{row?.nome_comercial ?? ""}</SheetDescription>
             </SheetHeader>
+            {row?.foto_url && (
+              <div className="mt-4">
+                <img
+                  src={row.foto_url}
+                  alt={row.nome_comercial ?? sku}
+                  loading="lazy"
+                  className="h-40 w-40 rounded-md object-cover"
+                />
+              </div>
+            )}
 
             {/* 1. Cadastro (FOP) */}
             <Secao titulo="Cadastro (FOP)">
@@ -975,6 +986,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               ) : (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Field label="SKU"><span className="font-mono">{cadastro?.sku ?? sku}</span></Field>
+                  <Field label="Cód. cadastro"><span className="font-mono">{ou(row?.cod_cadastro)}</span></Field>
                   <Field label="EAN">{ou(cadastro?.ean)}</Field>
                   <Field label="Nome completo" className="col-span-2">{ou(cadastro?.nome_completo)}</Field>
                   <Field label="Marca">{ou(cadastro?.marca)}</Field>
