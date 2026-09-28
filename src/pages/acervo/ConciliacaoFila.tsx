@@ -26,6 +26,7 @@ import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
+import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -334,6 +335,7 @@ export default function ConciliacaoFila() {
   const filtrarPorSistema = (sistema: string) => selecionadosProdutos.filter(p => sistemasPorSku.get(p.sku)?.has(sistema));
   const selecionadosProdutosXpm = useMemo(() => filtrarPorSistema("XPM"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosProdutosBling = useMemo(() => filtrarPorSistema("Bling"), [selecionadosProdutos, sistemasPorSku]);
+  const selecionadosProdutosShopify = useMemo(() => filtrarPorSistema("Shopify"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
@@ -407,6 +409,7 @@ export default function ConciliacaoFila() {
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
         <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel />
         <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel />
+        <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} sempreVisivel />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
