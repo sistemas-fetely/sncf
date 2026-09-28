@@ -121,6 +121,7 @@ interface CockpitRow {
   custo: number | null;
   custo_status: CustoStatus | null;
   preco_b2b: number | null;
+  resultado_pct_ponderado: number | null;
   resultado_pct_b2b: number | null;
   abaixo_piso_b2b: boolean | null;
   preco_b2c: number | null;
@@ -197,8 +198,8 @@ interface CarteiraResumo {
 }
 
 type ColunaProduto =
-  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
-  | "markup" | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
+  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem"
+  | "markup" | "resultado" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -212,7 +213,7 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
   cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  margem: "desc", custo: "desc", markup: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  margem: "desc", markup: "desc", resultado: "desc", virtual: "desc",
   cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
@@ -503,10 +504,8 @@ export default function Produtos() {
         case "vendido": return Number(p.un_vendidas ?? 0);
         case "receita": return Number(p.receita ?? 0);
         case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
-        case "custo": return p.custo == null ? null : Number(p.custo);
         case "markup": return p.markup == null ? null : Number(p.markup);
-        case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
-        case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
+        case "resultado": return p.resultado_pct_ponderado == null ? null : Number(p.resultado_pct_ponderado);
         case "virtual": return Number(p.estoque_virtual ?? 0);
         case "cobertura": return p.cobertura_dias == null ? null : Number(p.cobertura_dias);
         case "capital": return p.capital_parado == null ? null : Number(p.capital_parado);
@@ -582,7 +581,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 15;
+  const totalCols = 13;
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -733,10 +732,8 @@ export default function Produtos() {
                 <CabMetrica rotulo="Vendido" slug="unidades_vendidas" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
                 <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
                 <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
-                <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
-                <CabMetrica rotulo="Markup" slug="markup" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
-                <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
-                <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
+                <CabMetrica rotulo="Markup" slug="markup" className="w-[150px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
+                <CabMetrica rotulo="Resultado" slug="resultado_ponderado" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "resultado" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("resultado")} />
                 <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
                 <CabMetrica rotulo="Cobertura" slug="cobertura_dias" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
                 <CabMetrica rotulo="Capital" slug="capital_estoque" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
@@ -837,38 +834,45 @@ export default function Produtos() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.custo == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>{formatBRL(p.custo)}</span>
-                            {p.custo_status === "interino" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">int.</Badge>
-                            )}
-                            {p.custo_status === "ausente" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
-                            )}
+                        <div>
+                          {p.markup == null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            `${Number(p.markup).toFixed(1)}×`
+                          )}
+                        </div>
+                        {(Number(p.un_b2b ?? 0) > 0 || Number(p.un_b2c ?? 0) > 0) && (
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {[
+                              Number(p.un_b2b ?? 0) > 0 && p.markup_b2b != null ? `B2B ${Number(p.markup_b2b).toFixed(1)}×` : null,
+                              Number(p.un_b2c ?? 0) > 0 && p.markup_b2c != null ? `B2C ${Number(p.markup_b2c).toFixed(1)}×` : null,
+                            ].filter(Boolean).join(" · ")}
                           </div>
                         )}
+                        <div className="text-[11px] text-muted-foreground tabular-nums flex items-center justify-end gap-1">
+                          <span>custo {p.custo == null ? "—" : formatBRL(p.custo)}</span>
+                          {p.custo_status === "interino" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">int.</Badge>
+                          )}
+                          {p.custo_status === "ausente" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.markup == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          `${Number(p.markup).toFixed(1)}×`
-                        )}
-                      </TableCell>
-                      <TableCell className={cn(
-                        "text-right tabular-nums",
-                        p.abaixo_piso_b2b && "text-destructive font-medium",
-                      )}>
-                        {formatPctRatio(p.resultado_pct_b2b)}
-                      </TableCell>
-                      <TableCell className={cn(
-                        "text-right tabular-nums",
-                        p.abaixo_piso_b2c && "text-destructive font-medium",
-                      )}>
-                        {formatPctRatio(p.resultado_pct_b2c)}
+                        <div>{formatPctRatio(p.resultado_pct_ponderado)}</div>
+                        <div className={cn(
+                          "text-[11px] tabular-nums",
+                          p.abaixo_piso_b2b ? "text-destructive font-medium" : "text-muted-foreground",
+                        )}>
+                          B2B {formatPctRatio(p.resultado_pct_b2b)}
+                        </div>
+                        <div className={cn(
+                          "text-[11px] tabular-nums",
+                          p.abaixo_piso_b2c ? "text-destructive font-medium" : "text-muted-foreground",
+                        )}>
+                          B2C {formatPctRatio(p.resultado_pct_b2c)}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div className="flex items-center justify-end gap-1.5">
