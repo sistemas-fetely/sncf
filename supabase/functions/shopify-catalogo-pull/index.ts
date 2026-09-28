@@ -213,6 +213,9 @@ Deno.serve(async (req) => {
 
     let buffer: any[] = [];
     const espelhoRows: any[] = [];
+    // Peso das variantes (inventoryItem.measurement.weight) em gramas → shopify_variante_peso.
+    const pesoRows: any[] = [];
+    const FATOR_G: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237 };
 
     const flush = async () => {
       if (buffer.length === 0) return;
