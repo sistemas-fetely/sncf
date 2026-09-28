@@ -1415,6 +1415,12 @@ export default function PedidoDetalhe() {
   if (!data) return <div className="p-6">Pedido não encontrado.</div>;
 
   const { pedido, parceiro, itens, eventos, analiseCredito, analisesAnteriores, natureza, naturezaAlerta, naturezaRefPedidoId, idade_minutos, sla_estourado } = data;
+
+  // Rota física entre centros — só existe em transferência interna / reposição.
+  const rotaCentros =
+    pedido.origem_centro_id || pedido.destino_centro_id
+      ? { origem: rotuloCentro(pedido.origem_centro_id), destino: rotuloCentro(pedido.destino_centro_id) }
+      : null;
   const naturezaTrocaLiberada =
     !naturezaAlerta ||
     (naturezaAlerta.estagio_permite !== false &&
