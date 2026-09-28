@@ -425,18 +425,29 @@ export default function Produtos() {
           <Table containerClassName="overflow-visible">
             <TableHeader>
               <TableRow className={LINHA_CABECALHO_COLADO}>
-                <CabecalhoOrdenavel rotulo="SKU" className="w-[120px]" dir={ordenacao.coluna === "sku" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("sku")} />
+                <CabecalhoOrdenavel rotulo="Cód." className="w-[110px]" dir={ordenacao.coluna === "cod" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cod")} />
+                <TableHead className="w-[52px]" aria-label="Foto" />
                 <CabecalhoOrdenavel rotulo="Produto" dir={ordenacao.coluna === "nome" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("nome")} />
                 <CabecalhoOrdenavel rotulo="Curva" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
                 <CabecalhoOrdenavel rotulo="Vendido" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
                 <CabecalhoOrdenavel rotulo="Receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
+                <CabecalhoOrdenavel rotulo="Margem" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
                 <CabecalhoOrdenavel rotulo="Custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
                 <CabecalhoOrdenavel rotulo="MB B2B" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
                 <CabecalhoOrdenavel rotulo="MB B2C" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
                 <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
                 <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
                 <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
-                <TableHead className="w-[90px]">Alertas</TableHead>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="contents">
+                      <CabecalhoOrdenavel rotulo="GMROI" className="w-[90px] text-right" alinharDireita dir={ordenacao.coluna === "gmroi" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("gmroi")} />
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-xs text-xs">
+                    Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
+                  </TooltipContent>
+                </Tooltip>
               </TableRow>
             </TableHeader>
             <TableBody>
