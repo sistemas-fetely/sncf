@@ -1,34 +1,132 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Receipt, CheckSquare, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
-
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { hojeISO } from "@/lib/data";
-import { MuralRotativo } from "@/components/mural/MuralRotativo";
-import { ListaAniversariantesMes } from "@/components/mural/ListaAniversariantesMes";
-import { FaixaAniversariantes } from "@/components/mural/FaixaAniversariantes";
 import { useAniversariantesDoMes } from "@/hooks/useAniversariantesDoMes";
+import { usePublicacoesAtivas } from "@/hooks/useMural";
+
+const MESES_PT = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+function iniciais(nome: string): string {
+  return nome.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
+}
 
 function MuralFetely() {
-  const { data } = useAniversariantesDoMes();
-  const temHoje = (data ?? []).some((e) => e.eh_hoje);
+  const { data: eventos, isLoading, isError, error } = useAniversariantesDoMes();
+  const { data: publicacoes, isError: pubErro, error: pubErroObj } = usePublicacoesAtivas(20);
+  const [indice, setIndice] = useState(0);
+
+  const total = publicacoes?.length || 0;
+  useEffect(() => {
+    if (total <= 1) return;
+    const id = setInterval(() => setIndice((i) => (i + 1) % total), 8000);
+    return () => clearInterval(id);
+  }, [total]);
+  useEffect(() => {
+    if (indice >= total && total > 0) setIndice(0);
+  }, [total, indice]);
+
+  const atual = total > 0 ? publicacoes![Math.min(indice, total - 1)] : null;
+  const lista = eventos ?? [];
+  const temHoje = lista.some((e) => e.eh_hoje);
+  const semNada = !isLoading && lista.length === 0 && !atual;
+  const mensagemErro = isError
+    ? (error as Error)?.message
+    : pubErro
+      ? (pubErroObj as Error)?.message
+      : null;
+
   return (
-    <section className="space-y-4">
-      <p className="text-[10px] uppercase tracking-[2px] text-gold">Mural Fetely</p>
-      {temHoje && <FaixaAniversariantes />}
-      <div className="grid grid-cols-1 lg:grid-cols-[65fr_35fr] gap-4 items-stretch">
-        <div className="min-w-0 h-full">
-          <MuralRotativo />
+    <div className="rounded-xl gold-border bg-card p-6 md:p-7">
+      <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">Mural Fetely</p>
+      {mensagemErro && (
+        <p className="text-xs text-destructive mb-3">
+          Não foi possível carregar o mural: {mensagemErro}
+        </p>
+      )}
+      <h2 className="font-display text-2xl md:text-3xl text-foreground mb-4">
+        Aniversariantes de {MESES_PT[new Date().getMonth()]}
+      </h2>
+
+      {/* Publicação ativa — destaque simples dentro do mesmo cartão */}
+      {atual && (
+        <div className="pb-5">
+          <p className="font-display text-xl text-foreground">
+            {atual.emoji ? `${atual.emoji} ` : ""}
+            {atual.titulo}
+          </p>
+          {atual.mensagem && (
+            <p className="text-sm text-muted-foreground mt-1">{atual.mensagem}</p>
+          )}
         </div>
-        <div className="min-w-0 h-full">
-          <ListaAniversariantesMes />
+      )}
+
+      {isLoading ? (
+        <div className="flex flex-wrap gap-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="h-12 w-12 rounded-full" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-12" />
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-    </section>
+      ) : semNada ? (
+        <p className="text-sm text-muted-foreground">
+          Nenhum aniversário este mês — mas sempre tem algo pra comemorar por aqui. 💚
+        </p>
+      ) : (
+        <>
+          {temHoje && (
+            <p className="font-display text-gold mb-4">
+              {lista
+                .filter((e) => e.eh_hoje)
+                .map((e) => `Hoje é dia de celebrar ${e.nome}!`)
+                .join(" ")}
+            </p>
+          )}
+          <div className={`flex flex-wrap gap-6 ${atual ? "border-t border-border pt-5 mt-5" : ""}`}>
+            {lista.map((ev) => (
+              <div key={ev.key} className="flex items-center gap-3">
+                <Avatar
+                  className={`h-12 w-12 shrink-0 ${ev.eh_hoje ? "ring-2 ring-gold" : ""}`}
+                >
+                  <AvatarImage
+                    src={ev.foto_url ?? undefined}
+                    alt={ev.nome}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-muted text-foreground text-sm font-medium">
+                    {iniciais(ev.nome)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-sm md:text-base text-foreground leading-tight">{ev.nome}</p>
+                  <p
+                    className={`text-xs leading-tight mt-0.5 ${ev.eh_hoje ? "text-gold" : "text-muted-foreground"}`}
+                  >
+                    {ev.eh_hoje ? "hoje 🎂" : `dia ${ev.dia}`}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 const saudacao = () => {
