@@ -1245,3 +1245,100 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// Como calculamos (memória de cálculo do painel)
+// ─────────────────────────────────────────────────────────────
+
+function LinhaCalculo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{rotulo}</div>
+      <div className="mt-0.5 font-mono text-[11px] leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+function NaoCalculado({ motivo }: { motivo: string }) {
+  return <span className="text-muted-foreground">não calculado — {motivo}</span>;
+}
+
+function ComoCalculamos({ row }: { row: CockpitRow }) {
+  const temCusto = row.custo != null;
+  const temVenda = row.un_vendidas != null && Number(row.un_vendidas) > 0;
+  const temEstoque = row.estoque_base != null && Number(row.estoque_base) > 0;
+  const temCapital = row.capital_parado != null && Number(row.capital_parado) > 0;
+  const temGiro = row.un_por_dia != null && Number(row.un_por_dia) > 0;
+
+  return (
+    <Collapsible className="mt-6">
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+        <Calculator className="h-3.5 w-3.5" />
+        Como calculamos
+        <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-3 space-y-3 rounded-md border bg-muted/30 p-3">
+          <LinhaCalculo rotulo="Margem por unidade">
+            {!temCusto ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : row.margem_contribuicao_un == null ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : (
+              <>
+                preço médio {formatBRL(row.preco_medio_realizado)} − despesas variáveis {formatBRL(row.despesas_variaveis_un)} − custo {formatBRL(row.custo)} + crédito ICMS {formatBRL(row.credito_un)} = {formatBRL(row.margem_contribuicao_un)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Margem de contribuição">
+            {!temVenda ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : row.margem_contribuicao == null ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : (
+              <>
+                {formatBRL(row.margem_contribuicao_un)} × {formatNum(row.un_vendidas)} un = {formatBRL(row.margem_contribuicao)}
+                {row.margem_contribuicao_pct != null && ` (${formatPct(row.margem_contribuicao_pct)} do preço)`}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Capital em estoque">
+            {!temCusto ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : !temEstoque ? (
+              <NaoCalculado motivo="sem estoque" />
+            ) : (
+              <>
+                {formatNum(row.estoque_base)} un × {formatBRL(row.custo)} = {formatBRL(row.capital_parado)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="GMROI">
+            {!temVenda ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : !temCapital ? (
+              <NaoCalculado motivo="sem capital em estoque" />
+            ) : row.gmroi == null ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : (
+              <>
+                {formatBRL(row.margem_contribuicao)} × 365 ÷ {formatNum(row.dias_janela)} dias ÷ {formatBRL(row.capital_parado)} = {Number(row.gmroi).toFixed(2)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Cobertura">
+            {!temGiro ? (
+              <NaoCalculado motivo="sem venda" />
+            ) : row.cobertura_dias == null ? (
+              <NaoCalculado motivo="sem estoque" />
+            ) : (
+              <>
+                {formatNum(row.estoque_virtual)} un ÷ {formatNum(row.un_por_dia, 2)} un/dia = {formatNum(row.cobertura_dias)} dias
+              </>
+            )}
+          </LinhaCalculo>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
