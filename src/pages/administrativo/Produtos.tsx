@@ -21,8 +21,13 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown,
+  Calculator, ChevronDown,
 } from "lucide-react";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import {
   CabecalhoOrdenavel,
   LINHA_CABECALHO_COLADO,
@@ -85,6 +90,11 @@ interface CockpitRow {
   dias_desde_contagem: number | null;
   cobertura_dias: number | null;
   capital_parado: number | null;
+  preco_medio_realizado: number | null;
+  despesas_variaveis_un: number | null;
+  credito_un: number | null;
+  margem_contribuicao_un: number | null;
+  dias_janela: number | null;
   preco_divergente_bling: boolean | null;
   preco_no_bling: number | null;
 }
