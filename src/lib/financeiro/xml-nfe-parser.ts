@@ -38,6 +38,7 @@ export function parseNFeXml(xmlString: string): NFParsed | null {
 
   const ide = firstChild(nfe, "ide");
   const emit = firstChild(nfe, "emit");
+  const dest = firstChild(nfe, "dest");
   const total = firstChild(nfe, "total");
   const icmsTot = total ? firstChild(total, "ICMSTot") : null;
   const infProt = firstChild(doc, "infProt");

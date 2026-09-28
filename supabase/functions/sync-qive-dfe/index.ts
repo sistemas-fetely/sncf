@@ -595,6 +595,22 @@ Deno.serve(async (req) => {
                     console.log(`[${entidade}] nota de fornecedor externo: ${chave}`);
                   }
                 }
+
+                // DESTINATARIO-BACKFILL: roda também quando ja_existia — um re-sync
+                // preenche o destinatário das notas antigas sem regravar a NF.
+                if (p?.destinatarioCnpj) {
+                  const { error: destErr } = await supabase.rpc(
+                    "nfs_stage_definir_destinatario",
+                    {
+                      p_nf_chave_acesso: chave,
+                      p_destinatario_cnpj: p.destinatarioCnpj.replace(/\D/g, ""),
+                    },
+                  );
+                  if (destErr) {
+                    anotarErro(resumo, `destinatário falhou (${chave}): ${destErr.message}`);
+                    console.error(`[${entidade}] destinatário falhou (${chave}):`, destErr.message);
+                  }
+                }
               } catch (e) {
                 anotarErro(resumo, e instanceof Error ? e.message : String(e));
                 console.error(`[${entidade}] erro no documento:`, e);
