@@ -950,6 +950,11 @@ export default function TransferenciasInternas() {
 
             <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
               <div className="text-sm text-muted-foreground">
+                {regularizacao && (
+                  <Badge className="mr-2" variant="secondary">
+                    Regularização
+                  </Badge>
+                )}
                 {!destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
                 <span className="font-medium text-foreground">
                   {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
