@@ -468,6 +468,12 @@ export default function TransferenciasInternas() {
     0
   );
 
+  // Resumo da barra fixa: calculado dos itens atuais do formulário (só os com SKU).
+  const itensAtuais = form.watch("itens") ?? [];
+  const itensComSku = itensAtuais.filter((i) => i.sku?.trim());
+  const totalPecasForm = itensComSku.reduce((acc, i) => acc + (Number(i.quantidade) || 0), 0);
+  const previaValida = modo === "colar" && !!previa && !previaComErro && textoProcessado === textoColado;
+
   const centrosQ = useCentrosDestino();
 
   const listaQ = useQuery({
@@ -652,9 +658,9 @@ export default function TransferenciasInternas() {
                           {marcadas.reduce((acc, l) => acc + (sugSelecao[l.sku]?.qtd ?? 0), 0)} peças)
                         </Button>
                       </div>
-                      <div className="overflow-x-auto rounded-md border">
+                      <div className="max-h-[420px] overflow-auto rounded-md border">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="sticky top-0 z-10 bg-background">
                             <TableRow>
                               <TableHead className="w-8" />
                               <TableHead>SKU</TableHead>
