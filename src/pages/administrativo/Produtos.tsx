@@ -570,6 +570,11 @@ export default function Produtos() {
       />
 
       {/* NÍVEL 1 — Faixa de carteira */}
+      {filtroAtivo && (
+        <p className="text-xs text-muted-foreground">
+          Cartões refletem os filtros aplicados ({filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}).
+        </p>
+      )}
       <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
 
       {/* Filtros */}
@@ -940,7 +945,8 @@ function FaixaCarteira({
   }
   if (!resumo) return null;
   const capitalTotal = Number(resumo.capital_lastreado ?? 0) + Number(resumo.capital_fragil ?? 0);
-  const semVenda = Number(resumo.sem_venda ?? 0);
+  const semVenda = Number(resumo.sem_venda_ativos ?? 0);
+  const semVendaPreVenda = Number(resumo.sem_venda_pre_venda ?? 0);
   const capSemVenda = Number(resumo.capital_sem_venda ?? 0);
   const perdida = Number(resumo.receita_perdida ?? 0);
   const reprocessada = Number(resumo.receita_reprocessada ?? 0);
