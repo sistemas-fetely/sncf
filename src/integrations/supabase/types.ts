@@ -114454,6 +114454,15 @@ export type Database = {
         Args: { p_stage_id: string }
         Returns: undefined
       }
+      receber_nf_fora_xpm: {
+        Args: {
+          p_centro_codigo: string
+          p_data_recebimento: string
+          p_nf_id: number
+          p_rows?: Json
+        }
+        Returns: Json
+      }
       receber_pedido_externo: {
         Args: {
           p_bairro?: string
