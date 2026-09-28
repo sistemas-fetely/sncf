@@ -856,6 +856,11 @@ export default function TransferenciasInternas() {
                       {processando && <Loader2 className="h-4 w-4 animate-spin" />}
                       Processar
                     </Button>
+                    {ignoradas > 0 && previa && (
+                      <p className="text-xs text-muted-foreground">
+                        {ignoradas} {ignoradas === 1 ? "linha ignorada" : "linhas ignoradas"} (quantidade 0 ou vazia)
+                      </p>
+                    )}
                     {previa && textoProcessado !== textoColado && (
                       <p className="text-xs text-warning">Texto alterado — clique em Processar de novo.</p>
                     )}
@@ -867,9 +872,9 @@ export default function TransferenciasInternas() {
                   </div>
                   {erroPrevia && <p className="text-xs text-destructive">{erroPrevia}</p>}
                   {previa && previa.length > 0 && (
-                    <div className="rounded-md border">
+                    <div className="max-h-[420px] overflow-y-auto rounded-md border">
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
                             <TableHead>SKU</TableHead>
                             <TableHead>Nome</TableHead>
