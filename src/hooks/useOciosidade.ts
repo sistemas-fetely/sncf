@@ -20,8 +20,12 @@ export function useOciosidade(msLimite = 5000): boolean {
     const carimbar = () => {
       ultimaInteracao.current = Date.now();
     };
+    // capture: true porque scroll não borbulha — rolagem dentro de um contêiner
+    // interno (tabela, lista) só chega até ele na fase de captura.
     // passive: só carimbamos; nunca bloqueia o scroll do navegador.
-    EVENTOS_INTERACAO.forEach((ev) => window.addEventListener(ev, carimbar, { passive: true }));
+    EVENTOS_INTERACAO.forEach((ev) =>
+      window.addEventListener(ev, carimbar, { passive: true, capture: true })
+    );
 
     const avaliar = () => {
       const visivel = document.visibilityState === "visible";
