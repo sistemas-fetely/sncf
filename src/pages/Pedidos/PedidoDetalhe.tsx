@@ -1335,9 +1335,6 @@ export default function PedidoDetalhe() {
     const c = centrosRotulos?.get(idCentro);
     return c?.rotulo || idCentro.slice(0, 8);
   };
-  const rotaCentros = data?.pedido ? (
-    pedido.origem_centro_id || pedido.destino_centro_id ? { origem: rotuloCentro(pedido.origem_centro_id), destino: rotuloCentro(pedido.destino_centro_id) } : null
-  ) : null;
 
   // Tarefas vinculadas (vw_pedido_tarefas) — alimenta o dot da aba Tarefas.
 
