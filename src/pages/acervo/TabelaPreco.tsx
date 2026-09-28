@@ -580,7 +580,7 @@ export default function TabelaPreco() {
               tamanhoPagina={tamanho}
               tela="tabela_preco"
               onPagina={setPagina}
-              onTamanhoPagina={setTamanho}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
             />
           </CardContent>
         </Card>
