@@ -309,6 +309,7 @@ export default function TransferenciasInternas() {
     setTextoProcessado(null);
     setPrevia(null);
     setErroPrevia(null);
+    setIgnoradas(0);
   };
 
   const limparSugestao = () => {
@@ -399,6 +400,7 @@ export default function TransferenciasInternas() {
 
   const processarColagem = async () => {
     setErroPrevia(null);
+    setIgnoradas(0);
     const linhas = parsearColagem(textoColado);
     if (linhas.length === 0) {
       setPrevia(null);
@@ -409,15 +411,30 @@ export default function TransferenciasInternas() {
     }
     setProcessando(true);
     try {
-      const skus = Array.from(new Set(linhas.map((l) => l.sku)));
+      // Quantidade vazia ou 0 → linha ignorada (não é erro). Negativa ou não inteira segue erro.
+      const comQtd = linhas.map((l) => ({
+        ...l,
+        q: l.qtdTexto === "" ? null : Number(l.qtdTexto.replace(/\./g, "").replace(",", ".")),
+      }));
+      const ignoradasLista = comQtd.filter((l) => l.q === null || l.q === 0);
+      const consideradas = comQtd.filter((l) => l.q !== null && l.q !== 0);
+      setIgnoradas(ignoradasLista.length);
+      if (consideradas.length === 0) {
+        setPrevia(null);
+        setTextoProcessado(textoColado);
+        replace([]);
+        setErroPrevia("Nada para processar: cole ao menos uma linha com SKU e quantidade.");
+        return;
+      }
+      const skus = Array.from(new Set(consideradas.map((l) => l.sku)));
       const { data, error } = await supabase
         .from("sncf_produtos")
         .select("sku, nome_completo, preco_custo")
         .in("sku", skus);
       if (error) throw error;
       const mapa = new Map((data ?? []).map((p) => [p.sku as string, p as ProdutoCatalogo]));
-      const resultado: LinhaColada[] = linhas.map((l) => {
-        const q = Number(l.qtdTexto.replace(/\./g, "").replace(",", "."));
+      const resultado: LinhaColada[] = consideradas.map((l) => {
+        const q = l.q as number;
         return {
           sku: l.sku,
           quantidade: q,
