@@ -287,6 +287,22 @@ Deno.serve(async (req) => {
         });
 
         variantesTotais += variants.length;
+        for (const v of variantNodes) {
+          const invId = extrairIdNumerico(v?.inventoryItem?.id);
+          const w = v?.inventoryItem?.measurement?.weight;
+          if (!invId) continue;
+          const unidade = w?.unit ? String(w.unit) : null;
+          const valor = typeof w?.value === "number" ? w.value : (w?.value != null ? Number(w.value) : null);
+          const fator = unidade ? FATOR_G[unidade] : undefined;
+          pesoRows.push({
+            inventory_item_id: invId,
+            sku: v?.sku ?? null,
+            peso_g: valor != null && Number.isFinite(valor) && fator ? Math.round(valor * fator * 1000) / 1000 : null,
+            unidade_original: unidade,
+            valor_original: valor != null && Number.isFinite(valor) ? valor : null,
+            lido_em: pullEm,
+          });
+        }
 
         if (espelhar) {
           espelhoRows.push({
