@@ -30,7 +30,13 @@ export function useOciosidade(msLimite = 5000): boolean {
     const avaliar = () => {
       const visivel = document.visibilityState === "visible";
       const parado = Date.now() - ultimaInteracao.current >= msLimite;
-      const agora = visivel && parado;
+      // Componentes filhos guardam o próprio estado de dialog/popover aberto e a
+      // tela pai não enxerga. O DOM é a fonte única do "tem algo aberto": se
+      // existir qualquer sobreposição renderizada, a tela NÃO pode se atualizar
+      // sozinha, ou remonta a linha e fecha o dialog com o texto digitado.
+      const temSobreposicaoAberta =
+        document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]') !== null;
+      const agora = visivel && parado && !temSobreposicaoAberta;
       // setState com o mesmo valor não re-renderiza; a função só troca quando vira.
       setOcioso((antes) => (antes === agora ? antes : agora));
     };
