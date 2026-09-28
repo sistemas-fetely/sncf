@@ -758,23 +758,26 @@ function FaixaCarteira({
     <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
       <FaixaBloco
         label="Receita do período"
+        slug="receita"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
       />
       <FaixaBloco
         label="Margem de contribuição"
+        slug="margem_contribuicao"
         valor={formatBRL(resumo.margem_contribuicao_total ?? 0)}
         contexto={
           <div className="space-y-0.5">
             <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
             <div className="text-[11px] text-muted-foreground">
-              após impostos, despesas e crédito · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
+              após despesas variáveis · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
             </div>
           </div>
         }
       />
       <FaixaBloco
         label="GMROI"
+        slug="gmroi"
         valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
         contexto={
           <div className="space-y-0.5">
@@ -787,6 +790,7 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Venda perdida"
+        slug="venda_perdida"
         valorClass="text-destructive"
         valor={formatBRL(perdida)}
         contexto={
@@ -798,17 +802,20 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Concentração"
+        slug="concentracao_receita"
         valor={<>{formatNum(resumo.curva_a)} <span className="text-base text-muted-foreground">SKUs</span></>}
         contexto={<>fazem 50% da receita · B {formatNum(resumo.curva_b)} · C {formatNum(resumo.curva_c)}</>}
       />
       <FaixaBloco
         label="Sem venda"
+        slug="sem_venda"
         valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
         contexto={<>de {formatNum(resumo.skus_ativos)} ativos</>}
       />
       <FaixaBloco
         label="Capital parado"
+        slug="capital_parado"
         valor={formatBRL(capitalTotal)}
         contexto={
           <div className="space-y-0.5">
@@ -819,12 +826,14 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Capital sem giro"
+        slug="capital_sem_giro"
         valorClass={capSemVenda > 0 ? "text-destructive" : undefined}
         valor={formatBRL(capSemVenda)}
         contexto="preso em SKU que nunca vendeu"
       />
       <FaixaBloco
         label="Pré-venda"
+        slug="pre_venda"
         valorClass={preVenda > 0 ? "text-info" : undefined}
         valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
         contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
