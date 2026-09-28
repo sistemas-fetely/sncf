@@ -146,8 +146,9 @@ serve(async (req) => {
         codigo: sku,
         tipo: "P",
         formato: "S",
+        situacao: f.fase === "ativo" ? "A" : "I", // card nasce na situação da fase (28/09)
         unidade: "UN",
-        preco: num(f.preco_atacado),
+        preco: num(f.preco_varejo),
         pesoLiquido: pesoKg,
         pesoBruto: pesoKg,
         dimensoes: {
@@ -245,7 +246,7 @@ serve(async (req) => {
             codigo: sku,
             nome: payload.nome,
             bling_id: String(blingId),
-            ativo: true,
+            ativo: payload.situacao === "A",
           },
           { onConflict: "bling_id" },
         );

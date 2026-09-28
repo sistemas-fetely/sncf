@@ -4,6 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { sincronizarSituacaoCardBling } from "../_shared/bling/situacao-card.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -289,6 +290,22 @@ serve(async (req) => {
       return json({ ok: false, erro: `FOP aceitou, mas o espelho local falhou: ${errEspelho.message}` }, 500);
     }
 
+    // 8b) Card do Bling acompanha a fase (28/09): só quando cruza a fronteira do "ativo".
+    //     Falha aqui NÃO desfaz a promoção (a fase do SNCF é a verdade) — avisa e registra.
+    let blingCard: Record<string, unknown> | null = null;
+    if ((faseAnterior === "ativo") !== (faseDestino === "ativo")) {
+      const rs = await sincronizarSituacaoCardBling(supabase, sku, faseDestino);
+      blingCard = rs;
+      if (!rs.ok) {
+        const { error: logErr } = await supabase.from("integracoes_sync_log").insert({
+          sistema: "bling", tipo: "bling_card_situacao", status: "erro", registros_erro: 1,
+          iniciado_por: userData.user.id,
+          detalhes: JSON.stringify({ sku, de: faseAnterior, para: faseDestino, ...rs }),
+        });
+        if (logErr) console.error("[promover-fase-produto] log bling_card_situacao falhou", logErr);
+      }
+    }
+
     // 9)
     return json({
       ok: true,
@@ -297,6 +314,7 @@ serve(async (req) => {
       de: faseAnterior,
       para: faseDestino,
       saldo_disponivel: saldoDisponivel,
+      bling_card: blingCard,
     });
   } catch (e) {
     console.error("[promover-fase-produto] erro inesperado", e);
