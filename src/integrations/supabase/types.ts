@@ -52909,6 +52909,80 @@ export type Database = {
         }
         Relationships: []
       }
+      reposicao_parametro_centro: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          cauda_limite_90d: number
+          cauda_piso_un: number
+          centro_id: string
+          dia_cadencia: number
+          janela_oportunidade_dias: number
+          lead_time_dias: number
+          origem_centro_id: string
+          seguranca_dias: number
+          teto_dias: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cauda_limite_90d?: number
+          cauda_piso_un?: number
+          centro_id: string
+          dia_cadencia?: number
+          janela_oportunidade_dias?: number
+          lead_time_dias?: number
+          origem_centro_id: string
+          seguranca_dias?: number
+          teto_dias?: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cauda_limite_90d?: number
+          cauda_piso_un?: number
+          centro_id?: string
+          dia_cadencia?: number
+          janela_oportunidade_dias?: number
+          lead_time_dias?: number
+          origem_centro_id?: string
+          seguranca_dias?: number
+          teto_dias?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       responsabilidades_catalogo: {
         Row: {
           area: string
@@ -78977,6 +79051,33 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_demanda_centro: {
+        Row: {
+          centro_id: string | null
+          demanda_dia: number | null
+          sku: string | null
+          v30: number | null
+          v31_60: number | null
+          v61_90: number | null
+          v90: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       vw_demanda_por_assunto: {
         Row: {
           abertas: number | null
@@ -93178,14 +93279,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -94825,14 +94926,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -103387,6 +103488,64 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_reposicao_sugerida: {
+        Row: {
+          cauda: boolean | null
+          centro: string | null
+          centro_id: string | null
+          demanda_dia: number | null
+          disp_destino: number | null
+          disp_origem: number | null
+          em_transito: number | null
+          fase: string | null
+          minimo: number | null
+          multiplo: number | null
+          nome_comercial: string | null
+          oportunidade: number | null
+          origem: string | null
+          origem_centro_id: string | null
+          posicao: number | null
+          proxima_carga: string | null
+          qtd_sugerida: number | null
+          situacao: string | null
+          sku: string | null
+          teto: number | null
+          v30: number | null
+          v31_60: number | null
+          v61_90: number | null
+          v90: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+        ]
+      }
       vw_representante_financeiro: {
         Row: {
           a_liberar_cliente_ja_pagou: number | null
@@ -105151,14 +105310,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
