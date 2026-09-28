@@ -557,13 +557,28 @@ Deno.serve(async (req) => {
   const hexok = hmacHeader && hexBytes
     ? timingEq(await hmacBase64(raw, hexBytes), hmacHeader)
     : false;
-  if (!(utf8ok || hexok)) {
+  // Webhook criado pelo APP via API (ex.: products/delete) vem assinado com o segredo do app
+  // (SHOPIFY_CLIENT_SECRET). Só tenta este se o da loja não bateu. Segurança igual: HMAC válido
+  // com um dos dois segredos que só nós e o Shopify conhecemos.
+  let appok = false;
+  if (!(utf8ok || hexok) && hmacHeader) {
+    const { data: appSecret, error: appErr } = await supabase.rpc("get_vault_secret", {
+      p_name: "SHOPIFY_CLIENT_SECRET",
+    });
+    if (!appErr && appSecret) {
+      appok = timingEq(await hmacBase64(raw, enc.encode(appSecret as string)), hmacHeader);
+    }
+  }
+  if (!(utf8ok || hexok || appok)) {
     await registrarLog(supabase, {
       topic,
       etapa: "hmac_invalido",
-      detalhe: { utf8ok, hexok, headerPrefix: hmacHeader?.slice(0, 12) ?? null },
+      detalhe: { utf8ok, hexok, appok, headerPrefix: hmacHeader?.slice(0, 12) ?? null },
     });
     return jsonResponse(401, { error: "Assinatura HMAC inválida" });
+  }
+  if (appok) {
+    await registrarLog(supabase, { topic, etapa: "hmac_app", detalhe: { eventId } });
   }
 
   let evento: any;

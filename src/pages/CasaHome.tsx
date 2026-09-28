@@ -22,10 +22,11 @@ function iniciais(nome: string): string {
   return nome.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]).join("").toUpperCase();
 }
 
-function MuralFetely() {
+function MuralFetely({ children }: { children: React.ReactNode }) {
   const { data: eventos, isLoading, isError, error } = useAniversariantesDoMes();
   const { data: publicacoes, isError: pubErro, error: pubErroObj } = usePublicacoesAtivas(20);
   const [indice, setIndice] = useState(0);
+  const [mostrarTodos, setMostrarTodos] = useState(false);
 
   const total = publicacoes?.length || 0;
   useEffect(() => {
@@ -38,9 +39,10 @@ function MuralFetely() {
   }, [total, indice]);
 
   const atual = total > 0 ? publicacoes![Math.min(indice, total - 1)] : null;
-  const lista = eventos ?? [];
+  const lista = [...(eventos ?? [])].sort((a, b) => a.dia - b.dia);
+  const listaVisivel = mostrarTodos ? lista : lista.slice(0, 5);
+  const restantes = Math.max(0, lista.length - 5);
   const temHoje = lista.some((e) => e.eh_hoje);
-  const semNada = !isLoading && lista.length === 0 && !atual;
   const mensagemErro = isError
     ? (error as Error)?.message
     : pubErro
@@ -48,48 +50,19 @@ function MuralFetely() {
       : null;
 
   return (
-    <div className="rounded-xl gold-border bg-card p-6 md:p-7">
-      <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">Mural Fetely</p>
-      {mensagemErro && (
-        <p className="text-xs text-destructive mb-3">
-          Não foi possível carregar o mural: {mensagemErro}
-        </p>
-      )}
-      <h2 className="font-display text-2xl md:text-3xl text-foreground mb-4">
-        Aniversariantes de {MESES_PT[new Date().getMonth()]}
-      </h2>
-
-      {/* Publicação ativa — destaque simples dentro do mesmo cartão */}
-      {atual && (
-        <div className="pb-5">
-          <p className="font-display text-xl text-foreground">
-            {atual.emoji ? `${atual.emoji} ` : ""}
-            {atual.titulo}
-          </p>
-          {atual.mensagem && (
-            <p className="text-sm text-muted-foreground mt-1">{atual.mensagem}</p>
+    <>
+      <div className="grid gap-4 md:grid-cols-3 mb-12">
+        {children}
+        <div className="h-full rounded-xl gold-border bg-card p-6 md:p-7">
+          <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">Mural Fetely</p>
+          {mensagemErro && (
+            <p className="text-xs text-destructive mb-3">
+              Não foi possível carregar o mural: {mensagemErro}
+            </p>
           )}
-        </div>
-      )}
-
-      {isLoading ? (
-        <div className="flex flex-wrap gap-6">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <div className="space-y-1.5">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-12" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : semNada ? (
-        <p className="text-sm text-muted-foreground">
-          Nenhum aniversário este mês — mas sempre tem algo pra comemorar por aqui. 💚
-        </p>
-      ) : (
-        <>
+          <h2 className="font-display text-2xl text-foreground mb-4">
+            Aniversariantes de {MESES_PT[new Date().getMonth()]}
+          </h2>
           {temHoje && (
             <p className="font-display text-gold mb-4">
               {lista
@@ -98,11 +71,28 @@ function MuralFetely() {
                 .join(" ")}
             </p>
           )}
-          <div className={`flex flex-wrap gap-6 ${atual ? "border-t border-border pt-5 mt-5" : ""}`}>
-            {lista.map((ev) => (
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-12" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : lista.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Nenhum aniversário este mês — mas sempre tem algo pra comemorar por aqui. 💚
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {listaVisivel.map((ev) => (
               <div key={ev.key} className="flex items-center gap-3">
                 <Avatar
-                  className={`h-12 w-12 shrink-0 ${ev.eh_hoje ? "ring-2 ring-gold" : ""}`}
+                  className={`h-10 w-10 shrink-0 ${ev.eh_hoje ? "ring-2 ring-gold" : ""}`}
                 >
                   <AvatarImage
                     src={ev.foto_url ?? undefined}
@@ -114,7 +104,7 @@ function MuralFetely() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0">
-                  <p className="text-sm md:text-base text-foreground leading-tight">{ev.nome}</p>
+                  <p className="text-sm text-foreground leading-tight">{ev.nome}</p>
                   <p
                     className={`text-xs leading-tight mt-0.5 ${ev.eh_hoje ? "text-gold" : "text-muted-foreground"}`}
                   >
@@ -122,11 +112,34 @@ function MuralFetely() {
                   </p>
                 </div>
               </div>
-            ))}
-          </div>
-        </>
+              ))}
+              {!mostrarTodos && restantes > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setMostrarTodos(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  +{restantes} este mês
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {atual && (
+        <div className="rounded-xl gold-border bg-card p-6 md:p-7">
+          <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">Mural Fetely</p>
+          <p className="font-display text-xl text-foreground">
+            {atual.emoji ? `${atual.emoji} ` : ""}
+            {atual.titulo}
+          </p>
+          {atual.mensagem && (
+            <p className="text-sm text-muted-foreground mt-1">{atual.mensagem}</p>
+          )}
+        </div>
       )}
-    </div>
+    </>
   );
 }
 const saudacao = () => {
@@ -269,13 +282,13 @@ export default function CasaHome() {
         />
       </div>
 
-      {/* CTAs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
+      {/* CTAs e aniversariantes */}
+      <MuralFetely>
         {temAcesso("tela.financeiro") && (
           <button
             type="button"
             onClick={() => navigate("/administrativo")}
-            className="casa-aurora-group group relative overflow-hidden text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
+            className="casa-aurora-group group relative h-full overflow-hidden text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
           >
             <span className="casa-aurora" aria-hidden="true" />
             <div className="relative">
@@ -297,7 +310,7 @@ export default function CasaHome() {
           <button
             type="button"
             onClick={() => navigate("/tarefas")}
-            className="group text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
+            className="group h-full text-left p-6 md:p-7 rounded-xl gold-border gold-border-hover bg-card transition-shadow"
           >
             <p className="text-[10px] uppercase tracking-[2px] text-muted-foreground mb-2">
               Em andamento
@@ -309,10 +322,7 @@ export default function CasaHome() {
             <p className="text-sm text-muted-foreground">pendentes</p>
           </button>
         )}
-      </div>
-
-      {/* Mural Fetely */}
-      <MuralFetely />
+      </MuralFetely>
     </PageShell>
   );
 }
