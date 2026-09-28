@@ -285,6 +285,7 @@ function SeloEstagio({ estagio }: { estagio: string | null }) {
 
 export default function TransferenciasInternas() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
