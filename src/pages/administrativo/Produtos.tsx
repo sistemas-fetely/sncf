@@ -1010,7 +1010,12 @@ function FaixaCarteira({
         slug="sem_venda"
         valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
-        contexto={<>de {formatNum(resumo.skus_ativos)} ativos</>}
+        contexto={
+          <>
+            de {formatNum(resumo.skus_fase_ativo)} ativos
+            {semVendaPreVenda > 0 && <> · {formatNum(semVendaPreVenda)} em pré-venda</>}
+          </>
+        }
       />
       <FaixaBloco
         label="Capital parado"
