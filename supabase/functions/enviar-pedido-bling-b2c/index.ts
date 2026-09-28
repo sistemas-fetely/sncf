@@ -57,7 +57,10 @@ type Supa = any;
 
 type ItemFila = {
   id: string;
-  shopify_pedido_id: string;
+  /** NULO quando a linha nasceu no SNCF (Venda Direta) — ver `pedido_id`. */
+  shopify_pedido_id: string | null;
+  /** Pedido interno SNCF (Venda Direta). Preenchido quando `shopify_pedido_id` e nulo. */
+  pedido_id: string | null;
   order_name: string | null;
   tentativas: number | null;
   loja_bling_id_resolvida: number | null;
@@ -75,7 +78,7 @@ type ItemPedido = {
 
 type Detalhe = {
   fila_id: string;
-  shopify_pedido_id: string;
+  shopify_pedido_id: string | null;
   order_name: string | null;
   resultado: "enviado" | "erro" | "dry";
   bling_pedido_id?: number | null;
@@ -281,7 +284,7 @@ Deno.serve(async (req) => {
     const { data: fila, error: eFila } = await supabase
       .from("bling_pedido_fila_b2c")
       .select(
-        "id, shopify_pedido_id, order_name, tentativas, loja_bling_id_resolvida, centro_id_resolvido, regra_id",
+        "id, shopify_pedido_id, pedido_id, order_name, tentativas, loja_bling_id_resolvida, centro_id_resolvido, regra_id",
       )
       .eq("status", "pendente")
       .order("criado_em", { ascending: true })
@@ -294,7 +297,11 @@ Deno.serve(async (req) => {
     // Clientes externos so depois de saber que ha trabalho (evita OAuth a toa).
     const freshToken = await ensureFreshToken(supabase, cfg);
     const bling = makeBlingClient(supabase, cfg, freshToken);
-    const shopify = await makeShopifyAdmin(supabase);
+    // Cliente Shopify so quando ha item de origem Shopify no lote: linha de Venda
+    // Direta (origem SNCF) nao toca Shopify em nada.
+    const shopify = itensFila.some((i) => i.shopify_pedido_id)
+      ? await makeShopifyAdmin(supabase)
+      : null;
 
     // PUT /contatos/{id} — o cliente compartilhado so tem get/post. Usado apenas
     // para atualizar o endereco do contato pre-existente; falha nao bloqueia.
@@ -477,8 +484,8 @@ Deno.serve(async (req) => {
         }
 
         // 3. CPF/CNPJ + dados do cliente via Admin API (nao existem no espelho)
-        const r = await shopify.gql<PedidoShopifyApi>(QUERY_PEDIDO, {
-          id: gidPedido(item.shopify_pedido_id),
+        const r = await shopify!.gql<PedidoShopifyApi>(QUERY_PEDIDO, {
+          id: gidPedido(item.shopify_pedido_id!),
         });
         if (r.status !== 200 || r.errors) {
           await falhar(
