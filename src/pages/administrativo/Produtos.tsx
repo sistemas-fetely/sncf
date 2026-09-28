@@ -694,8 +694,8 @@ function FaixaCarteira({
 }) {
   if (isLoading) {
     return (
-      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
-        {Array.from({ length: 7 }).map((_, i) => (
+      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
+        {Array.from({ length: 9 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
@@ -711,11 +711,35 @@ function FaixaCarteira({
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-7">
+    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
       <FaixaBloco
         label="Receita do período"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
+      />
+      <FaixaBloco
+        label="Margem de contribuição"
+        valor={formatBRL(resumo.margem_contribuicao_total ?? 0)}
+        contexto={
+          <div className="space-y-0.5">
+            <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
+            <div className="text-[11px] text-muted-foreground">
+              após impostos, despesas e crédito · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
+            </div>
+          </div>
+        }
+      />
+      <FaixaBloco
+        label="GMROI"
+        valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
+        contexto={
+          <div className="space-y-0.5">
+            <div>margem/ano por R$ 1 em estoque</div>
+            <div className="text-[11px] text-muted-foreground">
+              {formatNum(resumo.skus_gmroi_baixo)} SKUs abaixo de 0,5
+            </div>
+          </div>
+        }
       />
       <FaixaBloco
         label="Venda perdida"
