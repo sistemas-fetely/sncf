@@ -377,14 +377,14 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
-  const nfIds = useMemo(
+  const nfIdsCard = useMemo(
     () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)),
     [nfsQ.data],
   );
 
   const recebimentosQ = useQuery({
-    queryKey: ["nf-recebimento", nfIds],
-    enabled: nfIds.length > 0,
+    queryKey: ["nf-recebimento", nfIdsCard],
+    enabled: nfIdsCard.length > 0,
     queryFn: async () => {
       const { data: movs, error: e1 } = await (supabase as any)
         .from("movimentacao_estoque")
