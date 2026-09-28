@@ -83,6 +83,14 @@ interface CockpitRow {
   foto_url: string | null;
   margem_contribuicao: number | null;
   margem_contribuicao_pct: number | null;
+  receita_b2b: number | null;
+  receita_b2c: number | null;
+  un_b2b: number | null;
+  un_b2c: number | null;
+  margem_contribuicao_b2b: number | null;
+  margem_contribuicao_b2c: number | null;
+  preco_medio_b2b: number | null;
+  preco_medio_b2c: number | null;
   gmroi: number | null;
   nome_comercial: string | null;
   linha: string | null;
@@ -137,6 +145,12 @@ interface CarteiraResumo {
   receita_periodo: number | null;
   margem_contribuicao_total: number | null;
   margem_contribuicao_pct: number | null;
+  receita_b2b: number | null;
+  receita_b2c: number | null;
+  margem_contribuicao_b2b: number | null;
+  margem_contribuicao_b2c: number | null;
+  margem_contribuicao_pct_b2b: number | null;
+  margem_contribuicao_pct_b2c: number | null;
   pct_receita_com_margem: number | null;
   gmroi_carteira: number | null;
   skus_gmroi_baixo: number | null;
@@ -766,7 +780,12 @@ export default function Produtos() {
                         <div>{formatNum(p.un_vendidas)} un</div>
                         <div className="text-xs text-muted-foreground">{formatNum(p.un_por_dia, 1)}/dia</div>
                       </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatBRL(p.receita ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        <div>{formatBRL(p.receita ?? 0)}</div>
+                        {Number(p.receita_b2c ?? 0) > 0 && (
+                          <div className="text-xs text-muted-foreground">B2C {formatBRL(p.receita_b2c)}</div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {p.margem_contribuicao == null ? (
                           <span className="text-muted-foreground">—</span>
@@ -959,7 +978,14 @@ function FaixaCarteira({
         label="Receita do período"
         slug="receita"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
-        contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
+        contexto={
+          <div className="space-y-0.5">
+            <div>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</div>
+            <div className="text-[11px] text-muted-foreground">
+              B2B {formatBRL(resumo.receita_b2b ?? 0)} · B2C {formatBRL(resumo.receita_b2c ?? 0)}
+            </div>
+          </div>
+        }
       />
       <FaixaBloco
         label="Margem de contribuição"
@@ -970,6 +996,9 @@ function FaixaCarteira({
             <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
             <div className="text-[11px] text-muted-foreground">
               após despesas variáveis · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              B2B {formatPct(resumo.margem_contribuicao_pct_b2b)} · B2C {formatPct(resumo.margem_contribuicao_pct_b2c)}
             </div>
           </div>
         }
@@ -1482,27 +1511,29 @@ function ComoCalculamos({ row }: { row: CockpitRow }) {
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div className="mt-3 space-y-3 rounded-md border bg-muted/30 p-3">
-          <LinhaCalculo rotulo="Margem por unidade">
-            {!temCusto ? (
-              <NaoCalculado motivo="sem custo" />
-            ) : row.margem_contribuicao_un == null ? (
-              <NaoCalculado motivo="sem venda no período" />
-            ) : (
-              <>
-                preço médio {formatBRL(row.preco_medio_realizado)} − despesas variáveis {formatBRL(row.despesas_variaveis_un)} − custo {formatBRL(row.custo)} + crédito ICMS {formatBRL(row.credito_un)} = {formatBRL(row.margem_contribuicao_un)}
-              </>
-            )}
-          </LinhaCalculo>
-          <LinhaCalculo rotulo="Margem de contribuição">
+          <LinhaCalculo rotulo="Margem de contribuição por canal">
             {!temVenda ? (
               <NaoCalculado motivo="sem venda no período" />
-            ) : row.margem_contribuicao == null ? (
-              <NaoCalculado motivo="sem custo" />
             ) : (
-              <>
-                {formatBRL(row.margem_contribuicao_un)} × {formatNum(row.un_vendidas)} un = {formatBRL(row.margem_contribuicao)}
-                {row.margem_contribuicao_pct != null && ` (${formatPct(row.margem_contribuicao_pct)} do preço)`}
-              </>
+              <div className="space-y-1">
+                {Number(row.un_b2b ?? 0) > 0 && (
+                  <div>
+                    B2B: preço médio {formatBRL(row.preco_medio_b2b)} × {formatNum(row.un_b2b)} un → margem {formatBRL(row.margem_contribuicao_b2b)}
+                  </div>
+                )}
+                {Number(row.un_b2c ?? 0) > 0 && (
+                  <div>
+                    B2C: preço médio {formatBRL(row.preco_medio_b2c)} × {formatNum(row.un_b2c)} un → margem {formatBRL(row.margem_contribuicao_b2c)}
+                  </div>
+                )}
+                <div>
+                  Total: {formatBRL(row.margem_contribuicao_b2b)} + {formatBRL(row.margem_contribuicao_b2c)} = {formatBRL(row.margem_contribuicao)}
+                  {row.margem_contribuicao_pct != null && ` (${formatPct(row.margem_contribuicao_pct)} da receita)`}
+                </div>
+                <div className="font-sans text-[10px] text-muted-foreground">
+                  Cada canal desconta as próprias despesas variáveis (Parâmetros de Precificação).
+                </div>
+              </div>
             )}
           </LinhaCalculo>
           <LinhaCalculo rotulo="Capital em estoque">
