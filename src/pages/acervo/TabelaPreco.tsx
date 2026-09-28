@@ -575,42 +575,14 @@ export default function TabelaPreco() {
               </Table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                {recorte.length} de {linhas.length} produtos
-              </span>
-              <div className="flex items-center gap-2">
-                <Select value={String(tamanho)} onValueChange={(v) => setTamanho(Number(v))}>
-                  <SelectTrigger className="h-8 w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAMANHOS.map((t) => <SelectItem key={t} value={String(t)}>{t} / página</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual <= 1}
-                  onClick={() => setPagina(paginaAtual - 1)}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="tabular-nums text-muted-foreground">
-                  {paginaAtual} / {totalPaginas}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual >= totalPaginas}
-                  onClick={() => setPagina(paginaAtual + 1)}
-                  aria-label="Próxima página"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <RodapePaginacao
+              total={recorte.length}
+              pagina={paginaAtual}
+              tamanhoPagina={tamanho}
+              tela="tabela_preco"
+              onPagina={setPagina}
+              onTamanhoPagina={setTamanho}
+            />
           </CardContent>
         </Card>
 
