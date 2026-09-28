@@ -8,9 +8,10 @@ import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight, Download,
+  ArrowDown, ArrowUp, ArrowUpDown, Download,
   Loader2, MessageSquareText, Search,
 } from "lucide-react";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip as ChartTooltip,
   XAxis, YAxis,
@@ -107,7 +108,6 @@ const COR_SEV: Record<Severidade, string> = {
   atencao: "hsl(var(--warning))",
 };
 
-const TAMANHOS = [50, 100, 200, 500];
 
 type ColunaOrdem = "criado_em" | "cod_cadastro" | "variacao_atacado_percent";
 
@@ -153,7 +153,7 @@ export function HistoricoPrecoTab() {
   const [mesFim, setMesFim] = useState("fim");
   const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(100);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const listaQ = useQuery({
     queryKey: ["preco-historico-analise"],
@@ -442,9 +442,9 @@ export function HistoricoPrecoTab() {
         {/* Tabela de eventos */}
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10">
                   <TableRow>
                     <TableHead
                       className="cursor-pointer select-none whitespace-nowrap"
@@ -578,42 +578,14 @@ export function HistoricoPrecoTab() {
               </Table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                {recorte.length} de {eventos.length} eventos
-              </span>
-              <div className="flex items-center gap-2">
-                <Select value={String(tamanho)} onValueChange={(v) => setTamanho(Number(v))}>
-                  <SelectTrigger className="h-8 w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAMANHOS.map((t) => <SelectItem key={t} value={String(t)}>{t} / página</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual <= 1}
-                  onClick={() => setPagina(paginaAtual - 1)}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="tabular-nums text-muted-foreground">
-                  {paginaAtual} / {totalPaginas}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual >= totalPaginas}
-                  onClick={() => setPagina(paginaAtual + 1)}
-                  aria-label="Próxima página"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <RodapePaginacao
+              total={recorte.length}
+              pagina={paginaAtual}
+              tamanhoPagina={tamanho}
+              tela="historico_preco"
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
           </CardContent>
         </Card>
       </div>
