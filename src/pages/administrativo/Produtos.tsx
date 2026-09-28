@@ -980,8 +980,8 @@ function FaixaCarteira({
 }) {
   if (isLoading) {
     return (
-      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
-        {Array.from({ length: 9 }).map((_, i) => (
+      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
+        {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
