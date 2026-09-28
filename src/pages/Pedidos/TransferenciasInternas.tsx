@@ -30,6 +30,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -43,6 +45,8 @@ import { cn } from "@/lib/utils";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatError } from "@/lib/format-error";
+import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 
 interface CentroDestino {
@@ -197,6 +201,49 @@ function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
     .filter((p) => p.sku.length > 0);
 }
 
+interface LinhaSugestao {
+  sku: string;
+  nome_comercial: string | null;
+  situacao: string;
+  v90: number | null;
+  demanda_dia: number | null;
+  disp_destino: number | null;
+  em_transito: number | null;
+  disp_origem: number | null;
+  minimo: number | null;
+  oportunidade: number | null;
+  teto: number | null;
+  multiplo: number | null;
+  cauda: boolean | null;
+  qtd_sugerida: number | null;
+  proxima_carga: string | null;
+  origem: string | null;
+}
+
+const SITUACAO_LABEL: Record<string, string> = {
+  dispara: "Dispara",
+  carona: "Carona",
+  ok: "OK",
+  sem_origem: "Sem saldo na origem",
+};
+
+function situacaoBadge(s: string) {
+  if (s === "dispara") return <Badge variant="destructive">Dispara</Badge>;
+  if (s === "carona") return <Badge variant="default">Carona</Badge>;
+  if (s === "sem_origem") return <Badge variant="outline">Sem saldo na origem</Badge>;
+  return <Badge variant="secondary">{SITUACAO_LABEL[s] ?? s}</Badge>;
+}
+
+/** dd/MM + dia da semana curto, ex.: "03/10 (sex)". */
+function fmtCarga(v: string | null): string {
+  const d = parseDataPura(v);
+  if (!d) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const sem = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+  return `${dd}/${mm} (${sem})`;
+}
+
 /** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
 function useCentrosDestino() {
   return useQuery({
@@ -245,12 +292,16 @@ export default function TransferenciasInternas() {
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
 
-  const [modo, setModo] = useState<"item" | "colar">("item");
+  const [modo, setModo] = useState<"item" | "colar" | "sugestao">("item");
   const [textoColado, setTextoColado] = useState("");
   const [textoProcessado, setTextoProcessado] = useState<string | null>(null);
   const [previa, setPrevia] = useState<LinhaColada[] | null>(null);
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+
+  // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
+  const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
+  const [sugMostrarTodos, setSugMostrarTodos] = useState(false);
 
   const limparColagem = () => {
     setTextoColado("");
@@ -259,13 +310,90 @@ export default function TransferenciasInternas() {
     setErroPrevia(null);
   };
 
+  const limparSugestao = () => {
+    setSugSelecao({});
+    setSugMostrarTodos(false);
+  };
+
   const trocarModo = (novo: string) => {
-    const m = novo as "item" | "colar";
+    const m = novo as "item" | "colar" | "sugestao";
     if (m === modo) return;
     setModo(m);
     limparColagem();
+    limparSugestao();
     replace(m === "item" ? [{ sku: "", nome: "", quantidade: 1 }] : []);
     form.clearErrors("itens");
+  };
+
+  const destinoAtual = form.watch("destino");
+  useEffect(() => {
+    limparSugestao();
+  }, [destinoAtual]);
+
+  const sugestaoQ = useQuery({
+    queryKey: ["reposicao-sugerida", destinoAtual],
+    enabled: modo === "sugestao" && !!destinoAtual,
+    queryFn: async (): Promise<LinhaSugestao[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_reposicao_sugerida")
+        .select(
+          "sku, nome_comercial, situacao, v90, demanda_dia, disp_destino, em_transito, disp_origem, minimo, oportunidade, teto, multiplo, cauda, qtd_sugerida, proxima_carga, origem"
+        )
+        .eq("centro", destinoAtual)
+        .order("situacao")
+        .order("qtd_sugerida", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as LinhaSugestao[];
+    },
+  });
+
+  // Inicializa a seleção quando chegam linhas novas (marcadas as com sugestão > 0).
+  const linhasSug = sugestaoQ.data ?? [];
+  const chaveSug = linhasSug.map((l) => l.sku).join("|");
+  useEffect(() => {
+    if (!sugestaoQ.data) return;
+    const ini: Record<string, { marcado: boolean; qtd: number }> = {};
+    for (const l of sugestaoQ.data) {
+      const q = l.qtd_sugerida ?? 0;
+      ini[l.sku] = { marcado: q > 0, qtd: q };
+    }
+    setSugSelecao(ini);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveSug]);
+
+  // FAIL-LOUD: erro da query vira toast (uma vez por erro).
+  useEffect(() => {
+    if (sugestaoQ.isError) toast.error(formatError(sugestaoQ.error));
+  }, [sugestaoQ.isError, sugestaoQ.error]);
+
+  const linhasVisiveis = sugMostrarTodos ? linhasSug : linhasSug.filter((l) => (l.qtd_sugerida ?? 0) > 0);
+  const marcadas = linhasSug.filter((l) => sugSelecao[l.sku]?.marcado && (sugSelecao[l.sku]?.qtd ?? 0) > 0);
+  const totalPecasSug = linhasSug.reduce((acc, l) => acc + (l.qtd_sugerida ?? 0), 0);
+  const resumo = {
+    dispara: linhasSug.filter((l) => l.situacao === "dispara").length,
+    carona: linhasSug.filter((l) => l.situacao === "carona").length,
+    semOrigem: linhasSug.filter((l) => l.situacao === "sem_origem").length,
+    pecas: totalPecasSug,
+    proximaCarga: linhasSug.find((l) => l.proxima_carga)?.proxima_carga ?? null,
+    origem: linhasSug.find((l) => l.origem)?.origem ?? null,
+  };
+
+  const usarSugestao = () => {
+    if (marcadas.length === 0) return;
+    replace(
+      marcadas.map((l) => ({
+        sku: l.sku,
+        nome: l.nome_comercial ?? "",
+        quantidade: sugSelecao[l.sku].qtd,
+      }))
+    );
+    form.clearErrors("itens");
+    if (!form.getValues("observacao").trim()) {
+      form.setValue(
+        "observacao",
+        `Reposição sugerida pelo motor — carga de ${fmtCarga(resumo.proximaCarga)}`
+      );
+    }
   };
 
   const processarColagem = async () => {
@@ -357,6 +485,7 @@ export default function TransferenciasInternas() {
       toast.success(`${res.id_externo} criado — pedido entrou em Pré-Separação.`);
       form.reset({ ...VAZIO, itens: modo === "item" ? VAZIO.itens : [] });
       limparColagem();
+      limparSugestao();
       qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
     },
     onError: (err: Error) => {
@@ -439,11 +568,184 @@ export default function TransferenciasInternas() {
                   <TabsList>
                     <TabsTrigger value="item">Item a item</TabsTrigger>
                     <TabsTrigger value="colar">Colar da planilha</TabsTrigger>
+                    <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
 
-              {modo === "item" ? (
+              {modo === "sugestao" ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Sugestão calculada pela venda dos últimos 90 dias na região do destino (peso
+                    maior nos 30 dias mais recentes). Dispara = abaixo do mínimo; Carona = cabe na
+                    mesma carga. Você revisa e ajusta antes de criar.
+                  </p>
+                  {!destinoAtual ? (
+                    <p className="text-sm text-muted-foreground">
+                      Escolha o destino para ver a sugestão de reposição.
+                    </p>
+                  ) : sugestaoQ.isLoading ? (
+                    <div className="flex justify-center p-6">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : sugestaoQ.isError ? (
+                    <p className="text-sm text-destructive">
+                      Falha ao carregar a sugestão: {formatError(sugestaoQ.error)}
+                    </p>
+                  ) : linhasSug.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma sugestão para este destino (sem parâmetros de reposição ou sem demanda
+                      nos últimos 90 dias).
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                        {[
+                          { rotulo: "SKUs a disparar", valor: resumo.dispara },
+                          { rotulo: "SKUs de carona", valor: resumo.carona },
+                          { rotulo: "Sem saldo na origem", valor: resumo.semOrigem },
+                          { rotulo: "Peças sugeridas", valor: resumo.pecas },
+                          { rotulo: "Próxima carga", valor: fmtCarga(resumo.proximaCarga) },
+                          { rotulo: "Origem", valor: resumo.origem ?? "—" },
+                        ].map((c) => (
+                          <div key={c.rotulo} className="rounded-md border p-2">
+                            <p className="text-[11px] text-muted-foreground">{c.rotulo}</p>
+                            <p className="text-sm font-medium tabular-nums">{c.valor}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            checked={sugMostrarTodos}
+                            onCheckedChange={setSugMostrarTodos}
+                            aria-label="Mostrar também os que estão ok"
+                          />
+                          Mostrar também os que estão ok
+                        </label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={usarSugestao}
+                          disabled={marcadas.length === 0}
+                        >
+                          Usar na transferência ({marcadas.length}{" "}
+                          {marcadas.length === 1 ? "item" : "itens"} ·{" "}
+                          {marcadas.reduce((acc, l) => acc + (sugSelecao[l.sku]?.qtd ?? 0), 0)} peças)
+                        </Button>
+                      </div>
+                      <div className="overflow-x-auto rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-8" />
+                              <TableHead>SKU</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Situação</TableHead>
+                              <TableHead className="text-right">Vendas 90d</TableHead>
+                              <TableHead className="text-right">Demanda/dia</TableHead>
+                              <TableHead className="text-right">No destino</TableHead>
+                              <TableHead className="text-right">Em trânsito</TableHead>
+                              <TableHead className="text-right">Disp. origem</TableHead>
+                              <TableHead className="text-right">Mínimo</TableHead>
+                              <TableHead className="text-right">Teto</TableHead>
+                              <TableHead className="w-24 text-right">Quantidade</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {linhasVisiveis.map((l) => {
+                              const sel = sugSelecao[l.sku] ?? { marcado: false, qtd: 0 };
+                              const excedeOrigem =
+                                l.disp_origem != null && sel.qtd > l.disp_origem;
+                              const excedeTeto = l.teto != null && sel.qtd > l.teto;
+                              return (
+                                <TableRow key={l.sku}>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={sel.marcado}
+                                      onCheckedChange={(v) =>
+                                        setSugSelecao((s) => ({
+                                          ...s,
+                                          [l.sku]: { ...sel, marcado: v === true },
+                                        }))
+                                      }
+                                      aria-label={`Selecionar ${l.sku}`}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs tabular-nums">
+                                    {l.sku}
+                                    {l.cauda && (
+                                      <Badge variant="outline" className="ml-1 text-[10px]">
+                                        cauda
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-[220px] truncate text-sm">
+                                    {l.nome_comercial ?? "—"}
+                                  </TableCell>
+                                  <TableCell>{situacaoBadge(l.situacao)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.v90 ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.demanda_dia != null ? l.demanda_dia.toFixed(2) : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.disp_destino ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.em_transito ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.disp_origem ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.minimo ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.teto ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      value={sel.qtd}
+                                      onChange={(e) =>
+                                        setSugSelecao((s) => ({
+                                          ...s,
+                                          [l.sku]: {
+                                            ...sel,
+                                            qtd: Math.max(0, Number(e.target.value) || 0),
+                                          },
+                                        }))
+                                      }
+                                      className={cn(
+                                        "h-8 w-20 text-right tabular-nums",
+                                        (excedeOrigem || excedeTeto) && "border-warning"
+                                      )}
+                                      aria-label={`Quantidade de ${l.sku}`}
+                                    />
+                                    {excedeOrigem && (
+                                      <p className="mt-0.5 text-[10px] text-warning">
+                                        Acima do disponível na origem
+                                      </p>
+                                    )}
+                                    {!excedeOrigem && excedeTeto && (
+                                      <p className="mt-0.5 text-[10px] text-warning">
+                                        Acima do teto
+                                      </p>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : modo === "item" ? (
                 <>
                   <div className="space-y-2">
                     {fields.map((field, index) => {
