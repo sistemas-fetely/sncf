@@ -1643,6 +1643,21 @@ export default function PedidoDetalhe() {
               </TooltipProvider>
             )}
 
+            {rotaCentros && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-1 rounded-md border px-1.5 py-0 text-[10px] text-muted-foreground">
+                      Rota: {rotaCentros.origem ?? "—"}
+                      <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                      {rotaCentros.destino ?? "—"}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>Centro de origem e destino físico do pedido (transferência interna ou reposição)</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+
             {priorizado && <BadgePriorizacao score={priorizado.score_total} breakdown={priorizado.score_breakdown} compact />}
             <span className="text-xs text-muted-foreground"><FormatoIdade minutos={idade_minutos} /></span>
             {sla_estourado && <Badge variant="destructive" className="gap-1 text-[10px]"><AlertCircle className="h-3 w-3" />SLA estourado</Badge>}
