@@ -367,6 +367,12 @@ Deno.serve(async (req) => {
     }
 
     await flush();
+    // FAIL-LOUD: erro ao gravar peso entra em `erros` (e aborta o espelhamento, como os demais).
+    for (let i = 0; i < pesoRows.length; i += 500) {
+      const lote = pesoRows.slice(i, i + 500);
+      const { error } = await supabase.from("shopify_variante_peso").upsert(lote, { onConflict: "inventory_item_id" });
+      if (error) erros.push({ etapa: "peso_upsert", tamanho: lote.length, message: error.message });
+    }
 
     // deno-lint-ignore no-explicit-any
     let espelhoRes: any = {};
