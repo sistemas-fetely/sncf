@@ -53176,6 +53176,48 @@ export type Database = {
         }
         Relationships: []
       }
+      rls_embrulho_log: {
+        Row: {
+          check_antes: string | null
+          check_depois: string | null
+          cmd: unknown
+          em: string | null
+          erro: string | null
+          id: number
+          politica: string | null
+          qual_antes: string | null
+          qual_depois: string | null
+          status: string | null
+          tabela: string | null
+        }
+        Insert: {
+          check_antes?: string | null
+          check_depois?: string | null
+          cmd?: unknown
+          em?: string | null
+          erro?: string | null
+          id?: number
+          politica?: string | null
+          qual_antes?: string | null
+          qual_depois?: string | null
+          status?: string | null
+          tabela?: string | null
+        }
+        Update: {
+          check_antes?: string | null
+          check_depois?: string | null
+          cmd?: unknown
+          em?: string | null
+          erro?: string | null
+          id?: number
+          politica?: string | null
+          qual_antes?: string | null
+          qual_depois?: string | null
+          status?: string | null
+          tabela?: string | null
+        }
+        Relationships: []
+      }
       rota_codigo: {
         Row: {
           abas: string[] | null
@@ -93423,14 +93465,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -95070,14 +95112,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -99747,45 +99789,6 @@ export type Database = {
           processo_nome: string | null
           significado: string | null
           tipo: string | null
-        }
-        Relationships: []
-      }
-      vw_produto_carteira_resumo: {
-        Row: {
-          abaixo_do_piso: number | null
-          capital_bloqueado: number | null
-          capital_fragil: number | null
-          capital_lastreado: number | null
-          capital_sem_venda: number | null
-          cobertura_abaixo_30d: number | null
-          curva_a: number | null
-          curva_b: number | null
-          curva_c: number | null
-          custo_ausente: number | null
-          custo_interino: number | null
-          custo_real: number | null
-          estoque_com_razao: number | null
-          estoque_saldo_bling: number | null
-          gmroi_carteira: number | null
-          janela_fim: string | null
-          janela_inicio: string | null
-          margem_contribuicao_pct: number | null
-          margem_contribuicao_total: number | null
-          pct_cancelado: number | null
-          pct_perda_real: number | null
-          pct_receita_com_margem: number | null
-          preco_divergente_bling: number | null
-          receita_cancelada: number | null
-          receita_perdida: number | null
-          receita_periodo: number | null
-          receita_reprocessada: number | null
-          sem_venda: number | null
-          skus_ativos: number | null
-          skus_com_bloqueio: number | null
-          skus_gmroi_baixo: number | null
-          skus_pre_venda: number | null
-          un_aguardando_produto: number | null
-          un_bloqueadas: number | null
         }
         Relationships: []
       }
@@ -105471,14 +105474,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
