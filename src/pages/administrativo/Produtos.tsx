@@ -496,7 +496,21 @@ export default function Produtos() {
                       className="cursor-pointer"
                       onClick={() => setSkuAberto(p.sku)}
                     >
-                      <TableCell className="font-mono text-xs">{p.sku}</TableCell>
+                      <TableCell className="font-mono text-xs">{p.cod_cadastro ?? p.sku}</TableCell>
+                      <TableCell className="w-[52px]">
+                        {p.foto_url ? (
+                          <img
+                            src={p.foto_url}
+                            alt=""
+                            loading="lazy"
+                            className="h-10 w-10 rounded-md object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                            <ImageOff className="h-4 w-4" />
+                          </span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <div className="font-medium leading-tight">{p.nome_comercial ?? "—"}</div>
@@ -520,6 +534,18 @@ export default function Produtos() {
                         <div className="text-xs text-muted-foreground">{formatNum(p.un_por_dia, 1)}/dia</div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{formatBRL(p.receita ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.margem_contribuicao == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          <>
+                            <div>{formatBRL(p.margem_contribuicao)}</div>
+                            {p.margem_contribuicao_pct != null && (
+                              <div className="text-xs text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</div>
+                            )}
+                          </>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {p.custo == null ? (
                           <span className="text-muted-foreground">—</span>
