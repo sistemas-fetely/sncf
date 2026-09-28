@@ -113208,6 +113208,7 @@ export type Database = {
         Args: { _atribuicao_id: string; _codigo?: string; _nome?: string }
         Returns: string
       }
+      fn_produto_cockpit_resumo: { Args: { p_skus?: string[] }; Returns: Json }
       fn_produto_foto_url: {
         Args: { p_colecao: string; p_cor: string }
         Returns: string

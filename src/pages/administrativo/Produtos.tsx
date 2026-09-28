@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } fr
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
@@ -161,6 +162,9 @@ interface CarteiraResumo {
   abaixo_do_piso: number | null;
   preco_divergente_bling: number | null;
   cobertura_abaixo_30d: number | null;
+  sem_venda_ativos: number | null;
+  sem_venda_pre_venda: number | null;
+  skus_fase_ativo: number | null;
 }
 
 type ColunaProduto =
@@ -320,18 +324,6 @@ export default function Produtos() {
     setPagina(1);
   }, [ordenacao]);
 
-  const resumoQuery = useQuery({
-    queryKey: ["vw_produto_carteira_resumo"],
-    queryFn: async (): Promise<CarteiraResumo | null> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any)
-        .from("vw_produto_carteira_resumo")
-        .select("*")
-        .maybeSingle();
-      if (error) throw error;
-      return (data ?? null) as CarteiraResumo | null;
-    },
-  });
 
   const cockpitQuery = useQuery({
     queryKey: ["vw_produto_cockpit"],
@@ -492,6 +484,35 @@ export default function Produtos() {
     });
   }, [lista, busca, curvaFiltro, cdFiltro, margemFiltro, gmroiFiltro, colecaoFiltro, grupoFiltro, faseFiltro, faixasMargem, faixasGmroi, ordenacao]);
 
+  // Cartões seguem os filtros: a chave é a lista de SKUs do resultado filtrado
+  // (todas as páginas). Sem filtro → "" → RPC com p_skus null (carteira inteira).
+  const chaveResumo = useMemo(
+    () => (filtroAtivo ? `F:${filtrados.map((p) => p.sku).sort().join("|")}` : ""),
+    [filtroAtivo, filtrados],
+  );
+  const [chaveResumoDeb, setChaveResumoDeb] = useState(chaveResumo);
+  useEffect(() => {
+    const t = setTimeout(() => setChaveResumoDeb(chaveResumo), 300);
+    return () => clearTimeout(t);
+  }, [chaveResumo]);
+
+  const resumoQuery = useQuery({
+    queryKey: ["cockpit-resumo", chaveResumoDeb],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<CarteiraResumo | null> => {
+      if (chaveResumoDeb === "F:") return {} as CarteiraResumo; // filtro sem resultado: cartões zerados
+      const p_skus = chaveResumoDeb === "" ? null : chaveResumoDeb.slice(2).split("|");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_produto_cockpit_resumo", { p_skus });
+      if (error) throw error;
+      return (data ?? null) as CarteiraResumo | null;
+    },
+  });
+
+  useEffect(() => {
+    if (resumoQuery.error) toast.error(formatError(resumoQuery.error));
+  }, [resumoQuery.error]);
+
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const pageItems = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
@@ -549,6 +570,11 @@ export default function Produtos() {
       />
 
       {/* NÍVEL 1 — Faixa de carteira */}
+      {filtroAtivo && (
+        <p className="text-xs text-muted-foreground">
+          Cartões refletem os filtros aplicados ({filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}).
+        </p>
+      )}
       <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
 
       {/* Filtros */}
@@ -919,7 +945,8 @@ function FaixaCarteira({
   }
   if (!resumo) return null;
   const capitalTotal = Number(resumo.capital_lastreado ?? 0) + Number(resumo.capital_fragil ?? 0);
-  const semVenda = Number(resumo.sem_venda ?? 0);
+  const semVenda = Number(resumo.sem_venda_ativos ?? 0);
+  const semVendaPreVenda = Number(resumo.sem_venda_pre_venda ?? 0);
   const capSemVenda = Number(resumo.capital_sem_venda ?? 0);
   const perdida = Number(resumo.receita_perdida ?? 0);
   const reprocessada = Number(resumo.receita_reprocessada ?? 0);
@@ -983,7 +1010,12 @@ function FaixaCarteira({
         slug="sem_venda"
         valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
-        contexto={<>de {formatNum(resumo.skus_ativos)} ativos</>}
+        contexto={
+          <>
+            de {formatNum(resumo.skus_fase_ativo)} ativos
+            {semVendaPreVenda > 0 && <> · {formatNum(semVendaPreVenda)} em pré-venda</>}
+          </>
+        }
       />
       <FaixaBloco
         label="Capital parado"
