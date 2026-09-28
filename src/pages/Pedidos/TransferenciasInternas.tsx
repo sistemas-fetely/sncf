@@ -361,11 +361,10 @@ export default function TransferenciasInternas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveSug]);
 
-  if (sugestaoQ.isError && modo === "sugestao") {
-    // FAIL-LOUD: erro da query vira toast (uma vez por erro).
-    const msg = formatError(sugestaoQ.error);
-    if (msg) toast.error(msg);
-  }
+  // FAIL-LOUD: erro da query vira toast (uma vez por erro).
+  useEffect(() => {
+    if (sugestaoQ.isError) toast.error(formatError(sugestaoQ.error));
+  }, [sugestaoQ.isError, sugestaoQ.error]);
 
   const linhasVisiveis = sugMostrarTodos ? linhasSug : linhasSug.filter((l) => (l.qtd_sugerida ?? 0) > 0);
   const marcadas = linhasSug.filter((l) => sugSelecao[l.sku]?.marcado && (sugSelecao[l.sku]?.qtd ?? 0) > 0);
