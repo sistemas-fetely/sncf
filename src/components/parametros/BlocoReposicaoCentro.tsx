@@ -78,9 +78,12 @@ function inteiro(texto: string, { obrigatorio = false, maiorQueZero = false } = 
 }
 
 /** Número (decimal) ≥ 0. */
-function numero(texto: string): number | null | string {
+function numero(texto: string, { obrigatorio = false } = {}): number | null | string {
   const t = (texto ?? "").trim();
-  if (t === "") return null;
+  if (t === "") {
+    if (obrigatorio) return "Obrigatório";
+    return null;
+  }
   const n = Number(t);
   if (Number.isNaN(n) || n < 0) return "Número ≥ 0";
   return n;
@@ -158,12 +161,12 @@ export function BlocoReposicaoCentro() {
     mutationFn: async (centroId: string) => {
       const r = rascunhos[centroId];
       if (!r) throw new Error("Rascunho não carregado.");
-      const lead = inteiro(r.lead_time);
-      const seg = inteiro(r.seguranca);
-      const janela = inteiro(r.janela);
+      const lead = inteiro(r.lead_time, { obrigatorio: true });
+      const seg = inteiro(r.seguranca, { obrigatorio: true });
+      const janela = inteiro(r.janela, { obrigatorio: true });
       const teto = inteiro(r.teto, { obrigatorio: true, maiorQueZero: true });
-      const caudaLimite = numero(r.cauda_limite);
-      const caudaPiso = inteiro(r.cauda_piso);
+      const caudaLimite = numero(r.cauda_limite, { obrigatorio: true });
+      const caudaPiso = inteiro(r.cauda_piso, { obrigatorio: true });
       const problemas: Record<string, string> = {};
       if (ehErroInteiro(lead)) problemas.lead_time = lead;
       if (ehErroInteiro(seg)) problemas.seguranca = seg;
@@ -171,6 +174,8 @@ export function BlocoReposicaoCentro() {
       if (ehErroInteiro(teto)) problemas.teto = teto;
       if (ehErroInteiro(caudaLimite)) problemas.cauda_limite = caudaLimite;
       if (ehErroInteiro(caudaPiso)) problemas.cauda_piso = caudaPiso;
+      if (r.dia_cadencia === "none" || r.dia_cadencia === "")
+        problemas.dia_cadencia = "Obrigatório";
       if (Object.keys(problemas).length > 0) {
         setErros((prev) => ({ ...prev, [centroId]: Object.values(problemas)[0] }));
         throw Object.assign(new Error(Object.values(problemas)[0]), { __validacao: true });
@@ -188,7 +193,7 @@ export function BlocoReposicaoCentro() {
           teto_dias: teto,
           cauda_limite_90d: caudaLimite,
           cauda_piso_un: caudaPiso,
-          dia_cadencia: r.dia_cadencia === "none" ? null : Number(r.dia_cadencia),
+          dia_cadencia: Number(r.dia_cadencia),
           ativo: r.ativo,
         })
         .eq("centro_id", centroId);
@@ -362,7 +367,6 @@ export function BlocoReposicaoCentro() {
                               <SelectValue placeholder="Sem cadência" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="none">Sem cadência</SelectItem>
                               {DIAS_SEMANA.map((d) => (
                                 <SelectItem key={d.valor} value={d.valor}>
                                   {d.rotulo}
