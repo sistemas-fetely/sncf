@@ -201,6 +201,49 @@ function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
     .filter((p) => p.sku.length > 0);
 }
 
+interface LinhaSugestao {
+  sku: string;
+  nome_comercial: string | null;
+  situacao: string;
+  v90: number | null;
+  demanda_dia: number | null;
+  disp_destino: number | null;
+  em_transito: number | null;
+  disp_origem: number | null;
+  minimo: number | null;
+  oportunidade: number | null;
+  teto: number | null;
+  multiplo: number | null;
+  cauda: boolean | null;
+  qtd_sugerida: number | null;
+  proxima_carga: string | null;
+  origem: string | null;
+}
+
+const SITUACAO_LABEL: Record<string, string> = {
+  dispara: "Dispara",
+  carona: "Carona",
+  ok: "OK",
+  sem_origem: "Sem saldo na origem",
+};
+
+function situacaoBadge(s: string) {
+  if (s === "dispara") return <Badge variant="destructive">Dispara</Badge>;
+  if (s === "carona") return <Badge variant="default">Carona</Badge>;
+  if (s === "sem_origem") return <Badge variant="outline">Sem saldo na origem</Badge>;
+  return <Badge variant="secondary">{SITUACAO_LABEL[s] ?? s}</Badge>;
+}
+
+/** dd/MM + dia da semana curto, ex.: "03/10 (sex)". */
+function fmtCarga(v: string | null): string {
+  const d = parseDataPura(v);
+  if (!d) return "—";
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const sem = d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+  return `${dd}/${mm} (${sem})`;
+}
+
 /** Destinos válidos para transferência interna: armazéns e showrooms ativos. */
 function useCentrosDestino() {
   return useQuery({
