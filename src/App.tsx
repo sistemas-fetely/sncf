@@ -309,6 +309,13 @@ function ConciliacaoRecebiveisRedirect() {
   const location = useLocation();
   return <Navigate to={"/administrativo/conciliacao-recebiveis" + location.search} replace />;
 }
+
+// MESA-SP (28/09/2026): /expedicao-sp → /logistica/expedicao-sp (rota oficial, a da navegação).
+// Preserva a query string para links salvos caírem na aba certa.
+function ExpedicaoSpRedirect() {
+  const location = useLocation();
+  return <Navigate to={"/logistica/expedicao-sp" + location.search} replace />;
+}
 function ChegadaMercadoriaIdRedirect() {
   const { id } = useParams();
   return <Navigate to={`/logistica/chegada-mercadoria/${id}`} replace />;
@@ -482,12 +489,10 @@ const App = () => (
                 <Route path="/logistica" element={<Logistica />} />
                 <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoria />} />
                 <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
-                {/* MESA-SP (frente-descida-b2c-split-sp): o briefing nomeia a tela
-                    como `/expedicao-sp`. Registramos as duas: a curta, que é a do
-                    briefing e a que vai no INSERT de `sncf_navegacao`, e a
-                    namespaced, que segue o padrão das demais telas de logística.
-                    Qual delas o menu vai usar é decisão da sessão do chat. */}
-                <Route path="/expedicao-sp" element={<ExpedicaoSp />} />
+                {/* MESA-SP (frente-descida-b2c-split-sp): 28/09/2026: rota oficial
+                    é /logistica/expedicao-sp (a da navegação); /expedicao-sp fica
+                    só como redirecionamento de link antigo. */}
+                <Route path="/expedicao-sp" element={<ExpedicaoSpRedirect />} />
                 <Route path="/logistica/expedicao-sp" element={<ExpedicaoSp />} />
                 
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
