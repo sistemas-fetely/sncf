@@ -1561,11 +1561,15 @@ function ComoCalculamos({ row }: { row: CockpitRow }) {
                 {Number(row.un_b2b ?? 0) > 0 && (
                   <div>
                     B2B: preço médio {formatBRL(row.preco_medio_b2b)} × {formatNum(row.un_b2b)} un → margem {formatBRL(row.margem_contribuicao_b2b)}
+                    {row.margem_un_b2b != null && ` · R$ ${Number(row.margem_un_b2b).toFixed(2)}/un`}
+                    {row.markup_b2b != null && ` · markup ${Number(row.markup_b2b).toFixed(1)}×`}
                   </div>
                 )}
                 {Number(row.un_b2c ?? 0) > 0 && (
                   <div>
                     B2C: preço médio {formatBRL(row.preco_medio_b2c)} × {formatNum(row.un_b2c)} un → margem {formatBRL(row.margem_contribuicao_b2c)}
+                    {row.margem_un_b2c != null && ` · R$ ${Number(row.margem_un_b2c).toFixed(2)}/un`}
+                    {row.markup_b2c != null && ` · markup ${Number(row.markup_b2c).toFixed(1)}×`}
                   </div>
                 )}
                 <div>
