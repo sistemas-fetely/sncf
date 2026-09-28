@@ -572,7 +572,179 @@ export default function TransferenciasInternas() {
                 </Tabs>
               </div>
 
-              {modo === "item" ? (
+              {modo === "sugestao" ? (
+                <div className="space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Sugestão calculada pela venda dos últimos 90 dias na região do destino (peso
+                    maior nos 30 dias mais recentes). Dispara = abaixo do mínimo; Carona = cabe na
+                    mesma carga. Você revisa e ajusta antes de criar.
+                  </p>
+                  {!destinoAtual ? (
+                    <p className="text-sm text-muted-foreground">
+                      Escolha o destino para ver a sugestão de reposição.
+                    </p>
+                  ) : sugestaoQ.isLoading ? (
+                    <div className="flex justify-center p-6">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : sugestaoQ.isError ? (
+                    <p className="text-sm text-destructive">
+                      Falha ao carregar a sugestão: {formatError(sugestaoQ.error)}
+                    </p>
+                  ) : linhasSug.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      Nenhuma sugestão para este destino (sem parâmetros de reposição ou sem demanda
+                      nos últimos 90 dias).
+                    </p>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                        {[
+                          { rotulo: "SKUs a disparar", valor: resumo.dispara },
+                          { rotulo: "SKUs de carona", valor: resumo.carona },
+                          { rotulo: "Sem saldo na origem", valor: resumo.semOrigem },
+                          { rotulo: "Peças sugeridas", valor: resumo.pecas },
+                          { rotulo: "Próxima carga", valor: fmtCarga(resumo.proximaCarga) },
+                          { rotulo: "Origem", valor: resumo.origem ?? "—" },
+                        ].map((c) => (
+                          <div key={c.rotulo} className="rounded-md border p-2">
+                            <p className="text-[11px] text-muted-foreground">{c.rotulo}</p>
+                            <p className="text-sm font-medium tabular-nums">{c.valor}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-sm">
+                          <Switch
+                            checked={sugMostrarTodos}
+                            onCheckedChange={setSugMostrarTodos}
+                            aria-label="Mostrar também os que estão ok"
+                          />
+                          Mostrar também os que estão ok
+                        </label>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={usarSugestao}
+                          disabled={marcadas.length === 0}
+                        >
+                          Usar na transferência ({marcadas.length}{" "}
+                          {marcadas.length === 1 ? "item" : "itens"} ·{" "}
+                          {marcadas.reduce((acc, l) => acc + (sugSelecao[l.sku]?.qtd ?? 0), 0)} peças)
+                        </Button>
+                      </div>
+                      <div className="overflow-x-auto rounded-md border">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="w-8" />
+                              <TableHead>SKU</TableHead>
+                              <TableHead>Nome</TableHead>
+                              <TableHead>Situação</TableHead>
+                              <TableHead className="text-right">Vendas 90d</TableHead>
+                              <TableHead className="text-right">Demanda/dia</TableHead>
+                              <TableHead className="text-right">No destino</TableHead>
+                              <TableHead className="text-right">Em trânsito</TableHead>
+                              <TableHead className="text-right">Disp. origem</TableHead>
+                              <TableHead className="text-right">Mínimo</TableHead>
+                              <TableHead className="text-right">Teto</TableHead>
+                              <TableHead className="w-24 text-right">Quantidade</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {linhasVisiveis.map((l) => {
+                              const sel = sugSelecao[l.sku] ?? { marcado: false, qtd: 0 };
+                              const excedeOrigem =
+                                l.disp_origem != null && sel.qtd > l.disp_origem;
+                              const excedeTeto = l.teto != null && sel.qtd > l.teto;
+                              return (
+                                <TableRow key={l.sku}>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={sel.marcado}
+                                      onCheckedChange={(v) =>
+                                        setSugSelecao((s) => ({
+                                          ...s,
+                                          [l.sku]: { ...sel, marcado: v === true },
+                                        }))
+                                      }
+                                      aria-label={`Selecionar ${l.sku}`}
+                                    />
+                                  </TableCell>
+                                  <TableCell className="font-mono text-xs tabular-nums">
+                                    {l.sku}
+                                    {l.cauda && (
+                                      <Badge variant="outline" className="ml-1 text-[10px]">
+                                        cauda
+                                      </Badge>
+                                    )}
+                                  </TableCell>
+                                  <TableCell className="max-w-[220px] truncate text-sm">
+                                    {l.nome_comercial ?? "—"}
+                                  </TableCell>
+                                  <TableCell>{situacaoBadge(l.situacao)}</TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.v90 ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.demanda_dia != null ? l.demanda_dia.toFixed(2) : "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.disp_destino ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.em_transito ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.disp_origem ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.minimo ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right tabular-nums text-sm">
+                                    {l.teto ?? "—"}
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <Input
+                                      type="number"
+                                      min={0}
+                                      value={sel.qtd}
+                                      onChange={(e) =>
+                                        setSugSelecao((s) => ({
+                                          ...s,
+                                          [l.sku]: {
+                                            ...sel,
+                                            qtd: Math.max(0, Number(e.target.value) || 0),
+                                          },
+                                        }))
+                                      }
+                                      className={cn(
+                                        "h-8 w-20 text-right tabular-nums",
+                                        (excedeOrigem || excedeTeto) && "border-warning"
+                                      )}
+                                      aria-label={`Quantidade de ${l.sku}`}
+                                    />
+                                    {excedeOrigem && (
+                                      <p className="mt-0.5 text-[10px] text-warning">
+                                        Acima do disponível na origem
+                                      </p>
+                                    )}
+                                    {!excedeOrigem && excedeTeto && (
+                                      <p className="mt-0.5 text-[10px] text-warning">
+                                        Acima do teto
+                                      </p>
+                                    )}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : modo === "item" ? (
                 <>
                   <div className="space-y-2">
                     {fields.map((field, index) => {
