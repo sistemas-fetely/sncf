@@ -201,7 +201,6 @@ export default function Produtos() {
   const [custoFiltro, setCustoFiltro] = useState("todos");
   const [estoqueFiltro, setEstoqueFiltro] = useState("todos");
   const [margemFiltro, setMargemFiltro] = useState("todas");
-  const [alertaFiltro, setAlertaFiltro] = useState("todos");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
   const [pagina, setPagina] = useState(1);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
@@ -264,11 +263,9 @@ export default function Produtos() {
       if (estoqueFiltro === "razao" && !p.tem_razao) return false;
       if (estoqueFiltro === "bling" && p.tem_razao) return false;
       if (margemFiltro === "abaixo" && !(p.abaixo_piso_b2b || p.abaixo_piso_b2c)) return false;
-      if (alertaFiltro === "divergente" && !p.preco_divergente_bling) return false;
-      if (alertaFiltro === "perdida" && !(Number(p.un_perdidas ?? 0) > 0)) return false;
-      if (alertaFiltro === "reprocessamento" && !(Number(p.un_canceladas ?? 0) > 0 && Number(p.un_perdidas ?? 0) === 0)) return false;
       if (!q) return true;
       return (
+        p.cod_cadastro?.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q) ||
         p.nome_comercial?.toLowerCase().includes(q)
       );
@@ -276,17 +273,19 @@ export default function Produtos() {
     const dir = ordenacao.dir === "asc" ? 1 : -1;
     const valorDe = (p: CockpitRow): string | number | null => {
       switch (ordenacao.coluna) {
-        case "sku": return p.sku || null;
+        case "cod": return p.cod_cadastro || null;
         case "nome": return p.nome_comercial ?? null;
         case "curva": return p.curva ? ORDEM_CURVA[p.curva] ?? null : null;
         case "vendido": return Number(p.un_vendidas ?? 0);
         case "receita": return Number(p.receita ?? 0);
+        case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
         case "custo": return p.custo == null ? null : Number(p.custo);
         case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
         case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
         case "virtual": return Number(p.estoque_virtual ?? 0);
         case "cobertura": return p.cobertura_dias == null ? null : Number(p.cobertura_dias);
         case "capital": return p.capital_parado == null ? null : Number(p.capital_parado);
+        case "gmroi": return p.gmroi == null ? null : Number(p.gmroi);
         default: return null;
       }
     };
@@ -301,7 +300,7 @@ export default function Produtos() {
       }
       return (Number(va) - Number(vb)) * dir;
     });
-  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, alertaFiltro, ordenacao]);
+  }, [lista, busca, curvaFiltro, custoFiltro, estoqueFiltro, margemFiltro, ordenacao]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
