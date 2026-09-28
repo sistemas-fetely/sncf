@@ -970,27 +970,57 @@ export default function TransferenciasInternas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(listaQ.data ?? []).map((t) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="font-medium tabular-nums">{t.id_externo ?? "—"}</TableCell>
-                    <TableCell>{t.destino_interno ?? "—"}</TableCell>
-                    <TableCell>
-                      <SeloEstagio estagio={t.estagio} />
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {t.qtd_itens ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {t.qtd_total_pecas ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums text-sm">
-                      {formatBRL(t.valor_bruto)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDateBR(t.data_pedido)}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {(listaQ.data ?? []).map((t) => {
+                  const abrir = () => navigate(`/pedidos/${t.id}`);
+                  return (
+                    <TableRow
+                      key={t.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      role="link"
+                      tabIndex={0}
+                      onClick={abrir}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") abrir();
+                      }}
+                    >
+                      <TableCell className="font-medium tabular-nums">
+                        <span
+                          className="text-primary underline-offset-2 hover:underline"
+                          role="link"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            abrir();
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.stopPropagation();
+                              abrir();
+                            }
+                          }}
+                        >
+                          {t.id_externo ?? "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell>{t.destino_interno ?? "—"}</TableCell>
+                      <TableCell>
+                        <SeloEstagio estagio={t.estagio} />
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">
+                        {t.qtd_itens ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">
+                        {t.qtd_total_pecas ?? "—"}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums text-sm">
+                        {formatBRL(t.valor_bruto)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {formatDateBR(t.data_pedido)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
