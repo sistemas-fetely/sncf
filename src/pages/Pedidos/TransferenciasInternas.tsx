@@ -582,6 +582,24 @@ export default function TransferenciasInternas() {
                     {form.formState.errors.destino.message}
                   </p>
                 )}
+                <div className="flex items-center gap-2 pt-1">
+                  <Switch
+                    checked={regularizacao}
+                    onCheckedChange={setRegularizacao}
+                    id="regularizacao"
+                    aria-label="Regularização (sem movimento físico)"
+                  />
+                  <label htmlFor="regularizacao" className="text-sm font-medium">
+                    Regularização (sem movimento físico)
+                  </label>
+                </div>
+                {regularizacao && (
+                  <p className="text-xs text-warning">
+                    A mercadoria já está no destino. O pedido não vai ao XPM e nasce em
+                    Pré-faturamento, pronto para a NF 6152. Não use para mercadoria que precisa ser
+                    separada.
+                  </p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="observacao" className="text-sm font-medium">
