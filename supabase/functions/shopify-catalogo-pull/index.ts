@@ -93,7 +93,7 @@ query($cursor: String) {
           id sku barcode price compareAtPrice position title
           inventoryPolicy
           selectedOptions { name value }
-          inventoryItem { id }
+          inventoryItem { id measurement { weight { unit value } } }
           inventoryQuantity
         }
       }
