@@ -4,6 +4,7 @@ import { BlocoSlaXpm } from "@/components/parametros/BlocoSlaXpm";
 import { BlocoSlaFase } from "@/components/parametros/BlocoSlaFase";
 import { BlocoSlaFrete } from "@/components/parametros/BlocoSlaFrete";
 import { BlocoSlaFeed } from "@/components/parametros/BlocoSlaFeed";
+import { BlocoReposicaoCentro } from "@/components/parametros/BlocoReposicaoCentro";
 
 export default function SlaOperacao() {
   return (
@@ -17,6 +18,7 @@ export default function SlaOperacao() {
       <BlocoSlaFase />
       <BlocoSlaFrete />
       <BlocoSlaFeed />
+      <BlocoReposicaoCentro />
     </PageShell>
   );
 }
