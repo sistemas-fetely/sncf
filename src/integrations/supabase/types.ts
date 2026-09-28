@@ -111283,6 +111283,16 @@ export type Database = {
         }
         Returns: Json
       }
+      criar_pedido_venda_direta: {
+        Args: {
+          p_cliente: Json
+          p_entrega: Json
+          p_itens: Json
+          p_observacao?: string
+          p_pagamento: string
+        }
+        Returns: Json
+      }
       criar_portao_provisorio: {
         Args: { p_pedido_id: string; p_titulos_editados: Json }
         Returns: Json
