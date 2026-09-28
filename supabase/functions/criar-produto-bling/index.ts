@@ -246,7 +246,7 @@ serve(async (req) => {
             codigo: sku,
             nome: payload.nome,
             bling_id: String(blingId),
-            ativo: true,
+            ativo: payload.situacao === "A",
           },
           { onConflict: "bling_id" },
         );
