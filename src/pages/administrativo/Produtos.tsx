@@ -707,16 +707,20 @@ function faixaFontClass(valor: React.ReactNode): string {
 }
 
 function FaixaBloco({
-  label, valor, contexto, valorClass,
+  label, valor, contexto, valorClass, slug,
 }: {
   label: string;
   valor: React.ReactNode;
   contexto: React.ReactNode;
   valorClass?: string;
+  slug?: string;
 }) {
   return (
     <div className="rounded-md border bg-card px-4 py-3 min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="group inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+        {label}
+        {slug && <InfoMetrica slug={slug} />}
+      </div>
       <div className={cn(faixaFontClass(valor), "font-medium tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
       <div className="text-xs text-muted-foreground mt-1 leading-tight">{contexto}</div>
     </div>
