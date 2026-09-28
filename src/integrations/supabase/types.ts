@@ -60054,6 +60054,7 @@ export type Database = {
           pix_token: string | null
           pix_txid: string | null
           prazo_dias: number | null
+          prorrogacao_confirmada_em: string | null
           prorrogacao_nova_data: string | null
           prorrogacao_solicitada_em: string | null
           prorrogacao_venc_anterior: string | null
@@ -60131,6 +60132,7 @@ export type Database = {
           pix_token?: string | null
           pix_txid?: string | null
           prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
           prorrogacao_venc_anterior?: string | null
@@ -60208,6 +60210,7 @@ export type Database = {
           pix_token?: string | null
           pix_txid?: string | null
           prazo_dias?: number | null
+          prorrogacao_confirmada_em?: string | null
           prorrogacao_nova_data?: string | null
           prorrogacao_solicitada_em?: string | null
           prorrogacao_venc_anterior?: string | null
