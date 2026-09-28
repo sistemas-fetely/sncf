@@ -301,6 +301,9 @@ export default function TransferenciasInternas() {
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
   const [ignoradas, setIgnoradas] = useState(0);
+  // Regularização: mercadoria já está fisicamente no destino — pedido nasce em
+  // Pré-faturamento (natureza transferencia_regularizacao), sem passar pelo XPM.
+  const [regularizacao, setRegularizacao] = useState(false);
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
@@ -498,6 +501,7 @@ export default function TransferenciasInternas() {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
         p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
+        p_regularizacao: regularizacao,
       });
       if (error) throw error;
       return data as { ok: boolean; id_externo: string; valor_bruto: number };
@@ -508,8 +512,13 @@ export default function TransferenciasInternas() {
         toast.error("A transferência não foi criada. Tente novamente.");
         return;
       }
-      toast.success(`${res.id_externo} criado — pedido entrou em Pré-Separação.`);
+      toast.success(
+        regularizacao
+          ? `${res.id_externo} criado — regularização, em Pré-faturamento.`
+          : `${res.id_externo} criado — pedido entrou em Pré-Separação.`
+      );
       form.reset({ ...VAZIO, itens: modo === "item" ? VAZIO.itens : [] });
+      setRegularizacao(false);
       limparColagem();
       limparSugestao();
       qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
@@ -571,6 +580,24 @@ export default function TransferenciasInternas() {
                 {form.formState.errors.destino && (
                   <p className="text-xs text-destructive">
                     {form.formState.errors.destino.message}
+                  </p>
+                )}
+                <div className="flex items-center gap-2 pt-1">
+                  <Switch
+                    checked={regularizacao}
+                    onCheckedChange={setRegularizacao}
+                    id="regularizacao"
+                    aria-label="Regularização (sem movimento físico)"
+                  />
+                  <label htmlFor="regularizacao" className="text-sm font-medium">
+                    Regularização (sem movimento físico)
+                  </label>
+                </div>
+                {regularizacao && (
+                  <p className="text-xs text-warning">
+                    A mercadoria já está no destino. O pedido não vai ao XPM e nasce em
+                    Pré-faturamento, pronto para a NF 6152. Não use para mercadoria que precisa ser
+                    separada.
                   </p>
                 )}
               </div>
@@ -923,6 +950,11 @@ export default function TransferenciasInternas() {
 
             <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
               <div className="text-sm text-muted-foreground">
+                {regularizacao && (
+                  <Badge className="mr-2" variant="secondary">
+                    Regularização
+                  </Badge>
+                )}
                 {!destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
                 <span className="font-medium text-foreground">
                   {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
