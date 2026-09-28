@@ -328,7 +328,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 12;
+  const totalCols = 14;
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -343,7 +343,7 @@ export default function Produtos() {
           { label: "Produto" },
         ]}
         title="Produtos"
-        subtitle="Cockpit analítico. Cadastro e preço são do FOP — esta tela lê e analisa, não edita."
+        subtitle="Cockpit de negócio: venda, margem e capital por produto. Cadastro e correções ficam na Mesa do Produto e na Conciliação."
         actions={
           <Button
             variant="outline"
@@ -360,56 +360,6 @@ export default function Produtos() {
 
       {/* NÍVEL 1 — Faixa de carteira */}
       <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
-
-      {resumo && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-6 text-xs text-muted-foreground">
-          {Number(resumo.custo_ausente ?? 0) > 0 && (
-            <button
-              type="button"
-              className="hover:text-foreground underline-offset-2 hover:underline"
-              onClick={() => { setCustoFiltro("ausente"); setPagina(1); }}
-            >
-              {formatNum(resumo.custo_ausente)} SKUs sem custo
-            </button>
-          )}
-          {Number(resumo.abaixo_do_piso ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setMargemFiltro("abaixo"); setPagina(1); }}
-              >
-                {formatNum(resumo.abaixo_do_piso)} abaixo do piso
-              </button>
-            </>
-          )}
-          {Number(resumo.preco_divergente_bling ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setAlertaFiltro("divergente"); setPagina(1); }}
-              >
-                {formatNum(resumo.preco_divergente_bling)} com preço divergente do Bling
-              </button>
-            </>
-          )}
-          {Number(resumo.estoque_saldo_bling ?? 0) > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <button
-                type="button"
-                className="hover:text-foreground underline-offset-2 hover:underline"
-                onClick={() => { setEstoqueFiltro("bling"); setPagina(1); }}
-              >
-                {formatNum(resumo.estoque_saldo_bling)} com estoque não lastreado
-              </button>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
