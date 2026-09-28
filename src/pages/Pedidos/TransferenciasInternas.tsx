@@ -301,6 +301,9 @@ export default function TransferenciasInternas() {
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
   const [ignoradas, setIgnoradas] = useState(0);
+  // Regularização: mercadoria já está fisicamente no destino — pedido nasce em
+  // Pré-faturamento (natureza transferencia_regularizacao), sem passar pelo XPM.
+  const [regularizacao, setRegularizacao] = useState(false);
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
