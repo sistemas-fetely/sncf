@@ -120,3 +120,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
 [functions.shopify-cadastrar-produto]
     verify_jwt = true
+
+[functions.shopify-adicionar-variante]
+    verify_jwt = true
