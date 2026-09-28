@@ -244,6 +244,20 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
                 ))}
               </SelectContent>
             </Select>
+            {sugestao?.centro_codigo && sugestao.centro_codigo !== "XPM-SC" && (
+              <p className="text-xs text-muted-foreground">
+                Sugerido pelo destinatário da NF (CNPJ{" "}
+                {sugestao.destinatario_cnpj ? formatarCnpj(sugestao.destinatario_cnpj) : "—"})
+              </p>
+            )}
+            {sugestao?.centro_codigo &&
+              sugestao.centro_codigo !== "XPM-SC" &&
+              centro &&
+              centro !== sugestao.centro_codigo && (
+                <p className="text-xs text-warning">
+                  Centro diferente do destinatário da NF ({sugestao.centro_rotulo ?? sugestao.centro_codigo})
+                </p>
+              )}
           </div>
           <div className="space-y-1.5">
             <Label>Data do recebimento</Label>
@@ -255,6 +269,16 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
             />
           </div>
         </div>
+
+        {sugestao?.centro_codigo === "XPM-SC" && (
+          <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2 text-xs text-warning">
+            <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>
+              Esta NF foi emitida para a filial SC (XPM). O recebimento normal é pelo termo de
+              conferência do XPM. Só continue se a mercadoria realmente chegou em outro centro.
+            </span>
+          </div>
+        )}
 
         {linhasQ.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
