@@ -585,14 +585,38 @@ export default function ShopifyB2c() {
     }
   }
 
-  /** Divergir da sugestão pede confirmação, nunca bloqueia. */
+  /** Divergir da sugestão (ou escolher CD sem saldo) pede confirmação, nunca bloqueia. */
   function pedirEscolha(pedidos: PedidoB2cRow[], centro: CentroB2c) {
-    const divergentes = pedidos.filter(
-      (p) => p.cd_sugerido && p.cd_sugerido !== centro.codigo,
-    );
-    if (divergentes.length > 0) {
-      const sug = centros.find((c) => c.codigo === divergentes[0].cd_sugerido);
-      setConfirmacao({ pedidos, centro, sugeridoNome: sug ? nomeCurtoCd(sug) : divergentes[0].cd_sugerido });
+    const divergentes = pedidos.filter((p) => {
+      const sug = p.shopify_id ? sugestoesPorPedido.get(p.shopify_id) : undefined;
+      const sugerido = sug?.cd_sugerido_efetivo ?? p.cd_sugerido;
+      return !!sugerido && sugerido !== centro.codigo;
+    });
+    const semSaldo = pedidos.filter((p) => {
+      if (!p.shopify_id) return false;
+      const saldos = sugestoesPorPedido.get(p.shopify_id)?.saldo_por_cd;
+      return Number(saldos?.[centro.codigo]?.sem_saldo ?? 0) > 0;
+    });
+    if (divergentes.length > 0 || semSaldo.length > 0) {
+      let sugeridoNome: string | null = null;
+      if (divergentes.length > 0) {
+        const p0 = divergentes[0];
+        const sug = p0.shopify_id ? sugestoesPorPedido.get(p0.shopify_id) : undefined;
+        const codigo = sug?.cd_sugerido_efetivo ?? p0.cd_sugerido;
+        const c = centros.find((x) => x.codigo === codigo);
+        sugeridoNome = c ? nomeCurtoCd(c) : codigo;
+      }
+      const skusSemSaldo = new Set<string>();
+      semSaldo.forEach((p) => {
+        (sugestoesPorPedido.get(p.shopify_id!)?.saldo_por_cd?.[centro.codigo]?.skus ?? []).forEach(
+          (s) => skusSemSaldo.add(s),
+        );
+      });
+      const avisoSemSaldo =
+        semSaldo.length > 0
+          ? `${semSaldo.length} pedido(s) sem saldo em ${nomeCurtoCd(centro)}: ${[...skusSemSaldo].slice(0, 5).join(", ")}. O pedido desce mesmo assim e vai faltar produto para separar.`
+          : null;
+      setConfirmacao({ pedidos, centro, sugeridoNome, avisoSemSaldo });
       return;
     }
     void escolherCd(pedidos, centro);
@@ -1280,6 +1304,7 @@ export default function ShopifyB2c() {
                                         pedido={p}
                                         centros={centros}
                                         processando={gravandoCd}
+                                        sugestao={p.shopify_id ? sugestoesPorPedido.get(p.shopify_id) : undefined}
                                         onEscolher={(ped, c) => pedirEscolha([ped], c)}
                                       />
                                     );
@@ -1466,6 +1491,7 @@ export default function ShopifyB2c() {
         onOpenChange={(v) => !v && setConfirmacao(null)}
         sugeridoNome={confirmacao?.sugeridoNome ?? null}
         escolhidoNome={confirmacao ? nomeCurtoCd(confirmacao.centro) : null}
+        avisoSemSaldo={confirmacao?.avisoSemSaldo ?? null}
         onConfirmar={() => {
           if (confirmacao) void escolherCd(confirmacao.pedidos, confirmacao.centro);
           setConfirmacao(null);
