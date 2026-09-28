@@ -21,7 +21,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  RefreshCw, Search, AlertTriangle, XCircle,
+  RefreshCw, Search, ImageOff,
 } from "lucide-react";
 import {
   CabecalhoOrdenavel,
@@ -45,6 +45,11 @@ type CustoStatus = "real" | "interino" | "ausente" | string;
 
 interface CockpitRow {
   sku: string;
+  cod_cadastro: string | null;
+  foto_url: string | null;
+  margem_contribuicao: number | null;
+  margem_contribuicao_pct: number | null;
+  gmroi: number | null;
   nome_comercial: string | null;
   linha: string | null;
   colecao: string | null;
@@ -89,6 +94,11 @@ interface CarteiraResumo {
   janela_inicio: string | null;
   janela_fim: string | null;
   receita_periodo: number | null;
+  margem_contribuicao_total: number | null;
+  margem_contribuicao_pct: number | null;
+  pct_receita_com_margem: number | null;
+  gmroi_carteira: number | null;
+  skus_gmroi_baixo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
   receita_perdida: number | null;
@@ -114,8 +124,8 @@ interface CarteiraResumo {
 }
 
 type ColunaProduto =
-  | "sku" | "nome" | "curva" | "vendido" | "receita" | "custo"
-  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital";
+  | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
+  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -128,9 +138,9 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
-  sku: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
-  cobertura: "desc", capital: "desc",
+  cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
+  margem: "desc", custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
 /** Ordem de negocio da curva — nao alfabetica. */
