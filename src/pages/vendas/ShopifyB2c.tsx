@@ -24,6 +24,7 @@ import {
   BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c,
   abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
+import { useOciosidade } from "@/hooks/useOciosidade";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
 import { ExportarB2cButton } from "@/components/vendas/ExportarB2cButton";
@@ -460,27 +461,107 @@ export default function ShopifyB2c() {
     }
   }, [sinal, baseline, pedidosAtualizadoEm]);
 
-  const mostrarFaixaSinal = sinalMudou(sinal, baseline);
+  const filaMudou = sinalMudou(sinal, baseline);
   const novosNaLoja =
     sinal && baseline ? sinal.pedidos_qtd - baseline.pedidos_qtd : 0;
 
-  /** Recarrega a lista pesada só sob pedido. FAIL-LOUD: erro real no toast. */
+  // ATUALIZAÇÃO HÍBRIDA · 28/09/2026 — a faixa exigia clique mesmo com o
+  // operador parado olhando a tela. Agora: ocioso e sem gesto em curso → a
+  // fila se atualiza sozinha; ocupado → só uma pílula avisa, nada muda debaixo dele.
+  const ocioso = useOciosidade(5000);
+  const ocupado =
+    selecionado !== null || marcados.size > 0 || confirmacao !== null || reprocesso !== null;
+  const emAndamento = useRef(false);
+  const ultimoAuto = useRef(0);
+  const [falhouAtualizar, setFalhouAtualizar] = useState(false);
+  // Re-agenda o efeito quando o teto de 1 auto-refresh/20s segurou a vez.
+  const [tickReagendar, setTickReagendar] = useState(0);
+
+  // DESTAQUE: foto das linhas ANTES do refetch; a comparação com a lista nova é
+  // em memória (sem query extra) e marca o que o operador precisa reparar.
+  type FotoLinha = { estagio: string | null; proxima: string | null; rastreio: string | null; fila: string | null };
+  const chaveLinha = (p: PedidoB2cRow) => p.shopify_id ?? p.order_name ?? "";
+  const fotoLinha = (p: PedidoB2cRow): FotoLinha => ({
+    estagio: p.estagio ?? null,
+    proxima: p.proxima_acao ?? null,
+    rastreio: `${p.tracking_number ?? ""}|${p.rastreio_estado ?? ""}`,
+    fila: p.fila_status ?? null,
+  });
+  const fotoAntes = useRef<Map<string, FotoLinha> | null>(null);
+  const [destacadas, setDestacadas] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const antes = fotoAntes.current;
+    if (!antes || !pedidos) return;
+    fotoAntes.current = null;
+    const mudaram = new Set<string>();
+    for (const p of pedidos) {
+      const k = chaveLinha(p);
+      if (!k) continue;
+      const velho = antes.get(k);
+      const novo = fotoLinha(p);
+      if (
+        !velho ||
+        velho.estagio !== novo.estagio ||
+        velho.proxima !== novo.proxima ||
+        velho.rastreio !== novo.rastreio ||
+        velho.fila !== novo.fila
+      ) mudaram.add(k);
+    }
+    if (mudaram.size === 0) return;
+    setDestacadas(mudaram);
+    // ~5s: tempo de o olho achar a linha; depois o fundo volta com transição.
+    const id = window.setTimeout(() => setDestacadas(new Set()), 5000);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- dispara só quando a lista nova chega
+  }, [pedidos]);
+
+  /** Rotina ÚNICA de atualização (botão e automático). FAIL-LOUD: erro no toast,
+   *  pílula fica e o baseline NÃO é re-semeado — senão a mudança sumiria calada. */
   async function atualizarFila() {
+    if (emAndamento.current) return;
+    emAndamento.current = true;
     setAtualizandoFila(true);
+    fotoAntes.current = new Map(lista.map((p) => [chaveLinha(p), fotoLinha(p)]));
     try {
-      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
-      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
-      const novo = await refetchSinal();
+      // throwOnError: sem ele o invalidate resolve mesmo com o refetch falhando.
+      await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] }, { throwOnError: true });
+      await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] }, { throwOnError: true });
+      const novo = await refetchSinal({ throwOnError: true });
       if (novo.data) {
         carregamentoBaseline.current = 0;
         setBaseline(novo.data);
       }
+      setFalhouAtualizar(false);
     } catch (e) {
+      fotoAntes.current = null;
+      setFalhouAtualizar(true);
       toast.error("Não foi possível atualizar a fila.", { description: formatError(e) });
     } finally {
+      emAndamento.current = false;
       setAtualizandoFila(false);
     }
   }
+
+  const TETO_AUTO_MS = 20_000;
+  useEffect(() => {
+    // Depois de uma falha, não insiste sozinho: o operador decide pela pílula.
+    if (!filaMudou || ocupado || !ocioso || falhouAtualizar || emAndamento.current) return;
+    const espera = ultimoAuto.current + TETO_AUTO_MS - Date.now();
+    if (espera > 0) {
+      const id = window.setTimeout(() => setTickReagendar((t) => t + 1), espera);
+      return () => window.clearTimeout(id);
+    }
+    ultimoAuto.current = Date.now();
+    void atualizarFila();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- atualizarFila é estável na prática (lê refs)
+  }, [filaMudou, ocupado, ocioso, falhouAtualizar, tickReagendar]);
+
+  // Pílula só quando o automático não vai resolver: ocupado, mexendo, ou falhou.
+  const mostrarPilula = filaMudou && (ocupado || !ocioso || falhouAtualizar);
+  const horaAtualizada = pedidosAtualizadoEm
+    ? new Date(pedidosAtualizadoEm).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+    : null;
 
   /** Grava a escolha do CD e libera a descida. FAIL-LOUD: erro do banco no toast. */
   async function escolherCd(pedidos: PedidoB2cRow[], centro: CentroB2c) {
@@ -831,21 +912,6 @@ export default function ShopifyB2c() {
             />
           </div>
 
-          {/* SENTINELA-B2C · 22/09/2026 — sistema sugere, humano decide. */}
-          {mostrarFaixaSinal && (
-            <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              <span>
-                {novosNaLoja > 0
-                  ? `${novosNaLoja} pedido${novosNaLoja !== 1 ? "s" : ""} nov${novosNaLoja !== 1 ? "os" : "o"} na loja desde que você abriu esta tela.`
-                  : "A fila mudou desde que você abriu esta tela."}
-              </span>
-              <Button size="sm" variant="outline" disabled={atualizandoFila} onClick={atualizarFila}>
-                {atualizandoFila && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
-                Atualizar
-              </Button>
-            </div>
-          )}
-
           <div className="flex flex-wrap items-center gap-2">
             <Input
               placeholder="Buscar por pedido ou cliente…"
@@ -970,6 +1036,28 @@ export default function ShopifyB2c() {
           {!isError && (
             <Card>
               <CardContent className="p-0">
+                {/* SENTINELA-B2C: contêiner de altura ZERO e sticky — a pílula flutua
+                    sobre o canto da tabela sem empurrar filtros nem linhas. */}
+                <div className="pointer-events-none sticky top-[calc(var(--fila-topo-colado)+0.25rem)] z-30 flex h-0 justify-end pr-2">
+                  {mostrarPilula && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="pointer-events-auto mt-1 flex items-center gap-2 rounded-full border border-border bg-popover px-3 py-1 text-xs text-popover-foreground shadow-md"
+                    >
+                      <span className="font-medium">
+                        {novosNaLoja > 0 ? `Fila mudou · +${novosNaLoja} novos` : "Fila mudou"}
+                      </span>
+                      <Button size="sm" variant="outline" className="h-6 px-2 text-xs" disabled={atualizandoFila} onClick={atualizarFila}>
+                        {atualizandoFila && <Loader2 className="mr-1 h-3 w-3 animate-spin" />}
+                        Atualizar
+                      </Button>
+                      {horaAtualizada && (
+                        <span className="text-muted-foreground">atualizada às {horaAtualizada}</span>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <TooltipProvider>
                     <Table containerClassName="overflow-visible">
                       <TableHeader>
@@ -1029,11 +1117,11 @@ export default function ShopifyB2c() {
                             <TableRow
                               key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
                               onClick={() => setSelecionado(p)}
-                              className={
-                                Number(p.horas_aguardando_cd ?? 0) > 2
-                                  ? "cursor-pointer bg-warning/5"
-                                  : "cursor-pointer"
-                              }
+                              className={cn(
+                                "cursor-pointer transition-colors duration-700",
+                                Number(p.horas_aguardando_cd ?? 0) > 2 && "bg-warning/5",
+                                destacadas.has(chaveLinha(p)) && "bg-primary/10",
+                              )}
                             >
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
                                 {(p.fila_status === "aguardando_destino" || podeReprocessar(p)) && p.shopify_id && (
