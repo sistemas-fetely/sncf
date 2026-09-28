@@ -959,6 +959,16 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               <SheetTitle className="font-mono text-sm">{sku}</SheetTitle>
               <SheetDescription>{row?.nome_comercial ?? ""}</SheetDescription>
             </SheetHeader>
+            {row?.foto_url && (
+              <div className="mt-4">
+                <img
+                  src={row.foto_url}
+                  alt={row.nome_comercial ?? sku}
+                  loading="lazy"
+                  className="h-40 w-40 rounded-md object-cover"
+                />
+              </div>
+            )}
 
             {/* 1. Cadastro (FOP) */}
             <Secao titulo="Cadastro (FOP)">
@@ -976,6 +986,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               ) : (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                   <Field label="SKU"><span className="font-mono">{cadastro?.sku ?? sku}</span></Field>
+                  <Field label="Cód. cadastro"><span className="font-mono">{ou(row?.cod_cadastro)}</span></Field>
                   <Field label="EAN">{ou(cadastro?.ean)}</Field>
                   <Field label="Nome completo" className="col-span-2">{ou(cadastro?.nome_completo)}</Field>
                   <Field label="Marca">{ou(cadastro?.marca)}</Field>
