@@ -94,6 +94,10 @@ interface CockpitRow {
   markup_b2b: number | null;
   markup_b2c: number | null;
   markup: number | null;
+  curva_b2b: "A" | "B" | "C" | string | null;
+  curva_b2c: "A" | "B" | "C" | string | null;
+  gmroi_b2b: number | null;
+  gmroi_b2c: number | null;
   valor_venda_estoque: number | null;
   mix_b2c: number | null;
   preco_medio_b2b: number | null;
@@ -166,6 +170,8 @@ interface CarteiraResumo {
   markup_carteira: number | null;
   pct_receita_com_margem: number | null;
   gmroi_carteira: number | null;
+  gmroi_b2b: number | null;
+  gmroi_b2c: number | null;
   skus_gmroi_baixo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
@@ -801,10 +807,28 @@ export default function Produtos() {
                             {curva === "sem_venda" ? "sem venda" : curva}
                           </Badge>
                         ) : <span className="text-muted-foreground">—</span>}
+                        {(p.curva_b2b != null || p.curva_b2c != null) && (
+                          <div className="text-[11px] text-muted-foreground">
+                            {[
+                              p.curva_b2b != null ? `B2B ${p.curva_b2b}` : null,
+                              p.curva_b2c != null ? `B2C ${p.curva_b2c}` : null,
+                            ].filter(Boolean).join(" · ")}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        <div>{formatNum(p.un_vendidas)} un</div>
-                        <div className="text-xs text-muted-foreground">{formatNum(p.un_por_dia, 1)}/dia</div>
+                        <div className="flex items-baseline justify-end gap-1.5">
+                          <span>{formatNum(p.un_vendidas)} un</span>
+                          {p.un_por_dia != null && (
+                            <span className="text-[11px] text-muted-foreground">{formatNum(p.un_por_dia, 1)}/dia</span>
+                          )}
+                        </div>
+                        {Number(p.un_b2b ?? 0) > 0 && (
+                          <div className="text-[11px] text-muted-foreground tabular-nums">B2B {formatNum(p.un_b2b)} un</div>
+                        )}
+                        {Number(p.un_b2c ?? 0) > 0 && (
+                          <div className="text-[11px] text-muted-foreground tabular-nums">B2C {formatNum(p.un_b2c)} un</div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div>{formatBRL(p.receita ?? 0)}</div>
@@ -820,14 +844,20 @@ export default function Produtos() {
                           <span className="text-muted-foreground">—</span>
                         ) : (
                           <>
-                            <div>{formatBRL(p.margem_contribuicao)}</div>
-                            {p.margem_contribuicao_pct != null && (
-                              <div className="text-xs text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</div>
-                            )}
+                            <div className="flex items-baseline justify-end gap-1.5">
+                              <span>{formatBRL(p.margem_contribuicao)}</span>
+                              {p.margem_contribuicao_pct != null && (
+                                <span className="text-[11px] text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</span>
+                              )}
+                            </div>
                             {p.margem_un_b2b != null && (
                               <div className="text-[11px] text-muted-foreground">
                                 {`B2B R$ ${Number(p.margem_un_b2b).toFixed(2)}/un`}
-                                {Number(p.receita_b2c ?? 0) > 0 && p.margem_un_b2c != null && ` · B2C R$ ${Number(p.margem_un_b2c).toFixed(2)}/un`}
+                              </div>
+                            )}
+                            {Number(p.receita_b2c ?? 0) > 0 && p.margem_un_b2c != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {`B2C R$ ${Number(p.margem_un_b2c).toFixed(2)}/un`}
                               </div>
                             )}
                           </>
@@ -928,6 +958,16 @@ export default function Produtos() {
                           <span className={classeTom(faixaDe(faixasGmroi, Number(p.gmroi))?.tom)}>
                             {Number(p.gmroi).toFixed(2)}×
                           </span>
+                        )}
+                        {p.gmroi_b2b != null && (
+                          <div className={cn("text-[11px] tabular-nums", classeTom(faixaDe(faixasGmroi, Number(p.gmroi_b2b))?.tom))}>
+                            B2B {Number(p.gmroi_b2b).toFixed(2)}×
+                          </div>
+                        )}
+                        {p.gmroi_b2c != null && (
+                          <div className={cn("text-[11px] tabular-nums", classeTom(faixaDe(faixasGmroi, Number(p.gmroi_b2c))?.tom))}>
+                            B2C {Number(p.gmroi_b2c).toFixed(2)}×
+                          </div>
                         )}
                       </TableCell>
                     </TableRow>
@@ -1044,7 +1084,7 @@ function FaixaCarteira({
         label="GMROI"
         slug="gmroi"
         valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
-        contexto={`${formatNum(resumo.skus_gmroi_baixo)} SKUs abaixo de 0,5`}
+        contexto={`B2B ${resumo.gmroi_b2b == null ? "—" : `${Number(resumo.gmroi_b2b).toFixed(2)}×`} · B2C ${resumo.gmroi_b2c == null ? "—" : `${Number(resumo.gmroi_b2c).toFixed(2)}×`}`}
       />
       <FaixaBloco
         label="Venda perdida"
