@@ -93,7 +93,7 @@ query($cursor: String) {
           id sku barcode price compareAtPrice position title
           inventoryPolicy
           selectedOptions { name value }
-          inventoryItem { id }
+          inventoryItem { id measurement { weight { unit value } } }
           inventoryQuantity
         }
       }
@@ -112,7 +112,7 @@ query($id: ID!, $cursor: String) {
         id sku barcode price compareAtPrice position title
         inventoryPolicy
         selectedOptions { name value }
-        inventoryItem { id }
+        inventoryItem { id measurement { weight { unit value } } }
         inventoryQuantity
       }
     }
@@ -213,6 +213,9 @@ Deno.serve(async (req) => {
 
     let buffer: any[] = [];
     const espelhoRows: any[] = [];
+    // Peso das variantes (inventoryItem.measurement.weight) em gramas → shopify_variante_peso.
+    const pesoRows: any[] = [];
+    const FATOR_G: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237 };
 
     const flush = async () => {
       if (buffer.length === 0) return;
@@ -284,6 +287,22 @@ Deno.serve(async (req) => {
         });
 
         variantesTotais += variants.length;
+        for (const v of variantNodes) {
+          const invId = extrairIdNumerico(v?.inventoryItem?.id);
+          const w = v?.inventoryItem?.measurement?.weight;
+          if (!invId) continue;
+          const unidade = w?.unit ? String(w.unit) : null;
+          const valor = typeof w?.value === "number" ? w.value : (w?.value != null ? Number(w.value) : null);
+          const fator = unidade ? FATOR_G[unidade] : undefined;
+          pesoRows.push({
+            inventory_item_id: invId,
+            sku: v?.sku ?? null,
+            peso_g: valor != null && Number.isFinite(valor) && fator ? Math.round(valor * fator * 1000) / 1000 : null,
+            unidade_original: unidade,
+            valor_original: valor != null && Number.isFinite(valor) ? valor : null,
+            lido_em: pullEm,
+          });
+        }
 
         if (espelhar) {
           espelhoRows.push({
@@ -348,6 +367,12 @@ Deno.serve(async (req) => {
     }
 
     await flush();
+    // FAIL-LOUD: erro ao gravar peso entra em `erros` (e aborta o espelhamento, como os demais).
+    for (let i = 0; i < pesoRows.length; i += 500) {
+      const lote = pesoRows.slice(i, i + 500);
+      const { error } = await supabase.from("shopify_variante_peso").upsert(lote, { onConflict: "inventory_item_id" });
+      if (error) erros.push({ etapa: "peso_upsert", tamanho: lote.length, message: error.message });
+    }
 
     // deno-lint-ignore no-explicit-any
     let espelhoRes: any = {};
@@ -441,6 +466,7 @@ Deno.serve(async (req) => {
       paginas,
       produtos_gravados: produtosGravados,
       variantes_totais: variantesTotais,
+      pesos_gravados: pesoRows.length,
       ignorados,
       duracao_ms: Date.now() - inicio,
       erros,

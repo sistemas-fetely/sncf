@@ -55304,6 +55304,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_variante_peso: {
+        Row: {
+          inventory_item_id: string
+          lido_em: string
+          peso_g: number | null
+          sku: string | null
+          unidade_original: string | null
+          valor_original: number | null
+        }
+        Insert: {
+          inventory_item_id: string
+          lido_em?: string
+          peso_g?: number | null
+          sku?: string | null
+          unidade_original?: string | null
+          valor_original?: number | null
+        }
+        Update: {
+          inventory_item_id?: string
+          lido_em?: string
+          peso_g?: number | null
+          sku?: string | null
+          unidade_original?: string | null
+          valor_original?: number | null
+        }
+        Relationships: []
+      }
       shopify_webhook_log: {
         Row: {
           detalhe: Json | null
