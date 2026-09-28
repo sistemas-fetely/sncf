@@ -489,19 +489,29 @@ export default function ShopifyB2c() {
     setGravandoCd(true);
     const sucessos: PedidoB2cRow[] = [];
     const falhas: string[] = [];
+    const semSaldoItens: number[] = [];
+    const skusSemSaldo = new Set<string>();
     try {
       for (const p of alvos) {
-        const { error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
+        const { data: rpcData, error: erroRpc } = await supabase.rpc("fn_b2c_escolher_cd", {
           p_shopify_id: p.shopify_id!,
           p_centro_codigo: centro.codigo,
         });
         if (erroRpc) falhas.push(`${p.order_name ?? p.shopify_id}: ${erroRpc.message}`);
-        else sucessos.push(p);
+        else {
+          sucessos.push(p);
+          const r = (rpcData ?? null) as { itens_sem_saldo?: number; skus_sem_saldo?: string[] } | null;
+          if (Number(r?.itens_sem_saldo ?? 0) > 0) {
+            semSaldoItens.push(Number(r!.itens_sem_saldo));
+            (r?.skus_sem_saldo ?? []).forEach((s) => skusSemSaldo.add(s));
+          }
+        }
       }
     } finally {
       setGravandoCd(false);
       await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
     if (falhas.length > 0) {
       toast.error(
@@ -522,6 +532,12 @@ export default function ShopifyB2c() {
           },
         },
       );
+      if (semSaldoItens.length > 0) {
+        toast.warning(
+          `Enviado para ${nomeCurtoCd(centro)} sem saldo de ${semSaldoItens.reduce((a, b) => a + b, 0)} item(ns)`,
+          { description: [...skusSemSaldo].join(", ") },
+        );
+      }
       setMarcados(new Set());
     }
   }
@@ -550,6 +566,7 @@ export default function ShopifyB2c() {
       setGravandoCd(false);
       await qc.invalidateQueries({ queryKey: ["b2c-pedidos"] });
       await qc.invalidateQueries({ queryKey: ["b2c-pipeline"] });
+      await qc.invalidateQueries({ queryKey: ["b2c-sugestao-cd"] });
     }
     if (falhas.length > 0) {
       toast.error(
