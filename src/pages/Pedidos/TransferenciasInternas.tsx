@@ -911,14 +911,6 @@ export default function TransferenciasInternas() {
                               </TableCell>
                             </TableRow>
                           ))}
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-right text-sm font-medium">
-                              Total
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums text-sm font-medium">
-                              {formatBRL(totalPrevia)}
-                            </TableCell>
-                          </TableRow>
                         </TableBody>
                       </Table>
                     </div>
@@ -927,7 +919,15 @@ export default function TransferenciasInternas() {
               )}
             </div>
 
-            <div className="flex justify-end">
+            <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
+              <div className="text-sm text-muted-foreground">
+                {!destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
+                <span className="font-medium text-foreground">
+                  {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
+                  {totalPecasForm === 1 ? "peça" : "peças"}
+                </span>
+                {previaValida && <span> · Total a custo {formatBRL(totalPrevia)}</span>}
+              </div>
               <Button type="submit" disabled={criar.isPending || colagemPendente}>
                 {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Criar transferência
