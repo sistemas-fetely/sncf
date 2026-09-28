@@ -581,7 +581,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 15;
+  const totalCols = 13;
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -732,10 +732,8 @@ export default function Produtos() {
                 <CabMetrica rotulo="Vendido" slug="unidades_vendidas" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
                 <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
                 <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
-                <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
-                <CabMetrica rotulo="Markup" slug="markup" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
-                <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
-                <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
+                <CabMetrica rotulo="Markup" slug="markup" className="w-[150px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
+                <CabMetrica rotulo="Resultado" slug="resultado_ponderado" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "resultado" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("resultado")} />
                 <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
                 <CabMetrica rotulo="Cobertura" slug="cobertura_dias" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
                 <CabMetrica rotulo="Capital" slug="capital_estoque" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
