@@ -95139,14 +95139,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -99853,6 +99853,11 @@ export type Database = {
           margem_contribuicao_b2c: number | null
           margem_contribuicao_pct: number | null
           margem_contribuicao_un: number | null
+          margem_un_b2b: number | null
+          margem_un_b2c: number | null
+          markup: number | null
+          markup_b2b: number | null
+          markup_b2c: number | null
           nome_comercial: string | null
           pedidos: number | null
           preco_b2b: number | null

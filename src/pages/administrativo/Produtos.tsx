@@ -89,6 +89,11 @@ interface CockpitRow {
   un_b2c: number | null;
   margem_contribuicao_b2b: number | null;
   margem_contribuicao_b2c: number | null;
+  margem_un_b2b: number | null;
+  margem_un_b2c: number | null;
+  markup_b2b: number | null;
+  markup_b2c: number | null;
+  markup: number | null;
   preco_medio_b2b: number | null;
   preco_medio_b2c: number | null;
   gmroi: number | null;
@@ -151,6 +156,11 @@ interface CarteiraResumo {
   margem_contribuicao_b2c: number | null;
   margem_contribuicao_pct_b2b: number | null;
   margem_contribuicao_pct_b2c: number | null;
+  margem_un_b2b: number | null;
+  margem_un_b2c: number | null;
+  markup_b2b: number | null;
+  markup_b2c: number | null;
+  markup_carteira: number | null;
   pct_receita_com_margem: number | null;
   gmroi_carteira: number | null;
   skus_gmroi_baixo: number | null;
@@ -183,7 +193,7 @@ interface CarteiraResumo {
 
 type ColunaProduto =
   | "cod" | "nome" | "curva" | "vendido" | "receita" | "margem" | "custo"
-  | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
+  | "markup" | "mb2b" | "mb2c" | "virtual" | "cobertura" | "capital" | "gmroi";
 
 type OrdenacaoProduto = { coluna: ColunaProduto; dir: DirecaoOrdenacao };
 
@@ -197,7 +207,7 @@ const ORDEM_PADRAO_PRODUTO: OrdenacaoProduto = { coluna: "receita", dir: "desc" 
 /** Texto sobe; numero desce. Curva sobe: A primeiro. */
 const DIR_INICIAL_PRODUTO: Record<ColunaProduto, DirecaoOrdenacao> = {
   cod: "asc", nome: "asc", curva: "asc", vendido: "desc", receita: "desc",
-  margem: "desc", custo: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
+  margem: "desc", custo: "desc", markup: "desc", mb2b: "desc", mb2c: "desc", virtual: "desc",
   cobertura: "desc", capital: "desc", gmroi: "desc",
 };
 
@@ -476,6 +486,7 @@ export default function Produtos() {
         case "receita": return Number(p.receita ?? 0);
         case "margem": return p.margem_contribuicao == null ? null : Number(p.margem_contribuicao);
         case "custo": return p.custo == null ? null : Number(p.custo);
+        case "markup": return p.markup == null ? null : Number(p.markup);
         case "mb2b": return p.resultado_pct_b2b == null ? null : Number(p.resultado_pct_b2b);
         case "mb2c": return p.resultado_pct_b2c == null ? null : Number(p.resultado_pct_b2c);
         case "virtual": return Number(p.estoque_virtual ?? 0);
@@ -553,7 +564,7 @@ export default function Produtos() {
     return () => ro.disconnect();
   }, [resumoQuery.isLoading, resumo]);
 
-  const totalCols = 14;
+  const totalCols = 15;
 
   return (
     <PageShell className="animate-casa-fade-in">
@@ -706,6 +717,7 @@ export default function Produtos() {
                 <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
                 <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
                 <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
+                <CabMetrica rotulo="Markup" slug="markup" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
                 <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
                 <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
                 <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
@@ -795,6 +807,12 @@ export default function Produtos() {
                             {p.margem_contribuicao_pct != null && (
                               <div className="text-xs text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</div>
                             )}
+                            {p.margem_un_b2b != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {`B2B R$ ${Number(p.margem_un_b2b).toFixed(2)}/un`}
+                                {Number(p.receita_b2c ?? 0) > 0 && p.margem_un_b2c != null && ` · B2C R$ ${Number(p.margem_un_b2c).toFixed(2)}/un`}
+                              </div>
+                            )}
                           </>
                         )}
                       </TableCell>
@@ -811,6 +829,13 @@ export default function Produtos() {
                               <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
                             )}
                           </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.markup == null ? (
+                          <span className="text-muted-foreground">—</span>
+                        ) : (
+                          `${Number(p.markup).toFixed(1)}×`
                         )}
                       </TableCell>
                       <TableCell className={cn(
@@ -955,8 +980,8 @@ function FaixaCarteira({
 }) {
   if (isLoading) {
     return (
-      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
-        {Array.from({ length: 9 }).map((_, i) => (
+      <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
+        {Array.from({ length: 10 }).map((_, i) => (
           <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
         ))}
       </div>
@@ -973,7 +998,7 @@ function FaixaCarteira({
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
+    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
       <FaixaBloco
         label="Receita do período"
         slug="receita"
@@ -1000,6 +1025,23 @@ function FaixaCarteira({
             <div className="text-[11px] text-muted-foreground">
               B2B {formatPct(resumo.margem_contribuicao_pct_b2b)} · B2C {formatPct(resumo.margem_contribuicao_pct_b2c)}
             </div>
+            <div className="text-[11px] text-muted-foreground">
+              R$/un: B2B {formatBRL(resumo.margem_un_b2b)} · B2C {formatBRL(resumo.margem_un_b2c)}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Markup: B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×
+            </div>
+          </div>
+        }
+      />
+      <FaixaBloco
+        label="Markup"
+        slug="markup"
+        valor={resumo.markup_carteira == null ? "—" : `${Number(resumo.markup_carteira).toFixed(1)}×`}
+        contexto={
+          <div className="space-y-0.5">
+            <div>B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×</div>
+            <div className="text-[11px] text-muted-foreground">preço realizado ÷ custo</div>
           </div>
         }
       />
@@ -1519,11 +1561,15 @@ function ComoCalculamos({ row }: { row: CockpitRow }) {
                 {Number(row.un_b2b ?? 0) > 0 && (
                   <div>
                     B2B: preço médio {formatBRL(row.preco_medio_b2b)} × {formatNum(row.un_b2b)} un → margem {formatBRL(row.margem_contribuicao_b2b)}
+                    {row.margem_un_b2b != null && ` · R$ ${Number(row.margem_un_b2b).toFixed(2)}/un`}
+                    {row.markup_b2b != null && ` · markup ${Number(row.markup_b2b).toFixed(1)}×`}
                   </div>
                 )}
                 {Number(row.un_b2c ?? 0) > 0 && (
                   <div>
                     B2C: preço médio {formatBRL(row.preco_medio_b2c)} × {formatNum(row.un_b2c)} un → margem {formatBRL(row.margem_contribuicao_b2c)}
+                    {row.margem_un_b2c != null && ` · R$ ${Number(row.margem_un_b2c).toFixed(2)}/un`}
+                    {row.markup_b2c != null && ` · markup ${Number(row.markup_b2c).toFixed(1)}×`}
                   </div>
                 )}
                 <div>
