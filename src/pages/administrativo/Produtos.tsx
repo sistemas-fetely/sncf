@@ -89,6 +89,11 @@ interface CockpitRow {
   un_b2c: number | null;
   margem_contribuicao_b2b: number | null;
   margem_contribuicao_b2c: number | null;
+  margem_un_b2b: number | null;
+  margem_un_b2c: number | null;
+  markup_b2b: number | null;
+  markup_b2c: number | null;
+  markup: number | null;
   preco_medio_b2b: number | null;
   preco_medio_b2c: number | null;
   gmroi: number | null;
@@ -151,6 +156,11 @@ interface CarteiraResumo {
   margem_contribuicao_b2c: number | null;
   margem_contribuicao_pct_b2b: number | null;
   margem_contribuicao_pct_b2c: number | null;
+  margem_un_b2b: number | null;
+  margem_un_b2c: number | null;
+  markup_b2b: number | null;
+  markup_b2c: number | null;
+  markup_carteira: number | null;
   pct_receita_com_margem: number | null;
   gmroi_carteira: number | null;
   skus_gmroi_baixo: number | null;
