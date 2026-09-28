@@ -54585,6 +54585,36 @@ export type Database = {
         }
         Relationships: []
       }
+      shopify_estoque_retencao: {
+        Row: {
+          id: string
+          liberado_em: string | null
+          liberado_por: string | null
+          motivo: string
+          retido_em: string
+          retido_por: string | null
+          sku: string
+        }
+        Insert: {
+          id?: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          motivo: string
+          retido_em?: string
+          retido_por?: string | null
+          sku: string
+        }
+        Update: {
+          id?: string
+          liberado_em?: string | null
+          liberado_por?: string | null
+          motivo?: string
+          retido_em?: string
+          retido_por?: string | null
+          sku?: string
+        }
+        Relationships: []
+      }
       shopify_eventos_raw: {
         Row: {
           em: string
@@ -93145,14 +93175,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -104607,8 +104637,11 @@ export type Database = {
           marca: string | null
           nome_comercial: string | null
           peso_g: number | null
+          pode_adicionar_variante: boolean | null
           pode_enviar: boolean | null
           preco_varejo: number | null
+          produto_agrupado: string | null
+          produto_agrupado_id: string | null
           sku: string | null
           tem_descricao: boolean | null
           tem_foto: boolean | null
@@ -104657,6 +104690,18 @@ export type Database = {
           titulo: string | null
           variantes_espelho: number | null
           variantes_reais: number | null
+        }
+        Relationships: []
+      }
+      vw_shopify_estoque_retencao_aberta: {
+        Row: {
+          estoque_sncf: number | null
+          id: string | null
+          motivo: string | null
+          nome_comercial: string | null
+          retido_em: string | null
+          retido_por: string | null
+          sku: string | null
         }
         Relationships: []
       }
@@ -105103,14 +105148,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -113059,6 +113104,10 @@ export type Database = {
       }
       fn_sem_acento: { Args: { p_txt: string }; Returns: string }
       fn_shopify_endereco_parse: { Args: { p_addr: Json }; Returns: Json }
+      fn_shopify_estoque_liberar: {
+        Args: { p_skus: string[] }
+        Returns: number
+      }
       fn_simular_portao: {
         Args: { p_fonte?: string; p_rota: string; p_user_id: string }
         Returns: string
