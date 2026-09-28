@@ -292,12 +292,16 @@ export default function TransferenciasInternas() {
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
 
-  const [modo, setModo] = useState<"item" | "colar">("item");
+  const [modo, setModo] = useState<"item" | "colar" | "sugestao">("item");
   const [textoColado, setTextoColado] = useState("");
   const [textoProcessado, setTextoProcessado] = useState<string | null>(null);
   const [previa, setPrevia] = useState<LinhaColada[] | null>(null);
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+
+  // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
+  const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
+  const [sugMostrarTodos, setSugMostrarTodos] = useState(false);
 
   const limparColagem = () => {
     setTextoColado("");
@@ -306,13 +310,91 @@ export default function TransferenciasInternas() {
     setErroPrevia(null);
   };
 
+  const limparSugestao = () => {
+    setSugSelecao({});
+    setSugMostrarTodos(false);
+  };
+
   const trocarModo = (novo: string) => {
-    const m = novo as "item" | "colar";
+    const m = novo as "item" | "colar" | "sugestao";
     if (m === modo) return;
     setModo(m);
     limparColagem();
+    limparSugestao();
     replace(m === "item" ? [{ sku: "", nome: "", quantidade: 1 }] : []);
     form.clearErrors("itens");
+  };
+
+  const destinoAtual = form.watch("destino");
+  useEffect(() => {
+    limparSugestao();
+  }, [destinoAtual]);
+
+  const sugestaoQ = useQuery({
+    queryKey: ["reposicao-sugerida", destinoAtual],
+    enabled: modo === "sugestao" && !!destinoAtual,
+    queryFn: async (): Promise<LinhaSugestao[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_reposicao_sugerida")
+        .select(
+          "sku, nome_comercial, situacao, v90, demanda_dia, disp_destino, em_transito, disp_origem, minimo, oportunidade, teto, multiplo, cauda, qtd_sugerida, proxima_carga, origem"
+        )
+        .eq("centro", destinoAtual)
+        .order("situacao")
+        .order("qtd_sugerida", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as LinhaSugestao[];
+    },
+  });
+
+  // Inicializa a seleção quando chegam linhas novas (marcadas as com sugestão > 0).
+  const linhasSug = sugestaoQ.data ?? [];
+  const chaveSug = linhasSug.map((l) => l.sku).join("|");
+  useEffect(() => {
+    if (!sugestaoQ.data) return;
+    const ini: Record<string, { marcado: boolean; qtd: number }> = {};
+    for (const l of sugestaoQ.data) {
+      const q = l.qtd_sugerida ?? 0;
+      ini[l.sku] = { marcado: q > 0, qtd: q };
+    }
+    setSugSelecao(ini);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chaveSug]);
+
+  if (sugestaoQ.isError && modo === "sugestao") {
+    // FAIL-LOUD: erro da query vira toast (uma vez por erro).
+    const msg = formatError(sugestaoQ.error);
+    if (msg) toast.error(msg);
+  }
+
+  const linhasVisiveis = sugMostrarTodos ? linhasSug : linhasSug.filter((l) => (l.qtd_sugerida ?? 0) > 0);
+  const marcadas = linhasSug.filter((l) => sugSelecao[l.sku]?.marcado && (sugSelecao[l.sku]?.qtd ?? 0) > 0);
+  const totalPecasSug = linhasSug.reduce((acc, l) => acc + (l.qtd_sugerida ?? 0), 0);
+  const resumo = {
+    dispara: linhasSug.filter((l) => l.situacao === "dispara").length,
+    carona: linhasSug.filter((l) => l.situacao === "carona").length,
+    semOrigem: linhasSug.filter((l) => l.situacao === "sem_origem").length,
+    pecas: totalPecasSug,
+    proximaCarga: linhasSug.find((l) => l.proxima_carga)?.proxima_carga ?? null,
+    origem: linhasSug.find((l) => l.origem)?.origem ?? null,
+  };
+
+  const usarSugestao = () => {
+    if (marcadas.length === 0) return;
+    replace(
+      marcadas.map((l) => ({
+        sku: l.sku,
+        nome: l.nome_comercial ?? "",
+        quantidade: sugSelecao[l.sku].qtd,
+      }))
+    );
+    form.clearErrors("itens");
+    if (!form.getValues("observacao").trim()) {
+      form.setValue(
+        "observacao",
+        `Reposição sugerida pelo motor — carga de ${fmtCarga(resumo.proximaCarga)}`
+      );
+    }
   };
 
   const processarColagem = async () => {
