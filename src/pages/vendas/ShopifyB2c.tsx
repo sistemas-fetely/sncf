@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -22,7 +22,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { PipelineB2c, type ContagemEstagio } from "@/components/vendas/PipelineB2c";
 import {
   BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c,
-  abreviarCd, nomeCurtoCd,
+  abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
@@ -288,6 +288,7 @@ export default function ShopifyB2c() {
     pedidos: PedidoB2cRow[];
     centro: CentroB2c;
     sugeridoNome: string | null;
+    avisoSemSaldo: string | null;
   } | null>(null);
   const [reprocesso, setReprocesso] = useState<PedidoB2cRow[] | null>(null);
   const [motivoReprocesso, setMotivoReprocesso] = useState("");
@@ -420,6 +421,24 @@ export default function ShopifyB2c() {
   const centros = useMemo(() => centrosData ?? [], [centrosData]);
 
   const qc = useQueryClient();
+
+  // SUGESTÃO-OLHA-O-ESTOQUE: vw_b2c_sugestao_cd traz, por pedido aguardando
+  // destino, o CD sugerido efetivo (pode ter trocado por saldo) e o saldo por
+  // CD. SISTEMA SUGERE / HUMANO DECIDE — avisa, nunca bloqueia.
+  const { data: sugestoesData } = useQuery({
+    queryKey: ["b2c-sugestao-cd"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_b2c_sugestao_cd")
+        .select("shopify_pedido_id, cd_sugerido_original, cd_sugerido_efetivo, motivo_troca, saldo_por_cd");
+      if (error) throw error;
+      return data as (SugestaoCdB2c & { shopify_pedido_id: string })[];
+    },
+  });
+  const sugestoesPorPedido = useMemo(
+    () => new Map((sugestoesData ?? []).map((s) => [s.shopify_pedido_id, s])),
+    [sugestoesData],
+  );
 
   // ── SENTINELA-B2C · 22/09/2026 ───────────────────────────────────────────
   // A lista da fila vem de vw_gestao_b2c_pedido (~2,9s por execução), então
