@@ -267,7 +267,7 @@ export default function TabelaPreco() {
     const cabecalho = [
       "Código", "SKU", "Nome comercial", "Coleção", "Cor", "Preço custo", "Preço varejo",
       ...faixas.map((f) => f.rotulo),
-      "Margem atacado (%)", "Alertas",
+      "Markup atacado (%)", "Alertas",
     ];
     const corpo = recorte.map((l) => {
       const nomesAlertas = (l.alertas ?? []).map((s) => regraPorSlug.get(s)?.nome ?? s).join(";");
@@ -297,7 +297,7 @@ export default function TabelaPreco() {
         <PageHeader
           titulo="Tabela de Preço"
           icone={Tags}
-          estado="Espelho do FOP — leitura. O preço é gerido pelo time comercial."
+          estado="Leitura do preço de cada produto. O preço é definido pelo time comercial."
           acoes={aba === "tabela" ? (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={exportarCsv} disabled={recorte.length === 0}>
@@ -429,9 +429,9 @@ export default function TabelaPreco() {
 
         <Card>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10">
                   <TableRow>
                     <TableHead className="cursor-pointer select-none whitespace-nowrap" onClick={() => ordenar("cod_cadastro")}>
                       Código<Seta coluna="cod_cadastro" />
@@ -469,7 +469,7 @@ export default function TabelaPreco() {
                       className="cursor-pointer select-none whitespace-nowrap text-right"
                       onClick={() => ordenar("margem_atacado_pct")}
                     >
-                      Margem atacado<Seta coluna="margem_atacado_pct" />
+                      Markup atacado<Seta coluna="margem_atacado_pct" />
                     </TableHead>
                     <TableHead>Alertas</TableHead>
                   </TableRow>
