@@ -196,7 +196,7 @@ function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
       let partes = l.split("\t");
       if (partes.length < 2) partes = l.split(/[,;]/);
       if (partes.length < 2) partes = l.split(/\s{2,}|\s+/);
-      return { sku: (partes[0] ?? "").trim(), qtdTexto: (partes[partes.length > 1 ? 1 : 0] ?? "").trim() };
+      return { sku: (partes[0] ?? "").trim(), qtdTexto: (partes.length > 1 ? (partes[1] ?? "") : "").trim() };
     })
     .filter((p) => p.sku.length > 0);
 }
@@ -298,6 +298,7 @@ export default function TransferenciasInternas() {
   const [previa, setPrevia] = useState<LinhaColada[] | null>(null);
   const [processando, setProcessando] = useState(false);
   const [erroPrevia, setErroPrevia] = useState<string | null>(null);
+  const [ignoradas, setIgnoradas] = useState(0);
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
