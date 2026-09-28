@@ -49753,6 +49753,36 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_mesa_situacao_dim: {
+        Row: {
+          ativo: boolean
+          descricao: string | null
+          fase_slug: string | null
+          ordem: number
+          rotulo: string
+          slug: string
+          tom: string
+        }
+        Insert: {
+          ativo?: boolean
+          descricao?: string | null
+          fase_slug?: string | null
+          ordem?: number
+          rotulo: string
+          slug: string
+          tom?: string
+        }
+        Update: {
+          ativo?: boolean
+          descricao?: string | null
+          fase_slug?: string | null
+          ordem?: number
+          rotulo?: string
+          slug?: string
+          tom?: string
+        }
+        Relationships: []
+      }
       produto_origem_fiscal_dim: {
         Row: {
           ativo: boolean
@@ -77216,6 +77246,14 @@ export type Database = {
           parcela_ids: string[] | null
           soma_grupo: number | null
           status: string | null
+        }
+        Relationships: []
+      }
+      vw_conciliacao_contagem_produto: {
+        Row: {
+          cod_cadastro: string | null
+          pendencias: number | null
+          sistemas: string[] | null
         }
         Relationships: []
       }
