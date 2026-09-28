@@ -998,7 +998,7 @@ function FaixaCarteira({
   const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
 
   return (
-    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
+    <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
       <FaixaBloco
         label="Receita do período"
         slug="receita"
@@ -1025,6 +1025,23 @@ function FaixaCarteira({
             <div className="text-[11px] text-muted-foreground">
               B2B {formatPct(resumo.margem_contribuicao_pct_b2b)} · B2C {formatPct(resumo.margem_contribuicao_pct_b2c)}
             </div>
+            <div className="text-[11px] text-muted-foreground">
+              R$/un: B2B {formatBRL(resumo.margem_un_b2b)} · B2C {formatBRL(resumo.margem_un_b2c)}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Markup: B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×
+            </div>
+          </div>
+        }
+      />
+      <FaixaBloco
+        label="Markup"
+        slug="markup"
+        valor={resumo.markup_carteira == null ? "—" : `${Number(resumo.markup_carteira).toFixed(1)}×`}
+        contexto={
+          <div className="space-y-0.5">
+            <div>B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×</div>
+            <div className="text-[11px] text-muted-foreground">preço realizado ÷ custo</div>
           </div>
         }
       />
