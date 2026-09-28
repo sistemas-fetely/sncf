@@ -834,38 +834,45 @@ export default function Produtos() {
                         )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.custo == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <span>{formatBRL(p.custo)}</span>
-                            {p.custo_status === "interino" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">int.</Badge>
-                            )}
-                            {p.custo_status === "ausente" && (
-                              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
-                            )}
+                        <div>
+                          {p.markup == null ? (
+                            <span className="text-muted-foreground">—</span>
+                          ) : (
+                            `${Number(p.markup).toFixed(1)}×`
+                          )}
+                        </div>
+                        {(Number(p.un_b2b ?? 0) > 0 || Number(p.un_b2c ?? 0) > 0) && (
+                          <div className="text-[11px] text-muted-foreground tabular-nums">
+                            {[
+                              Number(p.un_b2b ?? 0) > 0 && p.markup_b2b != null ? `B2B ${Number(p.markup_b2b).toFixed(1)}×` : null,
+                              Number(p.un_b2c ?? 0) > 0 && p.markup_b2c != null ? `B2C ${Number(p.markup_b2c).toFixed(1)}×` : null,
+                            ].filter(Boolean).join(" · ")}
                           </div>
                         )}
+                        <div className="text-[11px] text-muted-foreground tabular-nums flex items-center justify-end gap-1">
+                          <span>custo {p.custo == null ? "—" : formatBRL(p.custo)}</span>
+                          {p.custo_status === "interino" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-warning/10 text-warning border-warning/20">int.</Badge>
+                          )}
+                          {p.custo_status === "ausente" && (
+                            <Badge variant="outline" className="text-[10px] px-1 py-0 bg-destructive/10 text-destructive border-destructive/20">s/ custo</Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {p.markup == null ? (
-                          <span className="text-muted-foreground">—</span>
-                        ) : (
-                          `${Number(p.markup).toFixed(1)}×`
-                        )}
-                      </TableCell>
-                      <TableCell className={cn(
-                        "text-right tabular-nums",
-                        p.abaixo_piso_b2b && "text-destructive font-medium",
-                      )}>
-                        {formatPctRatio(p.resultado_pct_b2b)}
-                      </TableCell>
-                      <TableCell className={cn(
-                        "text-right tabular-nums",
-                        p.abaixo_piso_b2c && "text-destructive font-medium",
-                      )}>
-                        {formatPctRatio(p.resultado_pct_b2c)}
+                        <div>{formatPctRatio(p.resultado_pct_ponderado)}</div>
+                        <div className={cn(
+                          "text-[11px] tabular-nums",
+                          p.abaixo_piso_b2b ? "text-destructive font-medium" : "text-muted-foreground",
+                        )}>
+                          B2B {formatPctRatio(p.resultado_pct_b2b)}
+                        </div>
+                        <div className={cn(
+                          "text-[11px] tabular-nums",
+                          p.abaixo_piso_b2c ? "text-destructive font-medium" : "text-muted-foreground",
+                        )}>
+                          B2C {formatPctRatio(p.resultado_pct_b2c)}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         <div className="flex items-center justify-end gap-1.5">
