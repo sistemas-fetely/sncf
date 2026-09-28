@@ -94,6 +94,8 @@ interface CockpitRow {
   markup_b2b: number | null;
   markup_b2c: number | null;
   markup: number | null;
+  valor_venda_estoque: number | null;
+  mix_b2c: number | null;
   preco_medio_b2b: number | null;
   preco_medio_b2c: number | null;
   gmroi: number | null;
@@ -183,6 +185,9 @@ interface CarteiraResumo {
   capital_lastreado: number | null;
   capital_fragil: number | null;
   capital_sem_venda: number | null;
+  valor_venda_estoque: number | null;
+  valor_venda_pct_b2c: number | null;
+  valor_venda_sobre_capital: number | null;
   abaixo_do_piso: number | null;
   preco_divergente_bling: number | null;
   cobertura_abaixo_30d: number | null;
@@ -229,6 +234,19 @@ function formatNum(n: number | null | undefined, digits = 0) {
 function formatPct(n: number | null | undefined) {
   if (n == null) return "—";
   return `${Number(n).toFixed(1)}%`;
+}
+
+function formatBRLCompacto(n: number | null | undefined) {
+  const valor = Number(n ?? 0);
+  const absoluto = Math.abs(valor);
+  if (absoluto >= 1_000_000) {
+    return `R$ ${(valor / 1_000_000).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} mi`;
+  }
+  if (absoluto >= 1_000) {
+    const casas = absoluto >= 100_000 ? 0 : 1;
+    return `R$ ${(valor / 1_000).toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: casas })} mil`;
+  }
+  return formatBRL(valor);
 }
 
 // Views guardam margem como razão decimal (0.2633 = 26,33%). Multiplica antes de exibir.
@@ -595,11 +613,10 @@ export default function Produtos() {
       />
 
       {/* NÍVEL 1 — Faixa de carteira */}
-      {filtroAtivo && (
-        <p className="text-xs text-muted-foreground">
-          Cartões refletem os filtros aplicados ({filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}).
-        </p>
-      )}
+      <p className="text-xs text-muted-foreground">
+        {filtroAtivo && <>Cartões refletem os filtros aplicados ({filtrados.length} {filtrados.length === 1 ? "produto" : "produtos"}) · </>}
+        período {formatDateBRShort(resumo?.janela_inicio)} a {formatDateBRShort(resumo?.janela_fim)}
+      </p>
       <FaixaCarteira refBloco={faixaRef} resumo={resumo} isLoading={resumoQuery.isLoading} />
 
       {/* Filtros */}
@@ -958,13 +975,13 @@ function FaixaBloco({
   slug?: string;
 }) {
   return (
-    <div className="rounded-md border bg-card px-4 py-3 min-w-0">
+    <div className="min-h-[76px] min-w-0 rounded-md border bg-card px-3 py-2">
       <div className="group inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
         {label}
         {slug && <InfoMetrica slug={slug} />}
       </div>
       <div className={cn(faixaFontClass(valor), "font-medium tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
-      <div className="text-xs text-muted-foreground mt-1 leading-tight">{contexto}</div>
+      <div className="mt-1 truncate whitespace-nowrap text-[11px] leading-tight text-muted-foreground">{contexto}</div>
     </div>
   );
 }
@@ -982,7 +999,7 @@ function FaixaCarteira({
     return (
       <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
         {Array.from({ length: 10 }).map((_, i) => (
-          <div key={i} className="rounded-md border bg-card px-4 py-3 h-[92px] animate-pulse" />
+          <div key={i} className="h-[76px] rounded-md border bg-card px-3 py-2 animate-pulse" />
         ))}
       </div>
     );
@@ -990,128 +1007,76 @@ function FaixaCarteira({
   if (!resumo) return null;
   const capitalTotal = Number(resumo.capital_lastreado ?? 0) + Number(resumo.capital_fragil ?? 0);
   const semVenda = Number(resumo.sem_venda_ativos ?? 0);
-  const semVendaPreVenda = Number(resumo.sem_venda_pre_venda ?? 0);
   const capSemVenda = Number(resumo.capital_sem_venda ?? 0);
   const perdida = Number(resumo.receita_perdida ?? 0);
-  const reprocessada = Number(resumo.receita_reprocessada ?? 0);
-  const preVenda = Number(resumo.skus_pre_venda ?? 0);
-  const aguardandoProduto = Number(resumo.un_aguardando_produto ?? 0);
+  const receitaTotal = Number(resumo.receita_periodo ?? 0);
+  const pctReceitaB2b = receitaTotal > 0 ? (Number(resumo.receita_b2b ?? 0) / receitaTotal) * 100 : 0;
+  const pctReceitaB2c = receitaTotal > 0 ? (Number(resumo.receita_b2c ?? 0) / receitaTotal) * 100 : 0;
 
   return (
     <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-10">
       <FaixaBloco
         label="Receita do período"
         slug="receita"
-        valor={formatBRL(resumo.receita_periodo ?? 0)}
-        contexto={
-          <div className="space-y-0.5">
-            <div>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</div>
-            <div className="text-[11px] text-muted-foreground">
-              B2B {formatBRL(resumo.receita_b2b ?? 0)} · B2C {formatBRL(resumo.receita_b2c ?? 0)}
-            </div>
-          </div>
-        }
+        valor={formatBRLCompacto(resumo.receita_periodo)}
+        contexto={`B2B ${pctReceitaB2b.toFixed(0)}% · B2C ${pctReceitaB2c.toFixed(0)}%`}
       />
       <FaixaBloco
         label="Margem de contribuição"
         slug="margem_contribuicao"
-        valor={formatBRL(resumo.margem_contribuicao_total ?? 0)}
-        contexto={
-          <div className="space-y-0.5">
-            <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
-            <div className="text-[11px] text-muted-foreground">
-              após despesas variáveis · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              B2B {formatPct(resumo.margem_contribuicao_pct_b2b)} · B2C {formatPct(resumo.margem_contribuicao_pct_b2c)}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              R$/un: B2B {formatBRL(resumo.margem_un_b2b)} · B2C {formatBRL(resumo.margem_un_b2c)}
-            </div>
-            <div className="text-[11px] text-muted-foreground">
-              Markup: B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×
-            </div>
-          </div>
-        }
+        valor={formatBRLCompacto(resumo.margem_contribuicao_total)}
+        contexto={`${formatPct(resumo.margem_contribuicao_pct)} · B2B ${formatPct(resumo.margem_contribuicao_pct_b2b)} · B2C ${formatPct(resumo.margem_contribuicao_pct_b2c)}`}
       />
       <FaixaBloco
         label="Markup"
         slug="markup"
         valor={resumo.markup_carteira == null ? "—" : `${Number(resumo.markup_carteira).toFixed(1)}×`}
-        contexto={
-          <div className="space-y-0.5">
-            <div>B2B {Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C {Number(resumo.markup_b2c ?? 0).toFixed(1)}×</div>
-            <div className="text-[11px] text-muted-foreground">preço realizado ÷ custo</div>
-          </div>
-        }
+        contexto={`B2B ${Number(resumo.markup_b2b ?? 0).toFixed(1)}× · B2C ${Number(resumo.markup_b2c ?? 0).toFixed(1)}×`}
       />
       <FaixaBloco
         label="GMROI"
         slug="gmroi"
         valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
-        contexto={
-          <div className="space-y-0.5">
-            <div>margem/ano por R$ 1 em estoque</div>
-            <div className="text-[11px] text-muted-foreground">
-              {formatNum(resumo.skus_gmroi_baixo)} SKUs abaixo de 0,5
-            </div>
-          </div>
-        }
+        contexto={`${formatNum(resumo.skus_gmroi_baixo)} SKUs abaixo de 0,5`}
       />
       <FaixaBloco
         label="Venda perdida"
         slug="venda_perdida"
         valorClass="text-destructive"
-        valor={formatBRL(perdida)}
-        contexto={
-          <div className="space-y-0.5">
-            <div>{formatPct(resumo.pct_perda_real)} do valor pedido</div>
-            <div className="text-[11px] text-muted-foreground">+ {formatBRL(reprocessada)} reprocessado (mesma venda, outro pedido)</div>
-          </div>
-        }
+        valor={formatBRLCompacto(perdida)}
+        contexto={`${formatPct(resumo.pct_perda_real)} do valor pedido`}
       />
       <FaixaBloco
         label="Concentração"
         slug="concentracao_receita"
         valor={<>{formatNum(resumo.curva_a)} <span className="text-base text-muted-foreground">SKUs</span></>}
-        contexto={<>fazem 50% da receita · B {formatNum(resumo.curva_b)} · C {formatNum(resumo.curva_c)}</>}
+        contexto="fazem 50% da receita"
       />
       <FaixaBloco
         label="Sem venda"
         slug="sem_venda"
         valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
-        contexto={
-          <>
-            de {formatNum(resumo.skus_fase_ativo)} ativos
-            {semVendaPreVenda > 0 && <> · {formatNum(semVendaPreVenda)} em pré-venda</>}
-          </>
-        }
+        contexto={`de ${formatNum(resumo.skus_fase_ativo)} ativos`}
       />
       <FaixaBloco
-        label="Capital parado"
+        label="Capital em estoque"
         slug="capital_parado"
-        valor={formatBRL(capitalTotal)}
-        contexto={
-          <div className="space-y-0.5">
-            <div className="text-success">{formatBRL(resumo.capital_lastreado)} lastreado</div>
-            <div className="text-warning">{formatBRL(resumo.capital_fragil)} frágil</div>
-          </div>
-        }
+        valor={formatBRLCompacto(capitalTotal)}
+        contexto="a custo"
+      />
+      <FaixaBloco
+        label="Valor de venda do estoque"
+        slug="valor_venda_estoque"
+        valor={formatBRLCompacto(resumo.valor_venda_estoque)}
+        contexto={`${Number(resumo.valor_venda_sobre_capital ?? 0).toFixed(1)}× o capital · B2C ${Number(resumo.valor_venda_pct_b2c ?? 0).toFixed(0)}%`}
       />
       <FaixaBloco
         label="Capital sem giro"
         slug="capital_sem_giro"
         valorClass={capSemVenda > 0 ? "text-destructive" : undefined}
-        valor={formatBRL(capSemVenda)}
-        contexto="preso em SKU que nunca vendeu"
-      />
-      <FaixaBloco
-        label="Pré-venda"
-        slug="pre_venda"
-        valorClass={preVenda > 0 ? "text-info" : undefined}
-        valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
-        contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
+        valor={formatBRLCompacto(capSemVenda)}
+        contexto="em SKUs sem venda"
       />
     </div>
   );
