@@ -367,90 +367,142 @@ Deno.serve(async (req) => {
     }
     if (!domain || !token) return json(500, { error: "nenhum dominio shopify autenticou", tried: domainsToTry });
 
-    // Push em lotes de 100
+    // Push em lotes de 100 — lote é ATÔMICO no Shopify (1 item recusado derruba os 100).
+    // Frente Estoque — integridade (28/09): divergência de changeFromQuantity não derruba mais a rodada.
+    //  1ª divergência → relê AO VIVO só os recusados + SNCF fresco, corrige espelho e reenvia.
+    //  2ª divergência seguida → isola esses itens (concorrência: venda acontecendo agora) e manda o resto.
+    //  Sucesso → atualiza o espelho na hora (não espera webhook).
     const BATCH = 100;
     let empurrados = 0;
     let batches = 0;
     const erros: any[] = [];
     const itens_inexistentes: any[] = [];
+    const concorrencia: any[] = [];
 
-    // Extrai índices de entradas mortas ("inventory item could not be found")
-    const idxInexistentes = (ues: any[]): number[] => {
-      const idx: number[] = [];
+    const Q_VIVO = `query($ids: [ID!]!) { nodes(ids: $ids) { ... on InventoryItem { id inventoryLevels(first: 10) { nodes { location { id } quantities(names: ["available"]) { quantity } } } } } }`;
+
+    const classificar = (ues: any[]) => {
+      const mortos: number[] = [], diverg: number[] = [], outros: any[] = [];
       for (const e of ues) {
         const f = e?.field;
         const msg = String(e?.message ?? "");
-        if (
-          Array.isArray(f) && f.length === 4 &&
-          f[0] === "input" && f[1] === "quantities" &&
-          f[3] === "inventoryItemId" &&
-          msg.includes("could not be found")
-        ) {
-          const n = Number(f[2]);
-          if (Number.isInteger(n)) idx.push(n);
+        const n = Array.isArray(f) && f.length === 4 && f[0] === "input" && f[1] === "quantities" ? Number(f[2]) : NaN;
+        if (Number.isInteger(n) && f[3] === "inventoryItemId" && msg.includes("could not be found")) mortos.push(n);
+        else if (Number.isInteger(n) && f[3] === "changeFromQuantity") diverg.push(n);
+        else outros.push(e);
+      }
+      return { mortos, diverg, outros };
+    };
+
+    const montar = (s: any[]) => s.map((r: any) => ({
+      inventoryItemId: `gid://shopify/InventoryItem/${r.inventory_item_id}`,
+      locationId: `gid://shopify/Location/${r.location_id}`,
+      quantity: Math.trunc(Number(r.sncf_virtual)),
+      // Concorrência segura: só grava se o valor no Shopify ainda for o que lemos.
+      changeFromQuantity: Math.trunc(Number(r.shopify_atual)),
+    }));
+
+    const enviar = async (qs: any[]) => {
+      const res = await gql(domain!, token!, MUT, {
+        input: { name: "available", reason: "correction", quantities: qs },
+        key: crypto.randomUUID(),
+      });
+      const top = res.body?.errors;
+      const ue = res.body?.data?.inventorySetQuantities?.userErrors ?? [];
+      const ok = res.status === 200 && !(Array.isArray(top) && top.length > 0) && ue.length === 0;
+      return { res, ok, top, ue };
+    };
+
+    const espelhar = async (itens: { inventory_item_id: string; location_id: string; available: number }[]) => {
+      if (itens.length === 0) return;
+      const agora = new Date().toISOString();
+      const { error } = await supabase.from("shopify_estoque").upsert(
+        itens.map((x) => ({ ...x, updated_at: agora })),
+        { onConflict: "inventory_item_id,location_id" },
+      );
+      if (error) erros.push({ espelho: error.message });
+    };
+
+    const lerVivo = async (linhas: any[]) => {
+      const ids = [...new Set(linhas.map((r: any) => `gid://shopify/InventoryItem/${r.inventory_item_id}`))];
+      const res = await gql(domain!, token!, Q_VIVO, { ids });
+      if (res.status !== 200 || res.body?.errors) {
+        throw new Error(`leitura viva falhou: ${JSON.stringify(res.body?.errors ?? res.status).slice(0, 300)}`);
+      }
+      const mapa = new Map<string, number>();
+      for (const n of res.body?.data?.nodes ?? []) {
+        if (!n?.id) continue;
+        const item = numGid(n.id);
+        for (const lv of n.inventoryLevels?.nodes ?? []) {
+          const q = (lv.quantities ?? [])[0]?.quantity;
+          if (typeof q === "number") mapa.set(`${item}|${numGid(lv.location.id)}`, q);
         }
       }
-      return idx;
+      return mapa;
     };
 
     for (let i = 0; i < alvos.length; i += BATCH) {
-      const slice = alvos.slice(i, i + BATCH);
-      const quantities = slice.map((r: any) => ({
-        inventoryItemId: `gid://shopify/InventoryItem/${r.inventory_item_id}`,
-        locationId: `gid://shopify/Location/${r.location_id}`,
-        quantity: Math.trunc(Number(r.sncf_virtual)),
-        // Concorrência segura: só grava se o valor no Shopify ainda for o que lemos.
-        changeFromQuantity: Math.trunc(Number(r.shopify_atual)),
-      }));
-      const input = {
-        name: "available",
-        reason: "correction",
-        quantities,
-      };
+      let slice: any[] = alvos.slice(i, i + BATCH).map((r: any) => ({ ...r }));
       batches++;
-      const res = await gql(domain, token, MUT, { input, key: crypto.randomUUID() });
-      if (res.status !== 200) {
-        erros.push({ batch: batches, http: res.status, body: res.body });
-        continue;
-      }
-      const topErrs = res.body?.errors;
-      if (Array.isArray(topErrs) && topErrs.length > 0) {
-        erros.push({ batch: batches, graphqlErrors: topErrs });
-        continue;
-      }
-      const ue = res.body?.data?.inventorySetQuantities?.userErrors;
-      if (ue && ue.length > 0) {
-        // Lote atômico: se TODOS os erros forem "item inexistente", reenvia sem eles (1x)
-        const mortos = idxInexistentes(ue);
-        if (mortos.length > 0 && mortos.length === ue.length) {
-          const vivos = quantities.filter((_: unknown, k: number) => !mortos.includes(k));
-          for (const m of mortos) {
-            itens_inexistentes.push({
-              sku: slice[m]?.sku ?? null,
-              inventory_item_id: slice[m]?.inventory_item_id ?? null,
-            });
-          }
-          if (vivos.length === 0) continue; // lote inteiro era carcaça
-          const res2 = await gql(domain, token, MUT, {
-            input: { ...input, quantities: vivos },
-            key: crypto.randomUUID(),
-          });
-          const ue2 = res2.body?.data?.inventorySetQuantities?.userErrors;
-          const top2 = res2.body?.errors;
-          if (
-            res2.status === 200 &&
-            !(Array.isArray(top2) && top2.length > 0) &&
-            !(ue2 && ue2.length > 0)
-          ) {
-            empurrados += vivos.length;
-          } else {
-            erros.push({ batch: batches, reenvio: true, http: res2.status, graphqlErrors: top2, userErrors: ue2 });
-          }
-        } else {
-          erros.push({ batch: batches, userErrors: ue });
+      let tentativa = 0;
+      while (slice.length > 0) {
+        const env = await enviar(montar(slice));
+        if (env.ok) {
+          empurrados += slice.length;
+          await espelhar(slice.map((r: any) => ({
+            inventory_item_id: String(r.inventory_item_id),
+            location_id: String(r.location_id),
+            available: Math.trunc(Number(r.sncf_virtual)),
+          })));
+          break;
         }
-      } else {
-        empurrados += quantities.length;
+        if (env.res.status !== 200 || (Array.isArray(env.top) && env.top.length > 0)) {
+          erros.push({ batch: batches, http: env.res.status, graphqlErrors: env.top, body: env.res.status !== 200 ? env.res.body : undefined });
+          break;
+        }
+        const { mortos, diverg, outros } = classificar(env.ue);
+        if (outros.length > 0 || tentativa >= 2 || (mortos.length === 0 && diverg.length === 0)) {
+          erros.push({ batch: batches, tentativa, userErrors: env.ue });
+          break;
+        }
+        tentativa++;
+        for (const m of mortos) {
+          itens_inexistentes.push({ sku: slice[m]?.sku ?? null, inventory_item_id: slice[m]?.inventory_item_id ?? null });
+        }
+        const tirar = new Set<number>(mortos);
+        if (diverg.length > 0) {
+          if (tentativa === 1) {
+            // Relê ao vivo SÓ os recusados e pega o SNCF fresco (webhook de pedido pode ter acabado de chegar).
+            const recusados = diverg.map((k) => slice[k]);
+            const vivo = await lerVivo(recusados);
+            const { data: fresco, error: fErr } = await supabase
+              .from("vw_estoque_shopify_sync")
+              .select("inventory_item_id, location_id, sncf_virtual")
+              .in("inventory_item_id", recusados.map((r: any) => String(r.inventory_item_id)));
+            if (fErr) throw new Error(`releitura SNCF falhou: ${fErr.message}`);
+            const sncfFresco = new Map((fresco ?? []).map((x: any) => [`${x.inventory_item_id}|${x.location_id}`, Number(x.sncf_virtual)]));
+            const corrigir: { inventory_item_id: string; location_id: string; available: number }[] = [];
+            for (const k of diverg) {
+              const r = slice[k];
+              const chave = `${r.inventory_item_id}|${r.location_id}`;
+              const q = vivo.get(chave);
+              if (typeof q === "number") {
+                r.shopify_atual = q;
+                corrigir.push({ inventory_item_id: String(r.inventory_item_id), location_id: String(r.location_id), available: q });
+              }
+              if (sncfFresco.has(chave)) r.sncf_virtual = sncfFresco.get(chave);
+              // Já bate: não precisa empurrar.
+              if (typeof q === "number" && Math.trunc(Number(r.sncf_virtual)) === q) tirar.add(k);
+            }
+            await espelhar(corrigir);
+          } else {
+            for (const k of diverg) {
+              concorrencia.push({ sku: slice[k]?.sku ?? null, inventory_item_id: slice[k]?.inventory_item_id ?? null, location_id: slice[k]?.location_id ?? null });
+              tirar.add(k);
+            }
+          }
+        }
+        slice = slice.filter((_: unknown, k: number) => !tirar.has(k));
       }
     }
 
@@ -459,11 +511,11 @@ Deno.serve(async (req) => {
         sistema: "shopify", tipo: "estoque_push",
         status: erros.length > 0 ? "erro" : "sucesso",
         registros_atualizados: empurrados,
-        detalhes: JSON.stringify({ batches, erros, itens_inexistentes }),
+        detalhes: JSON.stringify({ batches, erros, itens_inexistentes, concorrencia }),
       });
       if (logErr) console.error("log estoque_push:", logErr.message);
     }
-    return json(200, { dry_run: false, empurrados, erros, batches, itens_inexistentes });
+    return json(200, { dry_run: false, empurrados, erros, batches, itens_inexistentes, concorrencia });
   } catch (e) {
     return json(500, { error: (e as Error).message });
   }
