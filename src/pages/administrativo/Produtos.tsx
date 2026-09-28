@@ -368,7 +368,7 @@ export default function Produtos() {
           <FilterInput
             value={busca}
             onChange={(e) => { setBusca(e.target.value); setPagina(1); }}
-            placeholder="Buscar por SKU ou nome"
+            placeholder="Buscar por código, SKU ou nome"
             className="pl-9"
           />
         </div>
@@ -412,17 +412,6 @@ export default function Produtos() {
           <SelectContent>
             <SelectItem value="todas">Todas margens</SelectItem>
             <SelectItem value="abaixo">Abaixo do piso</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={alertaFiltro} onValueChange={(v) => { setAlertaFiltro(v); setPagina(1); }}>
-          <FilterSelectTrigger active={alertaFiltro !== "todos"} className="w-[190px]">
-            <SelectValue />
-          </FilterSelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos alertas</SelectItem>
-            <SelectItem value="divergente">Preço divergente</SelectItem>
-            <SelectItem value="perdida">Com venda perdida</SelectItem>
-            <SelectItem value="reprocessamento">Com reprocessamento</SelectItem>
           </SelectContent>
         </Select>
         <span className="text-xs text-muted-foreground ml-auto">
