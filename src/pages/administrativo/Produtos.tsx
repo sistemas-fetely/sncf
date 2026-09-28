@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } fr
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { formatError } from "@/lib/format-error";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
 import { FilterSelectTrigger } from "@/components/ui/filter-select-trigger";
@@ -161,6 +162,9 @@ interface CarteiraResumo {
   abaixo_do_piso: number | null;
   preco_divergente_bling: number | null;
   cobertura_abaixo_30d: number | null;
+  sem_venda_ativos: number | null;
+  sem_venda_pre_venda: number | null;
+  skus_fase_ativo: number | null;
 }
 
 type ColunaProduto =
