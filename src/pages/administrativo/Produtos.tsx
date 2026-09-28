@@ -484,6 +484,35 @@ export default function Produtos() {
     });
   }, [lista, busca, curvaFiltro, cdFiltro, margemFiltro, gmroiFiltro, colecaoFiltro, grupoFiltro, faseFiltro, faixasMargem, faixasGmroi, ordenacao]);
 
+  // Cartões seguem os filtros: a chave é a lista de SKUs do resultado filtrado
+  // (todas as páginas). Sem filtro → "" → RPC com p_skus null (carteira inteira).
+  const chaveResumo = useMemo(
+    () => (filtroAtivo ? `F:${filtrados.map((p) => p.sku).sort().join("|")}` : ""),
+    [filtroAtivo, filtrados],
+  );
+  const [chaveResumoDeb, setChaveResumoDeb] = useState(chaveResumo);
+  useEffect(() => {
+    const t = setTimeout(() => setChaveResumoDeb(chaveResumo), 300);
+    return () => clearTimeout(t);
+  }, [chaveResumo]);
+
+  const resumoQuery = useQuery({
+    queryKey: ["cockpit-resumo", chaveResumoDeb],
+    placeholderData: keepPreviousData,
+    queryFn: async (): Promise<CarteiraResumo | null> => {
+      if (chaveResumoDeb === "F:") return {} as CarteiraResumo; // filtro sem resultado: cartões zerados
+      const p_skus = chaveResumoDeb === "" ? null : chaveResumoDeb.slice(2).split("|");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_produto_cockpit_resumo", { p_skus });
+      if (error) throw error;
+      return (data ?? null) as CarteiraResumo | null;
+    },
+  });
+
+  useEffect(() => {
+    if (resumoQuery.error) toast.error(formatError(resumoQuery.error));
+  }, [resumoQuery.error]);
+
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const pageItems = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
