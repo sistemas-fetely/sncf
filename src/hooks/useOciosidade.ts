@@ -50,7 +50,8 @@ export function useOciosidade(msLimite = 5000): boolean {
     const id = window.setInterval(avaliar, 1000);
 
     return () => {
-      EVENTOS_INTERACAO.forEach((ev) => window.removeEventListener(ev, carimbar));
+      // Remoção precisa das MESMAS opções do registro, senão o listener fica pendurado.
+      EVENTOS_INTERACAO.forEach((ev) => window.removeEventListener(ev, carimbar, { capture: true }));
       document.removeEventListener("visibilitychange", aoMudarVisibilidade);
       window.clearInterval(id);
     };
