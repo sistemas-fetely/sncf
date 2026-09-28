@@ -24,6 +24,7 @@ import {
   BarraLoteCd, CelulaCdEfetivo, ConfirmaCdDivergente, EscolhaCdCelula, ToggleCdB2c,
   abreviarCd, nomeCurtoCd, type SugestaoCdB2c,
 } from "@/components/vendas/EscolhaCdB2c";
+import { cn } from "@/lib/utils";
 import { useOciosidade } from "@/hooks/useOciosidade";
 import { PedidoB2cDrawer } from "@/components/vendas/PedidoB2cDrawer";
 import { EncerrarCasoB2c } from "@/components/vendas/EncerrarCasoB2c";
