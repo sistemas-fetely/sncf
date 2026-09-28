@@ -20,13 +20,23 @@ export function useOciosidade(msLimite = 5000): boolean {
     const carimbar = () => {
       ultimaInteracao.current = Date.now();
     };
+    // capture: true porque scroll não borbulha — rolagem dentro de um contêiner
+    // interno (tabela, lista) só chega até ele na fase de captura.
     // passive: só carimbamos; nunca bloqueia o scroll do navegador.
-    EVENTOS_INTERACAO.forEach((ev) => window.addEventListener(ev, carimbar, { passive: true }));
+    EVENTOS_INTERACAO.forEach((ev) =>
+      window.addEventListener(ev, carimbar, { passive: true, capture: true })
+    );
 
     const avaliar = () => {
       const visivel = document.visibilityState === "visible";
       const parado = Date.now() - ultimaInteracao.current >= msLimite;
-      const agora = visivel && parado;
+      // Componentes filhos guardam o próprio estado de dialog/popover aberto e a
+      // tela pai não enxerga. O DOM é a fonte única do "tem algo aberto": se
+      // existir qualquer sobreposição renderizada, a tela NÃO pode se atualizar
+      // sozinha, ou remonta a linha e fecha o dialog com o texto digitado.
+      const temSobreposicaoAberta =
+        document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]') !== null;
+      const agora = visivel && parado && !temSobreposicaoAberta;
       // setState com o mesmo valor não re-renderiza; a função só troca quando vira.
       setOcioso((antes) => (antes === agora ? antes : agora));
     };
@@ -40,7 +50,8 @@ export function useOciosidade(msLimite = 5000): boolean {
     const id = window.setInterval(avaliar, 1000);
 
     return () => {
-      EVENTOS_INTERACAO.forEach((ev) => window.removeEventListener(ev, carimbar));
+      // Remoção precisa das MESMAS opções do registro, senão o listener fica pendurado.
+      EVENTOS_INTERACAO.forEach((ev) => window.removeEventListener(ev, carimbar, { capture: true }));
       document.removeEventListener("visibilitychange", aoMudarVisibilidade);
       window.clearInterval(id);
     };
