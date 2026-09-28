@@ -21,7 +21,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
-  RefreshCw, Search, ImageOff,
+  RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown,
 } from "lucide-react";
 import {
   CabecalhoOrdenavel,
@@ -438,16 +438,33 @@ export default function Produtos() {
                 <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
                 <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
                 <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="contents">
-                      <CabecalhoOrdenavel rotulo="GMROI" className="w-[90px] text-right" alinharDireita dir={ordenacao.coluna === "gmroi" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("gmroi")} />
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-xs text-xs">
-                    Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
-                  </TooltipContent>
-                </Tooltip>
+                <TableHead
+                  className="w-[90px] text-right"
+                  aria-sort={ordenacao.coluna === "gmroi" ? (ordenacao.dir === "asc" ? "ascending" : "descending") : "none"}
+                >
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={() => ordenarColuna("gmroi")}
+                        className={cn(
+                          "group inline-flex w-full items-center justify-end gap-1 transition-colors hover:text-foreground",
+                          ordenacao.coluna === "gmroi" && "text-foreground",
+                        )}
+                      >
+                        GMROI
+                        {ordenacao.coluna === "gmroi" ? (
+                          ordenacao.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
+                    </TooltipContent>
+                  </Tooltip>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
