@@ -262,7 +262,7 @@ export default function VendaDiretaNovo() {
     const tel = telefoneCliente.length <= 11 ? `55${telefoneCliente}` : telefoneCliente;
     return (
       <PageShell variant="foco">
-        <PageHeader title="Venda Direta · Novo pedido" />
+        <PageHeader titulo="Venda Direta · Novo pedido" />
         <Card>
           <CardHeader>
             <CardTitle>{r.id_externo} criado — aguardando pagamento</CardTitle>
@@ -315,7 +315,7 @@ export default function VendaDiretaNovo() {
 
   return (
     <PageShell variant="leitura">
-      <PageHeader title="Venda Direta · Novo pedido" subtitle="Venda B2C por telefone ou WhatsApp, fora do Shopify." />
+      <PageHeader titulo="Venda Direta · Novo pedido" estado="Venda B2C por telefone ou WhatsApp, fora do Shopify." />
 
       {/* 1. Cliente */}
       <Card>
