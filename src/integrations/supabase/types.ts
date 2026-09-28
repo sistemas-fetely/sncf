@@ -32250,6 +32250,45 @@ export type Database = {
         }
         Relationships: []
       }
+      metrica_definicao: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          fonte: string | null
+          formula: string
+          leitura: string | null
+          o_que_e: string
+          ordem: number
+          rotulo: string
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          fonte?: string | null
+          formula: string
+          leitura?: string | null
+          o_que_e: string
+          ordem?: number
+          rotulo: string
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          fonte?: string | null
+          formula?: string
+          leitura?: string | null
+          o_que_e?: string
+          ordem?: number
+          rotulo?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       motivos_concessao: {
         Row: {
           ativo: boolean
@@ -37729,6 +37768,7 @@ export type Database = {
           criado_em: string
           descricao: string | null
           id: string
+          natureza: string | null
           ordem: number
           rotulo: string
           tipo: string
@@ -37743,6 +37783,7 @@ export type Database = {
           criado_em?: string
           descricao?: string | null
           id?: string
+          natureza?: string | null
           ordem?: number
           rotulo: string
           tipo: string
@@ -37757,6 +37798,7 @@ export type Database = {
           criado_em?: string
           descricao?: string | null
           id?: string
+          natureza?: string | null
           ordem?: number
           rotulo?: string
           tipo?: string
@@ -99697,10 +99739,13 @@ export type Database = {
           cod_cadastro: string | null
           colecao: string | null
           cor_nome: string | null
+          credito_un: number | null
           curva: string | null
           custo: number | null
           custo_status: string | null
+          despesas_variaveis_un: number | null
           dias_desde_contagem: number | null
+          dias_janela: number | null
           dias_sem_vender: number | null
           estoque_base: number | null
           estoque_bloqueado: number | null
@@ -99712,11 +99757,13 @@ export type Database = {
           linha: string | null
           margem_contribuicao: number | null
           margem_contribuicao_pct: number | null
+          margem_contribuicao_un: number | null
           nome_comercial: string | null
           pedidos: number | null
           preco_b2b: number | null
           preco_b2c: number | null
           preco_divergente_bling: boolean | null
+          preco_medio_realizado: number | null
           preco_no_bling: number | null
           receita: number | null
           receita_cancelada: number | null
@@ -110546,6 +110593,17 @@ export type Database = {
         Returns: Json
       }
       calcular_docs_status: { Args: { p_conta_id: string }; Returns: string }
+      calcular_margem_contribuicao: {
+        Args: { p_custo: number; p_preco: number }
+        Returns: {
+          credito: number
+          custo: number
+          despesas_variaveis: number
+          margem: number
+          margem_pct: number
+          preco: number
+        }[]
+      }
       calcular_peso_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       calcular_resultado_precificacao: {
         Args: { p_base_credito?: number; p_custo: number; p_preco: number }

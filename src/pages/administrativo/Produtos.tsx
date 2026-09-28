@@ -21,8 +21,13 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import {
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import {
   RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown,
+  Calculator, ChevronDown,
 } from "lucide-react";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import {
   CabecalhoOrdenavel,
   LINHA_CABECALHO_COLADO,
@@ -85,6 +90,11 @@ interface CockpitRow {
   dias_desde_contagem: number | null;
   cobertura_dias: number | null;
   capital_parado: number | null;
+  preco_medio_realizado: number | null;
+  despesas_variaveis_un: number | null;
+  credito_un: number | null;
+  margem_contribuicao_un: number | null;
+  dias_janela: number | null;
   preco_divergente_bling: boolean | null;
   preco_no_bling: number | null;
 }
@@ -174,6 +184,62 @@ function formatDateBRShort(iso: string | null | undefined) {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
+/**
+ * Cabeçalho ordenável de métrica: mesmo comportamento do CabecalhoOrdenavel,
+ * com o "i" do InfoMetrica ao lado do rótulo. Vive aqui (e não no componente
+ * compartilhado) porque o InfoMetrica é peça desta tela.
+ */
+function CabMetrica({
+  rotulo,
+  slug,
+  className,
+  alinharDireita,
+  dir,
+  onOrdenar,
+}: {
+  rotulo: string;
+  slug: string;
+  className?: string;
+  alinharDireita?: boolean;
+  dir: DirecaoOrdenacao | null;
+  onOrdenar: () => void;
+}) {
+  return (
+    <TableHead
+      className={cn("group", className)}
+      aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : "none"}
+    >
+      <span className={cn("inline-flex items-center gap-1", alinharDireita && "w-full justify-end")}>
+        <button
+          type="button"
+          onClick={onOrdenar}
+          className={cn(
+            "inline-flex items-center gap-1 transition-colors hover:text-foreground",
+            dir && "text-foreground",
+          )}
+          title={
+            dir === "asc"
+              ? "Crescente — clique para inverter"
+              : dir === "desc"
+                ? "Decrescente — clique para voltar à ordenação padrão"
+                : `Ordenar por ${rotulo}`
+          }
+        >
+          {rotulo}
+          {dir === "asc" ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : dir === "desc" ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
+          )}
+        </button>
+        <InfoMetrica slug={slug} />
+      </span>
+    </TableHead>
+  );
 }
 
 function formatDateBR(iso: string | null | undefined) {
@@ -428,43 +494,17 @@ export default function Produtos() {
                 <CabecalhoOrdenavel rotulo="Cód." className="w-[110px]" dir={ordenacao.coluna === "cod" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cod")} />
                 <TableHead className="w-[52px]" aria-label="Foto" />
                 <CabecalhoOrdenavel rotulo="Produto" dir={ordenacao.coluna === "nome" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("nome")} />
-                <CabecalhoOrdenavel rotulo="Curva" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
-                <CabecalhoOrdenavel rotulo="Vendido" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
-                <CabecalhoOrdenavel rotulo="Receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
-                <CabecalhoOrdenavel rotulo="Margem" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
-                <CabecalhoOrdenavel rotulo="Custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
-                <CabecalhoOrdenavel rotulo="MB B2B" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
-                <CabecalhoOrdenavel rotulo="MB B2C" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
-                <CabecalhoOrdenavel rotulo="Virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
-                <CabecalhoOrdenavel rotulo="Cobertura" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
-                <CabecalhoOrdenavel rotulo="Capital" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
-                <TableHead
-                  className="w-[90px] text-right"
-                  aria-sort={ordenacao.coluna === "gmroi" ? (ordenacao.dir === "asc" ? "ascending" : "descending") : "none"}
-                >
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        onClick={() => ordenarColuna("gmroi")}
-                        className={cn(
-                          "group inline-flex w-full items-center justify-end gap-1 transition-colors hover:text-foreground",
-                          ordenacao.coluna === "gmroi" && "text-foreground",
-                        )}
-                      >
-                        GMROI
-                        {ordenacao.coluna === "gmroi" ? (
-                          ordenacao.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
-                        ) : (
-                          <ArrowUpDown className="h-3 w-3 opacity-0 transition-opacity group-hover:opacity-40" />
-                        )}
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent className="max-w-xs text-xs">
-                      Margem de contribuição anualizada ÷ capital em estoque a custo. Abaixo de 0,5 = estoque girando devagar.
-                    </TooltipContent>
-                  </Tooltip>
-                </TableHead>
+                <CabMetrica rotulo="Curva" slug="curva_abc" className="w-[100px]" dir={ordenacao.coluna === "curva" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("curva")} />
+                <CabMetrica rotulo="Vendido" slug="unidades_vendidas" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "vendido" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("vendido")} />
+                <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
+                <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
+                <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
+                <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
+                <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
+                <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
+                <CabMetrica rotulo="Cobertura" slug="cobertura_dias" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "cobertura" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("cobertura")} />
+                <CabMetrica rotulo="Capital" slug="capital_estoque" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "capital" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("capital")} />
+                <CabMetrica rotulo="GMROI" slug="gmroi" className="w-[90px] text-right" alinharDireita dir={ordenacao.coluna === "gmroi" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("gmroi")} />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -667,16 +707,20 @@ function faixaFontClass(valor: React.ReactNode): string {
 }
 
 function FaixaBloco({
-  label, valor, contexto, valorClass,
+  label, valor, contexto, valorClass, slug,
 }: {
   label: string;
   valor: React.ReactNode;
   contexto: React.ReactNode;
   valorClass?: string;
+  slug?: string;
 }) {
   return (
     <div className="rounded-md border bg-card px-4 py-3 min-w-0">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="group inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+        {label}
+        {slug && <InfoMetrica slug={slug} />}
+      </div>
       <div className={cn(faixaFontClass(valor), "font-medium tabular-nums leading-none mt-1", valorClass)}>{valor}</div>
       <div className="text-xs text-muted-foreground mt-1 leading-tight">{contexto}</div>
     </div>
@@ -714,23 +758,26 @@ function FaixaCarteira({
     <div ref={refBloco} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 md:grid-cols-4 xl:grid-cols-9">
       <FaixaBloco
         label="Receita do período"
+        slug="receita"
         valor={formatBRL(resumo.receita_periodo ?? 0)}
         contexto={<>{formatDateBRShort(resumo.janela_inicio)} a {formatDateBRShort(resumo.janela_fim)}</>}
       />
       <FaixaBloco
         label="Margem de contribuição"
+        slug="margem_contribuicao"
         valor={formatBRL(resumo.margem_contribuicao_total ?? 0)}
         contexto={
           <div className="space-y-0.5">
             <div>{formatPct(resumo.margem_contribuicao_pct)} da receita</div>
             <div className="text-[11px] text-muted-foreground">
-              após impostos, despesas e crédito · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
+              após despesas variáveis · sobre {formatPct(resumo.pct_receita_com_margem)} da receita
             </div>
           </div>
         }
       />
       <FaixaBloco
         label="GMROI"
+        slug="gmroi"
         valor={resumo.gmroi_carteira == null ? "—" : `${Number(resumo.gmroi_carteira).toFixed(2)}×`}
         contexto={
           <div className="space-y-0.5">
@@ -743,6 +790,7 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Venda perdida"
+        slug="venda_perdida"
         valorClass="text-destructive"
         valor={formatBRL(perdida)}
         contexto={
@@ -754,17 +802,20 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Concentração"
+        slug="concentracao_receita"
         valor={<>{formatNum(resumo.curva_a)} <span className="text-base text-muted-foreground">SKUs</span></>}
         contexto={<>fazem 50% da receita · B {formatNum(resumo.curva_b)} · C {formatNum(resumo.curva_c)}</>}
       />
       <FaixaBloco
         label="Sem venda"
+        slug="sem_venda"
         valorClass={semVenda > 0 ? "text-warning" : undefined}
         valor={formatNum(semVenda)}
         contexto={<>de {formatNum(resumo.skus_ativos)} ativos</>}
       />
       <FaixaBloco
         label="Capital parado"
+        slug="capital_parado"
         valor={formatBRL(capitalTotal)}
         contexto={
           <div className="space-y-0.5">
@@ -775,12 +826,14 @@ function FaixaCarteira({
       />
       <FaixaBloco
         label="Capital sem giro"
+        slug="capital_sem_giro"
         valorClass={capSemVenda > 0 ? "text-destructive" : undefined}
         valor={formatBRL(capSemVenda)}
         contexto="preso em SKU que nunca vendeu"
       />
       <FaixaBloco
         label="Pré-venda"
+        slug="pre_venda"
         valorClass={preVenda > 0 ? "text-info" : undefined}
         valor={<>{formatNum(preVenda)} <span className="text-base text-muted-foreground">SKUs</span></>}
         contexto={<>{formatNum(aguardandoProduto)} un vendidas aguardando mercadoria</>}
@@ -1181,11 +1234,111 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               )}
             </Secao>
 
+            {/* 8. Como calculamos — memória de cálculo com os números da linha */}
+            {row && <ComoCalculamos row={row} />}
+
             <div className="h-8" />
           </>
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Como calculamos (memória de cálculo do painel)
+// ─────────────────────────────────────────────────────────────
+
+function LinhaCalculo({ rotulo, children }: { rotulo: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{rotulo}</div>
+      <div className="mt-0.5 font-mono text-[11px] leading-relaxed">{children}</div>
+    </div>
+  );
+}
+
+function NaoCalculado({ motivo }: { motivo: string }) {
+  return <span className="text-muted-foreground">não calculado — {motivo}</span>;
+}
+
+function ComoCalculamos({ row }: { row: CockpitRow }) {
+  const temCusto = row.custo != null;
+  const temVenda = row.un_vendidas != null && Number(row.un_vendidas) > 0;
+  const temEstoque = row.estoque_base != null && Number(row.estoque_base) > 0;
+  const temCapital = row.capital_parado != null && Number(row.capital_parado) > 0;
+  const temGiro = row.un_por_dia != null && Number(row.un_por_dia) > 0;
+
+  return (
+    <Collapsible className="mt-6">
+      <CollapsibleTrigger className="group flex w-full items-center gap-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors">
+        <Calculator className="h-3.5 w-3.5" />
+        Como calculamos
+        <ChevronDown className="h-3.5 w-3.5 transition-transform group-data-[state=open]:rotate-180" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="mt-3 space-y-3 rounded-md border bg-muted/30 p-3">
+          <LinhaCalculo rotulo="Margem por unidade">
+            {!temCusto ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : row.margem_contribuicao_un == null ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : (
+              <>
+                preço médio {formatBRL(row.preco_medio_realizado)} − despesas variáveis {formatBRL(row.despesas_variaveis_un)} − custo {formatBRL(row.custo)} + crédito ICMS {formatBRL(row.credito_un)} = {formatBRL(row.margem_contribuicao_un)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Margem de contribuição">
+            {!temVenda ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : row.margem_contribuicao == null ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : (
+              <>
+                {formatBRL(row.margem_contribuicao_un)} × {formatNum(row.un_vendidas)} un = {formatBRL(row.margem_contribuicao)}
+                {row.margem_contribuicao_pct != null && ` (${formatPct(row.margem_contribuicao_pct)} do preço)`}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Capital em estoque">
+            {!temCusto ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : !temEstoque ? (
+              <NaoCalculado motivo="sem estoque" />
+            ) : (
+              <>
+                {formatNum(row.estoque_base)} un × {formatBRL(row.custo)} = {formatBRL(row.capital_parado)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="GMROI">
+            {!temVenda ? (
+              <NaoCalculado motivo="sem venda no período" />
+            ) : !temCapital ? (
+              <NaoCalculado motivo="sem capital em estoque" />
+            ) : row.gmroi == null ? (
+              <NaoCalculado motivo="sem custo" />
+            ) : (
+              <>
+                {formatBRL(row.margem_contribuicao)} × 365 ÷ {formatNum(row.dias_janela)} dias ÷ {formatBRL(row.capital_parado)} = {Number(row.gmroi).toFixed(2)}
+              </>
+            )}
+          </LinhaCalculo>
+          <LinhaCalculo rotulo="Cobertura">
+            {!temGiro ? (
+              <NaoCalculado motivo="sem venda" />
+            ) : row.cobertura_dias == null ? (
+              <NaoCalculado motivo="sem estoque" />
+            ) : (
+              <>
+                {formatNum(row.estoque_virtual)} un ÷ {formatNum(row.un_por_dia, 2)} un/dia = {formatNum(row.cobertura_dias)} dias
+              </>
+            )}
+          </LinhaCalculo>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
 
