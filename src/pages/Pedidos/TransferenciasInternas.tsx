@@ -485,6 +485,7 @@ export default function TransferenciasInternas() {
       toast.success(`${res.id_externo} criado — pedido entrou em Pré-Separação.`);
       form.reset({ ...VAZIO, itens: modo === "item" ? VAZIO.itens : [] });
       limparColagem();
+      limparSugestao();
       qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
     },
     onError: (err: Error) => {
