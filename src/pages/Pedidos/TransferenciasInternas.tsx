@@ -30,6 +30,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -43,6 +45,8 @@ import { cn } from "@/lib/utils";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
 import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { formatError } from "@/lib/format-error";
+import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 
 interface CentroDestino {
