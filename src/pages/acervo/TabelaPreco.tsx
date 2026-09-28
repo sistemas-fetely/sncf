@@ -16,8 +16,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, ChevronLeft, ChevronRight,
-  Download, Loader2, RefreshCw, Search, Tags,
+  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Download, Loader2, RefreshCw, Search, Tags,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import { HistoricoPrecoTab } from "@/components/acervo/HistoricoPrecoTab";
 
 /** Linha da view vw_preco_espelho (1 por SKU). */
@@ -76,7 +76,6 @@ interface Regra {
   ordem: number | null;
 }
 
-const TAMANHOS = [50, 100, 200, 500];
 
 type ColunaOrdem = "cod_cadastro" | "nome_comercial" | "preco_varejo" | "preco_atacado" | "margem_atacado_pct";
 
@@ -121,7 +120,7 @@ export default function TabelaPreco() {
   const [alerta, setAlerta] = useState("todos");
   const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(100);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const faixasQ = useQuery({
     queryKey: ["preco-faixas"],
@@ -575,42 +574,14 @@ export default function TabelaPreco() {
               </Table>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3 border-t px-4 py-3 text-sm">
-              <span className="text-muted-foreground">
-                {recorte.length} de {linhas.length} produtos
-              </span>
-              <div className="flex items-center gap-2">
-                <Select value={String(tamanho)} onValueChange={(v) => setTamanho(Number(v))}>
-                  <SelectTrigger className="h-8 w-[110px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TAMANHOS.map((t) => <SelectItem key={t} value={String(t)}>{t} / página</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual <= 1}
-                  onClick={() => setPagina(paginaAtual - 1)}
-                  aria-label="Página anterior"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="tabular-nums text-muted-foreground">
-                  {paginaAtual} / {totalPaginas}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8"
-                  disabled={paginaAtual >= totalPaginas}
-                  onClick={() => setPagina(paginaAtual + 1)}
-                  aria-label="Próxima página"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <RodapePaginacao
+              total={recorte.length}
+              pagina={paginaAtual}
+              tamanhoPagina={tamanho}
+              tela="tabela_preco"
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
           </CardContent>
         </Card>
 
