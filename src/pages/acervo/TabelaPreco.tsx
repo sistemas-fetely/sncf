@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import { HistoricoPrecoTab } from "@/components/acervo/HistoricoPrecoTab";
 
 /** Linha da view vw_preco_espelho (1 por SKU). */
@@ -76,7 +77,6 @@ interface Regra {
   ordem: number | null;
 }
 
-const TAMANHOS = [50, 100, 200, 500];
 
 type ColunaOrdem = "cod_cadastro" | "nome_comercial" | "preco_varejo" | "preco_atacado" | "margem_atacado_pct";
 
@@ -121,7 +121,7 @@ export default function TabelaPreco() {
   const [alerta, setAlerta] = useState("todos");
   const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(100);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const faixasQ = useQuery({
     queryKey: ["preco-faixas"],
