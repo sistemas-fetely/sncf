@@ -717,6 +717,7 @@ export default function Produtos() {
                 <CabMetrica rotulo="Receita" slug="receita" className="w-[120px] text-right" alinharDireita dir={ordenacao.coluna === "receita" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("receita")} />
                 <CabMetrica rotulo="Margem" slug="margem_contribuicao" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "margem" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("margem")} />
                 <CabMetrica rotulo="Custo" slug="custo" className="w-[130px] text-right" alinharDireita dir={ordenacao.coluna === "custo" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("custo")} />
+                <CabMetrica rotulo="Markup" slug="markup" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "markup" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("markup")} />
                 <CabMetrica rotulo="Res. B2B" slug="resultado_b2b" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2b" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2b")} />
                 <CabMetrica rotulo="Res. B2C" slug="resultado_b2c" className="w-[100px] text-right" alinharDireita dir={ordenacao.coluna === "mb2c" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("mb2c")} />
                 <CabMetrica rotulo="Virtual" slug="estoque_virtual" className="w-[110px] text-right" alinharDireita dir={ordenacao.coluna === "virtual" ? ordenacao.dir : null} onOrdenar={() => ordenarColuna("virtual")} />
@@ -805,6 +806,12 @@ export default function Produtos() {
                             <div>{formatBRL(p.margem_contribuicao)}</div>
                             {p.margem_contribuicao_pct != null && (
                               <div className="text-xs text-muted-foreground">{formatPct(p.margem_contribuicao_pct)}</div>
+                            )}
+                            {p.margem_un_b2b != null && (
+                              <div className="text-[11px] text-muted-foreground">
+                                {`B2B R$ ${Number(p.margem_un_b2b).toFixed(2)}/un`}
+                                {Number(p.receita_b2c ?? 0) > 0 && p.margem_un_b2c != null && ` · B2C R$ ${Number(p.margem_un_b2c).toFixed(2)}/un`}
+                              </div>
                             )}
                           </>
                         )}
