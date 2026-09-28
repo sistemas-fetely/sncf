@@ -94,6 +94,10 @@ interface CockpitRow {
   markup_b2b: number | null;
   markup_b2c: number | null;
   markup: number | null;
+  curva_b2b: "A" | "B" | "C" | string | null;
+  curva_b2c: "A" | "B" | "C" | string | null;
+  gmroi_b2b: number | null;
+  gmroi_b2c: number | null;
   valor_venda_estoque: number | null;
   mix_b2c: number | null;
   preco_medio_b2b: number | null;
@@ -166,6 +170,8 @@ interface CarteiraResumo {
   markup_carteira: number | null;
   pct_receita_com_margem: number | null;
   gmroi_carteira: number | null;
+  gmroi_b2b: number | null;
+  gmroi_b2c: number | null;
   skus_gmroi_baixo: number | null;
   receita_cancelada: number | null;
   pct_cancelado: number | null;
