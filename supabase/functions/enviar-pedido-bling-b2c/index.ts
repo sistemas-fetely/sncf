@@ -423,6 +423,527 @@ Deno.serve(async (req) => {
           continue;
         }
 
+        // ══ RAMO ORIGEM SNCF (Venda Direta) ═════════════════════════════════
+        // Linha sem `shopify_pedido_id` e com `pedido_id`: o pedido nasceu no SNCF
+        // (VD-xxxx). Troca SÓ a fonte dos dados — pedidos/pedido_itens/parceiros —
+        // e NUNCA lê shopify_pedidos/shopify_itens nem a API do Shopify.
+        if (!item.shopify_pedido_id) {
+          const pedidoIdVd = item.pedido_id;
+          if (!pedidoIdVd) {
+            await falhar("Linha da fila sem `shopify_pedido_id` e sem `pedido_id` — origem desconhecida; nada enviado ao Bling.");
+            continue;
+          }
+
+          /** Evento no pedido SNCF. Falha ao gravar o evento nao some: vai pro log e pro detalhe. */
+          const registrarEvento = async (tipo: string, descricao: string, metadata: Record<string, unknown>) => {
+            if (dry) return null;
+            const { error: eEv } = await supabase.from("pedido_eventos").insert({
+              pedido_id: pedidoIdVd,
+              tipo_evento: tipo,
+              descricao,
+              metadata: { fila_id: item.id, ...metadata },
+              automatico: true,
+            });
+            if (eEv) {
+              console.error("[b2c-descida][vd] falha ao gravar pedido_eventos", {
+                fila_id: item.id,
+                pedido_id: pedidoIdVd,
+                erro: eEv.message,
+              });
+              return `falha ao gravar pedido_eventos: ${eEv.message}`;
+            }
+            return null;
+          };
+          const falharVd = async (msg: string, bruto?: unknown) => {
+            await falhar(msg, bruto);
+            const eEv = await registrarEvento("erro_automacao", `Falha ao criar no Bling: ${msg}`.slice(0, 2000), {});
+            if (eEv) {
+              const d = resultado.detalhes[resultado.detalhes.length - 1];
+              if (d) d.erro = `${d.erro ?? ""} · ${eEv}`;
+            }
+          };
+
+          // Pedido
+          const { data: ped, error: ePedVd } = await supabase
+            .from("pedidos")
+            .select(
+              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem",
+            )
+            .eq("id", pedidoIdVd)
+            .maybeSingle();
+          if (ePedVd) {
+            await falharVd(`ler pedidos: ${ePedVd.message}`);
+            continue;
+          }
+          if (!ped) {
+            await falhar(`Pedido SNCF ${pedidoIdVd} não encontrado em \`pedidos\` — nada enviado ao Bling.`);
+            continue;
+          }
+          if (ped.origem !== "venda_direta") {
+            await falharVd(
+              `Pedido ${ped.id_externo} tem origem "${ped.origem ?? "(nula)"}" — a descida B2C sem Shopify só aceita origem 'venda_direta'. Nada enviado ao Bling.`,
+            );
+            continue;
+          }
+          const idExterno = String(ped.id_externo ?? "").trim();
+          if (!idExterno) {
+            await falharVd("Pedido sem `id_externo` — sem ele o `numeroLoja` não casa a NF de volta. Nada enviado ao Bling.");
+            continue;
+          }
+
+          // Itens
+          const { data: itensVdRaw, error: eItVd } = await supabase
+            .from("pedido_itens")
+            .select("sku, descricao, quantidade, valor_unitario")
+            .eq("pedido_id", pedidoIdVd);
+          if (eItVd) {
+            await falharVd(`ler pedido_itens: ${eItVd.message}`);
+            continue;
+          }
+          const itensVd: ItemPedido[] = ((itensVdRaw ?? []) as Record<string, unknown>[])
+            .map((it) => ({
+              sku: it.sku ? String(it.sku).trim() : "",
+              nome: String(it.descricao ?? "").trim(),
+              qtd: Number(it.quantidade ?? 0),
+              unitario: Number(it.valor_unitario ?? 0),
+            }))
+            .filter((it) => it.qtd > 0);
+          if (itensVd.length === 0) {
+            await falharVd(`Pedido ${idExterno} sem itens em \`pedido_itens\` — nada a enviar.`);
+            continue;
+          }
+          const semSkuVd = itensVd.filter((it) => !it.sku);
+          if (semSkuVd.length > 0) {
+            await falharVd(
+              `${semSkuVd.length} item(ns) sem SKU no pedido ${idExterno}: ` +
+                semSkuVd.map((it) => it.nome || "(sem nome)").join(" | "),
+            );
+            continue;
+          }
+
+          // Cliente (CPF e nome vêm do cadastro SNCF)
+          const { data: cli, error: eCli } = await supabase
+            .from("parceiros_comerciais")
+            .select("razao_social, cpf, telefone, email, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf")
+            .eq("id", ped.parceiro_id)
+            .maybeSingle();
+          if (eCli) {
+            await falharVd(`ler parceiros_comerciais: ${eCli.message}`);
+            continue;
+          }
+          if (!cli) {
+            await falharVd(`Cliente ${ped.parceiro_id} do pedido ${idExterno} não encontrado em \`parceiros_comerciais\`.`);
+            continue;
+          }
+          const documentoVd = soDigitos(cli.cpf);
+          if (documentoVd.length !== 11 && documentoVd.length !== 14) {
+            await falharVd(
+              `Cliente do pedido ${idExterno} sem CPF válido no cadastro — pedido NÃO criado no Bling (sem documento não há NF).`,
+            );
+            continue;
+          }
+          const nomeVd = limparTexto(cli.razao_social);
+          if (!nomeVd) {
+            await falharVd(`Cliente do pedido ${idExterno} sem nome no cadastro — contato no Bling ficaria sem nome.`);
+            continue;
+          }
+          const emailVd = String(cli.email ?? "").trim();
+          const telefoneBrutoVd = cli.telefone;
+          const telefoneVd = telefoneBR(telefoneBrutoVd);
+
+          // Endereço: entrega → `pedidos.endereco_entrega`; retirada → cadastro do cliente.
+          const endPed = (ped.endereco_entrega ?? {}) as Record<string, unknown>;
+          const retirada = String(endPed.modal ?? "") === "retirada";
+          const endVd = retirada
+            ? {
+              logradouro: limparTexto(cli.logradouro),
+              numero: limparTexto(cli.numero),
+              complemento: limparTexto(cli.endereco_complemento),
+              bairro: limparTexto(cli.bairro),
+              cep: soDigitos(cli.cep),
+              municipio: limparTexto(cli.cidade),
+              uf: String(cli.uf ?? "").trim().slice(0, 2).toUpperCase(),
+            }
+            : {
+              logradouro: limparTexto(endPed.logradouro),
+              numero: limparTexto(endPed.numero),
+              complemento: limparTexto(endPed.complemento),
+              bairro: limparTexto(endPed.bairro),
+              cep: soDigitos(endPed.cep),
+              municipio: limparTexto(endPed.cidade),
+              uf: String(endPed.uf ?? "").trim().slice(0, 2).toUpperCase(),
+            };
+          if (!retirada && (!endVd.cep || !endVd.logradouro || !endVd.municipio || !endVd.uf)) {
+            await falharVd(
+              `Pedido ${idExterno} (entrega) com endereço incompleto em \`endereco_entrega\` (CEP, logradouro, cidade e UF são obrigatórios).`,
+            );
+            continue;
+          }
+          if (!retirada && transporteCfgFaltando.length > 0) {
+            await falharVd(
+              `Config de transporte B2C ausente em integracoes_config (${transporteCfgFaltando.join(", ")}) — pedido NÃO enviado sem transporte.`,
+            );
+            continue;
+          }
+
+          // Modal do frete — DIMENSAO-VIA-TABELA (`frete_tipos.mod_frete_nf`).
+          // Retirada: padrão "sem frete" já existente na dimensão = FOB_CLIENTE
+          // (por conta do destinatário), sem transportadora.
+          const codigoFrete = retirada ? "FOB_CLIENTE" : String(ped.frete_tipo ?? "");
+          let fretePorContaVd: number | null = null;
+          if (codigoFrete) {
+            const { data: fd, error: eFd } = await supabase
+              .from("frete_tipos")
+              .select("mod_frete_nf")
+              .eq("codigo", codigoFrete)
+              .maybeSingle();
+            if (eFd) {
+              await falharVd(`ler frete_tipos: ${eFd.message}`);
+              continue;
+            }
+            if (fd?.mod_frete_nf != null) fretePorContaVd = Number(fd.mod_frete_nf);
+          }
+          if (fretePorContaVd == null) {
+            if (retirada) {
+              await falharVd("frete_tipos sem `mod_frete_nf` para FOB_CLIENTE — modal da retirada indefinido; nada enviado.");
+              continue;
+            }
+            // Entrega sem frete_tipo mapeado: cai no CIF da dimensão (mesma queda do ramo Shopify) e LOGA.
+            fretePorContaVd = fretePorConta;
+            console.warn("[b2c-descida][vd] frete_tipo sem mod_frete_nf — usando CIF da dimensão", {
+              pedido_id: pedidoIdVd,
+              frete_tipo: ped.frete_tipo ?? null,
+            });
+          }
+
+          // Produtos — MESMA resolução do ramo Shopify (fn_bling_resolver_produto → API).
+          const skusVd: string[] = [...new Set(itensVd.map((it) => it.sku))];
+          const mapaVd: Record<string, number> = {};
+          const fonteVd: Record<string, string> = {};
+          const bloqueiosVd: string[] = [];
+          const motivoVd: Record<string, string> = {};
+          for (const sku of skusVd) {
+            const rr = await resolverProdutoBling(supabase, sku);
+            const idRpc = Number(rr.bling_id);
+            if (rr.ok && Number.isFinite(idRpc) && idRpc > 0) {
+              mapaVd[sku] = idRpc;
+              fonteVd[sku] = rr.como ?? "rpc";
+              continue;
+            }
+            if (rr.card_inativo) {
+              bloqueiosVd.push(`${sku}${rr.sku ? ` (SKU ${rr.sku})` : ""}: ${rr.motivo ?? "card INATIVO no Bling"}`);
+              continue;
+            }
+            motivoVd[sku] = rr.motivo ?? "codigo nao resolve para produto do Bling";
+          }
+          if (bloqueiosVd.length > 0) {
+            await falharVd(
+              `${bloqueiosVd.length} item(ns) apontam para card INATIVO no Bling — ` +
+                `o Bling recusaria o pedido. Reative o card ou corrija o codigo na origem: ` +
+                bloqueiosVd.join(" | ") + ". Nada foi criado no Bling.",
+            );
+            continue;
+          }
+          const nomesCatVd: Record<string, string> = {};
+          const faltamVd = skusVd.filter((sku) => !mapaVd[sku]);
+          if (faltamVd.length > 0) {
+            const { data: catRows } = await supabase
+              .from("sncf_produtos")
+              .select("sku, nome_comercial")
+              .in("sku", faltamVd);
+            for (const c of catRows ?? []) {
+              if (c?.nome_comercial) nomesCatVd[chaveSku(c.sku)] = String(c.nome_comercial);
+            }
+          }
+          const novosCacheVd: { sku: string; bling_produto_id: number; nome: string }[] = [];
+          for (const sku of skusVd) {
+            if (mapaVd[sku]) continue;
+            await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+            try {
+              const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(sku)}&limite=100`);
+              const escolha = escolherCandidatoApi(resp?.data ?? [], sku, nomesCatVd[chaveSku(sku)] ?? null);
+              if (escolha) {
+                if (escolha.total > 1) {
+                  console.warn("[b2c-descida][vd] card duplicado no Bling", {
+                    sku,
+                    candidatos: escolha.total,
+                    escolhido: escolha.id,
+                    motivo: escolha.motivo,
+                    origem: "api",
+                  });
+                }
+                mapaVd[sku] = escolha.id;
+                fonteVd[sku] = "api";
+                novosCacheVd.push({
+                  sku,
+                  bling_produto_id: escolha.id,
+                  nome: itensVd.find((it) => it.sku === sku)?.nome ?? sku,
+                });
+              }
+            } catch (_) {
+              // Falha de consulta nao resolve o SKU: o guardrail abaixo decide.
+            }
+          }
+          if (novosCacheVd.length > 0 && !dry) {
+            await supabase
+              .from("bling_produtos_cache")
+              .upsert(novosCacheVd, { onConflict: "sku" })
+              .then(
+                () => {},
+                () => {},
+              );
+          }
+          const naoResVd = skusVd.filter((sku) => !mapaVd[sku]);
+          if (naoResVd.length > 0) {
+            await falharVd(
+              `${naoResVd.length} SKU(s) sem produto no Bling — cadastre ou corrija o codigo antes de reenviar: ` +
+                naoResVd.map((s) => `${s}${motivoVd[s] ? ` — ${motivoVd[s]}` : ""}`).join(" | ") +
+                ". Nada foi criado no Bling.",
+            );
+            continue;
+          }
+
+          // Contato — MESMA lógica: GET por documento, POST tipo F/J, PUT do endereço se existir.
+          await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+          let contatoVd: number | null = null;
+          try {
+            const busca = await bling.get(`/contatos?numeroDocumento=${encodeURIComponent(documentoVd)}&limite=10`);
+            const achado = (busca?.data ?? []).find(
+              (c: { id?: number; numeroDocumento?: string }) => soDigitos(c?.numeroDocumento) === documentoVd,
+            );
+            if (achado?.id) contatoVd = Number(achado.id);
+          } catch (e) {
+            await falharVd(`Falha ao consultar contato no Bling: ${(e as Error).message}`);
+            continue;
+          }
+          const preexistenteVd = contatoVd;
+          const enderecoGeralVd = {
+            endereco: endVd.logradouro,
+            numero: endVd.numero,
+            complemento: endVd.complemento,
+            bairro: endVd.bairro || "Não informado",
+            cep: endVd.cep,
+            municipio: endVd.municipio,
+            uf: endVd.uf,
+          };
+          const contatoNovoVd = {
+            nome: nomeVd,
+            tipo: documentoVd.length === 14 ? "J" : "F",
+            numeroDocumento: documentoVd,
+            indicadorIE: 9,
+            situacao: "A",
+            ...(emailVd ? { email: emailVd } : {}),
+            ...(telefoneVd ? { celular: telefoneVd, telefone: telefoneVd } : {}),
+            endereco: { geral: enderecoGeralVd },
+          };
+          if (!contatoVd) {
+            if (dry) {
+              console.log("[b2c-descida][vd][dry] contato inexistente, seria criado", {
+                pedido_id: pedidoIdVd,
+                contato: contatoNovoVd,
+              });
+            } else {
+              if (telefoneBrutoVd && !telefoneVd) {
+                await falharVd(
+                  `Telefone do cliente inválido para o Bling ("${String(telefoneBrutoVd)}") — contato novo não pode ser criado. Corrija o telefone no cadastro do cliente e reenvie.`,
+                );
+                continue;
+              }
+              await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+              try {
+                const criado = await bling.post("/contatos", contatoNovoVd);
+                contatoVd = Number(criado?.data?.id ?? criado?.id ?? 0) || null;
+              } catch (e) {
+                await falharVd(`Falha ao criar contato no Bling: ${(e as Error).message}`);
+                continue;
+              }
+              if (!contatoVd) {
+                await falharVd("Bling aceitou o POST /contatos mas não devolveu id — contato não confirmado.");
+                continue;
+              }
+            }
+          }
+          let avisoEnderecoVd: string | null = null;
+          if (preexistenteVd && !dry) {
+            try {
+              await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+              const atual = await bling.get(`/contatos/${preexistenteVd}`);
+              const contatoAtual = ((atual?.data ?? atual ?? {}) as Record<string, unknown>);
+              const enderecoAtual = (contatoAtual.endereco ?? {}) as Record<string, unknown>;
+              await putBling(`/contatos/${preexistenteVd}`, {
+                ...contatoAtual,
+                endereco: { ...enderecoAtual, geral: enderecoGeralVd },
+              });
+            } catch (e) {
+              avisoEnderecoVd =
+                `aviso: falha ao atualizar endereço do contato ${preexistenteVd}: ${(e as Error).message}`;
+              console.warn("[b2c-descida][vd]", avisoEnderecoVd, { pedido_id: pedidoIdVd });
+              await supabase
+                .from("bling_pedido_fila_b2c")
+                .update({ ultimo_erro: avisoEnderecoVd.slice(0, 2000) })
+                .eq("id", item.id);
+            }
+          }
+
+          // Valores: preço do pedido SNCF; frete = frete COBRADO (CIF_ABSORVIDO → 0).
+          const totalProdutosVd = arred2(itensVd.reduce((s, it) => s + it.unitario * it.qtd, 0));
+          const freteVd = arred2(Math.max(0, Number(ped.valor_frete ?? 0)));
+          const totalVd = arred2(totalProdutosVd + freteVd);
+          const liquidoVd = arred2(Number(ped.valor_liquido ?? 0));
+          if (Math.abs(totalVd - liquidoVd) > 0.05) {
+            await falharVd(
+              `Total do pedido ${idExterno} não fecha: itens R$ ${totalProdutosVd} + frete R$ ${freteVd} = R$ ${totalVd}, ` +
+                `mas valor_liquido = R$ ${liquidoVd}. Nada enviado ao Bling.`,
+            );
+            continue;
+          }
+          const blingItensVd = itensVd.map((it) => ({
+            codigo: it.sku,
+            descricao: it.nome || it.sku,
+            produto: { id: mapaVd[it.sku] },
+            unidade: "UN",
+            quantidade: it.qtd,
+            valor: parseFloat(it.unitario.toFixed(4)),
+          }));
+          const hojeVd = new Date().toISOString().slice(0, 10);
+          const obsVd = [`Venda direta SNCF ${idExterno}`, limparTexto(ped.observacao_pedido)]
+            .filter(Boolean)
+            .join(" · ");
+
+          const payloadVd: Record<string, unknown> = {
+            // CHAVE DE CONTINUIDADE: a NF volta com numeroPedidoLoja = id_externo (VD-xxxx).
+            numeroLoja: idExterno,
+            data: hojeVd,
+            dataSaida: hojeVd,
+            loja: { id: lojaId },
+            contato: contatoVd ? { id: contatoVd } : null,
+            itens: blingItensVd,
+            // Já pago pelo portão — mesma premissa do ramo Shopify.
+            parcelas: [],
+            totalProdutos: totalProdutosVd,
+            total: totalVd,
+            transporte: retirada
+              ? { fretePorConta: fretePorContaVd }
+              : {
+                fretePorConta: fretePorContaVd,
+                ...(freteVd > 0 ? { frete: freteVd } : {}),
+                contato: { id: transportadoraContatoId },
+                volumes: [{ servico: servicoPac }],
+                etiqueta: {
+                  nome: nomeVd,
+                  endereco: endVd.logradouro,
+                  numero: endVd.numero,
+                  complemento: endVd.complemento,
+                  bairro: endVd.bairro || "Não informado",
+                  cep: endVd.cep,
+                  municipio: endVd.municipio,
+                  uf: endVd.uf,
+                  nomePais: "",
+                },
+              },
+            observacoes: obsVd,
+          };
+
+          if (dry) {
+            console.log("[b2c-descida][vd][dry] payload montado (NENHUM POST feito)", {
+              fila_id: item.id,
+              pedido_id: pedidoIdVd,
+              payload: payloadVd,
+            });
+            resultado.detalhes.push({
+              fila_id: item.id,
+              shopify_pedido_id: null,
+              order_name: idExterno,
+              resultado: "dry",
+              payload: payloadVd,
+            });
+            continue;
+          }
+
+          await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+          let blingIdVd: number | null = null;
+          let blingNumeroVd: string | null = null;
+          try {
+            const resp = await bling.post("/pedidos/vendas", payloadVd);
+            blingIdVd = Number(resp?.data?.id ?? resp?.id ?? 0) || null;
+            if (!blingIdVd) {
+              await falharVd("Bling respondeu sem id de pedido — envio não confirmado.", resp);
+              continue;
+            }
+            // Número curto: mesma busca silenciosa do ramo Shopify (pedido já existe; não reprocessar).
+            try {
+              await dormir(ESPERA_ENTRE_CHAMADAS_MS);
+              const det = await bling.get(`/pedidos/vendas/${blingIdVd}`);
+              const n = (det?.data ?? det ?? {})?.numero;
+              if (n != null && String(n).trim() !== "") blingNumeroVd = String(n).trim();
+              else console.error("[b2c-descida][vd] pedido criado mas Bling não devolveu `numero`", { fila_id: item.id, bling_pedido_id: blingIdVd });
+            } catch (eN) {
+              console.error("[b2c-descida][vd] falha ao buscar número curto — descida segue", {
+                fila_id: item.id,
+                bling_pedido_id: blingIdVd,
+                erro: (eN as Error).message ?? String(eN),
+              });
+            }
+          } catch (e) {
+            await falharVd(`POST /pedidos/vendas: ${(e as Error).message}`);
+            continue;
+          }
+
+          console.log("[b2c-descida][vd] envio OK", {
+            fila_id: item.id,
+            pedido_id: pedidoIdVd,
+            id_externo: idExterno,
+            loja_bling_id: lojaId,
+            centro_id: item.centro_id_resolvido,
+            contato_id: contatoVd,
+            bling_pedido_id: blingIdVd,
+            bling_pedido_numero: blingNumeroVd,
+            total: totalVd,
+            retirada,
+            resolucao_produto: fonteVd,
+            duracao_ms: Date.now() - t0,
+          });
+
+          const { error: eOkVd } = await supabase
+            .from("bling_pedido_fila_b2c")
+            .update({
+              status: "enviado",
+              bling_pedido_id: blingIdVd,
+              bling_pedido_numero: blingNumeroVd,
+              processado_em: new Date().toISOString(),
+              ultimo_erro: avisoEnderecoVd ?? null,
+            })
+            .eq("id", item.id);
+          const errosPos: string[] = [];
+          if (eOkVd) {
+            console.error("[b2c-descida][vd] pedido criado no Bling mas fila não atualizou", {
+              fila_id: item.id,
+              bling_pedido_id: blingIdVd,
+              erro: eOkVd.message,
+            });
+            errosPos.push(`fila não atualizou: ${eOkVd.message}`);
+          }
+          const eEvOk = await registrarEvento(
+            "outro",
+            `Pedido criado no Bling (loja Site SP) nº ${blingNumeroVd ?? blingIdVd}`,
+            { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId },
+          );
+          if (eEvOk) errosPos.push(eEvOk);
+
+          resultado.enviados++;
+          resultado.detalhes.push({
+            fila_id: item.id,
+            shopify_pedido_id: null,
+            order_name: idExterno,
+            resultado: "enviado",
+            bling_pedido_id: blingIdVd,
+            bling_pedido_numero: blingNumeroVd,
+            ...(errosPos.length > 0 ? { erro: errosPos.join(" · ") } : {}),
+          });
+          continue;
+        }
+        // ══ fim ramo origem SNCF ════════════════════════════════════════════
+
         // Transporte e obrigatorio: pedido que descer sem logistica Correios nao
         // replica o padrao da integracao nativa e quebra a etiqueta depois.
         if (transporteCfgFaltando.length > 0) {

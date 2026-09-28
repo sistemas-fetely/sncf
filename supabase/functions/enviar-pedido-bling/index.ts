@@ -248,6 +248,9 @@ serve(async (req) => {
       .eq("id", pedido_id)
       .maybeSingle();
     if (pedErr || !pedido) return err("Pedido não encontrado", 404);
+    if (pedido.canal === "B2C") {
+      return err("Pedido B2C desce pela esteira B2C (fila de descida), não pelo envio B2B.", 409);
+    }
 
     // 1c. Natureza de operação — DIMENSÃO-VIA-TABELA (25/09/2026).
     // O id da natureza no Bling (ex.: CFOP 6152 da filial para transferência interna)
