@@ -1312,7 +1312,35 @@ export default function PedidoDetalhe() {
     enabled: !!id,
   });
 
+  // Rota física do pedido entre centros (transferência interna / reposição).
+  // Rótulo vem de rotulo_curto ?? nome ?? codigo; falha degrada para o prefixo do uuid.
+  const { data: centrosRotulos } = useQuery({
+    queryKey: ["centros-distribuicao-rotulos"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("centro_distribuicao")
+        .select("id, codigo, rotulo_curto, nome");
+      if (error) throw error;
+      return new Map<string, { codigo: string; rotulo: string }>(
+        (data ?? []).map((c: any) => [
+          c.id as string,
+          { codigo: c.codigo ?? "", rotulo: c.rotulo_curto ?? c.nome ?? c.codigo ?? "" },
+        ])
+      );
+    },
+  });
+  const rotuloCentro = (idCentro: string | null | undefined) => {
+    if (!idCentro) return null;
+    const c = centrosRotulos?.get(idCentro);
+    return c?.rotulo || idCentro.slice(0, 8);
+  };
+  const rotaCentros = data?.pedido ? (
+    pedido.origem_centro_id || pedido.destino_centro_id ? { origem: rotuloCentro(pedido.origem_centro_id), destino: rotuloCentro(pedido.destino_centro_id) } : null
+  ) : null;
+
   // Tarefas vinculadas (vw_pedido_tarefas) — alimenta o dot da aba Tarefas.
+
   const { data: tarefasVinculadas } = usePedidoTarefasVinculadas(id);
   const tarefasAbertas = (tarefasVinculadas ?? []).filter((t) =>
     STATUS_ABERTOS.includes(t.status),
