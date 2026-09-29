@@ -69,6 +69,11 @@ function normalizarBloqueio(b: string): string {
   return t;
 }
 
+function medidasProvisorias(l: { aviso: string | null }): boolean {
+  const a = (l.aviso ?? "").toUpperCase();
+  return a.includes("PROVISÓRIO") || a.includes("PROVISORIO");
+}
+
 function bloqueiosDe(l: LinhaFila): string[] {
   return [...new Set((l.bloqueios ?? []).map(normalizarBloqueio))];
 }
@@ -136,6 +141,7 @@ export function XpmCadastroFila() {
   const [resultados, setResultados] = useState<ResultadoSku[] | null>(null);
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
+  const [sincronizandoEspelho, setSincronizandoEspelho] = useState(false);
   const [progresso, setProgresso] = useState<string | null>(null);
 
   const q = useQuery({
@@ -195,6 +201,8 @@ export function XpmCadastroFila() {
     ];
     const vend = porColecao.filter((l) => l.tipo_fila === "vendavel").length;
     if (vend > 0) out.push({ chave: "vendavel", rotulo: "Vendável fora do WMS", qtd: vend, tom: "aviso" });
+    const prov = porColecao.filter((l) => medidasProvisorias(l)).length;
+    if (prov > 0) out.push({ chave: "provisorio", rotulo: "Medidas provisórias", qtd: prov, tom: "aviso" });
     const cont = new Map<string, number>();
     for (const l of porColecao) for (const b of bloqueiosDe(l)) cont.set(b, (cont.get(b) ?? 0) + 1);
     for (const [b, n] of [...cont.entries()].sort((a, b) => b[1] - a[1])) {
@@ -212,6 +220,7 @@ export function XpmCadastroFila() {
     if (filtro === "todos") return porColecao;
     if (filtro === "prontos") return porColecao.filter((l) => l.pronto);
     if (filtro === "vendavel") return porColecao.filter((l) => l.tipo_fila === "vendavel");
+    if (filtro === "provisorio") return porColecao.filter((l) => medidasProvisorias(l));
     const b = filtro.slice(2);
     return porColecao.filter((l) => bloqueiosDe(l).includes(b));
   }, [porColecao, filtro]);
@@ -275,7 +284,22 @@ export function XpmCadastroFila() {
       const ok = acumulado.filter((r) => r.status === "ok").length;
       const semSku = acumulado.filter((r) => r.status === "PRODUTO_SEM_SKU").length;
       const outros = acumulado.length - ok;
-      if (ok > 0) toast.success(`${ok} SKU(s) cadastrado(s) no WMS`);
+      if (ok > 0) {
+        toast.success(`${ok} SKU(s) cadastrado(s) no WMS`);
+        setSincronizandoEspelho(true);
+        try {
+          const { error: errEspelho } = await supabase.functions.invoke("zenlog-sync-estoque", {
+            body: { tipo: "produtos" },
+          });
+          if (errEspelho) {
+            toast.warning("Cadastrado, mas o espelho não atualizou — clique em Atualizar mais tarde");
+          }
+        } catch {
+          toast.warning("Cadastrado, mas o espelho não atualizou — clique em Atualizar mais tarde");
+        } finally {
+          setSincronizandoEspelho(false);
+        }
+      }
       if (semSku > 0) toast.error(`${semSku} produto(s) criado(s) sem SKU no XPM — NÃO repita o cadastro`);
       else if (outros > 0) toast.error(`${outros} SKU(s) não cadastrado(s) — veja o resumo`);
       void q.refetch();
@@ -362,6 +386,11 @@ export function XpmCadastroFila() {
             Cadastrar {previaVai.length} no WMS
           </BotaoGuardado>
           {progresso && <span className="text-xs text-muted-foreground">{progresso}</span>}
+          {sincronizandoEspelho && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Atualizando espelho do WMS…
+            </span>
+          )}
           {previa && (
             <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setPreviaAberta(true)}>
               Ver prévia
@@ -506,10 +535,20 @@ export function XpmCadastroFila() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{l.ean_xpm ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
-                          {peso ? `${peso} kg` : <span className="text-destructive">—</span>}
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {peso ? `${peso} kg` : <span className="text-destructive">—</span>}
+                            {medidasProvisorias(l) && (
+                              <Badge variant="outline" className="border-warning text-warning text-[10px]">provisório</Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className="text-xs tabular-nums">
-                          {med ?? <span className="text-destructive">—</span>}
+                          <span className="inline-flex items-center gap-1">
+                            {med ?? <span className="text-destructive">—</span>}
+                            {medidasProvisorias(l) && (
+                              <Badge variant="outline" className="border-warning text-warning text-[10px]">provisório</Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className="text-xs tabular-nums">
                           {l.lastro ?? "—"} / {l.camada ?? "—"}

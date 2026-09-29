@@ -70547,6 +70547,36 @@ export type Database = {
           },
         ]
       }
+      xpm_medida_referencia: {
+        Row: {
+          altura_cm: number
+          atualizado_em: string
+          comprimento_cm: number
+          grupo: string
+          largura_cm: number
+          observacao: string | null
+          peso_kg: number
+        }
+        Insert: {
+          altura_cm: number
+          atualizado_em?: string
+          comprimento_cm: number
+          grupo: string
+          largura_cm: number
+          observacao?: string | null
+          peso_kg: number
+        }
+        Update: {
+          altura_cm?: number
+          atualizado_em?: string
+          comprimento_cm?: number
+          grupo?: string
+          largura_cm?: number
+          observacao?: string | null
+          peso_kg?: number
+        }
+        Relationships: []
+      }
       xpm_motivo_pausa: {
         Row: {
           ativo: boolean
