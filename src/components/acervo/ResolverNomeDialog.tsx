@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,6 +50,11 @@ function montarNome(atual: string, estampa: string): string {
   return e ? `${base}, ${e}${sufixo}` : `${base}${sufixo}`;
 }
 
+// Situações exibidas por cod_cadastro:
+// "aguardando" | "FOP: ok" | "FOP: erro — ..." | "FOP: sem confirmação ainda — confira depois"
+const AGUARDANDO = "aguardando";
+const SEM_CONFIRMACAO = "FOP: sem confirmação ainda — confira depois";
+
 export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Props) {
   const [extras, setExtras] = useState<Record<string, Extra>>({});
   const [estampa, setEstampa] = useState<Record<string, string>>({});
@@ -57,12 +62,19 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
   const [conferido, setConferido] = useState<Retorno | null>(null);
   const [conferindo, setConferindo] = useState(false);
   const [gravando, setGravando] = useState(false);
+  const [concluido, setConcluido] = useState(false);
   const [fop, setFop] = useState<Record<string, string>>({});
+  const abertoRef = useRef(aberto);
+
+  useEffect(() => {
+    abertoRef.current = aberto;
+  }, [aberto]);
 
   useEffect(() => {
     if (!aberto || linhas.length === 0) return;
     setConferido(null);
     setFop({});
+    setConcluido(false);
     const skus = linhas.map((l) => l.sku);
     const cods = linhas.map((l) => l.cod_cadastro).filter(Boolean) as string[];
     (async () => {
@@ -111,6 +123,54 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
     }
   };
 
+  /**
+   * Depois de gravar, o FOP confirma em segundo plano: repete a conferência a cada 3 s
+   * (máximo 8 tentativas ~24 s) até todo cod_cadastro ter status ok ou erro.
+   * Todos ok → fecha sozinho em 1,5 s; algum erro → permanece aberto para leitura;
+   * sem confirmação no prazo → aviso âmbar, sem travar o Fechar.
+   */
+  const monitorarFop = async () => {
+    const cods = linhas.map((l) => l.cod_cadastro).filter(Boolean) as string[];
+    if (!cods.length) {
+      setTimeout(() => { if (abertoRef.current) onFechar(); }, 1500);
+      return;
+    }
+    setFop(Object.fromEntries(cods.map((c) => [c, AGUARDANDO])));
+    const status: Record<string, string> = {};
+    const exibir = () => setFop(Object.fromEntries(cods.map((c) => [c, status[c] ?? AGUARDANDO])));
+    let resolvidos = false;
+    for (let tentativa = 0; tentativa < 8 && !resolvidos; tentativa++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      if (!abertoRef.current) return;
+      try {
+        const c = await (supabase as any).rpc("fn_fop_campo_conferir");
+        if (c.error) throw c.error;
+        const { data: env, error: eEnv } = await (supabase as any)
+          .from("fop_campo_envio").select("cod_cadastro, situacao, resposta, enviado_em")
+          .in("cod_cadastro", cods).order("enviado_em", { ascending: false });
+        if (eEnv) throw eEnv;
+        for (const e of env ?? []) {
+          if (status[e.cod_cadastro]) continue;
+          const resp = typeof e.resposta === "string" ? e.resposta : JSON.stringify(e.resposta);
+          if (e.situacao === "ok") status[e.cod_cadastro] = "FOP: ok";
+          else if (e.situacao === "erro") status[e.cod_cadastro] = `FOP: erro — ${resp}`;
+        }
+        exibir();
+        resolvidos = cods.every((c) => !!status[c]);
+      } catch (e) {
+        toast.error(formatError(e));
+        setFop(Object.fromEntries(cods.map((c) => [c, status[c] ?? SEM_CONFIRMACAO])));
+        return;
+      }
+    }
+    if (!resolvidos) {
+      setFop(Object.fromEntries(cods.map((c) => [c, status[c] ?? SEM_CONFIRMACAO])));
+      return;
+    }
+    if (cods.some((c) => status[c].startsWith("FOP: erro"))) return;
+    setTimeout(() => { if (abertoRef.current) onFechar(); }, 1500);
+  };
+
   const gravar = async () => {
     setGravando(true);
     try {
@@ -119,25 +179,10 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
       const r = data as Retorno;
       if (r?.ok !== true) throw new Error(r?.erro ?? "Gravação recusada sem detalhe");
       if ((r.ainda_repetidos ?? []).length) throw new Error("Ainda há nomes repetidos — nada foi gravado");
-      toast.success("Nome resolvido — gravado no SNCF; FOP em envio");
-      await new Promise((res) => setTimeout(res, 4000));
-      const c = await (supabase as any).rpc("fn_fop_campo_conferir");
-      if (c.error) throw c.error;
-      const cods = linhas.map((l) => l.cod_cadastro).filter(Boolean) as string[];
-      if (cods.length) {
-        const { data: env, error: eEnv } = await (supabase as any)
-          .from("fop_campo_envio").select("cod_cadastro, situacao, resposta, enviado_em")
-          .in("cod_cadastro", cods).order("enviado_em", { ascending: false });
-        if (eEnv) throw eEnv;
-        const out: Record<string, string> = {};
-        for (const e of env ?? []) {
-          if (out[e.cod_cadastro]) continue;
-          const resp = typeof e.resposta === "string" ? e.resposta : JSON.stringify(e.resposta);
-          out[e.cod_cadastro] = e.situacao === "ok" ? "FOP: ok" : e.situacao === "erro" ? `FOP: erro — ${resp}` : "FOP: enviado";
-        }
-        setFop(out);
-      }
+      toast.success("Nome gravado no SNCF — FOP em envio");
+      setConcluido(true);
       onResolvido();
+      void monitorarFop();
     } catch (e) {
       toast.error(formatError(e));
     } finally {
@@ -146,7 +191,14 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
   };
 
   const repetidos = conferido?.ainda_repetidos ?? [];
-  const podeGravar = !!conferido && conferido.ok === true && repetidos.length === 0 && !gravando;
+  const podeGravar = !!conferido && conferido.ok === true && repetidos.length === 0 && !gravando && !concluido;
+
+  const classeFop = (msg: string) =>
+    msg.startsWith("FOP: erro")
+      ? "text-destructive"
+      : msg === SEM_CONFIRMACAO
+        ? "text-warning"
+        : "text-success";
 
   return (
     <Dialog open={aberto} onOpenChange={(o) => !o && !gravando && onFechar()}>
@@ -158,6 +210,12 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
             comercial é montado no padrão e gravado no SNCF e no FOP.
           </DialogDescription>
         </DialogHeader>
+
+        {concluido && (
+          <Alert className="border-success/40 bg-success/10">
+            <AlertTitle>Nome gravado no SNCF. O nome no Bling já está resolvido.</AlertTitle>
+          </Alert>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
           {linhas.map((l) => {
@@ -184,6 +242,7 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
                   <Label className="text-xs">Estampa / o que diferencia</Label>
                   <Input
                     value={estampa[l.sku] ?? ""}
+                    disabled={concluido}
                     onChange={(e) => {
                       const v = e.target.value;
                       setEstampa((s) => ({ ...s, [l.sku]: v }));
@@ -196,6 +255,7 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
                   <Label className="text-xs">Nome comercial</Label>
                   <Input
                     value={nome[l.sku] ?? ""}
+                    disabled={concluido}
                     onChange={(e) => {
                       const v = e.target.value;
                       setNome((s) => ({ ...s, [l.sku]: v }));
@@ -209,7 +269,10 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
                   </div>
                 )}
                 {fopMsg && (
-                  <div className={`text-xs ${fopMsg.startsWith("FOP: erro") ? "text-destructive" : "text-success"}`}>{fopMsg}</div>
+                  <div className={`flex items-center gap-1.5 text-xs ${classeFop(fopMsg)}`}>
+                    {fopMsg === AGUARDANDO && <Loader2 className="h-3 w-3 shrink-0 animate-spin" />}
+                    <span>{fopMsg === AGUARDANDO ? "FOP: aguardando confirmação…" : fopMsg}</span>
+                  </div>
                 )}
               </div>
             );
@@ -230,12 +293,18 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={conferir} disabled={conferindo || gravando}>
-            {conferindo && <Loader2 className="h-4 w-4 animate-spin" />} Conferir
-          </Button>
-          <BotaoGuardado slug="acao.produto_nome_editar" rotuloAcao="Gravar nome comercial" onClick={gravar} disabled={!podeGravar}>
-            {gravando && <Loader2 className="h-4 w-4 animate-spin" />} Gravar
-          </BotaoGuardado>
+          {concluido ? (
+            <Button onClick={onFechar}>Fechar</Button>
+          ) : (
+            <>
+              <Button variant="outline" onClick={conferir} disabled={conferindo || gravando}>
+                {conferindo && <Loader2 className="h-4 w-4 animate-spin" />} Conferir
+              </Button>
+              <BotaoGuardado slug="acao.produto_nome_editar" rotuloAcao="Gravar nome comercial" onClick={gravar} disabled={!podeGravar}>
+                {gravando && <Loader2 className="h-4 w-4 animate-spin" />} Gravar
+              </BotaoGuardado>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
