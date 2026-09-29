@@ -117484,6 +117484,15 @@ export type Database = {
         Args: { p_eventos: Json; p_status_atual: string }
         Returns: string
       }
+      fn_estoque_ajustar_pelo_armazem: {
+        Args: {
+          p_documento: string
+          p_dry_run?: boolean
+          p_obs?: string
+          p_skus: string[]
+        }
+        Returns: Json
+      }
       fn_estoque_registrar_disputa: {
         Args: { p_ator: string; p_motivo: string; p_pedido_id: string }
         Returns: number

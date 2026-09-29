@@ -7,11 +7,13 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +24,10 @@ import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePa
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components/acervo/NotasSemBaixaDialog";
+import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
+
+/** Única regra com ajuste direto pelo armazém hoje (RPC fn_estoque_ajustar_pelo_armazem). */
+const REGRA_AJUSTE_ARMAZEM = "estoque_armazem_difere";
 
 function BotaoNotasSemBaixa() {
   const notas = useNotasSemBaixa();
@@ -43,8 +49,10 @@ function BotaoNotasSemBaixa() {
  * mesma cara e mesma mecânica, mas a fila é de ESTOQUE por centro.
  *
  * Uma linha = um produto × um centro × uma regra de divergência de estoque.
- * Primeira versão: só leitura, filtro e exportação — nada de seleção nem
- * ações de escrita. Nada de lista de regra ou centro escrita no código:
+ * Leitura, filtro e exportação para todas as regras; a regra `estoque_armazem_difere`
+ * (centro XPM-SC) aceita seleção e ajuste direto pelo armazém via
+ * `fn_estoque_ajustar_pelo_armazem` (só super_admin).
+ * Nada de lista de regra ou centro escrita no código:
  * tudo vem de `vw_conciliacao_estoque_fila` e `divergencia_sistema_dim`.
  */
 type FilaLinha = {
@@ -106,6 +114,12 @@ export default function ConciliacaoEstoque() {
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
+  // SELECAO-DE-AJUSTE: só linhas da regra `estoque_armazem_difere` são selecionáveis.
+  // Guarda SKU (a RPC recebe p_skus text[]).
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [ajusteAberto, setAjusteAberto] = useState(false);
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
 
   // FILTRO-MORA-NA-URL: o resto do sistema linka já filtrado.
   const lista = (k: Grupo) => (sp.get(k) ?? "").split(",").filter(Boolean);
@@ -194,7 +208,7 @@ export default function ConciliacaoEstoque() {
   // aplica depende dos parâmetros da URL, que entram na dependência via `sp`
   }, [linhas, ordem, sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setPagina(1); setExpandido(null); }, [sp, tamanho]);
+  useEffect(() => { setPagina(1); setExpandido(null); setSelecionados(new Set()); }, [sp, tamanho]);
 
   const corPorSistema = useMemo(() => {
     const m = new Map<string, string>();
@@ -236,6 +250,16 @@ export default function ConciliacaoEstoque() {
   const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const selecionaveis = useMemo(() => paginaLinhas.filter(l => l.regra === REGRA_AJUSTE_ARMAZEM).map(l => l.sku), [paginaLinhas]);
+  const todosVisiveisSelecionados = selecionaveis.length > 0 && selecionaveis.every(s => selecionados.has(s));
+  function alternarTodosVisiveis() {
+    setSelecionados(prev => {
+      const novo = new Set(prev);
+      if (todosVisiveisSelecionados) selecionaveis.forEach(s => novo.delete(s));
+      else selecionaveis.forEach(s => novo.add(s));
+      return novo;
+    });
+  }
   const produtos = new Set(recorte.map(l => l.sku)).size;
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
@@ -293,6 +317,11 @@ export default function ConciliacaoEstoque() {
       icone={Warehouse}
       estado={estado}
       acoes={<>
+        {isSuperAdmin && (
+          <Button variant="outline" size="sm" disabled={selecionados.size === 0} onClick={() => setAjusteAberto(true)}>
+            <Warehouse className="mr-2 h-4 w-4" />Ajustar pelo armazém ({selecionados.size})
+          </Button>
+        )}
         <BotaoNotasSemBaixa />
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
@@ -336,7 +365,9 @@ export default function ConciliacaoEstoque() {
     : <div className="overflow-hidden rounded-md border bg-card">
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
-          <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
+          <TableHead className="sticky top-0 z-40 w-8 bg-muted">
+            <Checkbox aria-label="Selecionar todos os visíveis" className="mb-1" checked={todosVisiveisSelecionados} disabled={selecionaveis.length === 0} onCheckedChange={alternarTodosVisiveis} />
+          </TableHead>
           {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
           </TableHead>)}
@@ -348,9 +379,12 @@ export default function ConciliacaoEstoque() {
                 {expandido === l.linha_id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               </Button>
             </TableCell>
+            <TableCell className="py-2.5 align-top">
+              <Checkbox aria-label={`Selecionar ${l.sku}`} className="mt-0.5" disabled={l.regra !== REGRA_AJUSTE_ARMAZEM} checked={l.regra === REGRA_AJUSTE_ARMAZEM && selecionados.has(l.sku)} onCheckedChange={() => setSelecionados(prev => { const novo = new Set(prev); if (novo.has(l.sku)) novo.delete(l.sku); else novo.add(l.sku); return novo; })} />
+            </TableCell>
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
-          {expandido === l.linha_id && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
+          {expandido === l.linha_id && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
             <div className="space-y-1">
               <p className="text-sm font-medium">{l.regra_nome ?? l.regra}</p>
               {temValor(l.consequencia) && <p className="text-xs text-foreground">{l.consequencia}</p>}
@@ -361,5 +395,11 @@ export default function ConciliacaoEstoque() {
       </Table>
       <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_estoque" onPagina={setPagina} onTamanhoPagina={setTamanho} />
     </div>}
+    <AjustarPeloArmazemDialog
+      aberto={ajusteAberto}
+      onFechar={() => setAjusteAberto(false)}
+      skus={[...selecionados]}
+      onAjustado={async () => { await fila.refetch(); setSelecionados(new Set()); }}
+    />
   </PageShell></TooltipProvider>;
 }
