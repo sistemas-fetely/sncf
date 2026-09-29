@@ -319,9 +319,17 @@ export default function VendaDiretaNovo() {
   }
 
   return (
-    <PageShell variant="leitura">
-      <PageHeader titulo="Venda Direta · Novo pedido" estado="Venda B2C por telefone ou WhatsApp, fora do Shopify." />
+    <PageShell>
+      <PageHeader
+        titulo="Venda Direta · Novo pedido"
+        breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+        icone={ShoppingBag}
+        estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+      />
 
+      {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
       {/* 1. Cliente */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
