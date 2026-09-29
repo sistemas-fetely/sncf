@@ -65543,21 +65543,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tmp_xpm_call: {
-        Row: {
-          etapa: string
-          req: number | null
-        }
-        Insert: {
-          etapa: string
-          req?: number | null
-        }
-        Update: {
-          etapa?: string
-          req?: number | null
-        }
-        Relationships: []
-      }
       tmp_zenlog_swagger: {
         Row: {
           j: Json | null
@@ -109262,14 +109247,17 @@ export type Database = {
         Row: {
           avisos: string[] | null
           canal_venda: string | null
+          chegada_prevista: string | null
           cod_cadastro: string | null
           codigo_shopify: string | null
+          colecao: string | null
           colecoes_shopify: string[] | null
           ean: string | null
           familia: string | null
           fase: string | null
           grupo: string | null
           marca: string | null
+          modo: string | null
           nome_comercial: string | null
           peso_g: number | null
           pode_adicionar_variante: boolean | null
@@ -109289,6 +109277,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_canal_dim"
             referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
           },
           {
             foreignKeyName: "fk_produto_grupo"
