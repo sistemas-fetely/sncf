@@ -284,7 +284,22 @@ export function XpmCadastroFila() {
       const ok = acumulado.filter((r) => r.status === "ok").length;
       const semSku = acumulado.filter((r) => r.status === "PRODUTO_SEM_SKU").length;
       const outros = acumulado.length - ok;
-      if (ok > 0) toast.success(`${ok} SKU(s) cadastrado(s) no WMS`);
+      if (ok > 0) {
+        toast.success(`${ok} SKU(s) cadastrado(s) no WMS`);
+        setSincronizandoEspelho(true);
+        try {
+          const { error: errEspelho } = await supabase.functions.invoke("zenlog-sync-estoque", {
+            body: { tipo: "produtos" },
+          });
+          if (errEspelho) {
+            toast.warning("Cadastrado, mas o espelho não atualizou — clique em Atualizar mais tarde");
+          }
+        } catch {
+          toast.warning("Cadastrado, mas o espelho não atualizou — clique em Atualizar mais tarde");
+        } finally {
+          setSincronizandoEspelho(false);
+        }
+      }
       if (semSku > 0) toast.error(`${semSku} produto(s) criado(s) sem SKU no XPM — NÃO repita o cadastro`);
       else if (outros > 0) toast.error(`${outros} SKU(s) não cadastrado(s) — veja o resumo`);
       void q.refetch();
