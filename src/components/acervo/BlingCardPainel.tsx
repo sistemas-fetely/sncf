@@ -23,9 +23,64 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
-import { AlertTriangle, Eye, Hash, Loader2, Send } from "lucide-react";
+import { AlertTriangle, ChevronDown, Eye, Hash, Loader2, Send } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const LEVA = 20;
+
+export function lerColecoesUrl(v: string): string[] {
+  return v
+    ? v.split(",").map((x) => { try { return decodeURIComponent(x); } catch { return x; } }).filter(Boolean)
+    : [];
+}
+export function gravarColecoesUrl(l: string[]): string {
+  return l.map(encodeURIComponent).join(",");
+}
+
+/** Filtro multi-seleção de coleção (busca, "Todas", "Só esta"). */
+export function FiltroColecao({
+  colecoes, selecionadas, onChange,
+}: { colecoes: [string, number][]; selecionadas: string[]; onChange: (n: string[]) => void }) {
+  const [busca, setBusca] = useState("");
+  const lista = colecoes.filter(([c]) => c.toLowerCase().includes(busca.trim().toLowerCase()));
+  const rotulo =
+    selecionadas.length === 0 ? "Todas as coleções" : selecionadas.length === 1 ? selecionadas[0] : `${selecionadas.length} coleções`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-[220px] justify-between font-normal">
+          <span className="truncate">{rotulo}</span>
+          <ChevronDown className="h-4 w-4 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 p-2">
+        <div className="mb-2 flex items-center gap-2">
+          <Input placeholder="Buscar coleção…" value={busca} onChange={(e) => setBusca(e.target.value)} className="h-8" />
+          <Button variant="ghost" size="sm" onClick={() => onChange([])}>Todas</Button>
+        </div>
+        <div className="max-h-64 overflow-auto">
+          {lista.map(([c, n]) => {
+            const marcada = selecionadas.includes(c);
+            return (
+              <div key={c} className="group flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted">
+                <Checkbox
+                  checked={marcada}
+                  onCheckedChange={() => onChange(marcada ? selecionadas.filter((x) => x !== c) : [...selecionadas, c])}
+                />
+                <span className="flex-1 truncate text-sm">{c} ({n})</span>
+                <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([c])}>
+                  Só esta
+                </button>
+              </div>
+            );
+          })}
+          {lista.length === 0 && <p className="px-2 py-3 text-xs text-muted-foreground">Nenhuma coleção encontrada.</p>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface LinhaFila {
   cod_cadastro: string | null;
@@ -147,7 +202,9 @@ export function BlingCardPainel() {
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
 
   // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
-  const [colecaoFiltro, setColecaoFiltro] = useAbaUrl("", undefined, "colecao");
+  const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
+  const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
+  const setColecaoFiltro = (l: string[]) => setColecaoUrl(gravarColecoesUrl(l));
 
   const colecoes = useMemo(() => {
     const cont = new Map<string, number>();
@@ -161,12 +218,15 @@ export function BlingCardPainel() {
 
   // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
   useEffect(() => {
-    if (q.isSuccess && colecaoFiltro && !colecoes.some(([c]) => c === colecaoFiltro)) setColecaoFiltro("");
-  }, [q.isSuccess, colecoes, colecaoFiltro, setColecaoFiltro]);
+    if (!q.isSuccess) return;
+    const validas = colecaoFiltro.filter((f) => colecoes.some(([c]) => c === f));
+    if (validas.length !== colecaoFiltro.length) setColecaoUrl(gravarColecoesUrl(validas));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.isSuccess, colecoes, colecaoUrl]);
 
   // A coleção filtra a base dos cartões de pendência e da tabela (combina com o filtro E).
   const porColecao = useMemo(
-    () => (colecaoFiltro ? linhas.filter((l) => (l.colecao ?? "").trim() === colecaoFiltro) : linhas),
+    () => (colecaoFiltro.length ? linhas.filter((l) => colecaoFiltro.includes((l.colecao ?? "").trim())) : linhas),
     [linhas, colecaoFiltro],
   );
 
@@ -418,19 +478,7 @@ export function BlingCardPainel() {
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
             <p className="text-xs font-medium">Coleção</p>
-            <Select value={colecaoFiltro || "todas"} onValueChange={(v) => setColecaoFiltro(v === "todas" ? "" : v)}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Todas as coleções" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as coleções</SelectItem>
-                {colecoes.map(([c, n]) => (
-                  <SelectItem key={c} value={c}>
-                    {c} ({n})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FiltroColecao colecoes={colecoes} selecionadas={colecaoFiltro} onChange={setColecaoFiltro} />
           </div>
           <div className="space-y-1">
             <p className="text-xs font-medium">Origem fiscal *</p>
