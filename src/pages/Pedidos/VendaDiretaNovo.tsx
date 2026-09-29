@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Loader2, MessageCircle, Plus, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { Copy, CreditCard, Loader2, MessageCircle, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -10,9 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
+import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
@@ -157,6 +160,7 @@ export default function VendaDiretaNovo() {
   useEffect(() => {
     if (saldoQ.isError) toast.error(`Falha ao ler saldo do Site SP: ${rawMessage(saldoQ.error)}`);
   }, [saldoQ.isError, saldoQ.error]);
+  const imgsQ = useImagensProduto(skus);
 
   const selecionarCliente = (c: ClienteBusca) => {
     setCliente(c);
