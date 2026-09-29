@@ -49,6 +49,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
+import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 
 interface CentroDestino {
   codigo: string;
@@ -988,6 +989,8 @@ export default function TransferenciasInternas() {
           </form>
         </CardContent>
       </Card>
+
+      <TransferenciasSemBaixaPainel onLancado={() => listaQ.refetch()} />
 
       <Card>
         <CardHeader>
