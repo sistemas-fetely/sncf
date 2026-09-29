@@ -123,7 +123,7 @@ export function BlingCardPainel() {
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
   const abrirResolver = (l: LinhaFila) => {
     const trecho = (l.conflito_nome ?? "").match(/SNCF:\s*([^;|]*)/i)?.[1] ?? "";
-    const cods = trecho.match(/[A-Za-z0-9-]+/g) ?? [];
+    const cods: string[] = trecho.match(/[A-Za-z0-9-]+/g) ?? [];
     const outras = linhas.filter((x) => x.sku !== l.sku && x.cod_cadastro && cods.includes(x.cod_cadastro));
     setResolver([l, ...outras]);
   };
