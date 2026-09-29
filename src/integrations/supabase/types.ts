@@ -19223,6 +19223,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cron_http_chamada: {
+        Row: {
+          chamado_em: string
+          edge: string
+          erro: string | null
+          jobname: string
+          request_id: number
+          respondido_em: string | null
+          resposta: string | null
+          status_code: number | null
+          timed_out: boolean | null
+        }
+        Insert: {
+          chamado_em?: string
+          edge: string
+          erro?: string | null
+          jobname: string
+          request_id: number
+          respondido_em?: string | null
+          resposta?: string | null
+          status_code?: number | null
+          timed_out?: boolean | null
+        }
+        Update: {
+          chamado_em?: string
+          edge?: string
+          erro?: string | null
+          jobname?: string
+          request_id?: number
+          respondido_em?: string | null
+          resposta?: string | null
+          status_code?: number | null
+          timed_out?: boolean | null
+        }
+        Relationships: []
+      }
       custo_aterrissagem: {
         Row: {
           atualizado_em: string
@@ -81348,6 +81384,19 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_cron_saude: {
+        Row: {
+          chamadas_24h: number | null
+          edge: string | null
+          falhas_24h: number | null
+          jobname: string | null
+          sem_resposta: number | null
+          ultima_chamada: string | null
+          ultima_resposta: string | null
+          ultimo_status: number | null
+        }
+        Relationships: []
+      }
       vw_curva_abc: {
         Row: {
           ativo: boolean | null
@@ -95188,14 +95237,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -96205,14 +96254,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -97922,14 +97971,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -115624,6 +115673,16 @@ export type Database = {
         }
         Returns: string
       }
+      fn_cron_chamar_edge: {
+        Args: {
+          p_body?: Json
+          p_edge: string
+          p_job: string
+          p_timeout_ms?: number
+        }
+        Returns: number
+      }
+      fn_cron_coletar_respostas: { Args: never; Returns: number }
       fn_cron_rolling_contratos: { Args: never; Returns: number }
       fn_cronograma_sugerido_pedido: {
         Args: { p_pedido_id: string }
