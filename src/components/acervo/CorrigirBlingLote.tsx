@@ -25,7 +25,7 @@ type DePara = { campo: string; bling: unknown; novo: unknown };
 type Resultado = { sku: string; status: string; de_para?: DePara[]; bloqueios?: string[]; erro?: string };
 
 // Teto da edge corrigir-produto-bling = 50 SKUs por chamada.
-const TETO = 50;
+const TETO = 20;
 
 type Progresso = { leva: number; total: number };
 type Chamada = { resultados: Resultado[]; levaFalha: number | null; erroLeva: string | null };
