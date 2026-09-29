@@ -446,6 +446,8 @@ export default function VendaDiretaNovo() {
         </CardContent>
       </Card>
 
+        </div>
+        <div className="space-y-4 lg:col-span-1">
       {/* 3. Entrega */}
       <Card>
         <CardHeader><CardTitle className="text-base">Entrega</CardTitle></CardHeader>
@@ -501,6 +503,9 @@ export default function VendaDiretaNovo() {
         <CardHeader><CardTitle className="text-base">Observação</CardTitle></CardHeader>
         <CardContent><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></CardContent>
       </Card>
+
+        </div>
+      </div>
 
       <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
         <div className="text-sm tabular-nums">
