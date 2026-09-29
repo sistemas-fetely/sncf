@@ -213,29 +213,35 @@ export function BlingCardPainel() {
 
   const cartoes = useMemo(() => {
     const out: { chave: string; rotulo: string; qtd: number; tom?: "erro" | "aviso" | "ok" }[] = [];
-    out.push({ chave: "todos", rotulo: "Todos", qtd: linhas.length });
-    const nProntos = linhas.filter((l) => (l.falta ?? []).length === 0).length;
+    out.push({ chave: "todos", rotulo: "Todos", qtd: porColecao.length });
+    const nProntos = porColecao.filter((l) => (l.falta ?? []).length === 0).length;
     if (nProntos > 0) out.push({ chave: "prontos", rotulo: "Prontos", qtd: nProntos, tom: "ok" });
     const cont = new Map<string, number>();
-    for (const l of linhas) for (const f of l.falta ?? []) cont.set(f, (cont.get(f) ?? 0) + 1);
+    for (const l of porColecao) for (const f of l.falta ?? []) cont.set(f, (cont.get(f) ?? 0) + 1);
     for (const [f, n] of cont) out.push({ chave: `falta:${f}`, rotulo: rotuloFalta(f), qtd: n, tom: "erro" });
-    const nAviso = linhas.filter((l) => (l.avisos ?? []).length > 0).length;
+    const nAviso = porColecao.filter((l) => (l.avisos ?? []).length > 0).length;
     if (nAviso > 0) out.push({ chave: "aviso", rotulo: "Com aviso", qtd: nAviso, tom: "aviso" });
     return out;
-  }, [linhas]);
+  }, [porColecao]);
 
   const filtradas = useMemo(() => {
-    if (filtro === "todos") return linhas;
-    if (filtro === "prontos") return linhas.filter((l) => (l.falta ?? []).length === 0);
-    if (filtro === "aviso") return linhas.filter((l) => (l.avisos ?? []).length > 0);
+    if (filtro === "todos") return porColecao;
+    if (filtro === "prontos") return porColecao.filter((l) => (l.falta ?? []).length === 0);
+    if (filtro === "aviso") return porColecao.filter((l) => (l.avisos ?? []).length > 0);
     if (filtro.startsWith("falta:")) {
       const f = filtro.slice(6);
-      return linhas.filter((l) => (l.falta ?? []).includes(f));
+      return porColecao.filter((l) => (l.falta ?? []).includes(f));
     }
-    return linhas;
-  }, [linhas, filtro]);
+    return porColecao;
+  }, [porColecao, filtro]);
 
   const prontos = useMemo(() => filtradas.filter((l) => (l.falta ?? []).length === 0), [filtradas]);
+
+  // Apenas as linhas visíveis (coleção + cartão) que estão selecionadas — Prévia/Criar respeitam o filtro.
+  const selecionadasVisiveis = useMemo(
+    () => filtradas.filter((l) => selecionados.includes(l.sku)),
+    [filtradas, selecionados],
+  );
 
   // Candidatos ao NCM da NF: sem NCM no cadastro e sugestão vinda de NF de entrada.
   const ncmNfCandidatos = useMemo(
