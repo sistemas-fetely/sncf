@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
 import { AlertTriangle, Eye, Loader2, Send } from "lucide-react";
 
 const LEVA = 20;
@@ -119,6 +120,13 @@ export function BlingCardPainel() {
   });
 
   const linhas = q.data ?? [];
+  const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
+  const abrirResolver = (l: LinhaFila) => {
+    const trecho = (l.conflito_nome ?? "").match(/SNCF:\s*([^;|]*)/i)?.[1] ?? "";
+    const cods = trecho.match(/[A-Za-z0-9-]+/g) ?? [];
+    const outras = linhas.filter((x) => x.sku !== l.sku && x.cod_cadastro && cods.includes(x.cod_cadastro));
+    setResolver([l, ...outras]);
+  };
   const [filtro, setFiltro] = useState<string>("todos");
 
   const cartoes = useMemo(() => {
@@ -456,6 +464,11 @@ export function BlingCardPainel() {
                             {falta.map((f) => (
                               <Badge key={f} variant="destructive" className="text-[10px]">{f}</Badge>
                             ))}
+                            {falta.includes("nome repetido") && (
+                              <Button variant="outline" size="sm" className="h-6 px-2 text-[11px]" onClick={() => abrirResolver(l)}>
+                                Resolver
+                              </Button>
+                            )}
                             {avisos.map((a) => (
                               <Badge key={a} variant="outline" className="text-[10px] border-warning/60 text-warning">{a}</Badge>
                             ))}
@@ -470,6 +483,12 @@ export function BlingCardPainel() {
           </TooltipProvider>
         )}
       </CardContent>
+      <ResolverNomeDialog
+        aberto={!!resolver}
+        onFechar={() => setResolver(null)}
+        linhas={resolver ?? []}
+        onResolvido={() => void q.refetch()}
+      />
     </Card>
   );
 }
