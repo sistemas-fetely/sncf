@@ -22,6 +22,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { AlertTriangle, Eye, Hash, Loader2, Send } from "lucide-react";
 
 const LEVA = 20;
@@ -144,6 +145,30 @@ export function BlingCardPainel() {
 
   const linhas = q.data ?? [];
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
+
+  // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
+  const [colecaoFiltro, setColecaoFiltro] = useAbaUrl("", undefined, "colecao");
+
+  const colecoes = useMemo(() => {
+    const cont = new Map<string, number>();
+    for (const l of linhas) {
+      const c = (l.colecao ?? "").trim();
+      if (!c) continue;
+      cont.set(c, (cont.get(c) ?? 0) + 1);
+    }
+    return [...cont.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
+
+  // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
+  useEffect(() => {
+    if (q.isSuccess && colecaoFiltro && !colecoes.some(([c]) => c === colecaoFiltro)) setColecaoFiltro("");
+  }, [q.isSuccess, colecoes, colecaoFiltro, setColecaoFiltro]);
+
+  // A coleção filtra a base dos cartões de pendência e da tabela (combina com o filtro E).
+  const porColecao = useMemo(
+    () => (colecaoFiltro ? linhas.filter((l) => (l.colecao ?? "").trim() === colecaoFiltro) : linhas),
+    [linhas, colecaoFiltro],
+  );
 
   // Origem fiscal padrão do catálogo: mais frequente entre os ativos.
   const qOrigem = useQuery({
