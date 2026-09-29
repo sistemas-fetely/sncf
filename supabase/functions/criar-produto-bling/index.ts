@@ -126,8 +126,58 @@ serve(async (req) => {
     if (cacheErr) return json({ ok: false, erro: `Falha ao ler bling_produtos_cache: ${cacheErr.message}` }, 500);
     const jaExiste = new Set<string>((cache || []).map((c: any) => c.sku));
 
+    // ---- PORTÃO 3: nome repetido (Bling espelho, outros SNCF, mesmo lote) ----
+    const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
+    const escLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
+    const nomesLote = new Map<string, string[]>(); // nome normalizado -> skus do lote
+    for (const sku of skus) {
+      const n = norm(porSku.get(sku)?.nome_operacional);
+      if (!n) continue;
+      nomesLote.set(n, [...(nomesLote.get(n) ?? []), sku]);
+    }
+    const repetidoCom = new Map<string, Set<string>>(); // nome normalizado -> códigos conflitantes
+    const addConf = (n: string, cod: string) => {
+      const s = repetidoCom.get(n) ?? new Set<string>();
+      s.add(cod);
+      repetidoCom.set(n, s);
+    };
+    try {
+      await Promise.all(
+        [...nomesLote.keys()].map(async (n) => {
+          const padrao = `%${escLike(n)}%`;
+          const [rb, rs] = await Promise.all([
+            supabase.from("produtos").select("codigo, nome").ilike("nome", padrao),
+            supabase
+              .from("sncf_produtos")
+              .select("sku, nome_operacional, fase")
+              .ilike("nome_operacional", padrao)
+              .in("fase", ["ativo", "pre_venda", "inativo"]),
+          ]);
+          if (rb.error) throw new Error(`Falha ao ler produtos: ${rb.error.message}`);
+          if (rs.error) throw new Error(`Falha ao ler sncf_produtos (nomes): ${rs.error.message}`);
+          for (const p of (rb.data ?? []) as any[]) {
+            if (norm(p.nome) === n && p.codigo) addConf(n, String(p.codigo));
+          }
+          for (const p of (rs.data ?? []) as any[]) {
+            if (norm(p.nome_operacional) === n) addConf(n, String(p.sku));
+          }
+        }),
+      );
+    } catch (e) {
+      return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
+    }
+    function conflitosDe(sku: string): string[] {
+      const n = norm(porSku.get(sku)?.nome_operacional);
+      if (!n) return [];
+      const out = new Set<string>();
+      for (const c of repetidoCom.get(n) ?? []) if (c !== sku) out.add(c);
+      for (const c of nomesLote.get(n) ?? []) if (c !== sku) out.add(c);
+      return [...out];
+    }
+
     const recusados: { sku: string; motivo: string }[] = [];
     const criar: { sku: string; payload: any }[] = [];
+
 
     for (const sku of skus) {
       const f = porSku.get(sku);
@@ -151,6 +201,12 @@ serve(async (req) => {
       if (!nome) {
         recusados.push({ sku, motivo: "nome_operacional vazio" });
         console.log(`[criar-produto-bling] ${sku}: recusado — nome_operacional vazio`);
+        continue;
+      }
+      const conf = conflitosDe(sku);
+      if (conf.length > 0) {
+        recusados.push({ sku, motivo: `nome repetido: igual a ${conf.join(", ")}` });
+        console.log(`[criar-produto-bling] ${sku}: recusado — nome repetido (${conf.join(", ")})`);
         continue;
       }
 
