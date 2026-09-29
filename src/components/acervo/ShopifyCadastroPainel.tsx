@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { FiltroColecao, gravarColecoesUrl, lerColecoesUrl } from "@/components/acervo/BlingCardPainel";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { AlertTriangle, ChevronDown, Eye, ImageOff, Layers, Loader2, Send } from "lucide-react";
 
 const LEVA = 10;
