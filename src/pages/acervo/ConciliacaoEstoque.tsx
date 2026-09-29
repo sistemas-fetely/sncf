@@ -55,7 +55,7 @@ type Causa = { regra: string; nome: string | null; detalhe: string | null; o_que
 type Produto = {
   sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null; fase: string | null;
   fiscal: number | null; real: number | null; real_completo: boolean | null; virtual: number | null; reservado: number | null;
-  delta_real_fiscal: number | null; delta_virtual_real: number | null; centros: number | null;
+  delta_real_fiscal: number | null; delta_virtual_real: number | null; centros: number | null; nf_pendente?: number | null;
   centros_com_diferenca: number | null; centros_diferenca: string[] | null; causas_produto: Causa[] | null; com_diferenca: boolean | null;
 };
 type Centro = {
@@ -66,10 +66,13 @@ type Centro = {
   delta_real_fiscal: number | null; delta_virtual_real: number | null; shopify_diff: number | null; bling_diff: number | null;
   causas: Causa[] | null; tem_baixa_pendente: boolean | null; contagem_vencida: boolean | null;
   correcao: "notas_sem_baixa" | "ajustar_armazem" | "contagem" | "canais" | null; com_diferenca: boolean | null;
+  nf_pendente: number | null; nf_pendente_detalhe: string | null;
 };
 
-type Cartao = "diferenca" | "furo" | "ruptura" | "perdida" | "semreal" | "canais";
+type Cartao = "diferenca" | "furo" | "ruptura" | "perdida" | "semreal" | "canais" | "nfpend";
 const n0 = (v: number | null | undefined) => Number(v ?? 0);
+const sinalNf = (v: number) => (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toLocaleString("pt-BR");
+const somaNf = (ls: Centro[]) => ls.some(c => c.nf_pendente !== null && c.nf_pendente !== undefined) ? ls.reduce((t, c) => t + n0(c.nf_pendente), 0) : null;
 const sinal = (v: number | null | undefined) => { const x = n0(v); return x > 0 ? `+${x}` : String(x); };
 
 async function lerTudo<T>(view: string, ordem: string[]): Promise<T[]> {
@@ -174,7 +177,7 @@ export default function ConciliacaoEstoque() {
 
   // Linha exibida: números do escopo (ou do total quando vazio).
   const exibidos = useMemo<Produto[]>(() => {
-    if (!temEscopo) return produtos;
+    if (!temEscopo) return produtos.map(p => ({ ...p, nf_pendente: somaNf(cs(p.sku)) }));
     return produtos.map(p => {
       const ls = linhasEscopo(p.sku);
       const comV = ls.filter(c => c.virtual !== null);
@@ -188,6 +191,7 @@ export default function ConciliacaoEstoque() {
         virtual: comV.length ? comV.reduce((s, c) => s + n0(c.virtual), 0) : null,
         delta_real_fiscal: ls.reduce((s, c) => s + n0(c.delta_real_fiscal), 0),
         delta_virtual_real: comDvr.length ? comDvr.reduce((s, c) => s + n0(c.delta_virtual_real), 0) : null,
+        nf_pendente: somaNf(ls),
         com_diferenca: dif.length > 0,
         centros: ls.length,
         centros_com_diferenca: dif.length,
@@ -205,6 +209,7 @@ export default function ConciliacaoEstoque() {
     perdida: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) < 0),
     semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem"),
     canais: p => linhasEscopo(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
+    nfpend: p => linhasEscopo(p.sku).some(c => c.nf_pendente !== null && c.nf_pendente !== undefined),
   };
 
   // Base: busca + escopo de centro + coleção (cartões contam sobre ela).
@@ -219,6 +224,16 @@ export default function ConciliacaoEstoque() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [exibidos, porSku, busca, sp]);
 
+  const baseSemEscopo = useMemo(() => {
+    const q = busca.trim().toLocaleLowerCase("pt-BR");
+    return produtos.filter(p => {
+      if (q && ![p.cod_cadastro, p.sku, p.nome_comercial].filter(temValor).some(v => String(v).toLocaleLowerCase("pt-BR").includes(q))) return false;
+      if (filColecoes.length && !filColecoes.includes(p.colecao ?? "")) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtos, busca, sp]);
+
   const cartoes: { k: Cartao; titulo: string; sub?: string }[] = [
     { k: "diferenca", titulo: "Com diferença" },
     { k: "furo", titulo: "Furo físico", sub: `${base.reduce((s, p) => s + linhasEscopo(p.sku).reduce((t, c) => t + Math.abs(n0(c.delta_real_fiscal)), 0), 0)} un` },
@@ -226,6 +241,7 @@ export default function ConciliacaoEstoque() {
     { k: "perdida", titulo: "Venda perdida" },
     { k: "semreal", titulo: "Sem real" },
     { k: "canais", titulo: "Canais" },
+    { k: "nfpend", titulo: "NF pendente", sub: `${base.reduce((s, p) => s + linhasEscopo(p.sku).reduce((t, c) => t + Math.abs(n0(c.nf_pendente)), 0), 0).toLocaleString("pt-BR")} un` },
   ];
   const centrosLista = useMemo(() => {
     const m = new Map<string, { codigo: string; nome: string; ordem: number }>();
@@ -259,7 +275,7 @@ export default function ConciliacaoEstoque() {
   function refetch() { produtosQ.refetch(); centrosQ.refetch(); }
   function exportar() {
     const skus = new Set(recorte.map(p => p.sku));
-    const cols: (keyof Centro)[] = ["sku", "cod_cadastro", "nome_comercial", "colecao", "fase", "centro", "centro_nome", "centro_ordem", "centro_vende", "fonte_real", "real_em", "fiscal", "real", "virtual", "reservado", "fiscal_bloqueado", "delta_real_fiscal", "delta_virtual_real", "shopify_diff", "bling_diff", "tem_baixa_pendente", "contagem_vencida", "correcao", "com_diferenca"];
+    const cols: (keyof Centro)[] = ["sku", "cod_cadastro", "nome_comercial", "colecao", "fase", "centro", "centro_nome", "centro_ordem", "centro_vende", "fonte_real", "real_em", "fiscal", "real", "virtual", "reservado", "fiscal_bloqueado", "delta_real_fiscal", "delta_virtual_real", "shopify_diff", "bling_diff", "nf_pendente", "nf_pendente_detalhe", "tem_baixa_pendente", "contagem_vencida", "correcao", "com_diferenca"];
     const linhas = [[...cols, "causas"].join(";")];
     for (const c of centrosQ.data ?? []) {
       if (!skus.has(c.sku)) continue;
@@ -302,7 +318,7 @@ export default function ConciliacaoEstoque() {
     {erro && <Alert variant="destructive" className="mb-4"><AlertTriangle className="h-4 w-4" /><AlertDescription>Erro ao carregar a conciliação: {formatError(erro)}</AlertDescription></Alert>}
 
     {!erro && <>
-      <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+      <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-7">
         {cartoes.map(k => {
           const n = carregando ? null : base.filter(testa[k.k]).length;
           return <button key={k.k} type="button" onClick={() => setParam("cartao", cartao === k.k ? null : k.k)} className={cn("rounded-md border bg-card p-3 text-left transition-colors hover:bg-muted", cartao === k.k && "border-primary ring-1 ring-primary")}>
@@ -314,7 +330,7 @@ export default function ConciliacaoEstoque() {
       </div>
       <div className="mb-4 flex flex-wrap gap-2">
         {centrosLista.map(c => {
-          const n = base.filter(p => cs(p.sku).some(x => x.centro === c.codigo && x.com_diferenca)).length;
+          const n = baseSemEscopo.filter(p => cs(p.sku).some(x => x.centro === c.codigo && x.com_diferenca)).length;
           return <button key={c.codigo} type="button" onClick={() => setParam("centro_card", centroCartao === c.codigo ? null : c.codigo)} className={cn("rounded border bg-card px-2 py-1 text-xs hover:bg-muted", centroCartao === c.codigo && "border-primary ring-1 ring-primary")}>
             {c.nome} <span className="ml-1 font-semibold tabular-nums">{n}</span>
           </button>;
@@ -340,11 +356,12 @@ export default function ConciliacaoEstoque() {
             <TableHead className="text-right">Virtual</TableHead>
             <TableHead className="text-right"><Ordenar col="delta" rotulo="Δ Real−Fiscal" /></TableHead>
             <TableHead className="text-right">Δ Virtual×Real</TableHead>
+            <TableHead className="text-right">NF pendente</TableHead>
             <TableHead>Centros com diferença</TableHead><TableHead>Causas</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {carregando && Array.from({ length: 6 }).map((_, i) => <TableRow key={i}><TableCell colSpan={11}><Skeleton className="h-5 w-full" /></TableCell></TableRow>)}
-            {!carregando && visiveis.length === 0 && <TableRow><TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">Nenhuma diferença entre Fiscal, Real e Virtual.</TableCell></TableRow>}
+            {carregando && Array.from({ length: 6 }).map((_, i) => <TableRow key={i}><TableCell colSpan={12}><Skeleton className="h-5 w-full" /></TableCell></TableRow>)}
+            {!carregando && visiveis.length === 0 && <TableRow><TableCell colSpan={12} className="py-10 text-center text-sm text-muted-foreground">Nenhuma diferença entre Fiscal, Real e Virtual.</TableCell></TableRow>}
             {!carregando && visiveis.map(p => {
               const aberto = expandido === p.sku;
               const centros = linhasEscopo(p.sku);
@@ -362,15 +379,22 @@ export default function ConciliacaoEstoque() {
                   <TableCell className="text-right tabular-nums">{n0(p.virtual)}</TableCell>
                   <TableCell className="text-right"><DeltaRF v={p.delta_real_fiscal} /></TableCell>
                   <TableCell className="text-right"><DeltaVR v={p.delta_virtual_real} /></TableCell>
+                  <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">{(() => {
+                    const det = centros.filter(c => c.nf_pendente_detalhe).map(c => `${c.centro_nome ?? c.centro}: ${c.nf_pendente_detalhe}`);
+                    if (p.nf_pendente === null || p.nf_pendente === undefined) return "";
+                    const t = n0(p.nf_pendente);
+                    const txt = t === 0 ? "0" : sinalNf(t);
+                    return det.length ? <Tooltip><TooltipTrigger asChild><span className="cursor-help">{txt}</span></TooltipTrigger><TooltipContent className="max-w-xs">{det.map((d, i) => <div key={i}>{d}</div>)}</TooltipContent></Tooltip> : txt;
+                  })()}</TableCell>
                   <TableCell><div className="flex flex-wrap gap-1">{(p.centros_diferenca ?? []).map(c => <Badge key={c} variant="outline" className="text-[10px]">{c}</Badge>)}</div></TableCell>
                   <TableCell><div className="flex max-w-72 flex-wrap gap-1">{causas.map(c => <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>)}</div></TableCell>
                 </TableRow>
-                {aberto && <TableRow className="bg-muted/40 hover:bg-muted/40"><TableCell colSpan={11} className="p-2">
+                {aberto && <TableRow className="bg-muted/40 hover:bg-muted/40"><TableCell colSpan={12} className="p-2">
                   {centros.length === 0 ? <p className="p-2 text-muted-foreground">Sem linhas por centro.</p> :
                   <Table className="text-xs"><TableHeader><TableRow>
                     <TableHead>Centro</TableHead><TableHead>Fonte do real</TableHead>
                     <TableHead className="text-right">Fiscal</TableHead><TableHead className="text-right">Real</TableHead><TableHead className="text-right">Virtual</TableHead><TableHead className="text-right">Reservado</TableHead>
-                    <TableHead className="text-right">Δ Real−Fiscal</TableHead><TableHead className="text-right">Δ Virtual×Real</TableHead><TableHead>Shopify/Bling Δ</TableHead>
+                    <TableHead className="text-right">Δ Real−Fiscal</TableHead><TableHead className="text-right">Δ Virtual×Real</TableHead><TableHead className="text-right">NF pendente</TableHead><TableHead>Shopify/Bling Δ</TableHead>
                     <TableHead>Causas</TableHead><TableHead>Correção</TableHead>
                   </TableRow></TableHeader><TableBody>
                     {centros.map(c => <TableRow key={c.centro}>
@@ -382,6 +406,7 @@ export default function ConciliacaoEstoque() {
                       <TableCell className="text-right tabular-nums">{n0(c.reservado)}</TableCell>
                       <TableCell className="text-right"><DeltaRF v={c.delta_real_fiscal} /></TableCell>
                       <TableCell className="text-right"><DeltaVR v={c.delta_virtual_real} /></TableCell>
+                      <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">{c.nf_pendente !== null && c.nf_pendente !== undefined && <>{n0(c.nf_pendente) === 0 ? "0" : sinalNf(n0(c.nf_pendente))}{c.nf_pendente_detalhe && <div className="text-[10px] font-normal text-muted-foreground">{c.nf_pendente_detalhe}</div>}</>}</TableCell>
                       <TableCell className="tabular-nums">{[n0(c.shopify_diff) !== 0 && `Shopify ${sinal(c.shopify_diff)}`, n0(c.bling_diff) !== 0 && `Bling ${sinal(c.bling_diff)}`].filter(Boolean).join(" · ") || ""}</TableCell>
                       <TableCell><ul className="space-y-0.5">{(c.causas ?? []).map((x, i) => <li key={i}>{x.o_que_fazer
                         ? <Tooltip><TooltipTrigger asChild><span className="cursor-help"><span className="font-medium">{x.nome ?? x.regra}</span>{x.detalhe && <span className="text-muted-foreground"> — {x.detalhe}</span>}</span></TooltipTrigger><TooltipContent className="max-w-xs">{x.o_que_fazer}</TooltipContent></Tooltip>
