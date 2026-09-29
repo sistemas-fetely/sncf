@@ -535,10 +535,20 @@ export function XpmCadastroFila() {
                         </TableCell>
                         <TableCell className="font-mono text-xs">{l.ean_xpm ?? "—"}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
-                          {peso ? `${peso} kg` : <span className="text-destructive">—</span>}
+                          <span className="inline-flex items-center justify-end gap-1">
+                            {peso ? `${peso} kg` : <span className="text-destructive">—</span>}
+                            {medidasProvisorias(l) && (
+                              <Badge variant="outline" className="border-warning text-warning text-[10px]">provisório</Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className="text-xs tabular-nums">
-                          {med ?? <span className="text-destructive">—</span>}
+                          <span className="inline-flex items-center gap-1">
+                            {med ?? <span className="text-destructive">—</span>}
+                            {medidasProvisorias(l) && (
+                              <Badge variant="outline" className="border-warning text-warning text-[10px]">provisório</Badge>
+                            )}
+                          </span>
                         </TableCell>
                         <TableCell className="text-xs tabular-nums">
                           {l.lastro ?? "—"} / {l.camada ?? "—"}
