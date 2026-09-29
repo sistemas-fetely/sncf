@@ -390,64 +390,66 @@ export default function VendaDiretaNovo() {
         </CardContent>
       </Card>
 
-      {/* 2. Itens */}
+      {/* 2. Itens — linha estilo PDV */}
       <Card>
         <CardHeader><CardTitle className="text-base">Itens</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <ProdutoVarejoCombobox value="" onSelect={addItem} ariaLabel="Adicionar produto" />
-          {itens.length > 0 && (
-            <table className="w-full text-sm">
-              <thead className="text-xs text-muted-foreground">
-                <tr className="border-b">
-                  <th className="py-2 text-left font-medium">Produto</th>
-                  <th className="w-24 py-2 text-right font-medium">Qtd.</th>
-                  <th className="w-28 py-2 text-right font-medium">Preço</th>
-                  <th className="w-28 py-2 text-right font-medium">Subtotal</th>
-                  <th className="w-10" />
-                </tr>
-              </thead>
-              <tbody>
-                {itens.map((i) => {
-                  const disp = saldoQ.data?.get(i.sku);
-                  const semSaldo = saldoQ.data ? (disp ?? 0) < i.quantidade : false;
-                  return (
-                    <tr key={i.sku} className="border-b">
-                      <td className="py-2">
-                        <p className="font-medium tabular-nums">{i.sku}</p>
-                        <p className="text-xs text-muted-foreground">{i.nome ?? ""}</p>
-                        <p className="text-xs text-muted-foreground">
+          {itens.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-10 text-muted-foreground">
+              <PackageSearch className="h-8 w-8" />
+              <p className="text-sm">Busque um produto pelo SKU ou nome</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-border/60">
+              {itens.map((i) => {
+                const disp = saldoQ.data?.get(i.sku);
+                const semSaldo = saldoQ.data ? (disp ?? 0) < i.quantidade : false;
+                const setQtd = (q: number) =>
+                  setItens((arr) => arr.map((x) => (x.sku === i.sku ? { ...x, quantidade: Math.max(1, Math.floor(q) || 1) } : x)));
+                return (
+                  <li key={i.sku} className="flex items-center gap-4 py-3">
+                    <ProdutoMiniatura img={imgsQ.data?.get(i.sku)} tamanho={64} />
+                    <div className="min-w-0 flex-1 space-y-0.5">
+                      <p className="line-clamp-2 text-base font-medium">{i.nome ?? i.sku}</p>
+                      <p className="text-xs tabular-nums text-muted-foreground">{i.sku}</p>
+                      {semSaldo ? (
+                        <Badge variant="outline" className="border-warning/50 text-warning">Sem saldo no Site SP</Badge>
+                      ) : (
+                        <Badge variant="outline" className="font-normal text-muted-foreground tabular-nums">
                           Site SP: {saldoQ.isLoading ? "…" : (disp ?? 0)} disp.
-                          {semSaldo && <span className="ml-2 text-warning">Sem saldo no Site SP</span>}
-                        </p>
-                      </td>
-                      <td className="py-2 text-right">
-                        <Input
-                          type="number" min={1} step={1} className="ml-auto w-20 text-right"
-                          value={i.quantidade}
-                          onChange={(e) => {
-                            const q = Math.max(1, Math.floor(Number(e.target.value) || 1));
-                            setItens((arr) => arr.map((x) => (x.sku === i.sku ? { ...x, quantidade: q } : x)));
-                          }}
-                        />
-                      </td>
-                      <td className="py-2 text-right tabular-nums">{formatBRL(i.preco)}</td>
-                      <td className="py-2 text-right tabular-nums">{formatBRL(i.preco * i.quantidade)}</td>
-                      <td className="py-2 text-right">
-                        <Button variant="ghost" size="icon" aria-label={`Remover ${i.sku}`} onClick={() => setItens((arr) => arr.filter((x) => x.sku !== i.sku))}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button variant="outline" size="icon" className="h-9 w-9" aria-label={`Diminuir ${i.sku}`} disabled={i.quantidade <= 1} onClick={() => setQtd(i.quantidade - 1)}>
+                        <Minus className="h-4 w-4" />
+                      </Button>
+                      <Input
+                        type="number" min={1} step={1} aria-label={`Quantidade ${i.sku}`}
+                        className="h-9 w-14 text-center tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        value={i.quantidade}
+                        onChange={(e) => setQtd(Number(e.target.value))}
+                      />
+                      <Button variant="outline" size="icon" className="h-9 w-9" aria-label={`Aumentar ${i.sku}`} onClick={() => setQtd(i.quantidade + 1)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="w-32 text-right">
+                      <p className="text-lg font-semibold tabular-nums">{formatBRL(i.preco * i.quantidade)}</p>
+                      <p className="text-sm tabular-nums text-muted-foreground">{formatBRL(i.preco)} cada</p>
+                    </div>
+                    <Button variant="ghost" size="icon" aria-label={`Remover ${i.sku}`} onClick={() => setItens((arr) => arr.filter((x) => x.sku !== i.sku))}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </CardContent>
       </Card>
 
-        </div>
-        <div className="space-y-4 lg:col-span-1">
       {/* 3. Entrega */}
       <Card>
         <CardHeader><CardTitle className="text-base">Entrega</CardTitle></CardHeader>
@@ -503,17 +505,64 @@ export default function VendaDiretaNovo() {
         <CardHeader><CardTitle className="text-base">Observação</CardTitle></CardHeader>
         <CardContent><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></CardContent>
       </Card>
+        </div>
 
+        {/* Resumo do pedido — protagonista, fixo ao rolar em lg */}
+        <div className="lg:col-span-1 lg:sticky lg:top-4 lg:self-start">
+          <Card>
+            <CardHeader><CardTitle className="text-base">Resumo do pedido</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className={cliente || novo?.nome.trim() ? "font-medium" : "text-muted-foreground"}>
+                {cliente?.razao_social ?? (novo?.nome.trim() || "Cliente não selecionado")}
+              </p>
+              {itens.length > 0 && (
+                <ul className="space-y-2">
+                  {itens.map((i) => (
+                    <li key={i.sku} className="flex items-center gap-3 text-sm">
+                      <ProdutoMiniatura img={imgsQ.data?.get(i.sku)} tamanho={40} />
+                      <span className="min-w-0 flex-1 truncate">
+                        <span className="tabular-nums text-muted-foreground">{i.quantidade}×</span> {i.nome ?? i.sku}
+                      </span>
+                      <span className="tabular-nums">{formatBRL(i.preco * i.quantidade)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Separator />
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Itens ({pecas})</span><span className="tabular-nums">{formatBRL(valorItens)}</span></div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Frete</span>
+                  <span className="tabular-nums">
+                    {modo === "retirada" ? "Retirada no Site SP" : fretePor === "fetely" ? "Pago pela Fetely" : formatBRL(freteCobrado)}
+                  </span>
+                </div>
+              </div>
+              <Separator />
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted-foreground">Total</span>
+                <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
+              </div>
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                {pagamento === "pix" ? "PIX" : "Cartão"}
+              </p>
+              {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
+              <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
+                {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Criar pedido
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
-        <div className="text-sm tabular-nums">
-          {pecas} {pecas === 1 ? "item" : "itens"} · Itens {formatBRL(valorItens)} · Frete cobrado {formatBRL(freteCobrado)} ·{" "}
-          <strong>Total {formatBRL(total)}</strong>
-          {pendencia && <span className="ml-3 text-xs text-muted-foreground">{pendencia}</span>}
+      {/* Mobile: barra enxuta no pé com total e botão */}
+      <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur lg:hidden">
+        <div>
+          <p className="text-xs text-muted-foreground">Total</p>
+          <p className="text-2xl font-semibold tabular-nums">{formatBRL(total)}</p>
         </div>
-        <Button disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
+        <Button size="lg" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
           {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Criar pedido
         </Button>
       </div>
