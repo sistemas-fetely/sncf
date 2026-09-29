@@ -2,7 +2,8 @@ import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Loader2, Plus, QrCode, RotateCcw, Search } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, QrCode, RotateCcw, Search, Settings } from "lucide-react";
+import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -40,7 +41,15 @@ interface Linha extends LinhaVD {
   nf_numero: string | number | null;
   entrou_na_fase_em: string | null;
   situacao: Situacao;
+  horas_sem_pagamento: number | null;
+  alerta_sem_pagamento: boolean | null;
+  faltando_site_sp: { sku: string; quantidade: number; saldo_site_sp: number }[] | null;
+  codigo_rastreio: string | null;
+  rastreio_servico: string | null;
 }
+
+type Filtro = Situacao | "sem_pagamento" | "falta_site_sp";
+const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
 const CARDS: { s: Situacao; label: string }[] = [
   { s: "aguardando_pagamento", label: "Aguardando pagamento" },
@@ -77,7 +86,9 @@ function tempoDesde(iso: string | null): string {
 export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
-  const [filtro, setFiltro] = useState<Situacao | null>(null);
+  const [filtro, setFiltro] = useState<Filtro | null>(null);
+  const [config, setConfig] = useState(false);
+  const qp = useParametrosVD();
   const [busca, setBusca] = useState("");
   const [cartao, setCartao] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
@@ -119,6 +130,8 @@ export default function VendaDiretaGestao() {
   const contagem = useMemo(() => {
     const c: Record<string, number> = {};
     for (const l of visiveis) c[l.situacao] = (c[l.situacao] ?? 0) + 1;
+    c.sem_pagamento = visiveis.filter((l) => l.alerta_sem_pagamento).length;
+    c.falta_site_sp = visiveis.filter(temFalta).length;
     return c;
   }, [visiveis]);
 
@@ -126,7 +139,9 @@ export default function VendaDiretaGestao() {
     const t = busca.trim().toLowerCase();
     const td = soDigitos(t);
     return visiveis.filter((l) => {
-      if (filtro && l.situacao !== filtro) return false;
+      if (filtro === "sem_pagamento") { if (!l.alerta_sem_pagamento) return false; }
+      else if (filtro === "falta_site_sp") { if (!temFalta(l)) return false; }
+      else if (filtro && l.situacao !== filtro) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
         (l.cliente_nome ?? "").toLowerCase().includes(t) ||
@@ -141,16 +156,24 @@ export default function VendaDiretaGestao() {
         estado={q.dataUpdatedAt ? `Atualizada às ${new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : undefined}
         acoes={
           podeEditar && (
-            <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" aria-label="Configurações da Venda Direta" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
+              <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
+            </div>
           )
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-9">
-        {CARDS.map((c) => {
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-11">
+        {[
+          ...CARDS.map((c) => ({ s: c.s as Filtro, label: c.label })),
+          { s: "sem_pagamento" as Filtro, label: `Sem pagamento +${qp.data?.alerta_sem_pagamento_horas ?? "?"}h` },
+          { s: "falta_site_sp" as Filtro, label: "Falta no Site SP" },
+        ].map((c) => {
           const n = contagem[c.s] ?? 0;
           const ativo = filtro === c.s;
-          const alerta = c.s === "travado" && n > 0;
+          const alerta = (c.s === "travado" || c.s === "falta_site_sp") && n > 0;
+          const aviso = c.s === "sem_pagamento" && n > 0;
           return (
             <Card
               key={c.s}
@@ -162,11 +185,12 @@ export default function VendaDiretaGestao() {
                 "cursor-pointer transition-colors hover:bg-muted/50",
                 ativo && "ring-2 ring-primary",
                 alerta && "border-destructive bg-destructive/10",
+                aviso && "border-warning bg-warning/10",
               )}
             >
               <CardContent className="p-3">
-                <div className={cn("text-xs text-muted-foreground", alerta && "text-destructive")}>{c.label}</div>
-                <div className={cn("text-2xl font-semibold", alerta && "text-destructive")}>{n}</div>
+                <div className={cn("text-xs text-muted-foreground", alerta && "text-destructive", aviso && "text-warning")}>{c.label}</div>
+                <div className={cn("text-2xl font-semibold", alerta && "text-destructive", aviso && "text-warning")}>{n}</div>
               </CardContent>
             </Card>
           );
@@ -244,13 +268,38 @@ export default function VendaDiretaGestao() {
                       <Badge variant={l.situacao === "travado" ? "destructive" : l.situacao === "cancelado" ? "outline" : "secondary"}>
                         {LABEL[l.situacao] ?? l.situacao}
                       </Badge>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {l.alerta_sem_pagamento && (
+                          <Badge variant="outline" className="border-warning text-warning">
+                            Sem pagamento há {Math.floor(Number(l.horas_sem_pagamento ?? 0))}h
+                          </Badge>
+                        )}
+                        {temFalta(l) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><Badge variant="destructive" className="cursor-help">Falta no Site SP</Badge></TooltipTrigger>
+                            <TooltipContent className="max-w-sm">
+                              {l.faltando_site_sp!.map((f) => (
+                                <div key={f.sku}>{f.sku} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>
+                              ))}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">{tempoDesde(l.entrou_na_fase_em)}</TableCell>
                     <TableCell>{l.nf_numero ?? "—"}</TableCell>
                     <TableCell>{l.bling_pedido_numero ?? "—"}</TableCell>
                     {podeEditar && (
                       <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="flex flex-wrap justify-end gap-1">
+                          {l.alerta_sem_pagamento ? (
+                            <>
+                              <AvisarClienteButton linha={l} chave="cobrar_pagamento" label="Cobrar no WhatsApp" />
+                              <Button size="sm" variant="outline" asChild><Link to={`/pedidos/${l.id}`}>Cancelar pedido</Link></Button>
+                            </>
+                          ) : (
+                            <AvisarClienteButton linha={l} />
+                          )}
                           {l.situacao === "aguardando_pagamento" && l.pagamento === "pix" && (
                             <>
                               <Button size="sm" variant="outline" disabled={!l.provisao_id} onClick={() => setPix(l)}>
@@ -294,6 +343,7 @@ export default function VendaDiretaGestao() {
       <RegistrarEntregaDialog linha={entrega} onClose={() => setEntrega(null)} />
       <VerPixDialog linha={pix} onClose={() => setPix(null)} />
       <ConfirmarPixManualDialog linha={pixManual} onClose={() => setPixManual(null)} />
+      <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
       <LinkCartaoDialog linha={linkCartao} onClose={() => setLinkCartao(null)} />
     </PageShell>
   );
