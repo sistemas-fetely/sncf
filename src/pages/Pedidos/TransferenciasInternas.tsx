@@ -1,5 +1,5 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -49,7 +49,6 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
-import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransferenciaDialog";
 
 interface CentroDestino {
   codigo: string;
@@ -496,7 +495,6 @@ export default function TransferenciasInternas() {
     },
   });
 
-  const [receber, setReceber] = useState<{ id: string; titulo: string } | null>(null);
   const idsLista = (listaQ.data ?? []).map((t) => t.id);
   const recebQ = useQuery({
     queryKey: ["trs-recebimento", idsLista.join("|")],
@@ -1089,13 +1087,12 @@ export default function TransferenciasInternas() {
                           }
                           if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
                             return (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setReceber({ id: t.id, titulo: t.id_externo ?? t.id })}
+                              <Link
+                                to="/logistica/chegada-mercadoria?aba=recebimento-loja"
+                                className="text-xs text-primary underline-offset-2 hover:underline"
                               >
-                                Receber no destino
-                              </Button>
+                                Receber na Chegada de Mercadoria
+                              </Link>
                             );
                           }
                           return <span className="text-sm text-muted-foreground">—</span>;
@@ -1109,19 +1106,6 @@ export default function TransferenciasInternas() {
           )}
         </CardContent>
       </Card>
-      {receber && (
-        <ReceberTransferenciaDialog
-          aberto
-          onFechar={() => setReceber(null)}
-          pedidoId={receber.id}
-          titulo={receber.titulo}
-          destinoCodigo={null}
-          onRecebido={() => {
-            void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
-            void qc.invalidateQueries({ queryKey: ["trs-recebimento"] });
-          }}
-        />
-      )}
     </PageShell>
   );
 }
