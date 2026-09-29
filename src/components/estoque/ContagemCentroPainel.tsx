@@ -54,7 +54,7 @@ export function ContagemCentroPainel() {
       const { data, error } = await (supabase as any)
         .from("vw_estoque_cockpit")
         .select("cod_cadastro,sku,nome_comercial,cor_nome,colecao,contabil,fisico")
-        .eq("centro_codigo", centro)
+        .eq("centro", centro)
         .limit(5000);
       if (error) throw error;
       return ((data ?? []) as Linha[]).filter((l) => (l.contabil ?? 0) !== 0 || l.fisico != null);
