@@ -24128,6 +24128,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "vw_correios_fatura_ciclo"
+            referencedColumns: ["fatura_frete_id"]
+          },
+          {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
@@ -69987,6 +69994,33 @@ export type Database = {
           },
         ]
       }
+      xpm_estoque_foto: {
+        Row: {
+          atualizado_em: string
+          data_hora_posicao: string
+          importado_em: string | null
+          linhas: number
+          qtd_total: number
+          skus: number
+        }
+        Insert: {
+          atualizado_em?: string
+          data_hora_posicao: string
+          importado_em?: string | null
+          linhas: number
+          qtd_total: number
+          skus: number
+        }
+        Update: {
+          atualizado_em?: string
+          data_hora_posicao?: string
+          importado_em?: string | null
+          linhas?: number
+          qtd_total?: number
+          skus?: number
+        }
+        Relationships: []
+      }
       xpm_estoque_posicao: {
         Row: {
           data_hora_posicao: string
@@ -80262,6 +80296,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fatura_frete_lancamentos_fatura_id_fkey"
+            columns: ["fatura_id"]
+            isOneToOne: false
+            referencedRelation: "vw_correios_fatura_ciclo"
+            referencedColumns: ["fatura_frete_id"]
+          },
+          {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
@@ -81990,14 +82031,17 @@ export type Database = {
       vw_correios_fatura_ciclo: {
         Row: {
           confere: boolean | null
+          conta_pagar_id: string | null
           declarado: number | null
           diferenca: number | null
+          fatura_frete_id: string | null
           fatura_id: number | null
           fim: string | null
           ini: string | null
           postado: number | null
           postagens: number | null
           situacao: string | null
+          titulo_status: string | null
           vencimento: string | null
         }
         Relationships: []
@@ -96100,14 +96144,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -109624,14 +109668,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -118281,6 +118325,10 @@ export type Database = {
           p_motivo_codigo?: string
         }
         Returns: Json
+      }
+      fn_xpm_estoque_foto_recalc: {
+        Args: { p_fotos: string[] }
+        Returns: undefined
       }
       fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
