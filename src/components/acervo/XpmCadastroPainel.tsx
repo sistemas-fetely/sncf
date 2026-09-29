@@ -36,12 +36,6 @@ interface LinhaDivergencia {
   colecao: string | null;
 }
 
-interface ResultadoSku {
-  sku?: string;
-  status?: string;
-  erro?: string;
-  [k: string]: unknown;
-}
 
 function num(v: number | null): string {
   if (v === null || v === undefined) return "—";
@@ -50,7 +44,6 @@ function num(v: number | null): string {
 
 export function XpmCadastroPainel() {
   const qc = useQueryClient();
-  const [resultados, setResultados] = useState<ResultadoSku[]>([]);
 
   // Guarda de escrita: cadastrar/corrigir no XPM exige a ação nomeada.
   // Enquanto a verificação carrega, os botões ficam travados — default seguro.
