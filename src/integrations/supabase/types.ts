@@ -85731,6 +85731,66 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_estoque_triade_centro: {
+        Row: {
+          bling_diff: number | null
+          causas: Json | null
+          centro: string | null
+          centro_nome: string | null
+          centro_ordem: number | null
+          centro_vende: boolean | null
+          cod_cadastro: string | null
+          colecao: string | null
+          com_diferenca: boolean | null
+          contagem_vencida: boolean | null
+          correcao: string | null
+          delta_real_fiscal: number | null
+          delta_virtual_real: number | null
+          fase: string | null
+          fiscal: number | null
+          fiscal_bloqueado: number | null
+          fonte_real: string | null
+          nome_comercial: string | null
+          real: number | null
+          real_em: string | null
+          reservado: number | null
+          shopify_diff: number | null
+          sku: string | null
+          tem_baixa_pendente: boolean | null
+          virtual: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
+      vw_estoque_triade_produto: {
+        Row: {
+          causas_produto: Json | null
+          centros: number | null
+          centros_com_diferenca: number | null
+          centros_diferenca: string[] | null
+          cod_cadastro: string | null
+          colecao: string | null
+          com_diferenca: boolean | null
+          delta_real_fiscal: number | null
+          delta_virtual_real: number | null
+          fase: string | null
+          fiscal: number | null
+          nome_comercial: string | null
+          real: number | null
+          real_completo: boolean | null
+          reservado: number | null
+          sku: string | null
+          virtual: number | null
+        }
+        Relationships: []
+      }
       vw_exposicao_por_grupo: {
         Row: {
           grupo_ativo: boolean | null
@@ -96656,14 +96716,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
