@@ -165,30 +165,63 @@ export default function ConciliacaoEstoque() {
   }, [centrosQ.data]);
   const cs = (sku: string) => porSku.get(sku) ?? [];
 
+  // ESCOPO DE CENTRO: cartão da fileira ou filtro "Centro"; vazio = todos.
+  const escopo = useMemo(() => centroCartao ? [centroCartao] : filCentros,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [centroCartao, sp]);
+  const temEscopo = escopo.length > 0;
+  const linhasEscopo = (sku: string) => temEscopo ? cs(sku).filter(c => escopo.includes(c.centro)) : cs(sku);
+
+  // Linha exibida: números do escopo (ou do total quando vazio).
+  const exibidos = useMemo<Produto[]>(() => {
+    if (!temEscopo) return produtos;
+    return produtos.map(p => {
+      const ls = linhasEscopo(p.sku);
+      const comV = ls.filter(c => c.virtual !== null);
+      const comDvr = ls.filter(c => c.delta_virtual_real !== null);
+      const dif = ls.filter(c => c.com_diferenca);
+      return {
+        ...p,
+        fiscal: ls.reduce((s, c) => s + n0(c.fiscal), 0),
+        real: ls.reduce((s, c) => s + n0(c.real), 0),
+        real_completo: ls.every(c => c.real !== null),
+        virtual: comV.length ? comV.reduce((s, c) => s + n0(c.virtual), 0) : null,
+        delta_real_fiscal: ls.reduce((s, c) => s + n0(c.delta_real_fiscal), 0),
+        delta_virtual_real: comDvr.length ? comDvr.reduce((s, c) => s + n0(c.delta_virtual_real), 0) : null,
+        com_diferenca: dif.length > 0,
+        centros: ls.length,
+        centros_com_diferenca: dif.length,
+        centros_diferenca: dif.map(c => c.centro),
+        causas_produto: null,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtos, porSku, escopo, temEscopo]);
+
   const testa: Record<Cartao, (p: Produto) => boolean> = {
     diferenca: p => !!p.com_diferenca,
-    furo: p => cs(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
-    ruptura: p => cs(p.sku).some(c => n0(c.delta_virtual_real) > 0),
-    perdida: p => cs(p.sku).some(c => n0(c.delta_virtual_real) < 0),
-    semreal: p => cs(p.sku).some(c => c.fonte_real === "sem_contagem"),
-    canais: p => cs(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
+    furo: p => linhasEscopo(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
+    ruptura: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) > 0),
+    perdida: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) < 0),
+    semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem"),
+    canais: p => linhasEscopo(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
   };
 
-  // Base: busca + centro + coleção (cartões contam sobre ela).
+  // Base: busca + escopo de centro + coleção (cartões contam sobre ela).
   const base = useMemo(() => {
     const q = busca.trim().toLocaleLowerCase("pt-BR");
-    return produtos.filter(p => {
+    return exibidos.filter(p => {
       if (q && ![p.cod_cadastro, p.sku, p.nome_comercial].filter(temValor).some(v => String(v).toLocaleLowerCase("pt-BR").includes(q))) return false;
       if (filColecoes.length && !filColecoes.includes(p.colecao ?? "")) return false;
-      if (filCentros.length && !cs(p.sku).some(c => filCentros.includes(c.centro))) return false;
+      if (temEscopo && linhasEscopo(p.sku).length === 0) return false;
       return true;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [produtos, porSku, busca, sp]);
+  }, [exibidos, porSku, busca, sp]);
 
   const cartoes: { k: Cartao; titulo: string; sub?: string }[] = [
     { k: "diferenca", titulo: "Com diferença" },
-    { k: "furo", titulo: "Furo físico", sub: `${base.reduce((s, p) => s + cs(p.sku).reduce((t, c) => t + Math.abs(n0(c.delta_real_fiscal)), 0), 0)} un` },
+    { k: "furo", titulo: "Furo físico", sub: `${base.reduce((s, p) => s + linhasEscopo(p.sku).reduce((t, c) => t + Math.abs(n0(c.delta_real_fiscal)), 0), 0)} un` },
     { k: "ruptura", titulo: "Risco de ruptura" },
     { k: "perdida", titulo: "Venda perdida" },
     { k: "semreal", titulo: "Sem real" },
@@ -199,23 +232,23 @@ export default function ConciliacaoEstoque() {
     for (const c of centrosQ.data ?? []) if (!m.has(c.centro)) m.set(c.centro, { codigo: c.centro, nome: c.centro_nome ?? c.centro, ordem: n0(c.centro_ordem) });
     return [...m.values()].sort((a, b) => a.ordem - b.ordem);
   }, [centrosQ.data]);
+  const nomesEscopo = escopo.map(c => centrosLista.find(x => x.codigo === c)?.nome ?? c).join(", ");
 
   const recorte = useMemo(() => {
     const r = base.filter(p => {
       if (soDiferenca && !p.com_diferenca) return false;
       if (cartao && !testa[cartao](p)) return false;
-      if (centroCartao && !cs(p.sku).some(c => c.centro === centroCartao && c.com_diferenca)) return false;
       return true;
     });
     const val = (p: Produto) => ordem.coluna === "fiscal" ? n0(p.fiscal) : ordem.coluna === "real" ? n0(p.real) : Math.abs(n0(p.delta_real_fiscal));
     return r.sort((a, b) => (ordem.dir === "asc" ? 1 : -1) * (val(a) - val(b)) || a.sku.localeCompare(b.sku));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [base, soDiferenca, cartao, centroCartao, ordem]);
+  }, [base, soDiferenca, cartao, ordem]);
 
   const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const visiveis = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
-  const ajustaveisVisiveis = [...new Set(visiveis.filter(p => cs(p.sku).some(c => c.correcao === "ajustar_armazem")).map(p => p.sku))];
+  const ajustaveisVisiveis = [...new Set(visiveis.filter(p => linhasEscopo(p.sku).some(c => c.correcao === "ajustar_armazem")).map(p => p.sku))];
   const todosSel = ajustaveisVisiveis.length > 0 && ajustaveisVisiveis.every(s => selecionados.has(s));
   function alternar(sku: string) { setSelecionados(prev => { const n = new Set(prev); if (n.has(sku)) n.delete(sku); else n.add(sku); return n; }); }
   function alternarTodos() { setSelecionados(prev => { const n = new Set(prev); ajustaveisVisiveis.forEach(s => todosSel ? n.delete(s) : n.add(s)); return n; }); }
@@ -230,6 +263,7 @@ export default function ConciliacaoEstoque() {
     const linhas = [[...cols, "causas"].join(";")];
     for (const c of centrosQ.data ?? []) {
       if (!skus.has(c.sku)) continue;
+      if (temEscopo && !escopo.includes(c.centro)) continue;
       linhas.push([...cols.map(k => k === "cod_cadastro" ? csvCod(c.cod_cadastro) : csvCelula(c[k])), csvCelula((c.causas ?? []).map(x => x.nome ?? x.regra).join(" · "))].join(";"));
     }
     const blob = new Blob(["\uFEFF" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
