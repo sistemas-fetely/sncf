@@ -1,4 +1,4 @@
-import { Loader2 } from "lucide-react";
+import { Loader2, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import type { FreteComparativoOpcao, FreteComparativoResult } from "@/hooks/pedidos/useFreteComparativo";
+import type { OpcaoCorreios } from "@/hooks/pedidos/useCotacaoCorreios";
 
 interface Props {
   open: boolean;
@@ -14,8 +15,12 @@ interface Props {
   isLoading: boolean;
   data: FreteComparativoResult | undefined;
   valorAtual: number;
-  onEscolher: (opcao: FreteComparativoOpcao) => void;
+  onEscolher: (opcao: FreteComparativoOpcao | OpcaoCorreios) => void;
+  correios?: { isLoading: boolean; data?: { opcoes: OpcaoCorreios[] }; error?: Error | null };
 }
+
+type OpcaoLista = FreteComparativoOpcao | OpcaoCorreios;
+const ehCorreios = (o: OpcaoLista): o is OpcaoCorreios => (o as OpcaoCorreios).fonte === "correios";
 
 const BREAKDOWN_LABEL: Record<string, string> = {
   base: "Base",
@@ -50,8 +55,10 @@ export function CompararTransportadorasDialog({
   data,
   valorAtual,
   onEscolher,
+  correios,
 }: Props) {
-  const opcoes = (data?.opcoes ?? []).slice().sort((a, b) => {
+  const opcoesCorreios: OpcaoLista[] = correios && !correios.isLoading && !correios.error ? (correios.data?.opcoes ?? []) : [];
+  const opcoes: OpcaoLista[] = [...(data?.opcoes ?? []), ...opcoesCorreios].sort((a, b) => {
     const va = a.valor_estimado;
     const vb = b.valor_estimado;
     if (va == null && vb == null) return 0;
@@ -76,7 +83,7 @@ export function CompararTransportadorasDialog({
         <DialogHeader>
           <DialogTitle>Comparar transportadoras</DialogTitle>
           <DialogDescription>
-            Cotação em todas as tabelas de preço vigentes. O objetivo é substituir o frete digitado de cabeça.
+            Cotação em todas as tabelas de preço vigentes. O objetivo é substituir o frete digitado de cabeça. Correios cotado ao vivo no contrato.
           </DialogDescription>
         </DialogHeader>
 
@@ -124,7 +131,7 @@ export function CompararTransportadorasDialog({
             </div>
 
 
-            {opcoes.length === 0 ? (
+            {opcoes.length === 0 && !correios?.isLoading && !correios?.error ? (
               <p className="py-6 text-sm text-muted-foreground text-center">
                 Nenhuma transportadora com tabela de preço vigente.
               </p>
@@ -142,7 +149,28 @@ export function CompararTransportadorasDialog({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
+                    {correios?.isLoading && (
+                      <TableRow className="text-muted-foreground">
+                        <TableCell colSpan={6}>
+                          <span className="inline-flex items-center gap-2 text-sm">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Correios · cotando…
+                          </span>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {correios?.error && (
+                      <TableRow className="text-muted-foreground">
+                        <TableCell><span className="font-medium text-foreground">Correios</span></TableCell>
+                        <TableCell className="text-right"><span className="text-xs italic">{correios.error.message}</span></TableCell>
+                        <TableCell className="text-right text-sm">—</TableCell>
+                        <TableCell className="text-right"><span className="text-muted-foreground text-xs">—</span></TableCell>
+                        <TableCell className="text-xs text-muted-foreground">—</TableCell>
+                        <TableCell />
+                      </TableRow>
+                    )}
                     {opcoes.map((o, idx) => {
+                      const oc = ehCorreios(o) ? o : null;
                       const temErro = !!o.erro || o.valor_estimado == null;
                       const isMenor = !temErro && menorValor != null && o.valor_estimado === menorValor;
                       const pct = o.pct_sobre_pedido != null ? Number(o.pct_sobre_pedido) : null;
@@ -151,7 +179,7 @@ export function CompararTransportadorasDialog({
 
                       return (
                         <TableRow
-                          key={(o.transportadora_id ?? "") + idx}
+                          key={(o.transportadora_id ?? "") + (oc?.servico_codigo ?? "") + idx}
                           className={cn(
                             temErro && "text-muted-foreground",
                             isMenor && "bg-success/10",
@@ -161,6 +189,29 @@ export function CompararTransportadorasDialog({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground">{o.transportadora_nome}</span>
                               {isMenor && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success/40 text-success">Mais barata</Badge>}
+                              {oc && <Badge variant="outline" className="text-[10px] px-1.5 py-0">via API</Badge>}
+                              {oc && oc.situacao === "improvavel" && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-warning/40 text-warning cursor-help">Improvável</Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm text-xs">{oc.motivo ?? "—"}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+                              {oc && oc.avisos.length > 0 && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" aria-label="Avisos" />
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm text-xs">
+                                      <ul className="space-y-0.5">{oc.avisos.map((a, i) => <li key={i}>{a}</li>)}</ul>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
                             </div>
                             {o.cnpj && <p className="text-[11px] text-muted-foreground">{o.cnpj}</p>}
                           </TableCell>
@@ -174,7 +225,9 @@ export function CompararTransportadorasDialog({
                                     <span className="font-medium cursor-help">{formatBRL(o.valor_estimado ?? 0)}</span>
                                   </TooltipTrigger>
                                   <TooltipContent className="max-w-sm text-xs">
-                                    {renderBreakdown(o.breakdown) || "sem detalhamento"}
+                                    {oc
+                                      ? (oc.por_volume.map((pv) => `${pv.quantidade} × ${formatBRL(Number(pv.preco_unit ?? 0))}`).join(" · ") || "sem detalhamento")
+                                      : (renderBreakdown(o.breakdown) || "sem detalhamento")}
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
