@@ -300,12 +300,17 @@ export function BlingCardPainel() {
                 <SelectValue placeholder="Escolha a origem fiscal" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 — Estrangeira, importação direta</SelectItem>
                 <SelectItem value="2">2 — Estrangeira, adquirida no mercado interno</SelectItem>
+                <SelectItem value="1">1 — Estrangeira, importação direta</SelectItem>
                 <SelectItem value="0">0 — Nacional</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">Decisão fiscal: confirme com o contador.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Padrão do catálogo: {qOrigem.data ?? "—"} (a Fetely compra de importadora). Mude só se o contador indicar.
+            </p>
+            {origem && qOrigem.data && origem !== qOrigem.data && (
+              <p className="text-[11px] text-warning">Diferente do padrão do catálogo ({qOrigem.data})</p>
+            )}
           </div>
           <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
           <Button
