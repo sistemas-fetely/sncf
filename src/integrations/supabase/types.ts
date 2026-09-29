@@ -67534,6 +67534,36 @@ export type Database = {
           },
         ]
       }
+      venda_direta_parametro: {
+        Row: {
+          alerta_sem_pagamento_horas: number
+          atualizado_em: string
+          atualizado_por: string | null
+          id: number
+          mensagens: Json
+          retirada_endereco: string | null
+          retirada_horario: string | null
+        }
+        Insert: {
+          alerta_sem_pagamento_horas?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          id?: number
+          mensagens?: Json
+          retirada_endereco?: string | null
+          retirada_horario?: string | null
+        }
+        Update: {
+          alerta_sem_pagamento_horas?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          id?: number
+          mensagens?: Json
+          retirada_endereco?: string | null
+          retirada_horario?: string | null
+        }
+        Relationships: []
+      }
       vendedor_alias: {
         Row: {
           alias_norm: string
@@ -95899,14 +95929,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -109423,14 +109453,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -113340,6 +113370,7 @@ export type Database = {
       }
       vw_venda_direta_gestao: {
         Row: {
+          alerta_sem_pagamento: boolean | null
           bling_pedido_numero: string | null
           cancelado_em: string | null
           cancelado_motivo: string | null
@@ -113347,16 +113378,19 @@ export type Database = {
           cliente_id: string | null
           cliente_nome: string | null
           cliente_telefone: string | null
+          codigo_rastreio: string | null
           embalado: boolean | null
           endereco_entrega: Json | null
           entrou_na_fase_em: string | null
           estagio: string | null
+          faltando_site_sp: Json | null
           fila_erro: string | null
           fila_id: string | null
           fila_status: string | null
           fila_tentativas: number | null
           frete: Json | null
           frete_tipo: string | null
+          horas_sem_pagamento: number | null
           id: string | null
           id_externo: string | null
           link_pagamento: string | null
@@ -113367,6 +113401,7 @@ export type Database = {
           pagamento: string | null
           pagamento_confirmado_em: string | null
           provisao_id: string | null
+          rastreio_servico: string | null
           recebido_em: string | null
           situacao: string | null
           valor_bruto: number | null
@@ -116451,6 +116486,10 @@ export type Database = {
           tabela: string
         }[]
       }
+      fn_correios_fatura_espelhar: {
+        Args: { p_fatura_id: number }
+        Returns: string
+      }
       fn_correios_plano_volumes: {
         Args: { p_pedido_id: string }
         Returns: Json
@@ -116711,6 +116750,10 @@ export type Database = {
           qtd_lancamentos: number
           total_calculado: number
         }[]
+      }
+      fn_fatura_frete_gerar_titulo: {
+        Args: { p_fatura_frete_id: string }
+        Returns: Json
       }
       fn_fatura_gerar_titulo: {
         Args: { p_fatura_id: string; p_parceiro_id: string }
@@ -119704,6 +119747,15 @@ export type Database = {
           p_documento?: string
           p_pedido_id: string
           p_retirado_por: string
+        }
+        Returns: Json
+      }
+      vd_salvar_parametros: {
+        Args: {
+          p_alerta_horas: number
+          p_mensagens: Json
+          p_retirada_endereco: string
+          p_retirada_horario: string
         }
         Returns: Json
       }
