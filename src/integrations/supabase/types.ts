@@ -5647,6 +5647,159 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_mov_itau_na_safra_20260929: {
+        Row: {
+          cartao_id: string | null
+          casada_com_id: string | null
+          categoria_inconsistente: boolean | null
+          centro_custo_id: string | null
+          classe: string | null
+          classe_definida_por: string | null
+          conciliado: boolean | null
+          conciliado_em: string | null
+          conciliado_por: string | null
+          conta_bancaria_id: string | null
+          conta_pagar_id: string | null
+          contraparte_documento: string | null
+          contraparte_nome: string | null
+          created_at: string | null
+          data_hora: string | null
+          data_transacao: string | null
+          descricao: string | null
+          doc_solicitado_em: string | null
+          doc_solicitado_nota: string | null
+          doc_solicitado_por: string | null
+          duplicada_de: string | null
+          fonte_importacao_id: string | null
+          hash_unico: string | null
+          id: string | null
+          id_transacao_banco: string | null
+          inconsistencia_motivo: string | null
+          itau_planilha_id: string | null
+          ofx_transacao_id: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pg_em: string | null
+          plano_contas_id: string | null
+          referencia_pedido: string | null
+          regra_aplicada_id: string | null
+          saldo_pos_transacao: number | null
+          tipo: string | null
+          tipo_meio: string | null
+          tipo_pagamento: string | null
+          valor: number | null
+        }
+        Insert: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente?: boolean | null
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id?: string | null
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor?: number | null
+        }
+        Update: {
+          cartao_id?: string | null
+          casada_com_id?: string | null
+          categoria_inconsistente?: boolean | null
+          centro_custo_id?: string | null
+          classe?: string | null
+          classe_definida_por?: string | null
+          conciliado?: boolean | null
+          conciliado_em?: string | null
+          conciliado_por?: string | null
+          conta_bancaria_id?: string | null
+          conta_pagar_id?: string | null
+          contraparte_documento?: string | null
+          contraparte_nome?: string | null
+          created_at?: string | null
+          data_hora?: string | null
+          data_transacao?: string | null
+          descricao?: string | null
+          doc_solicitado_em?: string | null
+          doc_solicitado_nota?: string | null
+          doc_solicitado_por?: string | null
+          duplicada_de?: string | null
+          fonte_importacao_id?: string | null
+          hash_unico?: string | null
+          id?: string | null
+          id_transacao_banco?: string | null
+          inconsistencia_motivo?: string | null
+          itau_planilha_id?: string | null
+          ofx_transacao_id?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pg_em?: string | null
+          plano_contas_id?: string | null
+          referencia_pedido?: string | null
+          regra_aplicada_id?: string | null
+          saldo_pos_transacao?: number | null
+          tipo?: string | null
+          tipo_meio?: string | null
+          tipo_pagamento?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
+      backup_refs_itau_na_safra_20260929: {
+        Row: {
+          coluna: string | null
+          em: string | null
+          mov_antiga: string | null
+          mov_nova: string | null
+          registro_id: string | null
+          tabela: string | null
+        }
+        Insert: {
+          coluna?: string | null
+          em?: string | null
+          mov_antiga?: string | null
+          mov_nova?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+        }
+        Update: {
+          coluna?: string | null
+          em?: string | null
+          mov_antiga?: string | null
+          mov_nova?: string | null
+          registro_id?: string | null
+          tabela?: string | null
+        }
+        Relationships: []
+      }
       baixa_estoque_pendente: {
         Row: {
           criado_em: string
@@ -33530,6 +33683,24 @@ export type Database = {
             referencedColumns: ["cadeira_id"]
           },
         ]
+      }
+      mapa_mov_itau_na_safra_20260929: {
+        Row: {
+          conflito: boolean | null
+          iid: string | null
+          sid: string
+        }
+        Insert: {
+          conflito?: boolean | null
+          iid?: string | null
+          sid: string
+        }
+        Update: {
+          conflito?: boolean | null
+          iid?: string | null
+          sid?: string
+        }
+        Relationships: []
       }
       meios_pagamento: {
         Row: {

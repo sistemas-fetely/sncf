@@ -22,6 +22,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { AlertTriangle, Eye, Hash, Loader2, Send } from "lucide-react";
 
 const LEVA = 20;
@@ -145,6 +146,30 @@ export function BlingCardPainel() {
   const linhas = q.data ?? [];
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
 
+  // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
+  const [colecaoFiltro, setColecaoFiltro] = useAbaUrl("", undefined, "colecao");
+
+  const colecoes = useMemo(() => {
+    const cont = new Map<string, number>();
+    for (const l of linhas) {
+      const c = (l.colecao ?? "").trim();
+      if (!c) continue;
+      cont.set(c, (cont.get(c) ?? 0) + 1);
+    }
+    return [...cont.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
+
+  // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
+  useEffect(() => {
+    if (q.isSuccess && colecaoFiltro && !colecoes.some(([c]) => c === colecaoFiltro)) setColecaoFiltro("");
+  }, [q.isSuccess, colecoes, colecaoFiltro, setColecaoFiltro]);
+
+  // A coleção filtra a base dos cartões de pendência e da tabela (combina com o filtro E).
+  const porColecao = useMemo(
+    () => (colecaoFiltro ? linhas.filter((l) => (l.colecao ?? "").trim() === colecaoFiltro) : linhas),
+    [linhas, colecaoFiltro],
+  );
+
   // Origem fiscal padrão do catálogo: mais frequente entre os ativos.
   const qOrigem = useQuery({
     queryKey: ["sncf-produtos-origem-padrao"],
@@ -188,29 +213,35 @@ export function BlingCardPainel() {
 
   const cartoes = useMemo(() => {
     const out: { chave: string; rotulo: string; qtd: number; tom?: "erro" | "aviso" | "ok" }[] = [];
-    out.push({ chave: "todos", rotulo: "Todos", qtd: linhas.length });
-    const nProntos = linhas.filter((l) => (l.falta ?? []).length === 0).length;
+    out.push({ chave: "todos", rotulo: "Todos", qtd: porColecao.length });
+    const nProntos = porColecao.filter((l) => (l.falta ?? []).length === 0).length;
     if (nProntos > 0) out.push({ chave: "prontos", rotulo: "Prontos", qtd: nProntos, tom: "ok" });
     const cont = new Map<string, number>();
-    for (const l of linhas) for (const f of l.falta ?? []) cont.set(f, (cont.get(f) ?? 0) + 1);
+    for (const l of porColecao) for (const f of l.falta ?? []) cont.set(f, (cont.get(f) ?? 0) + 1);
     for (const [f, n] of cont) out.push({ chave: `falta:${f}`, rotulo: rotuloFalta(f), qtd: n, tom: "erro" });
-    const nAviso = linhas.filter((l) => (l.avisos ?? []).length > 0).length;
+    const nAviso = porColecao.filter((l) => (l.avisos ?? []).length > 0).length;
     if (nAviso > 0) out.push({ chave: "aviso", rotulo: "Com aviso", qtd: nAviso, tom: "aviso" });
     return out;
-  }, [linhas]);
+  }, [porColecao]);
 
   const filtradas = useMemo(() => {
-    if (filtro === "todos") return linhas;
-    if (filtro === "prontos") return linhas.filter((l) => (l.falta ?? []).length === 0);
-    if (filtro === "aviso") return linhas.filter((l) => (l.avisos ?? []).length > 0);
+    if (filtro === "todos") return porColecao;
+    if (filtro === "prontos") return porColecao.filter((l) => (l.falta ?? []).length === 0);
+    if (filtro === "aviso") return porColecao.filter((l) => (l.avisos ?? []).length > 0);
     if (filtro.startsWith("falta:")) {
       const f = filtro.slice(6);
-      return linhas.filter((l) => (l.falta ?? []).includes(f));
+      return porColecao.filter((l) => (l.falta ?? []).includes(f));
     }
-    return linhas;
-  }, [linhas, filtro]);
+    return porColecao;
+  }, [porColecao, filtro]);
 
   const prontos = useMemo(() => filtradas.filter((l) => (l.falta ?? []).length === 0), [filtradas]);
+
+  // Apenas as linhas visíveis (coleção + cartão) que estão selecionadas — Prévia/Criar respeitam o filtro.
+  const selecionadasVisiveis = useMemo(
+    () => filtradas.filter((l) => selecionados.includes(l.sku)),
+    [filtradas, selecionados],
+  );
 
   // Candidatos ao NCM da NF: sem NCM no cadastro e sugestão vinda de NF de entrada.
   const ncmNfCandidatos = useMemo(
@@ -235,7 +266,7 @@ export function BlingCardPainel() {
     setFinal(null);
     try {
       const acc: Previa = { criar: [], recusados: [] };
-      for (const leva of levas(selecionados)) {
+      for (const leva of levas(selecionadasVisiveis.map((l) => l.sku))) {
         const d = await chamar({ skus: leva, executar: false });
         acc.criar.push(...((d.criar ?? []) as Previa["criar"]));
         acc.recusados.push(...((d.recusados ?? []) as Previa["recusados"]));
@@ -386,6 +417,22 @@ export function BlingCardPainel() {
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
+            <p className="text-xs font-medium">Coleção</p>
+            <Select value={colecaoFiltro || "todas"} onValueChange={(v) => setColecaoFiltro(v === "todas" ? "" : v)}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Todas as coleções" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as coleções</SelectItem>
+                {colecoes.map(([c, n]) => (
+                  <SelectItem key={c} value={c}>
+                    {c} ({n})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <p className="text-xs font-medium">Origem fiscal *</p>
             <Select value={origem} onValueChange={setOrigem}>
               <SelectTrigger className="w-[340px]">
@@ -404,12 +451,12 @@ export function BlingCardPainel() {
               <p className="text-[11px] text-warning">Diferente do padrão do catálogo ({qOrigem.data})</p>
             )}
           </div>
-          <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+          <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
           <Button
             variant="outline"
             size="sm"
             className="gap-2"
-            disabled={selecionados.length === 0 || carregandoPrevia || criando}
+            disabled={selecionadasVisiveis.length === 0 || carregandoPrevia || criando}
             onClick={() => void fazerPrevia()}
           >
             {carregandoPrevia ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
