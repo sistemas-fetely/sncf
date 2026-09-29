@@ -25,6 +25,9 @@ import { useKpiConsignado, type KpiConsignadoRow } from "./consignado/VisaoConsi
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PainelGeralConsignados } from "./consignado/PainelGeralConsignados";
+import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsignadoDialog";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { Plus } from "lucide-react";
 interface ParceiroConsignado {
   id: string;
   razao_social: string;
@@ -121,6 +124,7 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
   const parceirosQ = useParceirosConsignados();
   const contaQ = useContaCorrenteCliente();
   const kpiQ = useKpiConsignado();
+  const [contratoAberto, setContratoAberto] = useState(false);
 
   const saldoPorParceiro = useMemo(() => {
     const m = new Map<string, ContaCorrenteRow>();
@@ -226,11 +230,21 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
 
   const conteudo = (
     <>
+      <ContratoConsignadoDialog
+        aberto={contratoAberto}
+        onFechar={() => setContratoAberto(false)}
+        onSalvo={() => { setContratoAberto(false); void parceirosQ.refetch(); void contaQ.refetch(); void kpiQ.refetch(); }}
+      />
       {!embutido && (
         <CasaPageHeader
           breadcrumb={[{ label: "Comercial" }, { label: "Consignados" }]}
           title="Consignados"
           subtitle="Parceiros em regime de conta corrente"
+          actions={
+            <BotaoGuardado slug="acao.consignado_contrato_gerir" rotuloAcao="Novo contrato de consignado" size="sm" onClick={() => setContratoAberto(true)}>
+              <Plus className="mr-2 h-4 w-4" />Novo contrato
+            </BotaoGuardado>
+          }
         />
       )}
 
