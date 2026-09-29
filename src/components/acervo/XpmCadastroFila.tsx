@@ -69,6 +69,11 @@ function normalizarBloqueio(b: string): string {
   return t;
 }
 
+function medidasProvisorias(l: { aviso: string | null }): boolean {
+  const a = (l.aviso ?? "").toUpperCase();
+  return a.includes("PROVISÓRIO") || a.includes("PROVISORIO");
+}
+
 function bloqueiosDe(l: LinhaFila): string[] {
   return [...new Set((l.bloqueios ?? []).map(normalizarBloqueio))];
 }
