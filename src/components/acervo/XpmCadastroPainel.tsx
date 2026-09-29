@@ -38,6 +38,8 @@ interface LinhaDivergencia {
   peso_kg_sncf: number | null;
   peso_kg_xpm: number | null;
   categoria_xpm: string | null;
+  chegada_prevista: string | null;
+  pedido_importacao: string | null;
 }
 
 interface ResultadoSku {
@@ -64,6 +66,40 @@ function num(v: number | null): string {
   return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 }
 
+function ddmm(d: string | null): string | null {
+  if (!d) return null;
+  const [, m, dia] = d.slice(0, 10).split("-");
+  return m && dia ? `${dia}/${m}` : null;
+}
+
+/** Fila de cadastro: sem inativos, ordenada por chegada prevista (nulos no fim). */
+function filaCadastro(linhas: LinhaDivergencia[], classe: string): LinhaDivergencia[] {
+  return linhas
+    .filter((l) => l.classe === classe && l.fase !== "inativo")
+    .sort((a, b) => {
+      if (a.chegada_prevista === b.chegada_prevista) return 0;
+      if (!a.chegada_prevista) return 1;
+      if (!b.chegada_prevista) return -1;
+      return a.chegada_prevista < b.chegada_prevista ? -1 : 1;
+    });
+}
+
+function Chegada({ l }: { l: LinhaDivergencia }) {
+  return (
+    <>
+      {ddmm(l.chegada_prevista) ?? "—"}
+      {l.pedido_importacao && (
+        <div className="text-[11px] text-muted-foreground">{l.pedido_importacao}</div>
+      )}
+    </>
+  );
+}
+
+function SemNcm({ l }: { l: LinhaDivergencia }) {
+  if (l.ncm_sncf) return null;
+  return <Badge variant="destructive" className="ml-2 text-[10px]">falta NCM</Badge>;
+}
+
 export function XpmCadastroPainel() {
   const qc = useQueryClient();
   const [selecionados, setSelecionados] = useState<string[]>([]);
@@ -83,9 +119,9 @@ export function XpmCadastroPainel() {
   const { data: linhas, isLoading, isError, error } = useQuery({
     queryKey: ["xpm-cadastro-divergencia"],
     queryFn: async (): Promise<LinhaDivergencia[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("vw_xpm_cadastro_divergencia")
-        .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm")
+        .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm, chegada_prevista, pedido_importacao")
         .order("cod_cadastro", { ascending: true });
       if (error) throw error;
       return (data ?? []) as LinhaDivergencia[];
@@ -93,7 +129,7 @@ export function XpmCadastroPainel() {
   });
 
   const vendaveisFora = useMemo(
-    () => (linhas ?? []).filter((l) => l.classe === "FALTA_NO_XPM_E_VENDAVEL"),
+    () => filaCadastro(linhas ?? [], "FALTA_NO_XPM_E_VENDAVEL"),
     [linhas],
   );
   const saude = useMemo(
@@ -101,7 +137,7 @@ export function XpmCadastroPainel() {
     [linhas],
   );
   const preVenda = useMemo(
-    () => (linhas ?? []).filter((l) => l.classe === "FALTA_NO_XPM"),
+    () => filaCadastro(linhas ?? [], "FALTA_NO_XPM"),
     [linhas],
   );
 
@@ -305,6 +341,7 @@ export function XpmCadastroPainel() {
                     <TableHead>Nome comercial</TableHead>
                     <TableHead>Grupo</TableHead>
                     <TableHead>Fase</TableHead>
+                    <TableHead>Chegada</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -319,9 +356,10 @@ export function XpmCadastroPainel() {
                       </TableCell>
                       <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
                       <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                      <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{l.nome_comercial ?? "—"}<SemNcm l={l} /></TableCell>
                       <TableCell className="text-xs">{l.grupo ?? "—"}</TableCell>
                       <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
+                      <TableCell className="text-xs"><Chegada l={l} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -419,6 +457,7 @@ export function XpmCadastroPainel() {
                           <TableHead>Nome comercial</TableHead>
                           <TableHead>Grupo</TableHead>
                           <TableHead>Fase</TableHead>
+                          <TableHead>Chegada</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -426,9 +465,10 @@ export function XpmCadastroPainel() {
                           <TableRow key={l.sku ?? l.cod_cadastro}>
                             <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
                             <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                            <TableCell className="text-xs">{l.nome_comercial ?? "—"}</TableCell>
+                            <TableCell className="text-xs">{l.nome_comercial ?? "—"}<SemNcm l={l} /></TableCell>
                             <TableCell className="text-xs">{l.grupo ?? "—"}</TableCell>
                             <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
+                            <TableCell className="text-xs"><Chegada l={l} /></TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
