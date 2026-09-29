@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { useAdquirentes } from "@/hooks/financeiro/useAdquirentes";
+import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,7 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
 export const QK_VD_GESTAO = ["venda-direta-gestao"] as const;
 
@@ -24,6 +26,132 @@ export interface LinhaVD {
   id_externo: string | null;
   valor_liquido: number | null;
   cliente_nome: string | null;
+  cliente_telefone?: string | null;
+  provisao_id?: string | null;
+  link_pagamento?: string | null;
+}
+
+const PROVAS_PIX = [
+  { value: "pix_txid", label: "PIX (E2E/txid)", referencia: "E2E / txid do PIX" },
+  { value: "cartao_nsu", label: "Cartão (NSU)", referencia: "NSU da captura" },
+  { value: "boleto_cnab", label: "Boleto (CNAB)", referencia: "Nosso número" },
+  { value: "ofx", label: "Extrato (OFX)", referencia: "Identificador do extrato" },
+] as const;
+
+function hojeISO() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function VerPixDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
+  const pixQ = useQuery({
+    queryKey: ["venda-direta-pix", linha?.provisao_id],
+    enabled: !!linha?.provisao_id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("provisao_recebimento" as never)
+        .select("link_pagamento")
+        .eq("id", linha?.provisao_id as string)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as { link_pagamento: string | null } | null;
+    },
+  });
+  const telefone = (linha?.cliente_telefone ?? "").replace(/\D/g, "");
+  const tel = telefone.length <= 11 ? `55${telefone}` : telefone;
+  const nome = (linha?.cliente_nome ?? "").trim().split(/\s+/)[0] ?? "";
+  const mensagem = linha ? `Olá ${nome}! Seu pedido ${linha.id_externo} na Fetely ficou em ${formatBRL(linha.valor_liquido)}. Pague pelo PIX neste link: ${linha.link_pagamento ?? ""}` : "";
+  const whatsappUrl = linha?.link_pagamento && telefone.length >= 10 ? `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}` : null;
+
+  return (
+    <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>PIX · {linha?.id_externo}</DialogTitle>
+          <DialogDescription>{linha?.cliente_nome}</DialogDescription>
+        </DialogHeader>
+        {pixQ.isLoading ? (
+          <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
+        ) : pixQ.isError ? (
+          <p className="text-sm text-destructive">{rawMessage(pixQ.error)}</p>
+        ) : (
+          <PixPagamento payload={pixQ.data?.link_pagamento ?? null} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} />
+        )}
+        <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [prova, setProva] = useState<(typeof PROVAS_PIX)[number]["value"]>("pix_txid");
+  const [referencia, setReferencia] = useState("");
+  const [data, setData] = useState(hojeISO());
+  const [bancoId, setBancoId] = useState("");
+  const [observacao, setObservacao] = useState("");
+  const bancosQ = useBancosRecebimento(!!linha);
+
+  useEffect(() => {
+    if (linha) { setProva("pix_txid"); setReferencia(""); setData(hojeISO()); setBancoId(""); setObservacao(""); }
+  }, [linha]);
+
+  const m = useMutation({
+    mutationFn: async () => {
+      if (!linha?.provisao_id) throw new Error("Provisão de recebimento não encontrada.");
+      const { error } = await (supabase as any).rpc("confirmar_pagamento_linha", {
+        p_provisao_id: linha.provisao_id,
+        p_prova_tipo: prova,
+        p_prova_ref: referencia.trim(),
+        p_data_pagamento: data,
+        p_observacao: observacao.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`PIX confirmado em ${linha?.id_externo ?? ""}`);
+      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      onClose();
+    },
+    onError: (e) => toast.error(rawMessage(e)),
+  });
+  const provaAtual = PROVAS_PIX.find((p) => p.value === prova) ?? PROVAS_PIX[0];
+
+  return (
+    <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmar PIX manualmente · {linha?.id_externo}</DialogTitle>
+          <DialogDescription>{linha?.cliente_nome} · total {formatBRL(linha?.valor_liquido)}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">A baixa automática roda de hora em hora e só reconhece pagamento com valor exato e pagador identificado.</p>
+          <div className="space-y-1">
+            <Label>Tipo de prova</Label>
+            <Select value={prova} onValueChange={(v) => setProva(v as typeof prova)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{PROVAS_PIX.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>{provaAtual.referencia} *</Label><Input value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus /></div>
+          <div className="space-y-1"><Label>Data do pagamento *</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
+          <div className="space-y-1">
+            <Label>Em qual conta o dinheiro entrou *</Label>
+            <Select value={bancoId} onValueChange={setBancoId}>
+              <SelectTrigger><SelectValue placeholder={bancosQ.isLoading ? "Carregando…" : "Escolha a conta"} /></SelectTrigger>
+              <SelectContent>{(bancosQ.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Observação</Label><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={m.isPending}>Cancelar</Button>
+          <Button onClick={() => m.mutate()} disabled={!referencia.trim() || !data || !bancoId || m.isPending}>
+            {m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pagamento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function agoraLocal(): string {

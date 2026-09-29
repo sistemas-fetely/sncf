@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Copy, Loader2, MessageCircle, Plus, RotateCcw, Search } from "lucide-react";
+import { AlertTriangle, Loader2, Plus, QrCode, RotateCcw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -18,7 +18,7 @@ import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import {
-  ConfirmarCartaoDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, QK_VD_GESTAO, type LinhaVD,
+  ConfirmarCartaoDialog, ConfirmarPixManualDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, QK_VD_GESTAO, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 
 type Situacao =
@@ -81,6 +81,8 @@ export default function VendaDiretaGestao() {
   const [cartao, setCartao] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
   const [entrega, setEntrega] = useState<Linha | null>(null);
+  const [pix, setPix] = useState<Linha | null>(null);
+  const [pixManual, setPixManual] = useState<Linha | null>(null);
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -129,20 +131,6 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
   }, [visiveis, filtro, busca]);
-
-  async function copiar(texto: string) {
-    try { await navigator.clipboard.writeText(texto); toast.success("Link copiado"); }
-    catch (e) { toast.error(rawMessage(e)); }
-  }
-
-  function whatsapp(l: Linha) {
-    const tel0 = soDigitos(l.cliente_telefone ?? "");
-    if (!tel0) { toast.error("Cliente sem telefone cadastrado."); return; }
-    const tel = tel0.length <= 11 ? `55${tel0}` : tel0;
-    const nome = (l.cliente_nome ?? "").trim().split(/\s+/)[0] ?? "";
-    const msg = `Olá ${nome}! Seu pedido ${l.id_externo} na Fetely ficou em ${formatBRL(l.valor_liquido)}. Pague pelo PIX neste link: ${l.link_pagamento ?? ""}`;
-    window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
-  }
 
   return (
     <PageShell>
@@ -263,11 +251,11 @@ export default function VendaDiretaGestao() {
                         <div className="flex justify-end gap-1">
                           {l.situacao === "aguardando_pagamento" && l.pagamento === "pix" && (
                             <>
-                              <Button size="sm" variant="outline" disabled={!l.link_pagamento} onClick={() => copiar(l.link_pagamento!)}>
-                                <Copy className="mr-1 h-3.5 w-3.5" />Copiar link
+                              <Button size="sm" variant="outline" disabled={!l.provisao_id} onClick={() => setPix(l)}>
+                                <QrCode className="mr-1 h-3.5 w-3.5" />Ver PIX
                               </Button>
-                              <Button size="sm" variant="outline" onClick={() => whatsapp(l)}>
-                                <MessageCircle className="mr-1 h-3.5 w-3.5" />Reenviar no WhatsApp
+                              <Button size="sm" variant="outline" disabled={!l.provisao_id} onClick={() => setPixManual(l)}>
+                                Confirmar PIX manualmente
                               </Button>
                             </>
                           )}
@@ -299,6 +287,8 @@ export default function VendaDiretaGestao() {
       <ConfirmarCartaoDialog linha={cartao} onClose={() => setCartao(null)} />
       <RegistrarRetiradaDialog linha={retirada} onClose={() => setRetirada(null)} />
       <RegistrarEntregaDialog linha={entrega} onClose={() => setEntrega(null)} />
+      <VerPixDialog linha={pix} onClose={() => setPix(null)} />
+      <ConfirmarPixManualDialog linha={pixManual} onClose={() => setPixManual(null)} />
     </PageShell>
   );
 }
