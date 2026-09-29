@@ -140,13 +140,21 @@ Deno.serve(async (req) => {
 
     const { data: filaB2c, error: errFila } = await supabase
       .from("bling_pedido_fila_b2c")
-      .select("shopify_pedido_id, order_name, bling_pedido_id")
+      .select("shopify_pedido_id, pedido_id, order_name, bling_pedido_id")
       .not("bling_pedido_id", "is", null);
     if (errFila) throw new Error(`erro ao buscar fila B2C: ${errFila.message}`);
 
+    // Venda direta (pedido nasce no SNCF, sem Shopify): a fila já traz o
+    // pedido_id — usa direto, sem montar SHP-{order_name} (que seria nulo).
+    for (const f of filaB2c ?? []) {
+      if (!f.shopify_pedido_id && f.pedido_id && f.bling_pedido_id) {
+        fontes.push({ pedido_id: String(f.pedido_id), bling_pedido_id: String(f.bling_pedido_id) });
+      }
+    }
+
     const b2cExternos = (filaB2c ?? [])
       // deno-lint-ignore no-explicit-any
-      .filter((f: any) => !!f.bling_pedido_id && !!f.order_name)
+      .filter((f: any) => !!f.shopify_pedido_id && !!f.bling_pedido_id && !!f.order_name)
       // deno-lint-ignore no-explicit-any
       .map((f: any) => ({
         id_externo: `SHP-${String(f.order_name).replace(/#/g, "").trim()}`,

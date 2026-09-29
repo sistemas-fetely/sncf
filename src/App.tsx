@@ -203,6 +203,7 @@ const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const TransferenciasInternas = lazy(() => import("@/pages/Pedidos/TransferenciasInternas"));
 const VendaDiretaNovo = lazy(() => import("@/pages/Pedidos/VendaDiretaNovo"));
+const VendaDiretaGestao = lazy(() => import("@/pages/Pedidos/VendaDiretaGestao"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
@@ -422,6 +423,8 @@ const App = () => (
                 <Route path="/pedidos/transferencias" element={<TransferenciasInternas />} />
                 {/* Venda Direta (B2C por telefone/WhatsApp) — nó sops.venda_direta_novo, slug tela.venda_direta_novo. */}
                 <Route path="/pedidos/venda-direta/novo" element={<VendaDiretaNovo />} />
+                {/* Venda Direta · Gestão — nó sops.venda_direta_gestao, slug tela.venda_direta_gestao. */}
+                <Route path="/pedidos/venda-direta" element={<VendaDiretaGestao />} />
                 {/* /cliente = lista (porta); /cliente/:id = detalhe */}
                 <Route path="/cliente" element={<ClientesLista />} />
                 <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
