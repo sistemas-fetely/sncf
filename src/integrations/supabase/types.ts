@@ -24788,6 +24788,48 @@ export type Database = {
         }
         Relationships: []
       }
+      fop_campo_envio: {
+        Row: {
+          campos: Json
+          cod_cadastro: string
+          conferido_em: string | null
+          enviado_em: string
+          enviado_por: string | null
+          http_status: number | null
+          id: number
+          origem: string | null
+          req_id: number | null
+          resposta: string | null
+          situacao: string
+        }
+        Insert: {
+          campos: Json
+          cod_cadastro: string
+          conferido_em?: string | null
+          enviado_em?: string
+          enviado_por?: string | null
+          http_status?: number | null
+          id?: number
+          origem?: string | null
+          req_id?: number | null
+          resposta?: string | null
+          situacao?: string
+        }
+        Update: {
+          campos?: Json
+          cod_cadastro?: string
+          conferido_em?: string | null
+          enviado_em?: string
+          enviado_por?: string | null
+          http_status?: number | null
+          id?: number
+          origem?: string | null
+          req_id?: number | null
+          resposta?: string | null
+          situacao?: string
+        }
+        Relationships: []
+      }
       fop_categorias: {
         Row: {
           criado_em: string | null
@@ -115939,6 +115981,7 @@ export type Database = {
           saldo_otimista: number
         }[]
       }
+      fn_fop_campo_conferir: { Args: never; Returns: number }
       fn_fop_status_conferir: { Args: never; Returns: number }
       fn_fop_status_empurrar: {
         Args: { p_dry_run?: boolean; p_limite?: number }
@@ -116611,6 +116654,10 @@ export type Database = {
       fn_produto_foto_url: {
         Args: { p_colecao: string; p_cor: string }
         Returns: string
+      }
+      fn_produto_resolver_nome: {
+        Args: { p_dry_run?: boolean; p_itens: Json }
+        Returns: Json
       }
       fn_prorrogacao_aplicar_antecipado: {
         Args: { p_titulo_id: string }
