@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
+import { Checkbox } from "@/components/ui/checkbox";
+import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { formatBRL } from "@/lib/format-currency";
@@ -61,7 +62,9 @@ interface Item { sku: string; nome: string | null; preco: number; quantidade: nu
 interface Resultado {
   id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
+  frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
+const ROTULO_MODAL: Record<ModalVd, string> = { retirada: "Retirada no Site SP", sedex: "Correios SEDEX", pac: "Correios PAC", frete_fetely: "Frete Fetely" };
 
 function CamposEndereco({ v, onChange, cepObrigatorio }: { v: Endereco; onChange: (e: Endereco) => void; cepObrigatorio?: boolean }) {
   const [buscando, setBuscando] = useState(false);
@@ -107,10 +110,9 @@ export default function VendaDiretaNovo() {
   const [novo, setNovo] = useState<NovoCliente | null>(null);
   // Itens / entrega / pagamento
   const [itens, setItens] = useState<Item[]>([]);
-  const [modo, setModo] = useState<"retirada" | "entrega">("retirada");
+  const [modo, setModo] = useState<ModalVd>("retirada");
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
-  const [fretePor, setFretePor] = useState<"cliente" | "fetely">("cliente");
-  const [freteValor, setFreteValor] = useState(0);
+  const [absorve, setAbsorve] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
   const [observacao, setObservacao] = useState("");
@@ -194,7 +196,15 @@ export default function VendaDiretaNovo() {
 
   const valorItens = itens.reduce((s, i) => s + i.preco * i.quantidade, 0);
   const pecas = itens.reduce((s, i) => s + i.quantidade, 0);
-  const freteCobrado = modo === "entrega" && fretePor === "cliente" ? freteValor : 0;
+  const frete = useFreteVendaDireta(soDigitos(endereco.cep), itens);
+  const opcaoSel = frete.opcoes.find((o) => o.modal === modo);
+  const podeAbsorver = modo !== "retirada" && !!opcaoSel?.disponivel && !opcaoSel.gratis && (opcaoSel.cobrado ?? 0) > 0;
+  const absorvendo = absorve && podeAbsorver;
+  const freteCobrado = modo === "retirada" || absorvendo ? 0 : (opcaoSel?.cobrado ?? 0);
+  // Opção escolhida ficou indisponível (CEP/itens mudaram) → volta para retirada.
+  useEffect(() => {
+    if (modo !== "retirada" && opcaoSel && !opcaoSel.disponivel && !frete.cotando) setModo("retirada");
+  }, [modo, opcaoSel, frete.cotando]);
   const total = valorItens + freteCobrado;
 
   const pendencia = useMemo((): string | null => {
@@ -207,14 +217,16 @@ export default function VendaDiretaNovo() {
     }
     if (itens.length === 0) return "Adicione ao menos um item.";
     if (itens.some((i) => !Number.isInteger(i.quantidade) || i.quantidade < 1)) return "Quantidade inválida.";
-    if (modo === "entrega") {
+    if (modo !== "retirada") {
       if (soDigitos(endereco.cep).length !== 8) return "CEP de entrega obrigatório.";
       if (!endereco.logradouro.trim() || !endereco.numero.trim() || !endereco.cidade.trim() || !endereco.uf.trim())
         return "Complete o endereço de entrega.";
-      if (fretePor === "fetely" && !motivo.trim()) return "Informe o motivo do frete absorvido.";
+      if (frete.cotando) return "Aguarde a cotação do frete.";
+      if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
+      if (absorvendo && !motivo.trim()) return "Informe o motivo do frete absorvido.";
     }
     return null;
-  }, [cliente, novo, itens, modo, endereco, fretePor, motivo]);
+  }, [cliente, novo, itens, modo, endereco, absorvendo, motivo, frete.cotando, opcaoSel]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -225,12 +237,23 @@ export default function VendaDiretaNovo() {
             cep: soDigitos(novo!.cep) || null, logradouro: novo!.logradouro || null, numero: novo!.numero || null,
             complemento: novo!.complemento || null, bairro: novo!.bairro || null, cidade: novo!.cidade || null, uf: novo!.uf || null,
           };
+      let cotacao_id: string | null = null;
+      if (modo === "sedex" || modo === "pac") {
+        try {
+          cotacao_id = await frete.cotacaoIdValida();
+        } catch (e) {
+          // SEDEX ainda sai pelo plano B do servidor; PAC exige cotação.
+          if (modo === "pac") throw e;
+        }
+        if (modo === "pac" && !cotacao_id) throw new Error("PAC indisponível sem cotação dos Correios.");
+      }
       const p_entrega =
         modo === "retirada"
           ? { modo: "retirada" }
           : {
-              modo: "entrega", frete_pago_por: fretePor, frete_valor: freteValor,
-              motivo_absorcao: fretePor === "fetely" ? motivo.trim() : null,
+              modo, cotacao_id,
+              frete_pago_por: absorvendo ? "fetely" : "cliente",
+              motivo_absorcao: absorvendo ? motivo.trim() : null,
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
             };
       const { data, error } = await (supabase as any).rpc("criar_pedido_venda_direta", {
@@ -253,7 +276,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setFretePor("cliente"); setFreteValor(0); setMotivo(""); setPagamento("pix"); setObservacao("");
+    setEnderecoEditado(false); setAbsorve(false); setMotivo(""); setPagamento("pix"); setObservacao("");
     setResultado(null);
   };
 
@@ -278,6 +301,16 @@ export default function VendaDiretaNovo() {
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
           </CardHeader>
           <CardContent className="space-y-4">
+            {r.frete && (
+              <p className="text-sm text-muted-foreground">
+                Frete: <span className="font-medium text-foreground">{r.frete.servico ?? "—"}</span>
+                {" · "}{r.frete.gratis || Number(r.frete.cobrado ?? 0) === 0 ? "Grátis" : <span className="tabular-nums">{formatBRL(r.frete.cobrado)}</span>}
+                {r.frete.prazo_dias != null && <> · prazo {r.frete.prazo_dias}d</>}
+                {r.frete.faixa && <> · {r.frete.faixa}</>}
+                {r.frete.fonte === "plano_b" && <> · preço de tabela</>}
+                {r.frete.motivo && <> · {r.frete.motivo}</>}
+              </p>
+            )}
             {r.pagamento === "pix" ? (
               <>
                 <div className="space-y-1">
@@ -458,27 +491,18 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Entrega</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          <RadioGroup value={modo} onValueChange={(v) => setModo(v as typeof modo)} className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="retirada" /> Retirada no Site SP</label>
-            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="entrega" /> Entrega</label>
-          </RadioGroup>
-          {modo === "entrega" && (
-            <div className="space-y-4">
-              <CamposEndereco v={endereco} cepObrigatorio onChange={(e) => { setEnderecoEditado(true); setEndereco(e); }} />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Quem paga o frete</Label>
-                  <RadioGroup value={fretePor} onValueChange={(v) => setFretePor(v as typeof fretePor)} className="flex gap-6">
-                    <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="cliente" /> Cliente</label>
-                    <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="fetely" /> Fetely</label>
-                  </RadioGroup>
-                </div>
-                <div className="space-y-1">
-                  <Label>Valor do frete (R$)</Label>
-                  <InputMoedaBR value={freteValor} onChange={setFreteValor} />
-                </div>
-              </div>
-              {fretePor === "fetely" && (
+          <CamposEndereco v={endereco} cepObrigatorio onChange={(e) => { setEnderecoEditado(true); setEndereco(e); }} />
+          {frete.aguardandoDados && soDigitos(endereco.cep).length !== 8 && (
+            <p className="text-xs text-muted-foreground">Informe o CEP de entrega para cotar SEDEX, PAC e Frete Fetely.</p>
+          )}
+          <CartoesEntrega opcoes={frete.opcoes} valor={modo} onChange={(m) => { setModo(m); setAbsorve(false); }} cotando={frete.cotando} />
+          <AvisosFrete correiosErro={frete.correiosErro} tabelaErro={frete.tabelaErro} paramErro={frete.paramErro} pesoIncompleto={frete.pesoIncompleto} />
+          {podeAbsorver && (
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={absorve} onCheckedChange={(v) => setAbsorve(v === true)} /> Fetely absorve o frete
+              </label>
+              {absorve && (
                 <div className="space-y-1">
                   <Label>Motivo*</Label>
                   <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} />
@@ -538,7 +562,8 @@ export default function VendaDiretaNovo() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Frete</span>
                   <span className="tabular-nums">
-                    {modo === "retirada" ? "Retirada no Site SP" : fretePor === "fetely" ? "Pago pela Fetely" : formatBRL(freteCobrado)}
+                    <span className="text-muted-foreground">{ROTULO_MODAL[modo]} · </span>
+                    {modo === "retirada" || opcaoSel?.gratis ? "Grátis" : absorvendo ? "Pago pela Fetely" : formatBRL(freteCobrado)}
                   </span>
                 </div>
               </div>

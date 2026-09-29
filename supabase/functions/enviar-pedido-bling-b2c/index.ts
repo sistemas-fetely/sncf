@@ -553,7 +553,11 @@ Deno.serve(async (req) => {
 
           // Endereço: entrega → `pedidos.endereco_entrega`; retirada → cadastro do cliente.
           const endPed = (ped.endereco_entrega ?? {}) as Record<string, unknown>;
-          const retirada = String(endPed.modal ?? "") === "retirada";
+          // Modal VD: retirada | sedex | pac | frete_fetely (legado `entrega` = PAC).
+          const modalVd = String(endPed.modal ?? "");
+          const retirada = modalVd === "retirada";
+          const freteFetely = modalVd === "frete_fetely";
+          const servicoVd = modalVd === "sedex" ? servicoSedex : servicoPac;
           const endVd = retirada
             ? {
               logradouro: limparTexto(cli.logradouro),
@@ -579,7 +583,15 @@ Deno.serve(async (req) => {
             );
             continue;
           }
-          if (!retirada && transporteCfgFaltando.length > 0) {
+          if (!retirada && !freteFetely && !["sedex", "pac", "entrega"].includes(modalVd)) {
+            await falharVd(`Pedido ${idExterno} com modal de entrega desconhecido ("${modalVd || "(vazio)"}") — nada enviado.`);
+            continue;
+          }
+          if (modalVd === "sedex" && !servicoSedex) {
+            await falharVd("config do serviço SEDEX ausente (integracoes_config.b2c_servico_sedex) — pedido NÃO enviado.");
+            continue;
+          }
+          if (!retirada && !freteFetely && transporteCfgFaltando.length > 0) {
             await falharVd(
               `Config de transporte B2C ausente em integracoes_config (${transporteCfgFaltando.join(", ")}) — pedido NÃO enviado sem transporte.`,
             );
@@ -602,6 +614,21 @@ Deno.serve(async (req) => {
               continue;
             }
             if (fd?.mod_frete_nf != null) fretePorContaVd = Number(fd.mod_frete_nf);
+          }
+          if (freteFetely) {
+            // Frete Fetely: transporte próprio por conta do remetente. Sem código na
+            // dimensão frete_tipos para isso → 3 (NF-e: próprio por conta do remetente).
+            const { data: fp, error: eFp } = await supabase
+              .from("frete_tipos")
+              .select("mod_frete_nf")
+              .eq("mod_frete_nf", 3)
+              .limit(1)
+              .maybeSingle();
+            if (eFp) {
+              await falharVd(`ler frete_tipos: ${eFp.message}`);
+              continue;
+            }
+            fretePorContaVd = fp?.mod_frete_nf != null ? Number(fp.mod_frete_nf) : 3;
           }
           if (fretePorContaVd == null) {
             if (retirada) {
@@ -824,11 +851,27 @@ Deno.serve(async (req) => {
             total: totalVd,
             transporte: retirada
               ? { fretePorConta: fretePorContaVd }
+              : freteFetely
+              ? {
+                fretePorConta: fretePorContaVd,
+                ...(freteVd > 0 ? { frete: freteVd } : {}),
+                etiqueta: {
+                  nome: nomeVd,
+                  endereco: endVd.logradouro,
+                  numero: endVd.numero,
+                  complemento: endVd.complemento,
+                  bairro: endVd.bairro || "Não informado",
+                  cep: endVd.cep,
+                  municipio: endVd.municipio,
+                  uf: endVd.uf,
+                  nomePais: "",
+                },
+              }
               : {
                 fretePorConta: fretePorContaVd,
                 ...(freteVd > 0 ? { frete: freteVd } : {}),
                 contato: { id: transportadoraContatoId },
-                volumes: [{ servico: servicoPac }],
+                volumes: [{ servico: servicoVd }],
                 etiqueta: {
                   nome: nomeVd,
                   endereco: endVd.logradouro,

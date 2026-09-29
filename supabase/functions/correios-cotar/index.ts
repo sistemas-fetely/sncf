@@ -114,6 +114,35 @@ Deno.serve(async (req) => {
     if (cepO.length !== 8) return fail("cep_origem inválido (8 dígitos)", 400);
     if (cepD.length !== 8) return fail("cep_destino inválido (8 dígitos)", 400);
 
+    // Modo registrar (Venda Direta): peso vem de fn_frete_preparar_cotacao (fonte única) e a
+    // cotação é gravada em frete_cotacao — sem gravar, a cotação não vale para o pedido.
+    const registrar = body.registrar === true;
+    const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    let itensReg: { sku: string; quantidade: number }[] = [];
+    let itensHash: string | null = null;
+    let pesoIncompleto = false;
+    const contexto = typeof body.contexto === "string" && body.contexto.trim() ? body.contexto.trim() : "venda_direta";
+    if (registrar) {
+      if (!Array.isArray(body.itens) || body.itens.length === 0) return fail("registrar: itens obrigatório (lista não vazia)", 400);
+      try {
+        itensReg = body.itens.map((it: any, i: number) => {
+          const sku = String(it?.sku ?? "").trim();
+          const q = Number(it?.quantidade);
+          if (!sku) throw new Error(`itens[${i}]: sku obrigatório`);
+          if (!Number.isInteger(q) || q < 1) throw new Error(`itens[${i}]: quantidade inteira ≥ 1`);
+          return { sku, quantidade: q };
+        });
+      } catch (e) { return fail((e as Error).message, 400); }
+      const { data: prep, error: pErr } = await sb.rpc("fn_frete_preparar_cotacao", { p_itens: itensReg });
+      if (pErr) return fail(`fn_frete_preparar_cotacao: ${pErr.message}`, 500);
+      const pesoPrep = Number((prep as any)?.peso_g);
+      if (!Number.isFinite(pesoPrep) || pesoPrep <= 0) return fail("peso dos itens indisponível (fn_frete_preparar_cotacao sem peso_g)", 422);
+      itensHash = (prep as any)?.itens_hash ?? null;
+      pesoIncompleto = (prep as any)?.peso_incompleto === true;
+      body.peso_g = pesoPrep;
+      delete body.volumes;
+    }
+
     const modoVolumes = body.volumes !== undefined;
     let vols: Vol[];
     try {
@@ -131,7 +160,6 @@ Deno.serve(async (req) => {
       return fail("servicos deve ser lista de códigos com 5 dígitos", 400);
     }
 
-    const sb = createClient(url, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: tk, error: tkErr } = await sb
       .from("correios_token")
       .select("token, expira_em")
@@ -204,7 +232,23 @@ Deno.serve(async (req) => {
       duracao_ms: Date.now() - t0,
     }));
 
+    let registro: Record<string, unknown> = {};
+    if (registrar) {
+      const { data: par, error: parErr } = await sb
+        .from("frete_vd_parametro").select("validade_cotacao_min").eq("id", 1).maybeSingle();
+      if (parErr) return fail(`ler frete_vd_parametro: ${parErr.message}`, 500);
+      const min = Number(par?.validade_cotacao_min ?? 30);
+      const validaAte = new Date(Date.now() + min * 60_000).toISOString();
+      const { data: ins, error: insErr } = await sb.from("frete_cotacao").insert({
+        contexto, cep_origem: cepO, cep_destino: cepD, peso_g: pesoTotal, itens_hash: itensHash,
+        cotacoes, criado_por: u.user.id, valida_ate: validaAte,
+      }).select("id, valida_ate").single();
+      if (insErr || !ins) return fail(`gravar frete_cotacao: ${insErr?.message ?? "sem retorno"}`, 500);
+      registro = { cotacao_id: ins.id, valida_ate: ins.valida_ate, peso_incompleto: pesoIncompleto };
+    }
+
     return resp({
+      ...registro,
       ok: true, origem: cepO, destino: cepD, peso_g_cobrado: pesoTotal,
       ...(modoVolumes ? { n_volumes: nVol } : {}),
       ...(minAplicado ? { peso_minimo_aplicado: true } : {}),
