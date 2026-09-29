@@ -24918,6 +24918,7 @@ export type Database = {
           estoque_fop: number
           http_status: number | null
           id: number
+          pronta_fop: boolean | null
           req_id: number | null
           resposta: string | null
           situacao: string
@@ -24930,6 +24931,7 @@ export type Database = {
           estoque_fop: number
           http_status?: number | null
           id?: number
+          pronta_fop?: boolean | null
           req_id?: number | null
           resposta?: string | null
           situacao?: string
@@ -24942,6 +24944,7 @@ export type Database = {
           estoque_fop?: number
           http_status?: number | null
           id?: number
+          pronta_fop?: boolean | null
           req_id?: number | null
           resposta?: string | null
           situacao?: string
@@ -24955,6 +24958,7 @@ export type Database = {
           confirmado_em: string
           estoque_fop: number
           origem: string
+          pronta_fop: boolean | null
           status_texto: string | null
         }
         Insert: {
@@ -24962,6 +24966,7 @@ export type Database = {
           confirmado_em?: string
           estoque_fop: number
           origem?: string
+          pronta_fop?: boolean | null
           status_texto?: string | null
         }
         Update: {
@@ -24969,6 +24974,7 @@ export type Database = {
           confirmado_em?: string
           estoque_fop?: number
           origem?: string
+          pronta_fop?: boolean | null
           status_texto?: string | null
         }
         Relationships: []
@@ -87544,7 +87550,7 @@ export type Database = {
           eta_base: string | null
           fase: string | null
           pedido_importacao: string | null
-          pronta_entrega: boolean | null
+          pronta_fop: boolean | null
           sku: string | null
           status_rotulo: string | null
           status_slug: string | null
@@ -87558,7 +87564,9 @@ export type Database = {
           estoque_fop: number | null
           fase: string | null
           fop_estoque_atual: number | null
+          fop_pronta_atual: boolean | null
           fop_texto_atual: string | null
+          pronta_fop: boolean | null
           sku: string | null
           status_slug: string | null
           status_texto: string | null
@@ -107598,14 +107606,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
