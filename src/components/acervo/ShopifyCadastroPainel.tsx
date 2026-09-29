@@ -1,27 +1,27 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import { formatBRL } from "@/lib/format-currency";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { AlertTriangle, Eye, Layers, Loader2, Send } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { FiltroColecao, gravarColecoesUrl, lerColecoesUrl } from "@/components/acervo/BlingCardPainel";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { AlertTriangle, ChevronDown, Eye, ImageOff, Layers, Loader2, Send } from "lucide-react";
 
-const TETO_SKUS = 10;
+const LEVA = 10;
 const FN = "shopify-cadastrar-produto";
 const FN_VAR = "shopify-adicionar-variante";
+const SLUG_CADASTRO = "acao.cadastrar_produto_shopify";
 
 interface LinhaFila {
   cod_cadastro: string | null;
@@ -43,13 +43,21 @@ interface LinhaFila {
   produto_agrupado: string | null;
   produto_agrupado_id: string | number | null;
   pode_adicionar_variante: boolean | null;
+  modo: "ativo" | "rascunho_antecipado" | null;
+  chegada_prevista: string | null;
+  colecao: string | null;
 }
 
+interface FotoPrincipal {
+  cod_cadastro: string;
+  url: string | null;
+}
 
 interface ResultadoSku {
   sku?: string;
   status?: string;
   erro?: string;
+  motivo?: string;
   payload?: unknown;
   produto?: unknown;
   handle?: string;
@@ -59,142 +67,277 @@ interface ResultadoSku {
 }
 
 const ROTULO_AVISO: Record<string, string> = {
-  sem_descricao: "Sem descrição",
-  sem_foto: "Sem foto",
-  sem_preco_varejo: "Sem preço",
-  sem_ean: "Sem EAN",
-  sem_peso: "Sem peso",
-  sem_card_bling: "Sem card Bling",
-  sem_xpm: "Sem cadastro XPM",
+  sem_foto: "Falta foto",
+  sem_descricao: "Falta descrição",
+  sem_peso: "Falta peso",
+  sem_preco_varejo: "Falta preço",
+  sem_ean: "Falta EAN",
+  sem_card_bling: "Sem card no Bling",
+  sem_xpm: "Fora do WMS",
   sem_sigla_colecao: "Coleção sem sigla",
-  colecao_variante_sem_codigo: "Coleção com variante sem código no Shopify",
-  produto_agrupado_existe: "Já existe produto agrupado — adicionar como variante",
-  mais_de_um_produto_agrupado: "Mais de um produto agrupado com o mesmo código",
+  colecao_variante_sem_codigo: "Variante sem código na coleção",
+  produto_agrupado_existe: "Já existe produto agrupado (use Adicionar variante)",
+  mais_de_um_produto_agrupado: "Mais de um produto agrupado",
 };
+const AVISOS_NAO_BLOQUEANTES = new Set(["sem_foto", "sem_descricao", "sem_peso"]);
+
+type Tom = "erro" | "aviso" | "ok" | "neutro";
 
 function jsonLegivel(v: unknown): string {
-
   if (v === null || v === undefined) return "—";
   return JSON.stringify(v, null, 2);
 }
 
-function brl(v: number | null): string {
-  if (v === null || v === undefined) return "—";
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+function ddmm(d: string | null): string {
+  if (!d) return "—";
+  const [, mes, dia] = d.slice(0, 10).split("-");
+  return mes && dia ? `${dia}/${mes}` : "—";
+}
+
+function levas<T>(itens: T[]): T[][] {
+  const grupos: T[][] = [];
+  for (let i = 0; i < itens.length; i += LEVA) grupos.push(itens.slice(i, i + LEVA));
+  return grupos;
+}
+
+function detalheResultado(r: ResultadoSku): string {
+  if (r.erro) return r.erro;
+  if (r.motivo) return r.motivo;
+  if (Array.isArray(r.avisos) && r.avisos.length > 0) {
+    return r.avisos.map((a) => (typeof a === "string" ? ROTULO_AVISO[a] ?? a : jsonLegivel(a))).join("; ");
+  }
+  return "sem detalhe";
+}
+
+function statusPrevia(r: ResultadoSku): "vai" | "existe" | "bloqueado" {
+  if (r.status === "dry_run" || r.status === "vai_criar") return "vai";
+  if (r.status === "ja_existe" || r.status === "já_existe") return "existe";
+  return "bloqueado";
 }
 
 async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]> {
-
   const { data, error } = await supabase.functions.invoke(FN, { body: { skus, dry_run } });
   if (error) {
-    // Tenta extrair a mensagem real devolvida pela função
     let msg = formatError(error);
     try {
       const ctx = (error as { context?: Response }).context;
       if (ctx && typeof ctx.json === "function") {
-        const b = await ctx.json();
-        if (b?.erro) msg = b.erro;
+        const corpo = await ctx.json();
+        if (corpo?.erro) msg = corpo.erro;
+        else if (corpo?.error) msg = corpo.error;
       }
-    } catch { /* mantém msg */ }
+    } catch { /* mantém a mensagem original */ }
     throw new Error(msg);
   }
-  if (!data || data.ok === false) throw new Error(data?.erro ?? "Resposta vazia da função.");
+  if (!data || data.ok === false) throw new Error(formatError(data?.erro ?? "Resposta vazia da função."));
   return (data.resultados ?? []) as ResultadoSku[];
 }
 
 export function ShopifyCadastroPainel() {
   const qc = useQueryClient();
   const [selecionados, setSelecionados] = useState<string[]>([]);
-
-  const [payloadVisto, setPayloadVisto] = useState(false);
+  const [filtro, setFiltro] = useState("todos");
+  const [previa, setPrevia] = useState<ResultadoSku[] | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
-  const [payloads, setPayloads] = useState<ResultadoSku[]>([]);
-  const [resultados, setResultados] = useState<ResultadoSku[]>([]);
+  const [resultados, setResultados] = useState<ResultadoSku[] | null>(null);
+  const [carregandoPrevia, setCarregandoPrevia] = useState(false);
+  const [cadastrando, setCadastrando] = useState(false);
+  const [progresso, setProgresso] = useState<string | null>(null);
   const [varAberto, setVarAberto] = useState(false);
 
-  const { permitido, carregando: carregandoPermissao } =
-    usePermissaoAcaoOuSuperAdmin("acao.cadastrar_produto_shopify");
-  const tituloSemPermissao =
-    "Requer a permissão “Cadastrar produto no Shopify” (acao.cadastrar_produto_shopify)";
+  const { permitido, carregando: carregandoPermissao } = usePermissaoAcaoOuSuperAdmin(SLUG_CADASTRO);
+  const tituloSemPermissao = "Requer a permissão “Cadastrar produto no Shopify” (acao.cadastrar_produto_shopify)";
   const liberado = permitido && !carregandoPermissao;
 
-  const { data: linhas, isLoading, isError, error } = useQuery({
+  const q = useQuery({
     queryKey: ["shopify-cadastro-fila"],
     queryFn: async (): Promise<LinhaFila[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_shopify_cadastro_fila")
-        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, codigo_shopify, colecoes_shopify, avisos, pode_enviar, produto_agrupado, produto_agrupado_id, pode_adicionar_variante")
-        .order("cod_cadastro");
+        .select("cod_cadastro, sku, fase, canal_venda, nome_comercial, marca, grupo, preco_varejo, ean, peso_g, tem_descricao, tem_foto, codigo_shopify, colecoes_shopify, avisos, pode_enviar, produto_agrupado, produto_agrupado_id, pode_adicionar_variante, modo, chegada_prevista, colecao")
+        .order("chegada_prevista", { ascending: true, nullsFirst: false })
+        .order("cod_cadastro", { ascending: true });
       if (error) throw error;
       return (data ?? []) as LinhaFila[];
     },
   });
+  const linhas = q.data ?? [];
 
-  const visiveis = linhas ?? [];
+  const codigos = useMemo(
+    () => [...new Set(linhas.map((l) => l.cod_cadastro).filter((c): c is string => !!c))],
+    [linhas],
+  );
+  const qFotos = useQuery({
+    queryKey: ["shopify-cadastro-fotos-principais", codigos],
+    enabled: codigos.length > 0,
+    queryFn: async (): Promise<FotoPrincipal[]> => {
+      const { data, error } = await (supabase as any)
+        .from("produto_foto")
+        .select("cod_cadastro, url")
+        .eq("principal", true)
+        .in("cod_cadastro", codigos);
+      if (error) throw error;
+      return (data ?? []) as FotoPrincipal[];
+    },
+  });
+  const fotos = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const foto of qFotos.data ?? []) if (foto.url) mapa.set(foto.cod_cadastro, foto.url);
+    return mapa;
+  }, [qFotos.data]);
 
+  const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
+  const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
+  const setColecaoFiltro = (next: string[]) => setColecaoUrl(gravarColecoesUrl(next));
+  const colecoes = useMemo(() => {
+    const contagem = new Map<string, number>();
+    for (const linha of linhas) {
+      const colecao = (linha.colecao ?? "").trim();
+      if (colecao) contagem.set(colecao, (contagem.get(colecao) ?? 0) + 1);
+    }
+    return [...contagem.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
 
-  function alternar(sku: string | null) {
-    if (!sku) return;
-    setPayloadVisto(false);
-    setSelecionados((prev) => (prev.includes(sku) ? prev.filter((s) => s !== sku) : [...prev, sku]));
+  useEffect(() => {
+    if (!q.isSuccess) return;
+    const validas = colecaoFiltro.filter((f) => colecoes.some(([c]) => c === f));
+    if (validas.length !== colecaoFiltro.length) setColecaoUrl(gravarColecoesUrl(validas));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.isSuccess, colecoes, colecaoUrl]);
+
+  const porColecao = useMemo(
+    () => colecaoFiltro.length ? linhas.filter((l) => colecaoFiltro.includes((l.colecao ?? "").trim())) : linhas,
+    [linhas, colecaoFiltro],
+  );
+  const cartoes = useMemo(() => {
+    const itens: { chave: string; rotulo: string; qtd: number; tom: Tom }[] = [
+      { chave: "todos", rotulo: "Todos", qtd: porColecao.length, tom: "neutro" },
+      { chave: "prontos", rotulo: "Prontos", qtd: porColecao.filter((l) => l.pode_enviar).length, tom: "ok" },
+      { chave: "rascunho", rotulo: "Rascunho antecipado", qtd: porColecao.filter((l) => l.modo === "rascunho_antecipado").length, tom: "neutro" },
+    ];
+    const contagem = new Map<string, number>();
+    for (const linha of porColecao) {
+      for (const aviso of linha.avisos ?? []) contagem.set(aviso, (contagem.get(aviso) ?? 0) + 1);
+    }
+    for (const [codigo, qtd] of [...contagem.entries()].sort((a, b) => b[1] - a[1])) {
+      itens.push({
+        chave: `aviso:${codigo}`,
+        rotulo: ROTULO_AVISO[codigo] ?? codigo,
+        qtd,
+        tom: AVISOS_NAO_BLOQUEANTES.has(codigo) ? "aviso" : "erro",
+      });
+    }
+    return itens;
+  }, [porColecao]);
+
+  useEffect(() => {
+    if (filtro !== "todos" && !cartoes.some((c) => c.chave === filtro)) setFiltro("todos");
+  }, [cartoes, filtro]);
+
+  const filtradas = useMemo(() => {
+    if (filtro === "prontos") return porColecao.filter((l) => l.pode_enviar);
+    if (filtro === "rascunho") return porColecao.filter((l) => l.modo === "rascunho_antecipado");
+    if (filtro.startsWith("aviso:")) {
+      const aviso = filtro.slice(6);
+      return porColecao.filter((l) => (l.avisos ?? []).includes(aviso));
+    }
+    return porColecao;
+  }, [filtro, porColecao]);
+
+  const prontosVisiveis = filtradas.filter((l) => l.pode_enviar && l.sku);
+  const selecionadasVisiveis = useMemo(
+    () => filtradas.filter((l) => l.pode_enviar && l.sku && selecionados.includes(l.sku)).map((l) => l.sku as string),
+    [filtradas, selecionados],
+  );
+  const todosProntosMarcados = prontosVisiveis.length > 0 && prontosVisiveis.every((l) => selecionados.includes(l.sku as string));
+  const linhasSel = linhas.filter((l) => l.sku && selecionados.includes(l.sku));
+  const todosVariante = linhasSel.length > 0 && linhasSel.every((l) => l.pode_adicionar_variante) && new Set(linhasSel.map((l) => l.produto_agrupado_id)).size === 1;
+
+  function mudouSelecao(next: string[] | ((prev: string[]) => string[])) {
+    setSelecionados(next);
+    setPrevia(null);
+    setResultados(null);
   }
 
-  const verPayload = useMutation({
-    mutationFn: (skus: string[]) => chamar(skus, true),
-    onSuccess: (res) => {
-      setPayloads(res);
-      setPayloadVisto(true);
+  async function fazerPrevia() {
+    const grupos = levas(selecionadasVisiveis);
+    setCarregandoPrevia(true);
+    setResultados(null);
+    const acumulado: ResultadoSku[] = [];
+    try {
+      for (let i = 0; i < grupos.length; i++) {
+        setProgresso(`Prévia: leva ${i + 1} de ${grupos.length}`);
+        acumulado.push(...await chamar(grupos[i], true));
+      }
+      setPrevia(acumulado);
       setDialogAberto(true);
-      toast.success(`Payload gerado para ${res.length} SKU(s)`);
-    },
-    onError: (e) => toast.error(`Falha ao gerar payload: ${formatError(e)}`),
-  });
+      toast.success(`Prévia: ${acumulado.filter((r) => statusPrevia(r) === "vai").length} a criar`);
+    } catch (e) {
+      setPrevia(null);
+      toast.error(`Falha ao gerar prévia: ${formatError(e)}`);
+    } finally {
+      setCarregandoPrevia(false);
+      setProgresso(null);
+    }
+  }
+
+  const previaVai = (previa ?? []).filter((r) => statusPrevia(r) === "vai" && r.sku && selecionadasVisiveis.includes(r.sku));
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Limpa o revalidate agendado quando o painel sai da tela.
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current);
   }, []);
 
-  const cadastrar = useMutation({
-    mutationFn: (skus: string[]) => chamar(skus, false),
-    onSuccess: (res) => {
-      setResultados(res);
-      const ok = res.filter((r) => r.status === "ok").length;
-      const problema = res.filter((r) => r.status !== "ok").length;
-      if (ok > 0) toast.success(`${ok} SKU(s) cadastrado(s) no Shopify como Rascunho`);
-      if (problema > 0) toast.error(`${problema} SKU(s) não cadastrado(s) — veja o resultado abaixo`);
-      // Remove da lista exibida (e da seleção) os SKUs criados com sucesso — o webhook
-      // do Shopify ainda não gravou o produto no espelho, então a view ainda os devolve.
-      const okSkus = new Set(res.filter((r) => r.status === "ok").map((r) => r.sku).filter(Boolean) as string[]);
+  async function cadastrar() {
+    const skus = previaVai.map((r) => r.sku).filter((sku): sku is string => !!sku);
+    const grupos = levas(skus);
+    const acumulado: ResultadoSku[] = [];
+    setCadastrando(true);
+    try {
+      for (let i = 0; i < grupos.length; i++) {
+        setProgresso(`Cadastro: leva ${i + 1} de ${grupos.length}`);
+        acumulado.push(...await chamar(grupos[i], false));
+      }
+      setResultados(acumulado);
+      const criados = acumulado.filter((r) => r.status === "ok");
+      const problemas = acumulado.length - criados.length;
+      if (criados.length > 0) toast.success(`${criados.length} rascunho(s) criado(s) no Shopify`);
+      if (problemas > 0) toast.error(`${problemas} item(ns) não criado(s) — veja o resumo`);
+      const okSkus = new Set(criados.map((r) => r.sku).filter((sku): sku is string => !!sku));
       if (okSkus.size > 0) {
-        qc.setQueryData<LinhaFila[]>(["shopify-cadastro-fila"], (old) =>
-          old?.filter((l) => !okSkus.has(l.sku ?? ""))
-        );
+        qc.setQueryData<LinhaFila[]>(["shopify-cadastro-fila"], (atuais) => atuais?.filter((l) => !okSkus.has(l.sku ?? "")));
       }
       setSelecionados([]);
-      setPayloadVisto(false);
+      setPrevia(null);
       void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
-      // Revalida depois de um tempo, para a tela bater com o banco quando o webhook chegar.
       if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = setTimeout(() => {
-        void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
-      }, 8000);
-    },
-    onError: (e) => toast.error(`Falha ao cadastrar no Shopify: ${formatError(e)}`),
-  });
+      timerRef.current = setTimeout(() => void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] }), 8000);
+    } catch (e) {
+      setResultados(acumulado);
+      toast.error(`Falha ao cadastrar no Shopify: ${formatError(e)}`);
+    } finally {
+      setCadastrando(false);
+      setProgresso(null);
+    }
+  }
 
-  const acima = selecionados.length > TETO_SKUS;
-  const semSkus = selecionados.length === 0;
-  const linhasSel = (linhas ?? []).filter((l) => l.sku && selecionados.includes(l.sku));
-  const todosEnviar = linhasSel.length > 0 && linhasSel.every((l) => l.pode_enviar);
-  const todosVariante =
-    linhasSel.length > 0 &&
-    linhasSel.every((l) => l.pode_adicionar_variante) &&
-    new Set(linhasSel.map((l) => l.produto_agrupado_id)).size === 1;
+  const infoLinha = useMemo(() => {
+    const mapa = new Map<string, LinhaFila>();
+    for (const linha of linhas) if (linha.sku) mapa.set(linha.sku, linha);
+    return mapa;
+  }, [linhas]);
+  const resumo = useMemo(() => {
+    const res = resultados ?? [];
+    return {
+      criados: res.filter((r) => r.status === "ok").length,
+      existentes: res.filter((r) => r.status === "ja_existe" || r.status === "já_existe").length,
+      bloqueados: res.filter((r) => r.status === "bloqueado" || r.status === "recusado").length,
+      erros: res.filter((r) => !["ok", "ja_existe", "já_existe", "bloqueado", "recusado"].includes(r.status ?? "")).length,
+    };
+  }, [resultados]);
+  const ocupado = carregandoPrevia || cadastrando;
 
-  if (isLoading) {
+  if (q.isLoading) {
     return (
       <Card>
         <CardContent className="py-12 flex items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -204,12 +347,12 @@ export function ShopifyCadastroPainel() {
     );
   }
 
-  if (isError) {
+  if (q.isError) {
     return (
       <Alert variant="destructive">
         <AlertTriangle className="h-4 w-4" />
         <AlertTitle>Não foi possível carregar a fila do Shopify</AlertTitle>
-        <AlertDescription className="text-xs">{formatError(error)}</AlertDescription>
+        <AlertDescription className="text-xs">{formatError(q.error)}</AlertDescription>
       </Alert>
     );
   }
@@ -217,177 +360,261 @@ export function ShopifyCadastroPainel() {
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cadastro no Shopify</CardTitle>
+        <CardHeader className="pb-3 space-y-1">
+          <CardTitle className="text-base">Cadastrar no Shopify</CardTitle>
           <p className="text-sm text-muted-foreground">
-            SKUs ativos, com canal B2C ou B2B+B2C, sem anúncio no Shopify (fonte: Conciliação de Cadastro). Todo produto nasce como Rascunho (Draft) — ativar na vitrine é feito no Shopify Admin.
+            Produtos ativos sem anúncio e pré-vendas com chegada em até 30 dias. Todo anúncio nasce em <strong>Rascunho</strong> (invisível na loja) com estoque 0 — publique no Shopify quando o produto estiver ativo e com foto e descrição.
           </p>
+          {linhas.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-2">
+              {cartoes.map((cartao) => {
+                const ativo = filtro === cartao.chave;
+                const cor = cartao.tom === "erro" ? "text-destructive" : cartao.tom === "aviso" ? "text-warning" : cartao.tom === "ok" ? "text-success" : "";
+                return (
+                  <button
+                    key={cartao.chave}
+                    type="button"
+                    onClick={() => setFiltro(ativo || cartao.chave === "todos" ? "todos" : cartao.chave)}
+                    className={`rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted/50 ${ativo ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border"}`}
+                  >
+                    <div className={`text-xl font-semibold tabular-nums ${cor}`}>{cartao.qtd}</div>
+                    <div className="text-[11px] text-muted-foreground">{cartao.rotulo}</div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+        <CardContent className="space-y-4">
+          {qFotos.isError && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Não foi possível carregar as fotos</AlertTitle>
+              <AlertDescription className="text-xs">{formatError(qFotos.error)}</AlertDescription>
+            </Alert>
+          )}
 
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Coleção</p>
+              <FiltroColecao colecoes={colecoes} selecionadas={colecaoFiltro} onChange={setColecaoFiltro} />
+            </div>
+            <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
+            <BotaoGuardado
+              slug={SLUG_CADASTRO}
+              rotuloAcao="Prévia do cadastro no Shopify"
+              size="sm"
+              variant="outline"
+              className="gap-2"
+              disabled={selecionadasVisiveis.length === 0 || ocupado}
+              onClick={() => void fazerPrevia()}
+            >
+              {carregandoPrevia ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+              Prévia
+            </BotaoGuardado>
+            <BotaoGuardado
+              slug={SLUG_CADASTRO}
+              rotuloAcao="Cadastrar produto no Shopify"
+              size="sm"
+              className="gap-2"
+              disabled={previaVai.length === 0 || ocupado}
+              onClick={() => void cadastrar()}
+            >
+              {cadastrando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              Criar {previaVai.length} {previaVai.length === 1 ? "rascunho" : "rascunhos"} no Shopify
+            </BotaoGuardado>
             <Button
               size="sm"
               variant="outline"
               className="gap-2"
-              disabled={semSkus || acima || !todosEnviar || verPayload.isPending || !liberado}
-              title={!liberado ? tituloSemPermissao : undefined}
-              onClick={() => verPayload.mutate(selecionados)}
-            >
-              {verPayload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
-              Ver payload
-            </Button>
-            <Button
-              size="sm"
-              className="gap-2"
-              disabled={semSkus || acima || !todosEnviar || !payloadVisto || cadastrar.isPending || !liberado}
-              title={!liberado ? tituloSemPermissao : undefined}
-              onClick={() => cadastrar.mutate(selecionados)}
-            >
-              {cadastrar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-              Cadastrar no Shopify (Draft)
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-2"
-              disabled={semSkus || acima || !todosVariante || !liberado}
+              disabled={selecionados.length === 0 || !todosVariante || !liberado}
               title={!liberado ? tituloSemPermissao : undefined}
               onClick={() => setVarAberto(true)}
             >
               <Layers className="h-3.5 w-3.5" />
               Adicionar como variante ({selecionados.length})
             </Button>
-            {acima && (
-              <span className="text-xs text-destructive">
-                Máximo de {TETO_SKUS} SKUs por chamada. Reduza a seleção.
-              </span>
+            {progresso && <span className="text-xs text-muted-foreground">{progresso}</span>}
+            {previa && (
+              <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setDialogAberto(true)}>
+                Ver prévia
+              </Button>
             )}
-            {!payloadVisto && !semSkus && !acima && (
-              <span className="text-xs text-muted-foreground">Veja o payload antes de cadastrar.</span>
+            {!previa && selecionadasVisiveis.length > 0 && !ocupado && (
+              <span className="text-xs text-muted-foreground">Veja a prévia antes de criar.</span>
             )}
           </div>
 
-          {visiveis.length === 0 ? (
+          {resultados && (
+            <div className="rounded-md border p-3 space-y-2 text-xs">
+              <p className="font-medium">
+                Resultado: <span className="text-success">{resumo.criados} criado(s)</span> · {resumo.existentes} já existia(m) · {resumo.bloqueados} bloqueado(s) · <span className={resumo.erros ? "text-destructive" : ""}>{resumo.erros} erro(s)</span>
+              </p>
+              {resultados.filter((r) => r.status !== "ok").map((r, i) => (
+                <div key={`${r.sku}-${i}`} className={r.status === "ja_existe" ? "text-muted-foreground" : "text-destructive"}>
+                  <span className="font-mono">{r.sku ?? "—"}</span> ({r.status ?? "erro"}): {detalheResultado(r)}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {filtradas.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum SKU pendente de cadastro no Shopify.
+              {linhas.length === 0 ? "Nenhum produto pendente de cadastro no Shopify." : "Nenhum produto corresponde aos filtros."}
             </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-8" />
-                  <TableHead>Cód. cadastro</TableHead>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Nome comercial</TableHead>
-                  <TableHead>Fase</TableHead>
-                  <TableHead>Canal</TableHead>
-                  <TableHead>Código Shopify</TableHead>
-                  <TableHead>Coleções</TableHead>
-                  <TableHead>Produto na loja</TableHead>
-                  <TableHead className="text-right">Preço varejo</TableHead>
-                  <TableHead>EAN</TableHead>
-                  <TableHead>Avisos</TableHead>
-
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {visiveis.map((l) => (
-                  <TableRow key={l.sku ?? l.cod_cadastro ?? ""}>
-                    <TableCell>
+            <div className="rounded-md border max-h-[calc(100vh-22rem)] overflow-auto">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead className="w-10">
                       <Checkbox
-                        checked={!!l.sku && selecionados.includes(l.sku)}
-                        disabled={!(l.pode_enviar || l.pode_adicionar_variante) || !l.sku}
-                        title={!(l.pode_enviar || l.pode_adicionar_variante) ? `Bloqueado: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}` : undefined}
-                        onCheckedChange={() => alternar(l.sku)}
+                        checked={todosProntosMarcados}
+                        disabled={prontosVisiveis.length === 0}
+                        onCheckedChange={() => mudouSelecao(todosProntosMarcados ? [] : prontosVisiveis.map((l) => l.sku as string))}
+                        aria-label="Selecionar todos os prontos"
                       />
-                    </TableCell>
-                    <TableCell className="text-xs">{l.cod_cadastro ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                    <TableCell className="text-sm">{l.nome_comercial ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{l.canal_venda ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{l.codigo_shopify ?? "—"}</TableCell>
-                    <TableCell className="text-xs">{(l.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
-                    <TableCell className="text-xs">{l.produto_agrupado ?? "—"}</TableCell>
-                    <TableCell className="text-right text-xs tabular-nums">{brl(l.preco_varejo)}</TableCell>
-                    <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
-
-
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {(l.avisos ?? []).map((a) => (
-                          <Badge key={a} variant="outline" className="text-[10px]">
-                            {ROTULO_AVISO[a] ?? a}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
+                    </TableHead>
+                    <TableHead>Foto</TableHead>
+                    <TableHead>Cód.</TableHead>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Grupo</TableHead>
+                    <TableHead>Modo</TableHead>
+                    <TableHead>Chegada</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
+                    <TableHead>EAN</TableHead>
+                    <TableHead className="text-right">Peso</TableHead>
+                    <TableHead>Coleções no Shopify</TableHead>
+                    <TableHead>Pendências</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtradas.map((linha) => {
+                    const urlFoto = linha.cod_cadastro ? fotos.get(linha.cod_cadastro) : undefined;
+                    return (
+                      <TableRow key={linha.sku ?? linha.cod_cadastro ?? ""}>
+                        <TableCell>
+                          <Checkbox
+                            checked={!!linha.sku && selecionados.includes(linha.sku)}
+                            disabled={!linha.pode_enviar || !linha.sku}
+                            onCheckedChange={() => mudouSelecao((prev) => prev.includes(linha.sku as string) ? prev.filter((s) => s !== linha.sku) : [...prev, linha.sku as string])}
+                            aria-label={`Selecionar ${linha.sku ?? linha.cod_cadastro ?? "produto"}`}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {urlFoto ? (
+                            <img src={urlFoto} alt="" className="h-12 w-12 rounded-sm border object-cover" />
+                          ) : (
+                            <div className="flex h-12 w-12 flex-col items-center justify-center rounded-sm border bg-muted text-[9px] text-muted-foreground">
+                              <ImageOff className="h-4 w-4" /> sem foto
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">
+                          {linha.cod_cadastro ?? "—"}
+                          <div className="text-[11px] text-muted-foreground">{linha.sku ?? "—"}</div>
+                        </TableCell>
+                        <TableCell className="text-sm">{linha.nome_comercial ?? "—"}</TableCell>
+                        <TableCell className="text-xs">{linha.grupo ?? "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px]">
+                            {linha.modo === "rascunho_antecipado" ? "Rascunho antecipado" : "Ativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs">{ddmm(linha.chegada_prevista)}</TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">{formatBRL(linha.preco_varejo)}</TableCell>
+                        <TableCell className="font-mono text-xs">{linha.ean ?? "—"}</TableCell>
+                        <TableCell className="text-right text-xs tabular-nums">
+                          {linha.peso_g ? `${Number(linha.peso_g).toLocaleString("pt-BR")} g` : <span className="text-warning">—</span>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(linha.colecoes_shopify ?? []).length > 0 ? (linha.colecoes_shopify ?? []).map((colecao) => (
+                              <Badge key={colecao} variant="secondary" className="text-[10px]">{colecao}</Badge>
+                            )) : <span className="text-xs text-muted-foreground">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {(linha.avisos ?? []).length === 0 ? (
+                            linha.pode_enviar ? <Badge variant="outline" className="border-success text-success text-[10px]">pronto</Badge> : "—"
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {(linha.avisos ?? []).map((aviso) => (
+                                <Badge
+                                  key={aviso}
+                                  variant={AVISOS_NAO_BLOQUEANTES.has(aviso) ? "outline" : "destructive"}
+                                  className={AVISOS_NAO_BLOQUEANTES.has(aviso) ? "border-warning text-warning text-[10px]" : "text-[10px]"}
+                                >
+                                  {ROTULO_AVISO[aviso] ?? aviso}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      {resultados.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Resultado do cadastro</CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Prévia do cadastro no Shopify</DialogTitle>
+            <DialogDescription>
+              Simulação — nada foi gravado. {previaVai.length} vai(ão) criar · {(previa ?? []).filter((r) => statusPrevia(r) === "existe").length} já existe(m) · {(previa ?? []).filter((r) => statusPrevia(r) === "bloqueado").length} bloqueado(s).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-md border overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Handle</TableHead>
-                  <TableHead>Shopify product ID</TableHead>
-                  <TableHead>Erro</TableHead>
+                  <TableHead>Cód.</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Coleções</TableHead>
+                  <TableHead>Situação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {resultados.map((r, i) => (
-                  <TableRow key={`${r.sku}-${i}`}>
-                    <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={r.status === "ok" ? "default" : "destructive"}>{r.status ?? "—"}</Badge>
-                    </TableCell>
-                    <TableCell className="text-xs">{r.handle ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-xs">{r.shopify_product_id ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-destructive whitespace-pre-wrap break-all">{r.erro ?? "—"}</TableCell>
-                  </TableRow>
-                ))}
+                {(previa ?? []).map((item, i) => {
+                  const linha = item.sku ? infoLinha.get(item.sku) : undefined;
+                  const situacao = statusPrevia(item);
+                  return (
+                    <TableRow key={`${item.sku}-${i}`}>
+                      <TableCell className="font-mono text-xs align-top">
+                        {linha?.cod_cadastro ?? "—"}
+                        <div className="text-[11px] text-muted-foreground">{item.sku ?? "—"}</div>
+                      </TableCell>
+                      <TableCell className="text-xs align-top">
+                        {linha?.nome_comercial ?? "—"}
+                        <Collapsible>
+                          <CollapsibleTrigger className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground">
+                            <ChevronDown className="h-3 w-3" /> detalhes técnicos
+                          </CollapsibleTrigger>
+                          <CollapsibleContent>
+                            <pre className="mt-1 max-h-48 overflow-auto rounded bg-muted p-2 text-[11px]">{jsonLegivel(item.payload ?? item)}</pre>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      </TableCell>
+                      <TableCell className="text-xs align-top">{(linha?.colecoes_shopify ?? []).join(" · ") || "—"}</TableCell>
+                      <TableCell className="text-xs align-top">
+                        {situacao === "vai" ? (
+                          <Badge variant="outline" className="border-success text-success text-[10px]">vai criar</Badge>
+                        ) : situacao === "existe" ? (
+                          <Badge variant="outline" className="text-[10px]">já existe</Badge>
+                        ) : (
+                          <span className="text-destructive">bloqueado: {detalheResultado(item)}</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
-          </CardContent>
-        </Card>
-      )}
-
-      <Dialog open={dialogAberto} onOpenChange={setDialogAberto}>
-        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Payload para o Shopify (simulação)</DialogTitle>
-            <DialogDescription>Nada foi gravado. Confira antes de cadastrar.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            {payloads.map((p, i) => (
-              <div key={`${p.sku}-${i}`} className="rounded-md border p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-sm">{p.sku}</span>
-                  <Badge variant={p.status === "dry_run" ? "outline" : "destructive"}>{p.status}</Badge>
-                </div>
-                {p.status === "dry_run" ? (
-                  <pre className="text-xs bg-muted rounded p-2 overflow-x-auto">{jsonLegivel(p.payload)}</pre>
-                ) : (
-                  <pre className="text-xs bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap">
-                    {p.status === "ja_existe" ? jsonLegivel(p.produto) : (p.erro ?? jsonLegivel(p))}
-                  </pre>
-                )}
-              </div>
-            ))}
           </div>
         </DialogContent>
       </Dialog>
@@ -399,17 +626,13 @@ export function ShopifyCadastroPainel() {
         liberado={liberado}
         onConcluido={(okSkus) => {
           if (okSkus.size > 0) {
-            qc.setQueryData<LinhaFila[]>(["shopify-cadastro-fila"], (old) =>
-              old?.filter((l) => !okSkus.has(l.sku ?? ""))
-            );
-            setSelecionados((prev) => prev.filter((s) => !okSkus.has(s)));
+            qc.setQueryData<LinhaFila[]>(["shopify-cadastro-fila"], (atuais) => atuais?.filter((l) => !okSkus.has(l.sku ?? "")));
+            setSelecionados((prev) => prev.filter((sku) => !okSkus.has(sku)));
           }
           void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
           void qc.invalidateQueries({ queryKey: ["shopify-estoque-retido"] });
           if (timerRef.current) clearTimeout(timerRef.current);
-          timerRef.current = setTimeout(() => {
-            void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] });
-          }, 8000);
+          timerRef.current = setTimeout(() => void qc.invalidateQueries({ queryKey: ["shopify-cadastro-fila"] }), 8000);
         }}
       />
 
