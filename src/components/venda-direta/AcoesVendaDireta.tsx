@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { useAdquirentes } from "@/hooks/financeiro/useAdquirentes";
-import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
+import { useConfirmarPagamentoLinha } from "@/hooks/pedidos/useConfirmarPagamentoLinha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,37 +87,36 @@ export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | 
   const [prova, setProva] = useState<(typeof PROVAS_PIX)[number]["value"]>("pix_txid");
   const [referencia, setReferencia] = useState("");
   const [data, setData] = useState(hojeISO());
-  const [bancoId, setBancoId] = useState("");
   const [observacao, setObservacao] = useState("");
-  const bancosQ = useBancosRecebimento(!!linha);
+  const confirmarLinha = useConfirmarPagamentoLinha();
 
   useEffect(() => {
-    if (linha) { setProva("pix_txid"); setReferencia(""); setData(hojeISO()); setBancoId(""); setObservacao(""); }
+    if (linha) { setProva("pix_txid"); setReferencia(""); setData(hojeISO()); setObservacao(""); }
   }, [linha]);
 
-  const m = useMutation({
-    mutationFn: async () => {
-      if (!linha?.provisao_id) throw new Error("Provisão de recebimento não encontrada.");
-      const { error } = await (supabase as any).rpc("confirmar_pagamento_linha", {
-        p_provisao_id: linha.provisao_id,
-        p_prova_tipo: prova,
-        p_prova_ref: referencia.trim(),
-        p_data_pagamento: data,
-        p_observacao: observacao.trim() || null,
+  async function confirmar() {
+    if (!linha?.provisao_id) {
+      toast.error("Provisão de recebimento não encontrada.");
+      return;
+    }
+    try {
+      await confirmarLinha.mutateAsync({
+        provisao_id: linha.provisao_id,
+        prova_tipo: prova,
+        prova_ref: referencia.trim(),
+        data_pagamento: data,
+        observacao,
       });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success(`PIX confirmado em ${linha?.id_externo ?? ""}`);
       qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
       onClose();
-    },
-    onError: (e) => toast.error(rawMessage(e)),
-  });
+    } catch {
+      // FAIL-LOUD: o hook já exibiu a mensagem real e mantém o diálogo aberto.
+    }
+  }
   const provaAtual = PROVAS_PIX.find((p) => p.value === prova) ?? PROVAS_PIX[0];
 
   return (
-    <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}>
+    <Dialog open={!!linha} onOpenChange={(v) => !v && !confirmarLinha.isPending && onClose()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Confirmar PIX manualmente · {linha?.id_externo}</DialogTitle>
@@ -134,19 +133,12 @@ export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | 
           </div>
           <div className="space-y-1"><Label>{provaAtual.referencia} *</Label><Input value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus /></div>
           <div className="space-y-1"><Label>Data do pagamento *</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
-          <div className="space-y-1">
-            <Label>Em qual conta o dinheiro entrou *</Label>
-            <Select value={bancoId} onValueChange={setBancoId}>
-              <SelectTrigger><SelectValue placeholder={bancosQ.isLoading ? "Carregando…" : "Escolha a conta"} /></SelectTrigger>
-              <SelectContent>{(bancosQ.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
           <div className="space-y-1"><Label>Observação</Label><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} /></div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={m.isPending}>Cancelar</Button>
-          <Button onClick={() => m.mutate()} disabled={!referencia.trim() || !data || !bancoId || m.isPending}>
-            {m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pagamento
+          <Button variant="outline" onClick={onClose} disabled={confirmarLinha.isPending}>Cancelar</Button>
+          <Button onClick={confirmar} disabled={!referencia.trim() || !data || confirmarLinha.isPending}>
+            {confirmarLinha.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pagamento
           </Button>
         </DialogFooter>
       </DialogContent>
