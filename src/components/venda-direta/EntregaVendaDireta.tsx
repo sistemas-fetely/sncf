@@ -192,7 +192,7 @@ export function CartoesEntrega({
   opcoes, valor, onChange, cotando,
 }: { opcoes: OpcaoFreteVd[]; valor: ModalVd; onChange: (m: ModalVd) => void; cotando: boolean }) {
   // Só UI: entre SEDEX e PAC, esconde a opção dominada (outra é <= em valor e prazo, e melhor em ao menos um).
-  const dominada = useMemo((): { oculta: ModalVd; dominante: ModalVd } | null => {
+  const dominada = useMemo((): { oculta: ModalVd; dominante: ModalVd; motivoNota: string } | null => {
     if (cotando) return null;
     const s = opcoes.find((o) => o.modal === "sedex");
     const p = opcoes.find((o) => o.modal === "pac");
@@ -201,8 +201,14 @@ export function CartoesEntrega({
     const domina = (a: OpcaoFreteVd, b: OpcaoFreteVd) =>
       a.cobrado! <= b.cobrado! && a.prazo_dias! <= b.prazo_dias! &&
       (a.cobrado! < b.cobrado! || a.prazo_dias! < b.prazo_dias!);
-    if (domina(s, p)) return { oculta: "pac", dominante: "sedex" };
-    if (domina(p, s)) return { oculta: "sedex", dominante: "pac" };
+    const motivoNota = (a: OpcaoFreteVd, b: OpcaoFreteVd) =>
+      a.cobrado! < b.cobrado! && a.prazo_dias! < b.prazo_dias!
+        ? "mais barato e mais rápido"
+        : a.cobrado! < b.cobrado!
+          ? "mais barato, no mesmo prazo"
+          : "mais rápido, pelo mesmo valor";
+    if (domina(s, p)) return { oculta: "pac", dominante: "sedex", motivoNota: motivoNota(s, p) };
+    if (domina(p, s)) return { oculta: "sedex", dominante: "pac", motivoNota: motivoNota(p, s) };
     return null;
   }, [opcoes, cotando]);
 
@@ -264,7 +270,7 @@ export function CartoesEntrega({
     </div>
     {dominada && (
       <p className="text-xs text-muted-foreground">
-        {rot(dominada.oculta)} oculto: o {rot(dominada.dominante)} sai {dominada.dominante === "sedex" ? "mais barato e mais rápido" : "mais barato e mais rápido"} para este CEP.
+        {rot(dominada.oculta)} oculto: o {rot(dominada.dominante)} sai {dominada.motivoNota} para este CEP.
       </p>
     )}
     </>
