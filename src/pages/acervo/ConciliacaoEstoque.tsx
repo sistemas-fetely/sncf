@@ -1,10 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
-  Download, RefreshCw, Search, Warehouse,
-} from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight, Download, RefreshCw, Search, Warehouse } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,19 +12,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
-import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
+import { formatError } from "@/lib/format-error";
 import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components/acervo/NotasSemBaixaDialog";
 import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
-
-/** Única regra com ajuste direto pelo armazém hoje (RPC fn_estoque_ajustar_pelo_armazem). */
-const REGRA_AJUSTE_ARMAZEM = "estoque_armazem_difere";
 
 function BotaoNotasSemBaixa() {
   const notas = useNotasSemBaixa();
@@ -45,67 +40,87 @@ function BotaoNotasSemBaixa() {
 }
 
 /**
- * CONCILIAÇÃO DE ESTOQUE (24/09/2026) — irmã da Conciliação de Cadastro,
- * mesma cara e mesma mecânica, mas a fila é de ESTOQUE por centro.
+ * CONCILIAÇÃO DE ESTOQUE — TRÍADE (29/09/2026).
  *
- * Uma linha = um produto × um centro × uma regra de divergência de estoque.
- * Leitura, filtro e exportação para todas as regras; a regra `estoque_armazem_difere`
- * (centro XPM-SC) aceita seleção e ajuste direto pelo armazém via
- * `fn_estoque_ajustar_pelo_armazem` (só super_admin).
- * Nada de lista de regra ou centro escrita no código:
- * tudo vem de `vw_conciliacao_estoque_fila` e `divergencia_sistema_dim`.
+ * Uma validação só: Fiscal (notas e movimentos) × Real (armazém ou contagem)
+ * × Virtual (à venda nos canais), por produto no TOTAL (`vw_estoque_triade_produto`)
+ * e aberta por centro na linha expandida (`vw_estoque_triade_centro`).
+ * As regras de divergência deixaram de ser a lista: viram a CAUSA dentro da
+ * linha do produto/centro. A coluna Correção segue `correcao` da view:
+ * notas sem baixa → diálogo de notas; ajustar_armazem → seleção (super_admin)
+ * para `fn_estoque_ajustar_pelo_armazem`; contagem → Chegada de Mercadoria;
+ * canais → aguarda o envio periódico. Nada de centro/regra escrito no código.
  */
-type FilaLinha = {
-  linha_id: string;
-  cod_cadastro: string | null; sku: string; nome_comercial: string | null;
-  colecao: string | null; fase: string | null; centro: string | null;
-  regra: string; regra_nome: string | null; onde_resolver: string | null;
-  consequencia: string | null; o_que_fazer: string | null;
-  campo_matriz: string | null; campo_destino: string | null;
-  valor_sncf: string | null; valor_destino: string | null; detalhe: string | null;
+type Causa = { regra: string; nome: string | null; detalhe: string | null; o_que_fazer: string | null };
+type Produto = {
+  sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null; fase: string | null;
+  fiscal: number | null; real: number | null; real_completo: boolean | null; virtual: number | null; reservado: number | null;
+  delta_real_fiscal: number | null; delta_virtual_real: number | null; centros: number | null;
+  centros_com_diferenca: number | null; centros_diferenca: string[] | null; causas_produto: Causa[] | null; com_diferenca: boolean | null;
+};
+type Centro = {
+  sku: string; cod_cadastro: string | null; nome_comercial: string | null; colecao: string | null; fase: string | null;
+  centro: string; centro_nome: string | null; centro_ordem: number | null; centro_vende: boolean | null;
+  fonte_real: "armazem" | "contagem" | "sem_contagem" | null; real_em: string | null;
+  fiscal: number | null; real: number | null; virtual: number | null; reservado: number | null; fiscal_bloqueado: number | null;
+  delta_real_fiscal: number | null; delta_virtual_real: number | null; shopify_diff: number | null; bling_diff: number | null;
+  causas: Causa[] | null; tem_baixa_pendente: boolean | null; contagem_vencida: boolean | null;
+  correcao: "notas_sem_baixa" | "ajustar_armazem" | "contagem" | "canais" | null; com_diferenca: boolean | null;
 };
 
-type Grupo = "regra" | "centro" | "onde";
-const PARAMS: Grupo[] = ["regra", "centro", "onde"];
+type Cartao = "diferenca" | "furo" | "ruptura" | "perdida" | "semreal" | "canais";
+const n0 = (v: number | null | undefined) => Number(v ?? 0);
+const sinal = (v: number | null | undefined) => { const x = n0(v); return x > 0 ? `+${x}` : String(x); };
 
-type ColDef = { key: keyof FilaLinha | "onde" | "sncf" | "destino"; rotulo: string; ordenavel?: boolean };
-const COLUNAS: ColDef[] = [
-  { key: "cod_cadastro", rotulo: "Cód. cadastro", ordenavel: true },
-  { key: "sku", rotulo: "SKU", ordenavel: true },
-  { key: "nome_comercial", rotulo: "Nome", ordenavel: true },
-  { key: "centro", rotulo: "Centro", ordenavel: true },
-  { key: "regra", rotulo: "Regra", ordenavel: true },
-  { key: "sncf", rotulo: "SNCF", ordenavel: true },
-  { key: "destino", rotulo: "Destino", ordenavel: true },
-  { key: "detalhe", rotulo: "Detalhe" },
-  { key: "onde", rotulo: "Onde resolver", ordenavel: true },
-  { key: "o_que_fazer", rotulo: "O que fazer" },
-];
-
-/** Valor usado na ordenação — vazio sempre vai para o fim, nos dois sentidos. */
-function chaveOrdem(l: FilaLinha, coluna: string): string | number | null {
-  if (coluna === "sncf") return l.valor_sncf;
-  if (coluna === "destino") return l.valor_destino;
-  if (coluna === "onde") return l.onde_resolver;
-  if (coluna === "regra") return l.regra_nome ?? l.regra;
-  return (l as unknown as Record<string, string | number | null>)[coluna] ?? null;
+async function lerTudo<T>(view: string, ordem: string[]): Promise<T[]> {
+  const PAGINA = 1000; const todas: T[] = [];
+  for (let de = 0; ; de += PAGINA) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let q = (supabase as any).from(view).select("*");
+    for (const o of ordem) q = q.order(o);
+    const { data, error } = await q.range(de, de + PAGINA - 1);
+    if (error) throw error;
+    const p = (data ?? []) as T[]; todas.push(...p);
+    if (p.length < PAGINA) break;
+  }
+  return todas;
 }
 
 function csvCelula(v: unknown): string {
   if (v === null || v === undefined) return "";
-  const s = Array.isArray(v) ? v.join("; ") : String(v);
+  const s = Array.isArray(v) ? v.join("; ") : typeof v === "object" ? JSON.stringify(v) : String(v);
   return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
+function csvCod(v: string | null): string { return temValor(v) ? `="${String(v).replace(/"/g, '""')}"` : ""; }
 
-/** cod_cadastro sai como texto no Excel (="01000") para não perder o zero à esquerda. */
-function csvCod(v: string | null): string {
-  if (!temValor(v)) return "";
-  return `="${String(v).replace(/"/g, '""')}"`;
+function fmtDataHora(iso: string | null, comHora: boolean) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const dd = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  return comHora ? `${dd} ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : dd;
+}
+function fonteReal(c: Centro) {
+  if (c.fonte_real === "armazem") return `Armazém (API XPM) em ${fmtDataHora(c.real_em, true)}`;
+  if (c.fonte_real === "contagem") return `Contagem de ${fmtDataHora(c.real_em, false)}`;
+  return "Nunca contado";
 }
 
-function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label: string; opcoes: { valor: string; rotulo: string; contagem: number }[]; selecionados: string[]; onChange: (v: string[]) => void }) {
-  const visiveis = opcoes.filter(o => o.contagem > 0 || selecionados.includes(o.valor));
-  return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger><PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{visiveis.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">Nada neste recorte</p> : visiveis.map(o => <Button key={o.valor} variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal" onClick={() => onChange(selecionados.includes(o.valor) ? selecionados.filter(v => v !== o.valor) : [...selecionados, o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border", selecionados.includes(o.valor) && "border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor) && <Check className="h-3 w-3" />}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>{selecionados.length > 0 && <Button variant="ghost" size="sm" className="mt-1 w-full" onClick={() => onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
+function DeltaRF({ v }: { v: number | null }) {
+  const x = n0(v);
+  return <span className={cn("tabular-nums font-medium", x === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>{sinal(x)}</span>;
+}
+function DeltaVR({ v }: { v: number | null }) {
+  const x = n0(v);
+  if (x === 0) return <span className="tabular-nums text-muted-foreground">0</span>;
+  return <Tooltip><TooltipTrigger asChild><span className={cn("tabular-nums font-medium", x > 0 ? "text-destructive" : "text-amber-600 dark:text-amber-400")}>{sinal(x)} {x > 0 ? "ruptura" : "venda perdida"}</span></TooltipTrigger>
+    <TooltipContent className="max-w-xs">{x > 0 ? "Ruptura: o canal oferece mais do que existe livre no real." : "Venda perdida: existe estoque livre que o canal não está oferecendo."}</TooltipContent></Tooltip>;
+}
+
+function FiltroMulti({ label, opcoes, selecionados, onChange }: { label: string; opcoes: { valor: string; rotulo: string; contagem: number }[]; selecionados: string[]; onChange: (v: string[]) => void }) {
+  return <Popover><PopoverTrigger asChild><Button variant="outline" size="sm" className="gap-2 font-normal"><span className="text-muted-foreground">{label}</span>{selecionados.length > 0 && <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">{selecionados.length}</Badge>}<ChevronDown className="h-3.5 w-3.5 opacity-50" /></Button></PopoverTrigger>
+    <PopoverContent align="start" className="w-64 p-1"><div className="max-h-72 overflow-auto">{opcoes.length === 0 ? <p className="px-2 py-1.5 text-sm text-muted-foreground">Nada</p> : opcoes.map(o => <Button key={o.valor} variant="ghost" size="sm" className="w-full justify-start gap-2 font-normal" onClick={() => onChange(selecionados.includes(o.valor) ? selecionados.filter(v => v !== o.valor) : [...selecionados, o.valor])}><span className={cn("flex h-4 w-4 items-center justify-center rounded border", selecionados.includes(o.valor) && "border-primary bg-primary text-primary-foreground")}>{selecionados.includes(o.valor) && <Check className="h-3 w-3" />}</span><span className="flex-1 truncate text-left">{o.rotulo}</span><span className="tabular-nums text-muted-foreground">{o.contagem}</span></Button>)}</div>
+      {selecionados.length > 0 && <Button variant="ghost" size="sm" className="mt-1 w-full" onClick={() => onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
 }
 
 export default function ConciliacaoEstoque() {
@@ -113,293 +128,242 @@ export default function ConciliacaoEstoque() {
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
-  const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
-  // SELECAO-DE-AJUSTE: só linhas da regra `estoque_armazem_difere` são selecionáveis.
-  // Guarda SKU (a RPC recebe p_skus text[]).
+  const [ordem, setOrdem] = useState<{ coluna: "fiscal" | "real" | "delta"; dir: "asc" | "desc" }>({ coluna: "delta", dir: "desc" });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [ajusteAberto, setAjusteAberto] = useState(false);
+  const [notasAberto, setNotasAberto] = useState(false);
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
 
-  // FILTRO-MORA-NA-URL: o resto do sistema linka já filtrado.
-  const lista = (k: Grupo) => (sp.get(k) ?? "").split(",").filter(Boolean);
+  // FILTRO-MORA-NA-URL
+  const lista = (k: string) => (sp.get(k) ?? "").split(",").filter(Boolean);
   const busca = sp.get("q") ?? "";
-  function setLista(k: Grupo, vs: string[]) {
+  const soDiferenca = sp.get("todos") !== "1";
+  const cartao = (sp.get("cartao") ?? "") as Cartao | "";
+  const centroCartao = sp.get("centro_card") ?? "";
+  const filCentros = lista("centro"); const filColecoes = lista("colecao");
+  function setParam(k: string, v: string | null) {
     const novo = new URLSearchParams(sp);
-    if (vs.length) novo.set(k, vs.join(",")); else novo.delete(k);
-    setSp(novo, { replace: true });
+    if (v) novo.set(k, v); else novo.delete(k);
+    setSp(novo, { replace: true }); setPagina(1);
   }
-  function setBusca(v: string) {
-    const novo = new URLSearchParams(sp);
-    if (v) novo.set("q", v); else novo.delete("q");
-    setSp(novo, { replace: true });
-  }
-  function limpar() { setSp(new URLSearchParams(), { replace: true }); }
+  function limpar() { setSp(new URLSearchParams(), { replace: true }); setPagina(1); }
 
-  // POSTGREST-CORTA-EM-MIL: lê em páginas de 1.000 com ordem única e estável
-  // (linha_id) até a página vir incompleta — mesmo padrão da Conciliação de Cadastro.
-  const fila = useQuery({
-    queryKey: ["conciliacao-estoque-fila"],
-    queryFn: async () => {
-      const PAGINA = 1000;
-      const todas: FilaLinha[] = [];
-      for (let de = 0; ; de += PAGINA) {
-        const { data, error } = await supabase
-          .from("vw_conciliacao_estoque_fila" as never)
-          .select("*")
-          .order("linha_id")
-          .range(de, de + PAGINA - 1);
-        if (error) throw error;
-        const pagina = (data ?? []) as FilaLinha[];
-        todas.push(...pagina);
-        if (pagina.length < PAGINA) break;
-      }
-      return todas;
-    },
-  });
-  // Cor do "onde resolver" vem de `divergencia_sistema_dim`, igual à Conciliação de Cadastro.
-  const sistemasDim = useQuery({
-    queryKey: ["divergencia-sistema-dim"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("divergencia_sistema_dim" as never)
-        .select("slug, nome, ordem, cor")
-        .eq("ativo", true);
-      if (error) throw error;
-      return (data ?? []) as { slug: string; nome: string; ordem: number | null; cor: string | null }[];
-    },
-  });
+  // POSTGREST-CORTA-EM-MIL
+  const produtosQ = useQuery({ queryKey: ["estoque-triade-produto"], queryFn: () => lerTudo<Produto>("vw_estoque_triade_produto", ["sku"]) });
+  const centrosQ = useQuery({ queryKey: ["estoque-triade-centro"], queryFn: () => lerTudo<Centro>("vw_estoque_triade_centro", ["sku", "centro"]) });
+  const carregando = produtosQ.isLoading || centrosQ.isLoading;
+  const erro = produtosQ.error ?? centrosQ.error;
+  const atualizando = produtosQ.isFetching || centrosQ.isFetching;
 
-  const carregando = fila.isLoading || sistemasDim.isLoading;
-  const erro = fila.error;
-  const atualizando = fila.isFetching;
+  const produtos = useMemo(() => produtosQ.data ?? [], [produtosQ.data]);
+  const porSku = useMemo(() => {
+    const m = new Map<string, Centro[]>();
+    for (const c of centrosQ.data ?? []) { const a = m.get(c.sku) ?? []; a.push(c); m.set(c.sku, a); }
+    for (const a of m.values()) a.sort((x, y) => n0(x.centro_ordem) - n0(y.centro_ordem));
+    return m;
+  }, [centrosQ.data]);
+  const cs = (sku: string) => porSku.get(sku) ?? [];
 
-  const linhas = useMemo(() => fila.data ?? [], [fila.data]);
-
-  const aplica = (l: FilaLinha, ignorar?: Grupo) => {
-    const q = busca.trim().toLocaleLowerCase("pt-BR");
-    if (q && ![l.cod_cadastro, l.sku, l.nome_comercial].filter(temValor).some(v => String(v).toLocaleLowerCase("pt-BR").includes(q))) return false;
-    for (const g of PARAMS) {
-      if (g === ignorar) continue;
-      const sel = lista(g);
-      if (!sel.length) continue;
-      const v = g === "regra" ? l.regra : g === "centro" ? l.centro : l.onde_resolver;
-      if (!sel.includes(String(v ?? "__sem__"))) return false;
-    }
-    return true;
+  const testa: Record<Cartao, (p: Produto) => boolean> = {
+    diferenca: p => !!p.com_diferenca,
+    furo: p => cs(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
+    ruptura: p => cs(p.sku).some(c => n0(c.delta_virtual_real) > 0),
+    perdida: p => cs(p.sku).some(c => n0(c.delta_virtual_real) < 0),
+    semreal: p => cs(p.sku).some(c => c.fonte_real === "sem_contagem"),
+    canais: p => cs(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
   };
 
+  // Base: busca + centro + coleção (cartões contam sobre ela).
+  const base = useMemo(() => {
+    const q = busca.trim().toLocaleLowerCase("pt-BR");
+    return produtos.filter(p => {
+      if (q && ![p.cod_cadastro, p.sku, p.nome_comercial].filter(temValor).some(v => String(v).toLocaleLowerCase("pt-BR").includes(q))) return false;
+      if (filColecoes.length && !filColecoes.includes(p.colecao ?? "")) return false;
+      if (filCentros.length && !cs(p.sku).some(c => filCentros.includes(c.centro))) return false;
+      return true;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [produtos, porSku, busca, sp]);
+
+  const cartoes: { k: Cartao; titulo: string; sub?: string }[] = [
+    { k: "diferenca", titulo: "Com diferença" },
+    { k: "furo", titulo: "Furo físico", sub: `${base.reduce((s, p) => s + cs(p.sku).reduce((t, c) => t + Math.abs(n0(c.delta_real_fiscal)), 0), 0)} un` },
+    { k: "ruptura", titulo: "Risco de ruptura" },
+    { k: "perdida", titulo: "Venda perdida" },
+    { k: "semreal", titulo: "Sem real" },
+    { k: "canais", titulo: "Canais" },
+  ];
+  const centrosLista = useMemo(() => {
+    const m = new Map<string, { codigo: string; nome: string; ordem: number }>();
+    for (const c of centrosQ.data ?? []) if (!m.has(c.centro)) m.set(c.centro, { codigo: c.centro, nome: c.centro_nome ?? c.centro, ordem: n0(c.centro_ordem) });
+    return [...m.values()].sort((a, b) => a.ordem - b.ordem);
+  }, [centrosQ.data]);
+
   const recorte = useMemo(() => {
-    const base = linhas.filter(l => aplica(l));
-    const mult = ordem.dir === "asc" ? 1 : -1;
-    return [...base].sort((a, b) => {
-      const va = chaveOrdem(a, ordem.coluna), vb = chaveOrdem(b, ordem.coluna);
-      const vazioA = va === null || va === undefined || String(va).trim() === "";
-      const vazioB = vb === null || vb === undefined || String(vb).trim() === "";
-      if (vazioA && vazioB) return 0;
-      if (vazioA) return 1;
-      if (vazioB) return -1;
-      const cmp = typeof va === "number" && typeof vb === "number"
-        ? va - vb
-        : String(va).localeCompare(String(vb), "pt-BR", { numeric: true });
-      if (cmp !== 0) return cmp * mult;
-      return String(a.cod_cadastro ?? "").localeCompare(String(b.cod_cadastro ?? ""), "pt-BR", { numeric: true });
+    const r = base.filter(p => {
+      if (soDiferenca && !p.com_diferenca) return false;
+      if (cartao && !testa[cartao](p)) return false;
+      if (centroCartao && !cs(p.sku).some(c => c.centro === centroCartao && c.com_diferenca)) return false;
+      return true;
     });
-  // aplica depende dos parâmetros da URL, que entram na dependência via `sp`
-  }, [linhas, ordem, sp]); // eslint-disable-line react-hooks/exhaustive-deps
+    const val = (p: Produto) => ordem.coluna === "fiscal" ? n0(p.fiscal) : ordem.coluna === "real" ? n0(p.real) : Math.abs(n0(p.delta_real_fiscal));
+    return r.sort((a, b) => (ordem.dir === "asc" ? 1 : -1) * (val(a) - val(b)) || a.sku.localeCompare(b.sku));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base, soDiferenca, cartao, centroCartao, ordem]);
 
-  useEffect(() => { setPagina(1); setExpandido(null); setSelecionados(new Set()); }, [sp, tamanho]);
+  const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const visiveis = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const ajustaveisVisiveis = [...new Set(visiveis.filter(p => cs(p.sku).some(c => c.correcao === "ajustar_armazem")).map(p => p.sku))];
+  const todosSel = ajustaveisVisiveis.length > 0 && ajustaveisVisiveis.every(s => selecionados.has(s));
+  function alternar(sku: string) { setSelecionados(prev => { const n = new Set(prev); if (n.has(sku)) n.delete(sku); else n.add(sku); return n; }); }
+  function alternarTodos() { setSelecionados(prev => { const n = new Set(prev); ajustaveisVisiveis.forEach(s => todosSel ? n.delete(s) : n.add(s)); return n; }); }
 
-  const corPorSistema = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const d of sistemasDim.data ?? []) if (d.cor) m.set(d.slug, d.cor);
-    return m;
-  }, [sistemasDim.data]);
+  const opcCentro = centrosLista.map(c => ({ valor: c.codigo, rotulo: c.nome, contagem: produtos.filter(p => cs(p.sku).some(x => x.centro === c.codigo)).length }));
+  const opcColecao = [...new Set(produtos.map(p => p.colecao ?? ""))].filter(Boolean).sort().map(v => ({ valor: v, rotulo: v, contagem: produtos.filter(p => p.colecao === v).length }));
 
-  // UM CARD POR CENTRO: valores distintos de `centro` presentes, ordem alfabética.
-  // Clicar filtra o centro. Tooltip quebra por regra, igual aos cards da irmã.
-  const cards = useMemo(() => {
-    const base = linhas.filter(l => aplica(l, "centro"));
-    const centros = [...new Set(linhas.map(l => l.centro ?? "__sem__"))]
-      .sort((a, b) => a.localeCompare(b, "pt-BR"));
-    return centros.map(centro => {
-      const ls = base.filter(l => (l.centro ?? "__sem__") === centro);
-      const porRegra = new Map<string, { nome: string; n: number }>();
-      for (const l of ls) {
-        const atual = porRegra.get(l.regra);
-        porRegra.set(l.regra, { nome: l.regra_nome ?? l.regra, n: (atual?.n ?? 0) + 1 });
-      }
-      const quebra = [...porRegra.values()].sort((a, b) => b.n - a.n).map(x => `${x.n} ${x.nome.toLocaleLowerCase("pt-BR")}`).join(" · ");
-      return { centro, label: centro === "__sem__" ? "Sem centro" : centro, n: ls.length, quebra };
-    });
-  // aplica depende dos parâmetros da URL
-  }, [linhas, sp]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const facet = (g: Grupo, ops: { valor: string; rotulo: string }[], chave: (l: FilaLinha) => string) =>
-    ops.map(o => ({ ...o, contagem: linhas.filter(l => aplica(l, g) && chave(l) === o.valor).length }));
-
-  const opcoesRegra = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const l of linhas) if (!m.has(l.regra)) m.set(l.regra, l.regra_nome ?? l.regra);
-    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR")).map(([valor, rotulo]) => ({ valor, rotulo }));
-  }, [linhas]);
-  const opcoesCentro = useMemo(() => [...new Set(linhas.map(l => l.centro ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem centro" : v })), [linhas]);
-  const opcoesOnde = useMemo(() => [...new Set(linhas.map(l => l.onde_resolver ?? "__sem__"))].sort((a, b) => a.localeCompare(b, "pt-BR")).map(v => ({ valor: v, rotulo: v === "__sem__" ? "Sem destino" : v })), [linhas]);
-
-  const filtrosAtivos = (busca ? 1 : 0) + PARAMS.reduce((n, g) => n + lista(g).length, 0);
-  const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
-  const paginaAtual = Math.min(pagina, paginas);
-  const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
-  const selecionaveis = useMemo(() => paginaLinhas.filter(l => l.regra === REGRA_AJUSTE_ARMAZEM).map(l => l.sku), [paginaLinhas]);
-  const todosVisiveisSelecionados = selecionaveis.length > 0 && selecionaveis.every(s => selecionados.has(s));
-  function alternarTodosVisiveis() {
-    setSelecionados(prev => {
-      const novo = new Set(prev);
-      if (todosVisiveisSelecionados) selecionaveis.forEach(s => novo.delete(s));
-      else selecionaveis.forEach(s => novo.add(s));
-      return novo;
-    });
-  }
-  const produtos = new Set(recorte.map(l => l.sku)).size;
-  const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
-
-  function ordenar(key: string) {
-    setOrdem(o => o.coluna === key ? { coluna: key, dir: o.dir === "asc" ? "desc" : "asc" } : { coluna: key, dir: "asc" });
-  }
-
+  function refetch() { produtosQ.refetch(); centrosQ.refetch(); }
   function exportar() {
-    const cab = ["Cód. cadastro", "SKU", "Nome", "Coleção", "Fase", "Centro", "Regra", "Campo SNCF", "Valor SNCF", "Campo destino", "Valor destino", "Detalhe", "Onde resolver", "Consequência", "O que fazer"];
-    const corpo = recorte.map(l => [
-      csvCod(l.cod_cadastro), csvCelula(l.sku), csvCelula(l.nome_comercial), csvCelula(l.colecao), csvCelula(l.fase), csvCelula(l.centro),
-      csvCelula(l.regra_nome ?? l.regra), csvCelula(l.campo_matriz), csvCelula(l.valor_sncf),
-      csvCelula(l.campo_destino), csvCelula(l.valor_destino), csvCelula(l.detalhe),
-      csvCelula(l.onde_resolver), csvCelula(l.consequencia), csvCelula(l.o_que_fazer),
-    ].join(";")).join("\n");
-    const url = URL.createObjectURL(new Blob(["\uFEFF" + cab.map(csvCelula).join(";") + "\n" + corpo], { type: "text/csv;charset=utf-8;" }));
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `conciliacao-estoque-${fmtData(new Date(), "").split("/").reverse().join("-")}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const skus = new Set(recorte.map(p => p.sku));
+    const cols: (keyof Centro)[] = ["sku", "cod_cadastro", "nome_comercial", "colecao", "fase", "centro", "centro_nome", "centro_ordem", "centro_vende", "fonte_real", "real_em", "fiscal", "real", "virtual", "reservado", "fiscal_bloqueado", "delta_real_fiscal", "delta_virtual_real", "shopify_diff", "bling_diff", "tem_baixa_pendente", "contagem_vencida", "correcao", "com_diferenca"];
+    const linhas = [[...cols, "causas"].join(";")];
+    for (const c of centrosQ.data ?? []) {
+      if (!skus.has(c.sku)) continue;
+      linhas.push([...cols.map(k => k === "cod_cadastro" ? csvCod(c.cod_cadastro) : csvCelula(c[k])), csvCelula((c.causas ?? []).map(x => x.nome ?? x.regra).join(" · "))].join(";"));
+    }
+    const blob = new Blob(["\uFEFF" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "conciliacao_estoque.csv"; a.click(); URL.revokeObjectURL(a.href);
   }
 
-  const celulaVazia = <span className="text-muted-foreground">—</span>;
+  function Ordenar({ col, rotulo }: { col: "fiscal" | "real" | "delta"; rotulo: string }) {
+    const ativo = ordem.coluna === col;
+    const Ic = !ativo ? ArrowUpDown : ordem.dir === "asc" ? ArrowUp : ArrowDown;
+    return <Button variant="ghost" size="sm" className="-mr-2 h-7 px-2 font-medium" onClick={() => setOrdem(o => ({ coluna: col, dir: o.coluna === col && o.dir === "desc" ? "asc" : "desc" }))}>{rotulo}<Ic className="ml-1 h-3 w-3" /></Button>;
+  }
 
-  function celula(l: FilaLinha, c: ColDef) {
-    if (c.key === "cod_cadastro") return l.cod_cadastro
-      ? <Link to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`} className="font-medium hover:underline">{l.cod_cadastro}</Link>
-      : celulaVazia;
-    if (c.key === "sku") return <span>{l.sku}</span>;
-    if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
-    if (c.key === "centro") return <span className="whitespace-nowrap">{l.centro ?? "—"}</span>;
-    if (c.key === "regra") return <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="whitespace-nowrap font-normal">{l.regra_nome ?? l.regra}</Badge></TooltipTrigger><TooltipContent className="max-w-xs">{l.consequencia ?? (l.regra_nome ?? l.regra)}</TooltipContent></Tooltip>;
-    if (c.key === "sncf" || c.key === "destino") {
-      const campo = c.key === "sncf" ? l.campo_matriz : l.campo_destino;
-      const valor = c.key === "sncf" ? l.valor_sncf : l.valor_destino;
-      if (!temValor(campo) && !temValor(valor)) return celulaVazia;
-      return <span className="block max-w-48"><span className="block truncate">{temValor(valor) ? String(valor) : "—"}</span>{temValor(campo) && <span className="block truncate text-[10px] text-muted-foreground">{campo}</span>}</span>;
-    }
-    if (c.key === "detalhe") {
-      if (!temValor(l.detalhe)) return celulaVazia;
-      return <Tooltip><TooltipTrigger asChild><span className="block max-w-56 truncate text-left">{l.detalhe}</span></TooltipTrigger><TooltipContent className="max-w-sm">{l.detalhe}</TooltipContent></Tooltip>;
-    }
-    if (c.key === "onde") {
-      const cor = corPorSistema.get(l.onde_resolver ?? "");
-      return <span className="whitespace-nowrap" style={cor ? { color: cor } : undefined}>{l.onde_resolver ?? "—"}</span>;
-    }
-    if (!temValor(l.o_que_fazer)) return celulaVazia;
-    return <Tooltip><TooltipTrigger asChild><span className="block max-w-64 truncate text-left">{l.o_que_fazer}</span></TooltipTrigger><TooltipContent className="max-w-sm">{l.o_que_fazer}</TooltipContent></Tooltip>;
+  function Correcao({ c }: { c: Centro }) {
+    if (c.correcao === "notas_sem_baixa") return <div className="space-y-1"><p className="text-xs">Resolver a nota antes</p><Button variant="outline" size="sm" className="h-7" onClick={() => setNotasAberto(true)}><FileWarning className="mr-1 h-3.5 w-3.5" />Notas sem baixa</Button></div>;
+    if (c.correcao === "ajustar_armazem") return isSuperAdmin
+      ? <label className="flex items-center gap-2 text-xs"><Checkbox checked={selecionados.has(c.sku)} onCheckedChange={() => alternar(c.sku)} />Ajustar pelo armazém</label>
+      : <span className="text-xs text-muted-foreground">Ajuste pelo armazém (super admin)</span>;
+    if (c.correcao === "contagem") return <Link to="/logistica/chegada-mercadoria?aba=recebimento-loja" className="text-xs text-primary underline-offset-2 hover:underline">Contar na Chegada de Mercadoria</Link>;
+    if (c.correcao === "canais") return <span className="text-xs">O envio a cada 15 min corrige; se persistir, veja a sincronização.</span>;
+    return <span className="text-muted-foreground">—</span>;
   }
 
   return <TooltipProvider delayDuration={200}><PageShell>
     <PageHeader
       titulo="Conciliação de Estoque"
       icone={Warehouse}
-      estado={estado}
+      estado="Fiscal (notas e movimentos) × Real (armazém ou contagem) × Virtual (à venda nos canais) — por produto e por centro."
       acoes={<>
-        {isSuperAdmin && (
-          <Button variant="outline" size="sm" disabled={selecionados.size === 0} onClick={() => setAjusteAberto(true)}>
-            <Warehouse className="mr-2 h-4 w-4" />Ajustar pelo armazém ({selecionados.size})
-          </Button>
-        )}
         <BotaoNotasSemBaixa />
-        <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
+        {isSuperAdmin && <Button variant="outline" size="sm" disabled={selecionados.size === 0} onClick={() => setAjusteAberto(true)}>Ajustar pelo armazém ({selecionados.size})</Button>}
+        <Button variant="outline" size="sm" onClick={exportar} disabled={carregando || !!erro}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
+        <Button size="sm" onClick={refetch} disabled={atualizando}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
 
-    {erro && <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>Não foi possível carregar a fila de conciliação de estoque. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
+    {erro && <Alert variant="destructive" className="mb-4"><AlertTriangle className="h-4 w-4" /><AlertDescription>Erro ao carregar a conciliação: {formatError(erro)}</AlertDescription></Alert>}
 
-    <section className="grid grid-cols-2 gap-2 md:grid-cols-4" aria-label="Indicadores por centro">
-      {carregando ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20" />) : cards.map(c => {
-        const selecionado = lista("centro").includes(c.centro);
-        const zera = c.n === 0;
-        const botao = <Button
-          variant="outline"
-          disabled={zera}
-          className={cn("h-20 items-start justify-center border border-l-4 p-3 text-left", zera && "opacity-50", selecionado && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
-          onClick={() => setLista("centro", selecionado ? [] : [c.centro])}
-        >
-          <span className="flex w-full flex-col">
-            <span className="truncate text-[11px] font-normal">{c.label}</span>
-            <span className="mt-1 text-[21px] font-medium tabular-nums text-foreground">{c.n}</span>
-          </span>
-        </Button>;
-        return <Tooltip key={c.centro}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
-      })}
-    </section>
-
-    <section className="flex flex-wrap items-center gap-2 border-y py-3">
-      <div className="relative min-w-64 flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input value={busca} onChange={e => setBusca(e.target.value)} className="pl-9" placeholder="Buscar código, SKU ou nome" />
+    {!erro && <>
+      <div className="mb-2 grid grid-cols-2 gap-2 md:grid-cols-3 lg:grid-cols-6">
+        {cartoes.map(k => {
+          const n = carregando ? null : base.filter(testa[k.k]).length;
+          return <button key={k.k} type="button" onClick={() => setParam("cartao", cartao === k.k ? null : k.k)} className={cn("rounded-md border bg-card p-3 text-left transition-colors hover:bg-muted", cartao === k.k && "border-primary ring-1 ring-primary")}>
+            <p className="text-xs text-muted-foreground">{k.titulo}</p>
+            <p className="text-xl font-semibold tabular-nums">{n ?? "…"}</p>
+            {k.sub && <p className="text-[11px] text-muted-foreground">{k.sub}</p>}
+          </button>;
+        })}
       </div>
-      <FiltroFacetado label="Regra" selecionados={lista("regra")} onChange={v => setLista("regra", v)} opcoes={facet("regra", opcoesRegra, l => l.regra)} />
-      <FiltroFacetado label="Centro" selecionados={lista("centro")} onChange={v => setLista("centro", v)} opcoes={facet("centro", opcoesCentro, l => l.centro ?? "__sem__")} />
-      <FiltroFacetado label="Onde resolver" selecionados={lista("onde")} onChange={v => setLista("onde", v)} opcoes={facet("onde", opcoesOnde, l => l.onde_resolver ?? "__sem__")} />
-      {filtrosAtivos > 0 && <Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros ({filtrosAtivos})</Button>}
-    </section>
+      <div className="mb-4 flex flex-wrap gap-2">
+        {centrosLista.map(c => {
+          const n = base.filter(p => cs(p.sku).some(x => x.centro === c.codigo && x.com_diferenca)).length;
+          return <button key={c.codigo} type="button" onClick={() => setParam("centro_card", centroCartao === c.codigo ? null : c.codigo)} className={cn("rounded border bg-card px-2 py-1 text-xs hover:bg-muted", centroCartao === c.codigo && "border-primary ring-1 ring-primary")}>
+            {c.nome} <span className="ml-1 font-semibold tabular-nums">{n}</span>
+          </button>;
+        })}
+      </div>
 
-    {carregando ? <div className="space-y-2">{Array.from({ length: 8 }).map((_, i) => <Skeleton key={i} className="h-11 w-full" />)}</div>
-    : recorte.length === 0 ? <div className="py-12 text-center"><p className="text-sm text-muted-foreground">Nenhuma divergência neste recorte.</p><Button variant="link" onClick={limpar}>Limpar filtros</Button></div>
-    : <div className="overflow-hidden rounded-md border bg-card">
-      <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
-        <TableHeader><TableRow>
-          <TableHead className="sticky top-0 z-40 w-8 bg-muted">
-            <Checkbox aria-label="Selecionar todos os visíveis" className="mb-1" checked={todosVisiveisSelecionados} disabled={selecionaveis.length === 0} onCheckedChange={alternarTodosVisiveis} />
-          </TableHead>
-          {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
-            {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
-          </TableHead>)}
-        </TableRow></TableHeader>
-        <TableBody>{paginaLinhas.map(l => <Fragment key={l.linha_id}>
-          <TableRow className="border-b">
-            <TableCell className="py-2.5 align-top">
-              <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={expandido === l.linha_id ? `Recolher ${l.sku}` : `Expandir ${l.sku}`} onClick={() => setExpandido(e => e === l.linha_id ? null : l.linha_id)}>
-                {expandido === l.linha_id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-              </Button>
-            </TableCell>
-            <TableCell className="py-2.5 align-top">
-              <Checkbox aria-label={`Selecionar ${l.sku}`} className="mt-0.5" disabled={l.regra !== REGRA_AJUSTE_ARMAZEM} checked={l.regra === REGRA_AJUSTE_ARMAZEM && selecionados.has(l.sku)} onCheckedChange={() => setSelecionados(prev => { const novo = new Set(prev); if (novo.has(l.sku)) novo.delete(l.sku); else novo.add(l.sku); return novo; })} />
-            </TableCell>
-            {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
-          </TableRow>
-          {expandido === l.linha_id && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">{l.regra_nome ?? l.regra}</p>
-              {temValor(l.consequencia) && <p className="text-xs text-foreground">{l.consequencia}</p>}
-              {temValor(l.o_que_fazer) && <p className="text-xs text-muted-foreground">{l.o_que_fazer}</p>}
-            </div>
-          </TableCell></TableRow>}
-        </Fragment>)}</TableBody>
-      </Table>
-      <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_estoque" onPagina={setPagina} onTamanhoPagina={setTamanho} />
-    </div>}
-    <AjustarPeloArmazemDialog
-      aberto={ajusteAberto}
-      onFechar={() => setAjusteAberto(false)}
-      skus={[...selecionados]}
-      onAjustado={async () => { await fila.refetch(); setSelecionados(new Set()); }}
-    />
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <div className="relative w-72"><Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" /><Input className="h-9 pl-8" placeholder="Cód., SKU ou nome" value={busca} onChange={e => setParam("q", e.target.value || null)} /></div>
+        <FiltroMulti label="Centro" opcoes={opcCentro} selecionados={filCentros} onChange={v => setParam("centro", v.join(",") || null)} />
+        <FiltroMulti label="Coleção" opcoes={opcColecao} selecionados={filColecoes} onChange={v => setParam("colecao", v.join(",") || null)} />
+        <label className="flex items-center gap-2 text-sm"><Switch checked={soDiferenca} onCheckedChange={v => setParam("todos", v ? null : "1")} />Só com diferença</label>
+        {sp.toString() && <Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros</Button>}
+      </div>
+
+      <div className="overflow-hidden rounded-md border">
+        <Table className="text-xs">
+          <TableHeader className="sticky top-0 z-20"><TableRow className="bg-muted">
+            <TableHead className="w-8">{isSuperAdmin && ajustaveisVisiveis.length > 0 && <Checkbox checked={todosSel} onCheckedChange={alternarTodos} aria-label="Selecionar todos os visíveis ajustáveis" title="Selecionar todos os visíveis ajustáveis" />}</TableHead>
+            <TableHead>Cód.</TableHead><TableHead>SKU</TableHead><TableHead>Nome</TableHead>
+            <TableHead className="text-right"><Ordenar col="fiscal" rotulo="Fiscal" /></TableHead>
+            <TableHead className="text-right"><Ordenar col="real" rotulo="Real" /></TableHead>
+            <TableHead className="text-right">Virtual</TableHead>
+            <TableHead className="text-right"><Ordenar col="delta" rotulo="Δ Real−Fiscal" /></TableHead>
+            <TableHead className="text-right">Δ Virtual×Real</TableHead>
+            <TableHead>Centros com diferença</TableHead><TableHead>Causas</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {carregando && Array.from({ length: 6 }).map((_, i) => <TableRow key={i}><TableCell colSpan={11}><Skeleton className="h-5 w-full" /></TableCell></TableRow>)}
+            {!carregando && visiveis.length === 0 && <TableRow><TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">Nenhuma diferença entre Fiscal, Real e Virtual.</TableCell></TableRow>}
+            {!carregando && visiveis.map(p => {
+              const aberto = expandido === p.sku;
+              const centros = cs(p.sku);
+              const causas = [...new Set([...centros.flatMap(c => (c.causas ?? []).map(x => x.nome ?? x.regra)), ...(p.causas_produto ?? []).map(x => x.nome ?? x.regra)])];
+              return <Fragment key={p.sku}>
+                <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : p.sku)}>
+                  <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                  <TableCell className="font-medium">{p.cod_cadastro ?? "—"}</TableCell>
+                  <TableCell>{p.sku}</TableCell>
+                  <TableCell className="max-w-60"><div className="truncate">{p.nome_comercial ?? "—"}</div>{p.colecao && <div className="text-[10px] text-muted-foreground">{p.colecao}</div>}</TableCell>
+                  <TableCell className="text-right tabular-nums">{n0(p.fiscal)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{p.real_completo === false
+                    ? <Tooltip><TooltipTrigger asChild><span>{n0(p.real)}*</span></TooltipTrigger><TooltipContent>Há centro com saldo nunca contado</TooltipContent></Tooltip>
+                    : n0(p.real)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{n0(p.virtual)}</TableCell>
+                  <TableCell className="text-right"><DeltaRF v={p.delta_real_fiscal} /></TableCell>
+                  <TableCell className="text-right"><DeltaVR v={p.delta_virtual_real} /></TableCell>
+                  <TableCell><div className="flex flex-wrap gap-1">{(p.centros_diferenca ?? []).map(c => <Badge key={c} variant="outline" className="text-[10px]">{c}</Badge>)}</div></TableCell>
+                  <TableCell><div className="flex max-w-72 flex-wrap gap-1">{causas.map(c => <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>)}</div></TableCell>
+                </TableRow>
+                {aberto && <TableRow className="bg-muted/40 hover:bg-muted/40"><TableCell colSpan={11} className="p-2">
+                  {centros.length === 0 ? <p className="p-2 text-muted-foreground">Sem linhas por centro.</p> :
+                  <Table className="text-xs"><TableHeader><TableRow>
+                    <TableHead>Centro</TableHead><TableHead>Fonte do real</TableHead>
+                    <TableHead className="text-right">Fiscal</TableHead><TableHead className="text-right">Real</TableHead><TableHead className="text-right">Virtual</TableHead><TableHead className="text-right">Reservado</TableHead>
+                    <TableHead className="text-right">Δ Real−Fiscal</TableHead><TableHead className="text-right">Δ Virtual×Real</TableHead><TableHead>Shopify/Bling Δ</TableHead>
+                    <TableHead>Causas</TableHead><TableHead>Correção</TableHead>
+                  </TableRow></TableHeader><TableBody>
+                    {centros.map(c => <TableRow key={c.centro}>
+                      <TableCell className="font-medium">{c.centro_nome ?? c.centro}</TableCell>
+                      <TableCell className={cn(c.fonte_real === "sem_contagem" && "text-amber-600 dark:text-amber-400")}>{fonteReal(c)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{n0(c.fiscal)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.real ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{c.virtual ?? "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{n0(c.reservado)}</TableCell>
+                      <TableCell className="text-right"><DeltaRF v={c.delta_real_fiscal} /></TableCell>
+                      <TableCell className="text-right"><DeltaVR v={c.delta_virtual_real} /></TableCell>
+                      <TableCell className="tabular-nums">{[n0(c.shopify_diff) !== 0 && `Shopify ${sinal(c.shopify_diff)}`, n0(c.bling_diff) !== 0 && `Bling ${sinal(c.bling_diff)}`].filter(Boolean).join(" · ") || ""}</TableCell>
+                      <TableCell><ul className="space-y-0.5">{(c.causas ?? []).map((x, i) => <li key={i}>{x.o_que_fazer
+                        ? <Tooltip><TooltipTrigger asChild><span className="cursor-help"><span className="font-medium">{x.nome ?? x.regra}</span>{x.detalhe && <span className="text-muted-foreground"> — {x.detalhe}</span>}</span></TooltipTrigger><TooltipContent className="max-w-xs">{x.o_que_fazer}</TooltipContent></Tooltip>
+                        : <span><span className="font-medium">{x.nome ?? x.regra}</span>{x.detalhe && <span className="text-muted-foreground"> — {x.detalhe}</span>}</span>}</li>)}</ul></TableCell>
+                      <TableCell onClick={e => e.stopPropagation()}><Correcao c={c} /></TableCell>
+                    </TableRow>)}
+                  </TableBody></Table>}
+                </TableCell></TableRow>}
+              </Fragment>;
+            })}
+          </TableBody>
+        </Table>
+        <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_estoque" onPagina={setPagina} onTamanhoPagina={setTamanho} />
+      </div>
+    </>}
+
+    <NotasSemBaixaDialog open={notasAberto} onOpenChange={setNotasAberto} />
+    <AjustarPeloArmazemDialog aberto={ajusteAberto} onFechar={() => setAjusteAberto(false)} skus={[...selecionados]} onAjustado={() => { setSelecionados(new Set()); refetch(); }} />
   </PageShell></TooltipProvider>;
 }
