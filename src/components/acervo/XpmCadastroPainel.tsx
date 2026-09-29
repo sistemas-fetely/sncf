@@ -276,6 +276,78 @@ export function XpmCadastroPainel() {
 
   const semSku = resultados.filter((r) => r.status === "PRODUTO_SEM_SKU");
 
+  const painelResultado = (
+    <>
+          {semSku.length > 0 && (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Produto criado no XPM sem SKU</AlertTitle>
+              <AlertDescription className="space-y-1 text-xs">
+                {semSku.map((r) => (
+                  <div key={r.sku}>
+                    <strong>{r.sku}</strong> — produtoId {String(r.xpm_produto_id ?? "?")}: {r.acao ?? ""}
+                    {r.erro ? ` (${r.erro})` : ""}
+                  </div>
+                ))}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {resultados.length > 0 && (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>SKU</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Detalhe</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {resultados.map((r, i) => (
+                    <TableRow key={`${r.sku}-${i}`}>
+                      <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
+                      <TableCell className="text-xs">
+                        <Badge variant={r.status === "ok" ? "outline" : "destructive"}>{r.status ?? "—"}</Badge>
+                      </TableCell>
+                      <TableCell className="text-xs break-words">
+                        {r.status === "ok"
+                          ? `produtoId ${r.xpm_produto_id} / skuId ${r.xpm_sku_id}`
+                          : r.erro ?? (r.bloqueios ? jsonLegivel(r.bloqueios) : "—")}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+    </>
+  );
+
+  const skusPreVenda = preVenda.filter((l) => !!l.sku).map((l) => l.sku as string);
+  const todasPreVendaMarcadas =
+    skusPreVenda.length > 0 && skusPreVenda.every((s) => selecionados.includes(s));
+
+  function selecionarTodasPreVenda(marcar: boolean | "indeterminate") {
+    setPayloadVisto(false);
+    if (marcar === true) {
+      const alvo = skusPreVenda.slice(0, TETO_SKUS);
+      if (skusPreVenda.length > TETO_SKUS) {
+        toast.info(`Máximo ${TETO_SKUS} por envio — marque o restante depois`);
+      }
+      setSelecionados(alvo);
+    } else {
+      setSelecionados((prev) => prev.filter((s) => !skusPreVenda.includes(s)));
+    }
+  }
+
+  // Abre o acordeão da pré-venda quando há chegada prevista em até 30 dias (ou já passada).
+  const abrirPreVenda = preVenda.some((l) => {
+    if (!l.chegada_prevista) return false;
+    const d = new Date(l.chegada_prevista.slice(0, 10) + "T12:00:00");
+    return d.getTime() - Date.now() <= 30 * 86400000;
+  });
+
   return (
     <div className="space-y-4">
       {/* BLOCO 1 — consequência real */}
@@ -340,49 +412,7 @@ export function XpmCadastroPainel() {
             )}
           </div>
 
-          {semSku.length > 0 && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Produto criado no XPM sem SKU</AlertTitle>
-              <AlertDescription className="space-y-1 text-xs">
-                {semSku.map((r) => (
-                  <div key={r.sku}>
-                    <strong>{r.sku}</strong> — produtoId {String(r.xpm_produto_id ?? "?")}: {r.acao ?? ""}
-                    {r.erro ? ` (${r.erro})` : ""}
-                  </div>
-                ))}
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {resultados.length > 0 && (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>SKU</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Detalhe</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {resultados.map((r, i) => (
-                    <TableRow key={`${r.sku}-${i}`}>
-                      <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                      <TableCell className="text-xs">
-                        <Badge variant={r.status === "ok" ? "outline" : "destructive"}>{r.status ?? "—"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs break-words">
-                        {r.status === "ok"
-                          ? `produtoId ${r.xpm_produto_id} / skuId ${r.xpm_sku_id}`
-                          : r.erro ?? (r.bloqueios ? jsonLegivel(r.bloqueios) : "—")}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          {painelResultado}
 
           {vendaveisFora.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
@@ -490,19 +520,58 @@ export function XpmCadastroPainel() {
         </CardContent>
       </Card>
 
-      {/* BLOCO 3 — não urge */}
+      {/* BLOCO 3 — pré-venda fora do WMS (cadastrar antes do recebimento) */}
       <Card>
         <CardContent className="pt-4">
-          <Accordion type="single" collapsible>
+          <Accordion type="single" collapsible defaultValue={abrirPreVenda ? "pre-venda" : undefined}>
             <AccordionItem value="pre-venda" className="border-none">
               <AccordionTrigger className="text-base font-medium hover:no-underline">
                 Pré-venda fora do WMS ({preVenda.length})
               </AccordionTrigger>
               <AccordionContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">
-                  Não urge: produto que ainda não está vendável. Entra no WMS quando chegar mercadoria, pela planilha
-                  Cad_item.
+                  Pré-venda ainda fora do WMS. Cadastre antes de a mercadoria chegar (ordem pela chegada prevista) — o WMS
+                  só recebe o que conhece. Linhas bloqueadas mostram o motivo na prévia.
                 </p>
+                {preVenda.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2"
+                      disabled={semSkus || acima || verPayload.isPending}
+                      onClick={() => verPayload.mutate(selecionadasVisiveis)}
+                    >
+                      {verPayload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
+                      Ver o que vai
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-2"
+                      disabled={semSkus || acima || !payloadVisto || enviando || !podeCadastrarXpm}
+                      title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
+                      onClick={() => cadastrar.mutate(selecionadasVisiveis)}
+                    >
+                      {enviando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                      Cadastrar no WMS
+                    </Button>
+                    {!podeCadastrarXpm && !carregandoPermissao && (
+                      <span className="text-xs text-muted-foreground">
+                        Sem a permissão “Cadastrar produto no XPM” — o diagnóstico e o payload seguem visíveis, a escrita não.
+                      </span>
+                    )}
+                    {acima && (
+                      <span className="text-xs text-destructive">
+                        Máximo de {TETO_SKUS} SKUs por chamada. Reduza a seleção.
+                      </span>
+                    )}
+                    {!payloadVisto && !semSkus && !acima && (
+                      <span className="text-xs text-muted-foreground">Veja o que vai antes de cadastrar.</span>
+                    )}
+                  </div>
+                )}
+                {painelResultado}
                 {preVenda.length === 0 ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">Nenhum produto nesta situação.</p>
                 ) : (
@@ -510,6 +579,13 @@ export function XpmCadastroPainel() {
                     <Table>
                       <TableHeader>
                         <TableRow>
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={todasPreVendaMarcadas}
+                              onCheckedChange={selecionarTodasPreVenda}
+                              aria-label="Selecionar todos da pré-venda"
+                            />
+                          </TableHead>
                           <TableHead>Cód.</TableHead>
                           <TableHead>SKU</TableHead>
                           <TableHead>Nome comercial</TableHead>
@@ -521,6 +597,13 @@ export function XpmCadastroPainel() {
                       <TableBody>
                         {preVenda.map((l) => (
                           <TableRow key={l.sku ?? l.cod_cadastro}>
+                            <TableCell>
+                              <Checkbox
+                                checked={!!l.sku && selecionados.includes(l.sku)}
+                                onCheckedChange={() => alternar(l.sku)}
+                                aria-label={`Selecionar ${l.sku ?? ""}`}
+                              />
+                            </TableCell>
                             <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
                             <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
                             <TableCell className="text-xs">{l.nome_comercial ?? "—"}<SemNcm l={l} /></TableCell>
