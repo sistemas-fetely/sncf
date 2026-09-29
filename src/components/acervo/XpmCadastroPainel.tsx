@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,10 @@ import {
 } from "@/components/ui/table";
 import { AlertTriangle, Eye, Loader2, Send, Wrench } from "lucide-react";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
 const TETO_SKUS = 10;
 
@@ -40,6 +44,7 @@ interface LinhaDivergencia {
   categoria_xpm: string | null;
   chegada_prevista: string | null;
   pedido_importacao: string | null;
+  colecao: string | null;
 }
 
 interface ResultadoSku {
@@ -121,24 +126,51 @@ export function XpmCadastroPainel() {
     queryFn: async (): Promise<LinhaDivergencia[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_xpm_cadastro_divergencia")
-        .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm, chegada_prevista, pedido_importacao")
+        .select("cod_cadastro, sku, fase, nome_comercial, grupo, xpm_produto_id, codigo_xpm, classe, ncm_sncf, ncm_xpm, ean_sncf, ean_xpm, peso_kg_sncf, peso_kg_xpm, categoria_xpm, chegada_prevista, pedido_importacao, colecao")
         .order("cod_cadastro", { ascending: true });
       if (error) throw error;
       return (data ?? []) as LinhaDivergencia[];
     },
   });
 
+  // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
+  const [colecaoFiltro, setColecaoFiltro] = useAbaUrl("", undefined, "colecao");
+
+  const colecoes = useMemo(() => {
+    const cont = new Map<string, number>();
+    for (const l of linhas ?? []) {
+      const c = (l.colecao ?? "").trim();
+      if (!c) continue;
+      cont.set(c, (cont.get(c) ?? 0) + 1);
+    }
+    return [...cont.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [linhas]);
+
+  // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
+  useEffect(() => {
+    if (!isLoading && colecaoFiltro && !colecoes.some(([c]) => c === colecaoFiltro)) setColecaoFiltro("");
+  }, [isLoading, colecoes, colecaoFiltro, setColecaoFiltro]);
+
+  // A coleção filtra a base de todos os blocos (combina E com os filtros de classe já existentes).
+  const porColecao = useMemo(
+    () =>
+      colecaoFiltro
+        ? (linhas ?? []).filter((l) => (l.colecao ?? "").trim() === colecaoFiltro)
+        : linhas ?? [],
+    [linhas, colecaoFiltro],
+  );
+
   const vendaveisFora = useMemo(
-    () => filaCadastro(linhas ?? [], "FALTA_NO_XPM_E_VENDAVEL"),
-    [linhas],
+    () => filaCadastro(porColecao, "FALTA_NO_XPM_E_VENDAVEL"),
+    [porColecao],
   );
   const saude = useMemo(
-    () => (linhas ?? []).filter((l) => l.classe === "PESO_DIVERGE" || l.classe === "NCM_DIVERGE"),
-    [linhas],
+    () => porColecao.filter((l) => l.classe === "PESO_DIVERGE" || l.classe === "NCM_DIVERGE"),
+    [porColecao],
   );
   const preVenda = useMemo(
-    () => filaCadastro(linhas ?? [], "FALTA_NO_XPM"),
-    [linhas],
+    () => filaCadastro(porColecao, "FALTA_NO_XPM"),
+    [porColecao],
   );
 
   function alternar(sku: string | null) {
