@@ -860,10 +860,11 @@ Deno.serve(async (req) => {
                   endereco: endVd.logradouro,
                   numero: endVd.numero,
                   complemento: endVd.complemento,
+                  bairro: endVd.bairro || "Não informado",
+                  cep: endVd.cep,
                   municipio: endVd.municipio,
                   uf: endVd.uf,
-                  cep: endVd.cep,
-                  bairro: endVd.bairro,
+                  nomePais: "",
                 },
               }
               : {
