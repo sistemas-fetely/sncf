@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { useAdquirentes } from "@/hooks/financeiro/useAdquirentes";
+import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,10 +87,12 @@ export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | 
   const [prova, setProva] = useState<(typeof PROVAS_PIX)[number]["value"]>("pix_txid");
   const [referencia, setReferencia] = useState("");
   const [data, setData] = useState(hojeISO());
+  const [bancoId, setBancoId] = useState("");
   const [observacao, setObservacao] = useState("");
+  const bancosQ = useBancosRecebimento(!!linha);
 
   useEffect(() => {
-    if (linha) { setProva("pix_txid"); setReferencia(""); setData(hojeISO()); setObservacao(""); }
+    if (linha) { setProva("pix_txid"); setReferencia(""); setData(hojeISO()); setBancoId(""); setObservacao(""); }
   }, [linha]);
 
   const m = useMutation({
@@ -131,11 +134,18 @@ export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | 
           </div>
           <div className="space-y-1"><Label>{provaAtual.referencia} *</Label><Input value={referencia} onChange={(e) => setReferencia(e.target.value)} autoFocus /></div>
           <div className="space-y-1"><Label>Data do pagamento *</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
+          <div className="space-y-1">
+            <Label>Em qual conta o dinheiro entrou *</Label>
+            <Select value={bancoId} onValueChange={setBancoId}>
+              <SelectTrigger><SelectValue placeholder={bancosQ.isLoading ? "Carregando…" : "Escolha a conta"} /></SelectTrigger>
+              <SelectContent>{(bancosQ.data ?? []).map((b) => <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1"><Label>Observação</Label><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} rows={3} /></div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={m.isPending}>Cancelar</Button>
-          <Button onClick={() => m.mutate()} disabled={!referencia.trim() || !data || m.isPending}>
+          <Button onClick={() => m.mutate()} disabled={!referencia.trim() || !data || !bancoId || m.isPending}>
             {m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pagamento
           </Button>
         </DialogFooter>
