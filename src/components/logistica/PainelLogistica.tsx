@@ -531,9 +531,9 @@ export function PainelLogistica({ escopo }: { escopo: EscopoPainel }) {
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                   <StatCardMini label="Frete total" value={BRL.format(r.total)} icon={DollarSign} tone="info" hint={`${NUM.format(r.fretes)} envios`} />
                   <StatCardMini label="Frete médio" value={BRL.format(medio)} icon={DollarSign} tone="default" />
-                  <StatCardMini label="% cobrado/NF" value={pctCob != null ? `${pctCob.toFixed(2)}%` : "—"} icon={Percent} tone="info" hint={ehB2c ? "n/a no B2C" : "frete cobrado ÷ NF"} />
-                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "B2C: Σ custo_frete ÷ Σ base_nf (valor do pedido Shopify, não NF fiscal)" : "Σ frete ÷ Σ valor_nf"} />
-                  <StatCardMini label="Peso taxado" value={peso != null ? `${NUM.format(Math.round(peso))} kg` : "—"} icon={Package} tone="default" hint={ehB2c ? "n/a no B2C" : undefined} />
+                  <StatCardMini label="% cobrado/NF" value={pctCob != null ? `${pctCob.toFixed(2)}%` : "—"} icon={Percent} tone="info" hint={ehB2c ? "n/a para postagem" : "frete cobrado ÷ NF"} />
+                  <StatCardMini label="% custo/NF" value={pctCusto != null ? `${pctCusto.toFixed(2)}%` : "—"} icon={Percent} tone="default" hint={ehB2c ? "Postagens: Σ custo ÷ Σ valor do pedido (não NF fiscal)" : "Σ frete ÷ Σ valor_nf"} />
+                  <StatCardMini label="Peso taxado" value={peso != null ? `${NUM.format(Math.round(peso))} kg` : "—"} icon={Package} tone="default" hint={ehB2c ? "n/a para postagem" : undefined} />
                 </div>
               </CardContent>
             </Card>

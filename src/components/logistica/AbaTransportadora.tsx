@@ -13,7 +13,9 @@ import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { OcorrenciasDepara } from "./OcorrenciasDepara";
 import { PainelLogistica } from "./PainelLogistica";
+import { CotacaoApiCorreios } from "./CotacaoApiCorreios";
 import { useUltimaSincronizacao } from "@/hooks/logistica/useUltimaSincronizacao";
+import { useTranspCotacaoApi } from "@/hooks/pedidos/useCotacaoCorreios";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -119,6 +121,8 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
   const ehFrenet = nomeUpper.includes("FRENET");
   const carrierB2C: "Correios" | "Frenet" | null = ehCorreios ? "Correios" : ehFrenet ? "Frenet" : null;
   const [abrirRastreio, setAbrirRastreio] = useState(false);
+  const { data: transportadorasApi = [] } = useTranspCotacaoApi();
+  const isApi = transportadorasApi.some((item) => item.transportadora_id === transportadora.id);
 
   return (
     <div className="space-y-4">
@@ -151,7 +155,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
           <TabsTrigger value="faturas">Faturas</TabsTrigger>
           <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
-          <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger>
+          {!isApi ? <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="visao" className="mt-4">
           <PainelLogistica escopo={{ tipo: "transportadora", transportadoraId: transportadora.id, transportadoraNome: nome }} />
@@ -175,13 +179,19 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           />
         </TabsContent>
         <TabsContent value="tabela" className="mt-4 space-y-4">
-          <GestaoTabelasPreco transportadoraId={transportadora.id} />
-          <ConteudoTabelaPreco transportadoraId={transportadora.id} />
-          <TabelaPreco transportadoraId={transportadora.id} />
+          {isApi ? <CotacaoApiCorreios /> : (
+            <>
+              <GestaoTabelasPreco transportadoraId={transportadora.id} />
+              <ConteudoTabelaPreco transportadoraId={transportadora.id} />
+              <TabelaPreco transportadoraId={transportadora.id} />
+            </>
+          )}
         </TabsContent>
-        <TabsContent value="ocorrencias" className="mt-4">
-          <OcorrenciasDepara transportadoraId={transportadora.id} />
-        </TabsContent>
+        {!isApi ? (
+          <TabsContent value="ocorrencias" className="mt-4">
+            <OcorrenciasDepara transportadoraId={transportadora.id} />
+          </TabsContent>
+        ) : null}
       </Tabs>
 
       {abrirRastreio && (

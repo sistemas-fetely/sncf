@@ -10,6 +10,7 @@ import { ChevronDown, FileText, Loader2, Upload, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useLancamentos } from "@/hooks/useLancamentos";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 type Fatura = {
@@ -436,9 +437,50 @@ function useFaturaArquivoUltima() {
   });
 }
 
+type FaturaCiclo = {
+  fatura_id: number | null;
+  situacao: "fechado" | "aberto";
+  ini: string;
+  fim: string | null;
+  vencimento: string | null;
+  declarado: number | null;
+  postagens: number;
+  postado: number;
+  diferenca: number | null;
+  confere: boolean | null;
+};
+
+function useFaturasCiclo(enabled: boolean) {
+  return useQuery({
+    queryKey: ["correios-fatura-ciclos"],
+    enabled,
+    queryFn: async (): Promise<FaturaCiclo[]> => {
+      const { data, error } = await (supabase as any)
+        .from("vw_correios_fatura_ciclo")
+        .select("fatura_id, situacao, ini, fim, vencimento, declarado, postagens, postado, diferenca, confere")
+        .order("ini", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((r: any) => ({
+        ...r,
+        fatura_id: r.fatura_id == null ? null : Number(r.fatura_id),
+        declarado: r.declarado == null ? null : Number(r.declarado),
+        postagens: Number(r.postagens ?? 0),
+        postado: Number(r.postado ?? 0),
+        diferenca: r.diferenca == null ? null : Number(r.diferenca),
+      }));
+    },
+  });
+}
+
+function dataCurta(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(`${iso.slice(0, 10)}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+}
+
 function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
   const { lista, loading, erro, listar, sincronizar } = useLancamentos();
-  const { data: faturaArq } = useFaturaArquivoUltima();
+  const { data: ciclos = [], isLoading: loadingCiclos, error: erroCiclos } = useFaturasCiclo(carrier === "Correios");
   const qc = useQueryClient();
   const empresa = carrier === "Frenet" ? "frenet" : "correios";
 
@@ -463,19 +505,17 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
         `Sincronizado · ${res.lancamentos ?? 0} lançamentos · total ${formatBRL(res.somaValorServico ?? 0)}`,
       );
       qc.invalidateQueries({ queryKey: ["correios-fatura-arquivo-ultima"] });
+      qc.invalidateQueries({ queryKey: ["correios-fatura-ciclos"] });
     } else if (res) {
       toast.warning("Retorno inesperado da sincronização.");
     }
   }
 
-  const declarado = carrier === "Correios" ? faturaArq?.valor_total ?? null : null;
-  const diferenca = declarado != null ? declarado - totalPostado : null;
-
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div className="text-xs text-muted-foreground">
-          Postagens B2C · {carrier}
+          Postagens · {carrier}
         </div>
         <Button size="sm" variant="outline" onClick={onSync} disabled={loading}>
           {loading ? (
@@ -493,29 +533,50 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <KpiCard label="Postagens" value={String(postagens.length)} />
-        <KpiCard label="Total em postagens" value={formatBRL(totalPostado)} />
-        {carrier === "Correios" && (
-          <>
-            <KpiCard
-              label={`Fatura declarada${faturaArq?.vencimento ? ` · venc. ${formatDateBR(faturaArq.vencimento)}` : ""}`}
-              value={declarado == null ? "—" : formatBRL(declarado)}
-            />
-            <KpiCard
-              label="Diferença (declarado − postado)"
-              value={diferenca == null ? "—" : formatBRL(diferenca)}
-              tone={
-                diferenca == null
-                  ? undefined
-                  : Math.abs(diferenca) < 0.01
-                    ? "ok"
-                    : "warn"
-              }
-            />
-          </>
-        )}
-      </div>
+      {carrier === "Correios" ? (
+        <div className="rounded-lg border bg-card overflow-hidden">
+          <div className="border-b px-3 py-2 text-sm font-medium">Faturas por ciclo</div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[900px] text-xs">
+              <thead className="bg-muted/50"><tr className="text-left">
+                <th className="px-3 py-2 font-medium">Ciclo</th><th className="px-3 py-2 font-medium">Fatura nº</th>
+                <th className="px-3 py-2 font-medium">Vencimento</th><th className="px-3 py-2 text-right font-medium">Declarado</th>
+                <th className="px-3 py-2 text-right font-medium">Postagens (n)</th><th className="px-3 py-2 text-right font-medium">Postado</th>
+                <th className="px-3 py-2 text-right font-medium">Diferença</th><th className="px-3 py-2 font-medium">Situação</th>
+              </tr></thead>
+              <tbody>
+                {loadingCiclos ? <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Carregando ciclos…</td></tr> : null}
+                {erroCiclos ? <tr><td colSpan={8} className="px-3 py-6 text-center text-destructive">{erroCiclos instanceof Error ? erroCiclos.message : String(erroCiclos)}</td></tr> : null}
+                {!loadingCiclos && !erroCiclos && ciclos.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">Nenhum ciclo encontrado.</td></tr> : null}
+                {ciclos.map((c) => (
+                  <tr key={`${c.fatura_id ?? "aberto"}-${c.ini}`} className="border-t">
+                    <td className="px-3 py-2">{c.situacao === "aberto" ? `desde ${dataCurta(c.ini)} · em aberto` : `${dataCurta(c.ini)}–${dataCurta(c.fim)}`}</td>
+                    <td className="px-3 py-2 font-mono">{c.fatura_id ?? "—"}</td>
+                    <td className="px-3 py-2">{formatDateBR(c.vencimento)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{c.declarado == null ? "—" : formatBRL(c.declarado)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{c.postagens}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatBRL(c.postado)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{c.diferenca == null ? "—" : formatBRL(c.diferenca)}</td>
+                    <td className="px-3 py-2">
+                      {c.situacao === "aberto" ? <Badge variant="outline" className="text-muted-foreground">Em aberto · prévia</Badge>
+                        : c.confere === true ? <Badge variant="outline" className="border-success/40 text-success">Confere</Badge>
+                          : c.confere === false ? (
+                            <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="cursor-help border-destructive/40 text-destructive">Divergente</Badge></TooltipTrigger>
+                              <TooltipContent className="max-w-xs">Rodapé da fatura difere da soma das postagens do ciclo — conferir o PDF/boleto no portal dos Correios</TooltipContent></Tooltip>
+                          ) : <Badge variant="outline" className="text-muted-foreground">—</Badge>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <KpiCard label="Postagens" value={String(postagens.length)} />
+          <KpiCard label="Total em postagens" value={formatBRL(totalPostado)} />
+        </div>
+      )}
 
       <div className="rounded-lg border bg-card overflow-hidden">
         <div className="overflow-x-auto">
