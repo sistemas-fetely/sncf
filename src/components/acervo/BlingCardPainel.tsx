@@ -578,16 +578,25 @@ export function BlingCardPainel() {
                           {l.ncm ? (
                             <span className="font-mono">{l.ncm}</span>
                           ) : l.ncm_sugerido ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="outline" className="text-[10px] border-warning/60 text-warning">
-                                  sugerido {l.ncm_sugerido}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                unânime em {l.ncm_sugerido_apoio ?? 0} produtos do grupo — confirme na ficha
-                              </TooltipContent>
-                            </Tooltip>
+                            <div className="space-y-0.5">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  (l.ncm_sugerido_fonte ?? "").startsWith("NF")
+                                    ? "text-[10px] border-success/60 text-success"
+                                    : "text-[10px] border-warning/60 text-warning"
+                                }
+                              >
+                                sugerido {l.ncm_sugerido}
+                              </Badge>
+                              {(l.ncm_sugerido_fonte ?? "").startsWith("NF") ? (
+                                <div className="text-[10px] text-success">da {l.ncm_sugerido_fonte}</div>
+                              ) : (
+                                <div className="text-[10px] text-muted-foreground">
+                                  padrão do grupo ({l.ncm_sugerido_apoio ?? 0})
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <Badge variant="destructive" className="text-[10px]">falta NCM</Badge>
                           )}
