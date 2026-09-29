@@ -141,6 +141,7 @@ export function XpmCadastroFila() {
   const [resultados, setResultados] = useState<ResultadoSku[] | null>(null);
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [cadastrando, setCadastrando] = useState(false);
+  const [sincronizandoEspelho, setSincronizandoEspelho] = useState(false);
   const [progresso, setProgresso] = useState<string | null>(null);
 
   const q = useQuery({
