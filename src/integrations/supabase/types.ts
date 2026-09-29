@@ -25750,6 +25750,45 @@ export type Database = {
           },
         ]
       }
+      frete_cotacao: {
+        Row: {
+          cep_destino: string
+          cep_origem: string
+          contexto: string
+          cotacoes: Json
+          criado_em: string
+          criado_por: string | null
+          id: string
+          itens_hash: string | null
+          peso_g: number
+          valida_ate: string
+        }
+        Insert: {
+          cep_destino: string
+          cep_origem: string
+          contexto?: string
+          cotacoes: Json
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          itens_hash?: string | null
+          peso_g: number
+          valida_ate: string
+        }
+        Update: {
+          cep_destino?: string
+          cep_origem?: string
+          contexto?: string
+          cotacoes?: Json
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          itens_hash?: string | null
+          peso_g?: number
+          valida_ate?: string
+        }
+        Relationships: []
+      }
       frete_icms_uf: {
         Row: {
           aliquota_pct: number
@@ -25846,6 +25885,36 @@ export type Database = {
           rotulo?: string
           updated_at?: string
           valor_na_nf?: boolean | null
+        }
+        Relationships: []
+      }
+      frete_vd_parametro: {
+        Row: {
+          acrescimo_pct: number
+          acrescimo_rs: number
+          atualizado_em: string
+          atualizado_por: string | null
+          gratis_no_mais_barato: boolean
+          id: number
+          validade_cotacao_min: number
+        }
+        Insert: {
+          acrescimo_pct?: number
+          acrescimo_rs?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          gratis_no_mais_barato?: boolean
+          id?: number
+          validade_cotacao_min?: number
+        }
+        Update: {
+          acrescimo_pct?: number
+          acrescimo_rs?: number
+          atualizado_em?: string
+          atualizado_por?: string | null
+          gratis_no_mais_barato?: boolean
+          id?: number
+          validade_cotacao_min?: number
         }
         Relationships: []
       }
@@ -64325,6 +64394,125 @@ export type Database = {
           j?: Json | null
         }
         Relationships: []
+      }
+      transp_cotacao_api: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          edge_nome: string
+          nome: string
+          transportadora_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          edge_nome: string
+          nome: string
+          transportadora_id: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          edge_nome?: string
+          nome?: string
+          transportadora_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_cotacao_api_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: true
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
       }
       transp_fretes: {
         Row: {
@@ -114919,6 +115107,7 @@ export type Database = {
         Args: { p_frete_tipo: string; p_valor_frete: number }
         Returns: number
       }
+      fn_frete_preparar_cotacao: { Args: { p_itens: Json }; Returns: Json }
       fn_frete_rateia_por: { Args: { p_frete_tipo: string }; Returns: string }
       fn_frete_sugerir_transportadora: {
         Args: { p_pedido_id: string }
