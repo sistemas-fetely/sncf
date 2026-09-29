@@ -97,6 +97,7 @@ import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedi
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
+import { useCotacaoCorreios, useTranspCotacaoApi } from "@/hooks/pedidos/useCotacaoCorreios";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -1190,6 +1191,15 @@ export default function PedidoDetalhe() {
   const recotar = useRecotarTransportadora();
   const salvarDadosEnvio = useSalvarDadosEnvio();
   const freteComparativo = useFreteComparativo(id);
+  const cotacaoCorreios = useCotacaoCorreios(
+    id,
+    Number(data?.pedido?.valor_liquido) || Number(data?.pedido?.valor_bruto) || 0,
+  );
+  const transpCotacaoApi = useTranspCotacaoApi();
+  const [cotacaoApiEscolhida, setCotacaoApiEscolhida] = useState<{
+    transportadora_id: string; valor: number; json: Record<string, unknown>; rotulo: string;
+    prazo_dias: number | null; n_volumes: number; avisos: string[];
+  } | null>(null);
   const [compararOpen, setCompararOpen] = useState(false);
   const { data: titulosData } = usePedidoTitulos(id);
   const { data: remessasData } = useRemessas(id ?? "");
@@ -1373,8 +1383,11 @@ export default function PedidoDetalhe() {
   const pesoCobradoEst = Number(emb?.peso_taxado_previsto) || pesoBrutoNum;
 
   const cepEstimativa = data?.pedido?.endereco_entrega?.cep ?? data?.parceiro?.cep ?? null;
+  const isApi = !!transportadoraId && (transpCotacaoApi.data ?? []).some((t) => t.transportadora_id === transportadoraId);
+  const cotacaoApiAtual = cotacaoApiEscolhida && cotacaoApiEscolhida.transportadora_id === transportadoraId ? cotacaoApiEscolhida : null;
+  const nomeTranspSelecionada = (transportadoras.data ?? []).find((t) => t.id === transportadoraId)?.razao_social ?? "";
   const freteEst = useFreteEstimado(
-    transportadoraId || null,
+    isApi ? null : (transportadoraId || null),
     cepEstimativa,
     pesoCobradoEst > 0 ? pesoCobradoEst : null
   );
@@ -2299,6 +2312,22 @@ export default function PedidoDetalhe() {
 
 
 
+                  {isApi && cotacaoApiAtual && (
+                    <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa {cotacaoApiAtual.rotulo}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-base font-medium">{cotacaoApiAtual.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                        {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((cotacaoApiAtual.valor / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">Prazo {cotacaoApiAtual.prazo_dias ?? "—"}d · {cotacaoApiAtual.n_volumes} volume{cotacaoApiAtual.n_volumes === 1 ? "" : "s"}</p>
+                      {cotacaoApiAtual.avisos.map((a, i) => (
+                        <p key={i} className="text-[11px] text-warning">{a}</p>
+                      ))}
+                    </div>
+                  )}
+                  {isApi && !cotacaoApiAtual && (
+                    <p className="text-xs text-muted-foreground">Correios não tem tabela de preço — use Comparar transportadoras para cotar.</p>
+                  )}
                   {freteEst.isLoading && transportadoraId && (
                     <p className="text-xs text-muted-foreground">Calculando frete...</p>
                   )}
@@ -2307,7 +2336,7 @@ export default function PedidoDetalhe() {
                   )}
                   {freteEst.data && !freteEst.data.erro && (
                     <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
-                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Icaro</p>
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa {nomeTranspSelecionada}</p>
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-base font-medium">{freteEst.data.valor_estimado.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
                         {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
@@ -2341,6 +2370,7 @@ export default function PedidoDetalhe() {
                           onClick={() => {
                             setCompararOpen(true);
                             freteComparativo.refetch();
+                            cotacaoCorreios.refetch();
                           }}
                         >
                           <Scale className="h-3.5 w-3.5 mr-1.5" />
@@ -2404,8 +2434,12 @@ export default function PedidoDetalhe() {
                           pesoBrutoTotal: parseFloat(pesoBruto) || 0,
                           freteTipo: freteTipo || null,
                           valorFrete: parseFloat(valorFrete) || 0,
-                          estimativaValor: freteEst.data?.valor_estimado ?? null,
-                          estimativaJson: freteEst.data ?? null,
+                          estimativaValor: cotacaoApiAtual
+                            ? cotacaoApiAtual.valor
+                            : (freteEst.data && !freteEst.data.erro ? freteEst.data.valor_estimado : null),
+                          estimativaJson: cotacaoApiAtual
+                            ? cotacaoApiAtual.json
+                            : (freteEst.data && !freteEst.data.erro ? freteEst.data : null),
                         })
                       }
                     >
@@ -2420,7 +2454,21 @@ export default function PedidoDetalhe() {
                       isLoading={freteComparativo.isFetching}
                       data={freteComparativo.data}
                       valorAtual={parseFloat(valorFrete) || 0}
+                      correios={{ isLoading: cotacaoCorreios.isFetching, data: cotacaoCorreios.data, error: cotacaoCorreios.error }}
                       onEscolher={(opcao) => {
+                        if ("fonte" in opcao && opcao.fonte === "correios" && opcao.transportadora_id) {
+                          setCotacaoApiEscolhida({
+                            transportadora_id: opcao.transportadora_id,
+                            valor: opcao.valor_estimado ?? 0,
+                            json: opcao.estimativa_json ?? {},
+                            rotulo: opcao.transportadora_nome,
+                            prazo_dias: opcao.prazo_dias,
+                            n_volumes: opcao.n_volumes,
+                            avisos: opcao.avisos,
+                          });
+                        } else {
+                          setCotacaoApiEscolhida(null);
+                        }
                         if (opcao.transportadora_id) setTransportadoraId(opcao.transportadora_id);
                         setCompararOpen(false);
                         toast({
