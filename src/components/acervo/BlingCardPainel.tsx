@@ -80,6 +80,14 @@ interface Final {
   recusados: { sku: string; motivo: string }[];
 }
 
+interface NcmItem {
+  sku: string;
+  cod_cadastro: string | null;
+  de: string | null;
+  para: string;
+  nf: string | null;
+}
+
 function ddmm(d: string | null): string | null {
   if (!d) return null;
   const [, m, dia] = d.slice(0, 10).split("-");
@@ -117,6 +125,9 @@ export function BlingCardPainel() {
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [criando, setCriando] = useState(false);
   const [progresso, setProgresso] = useState<string | null>(null);
+  const [ncmDialog, setNcmDialog] = useState<{ skus: string[]; itens: NcmItem[] } | null>(null);
+  const [ncmCarregando, setNcmCarregando] = useState(false);
+  const [ncmAplicando, setNcmAplicando] = useState(false);
 
   const q = useQuery({
     queryKey: ["bling-card-fila"],
