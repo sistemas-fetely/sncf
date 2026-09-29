@@ -7,11 +7,13 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,6 +24,10 @@ import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePa
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
 import { NotasSemBaixaDialog, useNotasSemBaixa, FileWarning } from "@/components/acervo/NotasSemBaixaDialog";
+import { AjustarPeloArmazemDialog } from "@/components/estoque/AjustarPeloArmazemDialog";
+
+/** Única regra com ajuste direto pelo armazém hoje (RPC fn_estoque_ajustar_pelo_armazem). */
+const REGRA_AJUSTE_ARMAZEM = "estoque_armazem_difere";
 
 function BotaoNotasSemBaixa() {
   const notas = useNotasSemBaixa();
