@@ -43,6 +43,12 @@ const FATOR_G: Record<string, number> = { GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.
 const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
 const soDig = (v: unknown) => txt(v).replace(/\D/g, "");
 const semZero = (v: unknown) => soDig(v).replace(/^0+/, "");
+// Mesmo formato do pull (shopify-catalogo-pull): id numérico do GID como TEXTO ("123").
+const idNumerico = (gid: unknown): string | null => {
+  if (!gid) return null;
+  const last = String(gid).split("/").pop() ?? "";
+  return /^\d+$/.test(last) ? last : null;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -79,6 +85,8 @@ Deno.serve(async (req) => {
     const planoVariantes = new Map<string, Linha[]>(); // productId -> inputs de variante
     const planoProduto = new Map<string, { vendor?: string; marca?: string }>();
     const skusPorProduto = new Map<string, string[]>();
+    // Peso gravado no Shopify → espelho shopify_variante_peso (lido pela Conciliação).
+    const pesoPlanejado = new Map<string, { produtoId: string; invId: string; peso_g: number }>();
 
     for (const sku of skus) {
       const f = porSku.get(sku);
@@ -125,6 +133,8 @@ Deno.serve(async (req) => {
       if (pesoSncf !== null && pesoSncf > 0 && (pesoLoja === null || Math.abs(pesoLoja - pesoSncf) > TOL_PESO_G)) {
         de_para.push({ campo: "Peso (g)", shopify: pesoLoja === null ? null : Math.round(pesoLoja * 1000) / 1000, novo: pesoSncf });
         inv.measurement = { weight: { unit: "GRAMS", value: pesoSncf } };
+        const invId = idNumerico(v.inventoryItem?.id);
+        if (invId) pesoPlanejado.set(sku, { produtoId, invId, peso_g: pesoSncf });
       }
       if (Object.keys(inv).length > 0) inputVar.inventoryItem = inv;
 
@@ -156,10 +166,25 @@ Deno.serve(async (req) => {
           if (r && r.status === "pendente") { r.status = "erro"; r.erro = msg; }
         }
       };
+      const varianteOk = new Set<string>();
       for (const [produtoId, inputs] of planoVariantes) {
         const r = await shop.gql<Linha>(M_VAR, { p: produtoId, v: inputs });
         const ue = r.data?.productVariantsBulkUpdate?.userErrors ?? [];
         if (r.status !== 200 || r.errors || ue.length > 0) marcarErro(produtoId, `variantes: ${JSON.stringify(r.errors ?? ue).slice(0, 400)}`);
+        else varianteOk.add(produtoId);
+      }
+      // Espelho do peso: gravar em shopify_variante_peso o peso que acabou de ir ao Shopify,
+      // senão a Conciliação mantém a linha na fila até o pull diário. Falha aqui não desfaz
+      // nada no Shopify — vira aviso na linha (mesmo padrão da corrigir-produto-bling).
+      for (const [sku, p] of pesoPlanejado) {
+        if (!varianteOk.has(p.produtoId)) continue;
+        const { error: espErr } = await supabase
+          .from("shopify_variante_peso")
+          .upsert({ inventory_item_id: p.invId, peso_g: p.peso_g, lido_em: new Date().toISOString() }, { onConflict: "inventory_item_id" });
+        if (espErr) {
+          const r = resultados.find((x) => x.sku === sku);
+          if (r) r.de_para = [...(r.de_para ?? []), { campo: "espelho", shopify: null, novo: `espelho do peso não atualizado: ${espErr.message}` }];
+        }
       }
       for (const [produtoId, p] of planoProduto) {
         const input: Linha = { id: produtoId };
