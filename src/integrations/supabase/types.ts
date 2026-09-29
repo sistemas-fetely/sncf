@@ -118050,6 +118050,16 @@ export type Database = {
             Returns: Json
           }
       fn_refresh_dre: { Args: never; Returns: undefined }
+      fn_registrar_contagem: {
+        Args: {
+          p_centro_codigo: string
+          p_data: string
+          p_fonte?: string
+          p_itens: Json
+          p_referencia?: string
+        }
+        Returns: Json
+      }
       fn_registrar_despacho_sem_prova: {
         Args: { p_pedido_id: string }
         Returns: Json
