@@ -386,6 +386,11 @@ export function XpmCadastroFila() {
             Cadastrar {previaVai.length} no WMS
           </BotaoGuardado>
           {progresso && <span className="text-xs text-muted-foreground">{progresso}</span>}
+          {sincronizandoEspelho && (
+            <span className="text-xs text-muted-foreground flex items-center gap-1">
+              <Loader2 className="h-3 w-3 animate-spin" /> Atualizando espelho do WMS…
+            </span>
+          )}
           {previa && (
             <Button variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => setPreviaAberta(true)}>
               Ver prévia
