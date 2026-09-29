@@ -9406,6 +9406,7 @@ export type Database = {
       centro_distribuicao: {
         Row: {
           ativo: boolean
+          cep: string | null
           cnpj_emitente: string | null
           codigo: string
           contabil: boolean
@@ -9426,6 +9427,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cep?: string | null
           cnpj_emitente?: string | null
           codigo: string
           contabil?: boolean
@@ -9446,6 +9448,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cep?: string | null
           cnpj_emitente?: string | null
           codigo?: string
           contabil?: boolean
@@ -25843,6 +25846,51 @@ export type Database = {
           rotulo?: string
           updated_at?: string
           valor_na_nf?: boolean | null
+        }
+        Relationships: []
+      }
+      frete_vd_tabela: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          atualizado_por: string | null
+          cep_fim: number
+          cep_ini: number
+          faixa: string
+          id: string
+          modalidade: string
+          observacao: string | null
+          ordem: number
+          peso_max_g: number | null
+          preco: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cep_fim: number
+          cep_ini: number
+          faixa: string
+          id?: string
+          modalidade: string
+          observacao?: string | null
+          ordem?: number
+          peso_max_g?: number | null
+          preco: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          atualizado_por?: string | null
+          cep_fim?: number
+          cep_ini?: number
+          faixa?: string
+          id?: string
+          modalidade?: string
+          observacao?: string | null
+          ordem?: number
+          peso_max_g?: number | null
+          preco?: number
         }
         Relationships: []
       }
@@ -117675,6 +117723,7 @@ export type Database = {
       validar_email_corporativo: { Args: { _email: string }; Returns: Json }
       validar_nf_pj: { Args: { _nota_id: string }; Returns: Json }
       validar_prontidao_sistema: { Args: never; Returns: Json }
+      vd_cotar_frete: { Args: { p_cep: string; p_itens: Json }; Returns: Json }
       vd_registrar_retirada: {
         Args: {
           p_documento?: string
