@@ -88,7 +88,7 @@ export function XpmCadastroPainel() {
         body: { tipo: "corrigir_categoria_xpm", skus: [sku] },
       });
       if (error) throw error;
-      return (data?.resultados ?? []) as ResultadoSku[];
+      return (data?.resultados ?? []) as { status?: string; erro?: string }[];
     },
     onSuccess: (res) => {
       const r = res[0];
