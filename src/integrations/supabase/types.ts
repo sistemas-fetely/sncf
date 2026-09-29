@@ -81734,6 +81734,41 @@ export type Database = {
           },
         ]
       }
+      vw_correios_fatura_ciclo: {
+        Row: {
+          confere: boolean | null
+          declarado: number | null
+          diferenca: number | null
+          fatura_id: number | null
+          fim: string | null
+          ini: string | null
+          postado: number | null
+          postagens: number | null
+          situacao: string | null
+          vencimento: string | null
+        }
+        Relationships: []
+      }
+      vw_correios_postagens: {
+        Row: {
+          canal: string | null
+          cep_destino: string | null
+          ciclo_fatura_id: number | null
+          custo: number | null
+          data_postagem: string | null
+          etiqueta: string | null
+          fonte_id: string | null
+          municipio_destino: string | null
+          origem_dado: string | null
+          pedido_externo: string | null
+          pedido_id: string | null
+          peso_g: number | null
+          servico: string | null
+          servico_curto: string | null
+          uf_destino: string | null
+        }
+        Relationships: []
+      }
       vw_cpr_cobertura: {
         Row: {
           cpr_id: string | null
@@ -96784,14 +96819,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
