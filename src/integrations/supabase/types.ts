@@ -25608,6 +25608,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -30333,6 +30340,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -30723,6 +30737,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
             referencedColumns: ["sku"]
           },
           {
@@ -31765,6 +31786,13 @@ export type Database = {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -32475,6 +32503,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_romaneio_stage_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
             referencedColumns: ["sku"]
           },
           {
@@ -72100,6 +72135,13 @@ export type Database = {
             foreignKeyName: "xpm_termo_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -75041,8 +75083,11 @@ export type Database = {
           grupo: string | null
           largura_cm: number | null
           ncm: string | null
+          ncm_nf: string | null
+          ncm_nf_numero: string | null
           ncm_sugerido: string | null
           ncm_sugerido_apoio: number | null
+          ncm_sugerido_fonte: string | null
           nome_comercial: string | null
           nome_operacional: string | null
           pedido_importacao: string | null
@@ -79248,6 +79293,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
             referencedColumns: ["sku"]
           },
           {
@@ -89178,6 +89230,13 @@ export type Database = {
             foreignKeyName: "fornecedor_produto_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "fornecedor_produto_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -91413,6 +91472,13 @@ export type Database = {
             foreignKeyName: "importacao_invoice_linha_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_invoice_linha_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -91679,6 +91745,13 @@ export type Database = {
             columns: ["sku"]
             isOneToOne: false
             referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
+            columns: ["sku"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
             referencedColumns: ["sku"]
           },
           {
@@ -94050,6 +94123,30 @@ export type Database = {
           },
         ]
       }
+      vw_nf_cadastro_confronto: {
+        Row: {
+          cod_cadastro: string | null
+          fase: string | null
+          grupo: string | null
+          ncm_cadastro: string | null
+          ncm_nf: string | null
+          nf_data: string | null
+          nf_descricao: string | null
+          nf_numero: string | null
+          nome_comercial: string | null
+          situacao: string | null
+          sku: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_produto_grupo"
+            columns: ["grupo"]
+            isOneToOne: false
+            referencedRelation: "produto_grupo_dim"
+            referencedColumns: ["rotulo"]
+          },
+        ]
+      }
       vw_nf_duplicidade_suspeita: {
         Row: {
           chave_acesso: string | null
@@ -95802,14 +95899,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -96819,14 +96916,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -113844,6 +113941,13 @@ export type Database = {
             foreignKeyName: "importacao_linha_sku_fkey"
             columns: ["codigo_material"]
             isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "importacao_linha_sku_fkey"
+            columns: ["codigo_material"]
+            isOneToOne: false
             referencedRelation: "vw_preco_espelho"
             referencedColumns: ["sku"]
           },
@@ -117401,6 +117505,14 @@ export type Database = {
       fn_processo_nascer_de_atribuicao: {
         Args: { _atribuicao_id: string; _codigo?: string; _nome?: string }
         Returns: string
+      }
+      fn_produto_aplicar_ncm_nf: {
+        Args: {
+          p_dry_run?: boolean
+          p_incluir_divergentes?: boolean
+          p_skus: string[]
+        }
+        Returns: Json
       }
       fn_produto_cockpit_resumo: { Args: { p_skus?: string[] }; Returns: Json }
       fn_produto_foto_url: {

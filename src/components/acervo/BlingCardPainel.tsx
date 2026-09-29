@@ -9,11 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
-import { AlertTriangle, Eye, Loader2, Send } from "lucide-react";
+import { AlertTriangle, Eye, Hash, Loader2, Send } from "lucide-react";
 
 const LEVA = 20;
 
@@ -34,6 +43,9 @@ interface LinhaFila {
   pedido_importacao: string | null;
   ncm_sugerido: string | null;
   ncm_sugerido_apoio: number | null;
+  ncm_nf: string | null;
+  ncm_nf_numero: string | null;
+  ncm_sugerido_fonte: string | null;
   falta: string[] | null;
   situacao_nascimento: "A" | "I" | null;
   largura_cm: number | null;
@@ -66,6 +78,14 @@ interface Final {
   criados: { sku: string; bling_id: string }[];
   falhas: { sku: string; status: number | null; corpo: string }[];
   recusados: { sku: string; motivo: string }[];
+}
+
+interface NcmItem {
+  sku: string;
+  cod_cadastro: string | null;
+  de: string | null;
+  para: string;
+  nf: string | null;
 }
 
 function ddmm(d: string | null): string | null {
@@ -105,6 +125,9 @@ export function BlingCardPainel() {
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
   const [criando, setCriando] = useState(false);
   const [progresso, setProgresso] = useState<string | null>(null);
+  const [ncmDialog, setNcmDialog] = useState<{ skus: string[]; itens: NcmItem[] } | null>(null);
+  const [ncmCarregando, setNcmCarregando] = useState(false);
+  const [ncmAplicando, setNcmAplicando] = useState(false);
 
   const q = useQuery({
     queryKey: ["bling-card-fila"],
@@ -189,6 +212,12 @@ export function BlingCardPainel() {
 
   const prontos = useMemo(() => filtradas.filter((l) => (l.falta ?? []).length === 0), [filtradas]);
 
+  // Candidatos ao NCM da NF: sem NCM no cadastro e sugestão vinda de NF de entrada.
+  const ncmNfCandidatos = useMemo(
+    () => filtradas.filter((l) => !l.ncm && (l.ncm_sugerido_fonte ?? "").startsWith("NF")),
+    [filtradas],
+  );
+
   function mudouSelecao(fn: (prev: string[]) => string[]) {
     setPrevia(null);
     setFinal(null);
@@ -251,6 +280,69 @@ export function BlingCardPainel() {
   }
 
   const podeCriar = !!previa && previa.criar.length > 0 && !!origem && !criando;
+
+  async function abrirNcm() {
+    if (ncmNfCandidatos.length === 0) return;
+    const skus = ncmNfCandidatos.map((l) => l.sku);
+    setNcmCarregando(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_produto_aplicar_ncm_nf", {
+        p_skus: skus,
+        p_dry_run: true,
+      });
+      if (error) throw error;
+      setNcmDialog({ skus, itens: ((data as any)?.itens ?? []) as NcmItem[] });
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setNcmCarregando(false);
+    }
+  }
+
+  async function aplicarNcm() {
+    if (!ncmDialog) return;
+    const { skus, itens } = ncmDialog;
+    setNcmAplicando(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_produto_aplicar_ncm_nf", {
+        p_skus: skus,
+        p_dry_run: false,
+      });
+      if (error) throw error;
+      const aplicados = Number((data as any)?.aplicados ?? 0);
+      toast.success(`${aplicados} NCM(s) gravados`);
+      setNcmDialog(null);
+      const cods = itens.map((i) => i.cod_cadastro).filter((c): c is string => !!c);
+      // O FOP recebe o NCM de forma assíncrona — confere depois de ~4 s.
+      setTimeout(() => {
+        void (async () => {
+          try {
+            await (supabase as any).rpc("fn_fop_campo_conferir");
+            if (cods.length > 0) {
+              const { data: envios, error: e2 } = await (supabase as any)
+                .from("fop_campo_envio")
+                .select("cod_cadastro, situacao, resposta")
+                .in("cod_cadastro", cods)
+                .order("enviado_em", { ascending: false });
+              if (e2) throw e2;
+              const erros = ((envios ?? []) as any[]).filter((r) => r.situacao === "erro");
+              if (erros.length > 0) {
+                toast.error(`FOP: ${erros.length} envio(s) com erro — ${erros[0].resposta ?? "sem detalhe"}`);
+              }
+            }
+          } catch (e) {
+            toast.error(formatError(e));
+          }
+          void q.refetch();
+        })();
+      }, 4000);
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setNcmAplicando(false);
+    }
+  }
+
 
   return (
     <Card>
@@ -334,6 +426,21 @@ export function BlingCardPainel() {
             {criando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Criar {previa?.criar.length ?? 0} card(s)
           </BotaoGuardado>
+          <BotaoGuardado
+            slug="acao.produto_ncm_definir"
+            rotuloAcao="Aplicar NCM da NF"
+            size="sm"
+            className="gap-2"
+            disabled={ncmNfCandidatos.length === 0 || ncmCarregando || ncmAplicando}
+            onClick={() => void abrirNcm()}
+          >
+            {ncmCarregando || ncmAplicando ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Hash className="h-3.5 w-3.5" />
+            )}
+            Aplicar NCM da NF ({ncmNfCandidatos.length})
+          </BotaoGuardado>
           {progresso && <span className="text-xs text-muted-foreground">{progresso}</span>}
           {previa && !origem && <span className="text-xs text-warning">Escolha a origem fiscal para criar.</span>}
         </div>
@@ -392,7 +499,7 @@ export function BlingCardPainel() {
         ) : linhas.length === 0 && !q.isError ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Todos os produtos ativos e de pré-venda têm card no Bling.</p>
         ) : (
-          <TooltipProvider>
+          <>
             <div className="rounded-md border max-h-[calc(100vh-22rem)] overflow-auto">
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-background">
@@ -471,16 +578,25 @@ export function BlingCardPainel() {
                           {l.ncm ? (
                             <span className="font-mono">{l.ncm}</span>
                           ) : l.ncm_sugerido ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Badge variant="outline" className="text-[10px] border-warning/60 text-warning">
-                                  sugerido {l.ncm_sugerido}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                unânime em {l.ncm_sugerido_apoio ?? 0} produtos do grupo — confirme na ficha
-                              </TooltipContent>
-                            </Tooltip>
+                            <div className="space-y-0.5">
+                              <Badge
+                                variant="outline"
+                                className={
+                                  (l.ncm_sugerido_fonte ?? "").startsWith("NF")
+                                    ? "text-[10px] border-success/60 text-success"
+                                    : "text-[10px] border-warning/60 text-warning"
+                                }
+                              >
+                                sugerido {l.ncm_sugerido}
+                              </Badge>
+                              {(l.ncm_sugerido_fonte ?? "").startsWith("NF") ? (
+                                <div className="text-[10px] text-success">da {l.ncm_sugerido_fonte}</div>
+                              ) : (
+                                <div className="text-[10px] text-muted-foreground">
+                                  padrão do grupo ({l.ncm_sugerido_apoio ?? 0})
+                                </div>
+                              )}
+                            </div>
                           ) : (
                             <Badge variant="destructive" className="text-[10px]">falta NCM</Badge>
                           )}
@@ -519,7 +635,7 @@ export function BlingCardPainel() {
                 </TableBody>
               </Table>
             </div>
-          </TooltipProvider>
+          </>
         )}
       </CardContent>
       <ResolverNomeDialog
@@ -528,6 +644,57 @@ export function BlingCardPainel() {
         linhas={resolver ?? []}
         onResolvido={() => void q.refetch()}
       />
+      <AlertDialog
+        open={!!ncmDialog}
+        onOpenChange={(v) => {
+          if (!v && !ncmAplicando) setNcmDialog(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar NCM da NF de entrada</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                O NCM faturado na NF de entrada será gravado no cadastro (SNCF e FOP). Decisão fiscal: confirme com o
+                contador em caso de dúvida.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-60 overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Cód.</TableHead>
+                  <TableHead className="text-xs">NCM</TableHead>
+                  <TableHead className="text-xs">NF</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(ncmDialog?.itens ?? []).map((i) => (
+                  <TableRow key={i.sku}>
+                    <TableCell className="font-mono text-xs">{i.cod_cadastro ?? i.sku}</TableCell>
+                    <TableCell className="font-mono text-xs">{i.para}</TableCell>
+                    <TableCell className="text-xs">{i.nf ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ncmAplicando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={ncmAplicando || (ncmDialog?.itens.length ?? 0) === 0}
+              onClick={(e) => {
+                e.preventDefault();
+                void aplicarNcm();
+              }}
+            >
+              {ncmAplicando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
