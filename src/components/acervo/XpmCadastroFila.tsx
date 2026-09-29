@@ -201,6 +201,8 @@ export function XpmCadastroFila() {
     ];
     const vend = porColecao.filter((l) => l.tipo_fila === "vendavel").length;
     if (vend > 0) out.push({ chave: "vendavel", rotulo: "Vendável fora do WMS", qtd: vend, tom: "aviso" });
+    const prov = porColecao.filter((l) => medidasProvisorias(l)).length;
+    if (prov > 0) out.push({ chave: "provisorio", rotulo: "Medidas provisórias", qtd: prov, tom: "aviso" });
     const cont = new Map<string, number>();
     for (const l of porColecao) for (const b of bloqueiosDe(l)) cont.set(b, (cont.get(b) ?? 0) + 1);
     for (const [b, n] of [...cont.entries()].sort((a, b) => b[1] - a[1])) {
