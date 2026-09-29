@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
 
     const b2cExternos = (filaB2c ?? [])
       // deno-lint-ignore no-explicit-any
-      .filter((f: any) => !!f.shopify_pedido_id && !!f.bling_pedido_id && !!f.order_name)
+      .filter((f: any) => !(!f.shopify_pedido_id && f.pedido_id) && !!f.bling_pedido_id && !!f.order_name)
       // deno-lint-ignore no-explicit-any
       .map((f: any) => ({
         id_externo: `SHP-${String(f.order_name).replace(/#/g, "").trim()}`,
