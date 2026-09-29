@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +39,9 @@ serve(async (req) => {
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
+
+  const negado = await gateCronOuSessao(req, sb, cors);
+  if (negado) return negado;
   const t0 = Date.now();
   let total_lido = 0;
   let gravados = 0;

@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { gateCronOuSessao } from "../_shared/gate-cron.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,9 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const sb = createClient(supabaseUrl, serviceKey);
+
+  const negado = await gateCronOuSessao(req, sb, cors);
+  if (negado) return negado;
 
   const resultado = { processados: 0, sucesso: 0, erro: 0, detalhes: [] as unknown[] };
 
