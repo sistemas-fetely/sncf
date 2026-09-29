@@ -46,7 +46,7 @@ export function useParametrosVD() {
         .eq("id", 1)
         .maybeSingle();
       if (error) throw error;
-      if (!data) throw new Error("Parâmetros da Venda Direta não encontrados (venda_direta_parametro id=1).");
+      if (!data) throw new Error("Parâmetros dos Pedidos Site SP não encontrados (venda_direta_parametro id=1).");
       return data as ParametrosVD;
     },
   });
@@ -135,7 +135,7 @@ export function AvisarClienteButton({ linha, chave, label = "Avisar cliente" }: 
     try {
       setEnviando(true);
       const p = qp.data;
-      if (!p) throw new Error(qp.error ? rawMessage(qp.error) : "Parâmetros da Venda Direta ainda carregando.");
+      if (!p) throw new Error(qp.error ? rawMessage(qp.error) : "Parâmetros dos Pedidos Site SP ainda carregando.");
       if (k === "pronto_retirada" && !(p.retirada_endereco ?? "").trim()) {
         toast.warning("Configure o endereço de retirada");
         return;
@@ -195,7 +195,7 @@ export function ConfiguracoesVDDialog({ aberto, onClose }: { aberto: boolean; on
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Configurações da Venda Direta salvas");
+      toast.success("Configurações dos Pedidos Site SP salvas");
       await qc.invalidateQueries({ queryKey: QK_VD_PARAM });
       await qc.invalidateQueries({ queryKey: ["venda-direta-gestao"] });
       onClose();
@@ -207,7 +207,7 @@ export function ConfiguracoesVDDialog({ aberto, onClose }: { aberto: boolean; on
     <Dialog open={aberto} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configurações da Venda Direta</DialogTitle>
+          <DialogTitle>Configurações · Pedidos Site SP</DialogTitle>
           <DialogDescription>Alerta de pedido sem pagamento, retirada e mensagens de WhatsApp.</DialogDescription>
         </DialogHeader>
         {qp.isError ? (
