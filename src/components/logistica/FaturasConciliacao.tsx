@@ -10,6 +10,7 @@ import { ChevronDown, FileText, Loader2, Upload, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { useLancamentos } from "@/hooks/useLancamentos";
+import { TituloFaturaFrete } from "@/components/logistica/TituloFaturaFrete";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 
@@ -20,6 +21,9 @@ type Fatura = {
   data_vencimento: string | null;
   valor_total: number;
   status: string | null;
+  conta_pagar_id: string | null;
+  valor_total_calculado: number | null;
+  titulo_status: string | null;
 };
 
 type Linha = {
@@ -39,17 +43,27 @@ function useFaturas(transportadoraId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("faturas_frete")
-        .select("id, numero_fatura, data_emissao, data_vencimento, valor_total, status")
+        .select("id, numero_fatura, data_emissao, data_vencimento, valor_total, status, conta_pagar_id, valor_total_calculado")
         .eq("transportadora_id", transportadoraId)
         .order("data_vencimento", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((r): Fatura => ({
+      const ids = Array.from(new Set((data ?? []).map((r: any) => r.conta_pagar_id).filter(Boolean))) as string[];
+      const stMap = new Map<string, string | null>();
+      if (ids.length > 0) {
+        const { data: tit, error: eTit } = await supabase.from("contas_pagar_receber").select("id, status").in("id", ids);
+        if (eTit) throw eTit;
+        for (const t of tit ?? []) stMap.set(t.id as string, (t as any).status ?? null);
+      }
+      return (data ?? []).map((r: any): Fatura => ({
         id: r.id as string,
         numero_fatura: r.numero_fatura as string | null,
         data_emissao: r.data_emissao as string | null,
         data_vencimento: r.data_vencimento as string | null,
         valor_total: Number(r.valor_total ?? 0),
         status: r.status as string | null,
+        conta_pagar_id: (r.conta_pagar_id as string | null) ?? null,
+        valor_total_calculado: r.valor_total_calculado == null ? null : Number(r.valor_total_calculado),
+        titulo_status: r.conta_pagar_id ? stMap.get(r.conta_pagar_id) ?? null : null,
       }));
     },
   });
@@ -283,11 +297,12 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                 : partes.join(" · ");
             return (
               <Collapsible key={f.id} open={aberta} onOpenChange={(o) => setExpandida(o ? f.id : null)}>
+                <div className={cn("flex items-center", aberta && "bg-muted/30")}>
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
                     className={cn(
-                      "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors",
+                      "flex-1 min-w-0 flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/40 transition-colors",
                       aberta && "bg-muted/30",
                     )}
                   >
@@ -323,6 +338,18 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                     </div>
                   </button>
                 </CollapsibleTrigger>
+                <div className="shrink-0 px-4 py-3 text-xs">
+                  <div className="text-muted-foreground mb-1">Título</div>
+                  <TituloFaturaFrete
+                    faturaFreteId={f.id}
+                    contaPagarId={f.conta_pagar_id}
+                    tituloStatus={f.titulo_status}
+                    declarado={f.valor_total}
+                    calculado={f.valor_total_calculado}
+                    rotulo={"nº " + (f.numero_fatura ?? "")}
+                  />
+                </div>
+                </div>
                 <CollapsibleContent>
                   <div className="border-t bg-muted/10 px-4 py-3">
                     {arr.length === 0 ? (
@@ -448,6 +475,9 @@ type FaturaCiclo = {
   postado: number;
   diferenca: number | null;
   confere: boolean | null;
+  fatura_frete_id: string | null;
+  conta_pagar_id: string | null;
+  titulo_status: string | null;
 };
 
 function useFaturasCiclo(enabled: boolean) {
@@ -457,7 +487,7 @@ function useFaturasCiclo(enabled: boolean) {
     queryFn: async (): Promise<FaturaCiclo[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_correios_fatura_ciclo")
-        .select("fatura_id, situacao, ini, fim, vencimento, declarado, postagens, postado, diferenca, confere")
+        .select("fatura_id, situacao, ini, fim, vencimento, declarado, postagens, postado, diferenca, confere, fatura_frete_id, conta_pagar_id, titulo_status")
         .order("ini", { ascending: false });
       if (error) throw error;
       return (data ?? []).map((r: any) => ({
@@ -542,12 +572,12 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
                 <th className="px-3 py-2 font-medium">Ciclo</th><th className="px-3 py-2 font-medium">Fatura nº</th>
                 <th className="px-3 py-2 font-medium">Vencimento</th><th className="px-3 py-2 text-right font-medium">Declarado</th>
                 <th className="px-3 py-2 text-right font-medium">Postagens (n)</th><th className="px-3 py-2 text-right font-medium">Postado</th>
-                <th className="px-3 py-2 text-right font-medium">Diferença</th><th className="px-3 py-2 font-medium">Situação</th>
+                <th className="px-3 py-2 text-right font-medium">Diferença</th><th className="px-3 py-2 font-medium">Situação</th><th className="px-3 py-2 font-medium">Título</th>
               </tr></thead>
               <tbody>
-                {loadingCiclos ? <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Carregando ciclos…</td></tr> : null}
-                {erroCiclos ? <tr><td colSpan={8} className="px-3 py-6 text-center text-destructive">{erroCiclos instanceof Error ? erroCiclos.message : String(erroCiclos)}</td></tr> : null}
-                {!loadingCiclos && !erroCiclos && ciclos.length === 0 ? <tr><td colSpan={8} className="px-3 py-6 text-center text-muted-foreground">Nenhum ciclo encontrado.</td></tr> : null}
+                {loadingCiclos ? <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground"><Loader2 className="mr-2 inline h-4 w-4 animate-spin" />Carregando ciclos…</td></tr> : null}
+                {erroCiclos ? <tr><td colSpan={9} className="px-3 py-6 text-center text-destructive">{erroCiclos instanceof Error ? erroCiclos.message : String(erroCiclos)}</td></tr> : null}
+                {!loadingCiclos && !erroCiclos && ciclos.length === 0 ? <tr><td colSpan={9} className="px-3 py-6 text-center text-muted-foreground">Nenhum ciclo encontrado.</td></tr> : null}
                 {ciclos.map((c) => (
                   <tr key={`${c.fatura_id ?? "aberto"}-${c.ini}`} className="border-t">
                     <td className="px-3 py-2">{c.situacao === "aberto" ? `desde ${dataCurta(c.ini)} · em aberto` : `${dataCurta(c.ini)}–${dataCurta(c.fim)}`}</td>
@@ -564,6 +594,12 @@ function FaturasB2C({ carrier }: { carrier: "Correios" | "Frenet" }) {
                             <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="cursor-help border-destructive/40 text-destructive">Divergente</Badge></TooltipTrigger>
                               <TooltipContent className="max-w-xs">Rodapé da fatura difere da soma das postagens do ciclo — conferir o PDF/boleto no portal dos Correios</TooltipContent></Tooltip>
                           ) : <Badge variant="outline" className="text-muted-foreground">—</Badge>}
+                    </td>
+                    <td className="px-3 py-2">
+                      {c.situacao === "aberto" ? <span className="text-muted-foreground">—</span> : (
+                        <TituloFaturaFrete faturaFreteId={c.fatura_frete_id} contaPagarId={c.conta_pagar_id} tituloStatus={c.titulo_status}
+                          declarado={c.declarado} calculado={c.postado} rotulo={"nº " + c.fatura_id} />
+                      )}
                     </td>
                   </tr>
                 ))}
