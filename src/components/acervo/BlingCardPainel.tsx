@@ -426,6 +426,21 @@ export function BlingCardPainel() {
             {criando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             Criar {previa?.criar.length ?? 0} card(s)
           </BotaoGuardado>
+          <BotaoGuardado
+            slug="acao.produto_ncm_definir"
+            rotuloAcao="Aplicar NCM da NF"
+            size="sm"
+            className="gap-2"
+            disabled={ncmNfCandidatos.length === 0 || ncmCarregando || ncmAplicando}
+            onClick={() => void abrirNcm()}
+          >
+            {ncmCarregando || ncmAplicando ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Hash className="h-3.5 w-3.5" />
+            )}
+            Aplicar NCM da NF ({ncmNfCandidatos.length})
+          </BotaoGuardado>
           {progresso && <span className="text-xs text-muted-foreground">{progresso}</span>}
           {previa && !origem && <span className="text-xs text-warning">Escolha a origem fiscal para criar.</span>}
         </div>
