@@ -72,30 +72,10 @@ export function XpmCadastroPainel() {
     },
   });
 
-  // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
-  const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
+  // Filtro por coleção (?colecao=) — escolhido na fila de cadastro; também filtra a saúde do cadastro.
+  const [colecaoUrl] = useAbaUrl("", undefined, "colecao");
   const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
-  const setColecaoFiltro = (l: string[]) => setColecaoUrl(gravarColecoesUrl(l));
 
-  const colecoes = useMemo(() => {
-    const cont = new Map<string, number>();
-    for (const l of linhas ?? []) {
-      const c = (l.colecao ?? "").trim();
-      if (!c) continue;
-      cont.set(c, (cont.get(c) ?? 0) + 1);
-    }
-    return [...cont.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
-  }, [linhas]);
-
-  // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
-  useEffect(() => {
-    if (isLoading) return;
-    const validas = colecaoFiltro.filter((f) => colecoes.some(([c]) => c === f));
-    if (validas.length !== colecaoFiltro.length) setColecaoUrl(gravarColecoesUrl(validas));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, colecoes, colecaoUrl]);
-
-  // A coleção filtra a base de todos os blocos (combina E com os filtros de classe já existentes).
   const porColecao = useMemo(
     () =>
       colecaoFiltro.length
@@ -104,16 +84,8 @@ export function XpmCadastroPainel() {
     [linhas, colecaoFiltro],
   );
 
-  const vendaveisFora = useMemo(
-    () => filaCadastro(porColecao, "FALTA_NO_XPM_E_VENDAVEL"),
-    [porColecao],
-  );
   const saude = useMemo(
     () => porColecao.filter((l) => l.classe === "PESO_DIVERGE" || l.classe === "NCM_DIVERGE"),
-    [porColecao],
-  );
-  const preVenda = useMemo(
-    () => filaCadastro(porColecao, "FALTA_NO_XPM"),
     [porColecao],
   );
 
