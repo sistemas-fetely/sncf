@@ -18,7 +18,6 @@ import { ArrowDown, ArrowUp, ChevronDown, Info, RefreshCw, Search } from "lucide
 import { cn } from "@/lib/utils";
 import { classeStatusVenda, rotuloStatusVenda } from "@/lib/estoque/status-venda";
 import { DetalheEstoqueSkuSheet } from "@/components/estoque/DetalheEstoqueSkuSheet";
-import { ContagemCentroPainel } from "@/components/estoque/ContagemCentroPainel";
 import { PainelSyncEstoque } from "@/components/acervo/PainelSyncEstoque";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatError } from "@/lib/format-error";
@@ -124,13 +123,12 @@ function tooltipGiro(janela: number, escopo: "centro" | "total") {
   return `Giro anual do produto ${onde}, em % do estoque: vendas dos últimos ${formatNum(janela)} dias ÷ quantidade × 365 ÷ ${formatNum(janela)}. 100% = o estoque inteiro gira uma vez por ano.`;
 }
 
-type Visao = "estoque" | "valor" | "centros" | "contagem";
+type Visao = "estoque" | "valor" | "centros";
 type ColSort = Col | "total" | "giro_total" | `c:${string}` | `g:${string}`;
 const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   estoque: { column: "virtual", direction: "desc" },
   valor: { column: "vvenda", direction: "desc" },
   centros: { column: "total", direction: "desc" },
-  contagem: { column: "virtual", direction: "desc" },
 };
 const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
 function piorSaude(a: string | null, b: string | null) {
@@ -712,9 +710,8 @@ export default function EstoqueVirtual() {
           <ToggleGroupItem value="estoque" size="sm" className="h-8 px-3 text-xs">Estoque</ToggleGroupItem>
           <ToggleGroupItem value="valor" size="sm" className="h-8 px-3 text-xs">Valor</ToggleGroupItem>
           <ToggleGroupItem value="centros" size="sm" className="h-8 px-3 text-xs">Centros</ToggleGroupItem>
-          <ToggleGroupItem value="contagem" size="sm" className="h-8 px-3 text-xs">Contagem</ToggleGroupItem>
         </ToggleGroup>
-        {visao !== "contagem" && <div className="relative flex-1 min-w-[240px] max-w-md">
+        <div className="relative flex-1 min-w-[240px] max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <FilterInput
             value={busca}
@@ -722,16 +719,16 @@ export default function EstoqueVirtual() {
             placeholder="Buscar por código, SKU ou nome"
             className="pl-9"
           />
-        </div>}
-        {visao !== "contagem" && <div className="ml-auto flex flex-wrap items-center gap-3">
+        </div>
+        <div className="ml-auto flex flex-wrap items-center gap-3">
           {filtroSelect(faseFiltro, setFaseFiltro, "Todas as fases", opcoes.fases, "w-[160px]")}
           {filtroSelect(colecaoFiltro, setColecaoFiltro, "Todas as coleções", opcoes.colecoes, "w-[180px]")}
           {filtroSelect(centroFiltro, setCentroFiltro, "Todos os centros", opcoes.centros, "w-[180px]")}
           {filtroSelect(situacaoFiltro, setSituacaoFiltro, "Todas as situações", opcoes.situacoes, "w-[170px]", rotuloStatusVenda)}
-        </div>}
+        </div>
       </div>
 
-      {visao === "contagem" ? <ContagemCentroPainel /> : cockpitQuery.isLoading ? (
+      {cockpitQuery.isLoading ? (
         <div className="py-12 text-center text-sm text-muted-foreground">Carregando…</div>
       ) : ordenados.length === 0 ? (
         <div className="py-12 text-center">

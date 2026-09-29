@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/logistica/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/logistica/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
+import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 import EmbarquesTab from "@/components/compras/EmbarquesTab";
 import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
@@ -28,6 +29,7 @@ const ABAS: AbaMercadoria[] = [
     render: () => <CadastroPedidoCompra vista="acompanhamento" />,
   },
   { value: "pendencias", label: "Pendências", render: () => <PendenciasTab /> },
+  { value: "recebimento-loja", label: "Recebimento na loja", render: () => <RecebimentoCentroTab /> },
   { value: "novo", label: "Novo pedido", render: () => <CadastroPedidoCompra vista="novo" /> },
   { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
   { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
@@ -55,7 +57,7 @@ export default function ChegadaMercadoria() {
       <PageHeader
         icone={PackageCheck}
         titulo="Chegada de Mercadoria"
-        estado="Acompanhamento da chegada de mercadoria no operador logístico: projeção de entrada, NF, ficha XPM e custo."
+        estado="Chegada de mercadoria: operador logístico, loja (Site SP), NF, ficha XPM e custo."
       />
 
 
