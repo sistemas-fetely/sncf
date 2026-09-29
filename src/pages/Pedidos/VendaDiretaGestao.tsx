@@ -1,4 +1,5 @@
 import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
+import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -43,12 +44,13 @@ interface Linha extends LinhaVD {
   situacao: Situacao;
   horas_sem_pagamento: number | null;
   alerta_sem_pagamento: boolean | null;
+  pagamento_desatualizado: boolean | null;
   faltando_site_sp: { sku: string; quantidade: number; saldo_site_sp: number }[] | null;
   codigo_rastreio: string | null;
   rastreio_servico: string | null;
 }
 
-type Filtro = Situacao | "sem_pagamento" | "falta_site_sp";
+type Filtro = Situacao | "sem_pagamento" | "falta_site_sp" | "pagamento_desatualizado";
 const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
 const CARDS: { s: Situacao; label: string }[] = [
@@ -96,6 +98,8 @@ export default function VendaDiretaGestao() {
   const [pix, setPix] = useState<Linha | null>(null);
   const [pixManual, setPixManual] = useState<Linha | null>(null);
   const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
+  const [remontar, setRemontar] = useState<Linha | null>(null);
+  const [pixNovo, setPixNovo] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -132,6 +136,7 @@ export default function VendaDiretaGestao() {
     for (const l of visiveis) c[l.situacao] = (c[l.situacao] ?? 0) + 1;
     c.sem_pagamento = visiveis.filter((l) => l.alerta_sem_pagamento).length;
     c.falta_site_sp = visiveis.filter(temFalta).length;
+    c.pagamento_desatualizado = visiveis.filter((l) => l.pagamento_desatualizado).length;
     return c;
   }, [visiveis]);
 
@@ -141,6 +146,7 @@ export default function VendaDiretaGestao() {
     return visiveis.filter((l) => {
       if (filtro === "sem_pagamento") { if (!l.alerta_sem_pagamento) return false; }
       else if (filtro === "falta_site_sp") { if (!temFalta(l)) return false; }
+      else if (filtro === "pagamento_desatualizado") { if (!l.pagamento_desatualizado) return false; }
       else if (filtro && l.situacao !== filtro) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
@@ -164,16 +170,17 @@ export default function VendaDiretaGestao() {
         }
       />
 
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-11">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-12">
         {[
           ...CARDS.map((c) => ({ s: c.s as Filtro, label: c.label })),
           { s: "sem_pagamento" as Filtro, label: `Sem pagamento +${qp.data?.alerta_sem_pagamento_horas ?? "?"}h` },
           { s: "falta_site_sp" as Filtro, label: "Falta no Site SP" },
+          { s: "pagamento_desatualizado" as Filtro, label: "Pagamento desatualizado" },
         ].map((c) => {
           const n = contagem[c.s] ?? 0;
           const ativo = filtro === c.s;
           const alerta = (c.s === "travado" || c.s === "falta_site_sp") && n > 0;
-          const aviso = c.s === "sem_pagamento" && n > 0;
+          const aviso = (c.s === "sem_pagamento" || c.s === "pagamento_desatualizado") && n > 0;
           return (
             <Card
               key={c.s}
@@ -274,6 +281,12 @@ export default function VendaDiretaGestao() {
                             Sem pagamento há {Math.floor(Number(l.horas_sem_pagamento ?? 0))}h
                           </Badge>
                         )}
+                        {l.pagamento_desatualizado && (
+                          <Tooltip>
+                            <TooltipTrigger asChild><Badge variant="outline" className="cursor-help border-warning text-warning">Pagamento desatualizado</Badge></TooltipTrigger>
+                            <TooltipContent className="max-w-sm">Os itens mudaram depois do pedido. O PIX/link antigo não vale mais — remonte e reenvie ao cliente.</TooltipContent>
+                          </Tooltip>
+                        )}
                         {temFalta(l) && (
                           <Tooltip>
                             <TooltipTrigger asChild><Badge variant="destructive" className="cursor-help">Falta no Site SP</Badge></TooltipTrigger>
@@ -300,7 +313,10 @@ export default function VendaDiretaGestao() {
                           ) : (
                             <AvisarClienteButton linha={l} />
                           )}
-                          {l.situacao === "aguardando_pagamento" && l.pagamento === "pix" && (
+                          {l.pagamento_desatualizado && (
+                            <Button size="sm" onClick={() => setRemontar(l)}>Remontar pagamento</Button>
+                          )}
+                          {l.situacao === "aguardando_pagamento" && l.pagamento === "pix" && !l.pagamento_desatualizado && (
                             <>
                               <Button size="sm" variant="outline" disabled={!l.provisao_id} onClick={() => setPix(l)}>
                                 <QrCode className="mr-1 h-3.5 w-3.5" />Ver PIX
@@ -341,7 +357,13 @@ export default function VendaDiretaGestao() {
       <ConfirmarCartaoDialog linha={cartao} onClose={() => setCartao(null)} />
       <RegistrarRetiradaDialog linha={retirada} onClose={() => setRetirada(null)} />
       <RegistrarEntregaDialog linha={entrega} onClose={() => setEntrega(null)} />
-      <VerPixDialog linha={pix} onClose={() => setPix(null)} />
+      <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); }} />
+      <RemontarPagamentoDialog
+        linha={remontar}
+        onClose={() => setRemontar(null)}
+        onPix={(l, payload) => { setPixNovo(payload); setPix(l); }}
+        onCartao={(l) => setLinkCartao(l)}
+      />
       <ConfirmarPixManualDialog linha={pixManual} onClose={() => setPixManual(null)} />
       <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
       <LinkCartaoDialog linha={linkCartao} onClose={() => setLinkCartao(null)} />

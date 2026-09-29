@@ -65543,6 +65543,21 @@ export type Database = {
         }
         Relationships: []
       }
+      tmp_xpm_call: {
+        Row: {
+          etapa: string
+          req: number | null
+        }
+        Insert: {
+          etapa: string
+          req?: number | null
+        }
+        Update: {
+          etapa?: string
+          req?: number | null
+        }
+        Relationships: []
+      }
       tmp_zenlog_swagger: {
         Row: {
           j: Json | null
@@ -113685,6 +113700,7 @@ export type Database = {
           observacao_pedido: string | null
           pagamento: string | null
           pagamento_confirmado_em: string | null
+          pagamento_desatualizado: boolean | null
           provisao_id: string | null
           rastreio_servico: string | null
           recebido_em: string | null
@@ -120099,6 +120115,7 @@ export type Database = {
         }
         Returns: Json
       }
+      vd_remontar_pagamento: { Args: { p_pedido_id: string }; Returns: Json }
       vd_salvar_parametros: {
         Args: {
           p_alerta_horas: number

@@ -42,10 +42,10 @@ function hojeISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function VerPixDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
+export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD | null; onClose: () => void; payloadNovo?: string | null }) {
   const pixQ = useQuery({
     queryKey: ["venda-direta-pix", linha?.provisao_id],
-    enabled: !!linha?.provisao_id,
+    enabled: !!linha?.provisao_id && !payloadNovo,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provisao_recebimento" as never)
@@ -69,7 +69,9 @@ export function VerPixDialog({ linha, onClose }: { linha: LinhaVD | null; onClos
           <DialogTitle>PIX · {linha?.id_externo}</DialogTitle>
           <DialogDescription>{linha?.cliente_nome}</DialogDescription>
         </DialogHeader>
-        {pixQ.isLoading ? (
+        {payloadNovo ? (
+          <PixPagamento payload={payloadNovo} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} />
+        ) : pixQ.isLoading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : pixQ.isError ? (
           <p className="text-sm text-destructive">{rawMessage(pixQ.error)}</p>
