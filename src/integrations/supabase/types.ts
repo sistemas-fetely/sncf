@@ -107842,14 +107842,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -111625,6 +111625,7 @@ export type Database = {
           fila_id: string | null
           fila_status: string | null
           fila_tentativas: number | null
+          frete: Json | null
           frete_tipo: string | null
           id: string | null
           id_externo: string | null
@@ -117917,6 +117918,14 @@ export type Database = {
       validar_nf_pj: { Args: { _nota_id: string }; Returns: Json }
       validar_prontidao_sistema: { Args: never; Returns: Json }
       vd_cotar_frete: { Args: { p_cep: string; p_itens: Json }; Returns: Json }
+      vd_registrar_entrega: {
+        Args: {
+          p_observacao?: string
+          p_pedido_id: string
+          p_recebido_por: string
+        }
+        Returns: Json
+      }
       vd_registrar_retirada: {
         Args: {
           p_documento?: string
