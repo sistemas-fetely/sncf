@@ -116,6 +116,7 @@ import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { RastreioPedidoBloco } from "@/components/pedidos/RastreioPedidoBloco";
+import { CustoRealFreteBloco } from "@/components/pedidos/CustoRealFreteBloco";
 import { useRastreioPedido } from "@/hooks/pedidos/useRastreioPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
