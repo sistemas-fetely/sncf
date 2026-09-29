@@ -49,8 +49,10 @@ function BotaoNotasSemBaixa() {
  * mesma cara e mesma mecânica, mas a fila é de ESTOQUE por centro.
  *
  * Uma linha = um produto × um centro × uma regra de divergência de estoque.
- * Primeira versão: só leitura, filtro e exportação — nada de seleção nem
- * ações de escrita. Nada de lista de regra ou centro escrita no código:
+ * Leitura, filtro e exportação para todas as regras; a regra `estoque_armazem_difere`
+ * (centro XPM-SC) aceita seleção e ajuste direto pelo armazém via
+ * `fn_estoque_ajustar_pelo_armazem` (só super_admin).
+ * Nada de lista de regra ou centro escrita no código:
  * tudo vem de `vw_conciliacao_estoque_fila` e `divergencia_sistema_dim`.
  */
 type FilaLinha = {
@@ -112,6 +114,12 @@ export default function ConciliacaoEstoque() {
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
+  // SELECAO-DE-AJUSTE: só linhas da regra `estoque_armazem_difere` são selecionáveis.
+  // Guarda SKU (a RPC recebe p_skus text[]).
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  const [ajusteAberto, setAjusteAberto] = useState(false);
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
 
   // FILTRO-MORA-NA-URL: o resto do sistema linka já filtrado.
   const lista = (k: Grupo) => (sp.get(k) ?? "").split(",").filter(Boolean);
@@ -200,7 +208,7 @@ export default function ConciliacaoEstoque() {
   // aplica depende dos parâmetros da URL, que entram na dependência via `sp`
   }, [linhas, ordem, sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setPagina(1); setExpandido(null); }, [sp, tamanho]);
+  useEffect(() => { setPagina(1); setExpandido(null); setSelecionados(new Set()); }, [sp, tamanho]);
 
   const corPorSistema = useMemo(() => {
     const m = new Map<string, string>();
@@ -242,6 +250,16 @@ export default function ConciliacaoEstoque() {
   const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  const selecionaveis = useMemo(() => paginaLinhas.filter(l => l.regra === REGRA_AJUSTE_ARMAZEM).map(l => l.sku), [paginaLinhas]);
+  const todosVisiveisSelecionados = selecionaveis.length > 0 && selecionaveis.every(s => selecionados.has(s));
+  function alternarTodosVisiveis() {
+    setSelecionados(prev => {
+      const novo = new Set(prev);
+      if (todosVisiveisSelecionados) selecionaveis.forEach(s => novo.delete(s));
+      else selecionaveis.forEach(s => novo.add(s));
+      return novo;
+    });
+  }
   const produtos = new Set(recorte.map(l => l.sku)).size;
   const estado = carregando ? "Carregando divergências…" : `${recorte.length} divergência(s) · ${produtos} produto(s)`;
 
@@ -299,6 +317,11 @@ export default function ConciliacaoEstoque() {
       icone={Warehouse}
       estado={estado}
       acoes={<>
+        {isSuperAdmin && (
+          <Button variant="outline" size="sm" disabled={selecionados.size === 0} onClick={() => setAjusteAberto(true)}>
+            <Warehouse className="mr-2 h-4 w-4" />Ajustar pelo armazém ({selecionados.size})
+          </Button>
+        )}
         <BotaoNotasSemBaixa />
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
