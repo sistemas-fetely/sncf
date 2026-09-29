@@ -9,11 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { ResolverNomeDialog } from "@/components/acervo/ResolverNomeDialog";
-import { AlertTriangle, Eye, Loader2, Send } from "lucide-react";
+import { AlertTriangle, Eye, Hash, Loader2, Send } from "lucide-react";
 
 const LEVA = 20;
 
@@ -34,6 +43,9 @@ interface LinhaFila {
   pedido_importacao: string | null;
   ncm_sugerido: string | null;
   ncm_sugerido_apoio: number | null;
+  ncm_nf: string | null;
+  ncm_nf_numero: string | null;
+  ncm_sugerido_fonte: string | null;
   falta: string[] | null;
   situacao_nascimento: "A" | "I" | null;
   largura_cm: number | null;
