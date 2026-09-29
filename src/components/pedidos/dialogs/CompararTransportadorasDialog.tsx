@@ -251,7 +251,7 @@ export function CompararTransportadorasDialog({
                               <div className="flex items-center justify-end gap-2">
                                 {diff != null && Math.abs(diff) >= 0.01 && (
                                   <span className={cn("text-[11px]", diff > 0 ? "text-destructive" : "text-success")}>
-                                    {diff > 0 ? "+" : ""}{formatBRL(diff)} vs atual
+                                    {diff > 0 ? "+" : ""}{formatBRL(diff)} vs cobrado
                                   </span>
                                 )}
                                 <Button size="sm" variant="outline" className="h-7" onClick={() => onEscolher(o)}>
