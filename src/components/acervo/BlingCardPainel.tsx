@@ -499,7 +499,7 @@ export function BlingCardPainel() {
         ) : linhas.length === 0 && !q.isError ? (
           <p className="py-6 text-center text-sm text-muted-foreground">Todos os produtos ativos e de pré-venda têm card no Bling.</p>
         ) : (
-          <TooltipProvider>
+          <>
             <div className="rounded-md border max-h-[calc(100vh-22rem)] overflow-auto">
               <Table>
                 <TableHeader className="sticky top-0 z-10 bg-background">
