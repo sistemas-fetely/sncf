@@ -329,6 +329,7 @@ export default function ConciliacaoEstoque() {
         {sp.toString() && <Button variant="ghost" size="sm" onClick={limpar}>Limpar filtros</Button>}
       </div>
 
+      {temEscopo && <p className="mb-2 text-xs text-muted-foreground">Números do centro: {nomesEscopo}. Limpe o filtro para ver o total.</p>}
       <div className="overflow-hidden rounded-md border">
         <Table className="text-xs">
           <TableHeader className="sticky top-0 z-20"><TableRow className="bg-muted">
@@ -346,8 +347,8 @@ export default function ConciliacaoEstoque() {
             {!carregando && visiveis.length === 0 && <TableRow><TableCell colSpan={11} className="py-10 text-center text-sm text-muted-foreground">Nenhuma diferença entre Fiscal, Real e Virtual.</TableCell></TableRow>}
             {!carregando && visiveis.map(p => {
               const aberto = expandido === p.sku;
-              const centros = cs(p.sku);
-              const causas = [...new Set([...centros.flatMap(c => (c.causas ?? []).map(x => x.nome ?? x.regra)), ...(p.causas_produto ?? []).map(x => x.nome ?? x.regra)])];
+              const centros = linhasEscopo(p.sku);
+              const causas = [...new Set([...centros.flatMap(c => (c.causas ?? []).map(x => x.nome ?? x.regra)), ...(temEscopo ? [] : (p.causas_produto ?? []).map(x => x.nome ?? x.regra))])];
               return <Fragment key={p.sku}>
                 <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : p.sku)}>
                   <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
