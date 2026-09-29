@@ -97117,14 +97117,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -109624,14 +109624,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -114292,6 +114292,7 @@ export type Database = {
           classe: string | null
           cod_cadastro: string | null
           codigo_xpm: string | null
+          colecao: string | null
           ean_sncf: string | null
           ean_xpm: string | null
           fase: string | null
@@ -114306,6 +114307,13 @@ export type Database = {
           xpm_produto_id: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_produto_colecao"
+            columns: ["colecao"]
+            isOneToOne: false
+            referencedRelation: "produto_colecao_cad_dim"
+            referencedColumns: ["rotulo"]
+          },
           {
             foreignKeyName: "fk_produto_grupo"
             columns: ["grupo"]
