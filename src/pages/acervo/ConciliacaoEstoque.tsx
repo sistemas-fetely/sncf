@@ -379,9 +379,12 @@ export default function ConciliacaoEstoque() {
                 {expandido === l.linha_id ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
               </Button>
             </TableCell>
+            <TableCell className="py-2.5 align-top">
+              <Checkbox aria-label={`Selecionar ${l.sku}`} className="mt-0.5" disabled={l.regra !== REGRA_AJUSTE_ARMAZEM} checked={l.regra === REGRA_AJUSTE_ARMAZEM && selecionados.has(l.sku)} onCheckedChange={() => setSelecionados(prev => { const novo = new Set(prev); if (novo.has(l.sku)) novo.delete(l.sku); else novo.add(l.sku); return novo; })} />
+            </TableCell>
             {COLUNAS.map(c => <TableCell key={String(c.key)} className="py-2.5 align-top">{celula(l, c)}</TableCell>)}
           </TableRow>
-          {expandido === l.linha_id && <TableRow><TableCell colSpan={COLUNAS.length + 1} className="bg-muted/30 p-4">
+          {expandido === l.linha_id && <TableRow><TableCell colSpan={COLUNAS.length + 2} className="bg-muted/30 p-4">
             <div className="space-y-1">
               <p className="text-sm font-medium">{l.regra_nome ?? l.regra}</p>
               {temValor(l.consequencia) && <p className="text-xs text-foreground">{l.consequencia}</p>}
@@ -392,5 +395,11 @@ export default function ConciliacaoEstoque() {
       </Table>
       <RodapePaginacao total={recorte.length} pagina={paginaAtual} tamanhoPagina={tamanho} tela="conciliacao_estoque" onPagina={setPagina} onTamanhoPagina={setTamanho} />
     </div>}
+    <AjustarPeloArmazemDialog
+      aberto={ajusteAberto}
+      onFechar={() => setAjusteAberto(false)}
+      skus={[...selecionados]}
+      onAjustado={async () => { await fila.refetch(); setSelecionados(new Set()); }}
+    />
   </PageShell></TooltipProvider>;
 }
