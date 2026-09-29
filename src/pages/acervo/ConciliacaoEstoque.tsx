@@ -365,7 +365,9 @@ export default function ConciliacaoEstoque() {
     : <div className="overflow-hidden rounded-md border bg-card">
       <Table className="text-xs" containerClassName="max-h-[min(62vh,46rem)]">
         <TableHeader><TableRow>
-          <TableHead className="sticky top-0 z-40 w-8 bg-muted" />
+          <TableHead className="sticky top-0 z-40 w-8 bg-muted">
+            <Checkbox aria-label="Selecionar todos os visíveis" className="mb-1" checked={todosVisiveisSelecionados} disabled={selecionaveis.length === 0} onCheckedChange={alternarTodosVisiveis} />
+          </TableHead>
           {COLUNAS.map(c => <TableHead key={String(c.key)} className="sticky top-0 z-40 whitespace-nowrap bg-muted font-medium" aria-sort={ordem.coluna === c.key ? (ordem.dir === "asc" ? "ascending" : "descending") : "none"}>
             {c.ordenavel ? <Button variant="ghost" size="sm" className="h-auto p-0 font-medium" onClick={() => ordenar(String(c.key))}>{c.rotulo}{ordem.coluna !== c.key ? <ArrowUpDown className="ml-1 h-3 w-3" /> : ordem.dir === "asc" ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />}</Button> : c.rotulo}
           </TableHead>)}
