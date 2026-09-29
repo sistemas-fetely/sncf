@@ -212,6 +212,12 @@ export function BlingCardPainel() {
 
   const prontos = useMemo(() => filtradas.filter((l) => (l.falta ?? []).length === 0), [filtradas]);
 
+  // Candidatos ao NCM da NF: sem NCM no cadastro e sugestão vinda de NF de entrada.
+  const ncmNfCandidatos = useMemo(
+    () => filtradas.filter((l) => !l.ncm && (l.ncm_sugerido_fonte ?? "").startsWith("NF")),
+    [filtradas],
+  );
+
   function mudouSelecao(fn: (prev: string[]) => string[]) {
     setPrevia(null);
     setFinal(null);
@@ -274,6 +280,69 @@ export function BlingCardPainel() {
   }
 
   const podeCriar = !!previa && previa.criar.length > 0 && !!origem && !criando;
+
+  async function abrirNcm() {
+    if (ncmNfCandidatos.length === 0) return;
+    const skus = ncmNfCandidatos.map((l) => l.sku);
+    setNcmCarregando(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_produto_aplicar_ncm_nf", {
+        p_skus: skus,
+        p_dry_run: true,
+      });
+      if (error) throw error;
+      setNcmDialog({ skus, itens: ((data as any)?.itens ?? []) as NcmItem[] });
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setNcmCarregando(false);
+    }
+  }
+
+  async function aplicarNcm() {
+    if (!ncmDialog) return;
+    const { skus, itens } = ncmDialog;
+    setNcmAplicando(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("fn_produto_aplicar_ncm_nf", {
+        p_skus: skus,
+        p_dry_run: false,
+      });
+      if (error) throw error;
+      const aplicados = Number((data as any)?.aplicados ?? 0);
+      toast.success(`${aplicados} NCM(s) gravados`);
+      setNcmDialog(null);
+      const cods = itens.map((i) => i.cod_cadastro).filter((c): c is string => !!c);
+      // O FOP recebe o NCM de forma assíncrona — confere depois de ~4 s.
+      setTimeout(() => {
+        void (async () => {
+          try {
+            await (supabase as any).rpc("fn_fop_campo_conferir");
+            if (cods.length > 0) {
+              const { data: envios, error: e2 } = await (supabase as any)
+                .from("fop_campo_envio")
+                .select("cod_cadastro, situacao, resposta")
+                .in("cod_cadastro", cods)
+                .order("enviado_em", { ascending: false });
+              if (e2) throw e2;
+              const erros = ((envios ?? []) as any[]).filter((r) => r.situacao === "erro");
+              if (erros.length > 0) {
+                toast.error(`FOP: ${erros.length} envio(s) com erro — ${erros[0].resposta ?? "sem detalhe"}`);
+              }
+            }
+          } catch (e) {
+            toast.error(formatError(e));
+          }
+          void q.refetch();
+        })();
+      }, 4000);
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setNcmAplicando(false);
+    }
+  }
+
 
   return (
     <Card>
