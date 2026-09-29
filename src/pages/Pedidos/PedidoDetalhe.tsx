@@ -2346,6 +2346,9 @@ export default function PedidoDetalhe() {
                     </div>
                   )}
 
+                  {/* CUSTO-REAL-FRETE: lê vw_pedido_frete_real — cobrado vs custo (CT-e/postagem). */}
+                  <CustoRealFreteBloco pedidoId={id} />
+
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
                     <div className="col-span-2">
                       <label className="text-[10px] text-muted-foreground uppercase tracking-wide">Tipo frete</label>
