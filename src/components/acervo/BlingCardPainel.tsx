@@ -121,6 +121,40 @@ export function BlingCardPainel() {
 
   const linhas = q.data ?? [];
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
+
+  // Origem fiscal padrão do catálogo: mais frequente entre os ativos.
+  const qOrigem = useQuery({
+    queryKey: ["sncf-produtos-origem-padrao"],
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await (supabase as any)
+        .from("sncf_produtos")
+        .select("origem_fisc")
+        .eq("fase", "ativo")
+        .not("origem_fisc", "is", null)
+        .limit(1000);
+      if (error) throw error;
+      const cont = new Map<string, number>();
+      for (const r of (data ?? []) as any[]) {
+        const o = String(r.origem_fisc);
+        cont.set(o, (cont.get(o) ?? 0) + 1);
+      }
+      let melhor: string | null = null;
+      let melhorN = -1;
+      for (const [o, n] of cont) {
+        if (n > melhorN) {
+          melhor = o;
+          melhorN = n;
+        }
+      }
+      return melhor;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (qOrigem.data) setOrigem((prev) => (prev === "" ? qOrigem.data! : prev));
+  }, [qOrigem.data]);
+
   const abrirResolver = (l: LinhaFila) => {
     const trecho = (l.conflito_nome ?? "").match(/SNCF:\s*([^;|]*)/i)?.[1] ?? "";
     const cods: string[] = trecho.match(/[A-Za-z0-9-]+/g) ?? [];
