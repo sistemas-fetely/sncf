@@ -48,6 +48,7 @@ export default function RecebimentoCentroTab() {
         .select("id, id_externo, data_pedido, estagio, destino_centro_id")
         .in("natureza_operacao_id", natIds)
         .in("estagio", ESTAGIOS)
+        .not("destino_centro_id", "is", null)
         .order("data_pedido", { ascending: false })
         .limit(500);
       if (eP) throw eP;
@@ -60,8 +61,21 @@ export default function RecebimentoCentroTab() {
       const jaRec = new Set(((rec ?? []) as { pedido_id: string }[]).map((r) => r.pedido_id));
       const abertos = lista.filter((p) => !jaRec.has(p.id));
       if (!abertos.length) return [];
+      // Só centros ativos que controlam estoque (fora do XPM-SC, contado pelo próprio XPM).
+      const centroIds = [...new Set(abertos.map((p) => p.destino_centro_id).filter(Boolean))];
+      const codigos = new Map<string, string>();
+      if (centroIds.length) {
+        const { data: cs, error: eC } = await (supabase as any)
+          .from("centro_distribuicao").select("id, codigo, ativo").in("id", centroIds);
+        if (eC) throw eC;
+        ((cs ?? []) as { id: string; codigo: string; ativo: boolean }[]).forEach((c) => {
+          if (c.ativo && c.codigo !== "XPM-SC") codigos.set(c.id, c.codigo);
+        });
+      }
+      const alvo = abertos.filter((p) => p.destino_centro_id && codigos.has(p.destino_centro_id));
+      if (!alvo.length) return [];
       const { data: its, error: eI } = await (supabase as any)
-        .from("pedido_itens").select("pedido_id, quantidade").in("pedido_id", abertos.map((p) => p.id));
+        .from("pedido_itens").select("pedido_id, quantidade").in("pedido_id", alvo.map((p) => p.id));
       if (eI) throw eI;
       const agg = new Map<string, { itens: number; pecas: number }>();
       ((its ?? []) as { pedido_id: string; quantidade: number }[]).forEach((i) => {
@@ -70,15 +84,7 @@ export default function RecebimentoCentroTab() {
         a.pecas += Number(i.quantidade ?? 0);
         agg.set(i.pedido_id, a);
       });
-      const centroIds = [...new Set(abertos.map((p) => p.destino_centro_id).filter(Boolean))];
-      const codigos = new Map<string, string>();
-      if (centroIds.length) {
-        const { data: cs, error: eC } = await (supabase as any)
-          .from("centro_distribuicao").select("id, codigo").in("id", centroIds);
-        if (eC) throw eC;
-        ((cs ?? []) as { id: string; codigo: string }[]).forEach((c) => codigos.set(c.id, c.codigo));
-      }
-      return abertos.map((p) => ({
+      return alvo.map((p) => ({
         id: p.id,
         id_externo: p.id_externo,
         data_pedido: p.data_pedido,
@@ -132,7 +138,7 @@ export default function RecebimentoCentroTab() {
         ) : pendentesQ.isError ? (
           <p className="text-sm text-destructive">Falha ao carregar: {formatError(pendentesQ.error)}</p>
         ) : pendentes.length === 0 ? (
-          <p className="rounded-md border p-6 text-center text-sm text-muted-foreground">Nenhuma transferência aguardando recebimento.</p>
+          <p className="rounded-md border p-6 text-center text-sm text-muted-foreground">Nenhuma transferência para a loja aguardando recebimento.</p>
         ) : (
           <div className="rounded-md border">
             <Table>
