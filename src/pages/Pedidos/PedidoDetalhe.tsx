@@ -116,6 +116,7 @@ import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
 import { useSalvarDadosEnvio } from "@/hooks/pedidos/useSalvarDadosEnvio";
 import { RastreioPedidoBloco } from "@/components/pedidos/RastreioPedidoBloco";
+import { CustoRealFreteBloco } from "@/components/pedidos/CustoRealFreteBloco";
 import { useRastreioPedido } from "@/hooks/pedidos/useRastreioPedido";
 import { useRemessas } from "@/hooks/pedidos/useRemessas";
 import { useFreteEstimado } from "@/hooks/transportadoras/useFreteEstimado";
@@ -2345,6 +2346,9 @@ export default function PedidoDetalhe() {
                       <p className="text-[11px] text-muted-foreground">Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}</p>
                     </div>
                   )}
+
+                  {/* CUSTO-REAL-FRETE: lê vw_pedido_frete_real — cobrado vs custo (CT-e/postagem). */}
+                  <CustoRealFreteBloco pedidoId={id} />
 
                   <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/40">
                     <div className="col-span-2">
