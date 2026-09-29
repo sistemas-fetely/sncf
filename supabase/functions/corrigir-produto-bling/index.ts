@@ -220,6 +220,9 @@ serve(async (req) => {
           defTxt("origem_fisc", g.tributacao?.origem);
           defTxt("unidade", g.unidade);
           defTxt("situacao_bling", g.situacao);
+          // A fila da Conciliação lê `produtos.ativo` — só atualizar situacao_bling
+          // deixava a fila presa até a próxima leitura do Bling.
+          if (!vazio(g.situacao)) patch.ativo = txt(g.situacao) === "A";
           defNum("itens_por_caixa", g.itensPorCaixa);
           patch.detalhe_payload = g;
           patch.detalhe_lido_em = new Date().toISOString();
