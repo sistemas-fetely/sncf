@@ -38,6 +38,8 @@ import { estaVencido } from "@/lib/data";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
 import { VisaoConsignado } from "./consignado/VisaoConsignado";
+import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsignadoDialog";
+import { RemessasAVincularPainel } from "@/components/consignado/RemessasAVincularPainel";
 import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
 /**
@@ -258,6 +260,28 @@ export default function ConsignadoDetalhe() {
       "consignado-parceiro",
     ].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   };
+
+  const [contratoAberto, setContratoAberto] = useState(false);
+  const contratoQ = useQuery({
+    queryKey: ["consignado-contrato-ativo", parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async () => {
+      const sb = supabase as any;
+      const { data: c, error } = await sb.from("consignado_contrato").select("*").eq("parceiro_id", parceiroId).eq("ativo", true).maybeSingle();
+      if (error) throw error;
+      if (!c) return null;
+      const [m, ce] = await Promise.all([
+        sb.from("consignado_modelo_dim").select("nome").eq("codigo", c.modelo).maybeSingle(),
+        c.centro_id ? sb.from("centro_distribuicao").select("codigo, nome").eq("id", c.centro_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+      ]);
+      if (m.error) throw m.error;
+      if (ce.error) throw ce.error;
+      return { ...c, modelo_nome: (m.data?.nome ?? c.modelo) as string, centro_codigo: (ce.data?.codigo ?? null) as string | null, centro_nome: (ce.data?.nome ?? null) as string | null } as {
+        modelo: string; modelo_nome: string; centro_codigo: string | null; centro_nome: string | null; vigencia_inicio: string | null; vigencia_meses: number | null;
+        renovacao_automatica: boolean | null; pct_retencao: number | null; dia_repasse: number | null; observacao: string | null;
+      };
+    },
+  });
 
   const parceiroQ = useQuery({
     queryKey: ["consignado-parceiro", parceiroId],
@@ -1099,6 +1123,28 @@ export default function ConsignadoDetalhe() {
         </TabsList>
 
         <TabsContent value="visao" className="space-y-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Contrato</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => setContratoAberto(true)}>{contratoQ.data ? "Editar contrato" : "Cadastrar contrato"}</Button>
+            </CardHeader>
+            <CardContent className="text-sm">
+              {contratoQ.isError ? <ErroBloco error={contratoQ.error} /> : contratoQ.isLoading ? <Carregando /> : !contratoQ.data ? (
+                <p className="text-muted-foreground">Sem contrato cadastrado</p>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-3">
+                  <div><div className="text-xs text-muted-foreground">Modelo</div>{contratoQ.data.modelo_nome}</div>
+                  <div><div className="text-xs text-muted-foreground">Centro</div>{contratoQ.data.centro_nome ?? "—"}{contratoQ.data.centro_codigo && <span className="ml-1 text-xs text-muted-foreground">({contratoQ.data.centro_codigo})</span>}</div>
+                  <div><div className="text-xs text-muted-foreground">Vigência</div>{contratoQ.data.vigencia_inicio ? formatDateBR(contratoQ.data.vigencia_inicio) : "—"}{contratoQ.data.vigencia_meses != null && ` · ${contratoQ.data.vigencia_meses} meses`}{contratoQ.data.renovacao_automatica && <span className="text-muted-foreground"> · renova automaticamente</span>}</div>
+                  <div><div className="text-xs text-muted-foreground">% retido</div>{contratoQ.data.pct_retencao != null ? `${String(contratoQ.data.pct_retencao).replace(".", ",")}%` : "—"}</div>
+                  <div><div className="text-xs text-muted-foreground">Dia do repasse</div>{contratoQ.data.dia_repasse ?? "—"}</div>
+                  {contratoQ.data.observacao && <div className="sm:col-span-3"><div className="text-xs text-muted-foreground">Observação</div>{contratoQ.data.observacao}</div>}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          <ContratoConsignadoDialog aberto={contratoAberto} onFechar={() => setContratoAberto(false)} parceiroId={parceiroId}
+            onSalvo={() => { setContratoAberto(false); void contratoQ.refetch(); void qc.invalidateQueries({ queryKey: ["consignado-parceiro", parceiroId] }); }} />
           <VisaoConsignado parceiroId={parceiroId} />
         </TabsContent>
 
@@ -1395,6 +1441,9 @@ export default function ConsignadoDetalhe() {
         </TabsContent>
 
         <TabsContent value="remessas" className="space-y-6">
+          {contratoQ.data?.modelo === "venda_fora" && parceiroId && (
+            <RemessasAVincularPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
+          )}
           <section className="space-y-3">
             <h2 className="font-display text-xl font-normal">Remessas</h2>
             {valorDuplicidade > 0 && (
