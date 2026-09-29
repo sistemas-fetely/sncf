@@ -24023,6 +24023,13 @@ export type Database = {
             referencedRelation: "vw_transp_fretes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transp_fretes_sem_pedido"
+            referencedColumns: ["id"]
+          },
         ]
       }
       faturas_cartao: {
@@ -65258,27 +65265,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tmp_amostra_difal: {
-        Row: {
-          nf_id: string
-          req: number | null
-          uf: string | null
-          valor: number | null
-        }
-        Insert: {
-          nf_id: string
-          req?: number | null
-          uf?: string | null
-          valor?: number | null
-        }
-        Update: {
-          nf_id?: string
-          req?: number | null
-          uf?: string | null
-          valor?: number | null
-        }
-        Relationships: []
-      }
       tmp_ancoragem: {
         Row: {
           codigo_nf: string | null
@@ -65305,24 +65291,6 @@ export type Database = {
           nf_numero?: string | null
           qtd_alocada?: number | null
           qtd_razao?: number | null
-          sku?: string | null
-        }
-        Relationships: []
-      }
-      tmp_bling_conf: {
-        Row: {
-          bling_id: string
-          req: number | null
-          sku: string | null
-        }
-        Insert: {
-          bling_id: string
-          req?: number | null
-          sku?: string | null
-        }
-        Update: {
-          bling_id?: string
-          req?: number | null
           sku?: string | null
         }
         Relationships: []
@@ -80087,6 +80055,13 @@ export type Database = {
             columns: ["frete_vinculado_id"]
             isOneToOne: false
             referencedRelation: "vw_transp_fretes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_transp_fretes_sem_pedido"
             referencedColumns: ["id"]
           },
           {
@@ -98526,14 +98501,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -113052,6 +113027,134 @@ export type Database = {
           },
         ]
       }
+      vw_transp_fretes_sem_pedido: {
+        Row: {
+          cte_numero: string | null
+          data_frete: string | null
+          destinatario: string | null
+          frete_total: number | null
+          id: string | null
+          motivo: string | null
+          nf_numero: string | null
+          remetente: string | null
+          transportadora_id: string | null
+        }
+        Insert: {
+          cte_numero?: string | null
+          data_frete?: string | null
+          destinatario?: string | null
+          frete_total?: number | null
+          id?: string | null
+          motivo?: never
+          nf_numero?: string | null
+          remetente?: string | null
+          transportadora_id?: string | null
+        }
+        Update: {
+          cte_numero?: string | null
+          data_frete?: string | null
+          destinatario?: string | null
+          frete_total?: number | null
+          id?: string | null
+          motivo?: never
+          nf_numero?: string | null
+          remetente?: string | null
+          transportadora_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       vw_urgencia_declarada_operador: {
         Row: {
           operador_id: string | null
@@ -117728,6 +117831,10 @@ export type Database = {
           p_motivo_codigo?: string
           p_pedido_id: string
         }
+        Returns: string
+      }
+      fn_transp_frete_pedido_por_nf: {
+        Args: { p_nf_numero: string; p_nf_numeros: string[] }
         Returns: string
       }
       fn_troca_papel: {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +121,40 @@ export function BlingCardPainel() {
 
   const linhas = q.data ?? [];
   const [resolver, setResolver] = useState<LinhaFila[] | null>(null);
+
+  // Origem fiscal padrão do catálogo: mais frequente entre os ativos.
+  const qOrigem = useQuery({
+    queryKey: ["sncf-produtos-origem-padrao"],
+    queryFn: async (): Promise<string | null> => {
+      const { data, error } = await (supabase as any)
+        .from("sncf_produtos")
+        .select("origem_fisc")
+        .eq("fase", "ativo")
+        .not("origem_fisc", "is", null)
+        .limit(1000);
+      if (error) throw error;
+      const cont = new Map<string, number>();
+      for (const r of (data ?? []) as any[]) {
+        const o = String(r.origem_fisc);
+        cont.set(o, (cont.get(o) ?? 0) + 1);
+      }
+      let melhor: string | null = null;
+      let melhorN = -1;
+      for (const [o, n] of cont) {
+        if (n > melhorN) {
+          melhor = o;
+          melhorN = n;
+        }
+      }
+      return melhor;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  useEffect(() => {
+    if (qOrigem.data) setOrigem((prev) => (prev === "" ? qOrigem.data! : prev));
+  }, [qOrigem.data]);
+
   const abrirResolver = (l: LinhaFila) => {
     const trecho = (l.conflito_nome ?? "").match(/SNCF:\s*([^;|]*)/i)?.[1] ?? "";
     const cods: string[] = trecho.match(/[A-Za-z0-9-]+/g) ?? [];
@@ -266,12 +300,17 @@ export function BlingCardPainel() {
                 <SelectValue placeholder="Escolha a origem fiscal" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 — Estrangeira, importação direta</SelectItem>
                 <SelectItem value="2">2 — Estrangeira, adquirida no mercado interno</SelectItem>
+                <SelectItem value="1">1 — Estrangeira, importação direta</SelectItem>
                 <SelectItem value="0">0 — Nacional</SelectItem>
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">Decisão fiscal: confirme com o contador.</p>
+            <p className="text-[11px] text-muted-foreground">
+              Padrão do catálogo: {qOrigem.data ?? "—"} (a Fetely compra de importadora). Mude só se o contador indicar.
+            </p>
+            {origem && qOrigem.data && origem !== qOrigem.data && (
+              <p className="text-[11px] text-warning">Diferente do padrão do catálogo ({qOrigem.data})</p>
+            )}
           </div>
           <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
           <Button
