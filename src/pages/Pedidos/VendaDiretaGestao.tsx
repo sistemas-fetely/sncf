@@ -1,3 +1,4 @@
+import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -83,6 +84,7 @@ export default function VendaDiretaGestao() {
   const [entrega, setEntrega] = useState<Linha | null>(null);
   const [pix, setPix] = useState<Linha | null>(null);
   const [pixManual, setPixManual] = useState<Linha | null>(null);
+  const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -260,7 +262,10 @@ export default function VendaDiretaGestao() {
                             </>
                           )}
                           {l.situacao === "aguardando_pagamento" && l.pagamento === "cartao" && (
-                            <Button size="sm" onClick={() => setCartao(l)}>Confirmar cartão</Button>
+                            <>
+                              <Button size="sm" variant="outline" onClick={() => setLinkCartao(l)}>Link do cartão</Button>
+                              <Button size="sm" onClick={() => setCartao(l)}>Confirmar cartão</Button>
+                            </>
                           )}
                           {l.situacao === "travado" && l.fila_id && (
                             <Button size="sm" variant="outline" disabled={reprocessar.isPending} onClick={() => reprocessar.mutate(l)}>
@@ -289,6 +294,7 @@ export default function VendaDiretaGestao() {
       <RegistrarEntregaDialog linha={entrega} onClose={() => setEntrega(null)} />
       <VerPixDialog linha={pix} onClose={() => setPix(null)} />
       <ConfirmarPixManualDialog linha={pixManual} onClose={() => setPixManual(null)} />
+      <LinkCartaoDialog linha={linkCartao} onClose={() => setLinkCartao(null)} />
     </PageShell>
   );
 }

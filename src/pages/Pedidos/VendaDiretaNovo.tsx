@@ -19,6 +19,7 @@ import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
+import { LinkCartaoPainel } from "@/components/venda-direta/LinkCartao";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
@@ -62,7 +63,7 @@ interface ClienteBusca {
 interface NovoCliente extends Endereco { nome: string; cpf: string; telefone: string; email: string }
 interface Item { sku: string; nome: string | null; preco: number; quantidade: number }
 interface Resultado {
-  id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
+  pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
@@ -314,9 +315,13 @@ export default function VendaDiretaNovo() {
                 />
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">
-                O link do cartão é enviado à parte; o Financeiro libera o pedido ao confirmar o pagamento.
-              </p>
+              <LinkCartaoPainel
+                pedidoId={r.pedido_id}
+                idExterno={r.id_externo}
+                total={r.valor_total}
+                clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
+                telefone={telefoneCliente}
+              />
             )}
             {r.avisos && r.avisos.length > 0 && (
               <p className="text-sm text-warning">
