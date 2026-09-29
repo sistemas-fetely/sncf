@@ -49,6 +49,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
+import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransferenciaDialog";
 
 interface CentroDestino {
   codigo: string;
@@ -494,6 +495,25 @@ export default function TransferenciasInternas() {
       return (data ?? []) as TransferenciaRow[];
     },
   });
+
+  const [receber, setReceber] = useState<{ id: string; titulo: string } | null>(null);
+  const idsLista = (listaQ.data ?? []).map((t) => t.id);
+  const recebQ = useQuery({
+    queryKey: ["trs-recebimento", idsLista.join("|")],
+    enabled: idsLista.length > 0,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("trs_recebimento")
+        .select("pedido_id, data_recebimento, divergencias")
+        .in("pedido_id", idsLista);
+      if (error) throw error;
+      return (data ?? []) as { pedido_id: string; data_recebimento: string; divergencias: unknown[] | null }[];
+    },
+  });
+  useEffect(() => {
+    if (recebQ.isError) toast.error(formatError(recebQ.error));
+  }, [recebQ.isError, recebQ.error]);
+  const recebMap = new Map((recebQ.data ?? []).map((r) => [r.pedido_id, r]));
 
   const criar = useMutation({
     mutationFn: async (valores: FormValues) => {
@@ -999,6 +1019,7 @@ export default function TransferenciasInternas() {
                   <TableHead className="text-right">Qtd. peças</TableHead>
                   <TableHead className="text-right">Valor (a custo)</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Recebimento</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1050,6 +1071,36 @@ export default function TransferenciasInternas() {
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDateBR(t.data_pedido)}
                       </TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const rec = recebMap.get(t.id);
+                          if (rec) {
+                            const n = Array.isArray(rec.divergencias) ? rec.divergencias.length : 0;
+                            return (
+                              <div className="flex items-center gap-1.5">
+                                <Badge variant="secondary">Recebido em {formatDateBR(rec.data_recebimento)}</Badge>
+                                {n > 0 && (
+                                  <span className="text-xs font-medium text-destructive">
+                                    · {n} {n === 1 ? "diferença" : "diferenças"}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+                          if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
+                            return (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setReceber({ id: t.id, titulo: t.id_externo ?? t.id })}
+                              >
+                                Receber no destino
+                              </Button>
+                            );
+                          }
+                          return <span className="text-sm text-muted-foreground">—</span>;
+                        })()}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -1058,6 +1109,19 @@ export default function TransferenciasInternas() {
           )}
         </CardContent>
       </Card>
+      {receber && (
+        <ReceberTransferenciaDialog
+          aberto
+          onFechar={() => setReceber(null)}
+          pedidoId={receber.id}
+          titulo={receber.titulo}
+          destinoCodigo={null}
+          onRecebido={() => {
+            void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
+            void qc.invalidateQueries({ queryKey: ["trs-recebimento"] });
+          }}
+        />
+      )}
     </PageShell>
   );
 }
