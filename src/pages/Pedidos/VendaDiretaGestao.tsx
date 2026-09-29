@@ -18,7 +18,7 @@ import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import {
-  ConfirmarCartaoDialog, RegistrarRetiradaDialog, QK_VD_GESTAO, type LinhaVD,
+  ConfirmarCartaoDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, QK_VD_GESTAO, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 
 type Situacao =
@@ -28,7 +28,8 @@ type Situacao =
 interface Linha extends LinhaVD {
   recebido_em: string | null;
   cancelado_em: string | null;
-  modal: "retirada" | "entrega" | null;
+  modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
+  frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; fonte?: string | null; gratis?: boolean | null } | null;
   pagamento: "pix" | "cartao" | null;
   cliente_telefone: string | null;
   link_pagamento: string | null;
@@ -55,6 +56,11 @@ const LABEL: Record<string, string> = Object.fromEntries(CARDS.map((c) => [c.s, 
 LABEL.entregue = "Entregue";
 LABEL.outro = "Outro";
 
+const MODAL_LABEL: Record<string, string> = {
+  retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
+};
+const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
+
 const soDigitos = (s: string) => s.replace(/\D/g, "");
 const TRINTA_DIAS = 30 * 24 * 3600 * 1000;
 
@@ -74,6 +80,7 @@ export default function VendaDiretaGestao() {
   const [busca, setBusca] = useState("");
   const [cartao, setCartao] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
+  const [entrega, setEntrega] = useState<Linha | null>(null);
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -195,6 +202,7 @@ export default function VendaDiretaGestao() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Modal</TableHead>
                   <TableHead>Pagamento</TableHead>
+                  <TableHead className="text-right">Frete</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead>Situação</TableHead>
                   <TableHead>Na fase há</TableHead>
@@ -205,10 +213,10 @@ export default function VendaDiretaGestao() {
               </TableHeader>
               <TableBody>
                 {q.isLoading && (
-                  <TableRow><TableCell colSpan={10} className="py-8 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="py-8 text-center"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></TableCell></TableRow>
                 )}
                 {!q.isLoading && linhas.length === 0 && (
-                  <TableRow><TableCell colSpan={10} className="py-8 text-center text-muted-foreground">Nenhum pedido.</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={11} className="py-8 text-center text-muted-foreground">Nenhum pedido.</TableCell></TableRow>
                 )}
                 {linhas.map((l) => (
                   <TableRow key={l.id}>
@@ -227,8 +235,20 @@ export default function VendaDiretaGestao() {
                       <div>{l.cliente_nome ?? "—"}</div>
                       <div className="text-xs text-muted-foreground">{l.cliente_telefone ?? ""}</div>
                     </TableCell>
-                    <TableCell><Badge variant="outline">{l.modal === "retirada" ? "Retirada" : l.modal === "entrega" ? "Entrega" : "—"}</Badge></TableCell>
+                    <TableCell><Badge variant="outline">{l.modal ? (MODAL_LABEL[l.modal] ?? l.modal) : "—"}</Badge></TableCell>
                     <TableCell>{l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {l.frete ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Custo {l.frete.custo != null ? formatBRL(l.frete.custo) : "—"} · fonte {l.frete.fonte ? (FONTE_LABEL[l.frete.fonte] ?? l.frete.fonte) : "—"}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                     <TableCell>
                       <Badge variant={l.situacao === "travado" ? "destructive" : l.situacao === "cancelado" ? "outline" : "secondary"}>
@@ -259,6 +279,9 @@ export default function VendaDiretaGestao() {
                               <RotateCcw className="mr-1 h-3.5 w-3.5" />Reprocessar descida
                             </Button>
                           )}
+                          {l.situacao === "em_transporte" && l.modal === "frete_fetely" && (
+                            <Button size="sm" onClick={() => setEntrega(l)}>Registrar entrega</Button>
+                          )}
                           {l.situacao === "pronto_retirada" && (
                             <Button size="sm" onClick={() => setRetirada(l)}>Registrar retirada</Button>
                           )}
@@ -275,6 +298,7 @@ export default function VendaDiretaGestao() {
 
       <ConfirmarCartaoDialog linha={cartao} onClose={() => setCartao(null)} />
       <RegistrarRetiradaDialog linha={retirada} onClose={() => setRetirada(null)} />
+      <RegistrarEntregaDialog linha={entrega} onClose={() => setEntrega(null)} />
     </PageShell>
   );
 }

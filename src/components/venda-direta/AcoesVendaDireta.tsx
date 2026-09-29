@@ -151,3 +151,48 @@ export function RegistrarRetiradaDialog({ linha, onClose }: { linha: LinhaVD | n
     </Dialog>
   );
 }
+
+export function RegistrarEntregaDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
+  const qc = useQueryClient();
+  const [quem, setQuem] = useState("");
+  const [obs, setObs] = useState("");
+  useEffect(() => { if (linha) { setQuem(""); setObs(""); } }, [linha]);
+
+  const m = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("vd_registrar_entrega" as never, {
+        p_pedido_id: linha!.id,
+        p_recebido_por: quem.trim(),
+        p_observacao: obs.trim() || null,
+      } as never);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Entrega registrada em ${linha?.id_externo ?? ""}`);
+      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      onClose();
+    },
+    onError: (e) => toast.error(rawMessage(e)),
+  });
+
+  return (
+    <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Registrar entrega · {linha?.id_externo}</DialogTitle>
+          <DialogDescription>{linha?.cliente_nome} · Frete Fetely</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Recebido por *</Label><Input value={quem} onChange={(e) => setQuem(e.target.value)} autoFocus /></div>
+          <div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={2} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={m.isPending}>Cancelar</Button>
+          <Button onClick={() => m.mutate()} disabled={!quem.trim() || m.isPending}>
+            {m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Registrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
