@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, Truck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Link } from "react-router-dom";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -27,6 +28,11 @@ interface EnvioB2C {
   estado_rotulo: string | null;
   eh_problema: boolean | null;
   status_texto: string | null;
+  pedido_id: string | null;
+  pedido_externo: string | null;
+  servico_curto: string | null;
+  canal: string | null;
+  origem_dado: string | null;
 }
 
 function fmtData(iso: string | null): string {
@@ -48,20 +54,21 @@ function useEnviosB2C(transportadoraId: string) {
     queryFn: async (): Promise<EnvioB2C[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sb = supabase as any;
-      const [fatoRes, rastreioRes] = await Promise.all([
+      const [fatoRes, rastreioRes, postagemRes] = await Promise.all([
         sb.from("vw_fato_frete")
           .select("fonte_id, data_evento, custo_frete, uf_destino, municipio_destino, rastreio, documento_ref, canal, fonte")
           .eq("transportadora_id", transportadoraId)
-          .eq("canal", "b2c")
           .eq("fonte", "postagem")
           .order("data_evento", { ascending: false, nullsFirst: false }),
         sb.from("vw_logistica_rastreio")
           .select("fonte_id, estado_canonico, estado_rotulo, eh_problema, status_texto, canal")
-          .eq("transportadora_id", transportadoraId)
-          .eq("canal", "b2c"),
+          .eq("transportadora_id", transportadoraId),
+        sb.from("vw_correios_postagens")
+          .select("fonte_id, pedido_id, pedido_externo, municipio_destino, uf_destino, servico_curto, canal, origem_dado"),
       ]);
       if (fatoRes.error) throw fatoRes.error;
       if (rastreioRes.error) throw rastreioRes.error;
+      if (postagemRes.error) throw postagemRes.error;
       const statusPorId = new Map<string, { estado_canonico: string | null; estado_rotulo: string | null; eh_problema: boolean | null; status_texto: string | null }>();
       for (const r of rastreioRes.data ?? []) {
         if (r.fonte_id) statusPorId.set(r.fonte_id, {
@@ -70,6 +77,18 @@ function useEnviosB2C(transportadoraId: string) {
           eh_problema: r.eh_problema,
           status_texto: r.status_texto,
         });
+      }
+      const postagemPorId = new Map<string, {
+        pedido_id: string | null;
+        pedido_externo: string | null;
+        municipio_destino: string | null;
+        uf_destino: string | null;
+        servico_curto: string | null;
+        canal: string | null;
+        origem_dado: string | null;
+      }>();
+      for (const p of postagemRes.data ?? []) {
+        if (p.fonte_id) postagemPorId.set(p.fonte_id, p);
       }
       return (fatoRes.data ?? []).map((r: {
         fonte_id: string;
@@ -81,18 +100,24 @@ function useEnviosB2C(transportadoraId: string) {
         documento_ref: string | null;
       }) => {
         const s = statusPorId.get(r.fonte_id);
+        const p = postagemPorId.get(r.fonte_id);
         return {
           fonte_id: r.fonte_id,
           data_evento: r.data_evento,
           custo_frete: r.custo_frete,
-          uf_destino: r.uf_destino,
-          municipio_destino: r.municipio_destino,
+          uf_destino: p?.uf_destino ?? r.uf_destino,
+          municipio_destino: p?.municipio_destino ?? r.municipio_destino,
           rastreio: r.rastreio,
           documento_ref: r.documento_ref,
           estado_canonico: s?.estado_canonico ?? null,
           estado_rotulo: s?.estado_rotulo ?? null,
           eh_problema: s?.eh_problema ?? null,
           status_texto: s?.status_texto ?? null,
+          pedido_id: p?.pedido_id ?? null,
+          pedido_externo: p?.pedido_externo ?? null,
+          servico_curto: p?.servico_curto ?? null,
+          canal: p?.canal ?? null,
+          origem_dado: p?.origem_dado ?? null,
         };
       });
     },
@@ -122,7 +147,7 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
       if (filtro === "entregue" && !entregue) return false;
       if (filtro === "pendente" && entregue) return false;
       if (q) {
-        const alvo = `${f.documento_ref ?? ""} ${f.municipio_destino ?? ""} ${f.rastreio ?? ""}`.toLowerCase();
+        const alvo = `${f.pedido_externo ?? ""} ${f.documento_ref ?? ""} ${f.municipio_destino ?? ""} ${f.rastreio ?? ""}`.toLowerCase();
         if (!alvo.includes(q)) return false;
       }
       return true;
@@ -189,6 +214,7 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
                   <th className="text-left p-2">Data</th>
                   <th className="text-left p-2">Pedido</th>
                   <th className="text-left p-2">Destino</th>
+                  <th className="text-left p-2">Serviço</th>
                   <th className="text-left p-2">Rastreio</th>
                   <th className="text-right p-2">Frete</th>
                   <th className="text-left p-2">Status</th>
@@ -198,8 +224,24 @@ export function FretesEntregasB2C({ transportadoraId }: Props) {
                 {filtrados.map((f) => (
                   <tr key={f.fonte_id} className="border-t">
                     <td className="p-2 whitespace-nowrap">{fmtData(f.data_evento)}</td>
-                    <td className="p-2 font-medium">{f.documento_ref ?? "—"}</td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-1.5">
+                        {f.pedido_id && f.pedido_externo ? (
+                          <Link to={`/pedidos/${f.pedido_id}`} className="font-medium text-primary hover:underline">
+                            {f.pedido_externo}
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{f.documento_ref ?? "—"}</span>
+                        )}
+                        {f.canal ? (
+                          <Badge variant="outline" className="px-1.5 py-0 text-[10px] uppercase">
+                            {f.canal}
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </td>
                     <td className="p-2">{destino(f)}</td>
+                    <td className="p-2 text-xs">{f.servico_curto ?? "—"}</td>
                     <td className="p-2 font-mono text-xs">{f.rastreio ?? "—"}</td>
                     <td className="p-2 text-right tabular-nums">{BRL.format(Number(f.custo_frete ?? 0))}</td>
                     <td className="p-2">
