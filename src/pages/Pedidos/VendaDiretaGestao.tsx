@@ -152,12 +152,12 @@ export default function VendaDiretaGestao() {
   return (
     <PageShell>
       <PageHeader
-        titulo="Venda Direta · Gestão"
+        titulo="Pedidos Site SP · Gestão"
         estado={q.dataUpdatedAt ? `Atualizada às ${new Date(q.dataUpdatedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : undefined}
         acoes={
           podeEditar && (
             <div className="flex gap-2">
-              <Button variant="outline" size="icon" aria-label="Configurações da Venda Direta" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
+              <Button variant="outline" size="icon" aria-label="Configurações dos Pedidos Site SP" onClick={() => setConfig(true)}><Settings className="h-4 w-4" /></Button>
               <Button asChild><Link to="/pedidos/venda-direta/novo"><Plus className="mr-1 h-4 w-4" />Novo pedido</Link></Button>
             </div>
           )

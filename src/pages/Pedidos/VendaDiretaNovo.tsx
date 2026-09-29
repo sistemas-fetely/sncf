@@ -285,10 +285,10 @@ export default function VendaDiretaNovo() {
     return (
       <PageShell>
         <PageHeader
-          titulo="Venda Direta · Novo pedido"
-          breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+          titulo="Pedidos Site SP · Novo pedido"
+          breadcrumb={[{ label: "Operação" }, { label: "Pedidos Site SP · Novo pedido" }]}
           icone={ShoppingBag}
-          estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+          estado="Pedido B2C por telefone ou WhatsApp, fora do Shopify."
         />
         <Card>
           <CardHeader>
@@ -341,10 +341,10 @@ export default function VendaDiretaNovo() {
   return (
     <PageShell>
       <PageHeader
-        titulo="Venda Direta · Novo pedido"
-        breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+        titulo="Pedidos Site SP · Novo pedido"
+        breadcrumb={[{ label: "Operação" }, { label: "Pedidos Site SP · Novo pedido" }]}
         icone={ShoppingBag}
-        estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+        estado="Pedido B2C por telefone ou WhatsApp, fora do Shopify."
       />
 
       {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
