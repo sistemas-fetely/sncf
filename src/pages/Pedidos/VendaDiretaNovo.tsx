@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Loader2, MessageCircle, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
+import { Copy, Loader2, MessageCircle, Plus, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -261,8 +261,13 @@ export default function VendaDiretaNovo() {
     const msg = `Olá ${primeiroNome}! Seu pedido ${r.id_externo} na Fetely ficou em ${formatBRL(r.valor_total)}. Pague pelo PIX neste link: ${r.link_pagamento ?? ""}`;
     const tel = telefoneCliente.length <= 11 ? `55${telefoneCliente}` : telefoneCliente;
     return (
-      <PageShell variant="foco">
-        <PageHeader titulo="Venda Direta · Novo pedido" />
+      <PageShell>
+        <PageHeader
+          titulo="Venda Direta · Novo pedido"
+          breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+          icone={ShoppingBag}
+          estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+        />
         <Card>
           <CardHeader>
             <CardTitle>{r.id_externo} criado — aguardando pagamento</CardTitle>
