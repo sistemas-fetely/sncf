@@ -635,7 +635,7 @@ export function BlingCardPainel() {
                 </TableBody>
               </Table>
             </div>
-          </TooltipProvider>
+          </>
         )}
       </CardContent>
       <ResolverNomeDialog
@@ -644,6 +644,57 @@ export function BlingCardPainel() {
         linhas={resolver ?? []}
         onResolvido={() => void q.refetch()}
       />
+      <AlertDialog
+        open={!!ncmDialog}
+        onOpenChange={(v) => {
+          if (!v && !ncmAplicando) setNcmDialog(null);
+        }}
+      >
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Aplicar NCM da NF de entrada</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="text-sm text-muted-foreground">
+                O NCM faturado na NF de entrada será gravado no cadastro (SNCF e FOP). Decisão fiscal: confirme com o
+                contador em caso de dúvida.
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-60 overflow-auto rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Cód.</TableHead>
+                  <TableHead className="text-xs">NCM</TableHead>
+                  <TableHead className="text-xs">NF</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(ncmDialog?.itens ?? []).map((i) => (
+                  <TableRow key={i.sku}>
+                    <TableCell className="font-mono text-xs">{i.cod_cadastro ?? i.sku}</TableCell>
+                    <TableCell className="font-mono text-xs">{i.para}</TableCell>
+                    <TableCell className="text-xs">{i.nf ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={ncmAplicando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={ncmAplicando || (ncmDialog?.itens.length ?? 0) === 0}
+              onClick={(e) => {
+                e.preventDefault();
+                void aplicarNcm();
+              }}
+            >
+              {ncmAplicando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              Aplicar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }
