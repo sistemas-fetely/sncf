@@ -34,6 +34,26 @@ interface LinhaFila {
   ncm_sugerido: string | null;
   ncm_sugerido_apoio: number | null;
   falta: string[] | null;
+  situacao_nascimento: "A" | "I" | null;
+  largura_cm: number | null;
+  altura_cm: number | null;
+  profundidade_cm: number | null;
+  conflito_nome: string | null;
+  avisos: string[] | null;
+}
+
+function rotuloFalta(f: string): string {
+  if (f === "nome repetido" || f === "nome malformado") return f.charAt(0).toUpperCase() + f.slice(1);
+  return `Falta ${f}`;
+}
+
+function formatBRL(v: number | null): string {
+  if (v === null || v === undefined) return "—";
+  return Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function med(v: number | null): string {
+  return v === null || v === undefined ? "—" : String(v).replace(".", ",");
 }
 
 interface Previa {
@@ -99,7 +119,33 @@ export function BlingCardPainel() {
   });
 
   const linhas = q.data ?? [];
-  const prontos = useMemo(() => linhas.filter((l) => (l.falta ?? []).length === 0), [linhas]);
+  const [filtro, setFiltro] = useState<string>("todos");
+
+  const cartoes = useMemo(() => {
+    const out: { chave: string; rotulo: string; qtd: number; tom?: "erro" | "aviso" | "ok" }[] = [];
+    out.push({ chave: "todos", rotulo: "Todos", qtd: linhas.length });
+    const nProntos = linhas.filter((l) => (l.falta ?? []).length === 0).length;
+    if (nProntos > 0) out.push({ chave: "prontos", rotulo: "Prontos", qtd: nProntos, tom: "ok" });
+    const cont = new Map<string, number>();
+    for (const l of linhas) for (const f of l.falta ?? []) cont.set(f, (cont.get(f) ?? 0) + 1);
+    for (const [f, n] of cont) out.push({ chave: `falta:${f}`, rotulo: rotuloFalta(f), qtd: n, tom: "erro" });
+    const nAviso = linhas.filter((l) => (l.avisos ?? []).length > 0).length;
+    if (nAviso > 0) out.push({ chave: "aviso", rotulo: "Com aviso", qtd: nAviso, tom: "aviso" });
+    return out;
+  }, [linhas]);
+
+  const filtradas = useMemo(() => {
+    if (filtro === "todos") return linhas;
+    if (filtro === "prontos") return linhas.filter((l) => (l.falta ?? []).length === 0);
+    if (filtro === "aviso") return linhas.filter((l) => (l.avisos ?? []).length > 0);
+    if (filtro.startsWith("falta:")) {
+      const f = filtro.slice(6);
+      return linhas.filter((l) => (l.falta ?? []).includes(f));
+    }
+    return linhas;
+  }, [linhas, filtro]);
+
+  const prontos = useMemo(() => filtradas.filter((l) => (l.falta ?? []).length === 0), [filtradas]);
 
   function mudouSelecao(fn: (prev: string[]) => string[]) {
     setPrevia(null);
@@ -172,10 +218,27 @@ export function BlingCardPainel() {
           Produtos ativos e de pré-venda que ainda não têm card no Bling. O card nasce com a situação da fase
           (pré-venda = inativo). Sem NCM não cria.
         </p>
-        {!q.isLoading && !q.isError && (
-          <p className="text-xs text-muted-foreground">
-            {linhas.length} sem card · {prontos.length} prontos · {linhas.length - prontos.length} com pendência
-          </p>
+        {!q.isLoading && !q.isError && linhas.length > 0 && (
+          <div className="flex flex-wrap gap-2 pt-2">
+            {cartoes.map((c) => {
+              const ativo = filtro === c.chave;
+              const cor =
+                c.tom === "erro" ? "text-destructive" : c.tom === "aviso" ? "text-warning" : c.tom === "ok" ? "text-success" : "";
+              return (
+                <button
+                  key={c.chave}
+                  type="button"
+                  onClick={() => setFiltro(ativo || c.chave === "todos" ? "todos" : c.chave)}
+                  className={`rounded-md border px-3 py-2 text-left transition-colors hover:bg-muted/50 ${
+                    ativo ? "border-primary ring-1 ring-primary bg-primary/5" : "border-border"
+                  }`}
+                >
+                  <div className={`text-xl font-semibold tabular-nums ${cor}`}>{c.qtd}</div>
+                  <div className="text-[11px] text-muted-foreground">{c.rotulo}</div>
+                </button>
+              );
+            })}
+          </div>
         )}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -298,17 +361,24 @@ export function BlingCardPainel() {
                       />
                     </TableHead>
                     <TableHead>Cód.</TableHead>
-                    <TableHead>Nome operacional</TableHead>
+                    <TableHead>Nome no Bling</TableHead>
                     <TableHead>Grupo</TableHead>
-                    <TableHead>Fase</TableHead>
+                    <TableHead>Nasce como</TableHead>
                     <TableHead>Chegada</TableHead>
+                    <TableHead>EAN</TableHead>
                     <TableHead>NCM</TableHead>
+                    <TableHead>CEST</TableHead>
+                    <TableHead className="text-right">Peso</TableHead>
+                    <TableHead>Medidas</TableHead>
+                    <TableHead className="text-right">Preço</TableHead>
                     <TableHead>Pendências</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {linhas.map((l) => {
+                  {filtradas.map((l) => {
                     const falta = l.falta ?? [];
+                    const avisos = l.avisos ?? [];
+                    const vazio = "bg-destructive/10";
                     const pronto = falta.length === 0;
                     return (
                       <TableRow key={l.sku}>
@@ -320,22 +390,37 @@ export function BlingCardPainel() {
                             aria-label={`Selecionar ${l.sku}`}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs">{l.cod_cadastro ?? l.sku}</TableCell>
+                        <TableCell>
+                          <div className="font-mono text-xs">{l.cod_cadastro ?? l.sku}</div>
+                          <div className="font-mono text-[11px] text-muted-foreground">{l.sku}</div>
+                        </TableCell>
                         <TableCell>
                           <div className="text-sm">{l.nome_operacional ?? "—"}</div>
                           {l.nome_comercial && (
                             <div className="text-[11px] text-muted-foreground">{l.nome_comercial}</div>
                           )}
+                          {l.conflito_nome && (
+                            <div className="text-[11px] text-destructive">igual a: {l.conflito_nome}</div>
+                          )}
                         </TableCell>
                         <TableCell className="text-xs">{l.grupo ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{l.fase ?? "—"}</TableCell>
+                        <TableCell>
+                          {l.situacao_nascimento ? (
+                            <Badge variant="outline" className="text-[10px]">
+                              {l.situacao_nascimento === "I" ? "Inativo" : "Ativo"}
+                            </Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-xs">
                           {ddmm(l.eta) ?? "—"}
                           {l.pedido_importacao && (
                             <div className="text-[11px] text-muted-foreground">{l.pedido_importacao}</div>
                           )}
                         </TableCell>
-                        <TableCell className="text-xs">
+                        <TableCell className={`font-mono text-xs ${l.ean ? "" : vazio}`}>{l.ean ?? "—"}</TableCell>
+                        <TableCell className={`text-xs ${l.ncm ? "" : vazio}`}>
                           {l.ncm ? (
                             <span className="font-mono">{l.ncm}</span>
                           ) : l.ncm_sugerido ? (
@@ -353,15 +438,27 @@ export function BlingCardPainel() {
                             <Badge variant="destructive" className="text-[10px]">falta NCM</Badge>
                           )}
                         </TableCell>
+                        <TableCell className="font-mono text-xs">{l.cest ?? "—"}</TableCell>
+                        <TableCell className={`text-right text-xs tabular-nums ${l.peso_g ? "" : vazio}`}>
+                          {l.peso_g ? `${l.peso_g} g` : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs tabular-nums whitespace-nowrap">
+                          {med(l.largura_cm)} × {med(l.altura_cm)} × {med(l.profundidade_cm)} cm
+                        </TableCell>
+                        <TableCell className={`text-right text-xs tabular-nums ${l.preco_varejo ? "" : vazio}`}>
+                          {formatBRL(l.preco_varejo)}
+                        </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
-                            {pronto ? (
+                            {pronto && (
                               <Badge variant="outline" className="text-[10px] border-success/60 text-success">pronto</Badge>
-                            ) : (
-                              falta.map((f) => (
-                                <Badge key={f} variant="secondary" className="text-[10px]">{f}</Badge>
-                              ))
                             )}
+                            {falta.map((f) => (
+                              <Badge key={f} variant="destructive" className="text-[10px]">{f}</Badge>
+                            ))}
+                            {avisos.map((a) => (
+                              <Badge key={a} variant="outline" className="text-[10px] border-warning/60 text-warning">{a}</Badge>
+                            ))}
                           </div>
                         </TableCell>
                       </TableRow>
