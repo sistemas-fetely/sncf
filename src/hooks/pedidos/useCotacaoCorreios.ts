@@ -122,9 +122,18 @@ export function useCotacaoCorreios(pedidoId: string | undefined, valorReferencia
           }],
         },
       });
-      if (error || data?.ok !== true) {
-        throw new Error(data?.erro ?? error?.message ?? "Falha na cotação dos Correios.");
+      if (error) {
+        let msg = error.message;
+        try {
+          const ctx = (error as any).context;
+          if (ctx && typeof ctx.json === "function") {
+            const corpo = await ctx.json();
+            if (corpo?.erro) msg = corpo.erro;
+          }
+        } catch { /* mantém a mensagem original */ }
+        throw new Error(`Correios: ${msg}`);
       }
+      if (data?.ok !== true) throw new Error(`Correios: ${data?.erro ?? "falha na cotação"}`);
 
       const avisos = [...(plano.avisos ?? [])];
       const hoje = new Date();
