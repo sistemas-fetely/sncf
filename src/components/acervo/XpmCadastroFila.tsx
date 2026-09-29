@@ -220,6 +220,7 @@ export function XpmCadastroFila() {
     if (filtro === "todos") return porColecao;
     if (filtro === "prontos") return porColecao.filter((l) => l.pronto);
     if (filtro === "vendavel") return porColecao.filter((l) => l.tipo_fila === "vendavel");
+    if (filtro === "provisorio") return porColecao.filter((l) => medidasProvisorias(l));
     const b = filtro.slice(2);
     return porColecao.filter((l) => bloqueiosDe(l).includes(b));
   }, [porColecao, filtro]);
