@@ -266,7 +266,7 @@ export function BlingCardPainel() {
     setFinal(null);
     try {
       const acc: Previa = { criar: [], recusados: [] };
-      for (const leva of levas(selecionados)) {
+      for (const leva of levas(selecionadasVisiveis.map((l) => l.sku))) {
         const d = await chamar({ skus: leva, executar: false });
         acc.criar.push(...((d.criar ?? []) as Previa["criar"]));
         acc.recusados.push(...((d.recusados ?? []) as Previa["recusados"]));
@@ -417,6 +417,22 @@ export function BlingCardPainel() {
 
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1">
+            <p className="text-xs font-medium">Coleção</p>
+            <Select value={colecaoFiltro || "todas"} onValueChange={(v) => setColecaoFiltro(v === "todas" ? "" : v)}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Todas as coleções" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as coleções</SelectItem>
+                {colecoes.map(([c, n]) => (
+                  <SelectItem key={c} value={c}>
+                    {c} ({n})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <p className="text-xs font-medium">Origem fiscal *</p>
             <Select value={origem} onValueChange={setOrigem}>
               <SelectTrigger className="w-[340px]">
@@ -435,12 +451,12 @@ export function BlingCardPainel() {
               <p className="text-[11px] text-warning">Diferente do padrão do catálogo ({qOrigem.data})</p>
             )}
           </div>
-          <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+          <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
           <Button
             variant="outline"
             size="sm"
             className="gap-2"
-            disabled={selecionados.length === 0 || carregandoPrevia || criando}
+            disabled={selecionadasVisiveis.length === 0 || carregandoPrevia || criando}
             onClick={() => void fazerPrevia()}
           >
             {carregandoPrevia ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
