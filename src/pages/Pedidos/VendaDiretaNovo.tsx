@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, Loader2, MessageCircle, Plus, Search, Trash2, UserPlus, X } from "lucide-react";
+import { Copy, Loader2, MessageCircle, Plus, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -261,8 +261,13 @@ export default function VendaDiretaNovo() {
     const msg = `Olá ${primeiroNome}! Seu pedido ${r.id_externo} na Fetely ficou em ${formatBRL(r.valor_total)}. Pague pelo PIX neste link: ${r.link_pagamento ?? ""}`;
     const tel = telefoneCliente.length <= 11 ? `55${telefoneCliente}` : telefoneCliente;
     return (
-      <PageShell variant="foco">
-        <PageHeader titulo="Venda Direta · Novo pedido" />
+      <PageShell>
+        <PageHeader
+          titulo="Venda Direta · Novo pedido"
+          breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+          icone={ShoppingBag}
+          estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+        />
         <Card>
           <CardHeader>
             <CardTitle>{r.id_externo} criado — aguardando pagamento</CardTitle>
@@ -314,9 +319,17 @@ export default function VendaDiretaNovo() {
   }
 
   return (
-    <PageShell variant="leitura">
-      <PageHeader titulo="Venda Direta · Novo pedido" estado="Venda B2C por telefone ou WhatsApp, fora do Shopify." />
+    <PageShell>
+      <PageHeader
+        titulo="Venda Direta · Novo pedido"
+        breadcrumb={[{ label: "Operação" }, { label: "Venda Direta · Novo pedido" }]}
+        icone={ShoppingBag}
+        estado="Venda B2C por telefone ou WhatsApp, fora do Shopify."
+      />
 
+      {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
       {/* 1. Cliente */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
@@ -433,6 +446,8 @@ export default function VendaDiretaNovo() {
         </CardContent>
       </Card>
 
+        </div>
+        <div className="space-y-4 lg:col-span-1">
       {/* 3. Entrega */}
       <Card>
         <CardHeader><CardTitle className="text-base">Entrega</CardTitle></CardHeader>
@@ -488,6 +503,9 @@ export default function VendaDiretaNovo() {
         <CardHeader><CardTitle className="text-base">Observação</CardTitle></CardHeader>
         <CardContent><Textarea value={observacao} onChange={(e) => setObservacao(e.target.value)} placeholder="Opcional" /></CardContent>
       </Card>
+
+        </div>
+      </div>
 
       <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur">
         <div className="text-sm tabular-nums">
