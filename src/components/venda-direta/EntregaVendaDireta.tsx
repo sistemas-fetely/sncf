@@ -191,9 +191,32 @@ const ICONE: Record<ModalVd, typeof Truck> = { retirada: Store, sedex: Zap, pac:
 export function CartoesEntrega({
   opcoes, valor, onChange, cotando,
 }: { opcoes: OpcaoFreteVd[]; valor: ModalVd; onChange: (m: ModalVd) => void; cotando: boolean }) {
+  // Só UI: entre SEDEX e PAC, esconde a opção dominada (outra é <= em valor e prazo, e melhor em ao menos um).
+  const dominada = useMemo((): { oculta: ModalVd; dominante: ModalVd } | null => {
+    if (cotando) return null;
+    const s = opcoes.find((o) => o.modal === "sedex");
+    const p = opcoes.find((o) => o.modal === "pac");
+    if (!s || !p || !s.disponivel || !p.disponivel) return null;
+    if (s.cobrado == null || p.cobrado == null || s.prazo_dias == null || p.prazo_dias == null) return null;
+    const domina = (a: OpcaoFreteVd, b: OpcaoFreteVd) =>
+      a.cobrado! <= b.cobrado! && a.prazo_dias! <= b.prazo_dias! &&
+      (a.cobrado! < b.cobrado! || a.prazo_dias! < b.prazo_dias!);
+    if (domina(s, p)) return { oculta: "pac", dominante: "sedex" };
+    if (domina(p, s)) return { oculta: "sedex", dominante: "pac" };
+    return null;
+  }, [opcoes, cotando]);
+
+  useEffect(() => {
+    if (dominada && valor === dominada.oculta) onChange(dominada.dominante);
+  }, [dominada, valor, onChange]);
+
+  const visiveis = dominada ? opcoes.filter((o) => o.modal !== dominada.oculta) : opcoes;
+  const rot = (m: ModalVd) => (m === "sedex" ? "SEDEX" : "PAC");
+
   return (
+    <>
     <div role="radiogroup" aria-label="Modalidade de entrega" className="grid gap-3 sm:grid-cols-2">
-      {opcoes.map((o) => {
+      {visiveis.map((o) => {
         const Icone = ICONE[o.modal];
         const sel = valor === o.modal;
         const carregando = cotando && o.modal !== "retirada";
@@ -239,6 +262,12 @@ export function CartoesEntrega({
         );
       })}
     </div>
+    {dominada && (
+      <p className="text-xs text-muted-foreground">
+        {rot(dominada.oculta)} oculto: o {rot(dominada.dominante)} sai {dominada.dominante === "sedex" ? "mais barato e mais rápido" : "mais barato e mais rápido"} para este CEP.
+      </p>
+    )}
+    </>
   );
 }
 
