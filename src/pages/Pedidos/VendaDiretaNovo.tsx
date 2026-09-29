@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Copy, CreditCard, Loader2, MessageCircle, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -17,6 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
+import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
@@ -93,16 +95,8 @@ function CamposEndereco({ v, onChange, cepObrigatorio }: { v: Endereco; onChange
   );
 }
 
-async function copiar(texto: string) {
-  try {
-    await navigator.clipboard.writeText(texto);
-    toast.success("Copiado.");
-  } catch (e) {
-    toast.error(`Não foi possível copiar: ${rawMessage(e)}`);
-  }
-}
-
 export default function VendaDiretaNovo() {
+  const navigate = useNavigate();
   // Cliente
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -313,30 +307,11 @@ export default function VendaDiretaNovo() {
             )}
             {r.pagamento === "pix" ? (
               <>
-                <div className="space-y-1">
-                  <Label>Link de pagamento</Label>
-                  <div className="flex gap-2">
-                    <Input readOnly value={r.link_pagamento ?? "—"} />
-                    <Button variant="outline" disabled={!r.link_pagamento} onClick={() => copiar(r.link_pagamento!)}>
-                      <Copy className="h-4 w-4" /> Copiar link
-                    </Button>
-                  </div>
-                </div>
-                <Button
-                  disabled={!r.link_pagamento || telefoneCliente.length < 10}
-                  onClick={() => window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener")}
-                >
-                  <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
-                </Button>
-                <div className="space-y-1">
-                  <Label>PIX copia e cola</Label>
-                  <div className="flex gap-2">
-                    <Textarea readOnly value={r.pix_copia_cola ?? "—"} className="font-mono text-xs" rows={3} />
-                    <Button variant="outline" disabled={!r.pix_copia_cola} onClick={() => copiar(r.pix_copia_cola!)}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <PixPagamento
+                  payload={r.pix_copia_cola}
+                  link={r.link_pagamento}
+                  whatsappUrl={r.link_pagamento && telefoneCliente.length >= 10 ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : null}
+                />
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -348,7 +323,10 @@ export default function VendaDiretaNovo() {
                 Itens sem saldo no Site SP: {r.avisos.map((a) => a.sku).join(", ")}
               </p>
             )}
-            <Button variant="outline" onClick={limparTudo}><Plus className="h-4 w-4" /> Novo pedido</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" onClick={limparTudo}><Plus className="h-4 w-4" /> Novo pedido</Button>
+              <Button variant="outline" onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}>Fechar</Button>
+            </div>
           </CardContent>
         </Card>
       </PageShell>
