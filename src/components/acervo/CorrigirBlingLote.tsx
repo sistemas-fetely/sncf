@@ -53,7 +53,7 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean }) {
+export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, sugerirCard = false }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean; sugerirCard?: boolean }) {
   const perm = usePermissaoAcaoOuSuperAdmin("acao.produto_corrigir_externo");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.produto_corrigir_externo" : undefined;
@@ -79,11 +79,12 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
   const zerar = () => { setPrevia(null); setFinal(null); setCarregando(false); setAplicando(false); setProgresso(null); setAviso(null); };
   const recomparar = (v: boolean) => { setAtivarCard(v); void comparar(v); };
 
-  async function abrir() {
+  // JANELA-PARADA (29/09/2026): abre sem comparar — a opção do card é decidida
+  // antes, e a comparação só roda no clique explícito em "Comparar".
+  function abrir() {
     zerar();
-    setAtivarCard(false);
+    setAtivarCard(sugerirCard);
     setAberto(true);
-    await comparar(false);
   }
 
   async function comparar(ativar: boolean) {
@@ -151,6 +152,13 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
             <span className="block text-xs text-muted-foreground">Resolve as linhas de "Card ativo antes da hora".</span></span>
         </label>}
 
+        {!carregando && !final && !previa && <div className="space-y-2">
+          <p className="text-xs text-muted-foreground">Escolha a opção acima e clique em Comparar. Nada é enviado antes do Aplicar.</p>
+          <Button onClick={() => void comparar(ativarCard)} disabled={semPerm} title={tituloPerm}>
+            <RefreshCw className="mr-2 h-4 w-4" />Comparar
+          </Button>
+        </div>}
+
         {carregando && (
           <div className="space-y-2 py-2">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -215,13 +223,15 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false }: 
         <DialogFooter>
           {final
             ? <Button variant="outline" onClick={() => { setAberto(false); zerar(); }}>Fechar</Button>
-            : <>
+            : previa
+            ? <>
               <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>
               <Button disabled={carregando || aplicando || aplicaveis.length === 0 || semPerm} title={tituloPerm} onClick={() => void aplicar()}>
                 {aplicando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {comDiferenca.length > 0 ? `Aplicar ${comDiferenca.length} correções` : `Atualizar espelho (${semDiferenca.length} já iguais)`}
               </Button>
-            </>}
+            </>
+            : <Button variant="outline" onClick={() => { setAberto(false); zerar(); }} disabled={carregando || aplicando}>Cancelar</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

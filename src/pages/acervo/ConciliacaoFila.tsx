@@ -336,6 +336,12 @@ export default function ConciliacaoFila() {
   const selecionadosProdutosXpm = useMemo(() => filtrarPorSistema("XPM"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosProdutosBling = useMemo(() => filtrarPorSistema("Bling"), [selecionadosProdutos, sistemasPorSku]);
   const selecionadosProdutosShopify = useMemo(() => filtrarPorSistema("Shopify"), [selecionadosProdutos, sistemasPorSku]);
+  // CARD-DECIDIDO-ANTES: se alguma linha selecionada vem das regras de card do
+  // Bling, a janela "Corrigir no Bling" já abre com a opção do card marcada.
+  const sugerirCardBling = useMemo(
+    () => linhas.some(l => temValor(l.sku) && selecionados.has(String(l.sku)) && (l.regra === "bling_card_ativo_antes_da_hora" || l.regra === "bling_card_inativo")),
+    [linhas, selecionados],
+  );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
   const alternarProduto = (sku: string) => setSelecionados(prev => {
@@ -408,7 +414,7 @@ export default function ConciliacaoFila() {
         <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
         <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel />
-        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel />
+        <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel sugerirCard={sugerirCardBling} />
         <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} sempreVisivel />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}

@@ -64314,39 +64314,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tmp_cep_geo: {
-        Row: {
-          bairro: string | null
-          cep: string
-          lat: number | null
-          lon: number | null
-          origem: string | null
-          request_id: number | null
-          status: string
-          tentado_em: string | null
-        }
-        Insert: {
-          bairro?: string | null
-          cep: string
-          lat?: number | null
-          lon?: number | null
-          origem?: string | null
-          request_id?: number | null
-          status?: string
-          tentado_em?: string | null
-        }
-        Update: {
-          bairro?: string | null
-          cep?: string
-          lat?: number | null
-          lon?: number | null
-          origem?: string | null
-          request_id?: number | null
-          status?: string
-          tentado_em?: string | null
-        }
-        Relationships: []
-      }
       tmp_zenlog_swagger: {
         Row: {
           j: Json | null
@@ -116043,7 +116010,6 @@ export type Database = {
         Args: { p_data_ref?: string; p_titulo_id: string }
         Returns: Json
       }
-      fn_tmp_geo_tick: { Args: never; Returns: undefined }
       fn_transicionar_pedido: {
         Args: {
           p_acao: string
