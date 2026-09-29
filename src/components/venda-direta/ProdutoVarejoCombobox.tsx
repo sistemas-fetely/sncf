@@ -8,6 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
+import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 
 export interface ProdutoVarejo {
   sku: string;
@@ -50,6 +51,7 @@ export function ProdutoVarejoCombobox({
       return (data ?? []).map((p: any) => ({ ...p, preco_varejo: Number(p.preco_varejo) }));
     },
   });
+  const imgsQ = useImagensProduto((buscaQ.data ?? []).map((p) => p.sku));
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
@@ -93,9 +95,12 @@ export function ProdutoVarejoCombobox({
                       }}
                     >
                       <Check className={cn("h-4 w-4", value === p.sku ? "opacity-100" : "opacity-0")} />
-                      <span className="font-medium tabular-nums">{p.sku}</span>
-                      <span className="flex-1 truncate text-muted-foreground">{p.nome_completo ?? ""}</span>
-                      <span className="tabular-nums text-xs">{formatBRL(p.preco_varejo)}</span>
+                      <ProdutoMiniatura img={imgsQ.data?.get(p.sku)} tamanho={32} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{p.nome_completo ?? p.sku}</span>
+                        <span className="block text-xs tabular-nums text-muted-foreground">{p.sku}</span>
+                      </span>
+                      <span className="text-sm font-medium tabular-nums">{formatBRL(p.preco_varejo)}</span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
