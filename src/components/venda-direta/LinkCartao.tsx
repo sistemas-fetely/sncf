@@ -75,7 +75,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcela
   );
 }
 
-const AVISO_409 = "Link de cartão indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
+export const AVISO_409 = "Link de cartão indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
 
 /** Painel da tela Novo pedido: gera o link automaticamente. */
 export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone }: {
