@@ -55,6 +55,19 @@ serve(async (req) => {
     );
     if (userErr || !userData.user) return json({ ok: false, erro: "Não autorizado" }, 401);
 
+    // ---- permissão ----
+    const uid = userData.user.id;
+    const { data: ehSuper, error: eSuper } = await supabase.rpc("has_role", { _user_id: uid, _role: "super_admin" });
+    if (eSuper) return json({ ok: false, erro: `Falha ao verificar permissão: ${eSuper.message}` }, 500);
+    if (!ehSuper) {
+      const { data: pode, error: ePode } = await supabase.rpc("usuario_tem_acao", {
+        p_slug: "acao.produto_corrigir_externo",
+        p_user_id: uid,
+      });
+      if (ePode) return json({ ok: false, erro: `Falha ao verificar permissão: ${ePode.message}` }, 500);
+      if (!pode) return json({ ok: false, erro: "Sem permissão para criar card no Bling" }, 403);
+    }
+
     // ---- body ----
     let skus: string[] = [];
     let executar = false;
@@ -71,6 +84,7 @@ serve(async (req) => {
     }
 
     if (skus.length === 0) return json({ ok: false, erro: "Informe skus: string[]" }, 400);
+    if (skus.length > 20) return json({ ok: false, erro: "Máximo 20 SKUs por chamada" }, 400);
 
     if (executar) {
       if (!origemFiscal || !ORIGENS_OK.includes(origemFiscal)) {
@@ -137,6 +151,12 @@ serve(async (req) => {
       if (!nome) {
         recusados.push({ sku, motivo: "nome_operacional vazio" });
         console.log(`[criar-produto-bling] ${sku}: recusado — nome_operacional vazio`);
+        continue;
+      }
+
+      if (!texto(f.ncm)) {
+        recusados.push({ sku, motivo: "sem NCM (decisão fiscal)" });
+        console.log(`[criar-produto-bling] ${sku}: recusado — sem NCM`);
         continue;
       }
 
