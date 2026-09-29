@@ -80,8 +80,8 @@ const CargosEnriquecimento = lazy(() => import("@/pages/CargosEnriquecimento"));
 
 const Compras = lazy(() => import("@/pages/Compras"));
 const ComprasAComprar = lazy(() => import("@/pages/ComprasAComprar"));
-const ChegadaMercadoria = lazy(() => import("@/pages/logistica/ChegadaMercadoria"));
-const ChegadaMercadoriaDetalhe = lazy(() => import("@/pages/logistica/ChegadaMercadoriaDetalhe"));
+const ChegadaMercadoria = lazy(() => import("@/pages/acervo/ChegadaMercadoria"));
+const ChegadaMercadoriaDetalhe = lazy(() => import("@/pages/acervo/ChegadaMercadoriaDetalhe"));
 const ExpedicaoSp = lazy(() => import("@/pages/logistica/ExpedicaoSp"));
 const TIDashboard = lazy(() => import("@/pages/ti/TIDashboard"));
 const TIAtivos = lazy(() => import("@/pages/ti/TIAtivos"));
@@ -300,9 +300,10 @@ function RedirectToPessoasNovo() {
 }
 
 // CHEGADA-MERCADORIA-MORA-EM-SOPS (04/09/2026): /compras/mercadoria → /logistica/chegada-mercadoria
+// 29/09/2026: CHEGADA-MERCADORIA-MORA-EM-PRODUTO → rota oficial /vendas/produto/chegada-mercadoria; /logistica/chegada-mercadoria só redireciona.
 function ChegadaMercadoriaRedirect() {
   const location = useLocation();
-  return <Navigate to={"/logistica/chegada-mercadoria" + location.search} replace />;
+  return <Navigate to={"/vendas/produto/chegada-mercadoria" + location.search} replace />;
 }
 
 // CONCILIACAO-MORA-EM-FINANCAS (19/09/2026): /recebimento/conciliacao → /administrativo/conciliacao-recebiveis
@@ -320,7 +321,7 @@ function ExpedicaoSpRedirect() {
 }
 function ChegadaMercadoriaIdRedirect() {
   const { id } = useParams();
-  return <Navigate to={`/logistica/chegada-mercadoria/${id}`} replace />;
+  return <Navigate to={`/vendas/produto/chegada-mercadoria/${id}`} replace />;
 }
 
 // Redirects para rotas legadas migradas para /admin
@@ -433,6 +434,8 @@ const App = () => (
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
                 
                 <Route path="/vendas/produto" element={<Produtos />} />
+                <Route path="/vendas/produto/chegada-mercadoria" element={<ChegadaMercadoria />} />
+                <Route path="/vendas/produto/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
                 <Route path="/vendas/produto/mesa" element={
                   <ProtectedRoute>
                     <MesaProduto />
@@ -493,8 +496,8 @@ const App = () => (
                 <Route path="/vendas/shopify/fulfillments" element={<ShopifyFulfillments />} />
                 <Route path="/vendas/shopify/estoque" element={<ShopifyEstoque />} />
                 <Route path="/logistica" element={<Logistica />} />
-                <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoria />} />
-                <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaDetalhe />} />
+                <Route path="/logistica/chegada-mercadoria" element={<ChegadaMercadoriaRedirect />} />
+                <Route path="/logistica/chegada-mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
                 {/* MESA-SP (frente-descida-b2c-split-sp): 28/09/2026: rota oficial
                     é /logistica/expedicao-sp (a da navegação); /expedicao-sp fica
                     só como redirecionamento de link antigo. */}
@@ -977,8 +980,8 @@ const App = () => (
             <Route path="/templates/*" element={<Navigate to="/processos" replace />} />
             <Route path="/gerenciar-usuarios" element={<Navigate to="/admin/usuarios" replace />} />
             <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
-            <Route path="/compras/de-para-fornecedor" element={<Navigate to="/logistica/chegada-mercadoria?aba=de-para" replace />} />
-            <Route path="/compras/cadastro-pedido" element={<Navigate to="/logistica/chegada-mercadoria?aba=pedidos" replace />} />
+            <Route path="/compras/de-para-fornecedor" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=de-para" replace />} />
+            <Route path="/compras/cadastro-pedido" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=pedidos" replace />} />
             <Route path="/compras/mercadoria" element={<ChegadaMercadoriaRedirect />} />
             <Route path="/compras/mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
             <Route path="/ti/documentacao" element={<Navigate to="/documentacao" replace />} />

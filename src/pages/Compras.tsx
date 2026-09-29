@@ -186,7 +186,7 @@ export default function Compras() {
               </Link>
             )}
             <Link
-              to="/logistica/chegada-mercadoria"
+              to="/vendas/produto/chegada-mercadoria"
               className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <Boxes className="h-4 w-4" />
@@ -198,7 +198,7 @@ export default function Compras() {
 
       <p className="-mt-3 text-xs text-muted-foreground">
         Mercadoria para revenda? O acompanhamento da chegada fica em{" "}
-        <Link to="/logistica/chegada-mercadoria" className="underline underline-offset-2">
+        <Link to="/vendas/produto/chegada-mercadoria" className="underline underline-offset-2">
           Chegada de Mercadoria
         </Link>
         .

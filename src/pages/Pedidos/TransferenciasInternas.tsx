@@ -1088,7 +1088,7 @@ export default function TransferenciasInternas() {
                           if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
                             return (
                               <Link
-                                to="/logistica/chegada-mercadoria?aba=recebimento-loja"
+                                to="/vendas/produto/chegada-mercadoria?aba=recebimento-loja"
                                 className="text-xs text-primary underline-offset-2 hover:underline"
                               >
                                 Receber na Chegada de Mercadoria

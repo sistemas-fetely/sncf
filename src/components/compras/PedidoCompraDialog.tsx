@@ -493,7 +493,7 @@ export function PedidoCompraDialog({ open, onOpenChange, mode, pedido }: Props) 
           <DialogDescription>
             Descreva o que você precisa, justifique a aquisição e adicione itens. Para insumo,
             material ou serviço. Mercadoria para revenda vai em{" "}
-            <Link to="/logistica/chegada-mercadoria" className="underline underline-offset-2">
+            <Link to="/vendas/produto/chegada-mercadoria" className="underline underline-offset-2">
               Chegada de Mercadoria
             </Link>
             .
