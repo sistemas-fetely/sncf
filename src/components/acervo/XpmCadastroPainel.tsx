@@ -20,6 +20,7 @@ import {
 import { AlertTriangle, Eye, Loader2, Send, Wrench } from "lucide-react";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { FiltroColecao, lerColecoesUrl, gravarColecoesUrl } from "@/components/acervo/BlingCardPainel";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -134,7 +135,9 @@ export function XpmCadastroPainel() {
   });
 
   // Filtro por coleção — vive na URL (?colecao=) para o link poder ser compartilhado.
-  const [colecaoFiltro, setColecaoFiltro] = useAbaUrl("", undefined, "colecao");
+  const [colecaoUrl, setColecaoUrl] = useAbaUrl("", undefined, "colecao");
+  const colecaoFiltro = useMemo(() => lerColecoesUrl(colecaoUrl), [colecaoUrl]);
+  const setColecaoFiltro = (l: string[]) => setColecaoUrl(gravarColecoesUrl(l));
 
   const colecoes = useMemo(() => {
     const cont = new Map<string, number>();
@@ -148,14 +151,17 @@ export function XpmCadastroPainel() {
 
   // Coleção escolhida deixou de existir na fila → volta para "Todas as coleções".
   useEffect(() => {
-    if (!isLoading && colecaoFiltro && !colecoes.some(([c]) => c === colecaoFiltro)) setColecaoFiltro("");
-  }, [isLoading, colecoes, colecaoFiltro, setColecaoFiltro]);
+    if (isLoading) return;
+    const validas = colecaoFiltro.filter((f) => colecoes.some(([c]) => c === f));
+    if (validas.length !== colecaoFiltro.length) setColecaoUrl(gravarColecoesUrl(validas));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, colecoes, colecaoUrl]);
 
   // A coleção filtra a base de todos os blocos (combina E com os filtros de classe já existentes).
   const porColecao = useMemo(
     () =>
-      colecaoFiltro
-        ? (linhas ?? []).filter((l) => (l.colecao ?? "").trim() === colecaoFiltro)
+      colecaoFiltro.length
+        ? (linhas ?? []).filter((l) => colecaoFiltro.includes((l.colecao ?? "").trim()))
         : linhas ?? [],
     [linhas, colecaoFiltro],
   );
@@ -363,19 +369,7 @@ export function XpmCadastroPainel() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={colecaoFiltro || "todas"} onValueChange={(v) => setColecaoFiltro(v === "todas" ? "" : v)}>
-              <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Todas as coleções" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as coleções</SelectItem>
-                {colecoes.map(([c, n]) => (
-                  <SelectItem key={c} value={c}>
-                    {c} ({n})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FiltroColecao colecoes={colecoes} selecionadas={colecaoFiltro} onChange={setColecaoFiltro} />
             <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
             <Button
               size="sm"
