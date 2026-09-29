@@ -163,9 +163,7 @@ Deno.serve(async (req) => {
     const { data: tk, error: tkErr } = await sb
       .from("correios_token")
       .select("token, expira_em")
-      .eq("ambiente", "PRODUCAO")
-      .order("atualizado_em", { ascending: false })
-      .limit(1)
+      .eq("id", "singleton")
       .maybeSingle();
     if (tkErr) return fail(`erro ao ler token Correios: ${tkErr.message}`, 500);
     if (!tk?.token) return fail("token Correios ausente", 503);
