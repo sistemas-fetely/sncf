@@ -332,6 +332,24 @@ serve(async (req) => {
         continue;
       }
 
+      // Origem no SNCF: grava somente se estiver nula (não sobrescrever).
+      if (porSku.get(sku)?.origem_fisc == null) {
+        const { error: origemErr } = await supabase
+          .from("sncf_produtos")
+          .update({ origem_fisc: origemFiscal })
+          .eq("sku", sku)
+          .is("origem_fisc", null);
+        if (origemErr) {
+          falhas.push({
+            sku,
+            status: null,
+            corpo: `criado no Bling (id ${blingId}) mas não gravou origem no SNCF: ${origemErr.message}`,
+          });
+          console.error(`[criar-produto-bling] ${sku}: falha ao gravar origem no SNCF — ${origemErr.message}`);
+          continue;
+        }
+      }
+
       criados.push({ sku, bling_id: String(blingId) });
       console.log(`[criar-produto-bling] ${sku}: criado no Bling (id ${blingId})`);
     }
