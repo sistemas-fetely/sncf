@@ -237,9 +237,22 @@ export function XpmCadastroPainel() {
     onError: (e) => toast.error(`Falha ao corrigir categoria: ${formatError(e)}`),
   });
 
-  const acima = selecionados.length > TETO_SKUS;
+  // Só os SKUs selecionados E visíveis (respeitam a coleção escolhida) vão para o XPM.
+  const visiveis = useMemo(
+    () => [...vendaveisFora, ...saude, ...preVenda],
+    [vendaveisFora, saude, preVenda],
+  );
+  const selecionadasVisiveis = useMemo(
+    () =>
+      visiveis
+        .filter((l) => !!l.sku && selecionados.includes(l.sku))
+        .map((l) => l.sku as string),
+    [visiveis, selecionados],
+  );
+
+  const acima = selecionadasVisiveis.length > TETO_SKUS;
   const enviando = cadastrar.isPending;
-  const semSkus = selecionados.length === 0;
+  const semSkus = selecionadasVisiveis.length === 0;
 
   if (isLoading) {
     return (
@@ -278,13 +291,26 @@ export function XpmCadastroPainel() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{selecionados.length} selecionado(s)</Badge>
+            <Select value={colecaoFiltro || "todas"} onValueChange={(v) => setColecaoFiltro(v === "todas" ? "" : v)}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Todas as coleções" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as coleções</SelectItem>
+                {colecoes.map(([c, n]) => (
+                  <SelectItem key={c} value={c}>
+                    {c} ({n})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
             <Button
               size="sm"
               variant="outline"
               className="gap-2"
               disabled={semSkus || acima || verPayload.isPending}
-              onClick={() => verPayload.mutate(selecionados)}
+              onClick={() => verPayload.mutate(selecionadasVisiveis)}
             >
               {verPayload.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Eye className="h-3.5 w-3.5" />}
               Ver payload
@@ -294,7 +320,7 @@ export function XpmCadastroPainel() {
               className="gap-2"
               disabled={semSkus || acima || !payloadVisto || enviando || !podeCadastrarXpm}
               title={!podeCadastrarXpm ? tituloSemPermissao : undefined}
-              onClick={() => cadastrar.mutate(selecionados)}
+              onClick={() => cadastrar.mutate(selecionadasVisiveis)}
             >
               {enviando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               Cadastrar no XPM
