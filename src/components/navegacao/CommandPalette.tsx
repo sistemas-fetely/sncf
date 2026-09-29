@@ -7,7 +7,7 @@ import {
   BookOpen, MessageSquare, Settings, Sliders,
   Receipt, Calendar, Heart, Building2, ChevronRight,
   CreditCard, UserSearch,
-  ShoppingCart, Truck, Store, DollarSign, Wallet, TrendingUp, GitCompare,
+  ShoppingCart, Truck, Package, Store, DollarSign, Wallet, TrendingUp, GitCompare,
   FileSignature, FolderArchive, Route, ListChecks,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -37,7 +37,7 @@ const ALL_PAGES: PageItem[] = [
   { rota: "/fala-fetely/conhecimento", titulo: "Base de Conhecimento", pilar: "sncf", icon: BookOpen, tags: ["conhecimento", "base"] },
   
   { rota: "/compras", titulo: "Compras", pilar: "sncf", icon: Receipt, tags: ["compras", "pedidos"] },
-  { rota: "/logistica/chegada-mercadoria", titulo: "Chegada de Mercadoria", pilar: "sops", icon: Truck, tags: ["chegada", "mercadoria", "recebimento", "importação", "importacao", "entrada", "xpm", "de-para", "fornecedor", "compras"] },
+  { rota: "/vendas/produto/chegada-mercadoria", titulo: "Chegada de Mercadoria", pilar: "sops", icon: Package, tags: ["chegada", "mercadoria", "recebimento", "importação", "importacao", "entrada", "xpm", "de-para", "fornecedor", "compras"] },
   { rota: "/credito", titulo: "Análise de Crédito", pilar: "credito", icon: CreditCard, tags: ["crédito", "análise", "limite"] },
   { rota: "/vendas/produto", titulo: "Produto", pilar: "sops", icon: LayoutGrid, tags: ["produto", "cockpit", "sku", "catálogo"] },
   { rota: "/vendas/produto/estoque/virtual", titulo: "Estoque Virtual", pilar: "sops", icon: LayoutGrid, tags: ["estoque", "virtual", "comercial", "produtos", "bling"] },

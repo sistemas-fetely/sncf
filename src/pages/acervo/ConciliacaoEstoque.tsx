@@ -297,7 +297,7 @@ export default function ConciliacaoEstoque() {
     if (c.correcao === "ajustar_armazem") return isSuperAdmin
       ? <label className="flex items-center gap-2 text-xs"><Checkbox checked={selecionados.has(c.sku)} onCheckedChange={() => alternar(c.sku)} />Ajustar pelo armazém</label>
       : <span className="text-xs text-muted-foreground">Ajuste pelo armazém (super admin)</span>;
-    if (c.correcao === "contagem") return <Link to="/logistica/chegada-mercadoria?aba=recebimento-loja" className="text-xs text-primary underline-offset-2 hover:underline">Contar na Chegada de Mercadoria</Link>;
+    if (c.correcao === "contagem") return <Link to="/vendas/produto/chegada-mercadoria?aba=recebimento-loja" className="text-xs text-primary underline-offset-2 hover:underline">Contar na Chegada de Mercadoria</Link>;
     if (c.correcao === "canais") return <span className="text-xs">O envio a cada 15 min corrige; se persistir, veja a sincronização.</span>;
     return <span className="text-muted-foreground">—</span>;
   }
