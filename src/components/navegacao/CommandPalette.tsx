@@ -7,7 +7,7 @@ import {
   BookOpen, MessageSquare, Settings, Sliders,
   Receipt, Calendar, Heart, Building2, ChevronRight,
   CreditCard, UserSearch,
-  ShoppingCart, Truck, Store, DollarSign, Wallet, TrendingUp, GitCompare,
+  ShoppingCart, Truck, Package, Store, DollarSign, Wallet, TrendingUp, GitCompare,
   FileSignature, FolderArchive, Route, ListChecks,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
