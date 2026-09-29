@@ -2326,9 +2326,40 @@ export default function PedidoDetalhe() {
                       ))}
                     </div>
                   )}
-                  {isApi && !cotacaoApiAtual && (
-                    <p className="text-xs text-muted-foreground">Correios não tem tabela de preço — use Comparar transportadoras para cotar.</p>
-                  )}
+                  {isApi && !cotacaoApiAtual && (() => {
+                    // Estimativa Correios salva no pedido: se o JSON gravado foi
+                    // gerado pela cotação da API e pertence à transportadora
+                    // selecionada, reexibimos o mesmo bloco a partir do salvo.
+                    const jsonSalvo = pedido.estimativa_frete_json as Record<string, unknown> | null;
+                    const salvoValido =
+                      jsonSalvo?.origem_cotacao === "correios_cotar" &&
+                      jsonSalvo?.transportadora_id === transportadoraId;
+                    if (!salvoValido) {
+                      return (
+                        <p className="text-xs text-muted-foreground">Correios não tem tabela de preço — use Comparar transportadoras para cotar.</p>
+                      );
+                    }
+                    const nVol = Number(jsonSalvo?.n_volumes ?? 0);
+                    const salvaEm = pedido.estimativa_frete_em
+                      ? new Date(pedido.estimativa_frete_em).toLocaleDateString("pt-BR")
+                      : null;
+                    return (
+                      <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-1">
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Estimativa Correios · {(jsonSalvo?.servico as string) ?? "—"}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-base font-medium">{Number(pedido.estimativa_frete_valor ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</p>
+                          {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((Number(pedido.estimativa_frete_valor ?? 0) / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Prazo {(jsonSalvo?.prazo_dias as number | null) ?? "—"}d · {nVol} volume{nVol === 1 ? "" : "s"}</p>
+                        {Array.isArray(jsonSalvo?.avisos) && (jsonSalvo!.avisos as string[]).map((a, i) => (
+                          <p key={i} className="text-[11px] text-warning">{a}</p>
+                        ))}
+                        {salvaEm && (
+                          <p className="text-[11px] text-muted-foreground">salva em {salvaEm}</p>
+                        )}
+                      </div>
+                    );
+                  })()}
                   {freteEst.isLoading && transportadoraId && (
                     <p className="text-xs text-muted-foreground">Calculando frete...</p>
                   )}
