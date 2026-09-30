@@ -11,9 +11,10 @@ serve(async (req) => {
   if (req.method !== "POST") return json({ ok: false, erro: "Use POST" }, 405);
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return json({ ok: false, erro: "Não autorizado" }, 401);
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
-  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const url = Deno.env.get("SUPABASE_URL");
+  const anon = Deno.env.get("SUPABASE_ANON_KEY");
+  const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !anon || !service) return json({ ok: false, erro: "Configuração interna incompleta" }, 500);
   const jwtClient = createClient(url, anon, { global: { headers: { Authorization: auth } } });
   const token = auth.slice(7);
   const { data: claims, error: authError } = await jwtClient.auth.getClaims(token);

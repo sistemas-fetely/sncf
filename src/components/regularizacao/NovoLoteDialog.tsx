@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { rawMessage } from "@/lib/format-error";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -12,8 +13,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Props { aberto: boolean; onOpenChange: (v: boolean) => void; }
-interface Linha { sku: string; quantidade: number }
-
 function parseInventario(texto: string) {
   const mapa = new Map<string, number>();
   const invalidas: string[] = [];
@@ -46,7 +45,7 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
     const { data: out, error } = await supabase.rpc("reg_lote_criar", { p_titulo: titulo.trim(), p_centro_destino_codigo: centro, p_data_inventario: data, p_itens: previa.itens, p_observacao: observacao.trim() || undefined });
     if (error) throw error; const id = String((out as { id?: string } | null)?.id ?? ""); if (!id) throw new Error("O banco não retornou o lote criado.");
     const { error: distError } = await supabase.rpc("reg_lote_distribuir", { p_lote_id: id }); if (distError) throw distError; return id;
-  }, onSuccess: (id) => { toast.success("Lote criado e distribuído."); onOpenChange(false); navigate(`/estoque/regularizacao/${id}`); }, onError: (e) => toast.error(e instanceof Error ? e.message : String(e)) });
+  }, onSuccess: (id) => { toast.success("Lote criado e distribuído."); onOpenChange(false); navigate(`/estoque/regularizacao/${id}`); }, onError: (e) => toast.error(rawMessage(e)) });
   return <Dialog open={aberto} onOpenChange={onOpenChange}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Novo lote</DialogTitle></DialogHeader>
     <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label>Título *</Label><Input value={titulo} onChange={(e) => setTitulo(e.target.value)} /></div>
       <div className="space-y-1.5"><Label>Centro destino *</Label><Select value={centro} onValueChange={setCentro}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{centrosQ.data?.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.rotulo_curto ?? c.nome}</SelectItem>)}</SelectContent></Select></div>
