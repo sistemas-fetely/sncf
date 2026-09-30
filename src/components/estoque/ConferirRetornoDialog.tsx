@@ -592,7 +592,14 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                             </SelectTrigger>
                             <SelectContent>
                               {condicoes.map((opcao) => (
-                                <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                                <SelectItem key={opcao.codigo} value={opcao.codigo}>
+                                  <div className="flex flex-col">
+                                    <span>{rotuloConferencia(opcao)}</span>
+                                    {opcao.dica_conferencia && (
+                                      <span className="text-xs text-muted-foreground whitespace-normal">{opcao.dica_conferencia}</span>
+                                    )}
+                                  </div>
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
