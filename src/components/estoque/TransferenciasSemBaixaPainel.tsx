@@ -149,12 +149,12 @@ export function TransferenciasSemBaixaPainel({ onLancado }: { onLancado?: () => 
       </CardContent>
 
       <Dialog open={!!sel} onOpenChange={o => { if (!o && !rodando) setSel(null); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-w-2xl max-h-[90vh] !flex flex-col overflow-hidden">
+          <DialogHeader className="shrink-0">
             <DialogTitle>Declarar destino — NF {sel?.nf_numero ?? ""}</DialogTitle>
             <DialogDescription>Pedido {sel?.id_externo ?? "—"} · {sel?.itens ?? 0} itens · {sel?.unidades ?? 0} unidades</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="shrink-0 space-y-3">
             <div className="space-y-2">
               <Label>Destino</Label>
               <RadioGroup value={tipo} onValueChange={v => { setTipo(v as "centro" | "sem"); setPrevia(null); }}>
@@ -186,34 +186,48 @@ export function TransferenciasSemBaixaPainel({ onLancado }: { onLancado?: () => 
               {rodando === "previa" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Ver prévia
             </Button>
             {previa && (
-              <div className="space-y-3">
+              <>
                 <p className="text-sm font-medium">{previa.itens ?? 0} itens · {previa.unidades ?? 0} unidades</p>
-                {(previa.previa ?? []).length > 0 && (
-                  <Table>
-                    <TableHeader><TableRow><TableHead>NF</TableHead><TableHead>SKU</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead>Origem → destino</TableHead></TableRow></TableHeader>
-                    <TableBody>{previa.previa!.map((l, i) => (
-                      <TableRow key={i}><TableCell className="font-mono">{l.nf}</TableCell><TableCell className="font-mono">{l.sku}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell></TableRow>
-                    ))}</TableBody>
-                  </Table>
-                )}
                 {travados.length > 0 && (
                   <Alert variant="destructive">
                     <AlertTitle>Não dá para lançar ainda</AlertTitle>
                     <AlertDescription>
-                      <Table>
-                        <TableHeader><TableRow><TableHead>NF</TableHead><TableHead>SKU</TableHead><TableHead className="text-right">Qtd</TableHead><TableHead>Porque</TableHead></TableRow></TableHeader>
-                        <TableBody>{travados.map((t, i) => (
-                          <TableRow key={i}><TableCell className="font-mono">{t.nf}</TableCell><TableCell className="font-mono">{t.sku}</TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
-                        ))}</TableBody>
-                      </Table>
+                      <div className="max-h-48 overflow-y-auto">
+                        <Table>
+                          <TableHeader><TableRow>
+                            <TableHead className="sticky top-0 bg-background z-10">NF</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">SKU</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10 text-right">Qtd</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Porque</TableHead>
+                          </TableRow></TableHeader>
+                          <TableBody>{travados.map((t, i) => (
+                            <TableRow key={i}><TableCell className="font-mono">{t.nf}</TableCell><TableCell className="font-mono">{t.sku}</TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
+                          ))}</TableBody>
+                        </Table>
+                      </div>
                     </AlertDescription>
                   </Alert>
                 )}
                 {previa.ok === false && travados.length === 0 && previa.erro && <p className="text-sm text-destructive">{previa.erro}</p>}
-              </div>
+              </>
             )}
           </div>
-          <DialogFooter>
+          {previa && (previa.previa ?? []).length > 0 && (
+            <div className="flex-1 min-h-0 overflow-y-auto border-t pt-3">
+              <Table>
+                <TableHeader><TableRow>
+                  <TableHead className="sticky top-0 bg-background z-10">NF</TableHead>
+                  <TableHead className="sticky top-0 bg-background z-10">SKU</TableHead>
+                  <TableHead className="sticky top-0 bg-background z-10 text-right">Qtd</TableHead>
+                  <TableHead className="sticky top-0 bg-background z-10">Origem → destino</TableHead>
+                </TableRow></TableHeader>
+                <TableBody>{previa.previa!.map((l, i) => (
+                  <TableRow key={i}><TableCell className="font-mono">{l.nf}</TableCell><TableCell className="font-mono">{l.sku}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell></TableRow>
+                ))}</TableBody>
+              </Table>
+            </div>
+          )}
+          <DialogFooter className="shrink-0 border-t pt-4">
             <Button variant="outline" onClick={() => setSel(null)} disabled={!!rodando}>Cancelar</Button>
             <BotaoGuardado slug="acao.transferencia_destino_declarar" rotuloAcao="Declarar destino de transferência sem baixa" onClick={() => chamar(false)} disabled={!podeConfirmar || !!rodando}>
               {rodando === "gravar" && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar e lançar
