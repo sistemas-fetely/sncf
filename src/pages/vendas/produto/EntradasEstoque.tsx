@@ -124,19 +124,64 @@ export default function EntradasEstoque() {
   const entradasQ = useQuery({
     queryKey: ["estoque-entradas", de, ate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_estoque_entradas" as never)
-        .select(
-          "id, data, doc_tipo, doc_numero, termo, motivo, motivo_rotulo, condicao, classe, centro, centro_nome, sku, nome_comercial, quantidade, custo_unitario, valor, importacao_pedido_id, numero_pedido, nf_numero, nf_data, fornecedor, origem, obs, criado_em",
-        )
-        .gte("data", de)
-        .lte("data", ate)
-        .order("data", { ascending: false })
-        .limit(2000);
-      if (error) throw error;
-      return (data ?? []) as unknown as EntradaLinha[];
+      // POSTGREST-CORTA-EM-MIL: leitura em páginas de 1.000, ordem estável
+      const PAGINA = 1000;
+      const todasLinhas: EntradaLinha[] = [];
+      for (let offset = 0; ; offset += PAGINA) {
+        const { data, error } = await supabase
+          .from("vw_estoque_entradas" as never)
+          .select(
+            "id, data, doc_tipo, doc_numero, termo, motivo, motivo_rotulo, condicao, classe, centro, centro_nome, sku, nome_comercial, quantidade, custo_unitario, valor, importacao_pedido_id, numero_pedido, nf_numero, nf_data, fornecedor, origem, obs, criado_em",
+          )
+          .gte("data", de)
+          .lte("data", ate)
+          .order("data", { ascending: false })
+          .order("id")
+          .range(offset, offset + PAGINA - 1);
+        if (error) throw error;
+        const p = (data ?? []) as unknown as EntradaLinha[];
+        todasLinhas.push(...p);
+        if (p.length < PAGINA) break;
+      }
+      return todasLinhas;
     },
   });
+
+  const pendentesQ = useQuery({
+    queryKey: ["estoque-entrada-pendente"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_entrada_pendente")
+        .select(
+          "fonte, fonte_nome, documento, data, contraparte, itens, unidades, valor, centro_destino, modulo_dono, rota, o_que_falta",
+        )
+        .order("data", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PendenteLinha[];
+    },
+  });
+
+  const pendentes = useMemo(() => pendentesQ.data ?? [], [pendentesQ.data]);
+
+  const [fonteFiltro, setFonteFiltro] = useState<string | null>(null);
+  const [pendAberto, setPendAberto] = useState(true);
+
+  const pendentesPorFonte = useMemo(() => {
+    const m = new Map<string, { nome: string; docs: number; unidades: number }>();
+    pendentes.forEach((p) => {
+      const chave = p.fonte ?? "—";
+      const atual = m.get(chave) ?? { nome: p.fonte_nome ?? chave, docs: 0, unidades: 0 };
+      atual.docs += 1;
+      atual.unidades += Number(p.unidades ?? 0);
+      m.set(chave, atual);
+    });
+    return Array.from(m.entries());
+  }, [pendentes]);
+
+  const pendentesFiltradas = useMemo(
+    () => (fonteFiltro ? pendentes.filter((p) => (p.fonte ?? "—") === fonteFiltro) : pendentes),
+    [pendentes, fonteFiltro],
+  );
 
   const todas = useMemo(() => entradasQ.data ?? [], [entradasQ.data]);
 
