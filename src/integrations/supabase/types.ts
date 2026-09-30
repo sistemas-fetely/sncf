@@ -121656,6 +121656,15 @@ export type Database = {
         }
         Returns: Json
       }
+      registrar_reversa_devolucao: {
+        Args: {
+          p_devolucao_id: string
+          p_obs?: string
+          p_origem: string
+          p_rastreio: string
+        }
+        Returns: Json
+      }
       registrar_rota_nao_declarada: {
         Args: { p_era_super_admin?: boolean; p_rota: string }
         Returns: undefined

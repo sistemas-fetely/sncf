@@ -1,79 +1,143 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+/**
+ * FUNIL DE DEVOLUÇÕES (30/09/2026): uma linha por devolução, lida da view
+ * canônica `vw_devolucao_funil`. As 7 etapas (e1–e7) têm rótulo e descrição
+ * na dimensão `devolucao_etapa`. A conferência física é uma etapa do funil
+ * (ConferirRetornoDialog, inalterado).
+ */
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { FilterInput } from "@/components/ui/filter-input";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import { RefreshCw, Search, Undo2, PackageCheck } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChevronDown, ChevronRight, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatBRL, formatDateBR } from "@/lib/format-currency";
-import {
-  CabecalhoOrdenavel,
-  LINHA_CABECALHO_COLADO,
-  type DirecaoOrdenacao,
-} from "@/components/tabela/CabecalhoOrdenavel";
-import {
-  RodapePaginacao,
-  lerTamanhoPaginaSalvo,
-  type PageSizeOption,
-} from "@/components/tabela/RodapePaginacao";
-import {
-  useDevolucoesRetornoPendente,
-  type RetornoPendenteDevolucao,
-} from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import { formatBRL } from "@/lib/format-currency";
+import { formatError } from "@/lib/format-error";
+import { fmtDataHora } from "@/lib/data";
+import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
+import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
+import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
+import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 
-type ColunaDevolucao =
-  | "devolucao" | "nf" | "motivo" | "devolvido_em" | "esperando" | "unidades" | "custo";
-
-type OrdenacaoDevolucao = { coluna: ColunaDevolucao; dir: DirecaoOrdenacao } | null;
-
-/** Espera, unidade e dinheiro descem: o que mais doi vem primeiro. */
-const DIR_INICIAL_DEVOLUCAO: Record<ColunaDevolucao, DirecaoOrdenacao> = {
-  devolucao: "asc", nf: "asc", motivo: "asc", devolvido_em: "desc",
-  esperando: "desc", unidades: "desc", custo: "desc",
+type Funil = {
+  id: string; numero: string | null; canal: string | null; status: string | null; status_efetivo: string | null;
+  pedido_ref: string | null; cliente: string | null; motivo_rotulo: string | null; culpa: string | null;
+  dias_desde: number | null; valor_credito: number | null; skus: number | null;
+  qtd_declarada: number | null; qtd_retornada: number | null; qtd_pendente: number | null;
+  destino_codigo: string | null; reversa_origem: string | null; rastreio_efetivo: string | null; rastreio_status: string | null;
+  frete_reverso_por_conta: string | null;
+  e1_aberta: boolean; e2_reversa: boolean; e3_recebida: boolean; e4_conferida: boolean;
+  e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
+  nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
+  refund_ok: boolean | null; refund_valor: number | null;
+  recebido_em: string | null; criado_em: string | null; encerrado_em: string | null;
 };
+type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null };
 
-/** CasaHeader = 4rem. Mesmo numero que ancora o `top-16` do bloco de KPIs. */
+const QK_FUNIL = ["vw_devolucao_funil"];
+const FINAIS = new Set(["encerrada", "cancelada"]);
+const ETAPA_CAMPO: Record<number, keyof Funil> = {
+  1: "e1_aberta", 2: "e2_reversa", 3: "e3_recebida", 4: "e4_conferida", 5: "e5_nf_resolvida", 6: "e6_ressarcida", 7: "e7_encerrada",
+};
 const ALTURA_CASA_HEADER = 64;
-
 const CHAVE_PAGINA_DEVOLUCAO = "fetely:estoque:retorno-devolucao:page-size";
+const sb = supabase as any;
 
 function formatNum(v: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(Number(v ?? 0));
 }
+const ehAberta = (d: Funil) => !FINAIS.has(String(d.status_efetivo ?? d.status ?? ""));
+
+async function rpc(nome: string, args: Record<string, unknown>) {
+  const { data, error } = await sb.rpc(nome, args);
+  if (error) throw error;
+  if (data && typeof data === "object" && (data as any).ok === false) throw new Error((data as any).erro ?? "O banco recusou a operação.");
+  return data;
+}
+
+function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
+  return (
+    <div className="flex items-center gap-1">
+      {etapas.map((e) => {
+        const campo = ETAPA_CAMPO[e.ordem];
+        const feito = campo ? Boolean(d[campo]) : false;
+        const sugerida = e.ordem === 5 && !feito && !!d.nf_retorno_sugerida;
+        return (
+          <Tooltip key={e.codigo}>
+            <TooltipTrigger asChild>
+              <span className={cn("h-3 w-3 rounded-full border",
+                feito ? "bg-primary border-primary" : sugerida ? "bg-warning border-warning" : "bg-muted border-border")} />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <div className="font-medium">{e.ordem}. {e.rotulo}</div>
+              {e.descricao && <div className="text-xs">{e.descricao}</div>}
+              {sugerida && <div className="text-xs mt-1">NF de retorno {d.nf_retorno_sugerida} capturada — confirme o vínculo na mesa fiscal</div>}
+            </TooltipContent>
+          </Tooltip>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function RetornoDevolucao() {
-  const { data: devolucoes = [], isLoading, isFetching, refetch } = useDevolucoesRetornoPendente();
+  const qc = useQueryClient();
+  const funilQ = useQuery({
+    queryKey: QK_FUNIL,
+    queryFn: async () => {
+      const out: Funil[] = [];
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await sb.from("vw_devolucao_funil").select("*").order("criado_em", { ascending: false }).order("id").range(de, de + 999);
+        if (error) throw error;
+        out.push(...((data ?? []) as Funil[]));
+        if (!data || data.length < 1000) break;
+      }
+      return out;
+    },
+  });
+  const etapasQ = useQuery({
+    queryKey: ["devolucao_etapa"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("devolucao_etapa").select("codigo, rotulo, ordem, natureza, descricao").order("ordem");
+      if (error) throw error;
+      return (data ?? []) as Etapa[];
+    },
+  });
+  const pendQ = useDevolucoesRetornoPendente();
+
+  const devolucoes = funilQ.data ?? [];
+  const etapas = etapasQ.data ?? [];
+  const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
+
   const [busca, setBusca] = useState("");
-  const [selecionado, setSelecionado] = useState<RetornoPendenteDevolucao | null>(null);
-
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoDevolucao>(null);
+  const [canal, setCanal] = useState<"todos" | "b2b" | "b2c">("todos");
+  const [soAbertas, setSoAbertas] = useState(true);
+  const [expandido, setExpandido] = useState<string | null>(null);
+  const [conferirId, setConferirId] = useState<string | null>(null);
+  const [receber, setReceber] = useState<Funil | null>(null);
+  const [reversa, setReversa] = useState<Funil | null>(null);
+  const [estornar, setEstornar] = useState<Funil | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [tamanhoPagina, setTamanhoPagina] = useState(() =>
-    lerTamanhoPaginaSalvo(CHAVE_PAGINA_DEVOLUCAO),
-  );
+  const [tamanhoPagina, setTamanhoPagina] = useState(() => lerTamanhoPaginaSalvo(CHAVE_PAGINA_DEVOLUCAO));
 
-  const ordenarPor = (coluna: ColunaDevolucao) => {
-    setOrdenacao((atual) => {
-      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_DEVOLUCAO[coluna] };
-      const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
-      // Fechou o ciclo: volta a ordem que a view entrega.
-      return invertida === DIR_INICIAL_DEVOLUCAO[coluna] ? null : { coluna, dir: invertida };
-    });
-  };
+  useEffect(() => { setPagina(1); }, [busca, canal, soAbertas]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, ordenacao]);
-
-  // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
-  // altura deles muda (os cards quebram linha em tela menor). Mede, nao chuta.
   const kpisRef = useRef<HTMLDivElement>(null);
   const [alturaKpis, setAlturaKpis] = useState(0);
-
   useEffect(() => {
     const el = kpisRef.current;
     if (!el) return;
@@ -86,257 +150,315 @@ export default function RetornoDevolucao() {
 
   const filtrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q) return devolucoes;
-    return devolucoes.filter(
-      (p) =>
-        p.devolucao_numero?.toLowerCase().includes(q) ||
-        p.id_externo?.toLowerCase().includes(q) ||
-        p.nf?.toLowerCase().includes(q) ||
-        p.itens.some(
-          (i) =>
-            i.sku.toLowerCase().includes(q) ||
-            i.nome_comercial?.toLowerCase().includes(q),
-        ),
-    );
-  }, [devolucoes, busca]);
-
-  // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
-  const ordenados = useMemo(() => {
-    if (!ordenacao) return filtrados;
-    const dir = ordenacao.dir === "asc" ? 1 : -1;
-    const valorDe = (p: RetornoPendenteDevolucao): string | number | null => {
-      switch (ordenacao.coluna) {
-        case "devolucao": return p.devolucao_numero ?? null;
-        case "nf": return p.nf ?? null;
-        case "motivo": return p.motivo ?? null;
-        case "devolvido_em": {
-          const t = p.devolvido_em ? Date.parse(p.devolvido_em) : NaN;
-          return Number.isNaN(t) ? null : t;
-        }
-        case "esperando": return p.dias_esperando ?? null;
-        case "unidades": return Number(p.unidades_pendentes ?? 0);
-        case "custo": return Number(p.valor_custo_pendente ?? 0);
-        default: return null;
-      }
-    };
-    return [...filtrados].sort((a, b) => {
-      const va = valorDe(a);
-      const vb = valorDe(b);
-      if (va == null && vb == null) return 0;
-      if (va == null) return 1;
-      if (vb == null) return -1;
-      if (typeof va === "string" || typeof vb === "string") {
-        return String(va).localeCompare(String(vb), "pt-BR", { numeric: true }) * dir;
-      }
-      return (Number(va) - Number(vb)) * dir;
+    return devolucoes.filter((d) => {
+      if (canal !== "todos" && d.canal !== canal) return false;
+      if (soAbertas && !ehAberta(d)) return false;
+      if (!q) return true;
+      const p = pendMap.get(d.id);
+      return (
+        d.numero?.toLowerCase().includes(q) || d.pedido_ref?.toLowerCase().includes(q) ||
+        d.cliente?.toLowerCase().includes(q) || d.rastreio_efetivo?.toLowerCase().includes(q) ||
+        p?.nf?.toLowerCase().includes(q) ||
+        p?.itens.some((i) => i.sku.toLowerCase().includes(q) || i.nome_comercial?.toLowerCase().includes(q))
+      );
     });
-  }, [filtrados, ordenacao]);
+  }, [devolucoes, busca, canal, soAbertas, pendMap]);
 
-  const totalPaginasDevolucao = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
-  const paginaAtual = Math.min(pagina, totalPaginasDevolucao);
-  const paginaItens = ordenados.slice(
-    (paginaAtual - 1) * tamanhoPagina,
-    paginaAtual * tamanhoPagina,
-  );
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const paginaItens = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
 
-  const totalUnidades = devolucoes.reduce((s, p) => s + p.unidades_pendentes, 0);
-  const totalValor = devolucoes.reduce((s, p) => s + p.valor_custo_pendente, 0);
+  const abertas = devolucoes.filter(ehAberta);
+  const paradas = abertas.filter((d) => (d.dias_desde ?? 0) > 30).length;
+  const totalUnidades = devolucoes.reduce((s, d) => s + Number(d.qtd_pendente ?? 0), 0);
+  const totalValor = (pendQ.data ?? []).reduce((s, p) => s + p.valor_custo_pendente, 0);
 
-  // mantém a devolução aberta sincronizada com o refetch da view
-  const devolucaoAberta = selecionado
-    ? devolucoes.find((d) => d.devolucao_id === selecionado.devolucao_id) ?? null
-    : null;
+  const invalidar = async () => {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: QK_FUNIL }),
+      qc.invalidateQueries({ queryKey: ["devolucao-retorno-pendente"] }),
+    ]);
+  };
+
+  const conferir = conferirId ? pendMap.get(conferirId) ?? null : null;
+  const isFetching = funilQ.isFetching || pendQ.isFetching;
 
   return (
     <PageShell variant="dados" className="animate-casa-fade-in">
+      <TooltipProvider delayDuration={150}>
       <div style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}>
         <CasaPageHeader
-          breadcrumb={[
-            { label: "Casa", to: "/" },
-            { label: "SOPs" },
-            { label: "Produto" },
-            { label: "Estoque" },
-            { label: "Retorno de devolução" },
-          ]}
-          title="Conferência de retorno de devolução"
-          subtitle="Mercadoria devolvida só volta ao estoque depois da conferência física. Retorno parcial é normal."
+          breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções" }]}
+          title="Devoluções"
+          subtitle="Funil completo: da abertura ao encerramento. Retorno parcial é normal."
           actions={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => refetch()}
-              disabled={isFetching}
-              className="gap-2"
-            >
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
-              Atualizar
+            <Button variant="outline" size="sm" onClick={() => { void funilQ.refetch(); void pendQ.refetch(); }} disabled={isFetching} className="gap-2">
+              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />Atualizar
             </Button>
           }
         />
 
-        <div
-          ref={kpisRef}
-          className="sticky top-16 z-20 -mx-6 grid grid-cols-1 gap-3 bg-background px-6 py-2 sm:grid-cols-3"
-        >
-          <div className="rounded-md border bg-card p-4">
-            <div className="text-xs text-muted-foreground">Devoluções aguardando conferência</div>
-            <div className="text-2xl font-medium tabular-nums">{formatNum(devolucoes.length)}</div>
-          </div>
-          <div className="rounded-md border bg-card p-4">
-            <div className="text-xs text-muted-foreground">Unidades pendentes</div>
-            <div className="text-2xl font-medium tabular-nums">{formatNum(totalUnidades)}</div>
-          </div>
-          <div className="rounded-md border bg-card p-4">
-            <div className="text-xs text-muted-foreground">Custo parado</div>
-            <div className="text-2xl font-medium tabular-nums">{formatBRL(totalValor)}</div>
-          </div>
+        <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-1 gap-3 bg-background px-6 py-2 sm:grid-cols-4">
+          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Devoluções abertas</div><div className="text-2xl font-medium tabular-nums">{formatNum(abertas.length)}</div></div>
+          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Paradas há +30d</div><div className="text-2xl font-medium tabular-nums">{formatNum(paradas)}</div></div>
+          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Unidades pendentes</div><div className="text-2xl font-medium tabular-nums">{formatNum(totalUnidades)}</div></div>
+          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Custo parado</div><div className="text-2xl font-medium tabular-nums">{formatBRL(totalValor)}</div></div>
         </div>
 
-        <div className="flex items-center gap-3 mb-4">
+        <div className="flex flex-wrap items-center gap-3 mb-4">
           <div className="relative flex-1 min-w-[240px] max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <FilterInput
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por devolução, pedido, NF, SKU ou produto"
-              className="pl-9"
-            />
+            <FilterInput value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por devolução, pedido, cliente, NF, SKU ou produto" className="pl-9" />
           </div>
-          <span className="text-xs text-muted-foreground ml-auto">
-            {filtrados.length} {filtrados.length === 1 ? "devolução" : "devoluções"}
-          </span>
+          <ToggleGroup type="single" size="sm" variant="outline" value={canal} onValueChange={(v) => v && setCanal(v as typeof canal)}>
+            <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
+            <ToggleGroupItem value="b2b">B2B</ToggleGroupItem>
+            <ToggleGroupItem value="b2c">B2C</ToggleGroupItem>
+          </ToggleGroup>
+          <label className="flex items-center gap-2 text-sm"><Switch checked={soAbertas} onCheckedChange={setSoAbertas} />Só abertas</label>
+          <span className="text-xs text-muted-foreground ml-auto">{filtrados.length} {filtrados.length === 1 ? "devolução" : "devoluções"}</span>
         </div>
+
+        {(funilQ.isError || etapasQ.isError || pendQ.isError) && (
+          <Alert variant="destructive" className="mb-4"><AlertDescription>{formatError(funilQ.error ?? etapasQ.error ?? pendQ.error)}</AlertDescription></Alert>
+        )}
 
         <div className="rounded-md border bg-card">
           <Table containerClassName="overflow-visible">
             <TableHeader>
               <TableRow className={LINHA_CABECALHO_COLADO}>
-                <CabecalhoOrdenavel
-                  rotulo="Devolução"
-                  className="w-[210px]"
-                  dir={ordenacao?.coluna === "devolucao" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("devolucao")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="NF de saída"
-                  className="w-[130px]"
-                  dir={ordenacao?.coluna === "nf" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("nf")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="Motivo"
-                  dir={ordenacao?.coluna === "motivo" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("motivo")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="Devolvido em"
-                  className="w-[130px]"
-                  dir={ordenacao?.coluna === "devolvido_em" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("devolvido_em")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="Esperando"
-                  className="w-[110px] text-right"
-                  alinharDireita
-                  dir={ordenacao?.coluna === "esperando" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("esperando")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="Unidades"
-                  className="w-[110px] text-right"
-                  alinharDireita
-                  dir={ordenacao?.coluna === "unidades" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("unidades")}
-                />
-                <CabecalhoOrdenavel
-                  rotulo="Custo pendente"
-                  className="w-[130px] text-right"
-                  alinharDireita
-                  dir={ordenacao?.coluna === "custo" ? ordenacao.dir : null}
-                  onOrdenar={() => ordenarPor("custo")}
-                />
+                <TableHead className="w-8" />
+                <TableHead className="w-[190px]">Devolução</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Motivo</TableHead>
+                <TableHead className="w-[80px] text-right">Dias</TableHead>
+                <TableHead className="w-[150px]">Funil</TableHead>
+                <TableHead className="w-[90px] text-right">Pendente</TableHead>
                 <TableHead className="w-[130px]" />
               </TableRow>
             </TableHeader>
             <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    Carregando…
-                  </TableCell>
-                </TableRow>
+              {funilQ.isLoading ? (
+                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
               ) : filtrados.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12 text-muted-foreground">
-                    <PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />
-                    Nenhuma devolução aguardando conferência.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginaItens.map((p) => (
-                  <TableRow key={p.devolucao_id}>
-                    <TableCell>
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-medium">{p.devolucao_numero ?? "—"}</span>
-                        {p.canal === "b2c" && (
-                          <Badge variant="outline" className="font-normal">B2C</Badge>
+                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
+              ) : paginaItens.map((d) => {
+                const aberto = expandido === d.id;
+                const dias = d.dias_desde ?? 0;
+                const p = pendMap.get(d.id);
+                return (
+                  <Fragment key={d.id}>
+                    <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : d.id)}>
+                      <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-medium">{d.numero ?? "—"}</span>
+                          {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
+                      </TableCell>
+                      <TableCell className="text-sm max-w-[220px] truncate">{d.cliente ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{d.motivo_rotulo ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="outline" className={cn("font-normal tabular-nums",
+                          dias > 30 ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : dias > 10 ? "bg-warning/10 text-warning border-warning/20"
+                              : "bg-success/10 text-success border-success/20")}>
+                          {formatNum(d.dias_desde)} d
+                        </Badge>
+                      </TableCell>
+                      <TableCell><FunilSteps d={d} etapas={etapas} /></TableCell>
+                      <TableCell className="text-right tabular-nums font-medium">{formatNum(d.qtd_pendente)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        {!d.e3_recebida && ehAberta(d) ? (
+                          <Button size="sm" className="gap-2" onClick={() => setReceber(d)}><PackageCheck className="h-4 w-4" />Receber</Button>
+                        ) : d.e3_recebida && !d.e4_conferida ? (
+                          <Button size="sm" className="gap-2" disabled={!p}
+                            title={p ? undefined : "Sem itens pendentes de conferência para esta devolução"}
+                            onClick={() => setConferirId(d.id)}><Undo2 className="h-4 w-4" />Conferir</Button>
+                        ) : (
+                          <Button size="sm" variant="ghost" onClick={() => setExpandido(aberto ? null : d.id)}>Detalhes</Button>
                         )}
-                        {p.tipo === "parcial" && (
-                          <Badge variant="outline" className="font-normal">Parcial</Badge>
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Pedido {p.id_externo ?? "—"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{p.nf ?? "—"}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[280px] truncate">
-                      {p.motivo ?? "—"}
-                    </TableCell>
-                    <TableCell className="text-sm">{formatDateBR(p.devolvido_em)}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "font-normal tabular-nums",
-                          (p.dias_esperando ?? 0) >= 30
-                            ? "bg-destructive/10 text-destructive border-destructive/20"
-                            : (p.dias_esperando ?? 0) >= 7
-                              ? "bg-warning/10 text-warning border-warning/20"
-                              : "bg-muted text-muted-foreground border-border",
-                        )}
-                      >
-                        {formatNum(p.dias_esperando)} d
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
-                      {formatNum(p.unidades_pendentes)}
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatBRL(p.valor_custo_pendente)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button size="sm" className="gap-2" onClick={() => setSelecionado(p)}>
-                        <Undo2 className="h-4 w-4" />
-                        Conferir
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
+                      </TableCell>
+                    </TableRow>
+                    {aberto && (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={8}>
+                          <div className="grid gap-4 p-2 md:grid-cols-2 xl:grid-cols-4 text-sm">
+                            <div className="space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
+                              {d.rastreio_efetivo ? (
+                                <>
+                                  <div className="font-mono">{d.rastreio_efetivo}</div>
+                                  <div className="text-muted-foreground">{d.rastreio_status ?? "Sem status de rastreio"}{d.reversa_origem ? ` · ${d.reversa_origem}` : ""}</div>
+                                </>
+                              ) : (
+                                <Button size="sm" variant="outline" onClick={() => setReversa(d)}>Registrar etiqueta reversa</Button>
+                              )}
+                              {d.frete_reverso_por_conta && <div className="text-xs text-muted-foreground">Frete por conta: {d.frete_reverso_por_conta}</div>}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground">Financeiro</div>
+                              {d.canal === "b2c" ? (
+                                d.refund_ok
+                                  ? <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">Reembolsado {formatBRL(d.refund_valor ?? 0)} na loja</Badge>
+                                  : <Badge variant="outline" className="bg-muted text-muted-foreground font-normal">Sem reembolso na loja</Badge>
+                              ) : (
+                                <>
+                                  <div>Crédito: {d.valor_credito != null ? formatBRL(d.valor_credito) : "—"}</div>
+                                  <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {d.status_efetivo ?? d.status ?? "—"}</div>
+                                </>
+                              )}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground">Recebimento</div>
+                              {d.e3_recebida ? (
+                                <>
+                                  <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
+                                  <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setEstornar(d)}>Estornar recebimento</Button>
+                                </>
+                              ) : <div className="text-muted-foreground">Ainda não recebida</div>}
+                            </div>
+                            <div className="space-y-1">
+                              <div className="text-xs font-medium text-muted-foreground">Itens</div>
+                              <div>Declarado {formatNum(d.qtd_declarada)} × retornado {formatNum(d.qtd_retornada)} · {formatNum(d.skus)} SKU(s)</div>
+                              {p && (
+                                <ul className="text-xs text-muted-foreground space-y-0.5">
+                                  {p.itens.map((i) => (
+                                    <li key={i.sku}><span className="font-mono">{i.sku}</span> {i.nome_comercial ?? ""} — saiu {formatNum(i.qtd_saiu)}, voltou {formatNum(i.qtd_ja_retornada)}, pendente {formatNum(i.qtd_pendente)}</li>
+                                  ))}
+                                </ul>
+                              )}
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
 
-        <RodapePaginacao
-          total={ordenados.length}
-          pagina={paginaAtual}
-          tamanhoPagina={tamanhoPagina}
-          chavePreferencia={CHAVE_PAGINA_DEVOLUCAO}
-          onPagina={setPagina}
-          onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
-        />
+        <RodapePaginacao total={filtrados.length} pagina={paginaAtual} tamanhoPagina={tamanhoPagina}
+          chavePreferencia={CHAVE_PAGINA_DEVOLUCAO} onPagina={setPagina} onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)} />
       </div>
+      </TooltipProvider>
+
+      <ConferirRetornoDialog open={!!conferir} onOpenChange={(v) => { if (!v) { setConferirId(null); void invalidar(); } }} devolucao={conferir} />
+      <ReceberDialog d={receber} onFechar={() => setReceber(null)} onOk={invalidar} />
+      <ReversaDialog d={reversa} onFechar={() => setReversa(null)} onOk={invalidar} />
+      <EstornarDialog d={estornar} onFechar={() => setEstornar(null)} onOk={invalidar} />
     </PageShell>
+  );
+}
+
+type DlgProps = { d: Funil | null; onFechar: () => void; onOk: () => Promise<void> };
+
+function useAcao(onOk: () => Promise<void>, onFechar: () => void) {
+  const [rodando, setRodando] = useState(false);
+  const run = async (nome: string, args: Record<string, unknown>, msg: string) => {
+    setRodando(true);
+    try {
+      await rpc(nome, args);
+      toast.success(msg);
+      await onOk();
+      onFechar();
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setRodando(false);
+    }
+  };
+  return { rodando, run };
+}
+
+function ReceberDialog({ d, onFechar, onOk }: DlgProps) {
+  const [centro, setCentro] = useState("XPM-SC");
+  const [obs, setObs] = useState("");
+  const { rodando, run } = useAcao(onOk, onFechar);
+  useEffect(() => { if (d) { setCentro("XPM-SC"); setObs(""); } }, [d]);
+  return (
+    <Dialog open={!!d} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Receber devolução {d?.numero ?? ""}</DialogTitle><DialogDescription>Declara a chegada física no centro.</DialogDescription></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Centro</Label>
+            <Select value={centro} onValueChange={setCentro}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="XPM-SC">XPM-SC</SelectItem><SelectItem value="SITE-SP">SITE-SP</SelectItem></SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Observação</Label><Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar} disabled={rodando}>Cancelar</Button>
+          <Button disabled={rodando} onClick={() => d && run("declarar_recebimento_devolucao",
+            { p_devolucao_id: d.id, p_centro: centro, p_obs: obs.trim() || null, p_data: new Date().toISOString() },
+            `Devolução ${d.numero ?? ""} recebida em ${centro}`)}>
+            {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar recebimento
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function ReversaDialog({ d, onFechar, onOk }: DlgProps) {
+  const [rastreio, setRastreio] = useState("");
+  const [origem, setOrigem] = useState("correios");
+  const [obs, setObs] = useState("");
+  const { rodando, run } = useAcao(onOk, onFechar);
+  useEffect(() => { if (d) { setRastreio(""); setOrigem("correios"); setObs(""); } }, [d]);
+  return (
+    <Dialog open={!!d} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Etiqueta reversa — {d?.numero ?? ""}</DialogTitle><DialogDescription>Registre o rastreio da logística reversa.</DialogDescription></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Rastreio *</Label><Input value={rastreio} onChange={(e) => setRastreio(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Origem</Label>
+            <Select value={origem} onValueChange={setOrigem}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="bling">Bling</SelectItem>
+                <SelectItem value="correios">Correios</SelectItem>
+                <SelectItem value="cliente_postou">Cliente postou</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Observação</Label><Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar} disabled={rodando}>Cancelar</Button>
+          <Button disabled={rodando || !rastreio.trim()} onClick={() => d && run("registrar_reversa_devolucao",
+            { p_devolucao_id: d.id, p_rastreio: rastreio.trim(), p_origem: origem, p_obs: obs.trim() || null },
+            `Etiqueta reversa registrada em ${d.numero ?? ""}`)}>
+            {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Registrar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EstornarDialog({ d, onFechar, onOk }: DlgProps) {
+  const [motivo, setMotivo] = useState("");
+  const { rodando, run } = useAcao(onOk, onFechar);
+  useEffect(() => { if (d) setMotivo(""); }, [d]);
+  return (
+    <Dialog open={!!d} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Estornar recebimento — {d?.numero ?? ""}</DialogTitle><DialogDescription>Desfaz a declaração de chegada física.</DialogDescription></DialogHeader>
+        <div className="space-y-1"><Label>Motivo *</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar} disabled={rodando}>Cancelar</Button>
+          <Button variant="destructive" disabled={rodando || !motivo.trim()} onClick={() => d && run("estornar_recebimento_devolucao",
+            { p_devolucao_id: d.id, p_motivo: motivo.trim() }, `Recebimento de ${d.numero ?? ""} estornado`)}>
+            {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Estornar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
