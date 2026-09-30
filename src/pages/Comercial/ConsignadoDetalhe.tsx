@@ -1610,7 +1610,7 @@ export default function ConsignadoDetalhe() {
                                   ehRecebimento && "border-success/40 bg-success/10 text-success",
                                 )}
                               >
-                                {l.tipo ?? "—"}
+                                {rotuloTipo ?? "—"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs">{l.descricao ?? "—"}{l.pedido_ref && <span className="block text-muted-foreground">{l.pedido_ref}</span>}{l.nao_classificado && <span className="mt-0.5 flex items-center gap-1 text-warning"><AlertTriangle className="h-3 w-3" /> NF sem pedido vinculado</span>}</TableCell>
