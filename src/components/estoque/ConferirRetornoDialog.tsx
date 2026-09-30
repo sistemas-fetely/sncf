@@ -648,7 +648,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                                 <div className="space-y-1.5">
                                   <Label>Condição destino</Label>
                                   <Select value={separarCondicao} onValueChange={setSepararCondicao}>
-                                    <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue /></SelectTrigger>
+                                    <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue><span className="truncate">{separarCondicao ? rotuloConferencia(condicoes.find((o) => o.codigo === separarCondicao) ?? { codigo: separarCondicao, rotulo: separarCondicao, rotulo_conferencia: null, dica_conferencia: null }) : "Selecione…"}</span></SelectValue></SelectTrigger>
                                     <SelectContent>
                                       {condicoes.filter((x) => x.codigo !== c.condicao).map((opcao) => (
                                         <SelectItem key={opcao.codigo} value={opcao.codigo}>
