@@ -26,6 +26,7 @@ type Remessa = {
 };
 type Previa = {
   ok?: boolean; erro?: string; dry_run?: boolean; gravado?: boolean; itens?: number; unidades?: number;
+  exposicao?: { atual: number | null; remessa: number | null; depois: number | null; maxima: number | null; aviso: string | null };
   travados?: { sku: string; qtd: number; porque: string }[];
   previa?: { sku: string; qtd: number; origem: string; destino: string }[];
 };
@@ -124,6 +125,18 @@ export function RemessasAVincularPainel({ parceiroId, parceiroNome }: { parceiro
             {previa && (
               <>
                 <p className="text-sm font-medium">{previa.itens ?? 0} itens · {previa.unidades ?? 0} unidades</p>
+                {previa.exposicao && (
+                  <p className="text-sm text-muted-foreground">
+                    Exposição no parceiro: {formatBRL(previa.exposicao.atual)} → {formatBRL(previa.exposicao.depois)}
+                    {previa.exposicao.maxima != null ? ` de ${formatBRL(previa.exposicao.maxima)}` : ""}
+                  </p>
+                )}
+                {previa.exposicao?.aviso && (
+                  <Alert className="border-warning/50 bg-warning/10 text-foreground">
+                    <AlertTitle>Atenção à exposição</AlertTitle>
+                    <AlertDescription>{previa.exposicao.aviso}</AlertDescription>
+                  </Alert>
+                )}
                 {travados.length > 0 && (
                   <Alert variant="destructive">
                     <AlertTitle>Não dá para vincular ainda</AlertTitle>

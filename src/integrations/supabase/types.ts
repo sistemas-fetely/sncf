@@ -16566,6 +16566,7 @@ export type Database = {
           criado_em: string
           criado_por: string | null
           dia_repasse: number | null
+          exposicao_maxima: number | null
           id: string
           modelo: string
           observacao: string | null
@@ -16582,6 +16583,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           dia_repasse?: number | null
+          exposicao_maxima?: number | null
           id?: string
           modelo: string
           observacao?: string | null
@@ -16598,6 +16600,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           dia_repasse?: number | null
+          exposicao_maxima?: number | null
           id?: string
           modelo?: string
           observacao?: string | null
@@ -121203,6 +121206,7 @@ export type Database = {
         Args: {
           p_centro_codigo: string
           p_dia_repasse: number
+          p_exposicao_maxima?: number
           p_modelo: string
           p_observacao?: string
           p_parceiro_id: string

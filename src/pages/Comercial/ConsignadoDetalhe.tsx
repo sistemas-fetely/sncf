@@ -27,6 +27,7 @@ import {
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Progress } from "@/components/ui/progress";
 import {
   Loader2, AlertTriangle, Plus, Trash2, ExternalLink, HandCoins, Boxes, Undo2, Copy,
   ClipboardPaste, Search, Gavel, Download, Upload, CheckCircle2,
@@ -260,6 +261,7 @@ export default function ConsignadoDetalhe() {
       "consignado-acerto-detalhe-itens",
       "consignado-itens-acertos",
       "consignado-parceiro",
+      "consignado-kpi-parceiro",
     ].map((k) => qc.invalidateQueries({ queryKey: [k] })));
   };
 
@@ -280,7 +282,7 @@ export default function ConsignadoDetalhe() {
       if (ce.error) throw ce.error;
       return { ...c, modelo_nome: (m.data?.nome ?? c.modelo) as string, centro_codigo: (ce.data?.codigo ?? null) as string | null, centro_nome: (ce.data?.nome ?? null) as string | null } as {
         modelo: string; modelo_nome: string; centro_codigo: string | null; centro_nome: string | null; vigencia_inicio: string | null; vigencia_meses: number | null;
-        renovacao_automatica: boolean | null; pct_retencao: number | null; dia_repasse: number | null; observacao: string | null;
+        renovacao_automatica: boolean | null; pct_retencao: number | null; dia_repasse: number | null; exposicao_maxima: number | null; observacao: string | null;
       };
     },
   });
@@ -296,6 +298,20 @@ export default function ConsignadoDetalhe() {
         .maybeSingle();
       if (error) throw error;
       return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null } | null;
+    },
+  });
+
+  const kpiParceiroQ = useQuery({
+    queryKey: ["consignado-kpi-parceiro", parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_consignado_kpi_parceiro")
+        .select("capital_parado")
+        .eq("parceiro_id", parceiroId)
+        .maybeSingle();
+      if (error) throw error;
+      return data as { capital_parado: number | null } | null;
     },
   });
 
@@ -350,6 +366,7 @@ export default function ConsignadoDetalhe() {
 
   // FONTE DO MODELO: a conta corrente manda; a view de limite é o espelho.
   const modelo: string | null = cc?.consignado_modelo ?? limite?.consignado_modelo ?? null;
+  const ehVendaFora = modelo === "venda_fora" || contratoQ.data?.modelo === "venda_fora";
   const ehConsignacaoFiscal = modelo === "consignacao_fiscal";
   const diaAcerto = cc?.dia_acerto ?? limite?.dia_acerto ?? null;
 
@@ -1020,18 +1037,18 @@ export default function ConsignadoDetalhe() {
         ].filter(Boolean).join(" · ")}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge
-              variant={creditoOk ? "outline" : "destructive"}
-              className={cn(creditoOk && "border-success/40 bg-success/10 text-success")}
-            >
-              {creditoOk ? "Crédito ok" : "Crédito bloqueado"}
-            </Badge>
-            {podeArbitrar && (
+            {!ehVendaFora && <Badge
+                variant={creditoOk ? "outline" : "destructive"}
+                className={cn(creditoOk && "border-success/40 bg-success/10 text-success")}
+              >
+                {creditoOk ? "Crédito ok" : "Crédito bloqueado"}
+              </Badge>}
+            {podeArbitrar && !ehVendaFora && (
               <Button variant="outline" size="sm" onClick={() => setArbitrarAberto(true)}>
                 <Gavel className="h-4 w-4" /> Arbitrar limite
               </Button>
             )}
-            {limite && (
+            {limite && !ehVendaFora && (
               <span className="text-[11px] text-muted-foreground tabular-nums">
                 {formatBRL(limite.limite_disponivel)} disponíveis · {limite.uso_pct ?? "—"}% usado
               </span>
@@ -1040,7 +1057,7 @@ export default function ConsignadoDetalhe() {
         }
       />
 
-      {operacaoBloqueada && (
+      {operacaoBloqueada && !ehVendaFora && (
         <Alert variant="destructive" className="border-2">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription className="space-y-1 text-sm">
@@ -1140,6 +1157,25 @@ export default function ConsignadoDetalhe() {
                   <div><div className="text-xs text-muted-foreground">Vigência</div>{contratoQ.data.vigencia_inicio ? formatDateBR(contratoQ.data.vigencia_inicio) : "—"}{contratoQ.data.vigencia_meses != null && ` · ${contratoQ.data.vigencia_meses} meses`}{contratoQ.data.renovacao_automatica && <span className="text-muted-foreground"> · renova automaticamente</span>}</div>
                   <div><div className="text-xs text-muted-foreground">% retido</div>{contratoQ.data.pct_retencao != null ? `${String(contratoQ.data.pct_retencao).replace(".", ",")}%` : "—"}</div>
                   <div><div className="text-xs text-muted-foreground">Dia do repasse</div>{contratoQ.data.dia_repasse ?? "—"}</div>
+                  <div className="sm:col-span-2">
+                    <div className="text-xs text-muted-foreground">Exposição</div>
+                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                      <span>Máxima: {contratoQ.data.exposicao_maxima != null ? formatBRL(contratoQ.data.exposicao_maxima) : "sem limite"}</span>
+                      <span>Atual: {kpiParceiroQ.isLoading ? "Carregando…" : kpiParceiroQ.isError ? "Erro ao carregar" : formatBRL(kpiParceiroQ.data?.capital_parado)}</span>
+                    </div>
+                    {contratoQ.data.exposicao_maxima != null && contratoQ.data.exposicao_maxima > 0 && !kpiParceiroQ.isLoading && !kpiParceiroQ.isError && (() => {
+                      const percentual = (Number(kpiParceiroQ.data?.capital_parado ?? 0) / contratoQ.data.exposicao_maxima) * 100;
+                      return (
+                        <div className="mt-2 flex items-center gap-2">
+                          <Progress
+                            value={Math.min(percentual, 100)}
+                            className={cn("h-2 flex-1", percentual > 100 ? "[&>div]:bg-destructive" : percentual >= 80 ? "[&>div]:bg-warning" : "[&>div]:bg-success")}
+                          />
+                          <span className={cn("text-xs tabular-nums text-muted-foreground", percentual > 100 && "text-destructive", percentual >= 80 && percentual <= 100 && "text-warning")}>{percentual.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
                   {contratoQ.data.observacao && <div className="sm:col-span-3"><div className="text-xs text-muted-foreground">Observação</div>{contratoQ.data.observacao}</div>}
                 </div>
               )}

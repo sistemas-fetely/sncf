@@ -41,6 +41,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
   const [renova, setRenova] = useState(true);
   const [pct, setPct] = useState("");
   const [dia, setDia] = useState("");
+  const [exposicaoMaxima, setExposicaoMaxima] = useState("");
   const [obs, setObs] = useState("");
   const [salvando, setSalvando] = useState(false);
 
@@ -100,7 +101,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
   useEffect(() => {
     if (!aberto) return;
     setParceiro(null); setBusca(""); setModelo(""); setCentro(""); setInicio(hojeISO()); setMeses("12");
-    setRenova(true); setPct(""); setDia(""); setObs(""); setSalvando(false);
+    setRenova(true); setPct(""); setDia(""); setExposicaoMaxima(""); setObs(""); setSalvando(false);
   }, [aberto]);
 
   // preenche com contrato ativo
@@ -117,6 +118,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
       setRenova(c.renovacao_automatica ?? true);
       setPct(c.pct_retencao != null ? String(c.pct_retencao) : "");
       setDia(c.dia_repasse != null ? String(c.dia_repasse) : "");
+      setExposicaoMaxima(c.exposicao_maxima != null ? String(c.exposicao_maxima) : "");
       setObs(c.observacao ?? "");
     }
   }, [aberto, parceiroFixoQ.data]);
@@ -125,6 +127,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
     const nMeses = Number(meses);
     const nPct = pct.trim() === "" ? null : Number(pct.replace(",", "."));
     const nDia = dia.trim() === "" ? null : Number(dia);
+    const nExposicaoMaxima = exposicaoMaxima.trim() === "" ? null : Number(exposicaoMaxima.replace(",", "."));
     if (!parceiro) return toast.error("Escolha o parceiro.");
     if (!modelo) return toast.error("Escolha o modelo.");
     if (!centro) return toast.error("Escolha o centro do parceiro.");
@@ -132,6 +135,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
     if (!Number.isInteger(nMeses) || nMeses <= 0) return toast.error("Duração deve ser um número inteiro de meses maior que zero.");
     if (nPct != null && (isNaN(nPct) || nPct < 0 || nPct > 99.999)) return toast.error("% retido deve estar entre 0 e 99,999.");
     if (nDia != null && (!Number.isInteger(nDia) || nDia < 1 || nDia > 31)) return toast.error("Dia do repasse deve ser entre 1 e 31.");
+    if (nExposicaoMaxima != null && (!Number.isFinite(nExposicaoMaxima) || nExposicaoMaxima < 0)) return toast.error("Exposição máxima deve ser um valor válido maior ou igual a zero.");
     setSalvando(true);
     try {
       const { data, error } = await sb.rpc("fn_consignado_contrato_salvar", {
@@ -143,6 +147,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
         p_renovacao_automatica: renova,
         p_pct_retencao: nPct,
         p_dia_repasse: nDia,
+        p_exposicao_maxima: nExposicaoMaxima,
         p_observacao: obs.trim() || null,
       });
       if (error) throw error;
@@ -227,6 +232,18 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
               <p className="text-xs text-muted-foreground">Tudo o que o parceiro retém na venda: aluguel, comissões e sistema</p>
             </div>
             <div className="space-y-1"><Label>Dia do repasse</Label><Input type="number" min={1} max={31} value={dia} onChange={e => setDia(e.target.value)} /></div>
+          </div>
+
+          <div className={cn("space-y-1 rounded border p-3", modelo === "venda_fora" && "border-warning/60 bg-warning/5")}>
+            <Label htmlFor="exposicao-maxima">Exposição máxima na loja (R$, a custo){modelo === "venda_fora" ? " *" : ""}</Label>
+            <Input
+              id="exposicao-maxima"
+              inputMode="decimal"
+              value={exposicaoMaxima}
+              onChange={e => setExposicaoMaxima(e.target.value)}
+              placeholder="Sem limite"
+            />
+            <p className="text-xs text-muted-foreground">Valor máximo de mercadoria nossa no parceiro. A remessa avisa quando passar.</p>
           </div>
 
           <div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={e => setObs(e.target.value)} rows={2} /></div>
