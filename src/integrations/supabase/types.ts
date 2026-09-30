@@ -85189,6 +85189,7 @@ export type Database = {
           e6_ressarcida: boolean | null
           e7_encerrada: boolean | null
           encerrado_em: string | null
+          exige_transferencia_cd: boolean | null
           frete_reverso_por_conta: string | null
           haver_id: string | null
           id: string | null
