@@ -1587,7 +1587,14 @@ export default function ConsignadoDetalhe() {
                     <TableBody>
                       {(extratoQ.data ?? []).map((l, i) => {
                         // ACERTO É EVENTO, NÃO MOVIMENTO: valor NULL não vira R$ 0,00.
-                        const ehAcerto = l.tipo === "acerto";
+                        // O rótulo "acerto" só vale para o evento (ref ace:) ou para o
+                        // título que é o titulo_acerto_id de algum acerto; título filho
+                        // do rotativo que é remessa nova aparece como "remessa".
+                        const refId = l.ref?.includes(":") ? l.ref.slice(l.ref.indexOf(":") + 1) : l.ref;
+                        const ehEventoAcerto = l.tipo === "acerto" && !!l.ref?.startsWith("ace:");
+                        const ehTituloAcerto = l.tipo === "acerto" && !!refId && idsTituloAcerto.has(refId);
+                        const ehAcerto = ehEventoAcerto || ehTituloAcerto;
+                        const rotuloTipo = l.tipo === "acerto" && !ehAcerto ? "remessa" : l.tipo;
                         const ehRecebimento = l.tipo === "recebimento";
                         const v = Number(l.valor ?? 0);
                         const credito = v < 0;
