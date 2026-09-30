@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -35,7 +36,6 @@ interface LinhaCockpit {
   colecao: string | null;
   centro: string | null;
   contabil: number | null;
-  fisico: number | null;
   virtual: number | null;
   reservado: number | null;
   custo_unitario: number | null;
@@ -43,23 +43,17 @@ interface LinhaCockpit {
   vendas_janela: number | null;
   janela_dias: number | null;
   tempo_estoque_dias: number | null;
-  furo: number | null;
-  contagem_em_dia: boolean | null;
-  exige_contagem: boolean | null;
   situacao: string | null;
   em_transito: number | null;
   eta_embarque: string | null;
-  real_centro: number | null;
-  divergencia_real: number | null;
   ticket_medio: number | null;
   fonte_ticket: string | null;
   valor_venda: number | null;
   valor_empenhado: number | null;
-  saude: string | null;
 }
 
 const COLS =
-  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fisico,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,furo,contagem_em_dia,exige_contagem,situacao,em_transito,eta_embarque,real_centro,divergencia_real,ticket_medio,fonte_ticket,valor_venda,valor_empenhado,saude";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
 
 /** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
 interface LinhaTabela {
@@ -70,7 +64,6 @@ interface LinhaTabela {
   cor_nome: string | null;
   situacao: string | null;
   contabil: number;
-  fisico: number;
   virtual: number;
   reservado: number;
   valor_custo: number;
@@ -80,14 +73,10 @@ interface LinhaTabela {
   eta_embarque: string | null;
   valor_venda: number;
   valor_empenhado: number;
-  real_xpm: number | null;
-  real_site: number | null;
-  divergencia: number;
   ticket: number | null;
   fonte_ticket: string | null;
-  saude: string | null;
   em_transito: number;
-  /** Contábil por centro (código → un). */
+  /** Fiscal por centro (código → un). */
   por_centro: Record<string, number>;
   /** Vendas na janela por centro (código → un). */
   por_centro_vendas: Record<string, number>;
@@ -107,7 +96,7 @@ function totalCentros(p: LinhaTabela) {
 function totalCentrosVendas(p: LinhaTabela) {
   return Object.values(p.por_centro_vendas).reduce((s, v) => s + v, 0);
 }
-/** Giro anualizado: vendas da janela ÷ contábil × (365 ÷ janela). Null sem base. */
+/** Giro anualizado: vendas da janela ÷ fiscal × (365 ÷ janela). Null sem base. */
 function giroAnual(vendas: number, contabil: number, janela: number): number | null {
   if (!(contabil > 0) || !(vendas > 0) || !(janela > 0)) return null;
   return (vendas / contabil) * (365 / janela);
@@ -130,17 +119,6 @@ const SORT_PADRAO: Record<Visao, SortState<ColSort>> = {
   valor: { column: "vvenda", direction: "desc" },
   centros: { column: "total", direction: "desc" },
 };
-const PESO_SAUDE: Record<string, number> = { ok: 1, contagem_vencida: 2, furo: 3, diverge_real: 3 };
-function piorSaude(a: string | null, b: string | null) {
-  return (PESO_SAUDE[b ?? ""] ?? 0) > (PESO_SAUDE[a ?? ""] ?? 0) ? b : a;
-}
-const SAUDE_INFO: Record<string, { cor: string; texto: string }> = {
-  ok: { cor: "bg-success", texto: "Sem pendências" },
-  contagem_vencida: { cor: "bg-warning", texto: "Contagem vencida" },
-  furo: { cor: "bg-destructive", texto: "Furo entre contábil e físico" },
-  diverge_real: { cor: "bg-destructive", texto: "Armazém difere do SNCF" },
-};
-
 interface CanalCentro {
   sku: string;
   centro: string;
@@ -157,9 +135,11 @@ interface CanalCentro {
 const COLS_CANAIS =
   "sku,centro,centro_nome,fiscal_total,fisico_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
 
+interface TriadeCentro { sku: string; centro: string; com_diferenca: boolean }
+
 interface Onboarding { com_razao: number; skus_ativos: number; seguro_desligar_bling: boolean }
 
-type Col = "cod" | "nome" | "situacao" | "saude" | "contabil" | "fisico" | "realxpm" | "realsite" | "diverg" | "virtual" | "tempo" | "chegada" | "reservado" | "ticket" | "vcusto" | "vvenda" | "vemp" | "transito";
+type Col = "cod" | "nome" | "situacao" | "conciliacao" | "contabil" | "virtual" | "tempo" | "chegada" | "reservado" | "ticket" | "vcusto" | "vvenda" | "vemp" | "transito";
 
 const n = (v: number | null | undefined) => Number(v ?? 0);
 function formatNum(v: number | null | undefined) {
@@ -280,6 +260,26 @@ export default function EstoqueVirtual() {
     queryFn: () => carregarPaginado<LinhaCockpit>("vw_estoque_cockpit", COLS, ["sku", "centro"]),
   });
 
+  const conciliacaoQuery = useQuery({
+    queryKey: ["vw_estoque_triade_centro", "cockpit_status"],
+    staleTime: 3 * 60 * 1000,
+    queryFn: () => carregarPaginado<TriadeCentro>("vw_estoque_triade_centro", "sku,centro,com_diferenca", ["sku", "centro"]),
+  });
+
+  const centrosComDiferenca = useMemo(() => {
+    const mapa = new Map<string, string[]>();
+    for (const linha of conciliacaoQuery.data ?? []) {
+      if (!linha.com_diferenca || !linha.sku || !linha.centro) continue;
+      const lista = mapa.get(linha.sku) ?? [];
+      if (!lista.includes(linha.centro)) lista.push(linha.centro);
+      mapa.set(linha.sku, lista);
+    }
+    return mapa;
+  }, [conciliacaoQuery.data]);
+
+  const diferencasNoRecorte = (sku: string | null) =>
+    (centrosComDiferenca.get(sku ?? "") ?? []).filter((centro) => centroFiltro === "todos" || centro === centroFiltro);
+
   const canaisQuery = useQuery({
     queryKey: ["vw_estoque_canais_centro"],
     staleTime: 3 * 60 * 1000,
@@ -374,16 +374,13 @@ export default function EstoqueVirtual() {
       return recorte.map((l) => ({
         chave: `${chaveProduto(l)}|${l.centro}`,
         cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial, cor_nome: l.cor_nome,
-        situacao: l.situacao, contabil: n(l.contabil), fisico: n(l.fisico), virtual: n(l.virtual),
+        situacao: l.situacao, contabil: n(l.contabil), virtual: n(l.virtual),
         reservado: n(l.reservado), valor_custo: n(l.valor_custo), vendas_janela: n(l.vendas_janela),
         janela_dias: n(l.janela_dias),
         tempo: l.tempo_estoque_dias ?? tempoDias(n(l.virtual), n(l.vendas_janela), n(l.janela_dias)),
         eta_embarque: l.eta_embarque,
         valor_venda: n(l.valor_venda), valor_empenhado: n(l.valor_empenhado),
-        real_xpm: l.centro === "XPM-SC" ? l.real_centro : null,
-        real_site: l.centro === "SITE-SP" ? l.real_centro : null,
-        divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
-        saude: l.saude, em_transito: n(l.em_transito),
+        ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
         por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
         por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
       }));
@@ -396,15 +393,12 @@ export default function EstoqueVirtual() {
       if (!a) {
         m.set(k, {
           chave: k, cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial,
-          cor_nome: l.cor_nome, situacao: l.situacao, contabil: n(l.contabil), fisico: n(l.fisico),
+          cor_nome: l.cor_nome, situacao: l.situacao, contabil: n(l.contabil),
           virtual: n(l.virtual), reservado: n(l.reservado), valor_custo: n(l.valor_custo),
           vendas_janela: n(l.vendas_janela), janela_dias: n(l.janela_dias), tempo: null,
           eta_embarque: l.eta_embarque,
           valor_venda: n(l.valor_venda), valor_empenhado: n(l.valor_empenhado),
-          real_xpm: l.centro === "XPM-SC" ? l.real_centro : null,
-          real_site: l.centro === "SITE-SP" ? l.real_centro : null,
-          divergencia: n(l.divergencia_real), ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket,
-          saude: l.saude, em_transito: n(l.em_transito),
+          ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
           por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
           por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
         });
@@ -414,7 +408,6 @@ export default function EstoqueVirtual() {
           a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
         }
         a.contabil += n(l.contabil);
-        a.fisico += n(l.fisico);
         a.virtual += n(l.virtual);
         a.reservado += n(l.reservado);
         a.valor_custo += n(l.valor_custo);
@@ -424,10 +417,6 @@ export default function EstoqueVirtual() {
         a.cod_cadastro ??= l.cod_cadastro;
         a.valor_venda += n(l.valor_venda);
         a.valor_empenhado += n(l.valor_empenhado);
-        a.divergencia += n(l.divergencia_real);
-        if (l.centro === "XPM-SC") a.real_xpm = l.real_centro;
-        if (l.centro === "SITE-SP") a.real_site = l.real_centro;
-        a.saude = piorSaude(a.saude, l.saude);
         a.em_transito = Math.max(a.em_transito, n(l.em_transito));
         if (l.eta_embarque && (!a.eta_embarque || l.eta_embarque < a.eta_embarque)) a.eta_embarque = l.eta_embarque;
       }
@@ -444,7 +433,8 @@ export default function EstoqueVirtual() {
   }, [recorte, recorteSemCentro, centroFiltro, visao]);
 
   const cartoes = useMemo(() => {
-    let contabil = 0, valor = 0, valorVenda = 0, vendas = 0, virtual = 0, janela = 0, saudaveis = 0;
+    let contabil = 0, valor = 0, valorVenda = 0, vendas = 0, virtual = 0, janela = 0;
+    const produtos = new Set<string>();
     const transito = new Map<string, number>();
     for (const l of recorte) {
       contabil += n(l.contabil);
@@ -453,16 +443,18 @@ export default function EstoqueVirtual() {
       vendas += n(l.vendas_janela);
       virtual += n(l.virtual);
       janela = Math.max(janela, n(l.janela_dias));
-      if (n(l.furo) === 0 && (l.contagem_em_dia || l.exige_contagem === false)) saudaveis++;
       const k = chaveProduto(l);
+      produtos.add(k);
       transito.set(k, Math.max(transito.get(k) ?? 0, n(l.em_transito)));
     }
     const giro = contabil > 0 && janela > 0 ? (vendas / contabil) * (365 / janela) : null;
     const tempo = tempoDias(virtual, vendas, janela);
-    const saude = recorte.length > 0 ? (saudaveis / recorte.length) * 100 : null;
+    const semDiferenca = conciliacaoQuery.isSuccess && produtos.size > 0
+      ? ([...produtos].filter((sku) => diferencasNoRecorte(sku).length === 0).length / produtos.size) * 100
+      : null;
     const emTransito = [...transito.values()].reduce((s, v) => s + v, 0);
-    return { contabil, valor, valorVenda, vendas, janela, giro, tempo, saude, emTransito };
-  }, [recorte]);
+    return { contabil, valor, valorVenda, vendas, janela, giro, tempo, semDiferenca, emTransito };
+  }, [recorte, conciliacaoQuery.isSuccess, centrosComDiferenca, centroFiltro]);
 
   const ordenados = useMemo(() => {
     const col = sort?.column;
@@ -482,12 +474,8 @@ export default function EstoqueVirtual() {
         cod: (p) => p.cod_cadastro ?? "",
         nome: (p) => p.nome_comercial ?? "",
         situacao: (p) => p.situacao ?? "",
-        saude: (p) => PESO_SAUDE[p.saude ?? ""] ?? 0,
+        conciliacao: (p) => conciliacaoQuery.isSuccess ? (diferencasNoRecorte(p.sku).length > 0 ? 1 : 0) : 0,
         contabil: (p) => p.contabil,
-        fisico: (p) => p.fisico,
-        realxpm: (p) => p.real_xpm ?? -Infinity,
-        realsite: (p) => p.real_site ?? -Infinity,
-        diverg: (p) => p.divergencia,
         virtual: (p) => p.virtual,
         // nulos por último na ordem crescente (menor cobertura primeiro)
         tempo: (p) => p.tempo ?? Number.MAX_SAFE_INTEGER,
@@ -499,7 +487,7 @@ export default function EstoqueVirtual() {
         vemp: (p) => p.valor_empenhado,
         transito: (p) => p.em_transito,
     });
-  }, [tabela, sort]);
+  }, [tabela, sort, conciliacaoQuery.isSuccess, centrosComDiferenca, centroFiltro]);
 
   const totalPaginas = Math.max(1, Math.ceil(ordenados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -531,7 +519,7 @@ export default function EstoqueVirtual() {
 
   function ordenarColuna(coluna: ColSort) {
     setSort((atual) => {
-      if (atual?.column !== coluna) return { column: coluna, direction: "asc" };
+      if (atual?.column !== coluna) return { column: coluna, direction: coluna === "conciliacao" ? "desc" : "asc" };
       if (atual.direction === "asc") return { column: coluna, direction: "desc" };
       return null;
     });
@@ -588,7 +576,7 @@ export default function EstoqueVirtual() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { void cockpitQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); void onboardingQuery.refetch(); }}
+            onClick={() => { void cockpitQuery.refetch(); void conciliacaoQuery.refetch(); void canaisQuery.refetch(); void syncQuery.refetch(); void onboardingQuery.refetch(); }}
             disabled={cockpitQuery.isFetching}
             className="gap-2"
           >
@@ -621,6 +609,11 @@ export default function EstoqueVirtual() {
           Falha ao carregar o estoque: {formatError(cockpitQuery.error)}
         </div>
       )}
+      {conciliacaoQuery.isError && (
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar a Conciliação de Estoque: {formatError(conciliacaoQuery.error)}
+        </div>
+      )}
       {canaisQuery.isError && (
         <div className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           Falha ao carregar estoque por centro: {formatError(canaisQuery.error)}
@@ -649,10 +642,11 @@ export default function EstoqueVirtual() {
           sub="de cobertura"
         />
         <CartaoNumero
-          rotulo="Saúde"
-          valor={cartoes.saude == null ? "—" : `${cartoes.saude.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
-          sub="sem furo e com contagem em dia"
-          alerta={cartoes.saude != null && cartoes.saude < 90 ? "warning" : null}
+          rotulo="Sem diferença"
+          valor={cartoes.semDiferenca == null ? "—" : `${cartoes.semDiferenca.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+          sub="produtos sem diferença na conciliação"
+          alerta={cartoes.semDiferenca != null && cartoes.semDiferenca < 90 ? "warning" : null}
+          to="/vendas/produto/estoque/conciliacao"
         />
         <CartaoNumero
           rotulo="Em trânsito"
@@ -814,13 +808,9 @@ export default function EstoqueVirtual() {
                 {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
                 {cabecalho("nome", "Produto", "")}
                 {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
-                {cabecalho("saude", "Saúde", "w-[54px] min-[1440px]:w-[62px] text-center")}
+                {cabecalho("conciliacao", "Conciliação", "w-[90px] min-[1440px]:w-[108px] text-center")}
                 {visao === "estoque" && <>
-                {cabecalho("contabil", "Contábil", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("fisico", "Físico", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("realxpm", "Real XPM", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("realsite", "Site SP", "w-[72px] min-[1440px]:w-[84px]", true)}
-                {cabecalho("diverg", "Divergência", "w-[86px] min-[1440px]:w-[94px]", true)}
+                {cabecalho("contabil", "Fiscal", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho(
                   "tempo",
@@ -866,26 +856,24 @@ export default function EstoqueVirtual() {
                       </Badge>
                     ) : <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell className="text-center">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span
-                          className={cn("inline-block h-2 w-2 rounded-full", SAUDE_INFO[p.saude ?? ""]?.cor ?? "bg-muted-foreground/40")}
-                          aria-label={SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent>{SAUDE_INFO[p.saude ?? ""]?.texto ?? "Sem dado"}</TooltipContent>
-                    </Tooltip>
+                  <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                    {!conciliacaoQuery.isSuccess ? <span className="text-muted-foreground">—</span> : (() => {
+                      const diferentes = diferencasNoRecorte(p.sku);
+                      return diferentes.length > 0 ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link to={`/vendas/produto/estoque/conciliacao?q=${encodeURIComponent(p.cod_cadastro || p.sku || "")}`}>
+                              <Badge variant="outline" className="border-warning/30 bg-warning/10 text-warning">{diferentes.length} {diferentes.length === 1 ? "centro" : "centros"}</Badge>
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent>{diferentes.join(", ")}</TooltipContent>
+                        </Tooltip>
+                      ) : <span className="text-success" title="Sem diferença" aria-label="Sem diferença">✓</span>;
+                    })()}
                   </TableCell>
                 </>}
                 {visao === "estoque" && <>
                   <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatNum(p.fisico)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numOuTraco(p.real_xpm)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numOuTraco(p.real_site)}</TableCell>
-                  <TableCell className={cn("text-right tabular-nums", p.divergencia !== 0 && "font-medium text-destructive")}>
-                    {p.divergencia === 0 ? <span className="text-muted-foreground">—</span> : `${p.divergencia > 0 ? "+" : "−"}${formatNum(Math.abs(p.divergencia))}`}
-                  </TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
@@ -1033,14 +1021,15 @@ function tempoRelativo(iso: string) {
 }
 
 function CartaoNumero({
-  rotulo, valor, sub, alerta = null,
+  rotulo, valor, sub, alerta = null, to,
 }: {
   rotulo: string;
   valor: string;
   sub?: string;
   alerta?: "destructive" | "warning" | null;
+  to?: string;
 }) {
-  return (
+  const conteudo = (
     <div
       className={cn(
         "flex h-20 flex-col justify-center rounded-md border bg-card p-3",
@@ -1053,4 +1042,5 @@ function CartaoNumero({
       {sub && <span className="truncate text-[11px] text-muted-foreground">{sub}</span>}
     </div>
   );
+  return to ? <Link to={to} className="block rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">{conteudo}</Link> : conteudo;
 }
