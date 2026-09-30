@@ -31,6 +31,7 @@ interface LinhaQuarentena {
   produto: string | null;
   saldo: number;
   ultimo_mov: string | null;
+  bloqueio_venda: string | null;
 }
 
 interface GrupoQuarentena {
