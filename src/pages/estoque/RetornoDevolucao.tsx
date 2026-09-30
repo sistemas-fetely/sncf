@@ -67,6 +67,20 @@ const sb = supabase as any;
 function formatNum(v: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(Number(v ?? 0));
 }
+/** dd/mm/aa em Brasília (timestamptz). */
+function fmtDataCurta(v: string | null | undefined, vazio = "—") {
+  if (!v) return vazio;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return vazio;
+  return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+/** dd/mm em Brasília (timestamptz). */
+function fmtDiaMes(v: string | null | undefined, vazio = "—") {
+  if (!v) return vazio;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return vazio;
+  return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+}
 const statusDe = (d: Funil) => String(d.status_efetivo ?? d.status ?? "");
 
 async function rpc(nome: string, args: Record<string, unknown>) {
@@ -275,6 +289,7 @@ export default function RetornoDevolucao() {
                 <TableHead className="w-[190px]">Devolução</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Motivo</TableHead>
+                <TableHead className="w-[80px] whitespace-nowrap">Data</TableHead>
                 <TableHead className="w-[80px] text-right">Dias</TableHead>
                 <TableHead className="group w-[150px]">
                   <span className="inline-flex items-center gap-1">
@@ -327,9 +342,9 @@ export default function RetornoDevolucao() {
             </TableHeader>
             <TableBody>
               {funilQ.isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
               ) : filtrados.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
               ) : paginaItens.map((d) => {
                 const aberto = expandido === d.id;
                 const dias = d.dias_desde ?? 0;
@@ -346,9 +361,17 @@ export default function RetornoDevolucao() {
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
                       <TableCell className="text-sm max-w-[220px] truncate">{d.cliente ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
+                      <TableCell className="text-sm max-w-[180px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        <span title={fmtDataHora(d.criado_em)}>{fmtDataCurta(d.criado_em)}</span>
+                        {d.recebido_em && (
+                          <div className="text-[11px] text-muted-foreground whitespace-nowrap" title={fmtDataHora(d.recebido_em)}>
+                            receb. {fmtDiaMes(d.recebido_em)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline" className={cn("font-normal tabular-nums",
+                        <Badge variant="outline" className={cn("font-normal tabular-nums whitespace-nowrap",
                           dias > 30 ? "bg-destructive/10 text-destructive border-destructive/20"
                             : dias > 10 ? "bg-warning/10 text-warning border-warning/20"
                               : "bg-success/10 text-success border-success/20")}>
@@ -371,7 +394,7 @@ export default function RetornoDevolucao() {
                     </TableRow>
                     {aberto && (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={9}>
                           <div className="grid gap-4 p-2 md:grid-cols-2 xl:grid-cols-4 text-sm">
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
