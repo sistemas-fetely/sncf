@@ -36,7 +36,7 @@ interface Props {
 
 interface Condicao { codigo: string; rotulo: string }
 interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
-interface ProdutoCodigo { sku: string; ean: string | null; nome_comercial: string | null }
+interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
 const COND_QUARENTENA = "quarentena";
@@ -90,7 +90,7 @@ function useProdutosDevolucao(skus: string[], enabled: boolean) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("sncf_produtos")
-        .select("sku,ean,nome_comercial")
+        .select("sku,ean,cod_cadastro,nome_comercial")
         .in("sku", skus);
       if (error) throw error;
       return (data ?? []) as ProdutoCodigo[];
@@ -185,8 +185,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     const mapa = new Map<string, { sku: string; nome: string | null }>();
     for (const produto of produtosQ.data ?? []) {
       const valor = { sku: produto.sku, nome: produto.nome_comercial };
-      mapa.set(produto.sku.toLocaleLowerCase(), valor);
-      if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase(), valor);
+      mapa.set(produto.sku.toLocaleLowerCase().trim(), valor);
+      if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase().trim(), valor);
+      if (produto.cod_cadastro) mapa.set(String(produto.cod_cadastro).toLocaleLowerCase().trim(), valor);
     }
     mapaCodigosRef.current = mapa;
   }, [produtosQ.data]);
@@ -223,12 +224,17 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const sb = supabase as any;
           let produto: ProdutoCodigo | null = null;
-          const porEan = await sb.from("sncf_produtos").select("sku,ean,nome_comercial").eq("ean", bip.codigo).limit(1);
+          const porEan = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").eq("ean", bip.codigo).limit(1);
           if (porEan.error) throw porEan.error;
           produto = porEan.data?.[0] ?? null;
           if (!produto) {
+            const porCod = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").eq("cod_cadastro", bip.codigo).limit(1);
+            if (porCod.error) throw porCod.error;
+            produto = porCod.data?.[0] ?? null;
+          }
+          if (!produto) {
             const esc = bip.codigo.replace(/[\\%_]/g, (caractere) => `\\${caractere}`);
-            const porSku = await sb.from("sncf_produtos").select("sku,ean,nome_comercial").ilike("sku", esc).limit(1);
+            const porSku = await sb.from("sncf_produtos").select("sku,ean,cod_cadastro,nome_comercial").ilike("sku", esc).limit(1);
             if (porSku.error) throw porSku.error;
             produto = porSku.data?.[0] ?? null;
           }
@@ -470,7 +476,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
             <div className="sticky top-0 z-10 bg-background py-2 space-y-3 border-b">
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
-                  <Label>Código (EAN ou SKU)</Label>
+                  <Label>Código (EAN, cód. ou SKU)</Label>
                   <div className="relative">
                     <ScanBarcode className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
