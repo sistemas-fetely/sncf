@@ -57,6 +57,7 @@ type Funil = {
 type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
+const QK_QUARENTENA = ["vw_quarentena_fila"] as const;
 const ETAPA_CAMPO: Record<number, keyof Funil> = {
   1: "e1_aberta", 2: "e2_reversa", 3: "e3_recebida", 4: "e4_conferida", 5: "e5_nf_resolvida", 6: "e6_ressarcida", 7: "e7_encerrada",
 };
@@ -150,6 +151,24 @@ export default function RetornoDevolucao() {
       return (data ?? []) as { codigo: string; rotulo: string; eh_final: boolean }[];
     },
   });
+  const quarentenaQ = useQuery({
+    queryKey: QK_QUARENTENA,
+    queryFn: async () => {
+      const linhas: { sku: string; centro: string; devolucao_id: string | null; saldo: number; ultimo_mov: string | null }[] = [];
+      for (let de = 0; ; de += 1000) {
+        const { data, error } = await sb.from("vw_quarentena_fila")
+          .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov")
+          .order("devolucao_numero", { nullsFirst: false }).order("sku").order("centro").range(de, de + 999);
+        if (error) throw error;
+        linhas.push(...(data ?? []).filter((linha: { sku?: string; centro?: string; saldo?: number }) => Boolean(linha.sku && linha.centro && Number(linha.saldo) !== 0)).map((linha: { sku: string; centro: string; devolucao_id: string | null; saldo: number; ultimo_mov: string | null }) => ({ ...linha, saldo: Number(linha.saldo) })));
+        if ((data ?? []).length < 1000) break;
+      }
+      const { data: origem, error: origemError } = await sb.from("estoque_condicao").select("exige_liberacao_para_venda").eq("codigo", "quarentena").eq("ativo", true).maybeSingle();
+      if (origemError) throw origemError;
+      if (!origem) throw new Error("Condição de estoque 'quarentena' não encontrada ou inativa.");
+      return { linhas, exigeDocumento: Boolean(origem.exige_liberacao_para_venda) };
+    },
+  });
   const statusMap = useMemo(() => new Map((statusQ.data ?? []).map((s) => [s.codigo, s])), [statusQ.data]);
   // Aberta = status com eh_final=false na dimensão (inclui retorno_concluido).
   const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
@@ -224,6 +243,16 @@ export default function RetornoDevolucao() {
   const paradas = abertas.filter((d) => (d.dias_desde ?? 0) > 30).length;
   const totalUnidades = devolucoes.reduce((s, d) => s + Number(d.qtd_pendente ?? 0), 0);
   const totalValor = (pendQ.data ?? []).reduce((s, p) => s + p.valor_custo_pendente, 0);
+  const quarentena = useMemo(() => {
+    const linhas = quarentenaQ.data?.linhas ?? [];
+    const unidades = linhas.reduce((s, linha) => s + Number(linha.saldo), 0);
+    const skus = new Set(linhas.map((linha) => `${linha.sku}|${linha.centro}|${linha.devolucao_id ?? ""}`)).size;
+    const movimentos = linhas.map((linha) => linha.ultimo_mov ? new Date(linha.ultimo_mov).getTime() : NaN).filter(Number.isFinite);
+    const maisAntigo = movimentos.length ? Math.min(...movimentos) : null;
+    const agoraBrasilia = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).getTime();
+    const dias = maisAntigo == null ? 0 : Math.max(0, Math.floor((agoraBrasilia - maisAntigo) / 86_400_000));
+    return { unidades, skus, dias };
+  }, [quarentenaQ.data]);
 
   const invalidar = async () => {
     await Promise.all([
@@ -256,11 +285,16 @@ export default function RetornoDevolucao() {
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
           </TabsList>
           <TabsContent value="funil" className="mt-4">
-        <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-1 gap-3 bg-background px-6 py-2 sm:grid-cols-4">
+        <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 lg:grid-cols-5">
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Devoluções abertas</div><div className="text-2xl font-medium tabular-nums">{formatNum(abertas.length)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Paradas há +30d</div><div className="text-2xl font-medium tabular-nums">{formatNum(paradas)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Unidades pendentes</div><div className="text-2xl font-medium tabular-nums">{formatNum(totalUnidades)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Custo parado</div><div className="text-2xl font-medium tabular-nums">{formatBRL(totalValor)}</div></div>
+          <div role="button" tabIndex={0} aria-label="Abrir quarentena" onClick={() => setAba("quarentena")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAba("quarentena"); } }} className={cn("cursor-pointer rounded-md border bg-card p-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", quarentena.unidades > 0 && "border-warning/30 bg-warning/10")}>
+            <div className="text-xs text-muted-foreground">Em quarentena</div>
+            <div className={cn("text-2xl font-medium tabular-nums", quarentena.unidades > 0 && "text-warning")}>{formatNum(quarentena.unidades)}</div>
+            <div className="text-xs text-muted-foreground">{quarentena.unidades > 0 ? `${quarentena.skus} SKU(s) · mais antigo há ${quarentena.dias} d` : "nada aguardando validação"}</div>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 mb-4">
