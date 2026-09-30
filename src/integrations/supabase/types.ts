@@ -86734,6 +86734,23 @@ export type Database = {
           },
         ]
       }
+      vw_estoque_entrada_pendente: {
+        Row: {
+          centro_destino: string | null
+          contraparte: string | null
+          data: string | null
+          documento: string | null
+          fonte: string | null
+          fonte_nome: string | null
+          itens: number | null
+          modulo_dono: string | null
+          o_que_falta: string | null
+          rota: string | null
+          unidades: number | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_estoque_entradas: {
         Row: {
           centro: string | null
@@ -99058,14 +99075,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -100796,14 +100813,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
