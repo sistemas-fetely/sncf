@@ -43,6 +43,7 @@ type Funil = {
   qtd_declarada: number | null; qtd_retornada: number | null; qtd_pendente: number | null;
   destino_codigo: string | null; reversa_origem: string | null; rastreio_efetivo: string | null; rastreio_status: string | null;
   frete_reverso_por_conta: string | null;
+  exige_transferencia_cd: boolean | null;
   e1_aberta: boolean; e2_reversa: boolean; e3_recebida: boolean; e4_conferida: boolean;
   e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
   nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
@@ -325,6 +326,16 @@ export default function RetornoDevolucao() {
                               {d.e3_recebida ? (
                                 <>
                                   <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
+                                  {d.exige_transferencia_cd && d.recebido_em != null && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">Transferência CD pendente</Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs">
+                                        Retorno físico no SITE-SP de venda emitida por SC — emitir transferência SC→SP (CFOP 6152) para fechar o fiscal.
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
                                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setEstornar(d)}>Estornar recebimento</Button>
                                 </>
                               ) : <div className="text-muted-foreground">Ainda não recebida</div>}
