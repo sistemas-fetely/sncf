@@ -588,7 +588,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         <TableCell className="px-2">
                           <Select value={c.condicao} onValueChange={(v) => trocarCondicao(c, v)}>
                             <SelectTrigger className="h-8 w-full min-w-0 [&>span]:truncate">
-                              <SelectValue />
+                              <SelectValue>
+                                <span className="truncate">{rotuloConferencia(condicoes.find((o) => o.codigo === c.condicao) ?? { codigo: c.condicao, rotulo: c.condicao, rotulo_conferencia: null, dica_conferencia: null })}</span>
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {condicoes.map((opcao) => (
