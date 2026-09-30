@@ -35,7 +35,7 @@ import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialo
 
 type Funil = {
   id: string; numero: string | null; canal: string | null; status: string | null; status_efetivo: string | null;
-  pedido_ref: string | null; cliente: string | null; motivo_rotulo: string | null; culpa: string | null;
+  pedido_ref: string | null; cliente: string | null; motivo_rotulo: string | null; motivo_exibicao: string | null; culpa: string | null;
   dias_desde: number | null; valor_credito: number | null; skus: number | null;
   qtd_declarada: number | null; qtd_retornada: number | null; qtd_pendente: number | null;
   destino_codigo: string | null; reversa_origem: string | null; rastreio_efetivo: string | null; rastreio_status: string | null;
@@ -258,7 +258,7 @@ export default function RetornoDevolucao() {
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
                       <TableCell className="text-sm max-w-[220px] truncate">{d.cliente ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{d.motivo_rotulo ?? "—"}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className={cn("font-normal tabular-nums",
                           dias > 30 ? "bg-destructive/10 text-destructive border-destructive/20"
