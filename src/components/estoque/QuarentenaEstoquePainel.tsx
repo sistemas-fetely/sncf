@@ -57,7 +57,7 @@ function chaveLinha(linha: LinhaQuarentena) {
   return `${linha.devolucao_id ?? "sem-devolucao"}|${linha.sku}|${linha.centro}`;
 }
 
-async function carregar(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: boolean }> {
+export async function buscarQuarentenaFila(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: boolean }> {
   const linhas: LinhaQuarentena[] = [];
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
