@@ -67,6 +67,8 @@ interface LinhaTabela {
   virtual: number;
   reservado: number;
   valor_custo: number;
+  /** false = nenhuma linha do produto tem custo conhecido. */
+  custo_conhecido: boolean;
   vendas_janela: number;
   janela_dias: number;
   tempo: number | null;
@@ -138,7 +140,7 @@ interface TriadeCentro { sku: string; centro: string; com_diferenca: boolean }
 
 interface Onboarding { com_razao: number; skus_ativos: number; seguro_desligar_bling: boolean }
 
-type Col = "cod" | "nome" | "situacao" | "conciliacao" | "contabil" | "virtual" | "tempo" | "chegada" | "reservado" | "ticket" | "vcusto" | "vvenda" | "vemp" | "transito";
+type Col = "vmes" | "vcustoprod" | "semvenda" | "cod" | "nome" | "situacao" | "conciliacao" | "contabil" | "virtual" | "tempo" | "chegada" | "reservado" | "ticket" | "vcusto" | "vvenda" | "vemp" | "transito";
 
 const n = (v: number | null | undefined) => Number(v ?? 0);
 function formatNum(v: number | null | undefined) {
@@ -265,6 +267,42 @@ export default function EstoqueVirtual() {
     queryFn: () => carregarPaginado<TriadeCentro>("vw_estoque_triade_centro", "sku,centro,com_diferenca", ["sku", "centro"]),
   });
 
+  const parametrosQuery = useQuery({
+    queryKey: ["estoque_parametro", "cockpit_kpis"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const { data, error } = await (supabase as any)
+        .from("estoque_parametro")
+        .select("chave, valor")
+        .in("chave", ["janela_giro_dias", "cobertura_verde_meses", "cobertura_ambar_meses", "cobertura_teto_meses"]);
+      if (error) throw error;
+      const out: Record<string, number> = {};
+      for (const r of (data ?? []) as { chave: string; valor: unknown }[]) {
+        const v = Number(r.valor);
+        if (Number.isFinite(v)) out[r.chave] = v;
+      }
+      for (const k of ["janela_giro_dias", "cobertura_verde_meses", "cobertura_ambar_meses", "cobertura_teto_meses"]) {
+        if (!(k in out)) throw new Error(`Parâmetro de estoque ausente: ${k}`);
+      }
+      return out;
+    },
+  });
+  const param = parametrosQuery.data ?? null;
+
+  const ultimaVendaQuery = useQuery({
+    queryKey: ["vw_estoque_ultima_venda", "cockpit"],
+    staleTime: 3 * 60 * 1000,
+    queryFn: () => carregarPaginado<{ sku: string; ultima_venda: string | null; dias_sem_venda: number | null }>(
+      "vw_estoque_ultima_venda", "sku,ultima_venda,dias_sem_venda", ["sku"]),
+  });
+  const diasSemVendaPorSku = useMemo(() => {
+    const m = new Map<string, number | null>();
+    for (const r of ultimaVendaQuery.data ?? []) m.set(r.sku, r.dias_sem_venda);
+    return m;
+  }, [ultimaVendaQuery.data]);
+  const diasSemVenda = (p: LinhaTabela): number | null | undefined =>
+    p.sku ? diasSemVendaPorSku.get(p.sku) : undefined;
+
   const centrosComDiferenca = useMemo(() => {
     const mapa = new Map<string, string[]>();
     for (const linha of conciliacaoQuery.data ?? []) {
@@ -374,7 +412,7 @@ export default function EstoqueVirtual() {
         chave: `${chaveProduto(l)}|${l.centro}`,
         cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial, cor_nome: l.cor_nome,
         situacao: l.situacao, contabil: n(l.contabil), virtual: n(l.virtual),
-        reservado: n(l.reservado), valor_custo: n(l.valor_custo), vendas_janela: n(l.vendas_janela),
+        reservado: n(l.reservado), valor_custo: n(l.valor_custo), custo_conhecido: l.valor_custo != null, vendas_janela: n(l.vendas_janela),
         janela_dias: n(l.janela_dias),
         tempo: l.tempo_estoque_dias ?? tempoDias(n(l.virtual), n(l.vendas_janela), n(l.janela_dias)),
         eta_embarque: l.eta_embarque,
@@ -393,7 +431,7 @@ export default function EstoqueVirtual() {
         m.set(k, {
           chave: k, cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial,
           cor_nome: l.cor_nome, situacao: l.situacao, contabil: n(l.contabil),
-          virtual: n(l.virtual), reservado: n(l.reservado), valor_custo: n(l.valor_custo),
+          virtual: n(l.virtual), reservado: n(l.reservado), valor_custo: n(l.valor_custo), custo_conhecido: l.valor_custo != null,
           vendas_janela: n(l.vendas_janela), janela_dias: n(l.janela_dias), tempo: null,
           eta_embarque: l.eta_embarque,
           valor_venda: n(l.valor_venda), valor_empenhado: n(l.valor_empenhado),
@@ -410,6 +448,7 @@ export default function EstoqueVirtual() {
         a.virtual += n(l.virtual);
         a.reservado += n(l.reservado);
         a.valor_custo += n(l.valor_custo);
+        if (l.valor_custo != null) a.custo_conhecido = true;
         a.vendas_janela += n(l.vendas_janela);
         a.janela_dias = Math.max(a.janela_dias, n(l.janela_dias));
         a.situacao ??= l.situacao;
@@ -478,6 +517,12 @@ export default function EstoqueVirtual() {
         virtual: (p) => p.virtual,
         // nulos por último na ordem crescente (menor cobertura primeiro)
         tempo: (p) => p.tempo ?? Number.MAX_SAFE_INTEGER,
+        vmes: (p) => (p.janela_dias > 0 ? (p.vendas_janela / p.janela_dias) * 30 : 0),
+        vcustoprod: (p) => (p.custo_conhecido ? p.valor_custo : -1),
+        semvenda: (p) => {
+          const d = diasSemVenda(p);
+          return d == null ? Number.MAX_SAFE_INTEGER : d;
+        },
         chegada: (p) => p.eta_embarque ?? "",
         reservado: (p) => p.reservado,
         ticket: (p) => p.ticket ?? -1,
@@ -486,7 +531,32 @@ export default function EstoqueVirtual() {
         vemp: (p) => p.valor_empenhado,
         transito: (p) => p.em_transito,
     });
-  }, [tabela, sort, conciliacaoQuery.isSuccess, centrosComDiferenca, centroFiltro]);
+  }, [tabela, sort, conciliacaoQuery.isSuccess, centrosComDiferenca, centroFiltro, diasSemVendaPorSku]);
+
+  const formatBRLInt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
+  function celulaCobertura(p: LinhaTabela) {
+    if (!param) return <span className="text-muted-foreground">—</span>;
+    if (p.tempo == null) return <span className="text-muted-foreground">sem venda</span>;
+    const meses = p.tempo / 30;
+    const cor = meses <= param.cobertura_verde_meses ? "text-success" : meses <= param.cobertura_ambar_meses ? "text-warning" : "text-destructive";
+    const texto = meses > param.cobertura_teto_meses
+      ? `> ${formatNum(param.cobertura_teto_meses)} m`
+      : `${meses.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m`;
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild><span className={cor}>{texto}</span></TooltipTrigger>
+        <TooltipContent>Disponível ÷ ritmo de venda dos últimos {formatNum(p.janela_dias)} dias ({formatNum(p.tempo)} dias)</TooltipContent>
+      </Tooltip>
+    );
+  }
+  function celulaSemVenda(p: LinhaTabela) {
+    if (!param || !ultimaVendaQuery.isSuccess) return <span className="text-muted-foreground">—</span>;
+    const d = diasSemVenda(p);
+    if (d == null) return <span className="text-muted-foreground">nunca vendeu</span>;
+    const cor = d >= param.janela_giro_dias ? "text-destructive" : d >= (param.janela_giro_dias * 2) / 3 ? "text-warning" : "";
+    return <span className={cor}>{formatNum(d)} d</span>;
+  }
 
   const totalPaginas = Math.max(1, Math.ceil(ordenados.length / pageSize));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -611,6 +681,16 @@ export default function EstoqueVirtual() {
       {conciliacaoQuery.isError && (
         <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           Falha ao carregar a Conciliação de Estoque: {formatError(conciliacaoQuery.error)}
+        </div>
+      )}
+      {parametrosQuery.isError && (
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar os parâmetros de estoque (Cobertura e Dias sem venda ficam “—”): {formatError(parametrosQuery.error)}
+        </div>
+      )}
+      {ultimaVendaQuery.isError && (
+        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          Falha ao carregar a última venda por produto: {formatError(ultimaVendaQuery.error)}
         </div>
       )}
       {canaisQuery.isError && (
@@ -806,20 +886,23 @@ export default function EstoqueVirtual() {
               <TableRow className={LINHA_CABECALHO_COLADO}>
                 {cabecalho("cod", "Código", "w-[59px] min-[1440px]:w-[76px]")}
                 {cabecalho("nome", "Produto", "")}
-                {cabecalho("situacao", "Situação", "w-[68px] min-[1440px]:w-[108px]")}
+                {cabecalho("situacao", "Situação", "w-[64px] min-[1440px]:w-[92px]")}
                 {cabecalho("conciliacao", "Conciliação", "w-[90px] min-[1440px]:w-[108px] text-center")}
                 {visao === "estoque" && <>
                 {cabecalho("contabil", "Fiscal", "w-[72px] min-[1440px]:w-[84px]", true)}
                 {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
+                {cabecalho("vmes", "Vendas/mês", "w-[78px] min-[1440px]:w-[88px]", true, "Vendas da janela ÷ dias da janela × 30")}
+                {cabecalho("vcustoprod", "Valor a custo", "w-[92px] min-[1440px]:w-[104px]", true)}
                 {cabecalho(
                   "tempo",
                   "Cobertura",
                   "w-[78px] min-[1440px]:w-[88px]",
                   true,
-                  "Tempo de estoque em dias (virtual ÷ venda diária dos últimos 90 dias)",
+                  "Cobertura em meses: disponível ÷ ritmo de venda da janela",
                 )}
+                {cabecalho("semvenda", "Dias sem venda", "w-[86px] min-[1440px]:w-[98px]", true)}
                 {cabecalho("transito", "Em trânsito", "w-[84px] min-[1440px]:w-[92px]", true)}
-                {cabecalho("chegada", "Chegada", "w-[70px] min-[1440px]:w-[80px]", true)}
+                {cabecalho("chegada", "Chegada", "w-[62px] min-[1440px]:w-[72px]", true)}
                 </>}
                 {visao === "valor" && <>
                   {cabecalho("virtual", "Virtual", "w-[72px] min-[1440px]:w-[84px]", true)}
@@ -874,7 +957,17 @@ export default function EstoqueVirtual() {
                 {visao === "estoque" && <>
                   <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{numOuTraco(p.tempo)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {(() => {
+                      const vm = p.janela_dias > 0 ? Math.round((p.vendas_janela / p.janela_dias) * 30) : 0;
+                      return vm > 0 ? `${formatNum(vm)} un` : <span className="text-muted-foreground">—</span>;
+                    })()}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {p.custo_conhecido ? formatBRLInt(p.valor_custo) : <span className="text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">{celulaCobertura(p)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{celulaSemVenda(p)}</TableCell>
                   <TableCell className="text-right tabular-nums">{p.em_transito ? formatNum(p.em_transito) : <span className="text-muted-foreground">—</span>}</TableCell>
                   <TableCell className={cn("tabular-nums text-right text-muted-foreground", p.eta_embarque && p.eta_embarque.slice(0, 10) < hoje && "text-warning")}>
                     {formatDataCurta(p.eta_embarque)}
