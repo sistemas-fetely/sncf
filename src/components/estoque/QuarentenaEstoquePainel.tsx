@@ -139,6 +139,15 @@ export function QuarentenaEstoquePainel() {
     [linhas],
   );
   const unidadesSelecionadas = linhasSelecionadas.reduce((s, linha) => s + linha.saldo, 0);
+  const bloqueioLote = useMemo(() => {
+    const bloqueadas = linhasSelecionadas.filter((linha) => linha.bloqueio_venda);
+    if (bloqueadas.length === 0) return null;
+    const unicas = new Set<string>();
+    for (const linha of bloqueadas) {
+      unicas.add(`${linha.devolucao_numero ?? "sem devolução vinculada"} · ${linha.bloqueio_venda}`);
+    }
+    return [...unicas].join(", ");
+  }, [linhasSelecionadas]);
   const grupos = useMemo<GrupoQuarentena[]>(() => {
     const mapa = new Map<string, GrupoQuarentena>();
     for (const linha of linhas) {
