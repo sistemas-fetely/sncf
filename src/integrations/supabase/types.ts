@@ -124067,6 +124067,10 @@ export type Database = {
         Returns: Json
       }
       reg_exigir_permissao: { Args: never; Returns: string }
+      reg_lote_cancelar: {
+        Args: { p_lote_id: string; p_motivo: string }
+        Returns: Json
+      }
       reg_lote_criar: {
         Args: {
           p_centro_destino_codigo: string
