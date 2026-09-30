@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { CalendarClock, Check, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -42,44 +42,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RebaixarTarefaDialog } from "./RebaixarTarefaDialog";
 import { useMeuPapelNoProjeto } from "@/hooks/tarefas/useProjetoMembros";
+import { BotaoConcluir } from "@/components/tarefas/BotaoConcluir";
 
 const SEM_SECAO = "__sem_secao__";
 const DIAS_CONCLUIDAS = 7;
 
 type AgruparPor = "secao" | "status";
-
-interface BotaoConcluirProps {
-  concluida: boolean;
-  onClick: (e: React.MouseEvent) => void;
-  className?: string;
-  ariaLabel?: string;
-}
-
-function BotaoConcluir({ concluida, onClick, className, ariaLabel }: BotaoConcluirProps) {
-  return (
-    <button
-      type="button"
-      aria-label={ariaLabel ?? (concluida ? "Reabrir tarefa" : "Concluir tarefa")}
-      onClick={onClick}
-      className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-full transition-colors duration-200",
-        className
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-[18px] w-[18px] items-center justify-center rounded-full border transition-colors duration-200",
-          concluida
-            ? "border-success bg-success text-success-foreground"
-            : "border-muted-foreground/40 bg-transparent text-transparent hover:border-muted-foreground/70 hover:text-muted-foreground/70"
-        )}
-      >
-        <Check className="h-3 w-3 stroke-[2.5]" />
-      </span>
-    </button>
-  );
-}
-
 
 function iniciais(nome: string): string {
   return nome.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");

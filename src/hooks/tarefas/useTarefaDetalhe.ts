@@ -78,6 +78,7 @@ export interface CamposEditaveis {
 export function useSalvarCampoTarefa(tarefaId: string) {
   const invalidar = useInvalidar(tarefaId);
   return useMutation({
+    mutationKey: ["tarefas", "salvar", tarefaId],
     mutationFn: async (patch: CamposEditaveis) => {
       const { error } = await supabase.from("tarefas").update(patch).eq("id", tarefaId);
       if (error) throw error;

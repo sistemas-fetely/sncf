@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ExternalLink, RotateCcw, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ import {
 import {
   BlocoAnexos, BlocoComentarios, BlocoDependencias, BlocoHistorico, BlocoTempo,
 } from "@/components/tarefas/detalhe/BlocosExtras";
+import { BotaoConcluir } from "@/components/tarefas/BotaoConcluir";
+import { IndicadorSalvamento } from "@/components/tarefas/IndicadorSalvamento";
 
 /**
  * FICHA-DA-TAREFA (19/09/2026): a tarefa tem página própria. A gaveta virou peek
@@ -136,27 +139,51 @@ export default function TarefaPagina() {
         </Button>
 
         <div className="min-w-0 flex-1 space-y-2">
-          <Input
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-            onBlur={salvarTitulo}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              if (e.key === "Escape") setTitulo(tarefa.titulo);
-            }}
-            aria-label="Título da tarefa"
-            className="h-auto border-transparent px-1 text-2xl font-medium shadow-none focus-visible:border-input"
-          />
+          <div className="flex items-center gap-1">
+            <BotaoConcluir
+              concluida={terminal}
+              disabled={salvar.isPending || !(terminal ? alvoReabrir : alvoConcluir)}
+              onClick={() => {
+                const alvo = terminal ? alvoReabrir : alvoConcluir;
+                if (!alvo) return;
+                const statusAnterior = tarefa.status;
+                salvar.mutate(
+                  { status: alvo.codigo as TarefaStatus },
+                  !terminal ? {
+                    onSuccess: () => toast.success("Tarefa concluída", {
+                      action: {
+                        label: "Desfazer",
+                        onClick: () => salvar.mutate({ status: statusAnterior }),
+                      },
+                    }),
+                  } : undefined,
+                );
+              }}
+            />
+            <Input
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              onBlur={salvarTitulo}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+                if (e.key === "Escape") setTitulo(tarefa.titulo);
+              }}
+              aria-label="Título da tarefa"
+              className={`h-auto border-transparent px-1 text-2xl font-medium shadow-none focus-visible:border-input ${terminal ? "line-through text-muted-foreground" : ""}`}
+            />
+            <IndicadorSalvamento tarefaId={tarefa.id} />
+          </div>
           <div className="flex flex-wrap items-center gap-2 px-1">
             {/* Projeto é SELO: cor do dado como fundo tingido, texto legível. */}
             <span
-              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs text-foreground"
               style={
                 projeto?.cor
-                  ? { backgroundColor: `${projeto.cor}26`, color: projeto.cor }
+                  ? { backgroundColor: `${projeto.cor}26` }
                   : undefined
               }
             >
+              {projeto?.cor && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: projeto.cor }} aria-hidden />}
               {projeto ? projeto.nome : "Sem projeto"}
             </span>
             {tarefa.secao_id && <SeloSecao tarefa={tarefa} />}
@@ -175,25 +202,6 @@ export default function TarefaPagina() {
           </div>
         </div>
 
-        {/* Única ação primary da página. Salvar não existe: tudo grava no blur. */}
-        {terminal ? (
-          <Button
-            variant="outline"
-            className="shrink-0"
-            disabled={salvar.isPending || !alvoReabrir}
-            onClick={() => alvoReabrir && salvar.mutate({ status: alvoReabrir.codigo as TarefaStatus })}
-          >
-            <RotateCcw className="mr-1 h-4 w-4" /> Reabrir tarefa
-          </Button>
-        ) : (
-          <Button
-            className="shrink-0"
-            disabled={salvar.isPending || !alvoConcluir}
-            onClick={() => alvoConcluir && salvar.mutate({ status: alvoConcluir.codigo as TarefaStatus })}
-          >
-            <Check className="mr-1 h-4 w-4" /> Concluir tarefa
-          </Button>
-        )}
       </div>
 
       {tarefa.tipo_tarefa === "aprovacao" && (
