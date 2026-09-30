@@ -973,6 +973,13 @@ export default function ConsignadoDetalhe() {
   const totalEstoqueReal = estoqueRealFiltrado.reduce((total, item) => total + Number(item.saldo ?? 0), 0);
   const nItensRemessa = (itens: unknown) => Array.isArray(itens) ? itens.length : 0;
   const duplicidadesIds = new Set((duplicidadesQ.data ?? []).map((item) => item.nf_id));
+  // SÓ É ACERTO O TÍTULO QUE NASCEU DE UM ACERTO: o id do título tem que ser o
+  // titulo_acerto_id de algum consignado_acerto. Título filho do rotativo que é
+  // remessa nova aparece como "remessa", nunca como "acerto".
+  const idsTituloAcerto = useMemo(
+    () => new Set((acertosQ.data ?? []).map((a) => a.titulo_acerto_id).filter((id): id is string => !!id)),
+    [acertosQ.data],
+  );
   const statusAcerto = resumo?.acerto_vivo_status === "rascunho"
     ? "em preparação"
     : resumo?.acerto_vivo_status === "confirmado"
