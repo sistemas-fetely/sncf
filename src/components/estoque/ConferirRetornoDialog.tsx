@@ -121,7 +121,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2">
             <span>Devolução {devolucao?.devolucao_numero ?? "—"}</span>
@@ -168,17 +168,17 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           </div>
         </div>
 
-        <div className="rounded-md border max-h-[45vh] overflow-auto">
+        <div className="rounded-md border max-h-[45vh] overflow-y-auto overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[110px]">SKU</TableHead>
-                <TableHead>Produto</TableHead>
-                <TableHead className="text-right w-[80px]">Saiu</TableHead>
-                <TableHead className="text-right w-[90px]">Já voltou</TableHead>
-                <TableHead className="text-right w-[90px]">Pendente</TableHead>
+                <TableHead className="w-[110px] whitespace-nowrap">SKU</TableHead>
+                <TableHead className="min-w-0">Produto</TableHead>
+                <TableHead className="w-[70px] text-center whitespace-nowrap">Saiu</TableHead>
+                <TableHead className="w-[90px] text-center whitespace-nowrap">Já voltou</TableHead>
+                <TableHead className="w-[90px] text-center whitespace-nowrap">Pendente</TableHead>
                 <TableHead className="w-[110px]">Voltou agora</TableHead>
-                <TableHead className="w-[170px]">Condição</TableHead>
+                <TableHead className="w-[150px]">Condição</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,17 +187,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 const excede = Number.isFinite(q) && q > Number(it.qtd_pendente ?? 0);
                 return (
                   <TableRow key={it.sku}>
-                    <TableCell className="font-mono text-xs">{it.sku}</TableCell>
-                    <TableCell className="text-sm">{it.nome_comercial ?? "—"}</TableCell>
-                    <TableCell className="text-right tabular-nums">{Number(it.qtd_saiu ?? 0)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{Number(it.qtd_ja_retornada ?? 0)}</TableCell>
-                    <TableCell className="text-right tabular-nums font-medium">
+                    <TableCell className="font-mono text-xs whitespace-nowrap">{it.sku}</TableCell>
+                    <TableCell className="text-sm min-w-0 max-w-[260px]">
+                      <span className="block truncate" title={it.nome_comercial ?? undefined}>
+                        {it.nome_comercial ?? "—"}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-center tabular-nums whitespace-nowrap">{Number(it.qtd_saiu ?? 0)}</TableCell>
+                    <TableCell className="text-center tabular-nums whitespace-nowrap">{Number(it.qtd_ja_retornada ?? 0)}</TableCell>
+                    <TableCell className="text-center tabular-nums whitespace-nowrap font-medium">
                       {Number(it.qtd_pendente ?? 0)}
                     </TableCell>
                     <TableCell>
                       <Input
                         inputMode="numeric"
-                        className={excede ? "border-destructive" : undefined}
+                        className={excede ? "w-16 text-center border-destructive" : "w-16 text-center"}
                         value={qtds[it.sku] ?? ""}
                         onChange={(e) =>
                           setQtds((prev) => ({ ...prev, [it.sku]: e.target.value }))
@@ -210,7 +214,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         value={conds[it.sku] ?? CONDICAO_PADRAO}
                         onValueChange={(v) => setConds((prev) => ({ ...prev, [it.sku]: v }))}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-32 [&>span]:truncate">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
