@@ -289,6 +289,7 @@ export default function RetornoDevolucao() {
                 <TableHead className="w-[190px]">Devolução</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Motivo</TableHead>
+                <TableHead className="w-[80px] whitespace-nowrap">Data</TableHead>
                 <TableHead className="w-[80px] text-right">Dias</TableHead>
                 <TableHead className="group w-[150px]">
                   <span className="inline-flex items-center gap-1">
