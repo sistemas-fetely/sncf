@@ -1,15 +1,13 @@
-# Tooltip explicativo do Funil
+# Conclusão e salvamento da ficha da tarefa
 
 ## Implementação
-- Generalizar o componente já usado no Cockpit para aceitar conteúdo personalizado, preservando integralmente o uso e o visual atual da coluna Margem.
-- Na aba Funil, buscar as etapas ativas de `devolucao_etapa`, ordenadas por `ordem`, incluindo descrição e obrigatoriedade, com cache longo.
-- Adicionar o ícone de informação ao cabeçalho Funil e montar as seções O QUE É, ETAPAS, DE ONDE VEM e COMO LER no mesmo popover.
-- Representar a legenda com as mesmas classes semânticas das bolinhas existentes e marcar discretamente as etapas obrigatórias.
+- Extrair e reutilizar o controle circular já usado no board, aplicando-o ao título do peek e da página.
+- Manter a escolha dos status de concluir/reabrir pela dimensão e guardar o status anterior para a ação “Desfazer”.
+- Identificar gravações da tarefa por `mutationKey` e exibir “Salvando…”/“Salvo” no peek e na página; erros deixam o indicador vazio.
+- Ajustar o rodapé do peek para “Fechar” e “Abrir tarefa completa”, ambos sem destaque principal.
+- Tornar o selo do projeto legível com texto semântico e um ponto na cor do projeto.
 
-## Validação
-- Executar `bunx tsgo --noEmit -p tsconfig.app.json`.
-- No navegador, conferir as 7 etapas e os quatro marcadores obrigatórios no Funil.
-- Abrir o popover Margem no Cockpit e confirmar que aparência e conteúdo permaneceram iguais.
-
-## Escopo
-Somente o componente compartilhado, a tela Devoluções e o uso existente no Cockpit; sem banco e sem publicação.
+## Detalhes técnicos
+- Alterar somente os componentes e hooks de tarefas necessários, sem banco e sem publicação.
+- Preservar a invalidação pelo prefixo `["tarefas"]` e o tratamento de erros existente.
+- Executar `bunx tsgo --noEmit -p tsconfig.app.json` ao final.
