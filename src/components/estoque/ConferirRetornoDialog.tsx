@@ -224,6 +224,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
       }
       return [...prev, {
         sku: produto.sku,
+        cod: produto.cod ?? codPorSku.get(produto.sku) ?? null,
         condicao: COND_QUARENTENA,
         qtd,
         nome: produto.nome ?? itensPorSku.get(produto.sku)?.nome ?? null,
@@ -265,7 +266,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
             toast.error(`Código não encontrado: ${bip.codigo}`);
             continue;
           }
-          adicionarContagem({ sku: produto.sku, nome: produto.nome_comercial }, bip.qtd);
+          adicionarContagem({ sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial }, bip.qtd);
         } catch (erro) {
           if (bip.sessao === sessaoRef.current) toast.error(formatError(erro));
         } finally {
