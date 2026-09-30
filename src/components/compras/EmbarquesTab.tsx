@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useEmbarquePainel } from "@/components/compras/PainelTab";
+import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle, ChevronDown } from "lucide-react";
@@ -353,6 +353,7 @@ function PainelEdicao({ embarque, tipos, portos, status, aoFechar }: PainelProps
 
   const invalidar = async () => {
     await qc.invalidateQueries({ queryKey: CHAVE_EMBARQUES });
+    await qc.invalidateQueries({ queryKey: CHAVE_EMBARQUE_PAINEL });
   };
 
   const salvarEmbarque = useMutation({
@@ -778,6 +779,7 @@ export default function EmbarquesTab() {
     },
     onSuccess: async (_d, emb) => {
       await qc.invalidateQueries({ queryKey: CHAVE_EMBARQUES });
+      await qc.invalidateQueries({ queryKey: CHAVE_EMBARQUE_PAINEL });
       toast.success(`Chegada registrada para ${emb.ref_rocabella}`);
     },
     onError: (err) => toast.error(mensagemErro(err)),

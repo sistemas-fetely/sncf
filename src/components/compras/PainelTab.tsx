@@ -1,41 +1,10 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { CardIndicador } from "@/components/ui/card-indicador";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import CadastroPedidoCompra from "@/pages/acervo/CadastroPedidoCompra";
 import EmbarquesTab from "@/components/compras/EmbarquesTab";
-
-export interface EmbarquePainelRow {
-  embarque_id: number;
-  ref_rocabella: string;
-  status_id: number | null;
-  status_codigo: string | null;
-  status_ordem: number | null;
-  eta: string | null;
-  data_chegada: string | null;
-  dias_para_eta: number | null;
-  alerta_data: "entregue_sem_data" | "eta_vencida" | null;
-  no_mar: boolean | null;
-  valor_fob_usd: number | null;
-  conteineres: number | null;
-}
-
-export function useEmbarquePainel() {
-  return useQuery({
-    queryKey: ["vw_importacao_embarque_painel"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_embarque_painel")
-        .select(
-          "embarque_id,ref_rocabella,status_id,status_codigo,status_ordem,eta,data_chegada,dias_para_eta,alerta_data,no_mar,valor_fob_usd,conteineres",
-        );
-      if (error) throw error;
-      return (data ?? []) as EmbarquePainelRow[];
-    },
-  });
-}
+import { useEmbarquePainel } from "@/lib/compras/embarque-painel";
 
 const FMT_USD = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });
 
