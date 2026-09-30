@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
 
@@ -12,6 +13,14 @@ import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Selo } from "@/components/ui/selo";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Select,
   SelectContent,
@@ -60,6 +69,21 @@ interface EntradaLinha {
   criado_em: string | null;
 }
 
+interface PendenteLinha {
+  fonte: string | null;
+  fonte_nome: string | null;
+  documento: string | null;
+  data: string | null;
+  contraparte: string | null;
+  itens: number | null;
+  unidades: number | null;
+  valor: number | null;
+  centro_destino: string | null;
+  modulo_dono: string | null;
+  rota: string | null;
+  o_que_falta: string | null;
+}
+
 interface Lote {
   chave: string;
   data: string | null;
@@ -100,19 +124,64 @@ export default function EntradasEstoque() {
   const entradasQ = useQuery({
     queryKey: ["estoque-entradas", de, ate],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_estoque_entradas" as never)
-        .select(
-          "id, data, doc_tipo, doc_numero, termo, motivo, motivo_rotulo, condicao, classe, centro, centro_nome, sku, nome_comercial, quantidade, custo_unitario, valor, importacao_pedido_id, numero_pedido, nf_numero, nf_data, fornecedor, origem, obs, criado_em",
-        )
-        .gte("data", de)
-        .lte("data", ate)
-        .order("data", { ascending: false })
-        .limit(2000);
-      if (error) throw error;
-      return (data ?? []) as unknown as EntradaLinha[];
+      // POSTGREST-CORTA-EM-MIL: leitura em páginas de 1.000, ordem estável
+      const PAGINA = 1000;
+      const todasLinhas: EntradaLinha[] = [];
+      for (let offset = 0; ; offset += PAGINA) {
+        const { data, error } = await supabase
+          .from("vw_estoque_entradas" as never)
+          .select(
+            "id, data, doc_tipo, doc_numero, termo, motivo, motivo_rotulo, condicao, classe, centro, centro_nome, sku, nome_comercial, quantidade, custo_unitario, valor, importacao_pedido_id, numero_pedido, nf_numero, nf_data, fornecedor, origem, obs, criado_em",
+          )
+          .gte("data", de)
+          .lte("data", ate)
+          .order("data", { ascending: false })
+          .order("id")
+          .range(offset, offset + PAGINA - 1);
+        if (error) throw error;
+        const p = (data ?? []) as unknown as EntradaLinha[];
+        todasLinhas.push(...p);
+        if (p.length < PAGINA) break;
+      }
+      return todasLinhas;
     },
   });
+
+  const pendentesQ = useQuery({
+    queryKey: ["estoque-entrada-pendente"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_entrada_pendente")
+        .select(
+          "fonte, fonte_nome, documento, data, contraparte, itens, unidades, valor, centro_destino, modulo_dono, rota, o_que_falta",
+        )
+        .order("data", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as unknown as PendenteLinha[];
+    },
+  });
+
+  const pendentes = useMemo(() => pendentesQ.data ?? [], [pendentesQ.data]);
+
+  const [fonteFiltro, setFonteFiltro] = useState<string | null>(null);
+  const [pendAberto, setPendAberto] = useState(true);
+
+  const pendentesPorFonte = useMemo(() => {
+    const m = new Map<string, { nome: string; docs: number; unidades: number }>();
+    pendentes.forEach((p) => {
+      const chave = p.fonte ?? "—";
+      const atual = m.get(chave) ?? { nome: p.fonte_nome ?? chave, docs: 0, unidades: 0 };
+      atual.docs += 1;
+      atual.unidades += Number(p.unidades ?? 0);
+      m.set(chave, atual);
+    });
+    return Array.from(m.entries());
+  }, [pendentes]);
+
+  const pendentesFiltradas = useMemo(
+    () => (fonteFiltro ? pendentes.filter((p) => (p.fonte ?? "—") === fonteFiltro) : pendentes),
+    [pendentes, fonteFiltro],
+  );
 
   const todas = useMemo(() => entradasQ.data ?? [], [entradasQ.data]);
 
@@ -209,7 +278,7 @@ export default function EntradasEstoque() {
       <PageTitle
         titulo="Entradas de Estoque"
         icone={PackagePlus}
-        estado={`${formatDateBR(de)} a ${formatDateBR(ate)} · ${lotes.length} lote(s) no filtro`}
+        estado={`${formatDateBR(de)} a ${formatDateBR(ate)} · ${NUM.format(todas.length)} linha(s) · ${lotes.length} lote(s) no filtro`}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -224,6 +293,135 @@ export default function EntradasEstoque() {
           nota="linhas com custo unitário desconhecido"
         />
       </div>
+
+      <Collapsible open={pendAberto} onOpenChange={setPendAberto}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                aria-label={pendAberto ? "Recolher entradas pendentes" : "Expandir entradas pendentes"}
+              >
+                <div className="flex items-center gap-2">
+                  {pendAberto ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  )}
+                  <CardTitle className="text-base">Entradas pendentes</CardTitle>
+                </div>
+                {pendentes.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {NUM.format(pendentes.length)} documento(s)
+                  </span>
+                )}
+              </button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Documentos que deveriam ter dado entrada no estoque e ainda não deram. Resolva no
+                módulo de cada um.
+              </p>
+
+              {pendentesQ.isError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formatError(pendentesQ.error)}</AlertDescription>
+                </Alert>
+              )}
+
+              {pendentesFiltradas.length > 0 && (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {pendentesPorFonte.map(([chave, f]) => {
+                      const ativo = fonteFiltro === chave;
+                      return (
+                        <button
+                          key={chave}
+                          type="button"
+                          onClick={() => setFonteFiltro(ativo ? null : chave)}
+                          className={
+                            ativo
+                              ? "rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-left text-xs"
+                              : "rounded-md border bg-card px-3 py-1.5 text-left text-xs hover:bg-muted/50"
+                          }
+                          aria-pressed={ativo}
+                        >
+                          <span className="font-medium">{f.nome}</span>
+                          <span className="ml-2 text-muted-foreground">
+                            {NUM.format(f.docs)} doc(s) · {NUM.format(f.unidades)} un
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="overflow-x-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Documento</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Contraparte</TableHead>
+                          <TableHead className="text-right">Itens</TableHead>
+                          <TableHead className="text-right">Unidades</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Destino</TableHead>
+                          <TableHead>O que falta</TableHead>
+                          <TableHead className="text-right">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendentesFiltradas.map((p, i) => (
+                          <TableRow key={`${p.fonte ?? ""}|${p.documento ?? ""}|${i}`}>
+                            <TableCell className="font-medium">{p.fonte_nome ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{p.documento ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{formatDateBR(p.data)}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {p.contraparte ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {fmtQtd(p.itens)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {fmtQtd(p.unidades)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {p.valor == null ? "—" : formatBRL(Number(p.valor))}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {p.centro_destino ?? "—"}
+                            </TableCell>
+                            <TableCell className="max-w-[280px] text-xs text-muted-foreground">
+                              {p.o_que_falta ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {p.rota ? (
+                                <Button variant="link" size="sm" asChild className="h-auto p-0">
+                                  <Link to={p.rota}>Resolver em {p.modulo_dono ?? "módulo"}</Link>
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+
+              {!pendentesQ.isError && pendentesFiltradas.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma entrada pendente.</p>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       <TabelaFetely
         busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar SKU, termo, NF ou pedido…" }}
