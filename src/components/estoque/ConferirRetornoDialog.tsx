@@ -431,6 +431,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }
 
   const centroTexto = funilQ.isLoading ? "carregando…" : funilQ.data?.destino_codigo ?? "—";
+  const condQuarentena = condicoes.find((c) => c.codigo === COND_QUARENTENA);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
