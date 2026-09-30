@@ -424,7 +424,16 @@ export function QuarentenaEstoquePainel() {
           <div className="mr-auto text-sm font-medium tabular-nums">
             {fmt(linhasSelecionadas.length)} SKUs · {fmt(unidadesSelecionadas)} unidades selecionadas
           </div>
-          <Button variant="outline" onClick={() => abrirLote(PARA_SADIO)}>Liberar p/ venda</Button>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="outline" disabled={Boolean(bloqueioLote)} onClick={() => abrirLote(PARA_SADIO)}>Liberar p/ venda</Button>
+                </span>
+              </TooltipTrigger>
+              {bloqueioLote && <TooltipContent className="max-w-xs">Não é possível liberar para venda: {bloqueioLote}. {DICA_BLOQUEIO_VENDA}</TooltipContent>}
+            </Tooltip>
+          </TooltipProvider>
           <Button variant="outline" onClick={() => abrirLote(PARA_AVARIA)}>Marcar avaria</Button>
           <Button variant="outline" onClick={() => abrirLote(PARA_NAO_CONFORME)}>Não conforme</Button>
         </div>
