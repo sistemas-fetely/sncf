@@ -40,6 +40,8 @@ import { useContaCorrenteCliente } from "./Consignados";
 import { VisaoConsignado } from "./consignado/VisaoConsignado";
 import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsignadoDialog";
 import { RemessasAVincularPainel } from "@/components/consignado/RemessasAVincularPainel";
+import { RetornosALancarPainel } from "@/components/consignado/RetornosALancarPainel";
+import { FecharCicloVendaForaPainel } from "@/components/consignado/FecharCicloVendaForaPainel";
 import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
 /**
@@ -1149,6 +1151,9 @@ export default function ConsignadoDetalhe() {
         </TabsContent>
 
         <TabsContent value="ciclo" className="space-y-4">
+          {contratoQ.data?.modelo === "venda_fora" && parceiroId ? (
+            <FecharCicloVendaForaPainel parceiroId={parceiroId} vigenciaInicio={contratoQ.data.vigencia_inicio} />
+          ) : <>
           {/* ═══ CICLO DE ACERTO ═══ */}
           <section className="space-y-3">
             <h2 className="font-serif text-xl flex items-center gap-2">
@@ -1438,11 +1443,15 @@ export default function ConsignadoDetalhe() {
               </CardContent>
             </Card>
           </section>
+          </>}
         </TabsContent>
 
         <TabsContent value="remessas" className="space-y-6">
           {contratoQ.data?.modelo === "venda_fora" && parceiroId && (
-            <RemessasAVincularPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
+            <>
+              <RemessasAVincularPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
+              <RetornosALancarPainel parceiroId={parceiroId} parceiroNome={parceiroQ.data?.razao_social ?? "Parceiro"} />
+            </>
           )}
           <section className="space-y-3">
             <h2 className="font-display text-xl font-normal">Remessas</h2>
