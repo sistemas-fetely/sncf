@@ -70730,6 +70730,39 @@ export type Database = {
         }
         Relationships: []
       }
+      xpm_api_amostra: {
+        Row: {
+          ambiente: string
+          coletado_em: string
+          erro: string | null
+          http_status: number | null
+          id: string
+          payload: Json | null
+          recurso: string
+          url: string
+        }
+        Insert: {
+          ambiente: string
+          coletado_em?: string
+          erro?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          recurso: string
+          url: string
+        }
+        Update: {
+          ambiente?: string
+          coletado_em?: string
+          erro?: string | null
+          http_status?: number | null
+          id?: string
+          payload?: Json | null
+          recurso?: string
+          url?: string
+        }
+        Relationships: []
+      }
       xpm_api_operacao: {
         Row: {
           ambiente: string
@@ -87033,6 +87066,14 @@ export type Database = {
           reservado: number | null
           sku: string | null
           virtual: number | null
+        }
+        Relationships: []
+      }
+      vw_estoque_ultima_venda: {
+        Row: {
+          dias_sem_venda: number | null
+          sku: string | null
+          ultima_venda: string | null
         }
         Relationships: []
       }

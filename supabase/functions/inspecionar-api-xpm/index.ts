@@ -83,10 +83,13 @@ Deno.serve(async (req) => {
     }
 
     const base = cfg.base_url ?? null;
+    const ehSonda = body?.tipo === "sonda_recebimento";
 
     // 2. Candidatas do swagger.
     const candidatas: string[] = [];
-    if (ambiente === "producao") {
+    if (ehSonda) {
+      // sonda nao usa swagger
+    } else if (ambiente === "producao") {
       if (!base) throw new Error(`base_url ausente na config ${sistemaUsado}.`);
       candidatas.push(`${base}/swagger/v1/swagger.json`);
     } else {
@@ -122,6 +125,64 @@ Deno.serve(async (req) => {
       tokenXpm = t as string;
       return tokenXpm;
     };
+
+    // MODO sonda_recebimento (F3.7a): SOMENTE GET em recursos de Recebimento.
+    if (ehSonda) {
+      if (!base) throw new Error(`base_url ausente na config ${sistemaUsado}.`);
+      const t = await obterToken();
+      const amostras: Record<string, unknown>[] = [];
+      const sondar = async (recurso: string, caminho: string | null, erroPrevio?: string) => {
+        const url = caminho ? `${base}${caminho}` : null;
+        let http_status: number | null = null;
+        let payload: any = null;
+        let erro: string | null = erroPrevio ?? null;
+        if (url && !erroPrevio) {
+          try {
+            const r = await fetch(url, {
+              method: "GET",
+              headers: { Accept: "application/json", Authorization: `Bearer ${t}` },
+            });
+            http_status = r.status;
+            const texto = await r.text();
+            try {
+              payload = JSON.parse(texto);
+              if (!r.ok) erro = `HTTP ${r.status}: ${(payload?.error?.message ?? texto).toString().slice(0, 500)}`;
+            } catch {
+              payload = null;
+              erro = texto.slice(0, 500) || `HTTP ${r.status} sem corpo`;
+            }
+          } catch (e) {
+            erro = (e instanceof Error ? e.message : String(e)).slice(0, 500);
+          }
+        }
+        const { error: eUp } = await sb.from("xpm_api_amostra").upsert({
+          ambiente, recurso, url, http_status, payload, erro,
+          coletado_em: new Date().toISOString(),
+        }, { onConflict: "ambiente,recurso" });
+        if (eUp) erro = `${erro ? erro + " | " : ""}gravar amostra: ${eUp.message}`;
+        const res = payload?.result;
+        amostras.push({
+          recurso, http_status,
+          itens: res?.totalCount ?? (Array.isArray(res?.items) ? res.items.length : null),
+          erro,
+        });
+        return payload;
+      };
+      const q = "?MaxResultCount=10&SkipCount=0";
+      const lista = await sondar("recebimento_lista", `/api/services/app/Recebimento/GetListAllRecebimentosForTable${q}`);
+      await sondar("recebimento_getall", `/api/services/app/Recebimento/GetAll${q}`);
+      await sondar("recebimento_nota", `/api/services/app/RecebimentoNota/GetAll${q}`);
+      await sondar("recebimento_produto_recebido", `/api/services/app/RecebimentoProdutoRecebido/GetAll${q}`);
+      await sondar("recebimento_armazenagens", `/api/services/app/RecebimentoArmazenagens/GetListAllForTable${q}`);
+      const it0 = lista?.result?.items?.[0];
+      const id = it0?.id ?? it0?.recebimento?.id ?? null;
+      if (id != null) {
+        await sondar("recebimento_eventos", `/api/services/app/Recebimento/GetEventosRecebimento?id=${encodeURIComponent(String(id))}`);
+      } else {
+        await sondar("recebimento_eventos", null, "sem id na lista para sondar eventos");
+      }
+      return json({ ok: true, tipo: "sonda_recebimento", ambiente, amostras });
+    }
 
     const tentativas: string[] = [];
     let doc: Record<string, any> | null = null;

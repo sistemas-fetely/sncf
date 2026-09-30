@@ -53,6 +53,7 @@ export default function ConfiguracaoIntegracao() {
   const [xpmAmbiente, setXpmAmbiente] = useState<"producao" | "homologacao">("producao");
   const [xpmBusca, setXpmBusca] = useState("");
   const [xpmInspecionando, setXpmInspecionando] = useState(false);
+  const [xpmSondando, setXpmSondando] = useState(false);
   const [xpmErro, setXpmErro] = useState<string | null>(null);
   const [xpmResultado, setXpmResultado] = useState<any>(null);
 
@@ -154,6 +155,27 @@ export default function ConfiguracaoIntegracao() {
     );
   });
   const xpmColetadoEm = xpmOperacoes[0]?.coletado_em ?? null;
+
+  async function sondarRecebimentos() {
+    setXpmSondando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("inspecionar-api-xpm", {
+        body: { tipo: "sonda_recebimento", ambiente: "producao" },
+      });
+      if (error) {
+        const corpo = (data as any)?.erro || "";
+        throw new Error(`${error.message}${corpo ? ` — ${corpo}` : ""}`);
+      }
+      if (!data?.ok) throw new Error(data?.erro || "A sonda falhou sem detalhe.");
+      const amostras: any[] = data.amostras ?? [];
+      const okN = amostras.filter((a) => a.erro == null).length;
+      toast.success(`Sonda de Recebimentos: ${okN} de ${amostras.length} recursos responderam`);
+    } catch (e: any) {
+      toast.error(`Sonda de Recebimentos falhou: ${e?.message || String(e)}`);
+    } finally {
+      setXpmSondando(false);
+    }
+  }
 
   async function inspecionarXpm() {
     setXpmInspecionando(true);
@@ -975,6 +997,10 @@ export default function ConfiguracaoIntegracao() {
                     <RefreshCw className="h-4 w-4 mr-2" />
                   )}
                   {xpmInspecionando ? "Inspecionando..." : "Inspecionar API"}
+                </Button>
+                <Button variant="outline" onClick={sondarRecebimentos} disabled={xpmSondando}>
+                  {xpmSondando ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                  {xpmSondando ? "Sondando..." : "Sondar Recebimentos"}
                 </Button>
               </div>
 
