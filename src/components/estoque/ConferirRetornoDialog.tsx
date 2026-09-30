@@ -649,7 +649,14 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                                     <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                       {condicoes.filter((x) => x.codigo !== c.condicao).map((opcao) => (
-                                        <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                                        <SelectItem key={opcao.codigo} value={opcao.codigo}>
+                                          <div className="flex flex-col">
+                                            <span>{rotuloConferencia(opcao)}</span>
+                                            {opcao.dica_conferencia && (
+                                              <span className="text-xs text-muted-foreground whitespace-normal">{opcao.dica_conferencia}</span>
+                                            )}
+                                          </div>
+                                        </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
