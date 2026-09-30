@@ -58992,6 +58992,254 @@ export type Database = {
         }
         Relationships: []
       }
+      sku_depara: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          criado_por: string | null
+          motivo: string | null
+          origem: string
+          sku_canonico: string
+          sku_origem: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          motivo?: string | null
+          origem?: string
+          sku_canonico: string
+          sku_origem: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          motivo?: string | null
+          origem?: string
+          sku_canonico?: string
+          sku_origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "sncf_produtos"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_bling_card_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_cartorio_situacao"
+            referencedColumns: ["sku_cadastro"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_rede"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_estoque"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_fop_status_pendente"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_cadastro_confronto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_preco_espelho"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_cockpit"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_conciliacao_360"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_crosswalk"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_fiscal"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_imagem_final"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_fase"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_produto_mesa_lista"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_resultado_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_atributos_produto"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_ean"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_shopify_variante"
+            referencedColumns: ["sku_por_sufixo"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_sku_embalagem_classe"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_sncf_qualidade"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_divergencia"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_cadastro_fila"
+            referencedColumns: ["sku"]
+          },
+          {
+            foreignKeyName: "sku_depara_sku_canonico_fkey"
+            columns: ["sku_canonico"]
+            isOneToOne: false
+            referencedRelation: "vw_xpm_card_medidas"
+            referencedColumns: ["sku"]
+          },
+        ]
+      }
       sla_fase_pedido: {
         Row: {
           ativo: boolean
