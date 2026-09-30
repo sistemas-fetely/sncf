@@ -17,22 +17,36 @@ export type TituloSaldo = {
   n_filhos_abertos: number | null;
   saldo_a_receber: number | null;
   tem_abatimento: boolean | null;
+  /** null = título raiz; 'acerto' = parcela de acerto; 'remessa' = remessa nova do rotativo do consignado. */
+  tipo_filho: string | null;
+  n_remessas_abertas: number | null;
 };
 
 const COLUNAS =
-  "titulo_id,titulo_pai_id,valor_documento,alocado_conta,filhos_abertos,n_filhos_abertos,saldo_a_receber,tem_abatimento";
+  "titulo_id,titulo_pai_id,valor_documento,alocado_conta,filhos_abertos,n_filhos_abertos,saldo_a_receber,tem_abatimento,tipo_filho,n_remessas_abertas";
+
+/** POSTGREST-CORTA-EM-MIL — lê em páginas de 1.000 até vir página incompleta. */
+async function lerTituloSaldos(): Promise<TituloSaldo[]> {
+  const TAMANHO_PAGINA = 1_000;
+  const todas: TituloSaldo[] = [];
+  for (let de = 0; ; de += TAMANHO_PAGINA) {
+    const { data, error } = await (supabase as any)
+      .from("vw_titulo_saldo")
+      .select(COLUNAS)
+      .order("titulo_id")
+      .range(de, de + TAMANHO_PAGINA - 1);
+    if (error) throw new Error(`vw_titulo_saldo: ${error.message}`);
+    const linhas = (data ?? []) as TituloSaldo[];
+    todas.push(...linhas);
+    if (linhas.length < TAMANHO_PAGINA) return todas;
+  }
+}
 
 /** Mapa titulo_id → saldo. Uma linha por título. */
 export function useTituloSaldos() {
   const q = useQuery({
     queryKey: ["vw-titulo-saldo"],
-    queryFn: async (): Promise<TituloSaldo[]> => {
-      const { data, error } = await (supabase as any)
-        .from("vw_titulo_saldo")
-        .select(COLUNAS);
-      if (error) throw new Error(`vw_titulo_saldo: ${error.message}`);
-      return (data ?? []) as TituloSaldo[];
-    },
+    queryFn: lerTituloSaldos,
     staleTime: 30_000,
   });
   const porTitulo = new Map<string, TituloSaldo>(

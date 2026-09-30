@@ -32,23 +32,39 @@ export function ValorSaldo({
   );
 }
 
-/** Badge de pai com parcelas de acerto em aberto. */
+/** Badge de pai com parcelas de acerto em aberto (remessa não abate o pai). */
 export function BadgeParcelasAcerto({ saldo }: { saldo: TituloSaldo | undefined }) {
   const n = Number(saldo?.n_filhos_abertos ?? 0);
-  if (!saldo || n <= 0) return null;
+  const nRemessas = Number(saldo?.n_remessas_abertas ?? 0);
+  if (!saldo || (n <= 0 && nRemessas <= 0)) return null;
   return (
-    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-      {n} parcela{n !== 1 ? "s" : ""} de acerto
-    </Badge>
+    <>
+      {n > 0 && (
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+          {n} parcela{n !== 1 ? "s" : ""} de acerto
+        </Badge>
+      )}
+      {nRemessas > 0 && (
+        <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+          {nRemessas} remessa{nRemessas !== 1 ? "s" : ""} no rotativo
+        </Badge>
+      )}
+    </>
   );
 }
 
-/** Badge do próprio filho (título de acerto). */
+/** Badge do próprio filho (título de acerto ou remessa nova do rotativo). */
 export function BadgeAcerto({ saldo }: { saldo: TituloSaldo | undefined }) {
-  if (!saldo?.titulo_pai_id) return null;
+  if (!saldo?.titulo_pai_id || !saldo.tipo_filho) return null;
+  const rotulo =
+    saldo.tipo_filho === "remessa"
+      ? "remessa"
+      : saldo.tipo_filho === "acerto"
+        ? "acerto"
+        : saldo.tipo_filho;
   return (
     <Badge variant="outline" className="text-[10px] px-1.5 py-0">
-      acerto
+      {rotulo}
     </Badge>
   );
 }
