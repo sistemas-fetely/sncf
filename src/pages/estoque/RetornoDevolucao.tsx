@@ -67,6 +67,20 @@ const sb = supabase as any;
 function formatNum(v: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(Number(v ?? 0));
 }
+/** dd/mm/aa em Brasília (timestamptz). */
+function fmtDataCurta(v: string | null | undefined, vazio = "—") {
+  if (!v) return vazio;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return vazio;
+  return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "2-digit" });
+}
+/** dd/mm em Brasília (timestamptz). */
+function fmtDiaMes(v: string | null | undefined, vazio = "—") {
+  if (!v) return vazio;
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return vazio;
+  return d.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit" });
+}
 const statusDe = (d: Funil) => String(d.status_efetivo ?? d.status ?? "");
 
 async function rpc(nome: string, args: Record<string, unknown>) {
