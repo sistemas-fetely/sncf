@@ -720,7 +720,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">SKU</TableHead>
+                    <TableHead className="w-[72px]">Cód.</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="w-[76px] text-center">Pendente</TableHead>
                     <TableHead className="w-[76px] text-center">Contado</TableHead>
@@ -730,9 +730,10 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 <TableBody>
                   {confronto.linhas.map((l) => (
                     <TableRow key={l.sku}>
-                      <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">{l.sku}</TableCell>
+                      <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={l.cod ? undefined : `SKU — ${l.nome ?? l.sku}`}>{codExibicao(l.sku, l.cod)}</TableCell>
                       <TableCell className="px-2 text-sm min-w-0">
                         <span className="block truncate" title={l.nome ?? undefined}>{l.nome ?? "—"}</span>
+                        <span className="block text-[11px] text-muted-foreground font-mono truncate" title={`SKU — ${l.nome ?? l.sku}`}>{l.sku}</span>
                       </TableCell>
                       <TableCell className="px-2 text-center tabular-nums">{l.declarado ? l.pendente : "—"}</TableCell>
                       <TableCell className="px-2 text-center tabular-nums font-medium">{l.contado}</TableCell>
