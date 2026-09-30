@@ -138,3 +138,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
 [functions.regularizacao-gerar-rascunho]
     verify_jwt = false
+
+[functions.regularizacao-vincular-rascunho]
+    verify_jwt = false
