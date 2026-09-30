@@ -320,6 +320,21 @@ export function QuarentenaEstoquePainel() {
                       </span>
                     </Button>
                   </CollapsibleTrigger>
+                  {bloqueioGrupo && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 whitespace-nowrap border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                          >
+                            Venda bloqueada: {bloqueioGrupo}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">{DICA_BLOQUEIO_VENDA}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <div className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
                     <div>{fmt(grupo.linhas.length)} {grupo.linhas.length === 1 ? "SKU" : "SKUs"}</div>
                     <div className="font-medium text-foreground tabular-nums">{fmt(grupo.unidades)} un</div>
