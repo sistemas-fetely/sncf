@@ -361,9 +361,17 @@ export default function RetornoDevolucao() {
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
                       <TableCell className="text-sm max-w-[220px] truncate">{d.cliente ?? "—"}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground max-w-[240px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
+                      <TableCell className="text-sm max-w-[180px] truncate">{d.motivo_exibicao ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        <span title={fmtDataHora(d.criado_em)}>{fmtDataCurta(d.criado_em)}</span>
+                        {d.recebido_em && (
+                          <div className="text-[11px] text-muted-foreground whitespace-nowrap" title={fmtDataHora(d.recebido_em)}>
+                            receb. {fmtDiaMes(d.recebido_em)}
+                          </div>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline" className={cn("font-normal tabular-nums",
+                        <Badge variant="outline" className={cn("font-normal tabular-nums whitespace-nowrap",
                           dias > 30 ? "bg-destructive/10 text-destructive border-destructive/20"
                             : dias > 10 ? "bg-warning/10 text-warning border-warning/20"
                               : "bg-success/10 text-success border-success/20")}>
