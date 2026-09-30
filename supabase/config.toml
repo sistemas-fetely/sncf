@@ -135,3 +135,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
 [functions.safrapay-link-sync]
     verify_jwt = false
+
+[functions.regularizacao-gerar-rascunho]
+    verify_jwt = false

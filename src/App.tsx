@@ -221,6 +221,8 @@ const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoque"));
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
+const RegularizacaoLotes = lazy(() => import("@/pages/Estoque/RegularizacaoLotes"));
+const RegularizacaoLoteDetalhe = lazy(() => import("@/pages/Estoque/RegularizacaoLoteDetalhe"));
 
 const ConciliacaoFila = lazy(() => import("@/pages/acervo/ConciliacaoFila"));
 const ConciliacaoEstoque = lazy(() => import("@/pages/acervo/ConciliacaoEstoque"));
@@ -507,6 +509,8 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
+                <Route path="/estoque/regularizacao" element={<RegularizacaoLotes />} />
+                <Route path="/estoque/regularizacao/:id" element={<RegularizacaoLoteDetalhe />} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
