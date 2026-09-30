@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useEmbarquePainel } from "@/components/compras/PainelTab";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle } from "lucide-react";
+import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle, ChevronDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
-import { CardIndicador } from "@/components/ui/card-indicador";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { FilterInput } from "@/components/ui/filter-input";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -732,6 +728,27 @@ export default function EmbarquesTab() {
   const [fabricaSel, setFabricaSel] = useState("todas");
   const [soTransito, setSoTransito] = useState(false);
   const [editando, setEditando] = useState<number | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const alternar = (id: number) =>
+    setExpandidos((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+  const [params, setParams] = useSearchParams();
+  const soFurada = params.get("furada") === "1";
+  const setSoFurada = (v: boolean) => {
+    const next = new URLSearchParams(params);
+    if (v) next.set("furada", "1");
+    else next.delete("furada");
+    setParams(next, { replace: true });
+  };
+  const painelQ = useEmbarquePainel();
+  const alertaPorId = useMemo(
+    () => new Map((painelQ.data ?? []).map((r) => [r.embarque_id, r.alerta_data])),
+    [painelQ.data],
+  );
 
   const status = useMemo<DimStatus[]>(() => dimQ.data?.status ?? [], [dimQ.data]);
   const portos = useMemo<DimPorto[]>(() => dimQ.data?.portos ?? [], [dimQ.data]);
@@ -776,19 +793,6 @@ export default function EmbarquesTab() {
   const contDoEmbarque = (e: EmbarqueRow): number =>
     e.conteineres.reduce((a, c) => a + (c.quantidade ?? 0), 0);
 
-  // ── resumo ──
-  const resumo = useMemo(() => {
-    const embarcado = status.find((s) => s.codigo === "Embarcado");
-    const noMar = embarcado ? embarques.filter((e) => e.status_id === embarcado.id) : [];
-    const conteineres = noMar.reduce((a, e) => a + contDoEmbarque(e), 0);
-    const valor = noMar.reduce((a, e) => a + (fobDoEmbarque(e) ?? 0), 0);
-    const proxima = embarques
-      .filter((e) => !e.data_chegada && e.eta)
-      .filter((e) => (diasAte(e.eta) ?? -1) >= 0)
-      .sort((a, b) => (a.eta ?? "").localeCompare(b.eta ?? ""))[0];
-    return { noMar, conteineres, valor, proxima };
-  }, [embarques, status]);
-
   // ── filtro ──
   const filtrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -804,6 +808,7 @@ export default function EmbarquesTab() {
         if (e.data_chegada) return false;
         if (!e.eta || e.eta.slice(0, 10) < hoje) return false;
       }
+      if (soFurada && !alertaPorId.get(e.id)) return false;
       if (termo) {
         const alvo = [
           e.ref_rocabella,
@@ -816,7 +821,7 @@ export default function EmbarquesTab() {
       }
       return true;
     });
-  }, [embarques, busca, statusSel, portoSel, fabricaSel, soTransito]);
+  }, [embarques, busca, statusSel, portoSel, fabricaSel, soTransito, soFurada, alertaPorId]);
 
   const ordenados = useMemo(
     () =>
@@ -865,32 +870,6 @@ export default function EmbarquesTab() {
 
   return (
     <div className="space-y-4">
-      {/* faixa de resumo */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        <CardIndicador
-          rotulo="No mar"
-          valor={resumo.noMar.length}
-          nota={`${resumo.conteineres} contêiner(es) embarcado(s)`}
-          compacto
-        />
-        <CardIndicador
-          rotulo="Valor embarcado"
-          valor={fmtUsd(resumo.valor)}
-          nota="soma do FOB dos pedidos no mar"
-          compacto
-        />
-        <CardIndicador
-          rotulo="Próxima chegada"
-          valor={
-            resumo.proxima
-              ? `${resumo.proxima.ref_rocabella} · ${fmtDataCurta(resumo.proxima.eta)}`
-              : "—"
-          }
-          nota={resumo.proxima ? relativo(resumo.proxima.eta) : "nenhuma ETA futura em aberto"}
-          compacto
-        />
-      </div>
-
       {/* filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <FilterInput
@@ -931,6 +910,12 @@ export default function EmbarquesTab() {
             Só em trânsito
           </Label>
         </div>
+        <div className="flex items-center gap-2">
+          <Switch id="furada" checked={soFurada} onCheckedChange={setSoFurada} />
+          <Label htmlFor="furada" className="text-sm font-normal">
+            Só data furada
+          </Label>
+        </div>
         <ToggleGroup
           type="multiple"
           value={statusSel}
@@ -961,77 +946,134 @@ export default function EmbarquesTab() {
           mensagem="Nenhum embarque bate com este filtro. Limpe a busca ou solte o filtro de status."
         />
       ) : (
-        <Accordion type="multiple" className="space-y-2">
-          {ordenados.map((e) => {
-            const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
-            const porto = e.porto_chegada_id ? portoPorId.get(e.porto_chegada_id) : undefined;
-            const fob = fobDoEmbarque(e);
-            const rel = relativo(e.eta);
-            const cbmConteiner = e.conteineres.reduce((a, c) => a + (c.cbm ?? 0), 0);
-            const cbmPedidos = e.vinculos.reduce((a, v) => a + (v.pedido?.cbm_total ?? 0), 0);
-            const temAmbos = cbmConteiner > 0 && cbmPedidos > 0;
-            const diferenca = Math.abs(cbmConteiner - cbmPedidos);
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>REF</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Pedidos</TableHead>
+                <TableHead>Porto</TableHead>
+                <TableHead>Contêineres</TableHead>
+                <TableHead className="text-right">FOB USD</TableHead>
+                <TableHead>ETD</TableHead>
+                <TableHead>ETA</TableHead>
+                <TableHead>Chegada</TableHead>
+                <TableHead>Prazo</TableHead>
+                <TableHead className="w-8" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {ordenados.map((e) => {
+                const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
+                const porto = e.porto_chegada_id ? portoPorId.get(e.porto_chegada_id) : undefined;
+                const fob = fobDoEmbarque(e);
+                const rel = relativo(e.eta);
+                const alerta = alertaPorId.get(e.id) ?? null;
+                const aberto = expandidos.has(e.id);
+                const cbmConteiner = e.conteineres.reduce((a, c) => a + (c.cbm ?? 0), 0);
+                const cbmPedidos = e.vinculos.reduce((a, v) => a + (v.pedido?.cbm_total ?? 0), 0);
+                const temAmbos = cbmConteiner > 0 && cbmPedidos > 0;
+                const diferenca = Math.abs(cbmConteiner - cbmPedidos);
+                const conts =
+                  e.conteineres.length === 0
+                    ? "—"
+                    : resumoConteineres(e.conteineres, tipos).replace(/ \(tipo não informado\)/g, "—");
 
-            return (
-              <AccordionItem
-                key={e.id}
-                value={String(e.id)}
-                className="rounded-lg border px-4 data-[state=open]:bg-muted/30"
-              >
-                <AccordionTrigger className="hover:no-underline">
-                  <div className="flex w-full flex-col gap-2 pr-2 text-left">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-sm font-medium">{e.ref_rocabella}</span>
-                      <Selo estado={tomDoStatus(st?.codigo)}>{st?.codigo ?? "sem status"}</Selo>
-                      <span className="text-xs text-muted-foreground">
-                        ETD {fmtData(e.etd)} · ETA {fmtData(e.eta)}
-                      </span>
-                      {e.data_chegada ? (
-                        <span className="text-xs text-success">
-                          chegou em {fmtDataCurta(e.data_chegada)}
-                        </span>
-                      ) : rel ? (
-                        <span className="text-xs text-muted-foreground">{rel}</span>
-                      ) : null}
-                      {e.eta_precisao && e.eta_precisao !== "dia" ? (
-                        <span className="text-xs text-muted-foreground">
-                          ETA aproximada ({e.eta_precisao})
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                      <span>{porto ? porto.nome : "porto não informado"}</span>
-                      {e.armador ? <span>{e.armador}</span> : null}
-                      {e.numero_bl ? <span className="font-mono">BL {e.numero_bl}</span> : null}
-                      <span>{resumoConteineres(e.conteineres, tipos)}</span>
-                      <span className="tabular-nums">{fmtUsd(fob)}</span>
-                    </div>
-                    <div className="flex flex-wrap gap-1">
-                      {e.vinculos.map((v) => {
-                        const fab = v.pedido?.fabrica_id
-                          ? fabricaPorId.get(v.pedido.fabrica_id)
-                          : undefined;
-                        return (
-                          <span
-                            key={v.id}
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px]",
-                              v.parcial && "border-warning/50",
-                            )}
-                          >
-                            {v.pedido?.numero_pedido ?? "pedido removido"}
-                            {fab ? (
-                              <span className="text-muted-foreground">{fab.codigo}</span>
-                            ) : null}
-                            {v.parcial ? <span className="text-warning">parcial</span> : null}
+                return (
+                  <Fragment key={e.id}>
+                    <TableRow
+                      className={cn("cursor-pointer", aberto && "bg-muted/30")}
+                      onClick={() => alternar(e.id)}
+                    >
+                      <TableCell className="whitespace-nowrap font-mono text-sm font-medium">
+                        {e.ref_rocabella}
+                      </TableCell>
+                      <TableCell>
+                        <Selo estado={tomDoStatus(st?.codigo)}>{st?.codigo ?? "—"}</Selo>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {e.vinculos.length === 0
+                            ? "—"
+                            : e.vinculos.map((v) => {
+                                const fab = v.pedido?.fabrica_id
+                                  ? fabricaPorId.get(v.pedido.fabrica_id)
+                                  : undefined;
+                                return (
+                                  <span
+                                    key={v.id}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px]",
+                                      v.parcial && "border-warning/50",
+                                    )}
+                                  >
+                                    {v.pedido?.numero_pedido ?? "pedido removido"}
+                                    {fab ? (
+                                      <span className="text-muted-foreground">{fab.codigo}</span>
+                                    ) : null}
+                                    {v.parcial ? <span className="text-warning">parcial</span> : null}
+                                  </span>
+                                );
+                              })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{porto?.nome ?? "—"}</TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">{conts}</TableCell>
+                      <TableCell className="whitespace-nowrap text-right tabular-nums text-sm">
+                        {fob === null ? "—" : fmtUsd(fob)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        {e.etd ? fmtData(e.etd) : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        {e.eta ? fmtData(e.eta) : "—"}
+                        {e.eta && e.eta_precisao && e.eta_precisao !== "dia" ? (
+                          <span className="block text-[11px] text-muted-foreground">
+                            aprox. ({e.eta_precisao})
                           </span>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </AccordionTrigger>
-
-                <AccordionContent className="space-y-4 pb-4">
+                        ) : null}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap tabular-nums text-sm">
+                        {e.data_chegada ? fmtData(e.data_chegada) : "—"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-sm">
+                        <div className="flex flex-col items-start gap-1">
+                          {e.data_chegada ? (
+                            <span className="text-success">
+                              chegou em {fmtDataCurta(e.data_chegada)}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">{rel ?? "—"}</span>
+                          )}
+                          {alerta ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span>
+                                  <Selo estado="warning">
+                                    {alerta === "eta_vencida" ? "ETA vencida" : "Entregue sem data"}
+                                  </Selo>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Atualize o status ou registre a data de chegada
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ChevronDown
+                          className={cn(
+                            "h-4 w-4 text-muted-foreground transition-transform",
+                            aberto && "rotate-180",
+                          )}
+                        />
+                      </TableCell>
+                    </TableRow>
+                    {aberto ? (
+                      <TableRow className="bg-muted/30 hover:bg-muted/30">
+                        <TableCell colSpan={11} className="space-y-4 p-4">
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditando(e.id)}>
                       <Pencil className="mr-1 h-4 w-4" /> Editar
@@ -1047,6 +1089,12 @@ export default function EmbarquesTab() {
                       </Button>
                     ) : null}
                   </div>
+                  {e.armador || e.numero_bl ? (
+                    <p className="text-xs text-muted-foreground">
+                      {e.armador ? <span className="mr-3">{e.armador}</span> : null}
+                      {e.numero_bl ? <span className="font-mono">BL {e.numero_bl}</span> : null}
+                    </p>
+                  ) : null}
 
                   {e.conteineres.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
@@ -1134,11 +1182,15 @@ export default function EmbarquesTab() {
                         {v.pedido?.numero_pedido ?? "pedido"}: {v.observacao}
                       </p>
                     ))}
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+                        </TableCell>
+                      </TableRow>
+                    ) : null}
+                  </Fragment>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       )}
 
       <Sheet

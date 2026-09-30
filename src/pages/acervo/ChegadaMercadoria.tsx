@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PackageCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,7 +7,7 @@ import DeParaFornecedor from "@/pages/acervo/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
 import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
-import EmbarquesTab from "@/components/compras/EmbarquesTab";
+import PainelTab from "@/components/compras/PainelTab";
 import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
 
 
@@ -22,12 +22,7 @@ interface AbaMercadoria {
 // Container de abas para o domínio "Compra de Mercadoria" (importacao_pedido).
 // Abas novas podem ser acrescentadas apenas estendendo o array ABAS.
 const ABAS: AbaMercadoria[] = [
-  { value: "embarques", label: "Embarques", render: () => <EmbarquesTab /> },
-  {
-    value: "acompanhamento",
-    label: "Acompanhamento",
-    render: () => <CadastroPedidoCompra vista="acompanhamento" />,
-  },
+  { value: "painel", label: "Painel", render: () => <PainelTab /> },
   { value: "pendencias", label: "Pendências", render: () => <PendenciasTab /> },
   { value: "recebimento-loja", label: "Recebimento na loja", render: () => <RecebimentoCentroTab /> },
   { value: "novo", label: "Novo pedido", render: () => <CadastroPedidoCompra vista="novo" /> },
@@ -41,6 +36,15 @@ const ABAS: AbaMercadoria[] = [
 export default function ChegadaMercadoria() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
+  // Compatibilidade com links antigos: embarques/acompanhamento viraram visões do Painel.
+  useEffect(() => {
+    const v = params.get("aba");
+    if (v !== "embarques" && v !== "acompanhamento") return;
+    const next = new URLSearchParams(params);
+    next.set("aba", "painel");
+    next.set("visao", v === "embarques" ? "embarque" : "pedido");
+    setParams(next, { replace: true });
+  }, [params, setParams]);
   const abaAtual = useMemo(() => {
     const v = params.get("aba");
     return ABAS.some((a) => a.value === v) ? (v as string) : ABAS[0].value;
