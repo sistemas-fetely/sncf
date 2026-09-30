@@ -1446,6 +1446,11 @@ export default function ConsignadoDetalhe() {
                       <p className="font-medium text-success">
                         Próximo passo: {String(confirmacao.proximo_passo ?? "—")}
                       </p>
+                      {confirmacao.vencimento && (
+                        <p>
+                          Vence em <strong>{formatDateBR(String(confirmacao.vencimento))}</strong>
+                        </p>
+                      )}
                       <p>
                         Pedido sintético <strong>{String(confirmacao.pedido_sintetico ?? "—")}</strong>
                         {confirmacao.pedido_id && (
