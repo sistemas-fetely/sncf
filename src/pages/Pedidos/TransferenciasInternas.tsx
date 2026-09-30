@@ -30,7 +30,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { usePermissoesTela } from "@/hooks/usePermissoesTela";
+import { ListaLotesRetorno } from "@/components/regularizacao/ListaLotesRetorno";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -273,6 +276,24 @@ interface TransferenciaRow {
   valor_bruto: number | null;
   qtd_itens: number | null;
   qtd_total_pecas: number | null;
+  tipo_transferencia: string | null;
+  regularizacao_lote_id: string | null;
+  regularizacao_lote_codigo: string | null;
+}
+
+/** Tipo da transferência: física, regularização (sem movimento físico) ou com retorno de remessa (lote). */
+function SeloTipo({ t }: { t: TransferenciaRow }) {
+  if (t.tipo_transferencia === "com_retorno") {
+    const rotulo = `Com retorno${t.regularizacao_lote_codigo ? ` · ${t.regularizacao_lote_codigo}` : ""}`;
+    return t.regularizacao_lote_id ? (
+      <Link to={`/pedidos/transferencias/retorno/${t.regularizacao_lote_id}`} onClick={(e) => e.stopPropagation()} className="inline-flex">
+        <Badge variant="outline" className="whitespace-nowrap text-primary">{rotulo}</Badge>
+      </Link>
+    ) : <Badge variant="outline" className="whitespace-nowrap">{rotulo}</Badge>;
+  }
+  if (t.tipo_transferencia === "regularizacao") return <Badge variant="secondary" className="whitespace-nowrap" title="Sem movimento físico">Regularização</Badge>;
+  if (t.tipo_transferencia === "fisica") return <Badge variant="outline" className="whitespace-nowrap">Física</Badge>;
+  return <span className="text-sm text-muted-foreground">—</span>;
 }
 
 /** Estágio da transferência: usa o mesmo selo da Casa dos Pedidos quando é
@@ -288,6 +309,9 @@ function SeloEstagio({ estagio }: { estagio: string | null }) {
 export default function TransferenciasInternas() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const permRetorno = usePermissoesTela("tela.regularizacao_estoque");
+  const [abaUrl, setAba] = useAbaUrl("transferencias");
+  const aba = abaUrl === "retorno" && permRetorno.podeVer ? "retorno" : "transferencias";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -488,7 +512,7 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
@@ -557,6 +581,20 @@ export default function TransferenciasInternas() {
         icone={PackageCheck}
         estado="Movimentação entre pontos Fetely — sem cobrança, precificada a custo"
       />
+
+      <Tabs value={aba} onValueChange={setAba} className="space-y-4">
+        {permRetorno.podeVer && (
+          <TabsList>
+            <TabsTrigger value="transferencias">Transferências</TabsTrigger>
+            <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
+          </TabsList>
+        )}
+        {permRetorno.podeVer && (
+          <TabsContent value="retorno">
+            <ListaLotesRetorno />
+          </TabsContent>
+        )}
+        <TabsContent value="transferencias" className="space-y-6">
 
       <Card>
         <CardHeader>
@@ -1014,6 +1052,7 @@ export default function TransferenciasInternas() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Destino</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead className="text-right">Qtd. itens</TableHead>
@@ -1055,6 +1094,9 @@ export default function TransferenciasInternas() {
                         >
                           {t.id_externo ?? "—"}
                         </span>
+                      </TableCell>
+                      <TableCell onKeyDown={(e) => e.stopPropagation()}>
+                        <SeloTipo t={t} />
                       </TableCell>
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
@@ -1109,6 +1151,8 @@ export default function TransferenciasInternas() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
