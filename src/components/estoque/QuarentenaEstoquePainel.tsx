@@ -288,6 +288,7 @@ export function QuarentenaEstoquePainel() {
             const grupoMarcado = selecionadasGrupo === grupo.linhas.length;
             const grupoParcial = selecionadasGrupo > 0 && !grupoMarcado;
             const aberto = !gruposFechados.has(grupo.chave);
+            const bloqueioGrupo = grupo.linhas.find((linha) => linha.bloqueio_venda)?.bloqueio_venda ?? null;
             return (
               <Collapsible
                 key={grupo.chave}
