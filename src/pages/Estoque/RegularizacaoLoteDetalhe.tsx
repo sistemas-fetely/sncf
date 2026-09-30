@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Loader2, PackageSearch, RefreshCw, Truck } from "lucide-react";
+import { ArrowLeft, Loader2, PackageSearch, RefreshCw, Truck, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
