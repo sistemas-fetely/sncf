@@ -1486,20 +1486,66 @@ export default function ShopifyB2c() {
                                     <span className="text-xs text-muted-foreground">—</span>
                                   );
                                   if (!selo) return codigo;
+                                  // CONFIRMACAO-DUPLA-DE-ENTREGA (30/09/2026): o
+                                  // chip ganha tooltip com o último evento dos
+                                  // Correios e a fonte que confirmou a entrega;
+                                  // a fonte aparece como texto discreto ao lado.
+                                  const fonteEntrega =
+                                    p.rastreio_fonte === "correios"
+                                      ? "Correios"
+                                      : p.rastreio_fonte === "shopify"
+                                        ? "Shopify"
+                                        : null;
+                                  const tooltipLinhas = [
+                                    selo.tooltip ?? null,
+                                    p.rastreio_status
+                                      ? `${p.rastreio_status}${p.rastreio_atualizado_em ? ` · ${fmtDataHora(p.rastreio_atualizado_em)}` : ""}`
+                                      : null,
+                                    p.rastreio_entregue && fonteEntrega && p.rastreio_confirmado_em
+                                      ? `Entrega confirmada por ${fonteEntrega} em ${fmtDataHora(p.rastreio_confirmado_em)}`
+                                      : null,
+                                  ].filter((l): l is string => !!l);
+                                  const chip = <Selo estado={selo.estado}>{selo.rotulo}</Selo>;
                                   return (
                                     <div className="space-y-1">
                                       {codigo}
-                                      {selo.tooltip ? (
-                                        <Tooltip>
-                                          <TooltipTrigger asChild>
-                                            <span className="inline-flex">
-                                              <Selo estado={selo.estado}>{selo.rotulo}</Selo>
-                                            </span>
-                                          </TooltipTrigger>
-                                          <TooltipContent className="max-w-[260px]">{selo.tooltip}</TooltipContent>
-                                        </Tooltip>
-                                      ) : (
-                                        <Selo estado={selo.estado}>{selo.rotulo}</Selo>
+                                      <div className="flex items-center gap-1.5">
+                                        {tooltipLinhas.length > 0 ? (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="inline-flex">{chip}</span>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-[260px]">
+                                              <div className="space-y-1">
+                                                {tooltipLinhas.map((linha, i) => (
+                                                  <p key={i}>{linha}</p>
+                                                ))}
+                                              </div>
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        ) : (
+                                          chip
+                                        )}
+                                        {p.rastreio_entregue && fonteEntrega && (
+                                          <span className="text-[10px] text-muted-foreground">{fonteEntrega}</span>
+                                        )}
+                                        {p.divergencia_entrega && (
+                                          <Tooltip>
+                                            <TooltipTrigger asChild>
+                                              <span className="inline-flex">
+                                                <AlertTriangle className="h-3.5 w-3.5 text-warning" />
+                                              </span>
+                                            </TooltipTrigger>
+                                            <TooltipContent className="max-w-[260px]">
+                                              Shopify marcou como entregue; a timeline dos Correios ainda não confirmou.
+                                            </TooltipContent>
+                                          </Tooltip>
+                                        )}
+                                      </div>
+                                      {!p.rastreio_entregue && (p.rastreio_dias_sem_evento ?? 0) > 7 && (
+                                        <p className="text-[10px] text-warning-strong">
+                                          {p.rastreio_dias_sem_evento} d sem movimento
+                                        </p>
                                       )}
                                     </div>
                                   );
