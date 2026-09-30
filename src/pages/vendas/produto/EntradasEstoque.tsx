@@ -294,6 +294,135 @@ export default function EntradasEstoque() {
         />
       </div>
 
+      <Collapsible open={pendAberto} onOpenChange={setPendAberto}>
+        <Card>
+          <CardHeader className="pb-3">
+            <CollapsibleTrigger asChild>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                aria-label={pendAberto ? "Recolher entradas pendentes" : "Expandir entradas pendentes"}
+              >
+                <div className="flex items-center gap-2">
+                  {pendAberto ? (
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                  )}
+                  <CardTitle className="text-base">Entradas pendentes</CardTitle>
+                </div>
+                {pendentes.length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {NUM.format(pendentes.length)} documento(s)
+                  </span>
+                )}
+              </button>
+            </CollapsibleTrigger>
+          </CardHeader>
+          <CollapsibleContent>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Documentos que deveriam ter dado entrada no estoque e ainda não deram. Resolva no
+                módulo de cada um.
+              </p>
+
+              {pendentesQ.isError && (
+                <Alert variant="destructive">
+                  <AlertDescription>{formatError(pendentesQ.error)}</AlertDescription>
+                </Alert>
+              )}
+
+              {pendentesFiltradas.length > 0 && (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {pendentesPorFonte.map(([chave, f]) => {
+                      const ativo = fonteFiltro === chave;
+                      return (
+                        <button
+                          key={chave}
+                          type="button"
+                          onClick={() => setFonteFiltro(ativo ? null : chave)}
+                          className={
+                            ativo
+                              ? "rounded-md border border-primary bg-primary/10 px-3 py-1.5 text-left text-xs"
+                              : "rounded-md border bg-card px-3 py-1.5 text-left text-xs hover:bg-muted/50"
+                          }
+                          aria-pressed={ativo}
+                        >
+                          <span className="font-medium">{f.nome}</span>
+                          <span className="ml-2 text-muted-foreground">
+                            {NUM.format(f.docs)} doc(s) · {NUM.format(f.unidades)} un
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="overflow-x-auto rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Documento</TableHead>
+                          <TableHead>Data</TableHead>
+                          <TableHead>Contraparte</TableHead>
+                          <TableHead className="text-right">Itens</TableHead>
+                          <TableHead className="text-right">Unidades</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Destino</TableHead>
+                          <TableHead>O que falta</TableHead>
+                          <TableHead className="text-right">Ação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {pendentesFiltradas.map((p, i) => (
+                          <TableRow key={`${p.fonte ?? ""}|${p.documento ?? ""}|${i}`}>
+                            <TableCell className="font-medium">{p.fonte_nome ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{p.documento ?? "—"}</TableCell>
+                            <TableCell className="tabular-nums">{formatDateBR(p.data)}</TableCell>
+                            <TableCell className="max-w-[200px] truncate">
+                              {p.contraparte ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {fmtQtd(p.itens)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {fmtQtd(p.unidades)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">
+                              {p.valor == null ? "—" : formatBRL(Number(p.valor))}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {p.centro_destino ?? "—"}
+                            </TableCell>
+                            <TableCell className="max-w-[280px] text-xs text-muted-foreground">
+                              {p.o_que_falta ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {p.rota ? (
+                                <Button variant="link" size="sm" asChild className="h-auto p-0">
+                                  <Link to={p.rota}>Resolver em {p.modulo_dono ?? "módulo"}</Link>
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              )}
+
+              {!pendentesQ.isError && pendentesFiltradas.length === 0 && (
+                <p className="text-sm text-muted-foreground">Nenhuma entrada pendente.</p>
+              )}
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
       <TabelaFetely
         busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar SKU, termo, NF ou pedido…" }}
         filtros={
