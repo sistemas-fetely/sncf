@@ -1368,10 +1368,25 @@ export default function ConsignadoDetalhe() {
                       </div>
                     )}
     
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="data-pagamento-acerto" className="text-xs">Data de pagamento combinada</Label>
+                        <Input
+                          id="data-pagamento-acerto"
+                          type="date"
+                          value={dataPagamento}
+                          onChange={(e) => setDataPagamento(e.target.value)}
+                          className="w-44"
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground max-w-56">
+                          É o vencimento do acerto: a partir dele o valor entra na cobrança.
+                        </p>
+                      </div>
                       <Button
                         disabled={
                           confirmarAcerto.isPending
+                          || !dataPagamento
                           || (itensRascunhoQ.data ?? []).length === 0
                         }
                         onClick={() => confirmarAcerto.mutate()}
