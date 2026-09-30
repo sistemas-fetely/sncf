@@ -122374,6 +122374,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_nfs_stage_normalizar_itens: { Args: { p_itens: Json }; Returns: Json }
       fn_nome_do_usuario: { Args: { p_user?: string }; Returns: string }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
