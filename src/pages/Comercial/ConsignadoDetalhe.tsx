@@ -598,8 +598,10 @@ export default function ConsignadoDetalhe() {
   const confirmarAcerto = useMutation({
     mutationFn: async () => {
       if (!rascunho) throw new Error("Não há acerto em rascunho.");
+      if (!dataPagamento) throw new Error("Informe a data de pagamento combinada.");
       const { data, error } = await (supabase as any).rpc("confirmar_acerto_consignado", {
         p_acerto_id: rascunho.id,
+        p_data_pagamento: dataPagamento,
       });
       if (error) throw new Error(error.message);
       return data as Record<string, unknown>;
