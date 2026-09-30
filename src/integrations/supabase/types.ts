@@ -45427,6 +45427,8 @@ export type Database = {
           criado_em: string
           data_ultima_atualizacao: string | null
           entregue: boolean
+          entregue_confirmado_em: string | null
+          entregue_fonte: string | null
           estado_canonico: string | null
           eventos: Json
           id: string
@@ -45441,6 +45443,8 @@ export type Database = {
           criado_em?: string
           data_ultima_atualizacao?: string | null
           entregue?: boolean
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
           estado_canonico?: string | null
           eventos?: Json
           id?: string
@@ -45455,6 +45459,8 @@ export type Database = {
           criado_em?: string
           data_ultima_atualizacao?: string | null
           entregue?: boolean
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
           estado_canonico?: string | null
           eventos?: Json
           id?: string
@@ -95245,6 +95251,7 @@ export type Database = {
           devolucao_status: string | null
           dias_no_estagio: number | null
           discount_amount: number | null
+          divergencia_entrega: boolean | null
           eh_final: boolean | null
           encerrado_em: string | null
           encerrado_motivo: string | null
@@ -95278,8 +95285,11 @@ export type Database = {
           previsao_entrega: string | null
           proxima_acao: string | null
           rastreio_atualizado_em: string | null
+          rastreio_confirmado_em: string | null
+          rastreio_dias_sem_evento: number | null
           rastreio_entregue: boolean | null
           rastreio_estado: string | null
+          rastreio_fonte: string | null
           rastreio_status: string | null
           reembolso_em: string | null
           reembolso_pendente: number | null
@@ -95351,6 +95361,7 @@ export type Database = {
           dias_no_estagio: number | null
           discount_amount: number | null
           divergencia_cep_tag: boolean | null
+          divergencia_entrega: boolean | null
           divergencia_fiscal: boolean | null
           divergencia_tag: boolean | null
           eh_final: boolean | null
@@ -95393,8 +95404,11 @@ export type Database = {
           previsao_entrega: string | null
           proxima_acao: string | null
           rastreio_atualizado_em: string | null
+          rastreio_confirmado_em: string | null
+          rastreio_dias_sem_evento: number | null
           rastreio_entregue: boolean | null
           rastreio_estado: string | null
+          rastreio_fonte: string | null
           rastreio_status: string | null
           reembolso_em: string | null
           reembolso_pendente: number | null
@@ -101296,14 +101310,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -114391,14 +114405,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -121139,10 +121153,13 @@ export type Database = {
           status_atual: string
         }[]
       }
-      fn_b2c_rastreio_estado: {
+      fn_b2c_rastreio: {
         Args: never
         Returns: {
           codigo_rastreio: string
+          data_ultima_atualizacao: string
+          entregue_confirmado_em: string
+          entregue_fonte: string
           estado_canonico: string
         }[]
       }
