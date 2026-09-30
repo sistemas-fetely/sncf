@@ -12,11 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, ScanBarcode, Trash2 } from "lucide-react";
+import { Loader2, ScanBarcode, Split, Trash2 } from "lucide-react";
 import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { Badge } from "@/components/ui/badge";
 import { hojeISO } from "@/lib/data";
@@ -85,7 +86,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const funilQ = useFunilLinha(devolucao?.devolucao_id ?? null, open);
 
   const [etapa, setEtapa] = useState<1 | 2>(1);
-  const [condicao, setCondicao] = useState(COND_QUARENTENA);
   const [codigo, setCodigo] = useState("");
   const [qtdBip, setQtdBip] = useState("1");
   const [codigoErro, setCodigoErro] = useState(false);
@@ -97,6 +97,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [obs, setObs] = useState("");
   const [data, setData] = useState(hojeISO());
   const [enviando, setEnviando] = useState(false);
+  const [separandoChave, setSeparandoChave] = useState<string | null>(null);
+  const [separarQtd, setSepararQtd] = useState("1");
+  const [separarCondicao, setSepararCondicao] = useState("");
   const codigoRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
 
@@ -105,7 +108,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   if (open && chave && chave !== chaveAtual) {
     setChaveAtual(chave);
     setEtapa(1);
-    setCondicao(COND_QUARENTENA);
     setCodigo("");
     setQtdBip("1");
     setCodigoErro(false);
@@ -115,6 +117,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     setDocTocado(false);
     setObs("");
     setData(hojeISO());
+    setSeparandoChave(null);
+    setSepararQtd("1");
+    setSepararCondicao("");
   }
 
   // NF sugerida da view, enquanto o operador não editar
@@ -145,8 +150,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     return m;
   }, [devolucao]);
 
-  const rotuloCond = (c: string) => condicoes.find((x) => x.codigo === c)?.rotulo ?? c;
-
   async function bipar() {
     const cod = codigo.trim();
     if (!cod || resolvendo) return;
@@ -176,13 +179,13 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         return;
       }
       const p = prod;
-      const k = `${p.sku}|${condicao}`;
+      const k = `${p.sku}|${COND_QUARENTENA}`;
       ordemRef.current += 1;
       const ordem = ordemRef.current;
       setContados((prev) => {
         const ex = prev.find((c) => `${c.sku}|${c.condicao}` === k);
         if (ex) return prev.map((c) => (c === ex ? { ...c, qtd: c.qtd + qtd, ordem } : c));
-        return [...prev, { sku: p.sku, condicao, qtd, nome: p.nome_comercial ?? itensPorSku.get(p.sku)?.nome ?? null, ordem }];
+        return [...prev, { sku: p.sku, condicao: COND_QUARENTENA, qtd, nome: p.nome_comercial ?? itensPorSku.get(p.sku)?.nome ?? null, ordem }];
       });
       setUltimoChave(k);
       setCodigoErro(false);
@@ -196,10 +199,62 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     }
   }
 
-  const contadosOrdenados = useMemo(
-    () => [...contados].sort((a, b) => b.ordem - a.ordem),
-    [contados],
-  );
+  function trocarCondicao(linha: Contado, novaCondicao: string) {
+    if (novaCondicao === linha.condicao) return;
+    const origem = `${linha.sku}|${linha.condicao}`;
+    const destino = `${linha.sku}|${novaCondicao}`;
+    setContados((prev) => {
+      const atual = prev.find((x) => `${x.sku}|${x.condicao}` === origem);
+      if (!atual) return prev;
+      const existente = prev.find((x) => `${x.sku}|${x.condicao}` === destino);
+      if (existente) {
+        return prev
+          .filter((x) => x !== atual)
+          .map((x) => x === existente ? { ...x, qtd: x.qtd + atual.qtd, ordem: Math.max(x.ordem, atual.ordem) } : x);
+      }
+      return prev.map((x) => x === atual ? { ...x, condicao: novaCondicao } : x);
+    });
+    setUltimoChave(destino);
+    setTimeout(() => codigoRef.current?.focus(), 0);
+  }
+
+  function separar(linha: Contado) {
+    const qtd = Number(separarQtd);
+    if (!Number.isInteger(qtd) || qtd < 1 || qtd >= linha.qtd || !separarCondicao || separarCondicao === linha.condicao) {
+      toast.error("Informe uma quantidade e uma condição de destino válidas.");
+      return;
+    }
+    const origem = `${linha.sku}|${linha.condicao}`;
+    const destino = `${linha.sku}|${separarCondicao}`;
+    setContados((prev) => {
+      const atual = prev.find((x) => `${x.sku}|${x.condicao}` === origem);
+      if (!atual || qtd >= atual.qtd) return prev;
+      const existente = prev.find((x) => `${x.sku}|${x.condicao}` === destino);
+      const reduzidas = prev.map((x) => x === atual ? { ...x, qtd: x.qtd - qtd } : x);
+      if (existente) return reduzidas.map((x) => x === existente ? { ...x, qtd: x.qtd + qtd } : x);
+      return [...reduzidas, { ...atual, condicao: separarCondicao, qtd }];
+    });
+    setUltimoChave(destino);
+    setSeparandoChave(null);
+    setSepararQtd("1");
+    setSepararCondicao("");
+    setTimeout(() => codigoRef.current?.focus(), 0);
+  }
+
+  const contadosOrdenados = useMemo(() => {
+    const ultimaOrdemSku = new Map<string, number>();
+    for (const linha of contados) {
+      ultimaOrdemSku.set(linha.sku, Math.max(ultimaOrdemSku.get(linha.sku) ?? 0, linha.ordem));
+    }
+    return [...contados].sort((a, b) => {
+      const porSku = (ultimaOrdemSku.get(b.sku) ?? 0) - (ultimaOrdemSku.get(a.sku) ?? 0);
+      if (porSku !== 0) return porSku;
+      if (a.sku !== b.sku) return a.sku.localeCompare(b.sku);
+      if (a.condicao === COND_QUARENTENA) return -1;
+      if (b.condicao === COND_QUARENTENA) return 1;
+      return a.condicao.localeCompare(b.condicao);
+    });
+  }, [contados]);
   const totalUnid = contados.reduce((s, c) => s + c.qtd, 0);
   const totalSkus = new Set(contados.map((c) => c.sku)).size;
 
@@ -340,18 +395,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         {etapa === 1 ? (
           <>
             <div className="sticky top-0 z-10 bg-background py-2 space-y-3 border-b">
-              <ToggleGroup
-                type="single"
-                value={condicao}
-                onValueChange={(v) => { if (v) { setCondicao(v); codigoRef.current?.focus(); } }}
-                className="justify-start flex-wrap"
-              >
-                {condicoes.map((c) => (
-                  <ToggleGroupItem key={c.codigo} value={c.codigo} variant="outline" size="sm">
-                    {c.rotulo}
-                  </ToggleGroupItem>
-                ))}
-              </ToggleGroup>
               <div className="flex gap-2 items-end">
                 <div className="flex-1 space-y-1.5">
                   <Label>Código (EAN ou SKU)</Label>
@@ -388,9 +431,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                   <TableRow>
                     <TableHead className="w-[140px]">SKU</TableHead>
                     <TableHead>Produto</TableHead>
-                    <TableHead className="w-[120px]">Condição</TableHead>
+                    <TableHead className="w-[140px]">Condição</TableHead>
                     <TableHead className="w-[80px] text-center">Qtd</TableHead>
-                    <TableHead className="w-[44px]" />
+                    <TableHead className="w-[72px]" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -415,7 +458,18 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                             </Badge>
                           )}
                         </TableCell>
-                        <TableCell className="px-2 text-xs truncate">{rotuloCond(c.condicao)}</TableCell>
+                        <TableCell className="px-2">
+                          <Select value={c.condicao} onValueChange={(v) => trocarCondicao(c, v)}>
+                            <SelectTrigger className="h-8 w-full min-w-0 [&>span]:truncate">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {condicoes.map((opcao) => (
+                                <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="px-2 text-center">
                           <Input
                             inputMode="numeric"
@@ -429,14 +483,59 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                           />
                         </TableCell>
                         <TableCell className="px-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => setContados((prev) => prev.filter((x) => `${x.sku}|${x.condicao}` !== k))}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center gap-0.5">
+                            <Popover
+                              open={separandoChave === k}
+                              onOpenChange={(v) => {
+                                setSeparandoChave(v ? k : null);
+                                setSepararQtd("1");
+                                setSepararCondicao(condicoes.find((x) => x.codigo !== c.condicao)?.codigo ?? "");
+                                if (!v) setTimeout(() => codigoRef.current?.focus(), 0);
+                              }}
+                            >
+                              <PopoverTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8" disabled={c.qtd < 2} title="Separar quantidade">
+                                  <Split className="h-4 w-4" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-64 space-y-3" align="end">
+                                <div className="space-y-1.5">
+                                  <Label>Quantidade</Label>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={Math.max(1, c.qtd - 1)}
+                                    value={separarQtd}
+                                    onChange={(e) => setSepararQtd(e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-1.5">
+                                  <Label>Condição destino</Label>
+                                  <Select value={separarCondicao} onValueChange={setSepararCondicao}>
+                                    <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue /></SelectTrigger>
+                                    <SelectContent>
+                                      {condicoes.filter((x) => x.codigo !== c.condicao).map((opcao) => (
+                                        <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <Button className="w-full" onClick={() => separar(c)}>Separar</Button>
+                              </PopoverContent>
+                            </Popover>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8"
+                              title="Remover linha"
+                              onClick={() => {
+                                setContados((prev) => prev.filter((x) => `${x.sku}|${x.condicao}` !== k));
+                                setTimeout(() => codigoRef.current?.focus(), 0);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
