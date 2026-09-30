@@ -98096,14 +98096,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -107302,6 +107302,49 @@ export type Database = {
           titulo: string | null
         }
         Relationships: []
+      }
+      vw_quarentena_fila: {
+        Row: {
+          centro: string | null
+          cliente: string | null
+          devolucao_id: string | null
+          devolucao_numero: string | null
+          nf_numero: string | null
+          produto: string | null
+          saldo: number | null
+          sku: string | null
+          ultimo_mov: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
+        ]
       }
       vw_rastreio_sem_dimensao: {
         Row: {
@@ -121386,11 +121429,23 @@ export type Database = {
         Args: {
           p_centro: string
           p_de: string
+          p_devolucao_id?: string
           p_doc_numero?: string
           p_obs?: string
           p_para: string
           p_quantidade: number
           p_sku: string
+        }
+        Returns: Json
+      }
+      reclassificar_condicao_estoque_lote: {
+        Args: {
+          p_centro: string
+          p_de: string
+          p_doc_numero?: string
+          p_linhas: Json
+          p_obs?: string
+          p_para: string
         }
         Returns: Json
       }
