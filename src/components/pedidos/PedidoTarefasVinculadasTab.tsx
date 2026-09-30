@@ -30,7 +30,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { cn } from "@/lib/utils";
-import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
+import { OPCOES_PRIORIDADE, PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   STATUS_ABERTOS,
