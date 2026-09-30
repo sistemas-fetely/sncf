@@ -33,6 +33,7 @@ import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
 import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 
@@ -53,7 +54,7 @@ type Funil = {
   refund_ok: boolean | null; refund_valor: number | null;
   recebido_em: string | null; criado_em: string | null; encerrado_em: string | null;
 };
-type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null };
+type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
 const ETAPA_CAMPO: Record<number, keyof Funil> = {
@@ -117,8 +118,12 @@ export default function RetornoDevolucao() {
   });
   const etapasQ = useQuery({
     queryKey: ["devolucao_etapa"],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await sb.from("devolucao_etapa").select("codigo, rotulo, ordem, natureza, descricao").order("ordem");
+      const { data, error } = await sb.from("devolucao_etapa")
+        .select("codigo, rotulo, ordem, natureza, descricao, obrigatoria_encerramento")
+        .eq("ativo", true)
+        .order("ordem");
       if (error) throw error;
       return (data ?? []) as Etapa[];
     },
@@ -271,7 +276,51 @@ export default function RetornoDevolucao() {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Motivo</TableHead>
                 <TableHead className="w-[80px] text-right">Dias</TableHead>
-                <TableHead className="w-[150px]">Funil</TableHead>
+                <TableHead className="group w-[150px]">
+                  <span className="inline-flex items-center gap-1">
+                    Funil
+                    <InfoMetrica rotulo="Funil da devolução" ariaLabel="Como ler o funil">
+                      <div className="space-y-2">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">O que é</div>
+                          <div className="mt-0.5">As 7 etapas da devolução, da abertura ao encerramento. Cada bolinha é uma etapa.</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Etapas</div>
+                          <ol className="mt-0.5 space-y-1">
+                            {etapas.map((etapa) => (
+                              <li key={etapa.codigo}>
+                                <span className="font-medium">{etapa.ordem}. {etapa.rotulo}</span>
+                                {etapa.obrigatoria_encerramento && (
+                                  <Badge variant="outline" className="ml-1.5 h-4 px-1 py-0 align-middle text-[9px] font-normal text-muted-foreground">obrigatória</Badge>
+                                )}
+                                {etapa.descricao && <span> — {etapa.descricao}</span>}
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Como ler</div>
+                          <div className="mt-0.5 space-y-1">
+                            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                              <span className="inline-block h-3 w-3 rounded-full border border-primary bg-primary" aria-hidden />
+                              <span>cheia = etapa cumprida</span><span aria-hidden>·</span>
+                              <span className="inline-block h-3 w-3 rounded-full border border-warning bg-warning" aria-hidden />
+                              <span>âmbar = NF de retorno sugerida, aguardando confirmação</span><span aria-hidden>·</span>
+                              <span className="inline-block h-3 w-3 rounded-full border border-border bg-muted" aria-hidden />
+                              <span>vazia = pendente.</span>
+                            </div>
+                            <div>Retorno parcial é normal. A devolução encerra sozinha quando todas as obrigatórias fecham; o que falta aparece em 'Para encerrar' na linha expandida.</div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">De onde vem</div>
+                          <div className="mt-0.5">Recebida é declarada pelo operador. As demais são derivadas do sistema: rastreio, estoque, NF capturada do Bling e reembolso da loja.</div>
+                        </div>
+                      </div>
+                    </InfoMetrica>
+                  </span>
+                </TableHead>
                 <TableHead className="w-[90px] text-right">Pendente</TableHead>
                 <TableHead className="w-[130px]" />
               </TableRow>
