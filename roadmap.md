@@ -5,4 +5,4 @@
 - [x] Substituir ações de concluir/reabrir pelo controle circular na ficha da tarefa.
 - [x] Exibir o estado agregado de salvamento no peek e na página.
 - [x] Ajustar o rodapé do peek e a legibilidade do selo do projeto.
-- [ ] Executar o typecheck sem publicar.
+- [x] Executar o typecheck sem publicar.
