@@ -23302,9 +23302,11 @@ export type Database = {
           ativo: boolean
           codigo: string
           descricao: string | null
+          dica_conferencia: string | null
           exige_liberacao_para_venda: boolean
           ordem: number
           rotulo: string
+          rotulo_conferencia: string | null
           vendavel: boolean
           verdade_primaria: string
         }
@@ -23312,9 +23314,11 @@ export type Database = {
           ativo?: boolean
           codigo: string
           descricao?: string | null
+          dica_conferencia?: string | null
           exige_liberacao_para_venda?: boolean
           ordem?: number
           rotulo: string
+          rotulo_conferencia?: string | null
           vendavel: boolean
           verdade_primaria?: string
         }
@@ -23322,9 +23326,11 @@ export type Database = {
           ativo?: boolean
           codigo?: string
           descricao?: string | null
+          dica_conferencia?: string | null
           exige_liberacao_para_venda?: boolean
           ordem?: number
           rotulo?: string
+          rotulo_conferencia?: string | null
           vendavel?: boolean
           verdade_primaria?: string
         }
