@@ -62,7 +62,7 @@ async function carregar(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: 
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
       .from("vw_quarentena_fila")
-      .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov")
+      .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov,bloqueio_venda")
       .order("devolucao_numero", { nullsFirst: false })
       .order("sku")
       .order("centro")
