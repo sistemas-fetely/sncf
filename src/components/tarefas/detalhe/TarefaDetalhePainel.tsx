@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, ExternalLink, RotateCcw } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,8 @@ import { OPCOES_PRIORIDADE, PontoUrgente } from "@/lib/tarefas/prioridade";
 import type { TarefaPrioridade, TarefaStatus } from "@/hooks/tarefas/useTarefas";
 import { Campo, Secao, SeletorPessoa } from "./comuns";
 import { BlocoDescricao } from "./BlocosBasicos";
+import { BotaoConcluir } from "@/components/tarefas/BotaoConcluir";
+import { IndicadorSalvamento } from "@/components/tarefas/IndicadorSalvamento";
 import {
   useSalvarCampoTarefa, useSubtarefas, useTarefaDetalhe, type TarefaDetalhe,
 } from "@/hooks/tarefas/useTarefaDetalhe";
@@ -38,19 +41,21 @@ export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
   return (
     <Sheet open={aberto} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
-        {tarefaId ? <Conteudo tarefaId={tarefaId} /> : null}
+        {tarefaId ? <Conteudo tarefaId={tarefaId} onFechar={() => onOpenChange(false)} /> : null}
       </SheetContent>
     </Sheet>
   );
 }
 
-function Conteudo({ tarefaId }: { tarefaId: string }) {
+function Conteudo({ tarefaId, onFechar }: { tarefaId: string; onFechar: () => void }) {
   const { data: tarefa, isLoading, error, refetch } = useTarefaDetalhe(tarefaId);
   const navigate = useNavigate();
 
   const rodape = (
-    <div className="border-t bg-background p-4">
-      <Button variant="outline" className="w-full" onClick={() => navigate(`/tarefas/${tarefaId}`)}>
+    <div className="flex items-center gap-2 border-t bg-background p-4">
+      <div className="mr-auto"><IndicadorSalvamento tarefaId={tarefaId} /></div>
+      <Button variant="outline" onClick={onFechar}>Fechar</Button>
+      <Button variant="outline" onClick={() => navigate(`/tarefas/${tarefaId}`)}>
         <ExternalLink className="mr-1 h-4 w-4" /> Abrir tarefa completa
       </Button>
     </div>
@@ -122,22 +127,45 @@ function Cabecalho({ tarefa }: { tarefa: TarefaDetalhe }) {
   return (
     <SheetHeader className="space-y-2 pr-6 text-left">
       <SheetTitle className="sr-only">{tarefa.titulo}</SheetTitle>
-      <Input
-        value={titulo}
-        onChange={(e) => setTitulo(e.target.value)}
-        onBlur={salvarTitulo}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") setTitulo(tarefa.titulo);
-        }}
-        aria-label="Título da tarefa"
-        className="h-auto border-transparent px-1 text-lg font-medium shadow-none focus-visible:border-input"
-      />
+      <div className="flex items-center gap-1">
+        <BotaoConcluir
+          concluida={terminal}
+          disabled={salvar.isPending || !(terminal ? alvoReabrir : alvoConcluir)}
+          onClick={() => {
+            const alvo = terminal ? alvoReabrir : alvoConcluir;
+            if (!alvo) return;
+            const statusAnterior = tarefa.status;
+            salvar.mutate(
+              { status: alvo.codigo as TarefaStatus },
+              !terminal ? {
+                onSuccess: () => toast.success("Tarefa concluída", {
+                  action: {
+                    label: "Desfazer",
+                    onClick: () => salvar.mutate({ status: statusAnterior }),
+                  },
+                }),
+              } : undefined,
+            );
+          }}
+        />
+        <Input
+          value={titulo}
+          onChange={(e) => setTitulo(e.target.value)}
+          onBlur={salvarTitulo}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            if (e.key === "Escape") setTitulo(tarefa.titulo);
+          }}
+          aria-label="Título da tarefa"
+          className={`h-auto border-transparent px-1 text-lg font-medium shadow-none focus-visible:border-input ${terminal ? "line-through text-muted-foreground" : ""}`}
+        />
+      </div>
       <div className="flex flex-wrap items-center gap-2 px-1">
         <span
-          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-          style={projeto?.cor ? { backgroundColor: `${projeto.cor}26`, color: projeto.cor } : undefined}
+          className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs text-foreground"
+          style={projeto?.cor ? { backgroundColor: `${projeto.cor}26` } : undefined}
         >
+          {projeto?.cor && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: projeto.cor }} aria-hidden />}
           {projeto ? projeto.nome : "Sem projeto"}
         </span>
         {bloqueio?.bloqueada && <SeloBloqueio abertos={bloqueio.bloqueadores_abertos} />}
@@ -146,19 +174,6 @@ function Cabecalho({ tarefa }: { tarefa: TarefaDetalhe }) {
             {tarefa.tipo_tarefa === "marco" ? "Marco" : "Aprovação"}
           </Badge>
         )}
-        <div className="ml-auto">
-          {terminal ? (
-            <Button size="sm" variant="outline" disabled={salvar.isPending || !alvoReabrir}
-              onClick={() => alvoReabrir && salvar.mutate({ status: alvoReabrir.codigo as TarefaStatus })}>
-              <RotateCcw className="mr-1 h-4 w-4" /> Reabrir
-            </Button>
-          ) : (
-            <Button size="sm" disabled={salvar.isPending || !alvoConcluir}
-              onClick={() => alvoConcluir && salvar.mutate({ status: alvoConcluir.codigo as TarefaStatus })}>
-              <Check className="mr-1 h-4 w-4" /> Concluir tarefa
-            </Button>
-          )}
-        </div>
       </div>
     </SheetHeader>
   );
@@ -208,7 +223,7 @@ function BlocoAjuste({ tarefa }: { tarefa: TarefaDetalhe }) {
 
 function SubtarefasCompactas({ tarefaId }: { tarefaId: string }) {
   const { data: filhas } = useSubtarefas(tarefaId);
-  const alterar = useAlterarStatusTarefa();
+  const alterar = useAlterarStatusTarefa({ tarefaId, toastConclusao: false });
   const { data: statusDim } = useStatusTarefaDim();
   const lista = filhas ?? [];
   if (lista.length === 0) return null;
@@ -233,7 +248,21 @@ function SubtarefasCompactas({ tarefaId }: { tarefaId: string }) {
               <Checkbox
                 checked={feita}
                 disabled={alterar.isPending || !alvo}
-                onCheckedChange={() => alvo && alterar.mutate({ id: t.id, status: alvo.codigo as TarefaStatus })}
+                 onCheckedChange={() => {
+                   if (!alvo) return;
+                   const statusAnterior = t.status;
+                   alterar.mutate(
+                     { id: t.id, status: alvo.codigo as TarefaStatus },
+                     !feita ? {
+                       onSuccess: () => toast.success("Tarefa concluída", {
+                         action: {
+                           label: "Desfazer",
+                           onClick: () => alterar.mutate({ id: t.id, status: statusAnterior }),
+                         },
+                       }),
+                     } : undefined,
+                   );
+                 }}
                 aria-label={feita ? "Reabrir subtarefa" : "Concluir subtarefa"}
               />
               {t.prioridade === "urgente" && <PontoUrgente className="mt-0" label="Urgente" />}
