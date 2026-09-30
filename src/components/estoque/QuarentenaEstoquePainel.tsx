@@ -386,7 +386,13 @@ export function QuarentenaEstoquePainel() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_SADIO)}>Liberar p/ venda</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    disabled={Boolean(linha.bloqueio_venda)}
+                                    title={linha.bloqueio_venda ? `Venda bloqueada: ${linha.bloqueio_venda}. ${DICA_BLOQUEIO_VENDA}` : undefined}
+                                    onSelect={() => abrirUnitario(linha, PARA_SADIO)}
+                                  >
+                                    Liberar p/ venda
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_AVARIA)}>Marcar avaria</DropdownMenuItem>
                                   <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_NAO_CONFORME)}>Não conforme</DropdownMenuItem>
                                 </DropdownMenuContent>
