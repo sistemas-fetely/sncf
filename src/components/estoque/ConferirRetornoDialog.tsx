@@ -546,6 +546,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                   </span>
                 )}
               </form>
+              <p className="text-xs text-muted-foreground">
+                Todo bip entra como {condQuarentena ? rotuloConferencia(condQuarentena) : "Íntegro"}. Ajuste na linha se houver avaria.
+              </p>
             </div>
 
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
