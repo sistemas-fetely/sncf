@@ -131,28 +131,41 @@ Deno.serve(async (req) => {
       if (!base) throw new Error(`base_url ausente na config ${sistemaUsado}.`);
       const t = await obterToken();
       const amostras: Record<string, unknown>[] = [];
-      const sondar = async (recurso: string, caminho: string | null, erroPrevio?: string) => {
-        const url = caminho ? `${base}${caminho}` : null;
+      // caminho pode ser string (uma tentativa) ou string[] (variantes de query:
+      // para na primeira que responder 200; url gravada = a que funcionou, ou a
+      // ultima tentada com o erro).
+      const sondar = async (recurso: string, caminho: string | string[] | null, erroPrevio?: string) => {
+        const caminhos = caminho == null
+          ? []
+          : (Array.isArray(caminho) ? caminho : [caminho]).map((c) => `${base}${c}`);
+        let url: string | null = caminhos[0] ?? null;
         let http_status: number | null = null;
         let payload: any = null;
         let erro: string | null = erroPrevio ?? null;
-        if (url && !erroPrevio) {
-          try {
-            const r = await fetch(url, {
-              method: "GET",
-              headers: { Accept: "application/json", Authorization: `Bearer ${t}` },
-            });
-            http_status = r.status;
-            const texto = await r.text();
+        if (caminhos.length > 0 && !erroPrevio) {
+          for (const u of caminhos) {
+            url = u;
+            http_status = null;
+            payload = null;
+            erro = null;
             try {
-              payload = JSON.parse(texto);
-              if (!r.ok) erro = `HTTP ${r.status}: ${(payload?.error?.message ?? texto).toString().slice(0, 500)}`;
-            } catch {
-              payload = null;
-              erro = texto.slice(0, 500) || `HTTP ${r.status} sem corpo`;
+              const r = await fetch(u, {
+                method: "GET",
+                headers: { Accept: "application/json", Authorization: `Bearer ${t}` },
+              });
+              http_status = r.status;
+              const texto = await r.text();
+              try {
+                payload = JSON.parse(texto);
+                if (!r.ok) erro = `HTTP ${r.status}: ${(payload?.error?.message ?? texto).toString().slice(0, 500)}`;
+              } catch {
+                payload = null;
+                erro = texto.slice(0, 500) || `HTTP ${r.status} sem corpo`;
+              }
+              if (r.ok) break; // primeira 200 encerra as variantes
+            } catch (e) {
+              erro = (e instanceof Error ? e.message : String(e)).slice(0, 500);
             }
-          } catch (e) {
-            erro = (e instanceof Error ? e.message : String(e)).slice(0, 500);
           }
         }
         const { error: eUp } = await sb.from("xpm_api_amostra").upsert({
@@ -168,7 +181,7 @@ Deno.serve(async (req) => {
         });
         return payload;
       };
-      const q = "?MaxResultCount=10&SkipCount=0";
+      const q = "?MaxResultCount=10&SkipCount=0&Sorting=" + encodeURIComponent("id desc");
       const lista = await sondar("recebimento_lista", `/api/services/app/Recebimento/GetListAllRecebimentosForTable${q}`);
       await sondar("recebimento_getall", `/api/services/app/Recebimento/GetAll${q}`);
       await sondar("recebimento_nota", `/api/services/app/RecebimentoNota/GetAll${q}`);
@@ -177,9 +190,19 @@ Deno.serve(async (req) => {
       const it0 = lista?.result?.items?.[0];
       const id = it0?.id ?? it0?.recebimento?.id ?? null;
       if (id != null) {
-        await sondar("recebimento_eventos", `/api/services/app/Recebimento/GetEventosRecebimento?id=${encodeURIComponent(String(id))}`);
+        const idq = encodeURIComponent(String(id));
+        await sondar("recebimento_eventos", [
+          `/api/services/app/Recebimento/GetEventosRecebimento?recebimentoId=${idq}`,
+          `/api/services/app/Recebimento/GetEventosRecebimento?Id=${idq}`,
+          `/api/services/app/Recebimento/GetEventosRecebimento?input=${idq}`,
+        ]);
+        await sondar("recebimento_itens", [
+          `/api/services/app/RecebimentoArmazenagemItens/GetItensByRecebimentoArmazenagem?recebimentoArmazenagemId=${idq}`,
+          `/api/services/app/RecebimentoArmazenagemItens/GetItensByRecebimentoArmazenagem?id=${idq}`,
+        ]);
       } else {
         await sondar("recebimento_eventos", null, "sem id na lista para sondar eventos");
+        await sondar("recebimento_itens", null, "sem id na lista para sondar itens");
       }
       return json({ ok: true, tipo: "sonda_recebimento", ambiente, amostras });
     }
