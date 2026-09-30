@@ -3875,6 +3875,13 @@ export type Database = {
             foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
             columns: ["nfs_stage_id"]
             isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "auditoria_resumo_nfe_falhas_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["nf_stage_id"]
           },
@@ -16403,6 +16410,154 @@ export type Database = {
           },
         ]
       }
+      consignado_ciclo: {
+        Row: {
+          centro_id: string
+          competencia: string
+          data_corte: string
+          documento: string
+          fechado_em: string
+          fechado_por: string | null
+          id: string
+          itens: Json
+          obs: string | null
+          parceiro_id: string
+          unidades: number
+        }
+        Insert: {
+          centro_id: string
+          competencia: string
+          data_corte: string
+          documento: string
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          itens: Json
+          obs?: string | null
+          parceiro_id: string
+          unidades: number
+        }
+        Update: {
+          centro_id?: string
+          competencia?: string
+          data_corte?: string
+          documento?: string
+          fechado_em?: string
+          fechado_por?: string | null
+          id?: string
+          itens?: Json
+          obs?: string | null
+          parceiro_id?: string
+          unidades?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consignado_ciclo_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       consignado_contrato: {
         Row: {
           ativo: boolean
@@ -20845,6 +21000,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["nf_stage_id"]
           },
@@ -21090,6 +21252,7 @@ export type Database = {
           criado_em: string
           criado_por: string | null
           desfecho: string | null
+          destino_retorno: string | null
           encerrado_em: string | null
           encerrado_por: string | null
           haver_id: string | null
@@ -21102,6 +21265,10 @@ export type Database = {
           observacao: string | null
           parceiro_id: string | null
           pedido_id: string | null
+          rastreio_reverso: string | null
+          recebido_em: string | null
+          recebido_por: string | null
+          reversa_origem: string | null
           shopify_pedido_id: string | null
           snapshot_id: string | null
           status: string
@@ -21116,6 +21283,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           desfecho?: string | null
+          destino_retorno?: string | null
           encerrado_em?: string | null
           encerrado_por?: string | null
           haver_id?: string | null
@@ -21128,6 +21296,10 @@ export type Database = {
           observacao?: string | null
           parceiro_id?: string | null
           pedido_id?: string | null
+          rastreio_reverso?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          reversa_origem?: string | null
           shopify_pedido_id?: string | null
           snapshot_id?: string | null
           status?: string
@@ -21142,6 +21314,7 @@ export type Database = {
           criado_em?: string
           criado_por?: string | null
           desfecho?: string | null
+          destino_retorno?: string | null
           encerrado_em?: string | null
           encerrado_por?: string | null
           haver_id?: string | null
@@ -21154,6 +21327,10 @@ export type Database = {
           observacao?: string | null
           parceiro_id?: string | null
           pedido_id?: string | null
+          rastreio_reverso?: string | null
+          recebido_em?: string | null
+          recebido_por?: string | null
+          reversa_origem?: string | null
           shopify_pedido_id?: string | null
           snapshot_id?: string | null
           status?: string
@@ -21167,6 +21344,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devolucao_canal"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
           },
           {
             foreignKeyName: "devolucao_haver_id_fkey"
@@ -21721,6 +21912,36 @@ export type Database = {
         }
         Relationships: []
       }
+      devolucao_etapa: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          fonte: string
+          natureza: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          fonte: string
+          natureza: string
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          fonte?: string
+          natureza?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       devolucao_item: {
         Row: {
           condicao_esperada: string | null
@@ -21772,6 +21993,13 @@ export type Database = {
             columns: ["devolucao_id"]
             isOneToOne: false
             referencedRelation: "vw_devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_item_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
             referencedColumns: ["id"]
           },
           {
@@ -26839,6 +27067,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
           },
           {
             foreignKeyName: "ged_documentos_nfs_stage_id_fkey"
@@ -34432,6 +34667,13 @@ export type Database = {
             foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
             columns: ["devolucao_id"]
             isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
             referencedRelation: "vw_devolucao_retorno_pendente"
             referencedColumns: ["devolucao_id"]
           },
@@ -36060,6 +36302,7 @@ export type Database = {
           confirmado_por: string | null
           confirmado_por_nome: string | null
           criado_em: string
+          devolucao_id: string | null
           grau: string | null
           grau_sugerido: string
           id: string
@@ -36080,6 +36323,7 @@ export type Database = {
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           criado_em?: string
+          devolucao_id?: string | null
           grau?: string | null
           grau_sugerido: string
           id?: string
@@ -36100,6 +36344,7 @@ export type Database = {
           confirmado_por?: string | null
           confirmado_por_nome?: string | null
           criado_em?: string
+          devolucao_id?: string | null
           grau?: string | null
           grau_sugerido?: string
           id?: string
@@ -36114,6 +36359,34 @@ export type Database = {
           valor_nota_saida?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "nf_devolucao_vinculo_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
           {
             foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
             columns: ["nf_saida_id"]
@@ -36281,6 +36554,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
           },
           {
             foreignKeyName: "nf_devolucao_vinculo_nfs_stage_id_fkey"
@@ -38053,6 +38333,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_conciliacao_furos"
             referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
+            columns: ["nfs_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
           },
           {
             foreignKeyName: "nfs_stage_documentos_nfs_stage_id_fkey"
@@ -82241,6 +82528,45 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_consignado_retorno_sem_baixa: {
+        Row: {
+          cfops: string | null
+          destinatario_nf: string | null
+          destino_pela_regra: string | null
+          itens: number | null
+          nf_chave_acesso: string | null
+          nf_data: string | null
+          nf_numero: string | null
+          stage_id: string | null
+          unidades: number | null
+          valor_nota: number | null
+        }
+        Insert: {
+          cfops?: never
+          destinatario_nf?: string | null
+          destino_pela_regra?: never
+          itens?: never
+          nf_chave_acesso?: string | null
+          nf_data?: string | null
+          nf_numero?: string | null
+          stage_id?: string | null
+          unidades?: never
+          valor_nota?: number | null
+        }
+        Update: {
+          cfops?: never
+          destinatario_nf?: string | null
+          destino_pela_regra?: never
+          itens?: never
+          nf_chave_acesso?: string | null
+          nf_data?: string | null
+          nf_numero?: string | null
+          stage_id?: string | null
+          unidades?: never
+          valor_nota?: number | null
+        }
+        Relationships: []
+      }
       vw_consignado_serie_ciclo: {
         Row: {
           acerto_id: string | null
@@ -84011,6 +84337,13 @@ export type Database = {
             foreignKeyName: "despesas_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "despesas_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
             referencedRelation: "vw_contas_pagar_consolidado"
             referencedColumns: ["nf_stage_id"]
           },
@@ -84788,6 +85121,95 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_shopify_pedidos_rastreio"
             referencedColumns: ["shopify_id"]
+          },
+          {
+            foreignKeyName: "devolucao_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "acao_snapshot"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_status_fkey"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "devolucao_status"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vw_devolucao_funil: {
+        Row: {
+          canal: string | null
+          cliente: string | null
+          criado_em: string | null
+          culpa: string | null
+          desfecho: string | null
+          destino_codigo: string | null
+          destino_retorno: string | null
+          dias_desde: number | null
+          e1_aberta: boolean | null
+          e2_reversa: boolean | null
+          e3_recebida: boolean | null
+          e4_conferida: boolean | null
+          e5_nf_resolvida: boolean | null
+          e6_ressarcida: boolean | null
+          e7_encerrada: boolean | null
+          encerrado_em: string | null
+          frete_reverso_por_conta: string | null
+          haver_id: string | null
+          id: string | null
+          motivo_codigo: string | null
+          motivo_rotulo: string | null
+          nf_retorno_sugerida: string | null
+          nf_vinculo_confirmado: boolean | null
+          numero: string | null
+          pedido_ref: string | null
+          qtd_declarada: number | null
+          qtd_pendente: number | null
+          qtd_retornada: number | null
+          rastreio_efetivo: string | null
+          rastreio_status: string | null
+          recebido_em: string | null
+          recebido_por: string | null
+          refund_ok: boolean | null
+          refund_valor: number | null
+          reversa_origem: string | null
+          skus: number | null
+          snapshot_id: string | null
+          status: string | null
+          status_efetivo: string | null
+          tipo: string | null
+          valor_credito: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_canal_fkey"
+            columns: ["canal"]
+            isOneToOne: false
+            referencedRelation: "devolucao_canal"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_haver_id_fkey"
+            columns: ["haver_id"]
+            isOneToOne: false
+            referencedRelation: "haver_cliente"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "devolucao_snapshot_id_fkey"
@@ -97612,14 +98034,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -100374,14 +100796,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -111279,14 +111701,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -117515,6 +117937,15 @@ export type Database = {
           modo: string
         }[]
       }
+      declarar_recebimento_devolucao: {
+        Args: {
+          p_centro?: string
+          p_data?: string
+          p_devolucao_id: string
+          p_obs?: string
+        }
+        Returns: Json
+      }
       declarar_tempo_fila: {
         Args: { p_fila_chave: string; p_tempo_min: number }
         Returns: {
@@ -117759,6 +118190,10 @@ export type Database = {
       }
       estornar_devolucao_pedido: {
         Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      estornar_recebimento_devolucao: {
+        Args: { p_devolucao_id: string; p_motivo: string }
         Returns: Json
       }
       excluir_checklist_processo: {
@@ -118351,6 +118786,26 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_consignado_retorno_lancar: {
+        Args: {
+          p_centro_destino: string
+          p_dry_run?: boolean
+          p_motivo: string
+          p_parceiro_id: string
+          p_stage_id: string
+        }
+        Returns: Json
+      }
+      fn_consignado_venda_fora_fechar_ciclo: {
+        Args: {
+          p_competencia: string
+          p_documento: string
+          p_dry_run?: boolean
+          p_obs?: string
+          p_parceiro_id: string
+        }
+        Returns: Json
+      }
       fn_conta_cliente_classe: {
         Args: { p_parceiro_id: string }
         Returns: Json
@@ -118584,6 +119039,10 @@ export type Database = {
       }
       fn_devolucao_gerar_numero: {
         Args: { p_canal: string; p_pedido_id: string; p_shopify_id?: string }
+        Returns: string
+      }
+      fn_devolucao_resolver_por_nf: {
+        Args: { p_nf_saida_id: string }
         Returns: string
       }
       fn_devolucao_sugerir_vinculos: { Args: never; Returns: Json }
