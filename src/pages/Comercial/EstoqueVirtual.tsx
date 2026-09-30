@@ -124,7 +124,6 @@ interface CanalCentro {
   centro: string;
   centro_nome: string | null;
   fiscal_total: number | null;
-  fisico_total: number | null;
   reservado: number | null;
   disponivel: number | null;
   shopify_atual: number | null;
@@ -133,7 +132,7 @@ interface CanalCentro {
   bling_diverge: boolean | null;
 }
 const COLS_CANAIS =
-  "sku,centro,centro_nome,fiscal_total,fisico_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
+  "sku,centro,centro_nome,fiscal_total,reservado,disponivel,shopify_atual,bling_atual,shopify_diverge,bling_diverge";
 
 interface TriadeCentro { sku: string; centro: string; com_diferenca: boolean }
 
@@ -967,7 +966,7 @@ export default function EstoqueVirtual() {
                   <Table className="text-xs">
                     <TableHeader><TableRow>
                       <TableHead>Centro</TableHead><TableHead className="text-right">Fiscal</TableHead>
-                      <TableHead className="text-right">Físico</TableHead><TableHead className="text-right">Reservado</TableHead>
+                      <TableHead className="text-right">Reservado</TableHead>
                       <TableHead className="text-right">Disponível</TableHead><TableHead className="text-right">Shopify</TableHead>
                       <TableHead className="text-right">Bling</TableHead>
                     </TableRow></TableHeader>
@@ -976,7 +975,6 @@ export default function EstoqueVirtual() {
                         <TableRow key={c.centro}>
                           <TableCell title={c.centro_nome ?? ""}>{c.centro}</TableCell>
                           <TableCell className="text-right tabular-nums">{formatNum(c.fiscal_total)}</TableCell>
-                          <TableCell className="text-right tabular-nums">{formatNum(c.fisico_total)}</TableCell>
                           <TableCell className="text-right tabular-nums">{formatNum(c.reservado)}</TableCell>
                           <TableCell className="text-right tabular-nums font-medium">{formatNum(c.disponivel)}</TableCell>
                           <TableCell className={cn("text-right tabular-nums", c.shopify_diverge && "bg-warning/15 text-warning font-medium")}>
