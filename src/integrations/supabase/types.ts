@@ -120243,7 +120243,7 @@ export type Database = {
         }
       }
       confirmar_acerto_consignado: {
-        Args: { p_acerto_id: string }
+        Args: { p_acerto_id: string; p_data_pagamento?: string }
         Returns: Json
       }
       confirmar_batimento_titulo_pago: {

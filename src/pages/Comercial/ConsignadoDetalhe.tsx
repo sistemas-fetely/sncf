@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -293,11 +293,11 @@ export default function ConsignadoDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, razao_social, nome_fantasia, cnpj, consignado_cadencia_dias")
+        .select("id, razao_social, nome_fantasia, cnpj, consignado_cadencia_dias, consignado_dia_acerto")
         .eq("id", parceiroId)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null } | null;
+      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null; consignado_dia_acerto: number | null } | null;
     },
   });
 
@@ -469,6 +469,25 @@ export default function ConsignadoDetalhe() {
     [acertosQ.data],
   );
 
+  // ── data de pagamento combinada (vencimento da parcela de acerto) ────────
+  const diaAcertoParceiro = diaAcerto ?? parceiroQ.data?.consignado_dia_acerto ?? null;
+  const sugestaoDataPagamento = useMemo(() => {
+    const dia = diaAcertoParceiro;
+    if (!dia || !rascunho?.periodo_fim) return "";
+    const fim = new Date(`${rascunho.periodo_fim}T12:00:00`);
+    let cand = new Date(fim.getFullYear(), fim.getMonth(), dia, 12);
+    if (cand.getTime() <= fim.getTime()) {
+      cand = new Date(fim.getFullYear(), fim.getMonth() + 1, dia, 12);
+    }
+    const mm = String(cand.getMonth() + 1).padStart(2, "0");
+    const dd = String(cand.getDate()).padStart(2, "0");
+    return `${cand.getFullYear()}-${mm}-${dd}`;
+  }, [diaAcertoParceiro, rascunho?.periodo_fim]);
+  const [dataPagamento, setDataPagamento] = useState("");
+  useEffect(() => {
+    setDataPagamento(sugestaoDataPagamento);
+  }, [sugestaoDataPagamento]);
+
   const itensRascunhoQ = useQuery({
     queryKey: ["consignado-acerto-itens", rascunho?.id],
     enabled: !!rascunho?.id,
@@ -579,8 +598,10 @@ export default function ConsignadoDetalhe() {
   const confirmarAcerto = useMutation({
     mutationFn: async () => {
       if (!rascunho) throw new Error("Não há acerto em rascunho.");
+      if (!dataPagamento) throw new Error("Informe a data de pagamento combinada.");
       const { data, error } = await (supabase as any).rpc("confirmar_acerto_consignado", {
         p_acerto_id: rascunho.id,
+        p_data_pagamento: dataPagamento,
       });
       if (error) throw new Error(error.message);
       return data as Record<string, unknown>;
@@ -952,6 +973,13 @@ export default function ConsignadoDetalhe() {
   const totalEstoqueReal = estoqueRealFiltrado.reduce((total, item) => total + Number(item.saldo ?? 0), 0);
   const nItensRemessa = (itens: unknown) => Array.isArray(itens) ? itens.length : 0;
   const duplicidadesIds = new Set((duplicidadesQ.data ?? []).map((item) => item.nf_id));
+  // SÓ É ACERTO O TÍTULO QUE NASCEU DE UM ACERTO: o id do título tem que ser o
+  // titulo_acerto_id de algum consignado_acerto. Título filho do rotativo que é
+  // remessa nova aparece como "remessa", nunca como "acerto".
+  const idsTituloAcerto = useMemo(
+    () => new Set((acertosQ.data ?? []).map((a) => a.titulo_acerto_id).filter((id): id is string => !!id)),
+    [acertosQ.data],
+  );
   const statusAcerto = resumo?.acerto_vivo_status === "rascunho"
     ? "em preparação"
     : resumo?.acerto_vivo_status === "confirmado"
@@ -1347,10 +1375,25 @@ export default function ConsignadoDetalhe() {
                       </div>
                     )}
     
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex flex-wrap items-end gap-3">
+                      <div className="space-y-1">
+                        <Label htmlFor="data-pagamento-acerto" className="text-xs">Data de pagamento combinada</Label>
+                        <Input
+                          id="data-pagamento-acerto"
+                          type="date"
+                          value={dataPagamento}
+                          onChange={(e) => setDataPagamento(e.target.value)}
+                          className="w-44"
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground max-w-56">
+                          É o vencimento do acerto: a partir dele o valor entra na cobrança.
+                        </p>
+                      </div>
                       <Button
                         disabled={
                           confirmarAcerto.isPending
+                          || !dataPagamento
                           || (itensRascunhoQ.data ?? []).length === 0
                         }
                         onClick={() => confirmarAcerto.mutate()}
@@ -1410,6 +1453,11 @@ export default function ConsignadoDetalhe() {
                       <p className="font-medium text-success">
                         Próximo passo: {String(confirmacao.proximo_passo ?? "—")}
                       </p>
+                      {confirmacao.vencimento && (
+                        <p>
+                          Vence em <strong>{formatDateBR(String(confirmacao.vencimento))}</strong>
+                        </p>
+                      )}
                       <p>
                         Pedido sintético <strong>{String(confirmacao.pedido_sintetico ?? "—")}</strong>
                         {confirmacao.pedido_id && (
@@ -1539,7 +1587,14 @@ export default function ConsignadoDetalhe() {
                     <TableBody>
                       {(extratoQ.data ?? []).map((l, i) => {
                         // ACERTO É EVENTO, NÃO MOVIMENTO: valor NULL não vira R$ 0,00.
-                        const ehAcerto = l.tipo === "acerto";
+                        // O rótulo "acerto" só vale para o evento (ref ace:) ou para o
+                        // título que é o titulo_acerto_id de algum acerto; título filho
+                        // do rotativo que é remessa nova aparece como "remessa".
+                        const refId = l.ref?.includes(":") ? l.ref.slice(l.ref.indexOf(":") + 1) : l.ref;
+                        const ehEventoAcerto = l.tipo === "acerto" && !!l.ref?.startsWith("ace:");
+                        const ehTituloAcerto = l.tipo === "acerto" && !!refId && idsTituloAcerto.has(refId);
+                        const ehAcerto = ehEventoAcerto || ehTituloAcerto;
+                        const rotuloTipo = l.tipo === "acerto" && !ehAcerto ? "remessa" : l.tipo;
                         const ehRecebimento = l.tipo === "recebimento";
                         const v = Number(l.valor ?? 0);
                         const credito = v < 0;
@@ -1555,7 +1610,7 @@ export default function ConsignadoDetalhe() {
                                   ehRecebimento && "border-success/40 bg-success/10 text-success",
                                 )}
                               >
-                                {l.tipo ?? "—"}
+                                {rotuloTipo ?? "—"}
                               </Badge>
                             </TableCell>
                             <TableCell className="text-xs">{l.descricao ?? "—"}{l.pedido_ref && <span className="block text-muted-foreground">{l.pedido_ref}</span>}{l.nao_classificado && <span className="mt-0.5 flex items-center gap-1 text-warning"><AlertTriangle className="h-3 w-3" /> NF sem pedido vinculado</span>}</TableCell>
