@@ -34,12 +34,17 @@ interface Props {
   devolucao: RetornoPendenteDevolucao | null;
 }
 
-interface Condicao { codigo: string; rotulo: string }
+interface Condicao { codigo: string; rotulo: string; rotulo_conferencia: string | null; dica_conferencia: string | null }
 interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
 interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
 const COND_QUARENTENA = "quarentena";
+
+// Rótulo exibido ao conferente = estado físico (rotulo_conferencia); envio continua pelo codigo.
+function rotuloConferencia(c: Condicao): string {
+  return c.rotulo_conferencia ?? c.rotulo;
+}
 
 function useCondicoesEntrada() {
   return useQuery({
@@ -49,10 +54,11 @@ function useCondicoesEntrada() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("estoque_condicao")
-        .select("codigo,rotulo")
+        .select("codigo,rotulo,rotulo_conferencia,dica_conferencia")
         .eq("ativo", true)
         .eq("vendavel", false)
         .neq("codigo", "avariado")
+        .not("rotulo_conferencia", "is", null)
         .order("rotulo");
       if (error) throw error;
       const lista = (data ?? []) as Condicao[];
@@ -425,6 +431,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }
 
   const centroTexto = funilQ.isLoading ? "carregando…" : funilQ.data?.destino_codigo ?? "—";
+  const condQuarentena = condicoes.find((c) => c.codigo === COND_QUARENTENA);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -540,6 +547,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                   </span>
                 )}
               </form>
+              <p className="text-xs text-muted-foreground">
+                Todo bip entra como {condQuarentena ? rotuloConferencia(condQuarentena) : "Íntegro"}. Ajuste na linha se houver avaria.
+              </p>
             </div>
 
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
@@ -578,11 +588,20 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                         <TableCell className="px-2">
                           <Select value={c.condicao} onValueChange={(v) => trocarCondicao(c, v)}>
                             <SelectTrigger className="h-8 w-full min-w-0 [&>span]:truncate">
-                              <SelectValue />
+                              <SelectValue>
+                                <span className="truncate">{rotuloConferencia(condicoes.find((o) => o.codigo === c.condicao) ?? { codigo: c.condicao, rotulo: c.condicao, rotulo_conferencia: null, dica_conferencia: null })}</span>
+                              </SelectValue>
                             </SelectTrigger>
                             <SelectContent>
                               {condicoes.map((opcao) => (
-                                <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                                <SelectItem key={opcao.codigo} value={opcao.codigo}>
+                                  <div className="flex flex-col">
+                                    <span>{rotuloConferencia(opcao)}</span>
+                                    {opcao.dica_conferencia && (
+                                      <span className="text-xs text-muted-foreground whitespace-normal">{opcao.dica_conferencia}</span>
+                                    )}
+                                  </div>
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -629,10 +648,17 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                                 <div className="space-y-1.5">
                                   <Label>Condição destino</Label>
                                   <Select value={separarCondicao} onValueChange={setSepararCondicao}>
-                                    <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue /></SelectTrigger>
+                                    <SelectTrigger className="w-full min-w-0 [&>span]:truncate"><SelectValue><span className="truncate">{separarCondicao ? rotuloConferencia(condicoes.find((o) => o.codigo === separarCondicao) ?? { codigo: separarCondicao, rotulo: separarCondicao, rotulo_conferencia: null, dica_conferencia: null }) : "Selecione…"}</span></SelectValue></SelectTrigger>
                                     <SelectContent>
                                       {condicoes.filter((x) => x.codigo !== c.condicao).map((opcao) => (
-                                        <SelectItem key={opcao.codigo} value={opcao.codigo}>{opcao.rotulo}</SelectItem>
+                                        <SelectItem key={opcao.codigo} value={opcao.codigo}>
+                                          <div className="flex flex-col">
+                                            <span>{rotuloConferencia(opcao)}</span>
+                                            {opcao.dica_conferencia && (
+                                              <span className="text-xs text-muted-foreground whitespace-normal">{opcao.dica_conferencia}</span>
+                                            )}
+                                          </div>
+                                        </SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
