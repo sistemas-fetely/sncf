@@ -38,6 +38,8 @@ interface Props {
   esconderMae?: boolean;
   /** texto secundário acima do título (ex.: título da mãe fora da lista) */
   subtitulo?: string;
+  /** se vier, o clique abre por aqui (ex.: peek) em vez de navegar */
+  onAbrir?: (id: string) => void;
 }
 
 export function TarefaItem({
@@ -46,13 +48,15 @@ export function TarefaItem({
   somenteLeitura = false,
   esconderMae = false,
   subtitulo,
+  onAbrir,
 }: Props) {
   const alterarStatus = useAlterarStatusTarefa();
   const reagendar = useReagendarTarefa();
   const { data: projetos } = useProjetos();
   const rotuloStatus = useStatusRotulo();
   const [calendarioAberto, setCalendarioAberto] = useState(false);
-  const { abrir } = useTarefaAberta();
+  const { abrir: navegar } = useTarefaAberta();
+  const abrir = onAbrir ?? navegar;
   const { data: bloqueadas } = useTarefasBloqueadas();
   const bloqueio = bloqueadas?.get(tarefa.id);
 
