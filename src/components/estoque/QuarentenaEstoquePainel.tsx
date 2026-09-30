@@ -120,7 +120,7 @@ function resultadoComErro(data: unknown): string | null {
 
 export function QuarentenaEstoquePainel() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: QK_QUARENTENA, queryFn: carregar });
+  const q = useQuery({ queryKey: QK_QUARENTENA, queryFn: buscarQuarentenaFila });
   const [selecionadas, setSelecionadas] = useState<Set<string>>(() => new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(() => new Set());
   const [dialogo, setDialogo] = useState<DialogoAcao | null>(null);
