@@ -80,6 +80,13 @@ export interface PedidoB2cRow {
   tracking_url: string | null;
   rastreio_status: string | null;
   rastreio_entregue: boolean | null;
+  // CONFIRMACAO-DUPLA-DE-ENTREGA (30/09/2026): Correios e Shopify confirmam
+  // entrega; quem confirma primeiro vence e o banco registra a fonte.
+  rastreio_atualizado_em: string | null;
+  rastreio_fonte: string | null;
+  rastreio_confirmado_em: string | null;
+  divergencia_entrega: boolean | null;
+  rastreio_dias_sem_evento: number | null;
   entrega_prevista: string | null;
   shipping_method: string | null;
   payment_method: string | null;
@@ -144,7 +151,7 @@ export interface PedidoB2cRow {
 }
 
 const CAMPOS_PEDIDO =
-  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte, etiqueta_gerada_em, rastreio_estado, fase_fisica_seq, estagio_fonte, reembolso_total, reembolso_pendente, reembolso_em, closed_at, encerrado_em, encerrado_motivo, entrega_fonte, entrega_declarada_em";
+  "shopify_id, order_name, pedido_id, id_externo, cliente, created_at_shopify, data_pedido, shipping_city, shipping_province, shipping_zip, total, subtotal, discount_amount, shipping_cost, estagio, estagio_rotulo, estagio_ordem, area_responsavel, proxima_acao, dias_no_estagio, alerta, na_carteira_ativa, eh_final, tem_nf, nf_refs, nf_data_emissao, bling_pedido_numero, tem_recebimento, liquido_mp, taxa_mp, situacao_financeira, xpm_codigo, xpm_estagio, xpm_farol_sla, xpm_horas_ciclo, tracking_number, tracking_company, tracking_url, rastreio_status, rastreio_entregue, rastreio_atualizado_em, rastreio_fonte, rastreio_confirmado_em, divergencia_entrega, rastreio_dias_sem_evento, entrega_prevista, shipping_method, payment_method, financial_status, fulfillment_status, paid_at, fulfilled_at, cancelled_at, refunded_amount, coerencia_status, bloqueio_motivo, bloqueio_tentativas, bloqueio_em, pedido_ausente, fila_status, fila_bling_pedido_id, fila_tentativas, fila_ultimo_erro, tag_shopify, cd_sugerido, cd_cep_codigo, cd_escolhido_codigo, cd_escolhido_nome, cd_cnpj_emitente, cd_escolhido_em, cd_escolhido_por, divergencia_tag, divergencia_cep_tag, divergencia_fiscal, horas_aguardando_cd, alerta_sem_cd, cd_efetivo_codigo, cd_efetivo_nome, cd_efetivo_fonte, etiqueta_gerada_em, rastreio_estado, fase_fisica_seq, estagio_fonte, reembolso_total, reembolso_pendente, reembolso_em, closed_at, encerrado_em, encerrado_motivo, entrega_fonte, entrega_declarada_em";
 
 export function usePedidosB2c() {
   return useQuery({
