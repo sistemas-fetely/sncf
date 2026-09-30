@@ -483,6 +483,10 @@ export default function ConsignadoDetalhe() {
     const dd = String(cand.getDate()).padStart(2, "0");
     return `${cand.getFullYear()}-${mm}-${dd}`;
   }, [diaAcertoParceiro, rascunho?.periodo_fim]);
+  const [dataPagamento, setDataPagamento] = useState("");
+  useEffect(() => {
+    setDataPagamento(sugestaoDataPagamento);
+  }, [sugestaoDataPagamento]);
 
   const itensRascunhoQ = useQuery({
     queryKey: ["consignado-acerto-itens", rascunho?.id],
