@@ -34,12 +34,17 @@ interface Props {
   devolucao: RetornoPendenteDevolucao | null;
 }
 
-interface Condicao { codigo: string; rotulo: string }
+interface Condicao { codigo: string; rotulo: string; rotulo_conferencia: string | null; dica_conferencia: string | null }
 interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
 interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
 const COND_QUARENTENA = "quarentena";
+
+// Rótulo exibido ao conferente = estado físico (rotulo_conferencia); envio continua pelo codigo.
+function rotuloConferencia(c: Condicao): string {
+  return c.rotulo_conferencia ?? c.rotulo;
+}
 
 function useCondicoesEntrada() {
   return useQuery({
@@ -49,10 +54,11 @@ function useCondicoesEntrada() {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("estoque_condicao")
-        .select("codigo,rotulo")
+        .select("codigo,rotulo,rotulo_conferencia,dica_conferencia")
         .eq("ativo", true)
         .eq("vendavel", false)
         .neq("codigo", "avariado")
+        .not("rotulo_conferencia", "is", null)
         .order("rotulo");
       if (error) throw error;
       const lista = (data ?? []) as Condicao[];
