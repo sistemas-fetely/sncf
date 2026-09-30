@@ -85160,6 +85160,7 @@ export type Database = {
           haver_id: string | null
           id: string | null
           motivo_codigo: string | null
+          motivo_exibicao: string | null
           motivo_rotulo: string | null
           nf_retorno_sugerida: string | null
           nf_vinculo_confirmado: boolean | null
