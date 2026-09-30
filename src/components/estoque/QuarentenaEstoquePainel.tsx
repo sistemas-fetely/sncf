@@ -57,7 +57,7 @@ function chaveLinha(linha: LinhaQuarentena) {
   return `${linha.devolucao_id ?? "sem-devolucao"}|${linha.sku}|${linha.centro}`;
 }
 
-async function carregar(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: boolean }> {
+export async function buscarQuarentenaFila(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: boolean }> {
   const linhas: LinhaQuarentena[] = [];
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
@@ -120,7 +120,7 @@ function resultadoComErro(data: unknown): string | null {
 
 export function QuarentenaEstoquePainel() {
   const qc = useQueryClient();
-  const q = useQuery({ queryKey: QK_QUARENTENA, queryFn: carregar });
+  const q = useQuery({ queryKey: QK_QUARENTENA, queryFn: buscarQuarentenaFila });
   const [selecionadas, setSelecionadas] = useState<Set<string>>(() => new Set());
   const [gruposFechados, setGruposFechados] = useState<Set<string>>(() => new Set());
   const [dialogo, setDialogo] = useState<DialogoAcao | null>(null);
