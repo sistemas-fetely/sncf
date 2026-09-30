@@ -69,6 +69,21 @@ interface EntradaLinha {
   criado_em: string | null;
 }
 
+interface PendenteLinha {
+  fonte: string | null;
+  fonte_nome: string | null;
+  documento: string | null;
+  data: string | null;
+  contraparte: string | null;
+  itens: number | null;
+  unidades: number | null;
+  valor: number | null;
+  centro_destino: string | null;
+  modulo_dono: string | null;
+  rota: string | null;
+  o_que_falta: string | null;
+}
+
 interface Lote {
   chave: string;
   data: string | null;
