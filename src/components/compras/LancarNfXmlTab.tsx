@@ -100,6 +100,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
         .from("vw_nfs_stage_mercadoria_pendente")
         .select("*")
         .eq("fornecedor_id", fornecedorId)
+        .eq("ja_lancada", false)
         .order("nf_data_emissao", { ascending: false });
       if (error) throw error;
       return (data ?? []) as StageRow[];
@@ -192,17 +193,9 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
 
   if (rows.length === 0) {
     return (
-      <div className="rounded-md border p-4 text-sm space-y-2">
-        <div>
-          Nenhuma NF deste fornecedor foi capturada por XML ainda. Use a aba{" "}
-          <b>Digitar manualmente</b>, ou aguarde a captura.
-        </div>
-        <Link
-          to="/administrativo/nfs-stage"
-          className="inline-flex items-center gap-1 text-xs underline"
-        >
-          Abrir captura de NFs (stage) <ExternalLink className="h-3 w-3" />
-        </Link>
+      <div className="rounded-md border p-4 text-sm">
+        Nenhuma NF capturada pendente para este fornecedor. Se a NF já foi lançada, use{" "}
+        <b>Vincular NF existente</b>.
       </div>
     );
   }
@@ -219,7 +212,6 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
               <TableHead className="text-right">Valor no XML</TableHead>
               <TableHead className="text-right">Itens</TableHead>
               <TableHead>Classificação</TableHead>
-              <TableHead>Situação</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
