@@ -20,13 +20,13 @@ function parseInventario(texto: string) {
     const linha = bruta.trim();
     if (!linha) return;
     const partes = linha.split(/[\t;,]/).map((v) => v.trim());
-    const sku = partes[0] ?? "";
+    const identificador = partes[0] ?? "";
     const qtd = Number((partes[1] ?? "").replace(",", "."));
-    if (i === 0 && /sku|c[oó]digo/i.test(sku) && !Number.isFinite(qtd)) return;
-    if (!sku || !Number.isFinite(qtd) || qtd <= 0) { invalidas.push(`Linha ${i + 1}: ${bruta}`); return; }
-    mapa.set(sku, (mapa.get(sku) ?? 0) + qtd);
+    if (i === 0 && /sku|c[oó]digo/i.test(identificador) && !Number.isFinite(qtd)) return;
+    if (!identificador || !Number.isFinite(qtd) || qtd <= 0) { invalidas.push(`Linha ${i + 1}: ${bruta}`); return; }
+    mapa.set(identificador, (mapa.get(identificador) ?? 0) + qtd);
   });
-  return { itens: Array.from(mapa, ([sku, quantidade]) => ({ sku, quantidade })), invalidas };
+  return { linhas: Array.from(mapa, ([identificador, quantidade]) => ({ identificador, quantidade })), invalidas };
 }
 
 export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
@@ -34,13 +34,31 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
   const [titulo, setTitulo] = useState(""); const [centro, setCentro] = useState("");
   const [data, setData] = useState(""); const [observacao, setObservacao] = useState("");
   const [texto, setTexto] = useState("");
-  const previa = useMemo(() => parseInventario(texto), [texto]);
+  const leitura = useMemo(() => parseInventario(texto), [texto]);
+  const produtosQ = useQuery({ queryKey: ["regularizacao", "resolver-inventario", leitura.linhas.map((l) => l.identificador).sort().join("|")], enabled: aberto && leitura.linhas.length > 0, queryFn: async () => {
+    const codigos = leitura.linhas.filter((l) => /^\d{5}$/.test(l.identificador)).map((l) => l.identificador);
+    const skus = leitura.linhas.filter((l) => !/^\d{5}$/.test(l.identificador)).map((l) => l.identificador);
+    const consultas = [];
+    if (codigos.length) consultas.push(supabase.from("sncf_produtos").select("cod_cadastro,sku,nome_comercial").in("cod_cadastro", codigos));
+    if (skus.length) consultas.push(supabase.from("sncf_produtos").select("cod_cadastro,sku,nome_comercial").in("sku", skus));
+    const respostas = await Promise.all(consultas); const erro = respostas.find((r) => r.error)?.error; if (erro) throw erro;
+    return respostas.flatMap((r) => r.data ?? []) as { cod_cadastro: string | null; sku: string; nome_comercial: string | null }[];
+  }});
+  const previa = useMemo(() => {
+    const porCodigo = new Map<string, string>(); const porSku = new Map<string, string>();
+    for (const produto of produtosQ.data ?? []) { if (produto.cod_cadastro) porCodigo.set(produto.cod_cadastro, produto.sku); porSku.set(produto.sku.toLocaleLowerCase("pt-BR"), produto.sku); }
+    const acumulado = new Map<string, number>(); const naoEncontradas: string[] = [];
+    for (const linha of leitura.linhas) { const sku = /^\d{5}$/.test(linha.identificador) ? porCodigo.get(linha.identificador) : porSku.get(linha.identificador.toLocaleLowerCase("pt-BR")); if (!sku) naoEncontradas.push(`Código não encontrado: ${linha.identificador}`); else acumulado.set(sku, (acumulado.get(sku) ?? 0) + linha.quantidade); }
+    return { itens: Array.from(acumulado, ([sku, quantidade]) => ({ sku, quantidade })), invalidas: [...leitura.invalidas, ...naoEncontradas] };
+  }, [leitura, produtosQ.data]);
   const pecas = previa.itens.reduce((s, i) => s + i.quantidade, 0);
   const centrosQ = useQuery({ queryKey: ["regularizacao", "centros"], staleTime: 10 * 60 * 1000, queryFn: async () => {
     const { data: rows, error } = await supabase.from("centro_distribuicao").select("codigo,nome,rotulo_curto").eq("ativo", true).eq("vende", true).order("ordem");
     if (error) throw error; return rows ?? [];
   }});
   const criar = useMutation({ mutationFn: async () => {
+    if (produtosQ.isFetching) throw new Error("Aguarde a validação dos produtos.");
+    if (produtosQ.error) throw produtosQ.error;
     if (!titulo.trim() || !centro || !data || previa.itens.length === 0 || previa.invalidas.length) throw new Error("Preencha os campos obrigatórios e corrija as linhas inválidas.");
     const { data: out, error } = await supabase.rpc("reg_lote_criar", { p_titulo: titulo.trim(), p_centro_destino_codigo: centro, p_data_inventario: data, p_itens: previa.itens, p_observacao: observacao.trim() || undefined });
     if (error) throw error; const id = String((out as { lote_id?: string } | null)?.lote_id ?? ""); if (!id) throw new Error("O banco não retornou o lote criado.");
@@ -51,8 +69,8 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
       <div className="space-y-1.5"><Label>Centro destino *</Label><Select value={centro} onValueChange={setCentro}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{centrosQ.data?.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.rotulo_curto ?? c.nome}</SelectItem>)}</SelectContent></Select></div>
       <div className="space-y-1.5"><Label>Data do inventário *</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
       <div className="space-y-1.5"><Label>Observação</Label><Input value={observacao} onChange={(e) => setObservacao(e.target.value)} /></div>
-      <div className="space-y-1.5 sm:col-span-2"><Label>Colar inventário</Label><Textarea className="min-h-40 font-mono text-xs" placeholder={'SKU\tquantidade'} value={texto} onChange={(e) => setTexto(e.target.value)} />
-        <p className="text-xs text-muted-foreground">{previa.itens.length} SKUs · {pecas.toLocaleString("pt-BR")} peças</p>
+      <div className="space-y-1.5 sm:col-span-2"><Label>Colar inventário</Label><Textarea className="min-h-40 font-mono text-xs" placeholder={'Código de cadastro ou SKU\tquantidade'} value={texto} onChange={(e) => setTexto(e.target.value)} />
+        <p className="text-xs text-muted-foreground">{produtosQ.isFetching ? "Validando produtos…" : `${previa.itens.length} produtos · ${pecas.toLocaleString("pt-BR")} peças`}</p>
         {previa.invalidas.length > 0 && <div className="text-xs text-destructive">{previa.invalidas.map((l) => <div key={l}>{l}</div>)}</div>}
       </div></div>
     <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={() => criar.mutate()} disabled={criar.isPending}>{criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar lote</Button></DialogFooter>
