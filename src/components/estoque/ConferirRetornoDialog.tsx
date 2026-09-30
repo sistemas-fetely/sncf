@@ -373,7 +373,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
       else if (contado < pendente) situacao = { txt: `Faltou ${pendente - contado}`, cls: "bg-warning/10 text-warning border-warning/30" };
       else situacao = { txt: `Sobrou ${contado - pendente}`, cls: "bg-destructive/10 text-destructive border-destructive/30" };
       const nome = dec?.nome ?? contados.find((c) => c.sku === sku)?.nome ?? null;
-      return { sku, nome, pendente, contado, declarado: !!dec, situacao };
+      const cod = codPorSku.get(sku) ?? contados.find((c) => c.sku === sku)?.cod ?? null;
+      return { sku, cod, nome, pendente, contado, declarado: !!dec, situacao };
     });
     linhas.sort((a, b) => a.sku.localeCompare(b.sku));
 
