@@ -146,9 +146,14 @@ export function useReagendarTarefa() {
  * conforme o status. Setar no front cria duas fontes de verdade.
  * `motivo` grava em motivo_estado — obrigatório nos status com exige_motivo.
  */
-export function useAlterarStatusTarefa() {
+export function useAlterarStatusTarefa(
+  opcoes: { tarefaId?: string; toastConclusao?: boolean } = {},
+) {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: opcoes.tarefaId
+      ? ["tarefas", "salvar", opcoes.tarefaId]
+      : ["tarefas", "salvar"],
     mutationFn: async ({
       id,
       status,
@@ -165,7 +170,7 @@ export function useAlterarStatusTarefa() {
     },
     onSuccess: (_d, v) => {
       invalidarTarefas(qc);
-      if (v.status === "concluida") toast.success("Tarefa concluída");
+      if (opcoes.toastConclusao !== false && v.status === "concluida") toast.success("Tarefa concluída");
     },
     onError: (e: Error) => toast.error(`Não foi possível alterar o status: ${e.message}`),
   });
