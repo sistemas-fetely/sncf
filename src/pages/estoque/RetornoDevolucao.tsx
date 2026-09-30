@@ -342,9 +342,9 @@ export default function RetornoDevolucao() {
             </TableHeader>
             <TableBody>
               {funilQ.isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
               ) : filtrados.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
               ) : paginaItens.map((d) => {
                 const aberto = expandido === d.id;
                 const dias = d.dias_desde ?? 0;
@@ -394,7 +394,7 @@ export default function RetornoDevolucao() {
                     </TableRow>
                     {aberto && (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={8}>
+                        <TableCell colSpan={9}>
                           <div className="grid gap-4 p-2 md:grid-cols-2 xl:grid-cols-4 text-sm">
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Logística reversa</div>
