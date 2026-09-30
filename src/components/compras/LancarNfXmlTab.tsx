@@ -252,15 +252,6 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
                       {c.label}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    {r.ja_lancada ? (
-                      <Badge variant="outline" className="border-warning/40 text-warning">
-                        Já lançada
-                      </Badge>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Pendente</span>
-                    )}
-                  </TableCell>
                 </TableRow>
               );
             })}
