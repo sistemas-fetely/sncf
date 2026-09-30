@@ -80,6 +80,13 @@ export interface PedidoB2cRow {
   tracking_url: string | null;
   rastreio_status: string | null;
   rastreio_entregue: boolean | null;
+  // CONFIRMACAO-DUPLA-DE-ENTREGA (30/09/2026): Correios e Shopify confirmam
+  // entrega; quem confirma primeiro vence e o banco registra a fonte.
+  rastreio_atualizado_em: string | null;
+  rastreio_fonte: string | null;
+  rastreio_confirmado_em: string | null;
+  divergencia_entrega: boolean | null;
+  rastreio_dias_sem_evento: number | null;
   entrega_prevista: string | null;
   shipping_method: string | null;
   payment_method: string | null;
