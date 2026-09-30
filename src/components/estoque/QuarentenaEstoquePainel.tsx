@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
+
+const DICA_BLOQUEIO_VENDA =
+  "Liberação para venda exige NF de retorno (e transferência de CD, quando a devolução entrou em CD diferente da venda). Avaria e Não conforme continuam disponíveis.";
 
 interface LinhaQuarentena {
   sku: string;
