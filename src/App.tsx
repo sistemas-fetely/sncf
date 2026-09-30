@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RotaGate } from "@/components/RotaGate";
+import { GuardaRetornoRemessa } from "@/components/regularizacao/GuardaRetornoRemessa";
 import { PrimeiroAcessoOverlay } from "@/components/PrimeiroAcessoOverlay";
 import { PainelTarefasGlobal } from "@/components/tarefas/PainelTarefasGlobal";
 import { TarefaAbertaGlobal } from "@/components/tarefas/detalhe/TarefaAbertaGlobal";
@@ -509,8 +510,9 @@ const App = () => (
                 <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
-                <Route path="/estoque/regularizacao" element={<RegularizacaoLotes />} />
-                <Route path="/estoque/regularizacao/:id" element={<RegularizacaoLoteDetalhe />} />
+                <Route path="/estoque/regularizacao" element={<Navigate to="/pedidos/transferencias?aba=retorno" replace />} />
+                <Route path="/estoque/regularizacao/:id" element={<GuardaRetornoRemessa><RegularizacaoLoteDetalhe /></GuardaRetornoRemessa>} />
+                <Route path="/pedidos/transferencias/retorno/:id" element={<GuardaRetornoRemessa><RegularizacaoLoteDetalhe /></GuardaRetornoRemessa>} />
               </Route>
 
               {/* ═══════════════════════════════════════════════
