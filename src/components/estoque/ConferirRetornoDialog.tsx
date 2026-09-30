@@ -169,16 +169,16 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         </div>
 
         <div className="rounded-md border max-h-[45vh] overflow-y-auto overflow-x-auto">
-          <Table>
+          <Table className="w-full table-fixed">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[110px] whitespace-nowrap">SKU</TableHead>
+                <TableHead className="w-[140px] whitespace-nowrap">SKU</TableHead>
                 <TableHead className="min-w-0">Produto</TableHead>
-                <TableHead className="w-[70px] text-center whitespace-nowrap">Saiu</TableHead>
-                <TableHead className="w-[90px] text-center whitespace-nowrap">Já voltou</TableHead>
-                <TableHead className="w-[90px] text-center whitespace-nowrap">Pendente</TableHead>
-                <TableHead className="w-[110px]">Voltou agora</TableHead>
-                <TableHead className="w-[150px]">Condição</TableHead>
+                <TableHead className="w-[64px] text-center whitespace-nowrap">Saiu</TableHead>
+                <TableHead className="w-[76px] text-center whitespace-nowrap">Já voltou</TableHead>
+                <TableHead className="w-[76px] text-center whitespace-nowrap">Pendente</TableHead>
+                <TableHead className="w-[92px]">Voltou agora</TableHead>
+                <TableHead className="w-[140px]">Condição</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -187,15 +187,15 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 const excede = Number.isFinite(q) && q > Number(it.qtd_pendente ?? 0);
                 return (
                   <TableRow key={it.sku}>
-                    <TableCell className="font-mono text-xs whitespace-nowrap">{it.sku}</TableCell>
-                    <TableCell className="text-sm min-w-0 max-w-[260px]">
+                    <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">{it.sku}</TableCell>
+                    <TableCell className="px-2 text-sm min-w-0">
                       <span className="block truncate" title={it.nome_comercial ?? undefined}>
                         {it.nome_comercial ?? "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center tabular-nums whitespace-nowrap">{Number(it.qtd_saiu ?? 0)}</TableCell>
-                    <TableCell className="text-center tabular-nums whitespace-nowrap">{Number(it.qtd_ja_retornada ?? 0)}</TableCell>
-                    <TableCell className="text-center tabular-nums whitespace-nowrap font-medium">
+                    <TableCell className="px-2 text-center tabular-nums whitespace-nowrap">{Number(it.qtd_saiu ?? 0)}</TableCell>
+                    <TableCell className="px-2 text-center tabular-nums whitespace-nowrap">{Number(it.qtd_ja_retornada ?? 0)}</TableCell>
+                    <TableCell className="px-2 text-center tabular-nums whitespace-nowrap font-medium">
                       {Number(it.qtd_pendente ?? 0)}
                     </TableCell>
                     <TableCell>
