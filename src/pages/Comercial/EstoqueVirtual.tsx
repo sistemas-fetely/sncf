@@ -519,7 +519,7 @@ export default function EstoqueVirtual() {
 
   function ordenarColuna(coluna: ColSort) {
     setSort((atual) => {
-      if (atual?.column !== coluna) return { column: coluna, direction: "asc" };
+      if (atual?.column !== coluna) return { column: coluna, direction: coluna === "conciliacao" ? "desc" : "asc" };
       if (atual.direction === "asc") return { column: coluna, direction: "desc" };
       return null;
     });
