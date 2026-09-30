@@ -30871,6 +30871,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "importacao_conteiner_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_embarque_painel"
+            referencedColumns: ["embarque_id"]
+          },
+          {
             foreignKeyName: "importacao_conteiner_tipo_id_fkey"
             columns: ["tipo_id"]
             isOneToOne: false
@@ -31108,6 +31115,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "importacao_embarque"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_embarque_pedido_embarque_id_fkey"
+            columns: ["embarque_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_embarque_painel"
+            referencedColumns: ["embarque_id"]
           },
           {
             foreignKeyName: "importacao_embarque_pedido_pedido_id_fkey"
@@ -33790,27 +33804,33 @@ export type Database = {
       importacao_status: {
         Row: {
           ativo: boolean
+          chegou: boolean
           codigo: string
           criado_em: string
           descricao: string | null
+          em_transito: boolean
           exige_nf: boolean
           id: number
           ordem: number | null
         }
         Insert: {
           ativo?: boolean
+          chegou?: boolean
           codigo: string
           criado_em?: string
           descricao?: string | null
+          em_transito?: boolean
           exige_nf?: boolean
           id?: never
           ordem?: number | null
         }
         Update: {
           ativo?: boolean
+          chegou?: boolean
           codigo?: string
           criado_em?: string
           descricao?: string | null
+          em_transito?: boolean
           exige_nf?: boolean
           id?: never
           ordem?: number | null
@@ -95715,6 +95735,31 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_importacao_embarque_painel: {
+        Row: {
+          alerta_data: string | null
+          conteineres: number | null
+          data_chegada: string | null
+          dias_para_eta: number | null
+          embarque_id: number | null
+          eta: string | null
+          no_mar: boolean | null
+          ref_rocabella: string | null
+          status_codigo: string | null
+          status_id: number | null
+          status_ordem: number | null
+          valor_fob_usd: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_embarque_status_id_fkey"
+            columns: ["status_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_status"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vw_importacao_invoice_conferencia: {
         Row: {
           a_embarcar: number | null
@@ -100270,14 +100315,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -103048,14 +103093,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -114405,14 +114450,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
