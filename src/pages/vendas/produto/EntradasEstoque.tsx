@@ -278,7 +278,7 @@ export default function EntradasEstoque() {
       <PageTitle
         titulo="Entradas de Estoque"
         icone={PackagePlus}
-        estado={`${formatDateBR(de)} a ${formatDateBR(ate)} · ${lotes.length} lote(s) no filtro`}
+        estado={`${formatDateBR(de)} a ${formatDateBR(ate)} · ${NUM.format(todas.length)} linha(s) · ${lotes.length} lote(s) no filtro`}
       />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
