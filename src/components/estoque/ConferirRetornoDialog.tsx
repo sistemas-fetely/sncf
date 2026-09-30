@@ -35,7 +35,7 @@ interface Props {
 }
 
 interface Condicao { codigo: string; rotulo: string; rotulo_conferencia: string | null; dica_conferencia: string | null }
-interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
+interface Contado { sku: string; cod: string | null; condicao: string; qtd: number; nome: string | null; ordem: number }
 interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
@@ -133,7 +133,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const codigoRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
-  const mapaCodigosRef = useRef(new Map<string, { sku: string; nome: string | null }>());
+  const mapaCodigosRef = useRef(new Map<string, { sku: string; cod: string | null; nome: string | null }>());
   const filaRef = useRef<BipPendente[]>([]);
   const processandoFilaRef = useRef(false);
   const sessaoRef = useRef(0);
@@ -189,9 +189,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }, [devolucao]);
 
   useEffect(() => {
-    const mapa = new Map<string, { sku: string; nome: string | null }>();
+    const mapa = new Map<string, { sku: string; cod: string | null; nome: string | null }>();
     for (const produto of produtosQ.data ?? []) {
-      const valor = { sku: produto.sku, nome: produto.nome_comercial };
+      const valor = { sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial };
       mapa.set(produto.sku.toLocaleLowerCase().trim(), valor);
       if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase().trim(), valor);
       if (produto.cod_cadastro) mapa.set(String(produto.cod_cadastro).toLocaleLowerCase().trim(), valor);
@@ -199,7 +199,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     mapaCodigosRef.current = mapa;
   }, [produtosQ.data]);
 
-  function adicionarContagem(produto: { sku: string; nome: string | null }, qtd: number) {
+  // cod_cadastro por SKU para exibição (etapa 1 e confronto). Envio continua por SKU.
+  const codPorSku = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const p of produtosQ.data ?? []) m.set(p.sku, p.cod_cadastro);
+    return m;
+  }, [produtosQ.data]);
+
+  // Cód. exibido: cod_cadastro; sem cadastro, SKU truncado (title traz o SKU completo).
+  function codExibicao(sku: string, cod: string | null): string {
+    const c = cod ?? codPorSku.get(sku) ?? null;
+    if (c) return c;
+    return sku.length > 10 ? `${sku.slice(0, 10)}…` : sku;
+  }
+
+  function adicionarContagem(produto: { sku: string; cod: string | null; nome: string | null }, qtd: number) {
     const k = `${produto.sku}|${COND_QUARENTENA}`;
     ordemRef.current += 1;
     const ordem = ordemRef.current;
@@ -210,6 +224,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
       }
       return [...prev, {
         sku: produto.sku,
+        cod: produto.cod ?? codPorSku.get(produto.sku) ?? null,
         condicao: COND_QUARENTENA,
         qtd,
         nome: produto.nome ?? itensPorSku.get(produto.sku)?.nome ?? null,
@@ -251,7 +266,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
             toast.error(`Código não encontrado: ${bip.codigo}`);
             continue;
           }
-          adicionarContagem({ sku: produto.sku, nome: produto.nome_comercial }, bip.qtd);
+          adicionarContagem({ sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial }, bip.qtd);
         } catch (erro) {
           if (bip.sessao === sessaoRef.current) toast.error(formatError(erro));
         } finally {
@@ -358,7 +373,8 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
       else if (contado < pendente) situacao = { txt: `Faltou ${pendente - contado}`, cls: "bg-warning/10 text-warning border-warning/30" };
       else situacao = { txt: `Sobrou ${contado - pendente}`, cls: "bg-destructive/10 text-destructive border-destructive/30" };
       const nome = dec?.nome ?? contados.find((c) => c.sku === sku)?.nome ?? null;
-      return { sku, nome, pendente, contado, declarado: !!dec, situacao };
+      const cod = codPorSku.get(sku) ?? contados.find((c) => c.sku === sku)?.cod ?? null;
+      return { sku, cod, nome, pendente, contado, declarado: !!dec, situacao };
     });
     linhas.sort((a, b) => a.sku.localeCompare(b.sku));
 
@@ -391,7 +407,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     if (fora.length) partesTxt.push(`fora da devolução: ${fora.join(", ")}`);
     const textoDiv = partesTxt.length ? `Divergências da conferência cega: ${partesTxt.join("; ")}` : "";
     return { linhas, envio, textoDiv };
-  }, [itensPorSku, contados]);
+  }, [itensPorSku, contados, codPorSku]);
 
   async function registrar() {
     if (!devolucao || confronto.envio.length === 0) return;
@@ -556,7 +572,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">SKU</TableHead>
+                    <TableHead className="w-[72px]">Cód.</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="w-[140px]">Condição</TableHead>
                     <TableHead className="w-[80px] text-center">Qtd</TableHead>
@@ -576,9 +592,10 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                     const fora = !itensPorSku.has(c.sku);
                     return (
                       <TableRow key={k} className={ultimoChave === k ? "bg-primary/10 transition-colors" : "transition-colors"}>
-                        <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">{c.sku}</TableCell>
+                        <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={c.cod ? undefined : `SKU — ${c.nome ?? c.sku}`}>{codExibicao(c.sku, c.cod)}</TableCell>
                         <TableCell className="px-2 text-sm min-w-0">
                           <span className="block truncate" title={c.nome ?? undefined}>{c.nome ?? "—"}</span>
+                          <span className="block text-[11px] text-muted-foreground font-mono truncate" title={`SKU — ${c.nome ?? c.sku}`}>{c.sku}</span>
                           {fora && (
                             <Badge variant="outline" className="mt-0.5 text-[10px] border-destructive/40 text-destructive">
                               fora da devolução
@@ -703,7 +720,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">SKU</TableHead>
+                    <TableHead className="w-[72px]">Cód.</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="w-[76px] text-center">Pendente</TableHead>
                     <TableHead className="w-[76px] text-center">Contado</TableHead>
@@ -713,9 +730,10 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 <TableBody>
                   {confronto.linhas.map((l) => (
                     <TableRow key={l.sku}>
-                      <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis">{l.sku}</TableCell>
+                      <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={l.cod ? undefined : `SKU — ${l.nome ?? l.sku}`}>{codExibicao(l.sku, l.cod)}</TableCell>
                       <TableCell className="px-2 text-sm min-w-0">
                         <span className="block truncate" title={l.nome ?? undefined}>{l.nome ?? "—"}</span>
+                        <span className="block text-[11px] text-muted-foreground font-mono truncate" title={`SKU — ${l.nome ?? l.sku}`}>{l.sku}</span>
                       </TableCell>
                       <TableCell className="px-2 text-center tabular-nums">{l.declarado ? l.pendente : "—"}</TableCell>
                       <TableCell className="px-2 text-center tabular-nums font-medium">{l.contado}</TableCell>
