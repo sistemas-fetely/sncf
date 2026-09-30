@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { TarefaItem } from "@/components/tarefas/TarefaItem";
 import { QuickAddTarefa } from "@/components/tarefas/QuickAddTarefa";
 import { type Tarefa } from "@/hooks/tarefas/useTarefas";
+import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 
 const CAMPOS =
   "id,titulo,descricao,status,prioridade,projeto_id,secao_id,parent_id,responsavel_id,data_inicio,data_limite,hora_limite,data_conclusao,estimativa_horas,acao_url,motivo_estado,ordem,criado_em" as const;
@@ -32,6 +33,7 @@ export function PainelTarefasGlobal() {
   const navigate = useNavigate();
   const location = useLocation();
   const [aberto, setAberto] = useState(false);
+  const [peekId, setPeekId] = useState<string | null>(null);
 
   const { data: tarefas, isLoading } = useQuery({
     queryKey: ["tarefas", "painel-global", user?.id],
@@ -65,6 +67,7 @@ export function PainelTarefasGlobal() {
 
   useEffect(() => {
     setAberto(false);
+    setPeekId(null);
   }, [location.pathname]);
 
   if (!user) return null;
@@ -121,6 +124,11 @@ export function PainelTarefasGlobal() {
                   key={t.id}
                   tarefa={t}
                   atrasada={!!t.data_limite && t.data_limite < hoje}
+                  onAbrir={(id) => {
+                    // nunca duas gavetas empilhadas: fecha o painel, abre o peek
+                    setAberto(false);
+                    setPeekId(id);
+                  }}
                 />
               ))}
           </div>
@@ -139,6 +147,13 @@ export function PainelTarefasGlobal() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Fora do Sheet do painel: fechar o painel não desmonta o peek. */}
+      <TarefaDetalhePainel
+        tarefaId={peekId}
+        aberto={!!peekId}
+        onOpenChange={(v) => { if (!v) setPeekId(null); }}
+      />
     </>
   );
 }
