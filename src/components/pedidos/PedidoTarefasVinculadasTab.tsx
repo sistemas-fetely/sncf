@@ -30,7 +30,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { TarefaDetalhePainel } from "@/components/tarefas/detalhe/TarefaDetalhePainel";
 import { cn } from "@/lib/utils";
-import { PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
+import { OPCOES_PRIORIDADE, PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade } from "@/lib/tarefas/prioridade";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   STATUS_ABERTOS,
@@ -279,9 +279,9 @@ export function PedidoTarefasVinculadasTab({ pedidoId }: { pedidoId: string }) {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {(["baixa", "media", "alta", "urgente"] as const).map((p) => (
-                      <SelectItem key={p} value={p}>
-                        {PRIORIDADE_ROTULO[p]}
+                    {OPCOES_PRIORIDADE.map((o) => (
+                      <SelectItem key={o.valor} value={o.valor}>
+                        {o.rotulo}
                       </SelectItem>
                     ))}
                   </SelectContent>

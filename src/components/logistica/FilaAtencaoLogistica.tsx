@@ -50,7 +50,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { PRIORIDADE_ROTULO } from "@/lib/tarefas/prioridade";
+import { OPCOES_PRIORIDADE } from "@/lib/tarefas/prioridade";
 import { formatBRL } from "@/lib/format-currency";
 import {
   useLogisticaFilaAtencao,
@@ -183,9 +183,9 @@ function DialogNovaTarefa({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(["baixa", "media", "alta", "urgente"] as const).map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PRIORIDADE_ROTULO[p]}
+                  {OPCOES_PRIORIDADE.map((o) => (
+                    <SelectItem key={o.valor} value={o.valor}>
+                      {o.rotulo}
                     </SelectItem>
                   ))}
                 </SelectContent>
