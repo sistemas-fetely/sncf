@@ -17,7 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Loader2, ScanBarcode, Split, Trash2 } from "lucide-react";
+import { Loader2, Plus, ScanBarcode, Split, Trash2 } from "lucide-react";
 import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { Badge } from "@/components/ui/badge";
 import { hojeISO } from "@/lib/data";
@@ -125,6 +125,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [separarQtd, setSepararQtd] = useState("1");
   const [separarCondicao, setSepararCondicao] = useState("");
   const codigoRef = useRef<HTMLInputElement>(null);
+  const qtdRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
   const mapaCodigosRef = useRef(new Map<string, { sku: string; nome: string | null }>());
   const filaRef = useRef<BipPendente[]>([]);
@@ -474,7 +475,18 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
         {etapa === 1 ? (
           <>
             <div className="sticky top-0 z-10 bg-background py-2 space-y-3 border-b">
-              <div className="flex gap-2 items-end">
+              {/* LEITURA-ROBUSTA (30/09/2026): <form> garante submit implícito mesmo
+                  quando o teclado (virtual/leitor) não entrega key==="Enter".
+                  Enter/NumpadEnter/Tab tratados no keydown com preventDefault —
+                  o submit implícito não dispara em dobro. */}
+              <form
+                className="flex gap-2 items-end"
+                autoComplete="off"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  bipar(codigoRef.current?.value ?? codigo, qtdRef.current?.value ?? qtdBip);
+                }}
+              >
                 <div className="flex-1 space-y-1.5">
                   <Label>Código (EAN, cód. ou SKU)</Label>
                   <div className="relative">
@@ -482,9 +494,20 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                     <Input
                       ref={codigoRef}
                       autoFocus
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="off"
+                      spellCheck={false}
+                      enterKeyHint="enter"
                       value={codigo}
                       onChange={(e) => { setCodigo(e.target.value); setCodigoErro(false); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); bipar(e.currentTarget.value, qtdBip); } }}
+                      onKeyDown={(e) => {
+                        const finaliza = e.key === "Enter" || e.code === "NumpadEnter"
+                          || (e.key === "Tab" && !e.shiftKey && e.currentTarget.value.trim() !== "");
+                        if (!finaliza) return;
+                        e.preventDefault();
+                        bipar(e.currentTarget.value, qtdRef.current?.value ?? qtdBip);
+                      }}
                       className={`pl-8 font-mono ${codigoErro ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       placeholder="Bipe ou digite e tecle Enter"
                     />
@@ -493,20 +516,30 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 <div className="w-20 space-y-1.5">
                   <Label>Qtd</Label>
                   <Input
+                    ref={qtdRef}
                     inputMode="numeric"
+                    autoComplete="off"
+                    enterKeyHint="enter"
                     className="text-center"
                     value={qtdBip}
                     onChange={(e) => setQtdBip(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); bipar(codigo, e.currentTarget.value); } }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter" && e.code !== "NumpadEnter") return;
+                      e.preventDefault();
+                      bipar(codigoRef.current?.value ?? codigo, e.currentTarget.value);
+                    }}
                   />
                 </div>
+                <Button type="submit" size="icon" variant="outline" aria-label="Adicionar" title="Adicionar">
+                  <Plus className="h-4 w-4" />
+                </Button>
                 {filaPendente > 0 && (
                   <span className="flex items-center gap-1.5 mb-3 text-xs text-muted-foreground whitespace-nowrap">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     resolvendo {filaPendente}…
                   </span>
                 )}
-              </div>
+              </form>
             </div>
 
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
