@@ -36,6 +36,8 @@ interface Props {
 
 interface Condicao { codigo: string; rotulo: string }
 interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
+interface ProdutoCodigo { sku: string; ean: string | null; nome_comercial: string | null }
+interface BipPendente { codigo: string; qtd: number; sessao: number }
 
 const COND_QUARENTENA = "quarentena";
 
@@ -79,17 +81,39 @@ function useFunilLinha(id: string | null, enabled: boolean) {
   });
 }
 
+function useProdutosDevolucao(skus: string[], enabled: boolean) {
+  return useQuery({
+    queryKey: ["sncf-produtos-codigos-devolucao", ...skus],
+    enabled: enabled && skus.length > 0,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<ProdutoCodigo[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("sncf_produtos")
+        .select("sku,ean,nome_comercial")
+        .in("sku", skus);
+      if (error) throw error;
+      return (data ?? []) as ProdutoCodigo[];
+    },
+  });
+}
+
 export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) {
   const qc = useQueryClient();
   const condQ = useCondicoesEntrada();
   const condicoes = condQ.data ?? [];
   const funilQ = useFunilLinha(devolucao?.devolucao_id ?? null, open);
+  const skusDevolucao = useMemo(
+    () => [...new Set((devolucao?.itens ?? []).map((item) => item.sku))],
+    [devolucao],
+  );
+  const produtosQ = useProdutosDevolucao(skusDevolucao, open);
 
   const [etapa, setEtapa] = useState<1 | 2>(1);
   const [codigo, setCodigo] = useState("");
   const [qtdBip, setQtdBip] = useState("1");
   const [codigoErro, setCodigoErro] = useState(false);
-  const [resolvendo, setResolvendo] = useState(false);
+  const [filaPendente, setFilaPendente] = useState(0);
   const [contados, setContados] = useState<Contado[]>([]);
   const [ultimoChave, setUltimoChave] = useState<string | null>(null);
   const [docNumero, setDocNumero] = useState("");
@@ -102,6 +126,10 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const [separarCondicao, setSepararCondicao] = useState("");
   const codigoRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
+  const mapaCodigosRef = useRef(new Map<string, { sku: string; nome: string | null }>());
+  const filaRef = useRef<BipPendente[]>([]);
+  const processandoFilaRef = useRef(false);
+  const sessaoRef = useRef(0);
 
   const chave = devolucao?.devolucao_id ?? "";
   const [chaveAtual, setChaveAtual] = useState("");
@@ -111,6 +139,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     setCodigo("");
     setQtdBip("1");
     setCodigoErro(false);
+    setFilaPendente(0);
+    filaRef.current = [];
+    sessaoRef.current += 1;
     setContados([]);
     setUltimoChave(null);
     setDocNumero(devolucao?.nf ?? "");
@@ -150,53 +181,95 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     return m;
   }, [devolucao]);
 
-  async function bipar() {
-    const cod = codigo.trim();
-    if (!cod || resolvendo) return;
-    const qtd = Number(qtdBip);
+  useEffect(() => {
+    const mapa = new Map<string, { sku: string; nome: string | null }>();
+    for (const produto of produtosQ.data ?? []) {
+      const valor = { sku: produto.sku, nome: produto.nome_comercial };
+      mapa.set(produto.sku.toLocaleLowerCase(), valor);
+      if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase(), valor);
+    }
+    mapaCodigosRef.current = mapa;
+  }, [produtosQ.data]);
+
+  function adicionarContagem(produto: { sku: string; nome: string | null }, qtd: number) {
+    const k = `${produto.sku}|${COND_QUARENTENA}`;
+    ordemRef.current += 1;
+    const ordem = ordemRef.current;
+    setContados((prev) => {
+      const existente = prev.find((item) => `${item.sku}|${item.condicao}` === k);
+      if (existente) {
+        return prev.map((item) => item === existente ? { ...item, qtd: item.qtd + qtd, ordem } : item);
+      }
+      return [...prev, {
+        sku: produto.sku,
+        condicao: COND_QUARENTENA,
+        qtd,
+        nome: produto.nome ?? itensPorSku.get(produto.sku)?.nome ?? null,
+        ordem,
+      }];
+    });
+    setUltimoChave(k);
+    setCodigoErro(false);
+  }
+
+  async function processarFila() {
+    if (processandoFilaRef.current) return;
+    processandoFilaRef.current = true;
+    try {
+      while (filaRef.current.length > 0) {
+        const bip = filaRef.current.shift();
+        if (!bip) continue;
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const sb = supabase as any;
+          let produto: ProdutoCodigo | null = null;
+          const porEan = await sb.from("sncf_produtos").select("sku,ean,nome_comercial").eq("ean", bip.codigo).limit(1);
+          if (porEan.error) throw porEan.error;
+          produto = porEan.data?.[0] ?? null;
+          if (!produto) {
+            const esc = bip.codigo.replace(/[\\%_]/g, (caractere) => `\\${caractere}`);
+            const porSku = await sb.from("sncf_produtos").select("sku,ean,nome_comercial").ilike("sku", esc).limit(1);
+            if (porSku.error) throw porSku.error;
+            produto = porSku.data?.[0] ?? null;
+          }
+          if (bip.sessao !== sessaoRef.current) continue;
+          if (!produto) {
+            setCodigoErro(true);
+            toast.error(`Código não encontrado: ${bip.codigo}`);
+            continue;
+          }
+          adicionarContagem({ sku: produto.sku, nome: produto.nome_comercial }, bip.qtd);
+        } catch (erro) {
+          if (bip.sessao === sessaoRef.current) toast.error(formatError(erro));
+        } finally {
+          if (bip.sessao === sessaoRef.current) setFilaPendente((total) => Math.max(0, total - 1));
+        }
+      }
+    } finally {
+      processandoFilaRef.current = false;
+    }
+  }
+
+  function bipar(codigoCapturado: string, qtdCapturada: string) {
+    const cod = codigoCapturado.trim();
+    if (!cod) return;
+    const qtd = Number(qtdCapturada);
     if (!Number.isFinite(qtd) || qtd <= 0) {
       toast.error("Quantidade inválida.");
       return;
     }
-    setResolvendo(true);
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const sb = supabase as any;
-      let prod: { sku: string; nome_comercial: string | null } | null = null;
-      const porEan = await sb.from("sncf_produtos").select("sku,nome_comercial").eq("ean", cod).limit(1);
-      if (porEan.error) throw porEan.error;
-      prod = porEan.data?.[0] ?? null;
-      if (!prod) {
-        const esc = cod.replace(/[\\%_]/g, (c) => `\\${c}`);
-        const porSku = await sb.from("sncf_produtos").select("sku,nome_comercial").ilike("sku", esc).limit(1);
-        if (porSku.error) throw porSku.error;
-        prod = porSku.data?.[0] ?? null;
-      }
-      if (!prod) {
-        setCodigoErro(true);
-        toast.error(`Código não encontrado: ${cod}`);
-        codigoRef.current?.select();
-        return;
-      }
-      const p = prod;
-      const k = `${p.sku}|${COND_QUARENTENA}`;
-      ordemRef.current += 1;
-      const ordem = ordemRef.current;
-      setContados((prev) => {
-        const ex = prev.find((c) => `${c.sku}|${c.condicao}` === k);
-        if (ex) return prev.map((c) => (c === ex ? { ...c, qtd: c.qtd + qtd, ordem } : c));
-        return [...prev, { sku: p.sku, condicao: COND_QUARENTENA, qtd, nome: p.nome_comercial ?? itensPorSku.get(p.sku)?.nome ?? null, ordem }];
-      });
-      setUltimoChave(k);
-      setCodigoErro(false);
-      setCodigo("");
-      setQtdBip("1");
-    } catch (e) {
-      toast.error(formatError(e));
-    } finally {
-      setResolvendo(false);
-      setTimeout(() => codigoRef.current?.focus(), 0);
+    setCodigo("");
+    setQtdBip("1");
+    setCodigoErro(false);
+    const produtoLocal = mapaCodigosRef.current.get(cod.toLocaleLowerCase());
+    if (produtoLocal) {
+      adicionarContagem(produtoLocal, qtd);
+    } else {
+      filaRef.current.push({ codigo: cod, qtd, sessao: sessaoRef.current });
+      setFilaPendente((total) => total + 1);
+      void processarFila();
     }
+    setTimeout(() => codigoRef.current?.focus(), 0);
   }
 
   function trocarCondicao(linha: Contado, novaCondicao: string) {
@@ -365,9 +438,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           </DialogDescription>
         </DialogHeader>
 
-        {(funilQ.error || condQ.error) && (
+        {(funilQ.error || condQ.error || produtosQ.error) && (
           <Alert variant="destructive">
-            <AlertDescription>{formatError(funilQ.error ?? condQ.error)}</AlertDescription>
+            <AlertDescription>{formatError(funilQ.error ?? condQ.error ?? produtosQ.error)}</AlertDescription>
           </Alert>
         )}
 
@@ -405,7 +478,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                       autoFocus
                       value={codigo}
                       onChange={(e) => { setCodigo(e.target.value); setCodigoErro(false); }}
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void bipar(); } }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); bipar(e.currentTarget.value, qtdBip); } }}
                       className={`pl-8 font-mono ${codigoErro ? "border-destructive focus-visible:ring-destructive" : ""}`}
                       placeholder="Bipe ou digite e tecle Enter"
                     />
@@ -418,10 +491,15 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                     className="text-center"
                     value={qtdBip}
                     onChange={(e) => setQtdBip(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); void bipar(); } }}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); bipar(codigo, e.currentTarget.value); } }}
                   />
                 </div>
-                {resolvendo && <Loader2 className="h-4 w-4 animate-spin mb-3" />}
+                {filaPendente > 0 && (
+                  <span className="flex items-center gap-1.5 mb-3 text-xs text-muted-foreground whitespace-nowrap">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    resolvendo {filaPendente}…
+                  </span>
+                )}
               </div>
             </div>
 
@@ -549,7 +627,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                 {totalSkus} SKU(s) · {totalUnid} unidade(s) contadas
               </span>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
-              <Button onClick={() => setEtapa(2)} disabled={contados.length === 0}>
+              <Button onClick={() => setEtapa(2)} disabled={contados.length === 0 || filaPendente > 0}>
                 Finalizar contagem
               </Button>
             </DialogFooter>
