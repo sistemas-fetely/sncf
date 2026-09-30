@@ -24,6 +24,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QuarentenaEstoquePainel } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /** Uma linha por SKU × centro (centro null = produto sem razão). */
@@ -228,6 +231,7 @@ async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]
 }
 
 export default function EstoqueVirtual() {
+  const [aba, setAba] = useAbaUrl("geral");
   const [busca, setBusca] = useState("");
   const [faseFiltro, setFaseFiltro] = useState("todos");
   const [colecaoFiltro, setColecaoFiltro] = useState("todos");
@@ -655,6 +659,15 @@ export default function EstoqueVirtual() {
         }
       />
 
+      <Tabs value={aba} onValueChange={setAba}>
+        <TabsList>
+          <TabsTrigger value="geral">Visão geral</TabsTrigger>
+          <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
+        </TabsList>
+        <TabsContent value="quarentena" className="mt-4">
+          <QuarentenaEstoquePainel />
+        </TabsContent>
+        <TabsContent value="geral" className="mt-4 space-y-4">
       {onb && !onb.seguro_desligar_bling && (
         <p className="-mt-2 flex items-center gap-1.5 text-[12px] text-muted-foreground">
           <Info className="h-3.5 w-3.5 shrink-0" />
@@ -1086,6 +1099,8 @@ export default function EstoqueVirtual() {
           </>
         ) : null}
       />
+        </TabsContent>
+      </Tabs>
     </PageShell>
   );
 }
