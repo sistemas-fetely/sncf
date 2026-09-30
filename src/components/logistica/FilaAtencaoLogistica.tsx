@@ -183,9 +183,9 @@ function DialogNovaTarefa({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(["baixa", "media", "alta", "urgente"] as const).map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {PRIORIDADE_ROTULO[p]}
+                  {OPCOES_PRIORIDADE.map((o) => (
+                    <SelectItem key={o.valor} value={o.valor}>
+                      {o.rotulo}
                     </SelectItem>
                   ))}
                 </SelectContent>
