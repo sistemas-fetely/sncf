@@ -50,9 +50,20 @@ export async function refreshAccessToken(supabase: any, cfg: BlingConfig): Promi
   return tokens.access_token;
 }
 
+export type BlingPostOpts = { retry?: boolean };
+
+/** Erro HTTP do Bling com status (mensagem idêntica à anterior). */
+export class BlingHttpError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
 export type BlingClient = {
   get: (endpoint: string) => Promise<any>;
-  post: (endpoint: string, body: any) => Promise<any>;
+  post: (endpoint: string, body: any, opts?: BlingPostOpts) => Promise<any>;
   currentToken: () => string;
 };
 
@@ -81,7 +92,10 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
     return res.json();
   }
 
-  async function post(endpoint: string, body: any, attempt = 0): Promise<any> {
+  // retry:false → nunca repete o POST por 429/5xx (criação de NF não é idempotente).
+  // O 401 continua renovando o token uma vez: o Bling recusou sem processar.
+  async function post(endpoint: string, body: any, opts?: BlingPostOpts, attempt = 0): Promise<any> {
+    const podeRepetir = opts?.retry !== false;
     const res = await fetch(`${BLING_BASE}${endpoint}`, {
       method: "POST",
       headers: {
@@ -94,16 +108,16 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
 
     if (res.status === 401 && attempt === 0) {
       token = await refreshAccessToken(supabase, { ...cfg, access_token: token });
-      return post(endpoint, body, attempt + 1);
+      return post(endpoint, body, opts, attempt + 1);
     }
-    if ((res.status === 429 || res.status >= 500) && attempt < 3) {
+    if (podeRepetir && (res.status === 429 || res.status >= 500) && attempt < 3) {
       const wait = 1000 * Math.pow(2, attempt);
       await sleep(wait);
-      return post(endpoint, body, attempt + 1);
+      return post(endpoint, body, opts, attempt + 1);
     }
     if (!res.ok) {
       const txt = await res.text();
-      throw new Error(`Bling POST ${endpoint} ${res.status}: ${txt.slice(0, 500)}`);
+      throw new BlingHttpError(`Bling POST ${endpoint} ${res.status}: ${txt.slice(0, 500)}`, res.status);
     }
     return res.json();
   }
