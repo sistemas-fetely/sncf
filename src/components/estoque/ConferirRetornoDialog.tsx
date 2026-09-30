@@ -35,7 +35,7 @@ interface Props {
 }
 
 interface Condicao { codigo: string; rotulo: string; rotulo_conferencia: string | null; dica_conferencia: string | null }
-interface Contado { sku: string; condicao: string; qtd: number; nome: string | null; ordem: number }
+interface Contado { sku: string; cod: string | null; condicao: string; qtd: number; nome: string | null; ordem: number }
 interface ProdutoCodigo { sku: string; ean: string | null; cod_cadastro: string | null; nome_comercial: string | null }
 interface BipPendente { codigo: string; qtd: number; sessao: number }
 
@@ -133,7 +133,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   const codigoRef = useRef<HTMLInputElement>(null);
   const qtdRef = useRef<HTMLInputElement>(null);
   const ordemRef = useRef(0);
-  const mapaCodigosRef = useRef(new Map<string, { sku: string; nome: string | null }>());
+  const mapaCodigosRef = useRef(new Map<string, { sku: string; cod: string | null; nome: string | null }>());
   const filaRef = useRef<BipPendente[]>([]);
   const processandoFilaRef = useRef(false);
   const sessaoRef = useRef(0);
@@ -189,9 +189,9 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }, [devolucao]);
 
   useEffect(() => {
-    const mapa = new Map<string, { sku: string; nome: string | null }>();
+    const mapa = new Map<string, { sku: string; cod: string | null; nome: string | null }>();
     for (const produto of produtosQ.data ?? []) {
-      const valor = { sku: produto.sku, nome: produto.nome_comercial };
+      const valor = { sku: produto.sku, cod: produto.cod_cadastro, nome: produto.nome_comercial };
       mapa.set(produto.sku.toLocaleLowerCase().trim(), valor);
       if (produto.ean) mapa.set(String(produto.ean).toLocaleLowerCase().trim(), valor);
       if (produto.cod_cadastro) mapa.set(String(produto.cod_cadastro).toLocaleLowerCase().trim(), valor);
@@ -199,7 +199,21 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     mapaCodigosRef.current = mapa;
   }, [produtosQ.data]);
 
-  function adicionarContagem(produto: { sku: string; nome: string | null }, qtd: number) {
+  // cod_cadastro por SKU para exibição (etapa 1 e confronto). Envio continua por SKU.
+  const codPorSku = useMemo(() => {
+    const m = new Map<string, string | null>();
+    for (const p of produtosQ.data ?? []) m.set(p.sku, p.cod_cadastro);
+    return m;
+  }, [produtosQ.data]);
+
+  // Cód. exibido: cod_cadastro; sem cadastro, SKU truncado (title traz o SKU completo).
+  function codExibicao(sku: string, cod: string | null): string {
+    const c = cod ?? codPorSku.get(sku) ?? null;
+    if (c) return c;
+    return sku.length > 10 ? `${sku.slice(0, 10)}…` : sku;
+  }
+
+  function adicionarContagem(produto: { sku: string; cod: string | null; nome: string | null }, qtd: number) {
     const k = `${produto.sku}|${COND_QUARENTENA}`;
     ordemRef.current += 1;
     const ordem = ordemRef.current;
