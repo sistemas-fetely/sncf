@@ -307,9 +307,9 @@ export default function RecebimentoXpm() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
               <FileSpreadsheet className="h-4 w-4" />
-              Gerar planilha XPM
+              Gerar planilha de recebimento XPM (SKU × NF)
             </CardTitle>
-            <CardDescription>Escolha o pedido de importação e baixe a planilha de cadastro.</CardDescription>
+            <CardDescription>Escolha o pedido e baixe a planilha que traduz a NF para os nossos SKUs (Código Material × NF × Cod. NF). Serve para cadastro e para o recebimento na XPM. Pedido em fase 1 (sem NF) sai com NF e Cod. NF vazios.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
