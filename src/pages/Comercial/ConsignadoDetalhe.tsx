@@ -469,6 +469,21 @@ export default function ConsignadoDetalhe() {
     [acertosQ.data],
   );
 
+  // ── data de pagamento combinada (vencimento da parcela de acerto) ────────
+  const diaAcertoParceiro = diaAcerto ?? parceiroQ.data?.consignado_dia_acerto ?? null;
+  const sugestaoDataPagamento = useMemo(() => {
+    const dia = diaAcertoParceiro;
+    if (!dia || !rascunho?.periodo_fim) return "";
+    const fim = new Date(`${rascunho.periodo_fim}T12:00:00`);
+    let cand = new Date(fim.getFullYear(), fim.getMonth(), dia, 12);
+    if (cand.getTime() <= fim.getTime()) {
+      cand = new Date(fim.getFullYear(), fim.getMonth() + 1, dia, 12);
+    }
+    const mm = String(cand.getMonth() + 1).padStart(2, "0");
+    const dd = String(cand.getDate()).padStart(2, "0");
+    return `${cand.getFullYear()}-${mm}-${dd}`;
+  }, [diaAcertoParceiro, rascunho?.periodo_fim]);
+
   const itensRascunhoQ = useQuery({
     queryKey: ["consignado-acerto-itens", rascunho?.id],
     enabled: !!rascunho?.id,
