@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,6 +18,9 @@ import { LINHA_CABECALHO_COLADO } from "@/components/tabela/CabecalhoOrdenavel";
 import { toast } from "sonner";
 import { formatError } from "@/lib/format-error";
 
+const DICA_BLOQUEIO_VENDA =
+  "Liberação para venda exige NF de retorno (e transferência de CD, quando a devolução entrou em CD diferente da venda). Avaria e Não conforme continuam disponíveis.";
+
 interface LinhaQuarentena {
   sku: string;
   centro: string;
@@ -26,6 +31,7 @@ interface LinhaQuarentena {
   produto: string | null;
   saldo: number;
   ultimo_mov: string | null;
+  bloqueio_venda: string | null;
 }
 
 interface GrupoQuarentena {
@@ -56,7 +62,7 @@ async function carregar(): Promise<{ linhas: LinhaQuarentena[]; exigeDocumento: 
   for (let de = 0; ; de += 1000) {
     const { data, error } = await supabase
       .from("vw_quarentena_fila")
-      .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov")
+      .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov,bloqueio_venda")
       .order("devolucao_numero", { nullsFirst: false })
       .order("sku")
       .order("centro")
@@ -133,6 +139,15 @@ export function QuarentenaEstoquePainel() {
     [linhas],
   );
   const unidadesSelecionadas = linhasSelecionadas.reduce((s, linha) => s + linha.saldo, 0);
+  const bloqueioLote = useMemo(() => {
+    const bloqueadas = linhasSelecionadas.filter((linha) => linha.bloqueio_venda);
+    if (bloqueadas.length === 0) return null;
+    const unicas = new Set<string>();
+    for (const linha of bloqueadas) {
+      unicas.add(`${linha.devolucao_numero ?? "sem devolução vinculada"} · ${linha.bloqueio_venda}`);
+    }
+    return [...unicas].join(", ");
+  }, [linhasSelecionadas]);
   const grupos = useMemo<GrupoQuarentena[]>(() => {
     const mapa = new Map<string, GrupoQuarentena>();
     for (const linha of linhas) {
@@ -282,6 +297,7 @@ export function QuarentenaEstoquePainel() {
             const grupoMarcado = selecionadasGrupo === grupo.linhas.length;
             const grupoParcial = selecionadasGrupo > 0 && !grupoMarcado;
             const aberto = !gruposFechados.has(grupo.chave);
+            const bloqueioGrupo = grupo.linhas.find((linha) => linha.bloqueio_venda)?.bloqueio_venda ?? null;
             return (
               <Collapsible
                 key={grupo.chave}
@@ -313,6 +329,21 @@ export function QuarentenaEstoquePainel() {
                       </span>
                     </Button>
                   </CollapsibleTrigger>
+                  {bloqueioGrupo && (
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge
+                            variant="outline"
+                            className="shrink-0 whitespace-nowrap border-amber-500/50 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                          >
+                            Venda bloqueada: {bloqueioGrupo}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">{DICA_BLOQUEIO_VENDA}</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                   <div className="ml-auto shrink-0 text-right text-xs text-muted-foreground">
                     <div>{fmt(grupo.linhas.length)} {grupo.linhas.length === 1 ? "SKU" : "SKUs"}</div>
                     <div className="font-medium text-foreground tabular-nums">{fmt(grupo.unidades)} un</div>
@@ -364,7 +395,13 @@ export function QuarentenaEstoquePainel() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_SADIO)}>Liberar p/ venda</DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    disabled={Boolean(linha.bloqueio_venda)}
+                                    title={linha.bloqueio_venda ? `Venda bloqueada: ${linha.bloqueio_venda}. ${DICA_BLOQUEIO_VENDA}` : undefined}
+                                    onSelect={() => abrirUnitario(linha, PARA_SADIO)}
+                                  >
+                                    Liberar p/ venda
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_AVARIA)}>Marcar avaria</DropdownMenuItem>
                                   <DropdownMenuItem onSelect={() => abrirUnitario(linha, PARA_NAO_CONFORME)}>Não conforme</DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -387,7 +424,16 @@ export function QuarentenaEstoquePainel() {
           <div className="mr-auto text-sm font-medium tabular-nums">
             {fmt(linhasSelecionadas.length)} SKUs · {fmt(unidadesSelecionadas)} unidades selecionadas
           </div>
-          <Button variant="outline" onClick={() => abrirLote(PARA_SADIO)}>Liberar p/ venda</Button>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">
+                  <Button variant="outline" disabled={Boolean(bloqueioLote)} onClick={() => abrirLote(PARA_SADIO)}>Liberar p/ venda</Button>
+                </span>
+              </TooltipTrigger>
+              {bloqueioLote && <TooltipContent className="max-w-xs">Não é possível liberar para venda: {bloqueioLote}. {DICA_BLOQUEIO_VENDA}</TooltipContent>}
+            </Tooltip>
+          </TooltipProvider>
           <Button variant="outline" onClick={() => abrirLote(PARA_AVARIA)}>Marcar avaria</Button>
           <Button variant="outline" onClick={() => abrirLote(PARA_NAO_CONFORME)}>Não conforme</Button>
         </div>
