@@ -207,7 +207,7 @@ export default function ConciliacaoEstoque() {
     furo: p => linhasEscopo(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
     ruptura: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) > 0),
     perdida: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) < 0),
-    semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem"),
+    semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem" && c.fiscal !== 0),
     canais: p => linhasEscopo(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
     nfpend: p => linhasEscopo(p.sku).some(c => c.nf_pendente !== null && c.nf_pendente !== undefined),
   };
