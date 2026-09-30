@@ -22,6 +22,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { QuarentenaEstoquePainel } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronRight, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -118,6 +121,7 @@ export default function RetornoDevolucao() {
     },
   });
   const pendQ = useDevolucoesRetornoPendente();
+  const [aba, setAba] = useAbaUrl("funil");
 
   const devolucoes = funilQ.data ?? [];
   const etapas = etapasQ.data ?? [];
@@ -198,6 +202,12 @@ export default function RetornoDevolucao() {
           }
         />
 
+        <Tabs value={aba} onValueChange={setAba}>
+          <TabsList>
+            <TabsTrigger value="funil">Funil</TabsTrigger>
+            <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
+          </TabsList>
+          <TabsContent value="funil" className="mt-4">
         <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-1 gap-3 bg-background px-6 py-2 sm:grid-cols-4">
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Devoluções abertas</div><div className="text-2xl font-medium tabular-nums">{formatNum(abertas.length)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Paradas há +30d</div><div className="text-2xl font-medium tabular-nums">{formatNum(paradas)}</div></div>
@@ -343,6 +353,12 @@ export default function RetornoDevolucao() {
 
         <RodapePaginacao total={filtrados.length} pagina={paginaAtual} tamanhoPagina={tamanhoPagina}
           chavePreferencia={CHAVE_PAGINA_DEVOLUCAO} onPagina={setPagina} onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)} />
+          </TabsContent>
+
+          <TabsContent value="quarentena" className="mt-4">
+            <QuarentenaEstoquePainel />
+          </TabsContent>
+        </Tabs>
       </div>
       </TooltipProvider>
 
