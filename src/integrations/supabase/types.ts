@@ -56490,6 +56490,13 @@ export type Database = {
             foreignKeyName: "regularizacao_item_lote_id_fkey"
             columns: ["lote_id"]
             isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["regularizacao_lote_id"]
+          },
+          {
+            foreignKeyName: "regularizacao_item_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
             referencedRelation: "vw_regularizacao_lote"
             referencedColumns: ["id"]
           },
@@ -57475,6 +57482,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "regularizacao_lote"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_nf_lote_id_fkey"
+            columns: ["lote_id"]
+            isOneToOne: false
+            referencedRelation: "v_transferencias_internas"
+            referencedColumns: ["regularizacao_lote_id"]
           },
           {
             foreignKeyName: "regularizacao_retorno_nf_lote_id_fkey"
@@ -77318,10 +77332,14 @@ export type Database = {
           estagio: string | null
           id: string | null
           id_externo: string | null
+          natureza_codigo: string | null
           observacao_pedido: string | null
           qtd_itens: number | null
           qtd_total_pecas: number | null
           recebido_em: string | null
+          regularizacao_lote_codigo: string | null
+          regularizacao_lote_id: string | null
+          tipo_transferencia: string | null
           valor_bruto: number | null
           valor_liquido: number | null
           xpm_expedicao_codigo: string | null
