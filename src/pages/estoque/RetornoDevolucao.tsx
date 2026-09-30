@@ -44,6 +44,9 @@ type Funil = {
   destino_codigo: string | null; reversa_origem: string | null; rastreio_efetivo: string | null; rastreio_status: string | null;
   frete_reverso_por_conta: string | null;
   exige_transferencia_cd: boolean | null;
+  destino_retorno: string | null;
+  pendencias_encerramento: string[] | null;
+  transferencia_pedido_id: string | null; transferencia_numero: string | null; transferencia_ok: boolean | null;
   e1_aberta: boolean; e2_reversa: boolean; e3_recebida: boolean; e4_conferida: boolean;
   e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
   nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
@@ -53,7 +56,6 @@ type Funil = {
 type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
-const FINAIS = new Set(["encerrada", "cancelada"]);
 const ETAPA_CAMPO: Record<number, keyof Funil> = {
   1: "e1_aberta", 2: "e2_reversa", 3: "e3_recebida", 4: "e4_conferida", 5: "e5_nf_resolvida", 6: "e6_ressarcida", 7: "e7_encerrada",
 };
@@ -64,7 +66,7 @@ const sb = supabase as any;
 function formatNum(v: number | null | undefined) {
   return new Intl.NumberFormat("pt-BR").format(Number(v ?? 0));
 }
-const ehAberta = (d: Funil) => !FINAIS.has(String(d.status_efetivo ?? d.status ?? ""));
+const statusDe = (d: Funil) => String(d.status_efetivo ?? d.status ?? "");
 
 async function rpc(nome: string, args: Record<string, unknown>) {
   const { data, error } = await sb.rpc(nome, args);
@@ -121,6 +123,18 @@ export default function RetornoDevolucao() {
       return (data ?? []) as Etapa[];
     },
   });
+  const statusQ = useQuery({
+    queryKey: ["devolucao_status"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("devolucao_status").select("codigo, rotulo, eh_final");
+      if (error) throw error;
+      return (data ?? []) as { codigo: string; rotulo: string; eh_final: boolean }[];
+    },
+  });
+  const statusMap = useMemo(() => new Map((statusQ.data ?? []).map((s) => [s.codigo, s])), [statusQ.data]);
+  // Aberta = status com eh_final=false na dimensão (inclui retorno_concluido).
+  const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
+  const rotuloStatus = (d: Funil) => statusMap.get(statusDe(d))?.rotulo ?? (statusDe(d) || "—");
   const pendQ = useDevolucoesRetornoPendente();
   const [aba, setAba] = useAbaUrl("funil");
 
@@ -136,6 +150,20 @@ export default function RetornoDevolucao() {
   const [receber, setReceber] = useState<Funil | null>(null);
   const [reversa, setReversa] = useState<Funil | null>(null);
   const [estornar, setEstornar] = useState<Funil | null>(null);
+  const [vincular, setVincular] = useState<Funil | null>(null);
+  const [acaoId, setAcaoId] = useState<string | null>(null);
+  const acaoLinha = async (id: string, nome: string, args: Record<string, unknown>, msg: string) => {
+    setAcaoId(id);
+    try {
+      await rpc(nome, args);
+      toast.success(msg);
+      await invalidar();
+    } catch (e) {
+      toast.error(formatError(e));
+    } finally {
+      setAcaoId(null);
+    }
+  };
   const [pagina, setPagina] = useState(1);
   const [tamanhoPagina, setTamanhoPagina] = useState(() => lerTamanhoPaginaSalvo(CHAVE_PAGINA_DEVOLUCAO));
 
@@ -167,7 +195,7 @@ export default function RetornoDevolucao() {
         p?.itens.some((i) => i.sku.toLowerCase().includes(q) || i.nome_comercial?.toLowerCase().includes(q))
       );
     });
-  }, [devolucoes, busca, canal, soAbertas, pendMap]);
+  }, [devolucoes, busca, canal, soAbertas, pendMap, statusMap]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -317,7 +345,7 @@ export default function RetornoDevolucao() {
                               ) : (
                                 <>
                                   <div>Crédito: {d.valor_credito != null ? formatBRL(d.valor_credito) : "—"}</div>
-                                  <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {d.status_efetivo ?? d.status ?? "—"}</div>
+                                  <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {rotuloStatus(d)}</div>
                                 </>
                               )}
                             </div>
@@ -327,14 +355,27 @@ export default function RetornoDevolucao() {
                                 <>
                                   <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
                                   {d.exige_transferencia_cd && d.recebido_em != null && (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">Transferência CD pendente</Badge>
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs">
-                                        Retorno físico no SITE-SP de venda emitida por SC — emitir transferência SC→SP (CFOP 6152) para fechar o fiscal.
-                                      </TooltipContent>
-                                    </Tooltip>
+                                    d.transferencia_ok ? (
+                                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">{d.transferencia_numero ?? "TRS"}</Badge>
+                                    ) : d.transferencia_pedido_id ? (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{d.transferencia_numero ?? "TRS"} vinculada · aguardando NF</Badge>
+                                        <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" disabled={acaoId === d.id}
+                                          onClick={() => void acaoLinha(d.id, "vincular_transferencia_devolucao", { p_devolucao_id: d.id, p_transferencia_pedido_id: null }, "Transferência desvinculada.")}>Desvincular</Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex flex-wrap items-center gap-1.5">
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">Transferência CD pendente</Badge>
+                                          </TooltipTrigger>
+                                          <TooltipContent className="max-w-xs">
+                                            Retorno físico no SITE-SP de venda emitida por SC — emitir transferência SC→SP (CFOP 6152) para fechar o fiscal.
+                                          </TooltipContent>
+                                        </Tooltip>
+                                        <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setVincular(d)}>Vincular transferência</Button>
+                                      </div>
+                                    )
                                   )}
                                   <Button size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => setEstornar(d)}>Estornar recebimento</Button>
                                 </>
@@ -352,6 +393,19 @@ export default function RetornoDevolucao() {
                               )}
                             </div>
                           </div>
+                          {ehAberta(d) && (
+                            <div className="mx-2 mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
+                              <span className="text-xs font-medium text-muted-foreground">Para encerrar</span>
+                              <Badge variant="outline" className="font-normal">{rotuloStatus(d)}</Badge>
+                              {(d.pendencias_encerramento ?? []).map((pz) => (
+                                <Badge key={pz} variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{pz}</Badge>
+                              ))}
+                              <Button size="sm" variant="outline" className="ml-auto h-7" disabled={acaoId === d.id}
+                                onClick={() => void acaoLinha(d.id, "encerrar_devolucao", { p_devolucao_id: d.id }, "Devolução encerrada.")}>
+                                {acaoId === d.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Encerrar
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     )}
@@ -377,6 +431,7 @@ export default function RetornoDevolucao() {
       <ReceberDialog d={receber} onFechar={() => setReceber(null)} onOk={invalidar} />
       <ReversaDialog d={reversa} onFechar={() => setReversa(null)} onOk={invalidar} />
       <EstornarDialog d={estornar} onFechar={() => setEstornar(null)} onOk={invalidar} />
+      <VincularTransferenciaDialog d={vincular} onFechar={() => setVincular(null)} onOk={invalidar} />
     </PageShell>
   );
 }
@@ -483,6 +538,73 @@ function EstornarDialog({ d, onFechar, onOk }: DlgProps) {
           <Button variant="destructive" disabled={rodando || !motivo.trim()} onClick={() => d && run("estornar_recebimento_devolucao",
             { p_devolucao_id: d.id, p_motivo: motivo.trim() }, `Recebimento de ${d.numero ?? ""} estornado`)}>
             {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Estornar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type Trs = { id: string; id_externo: string | null; data_pedido: string | null; qtd_total_pecas: number | null; estagio: string | null };
+
+function VincularTransferenciaDialog({ d, onFechar, onOk }: DlgProps) {
+  const { rodando, run } = useAcao(onOk, onFechar);
+  const [sel, setSel] = useState<string | null>(null);
+  useEffect(() => { setSel(null); }, [d?.id]);
+  const trsQ = useQuery({
+    queryKey: ["vw_devolucao_funil", "trs-candidatas", d?.destino_retorno],
+    enabled: !!d?.destino_retorno,
+    queryFn: async () => {
+      const desde = new Date(Date.now() - 90 * 86400000).toISOString();
+      const { data, error } = await sb.from("v_transferencias_internas")
+        .select("id, id_externo, data_pedido, qtd_total_pecas, estagio")
+        .eq("destino_centro_id", d!.destino_retorno).is("cancelado_em", null)
+        .gte("data_pedido", desde).order("data_pedido", { ascending: false }).limit(200);
+      if (error) throw error;
+      return (data ?? []) as Trs[];
+    },
+  });
+  const lista = trsQ.data ?? [];
+  return (
+    <Dialog open={!!d} onOpenChange={(v) => { if (!v) onFechar(); }}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Vincular transferência · {d?.numero}</DialogTitle>
+          <DialogDescription>Transferências para o centro do recebimento, últimos 90 dias.</DialogDescription>
+        </DialogHeader>
+        {!d?.destino_retorno ? (
+          <Alert><AlertDescription>Devolução sem centro de recebimento definido.</AlertDescription></Alert>
+        ) : trsQ.isLoading ? (
+          <div className="py-8 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></div>
+        ) : trsQ.error ? (
+          <Alert variant="destructive"><AlertDescription>{formatError(trsQ.error)}</AlertDescription></Alert>
+        ) : lista.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma transferência para este centro. Crie a TRS SC→SP no módulo de Transferências.</p>
+        ) : (
+          <div className="max-h-[50vh] overflow-auto rounded-md border">
+            <Table>
+              <TableHeader><TableRow>
+                <TableHead>Transferência</TableHead><TableHead>Data</TableHead>
+                <TableHead className="text-right">Peças</TableHead><TableHead>Estágio</TableHead>
+              </TableRow></TableHeader>
+              <TableBody>
+                {lista.map((t) => (
+                  <TableRow key={t.id} className={cn("cursor-pointer", sel === t.id && "bg-primary/10 hover:bg-primary/10")} onClick={() => setSel(t.id)}>
+                    <TableCell className="font-mono text-xs">{t.id_externo ?? "—"}</TableCell>
+                    <TableCell>{fmtDataHora(t.data_pedido)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatNum(t.qtd_total_pecas)}</TableCell>
+                    <TableCell>{t.estagio ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar}>Cancelar</Button>
+          <Button disabled={!sel || rodando}
+            onClick={() => d && sel && void run("vincular_transferencia_devolucao", { p_devolucao_id: d.id, p_transferencia_pedido_id: sel }, "Transferência vinculada.")}>
+            {rodando && <Loader2 className="h-4 w-4 animate-spin" />}Confirmar
           </Button>
         </DialogFooter>
       </DialogContent>
