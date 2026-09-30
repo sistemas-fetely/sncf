@@ -66,7 +66,7 @@ type Centro = {
   delta_real_fiscal: number | null; delta_virtual_real: number | null; shopify_diff: number | null; bling_diff: number | null;
   causas: Causa[] | null; tem_baixa_pendente: boolean | null; contagem_vencida: boolean | null;
   correcao: "notas_sem_baixa" | "ajustar_armazem" | "contagem" | "canais" | null; com_diferenca: boolean | null;
-  nf_pendente: number | null; nf_pendente_detalhe: string | null;
+  nf_pendente: number | null; nf_pendente_detalhe: string | null; vendas_dia: number | null; risco_ruptura: boolean | null;
 };
 
 type Cartao = "diferenca" | "furo" | "ruptura" | "perdida" | "semreal" | "canais" | "nfpend";
@@ -113,9 +113,11 @@ function DeltaRF({ v }: { v: number | null }) {
   const x = n0(v);
   return <span className={cn("tabular-nums font-medium", x === 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>{sinal(x)}</span>;
 }
-function DeltaVR({ v }: { v: number | null }) {
+function DeltaVR({ v, risco }: { v: number | null; risco: boolean }) {
   const x = n0(v);
   if (x === 0) return <span className="tabular-nums text-muted-foreground">0</span>;
+  if (x > 0 && !risco) return <Tooltip><TooltipTrigger asChild><span className="tabular-nums font-medium text-amber-600 dark:text-amber-400">{sinal(x)} excesso pequeno</span></TooltipTrigger>
+    <TooltipContent className="max-w-xs">O canal oferece mais do que existe livre, mas o estoque cobre o ritmo de venda.</TooltipContent></Tooltip>;
   return <Tooltip><TooltipTrigger asChild><span className={cn("tabular-nums font-medium", x > 0 ? "text-destructive" : "text-amber-600 dark:text-amber-400")}>{sinal(x)} {x > 0 ? "ruptura" : "venda perdida"}</span></TooltipTrigger>
     <TooltipContent className="max-w-xs">{x > 0 ? "Ruptura: o canal oferece mais do que existe livre no real." : "Venda perdida: existe estoque livre que o canal não está oferecendo."}</TooltipContent></Tooltip>;
 }
@@ -205,7 +207,7 @@ export default function ConciliacaoEstoque() {
   const testa: Record<Cartao, (p: Produto) => boolean> = {
     diferenca: p => !!p.com_diferenca,
     furo: p => linhasEscopo(p.sku).some(c => n0(c.delta_real_fiscal) !== 0),
-    ruptura: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) > 0),
+    ruptura: p => linhasEscopo(p.sku).some(c => c.risco_ruptura === true),
     perdida: p => linhasEscopo(p.sku).some(c => n0(c.delta_virtual_real) < 0),
     semreal: p => linhasEscopo(p.sku).some(c => c.fonte_real === "sem_contagem" && c.fiscal !== 0),
     canais: p => linhasEscopo(p.sku).some(c => n0(c.shopify_diff) !== 0 || n0(c.bling_diff) !== 0),
@@ -378,7 +380,7 @@ export default function ConciliacaoEstoque() {
                     : n0(p.real)}</TableCell>
                   <TableCell className="text-right tabular-nums">{n0(p.virtual)}</TableCell>
                   <TableCell className="text-right"><DeltaRF v={p.delta_real_fiscal} /></TableCell>
-                  <TableCell className="text-right"><DeltaVR v={p.delta_virtual_real} /></TableCell>
+                  <TableCell className="text-right"><DeltaVR v={p.delta_virtual_real} risco={linhasEscopo(p.sku).some(c => c.risco_ruptura === true)} /></TableCell>
                   <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">{(() => {
                     const det = centros.filter(c => c.nf_pendente_detalhe).map(c => `${c.centro_nome ?? c.centro}: ${c.nf_pendente_detalhe}`);
                     if (p.nf_pendente === null || p.nf_pendente === undefined) return "";
@@ -394,7 +396,7 @@ export default function ConciliacaoEstoque() {
                   <Table className="text-xs"><TableHeader><TableRow>
                     <TableHead>Centro</TableHead><TableHead>Fonte do real</TableHead>
                     <TableHead className="text-right">Fiscal</TableHead><TableHead className="text-right">Real</TableHead><TableHead className="text-right">Virtual</TableHead><TableHead className="text-right">Reservado</TableHead>
-                    <TableHead className="text-right">Δ Real−Fiscal</TableHead><TableHead className="text-right">Δ Virtual×Real</TableHead><TableHead className="text-right">NF pendente</TableHead><TableHead>Shopify/Bling Δ</TableHead>
+                    <TableHead className="text-right">Δ Real−Fiscal</TableHead><TableHead className="text-right">Δ Virtual×Real</TableHead><TableHead className="text-right">Venda/dia</TableHead><TableHead className="text-right">NF pendente</TableHead><TableHead>Shopify/Bling Δ</TableHead>
                     <TableHead>Causas</TableHead><TableHead>Correção</TableHead>
                   </TableRow></TableHeader><TableBody>
                     {centros.map(c => <TableRow key={c.centro}>
@@ -405,7 +407,8 @@ export default function ConciliacaoEstoque() {
                       <TableCell className="text-right tabular-nums">{c.virtual ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{n0(c.reservado)}</TableCell>
                       <TableCell className="text-right"><DeltaRF v={c.delta_real_fiscal} /></TableCell>
-                      <TableCell className="text-right"><DeltaVR v={c.delta_virtual_real} /></TableCell>
+                      <TableCell className="text-right"><DeltaVR v={c.delta_virtual_real} risco={c.risco_ruptura === true} /></TableCell>
+                      <TableCell className="text-right tabular-nums">{c.vendas_dia == null ? "—" : Number(c.vendas_dia).toFixed(1).replace(".", ",")}</TableCell>
                       <TableCell className="text-right tabular-nums text-amber-600 dark:text-amber-400">{c.nf_pendente !== null && c.nf_pendente !== undefined && <>{n0(c.nf_pendente) === 0 ? "0" : sinalNf(n0(c.nf_pendente))}{c.nf_pendente_detalhe && <div className="text-[10px] font-normal text-muted-foreground">{c.nf_pendente_detalhe}</div>}</>}</TableCell>
                       <TableCell className="tabular-nums">{[n0(c.shopify_diff) !== 0 && `Shopify ${sinal(c.shopify_diff)}`, n0(c.bling_diff) !== 0 && `Bling ${sinal(c.bling_diff)}`].filter(Boolean).join(" · ") || ""}</TableCell>
                       <TableCell><ul className="space-y-0.5">{(c.causas ?? []).map((x, i) => <li key={i}>{x.o_que_fazer
