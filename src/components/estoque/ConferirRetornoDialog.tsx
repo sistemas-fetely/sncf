@@ -20,6 +20,7 @@ import {
 import { Loader2, Plus, ScanBarcode, Split, Trash2 } from "lucide-react";
 import type { RetornoPendenteDevolucao } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { hojeISO } from "@/lib/data";
 
 /**
@@ -44,6 +45,32 @@ const COND_QUARENTENA = "quarentena";
 // Rótulo exibido ao conferente = estado físico (rotulo_conferencia); envio continua pelo codigo.
 function rotuloConferencia(c: Condicao): string {
   return c.rotulo_conferencia ?? c.rotulo;
+}
+
+interface ResumoCardProps {
+  label: string;
+  value: string | number;
+  tone?: "success" | "warning" | "destructive";
+  active?: boolean;
+}
+
+function ResumoCard({ label, value, tone, active = true }: ResumoCardProps) {
+  const toneClass = active && tone
+    ? {
+        success: "border-success/30 bg-success/10 text-success-strong",
+        warning: "border-warning/30 bg-warning/10 text-warning-strong",
+        destructive: "border-destructive/30 bg-destructive/10 text-destructive-strong",
+      }[tone]
+    : "bg-muted/30";
+
+  return (
+    <Card className={toneClass}>
+      <CardContent className="p-3">
+        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="mt-0.5 text-lg font-medium tabular-nums text-foreground">{value}</p>
+      </CardContent>
+    </Card>
+  );
 }
 
 function useCondicoesEntrada() {
@@ -358,6 +385,12 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
   }, [contados]);
   const totalUnid = contados.reduce((s, c) => s + c.qtd, 0);
   const totalSkus = new Set(contados.map((c) => c.sku)).size;
+  const totalNaoIntegro = contados
+    .filter((c) => c.condicao !== COND_QUARENTENA)
+    .reduce((s, c) => s + c.qtd, 0);
+  const totalFora = contados
+    .filter((c) => !itensPorSku.has(c.sku))
+    .reduce((s, c) => s + c.qtd, 0);
 
   // ---------- Confronto ----------
   const confronto = useMemo(() => {
@@ -381,11 +414,34 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     const envio: { sku: string; qtd: number; condicao: string }[] = [];
     const sobras: string[] = [];
     const fora: string[] = [];
+    let skusOk = 0;
+    let skusFaltou = 0;
+    let unidadesFaltantes = 0;
+    let skusSobrou = 0;
+    let unidadesSobra = 0;
+    let unidadesFora = 0;
+    let skusNaoVoltou = 0;
+    let pendenteTotal = 0;
     for (const l of linhas) {
       const partes = contados.filter((c) => c.sku === l.sku);
       if (!l.declarado) {
-        if (l.contado > 0) fora.push(`${l.sku} (${l.contado} un)`);
+        if (l.contado > 0) {
+          fora.push(`${l.sku} (${l.contado} un)`);
+          unidadesFora += l.contado;
+        }
         continue;
+      }
+      pendenteTotal += l.pendente;
+      if (l.contado === 0) {
+        skusNaoVoltou += 1;
+      } else if (l.contado === l.pendente) {
+        skusOk += 1;
+      } else if (l.contado < l.pendente) {
+        skusFaltou += 1;
+        unidadesFaltantes += l.pendente - l.contado;
+      } else {
+        skusSobrou += 1;
+        unidadesSobra += l.contado - l.pendente;
       }
       let excedente = Math.max(0, l.contado - l.pendente);
       if (excedente > 0) sobras.push(`sobrou ${excedente} un de ${l.sku}`);
@@ -406,7 +462,23 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     if (sobras.length) partesTxt.push(sobras.join("; "));
     if (fora.length) partesTxt.push(`fora da devolução: ${fora.join(", ")}`);
     const textoDiv = partesTxt.length ? `Divergências da conferência cega: ${partesTxt.join("; ")}` : "";
-    return { linhas, envio, textoDiv };
+    const unidadesEnvio = envio.reduce((s, r) => s + r.qtd, 0);
+    return {
+      linhas,
+      envio,
+      textoDiv,
+      resumo: {
+        skusOk,
+        skusFaltou,
+        unidadesFaltantes,
+        skusSobrou,
+        unidadesSobra,
+        unidadesFora,
+        skusNaoVoltou,
+        unidadesEnvio,
+        unidadesPendentesDepois: pendenteTotal - unidadesEnvio,
+      },
+    };
   }, [itensPorSku, contados, codPorSku]);
 
   async function registrar() {
@@ -568,6 +640,13 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               </p>
             </div>
 
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              <ResumoCard label="Unidades contadas" value={totalUnid} />
+              <ResumoCard label="SKUs" value={totalSkus} />
+              <ResumoCard label="Avaria / não conforme" value={totalNaoIntegro} tone="warning" active={totalNaoIntegro > 0} />
+              <ResumoCard label="Fora da devolução" value={totalFora} tone="destructive" active={totalFora > 0} />
+            </div>
+
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
@@ -705,9 +784,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
             </div>
 
             <DialogFooter>
-              <span className="mr-auto text-xs text-muted-foreground">
-                {totalSkus} SKU(s) · {totalUnid} unidade(s) contadas
-              </span>
               <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
               <Button onClick={() => setEtapa(2)} disabled={contados.length === 0 || filaPendente > 0}>
                 Finalizar contagem
@@ -716,6 +792,35 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
           </>
         ) : (
           <>
+            <div className="grid grid-cols-2 gap-2 lg:grid-cols-5">
+              <ResumoCard label="OK" value={confronto.resumo.skusOk} tone="success" active={confronto.resumo.skusOk > 0} />
+              <ResumoCard
+                label="Faltou"
+                value={`${confronto.resumo.skusFaltou} SKUs · ${confronto.resumo.unidadesFaltantes} un`}
+                tone="warning"
+                active={confronto.resumo.skusFaltou > 0}
+              />
+              <ResumoCard
+                label="Sobrou"
+                value={`${confronto.resumo.skusSobrou} SKUs · ${confronto.resumo.unidadesSobra} un`}
+                tone="destructive"
+                active={confronto.resumo.skusSobrou > 0}
+              />
+              <ResumoCard
+                label="Fora da devolução"
+                value={confronto.resumo.unidadesFora}
+                tone="destructive"
+                active={confronto.resumo.unidadesFora > 0}
+              />
+              <ResumoCard label="Não voltou" value={confronto.resumo.skusNaoVoltou} active={confronto.resumo.skusNaoVoltou > 0} />
+            </div>
+
+            <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm font-medium">
+              Vai registrar {confronto.resumo.unidadesEnvio} un · {confronto.resumo.unidadesPendentesDepois === 0
+                ? "devolução será encerrada"
+                : `ficam ${confronto.resumo.unidadesPendentesDepois} un pendentes`}
+            </p>
+
             <div className="rounded-md border max-h-[40vh] overflow-y-auto overflow-x-auto">
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
@@ -771,9 +876,6 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
             )}
 
             <DialogFooter>
-              <span className="mr-auto text-xs text-muted-foreground">
-                Enviar: {confronto.envio.reduce((s, r) => s + r.qtd, 0)} unidade(s)
-              </span>
               <Button variant="outline" onClick={() => setEtapa(1)} disabled={enviando}>
                 Voltar à contagem
               </Button>
