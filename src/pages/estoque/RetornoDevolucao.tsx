@@ -151,24 +151,7 @@ export default function RetornoDevolucao() {
       return (data ?? []) as { codigo: string; rotulo: string; eh_final: boolean }[];
     },
   });
-  const quarentenaQ = useQuery({
-    queryKey: QK_QUARENTENA,
-    queryFn: async () => {
-      const linhas: { sku: string; centro: string; devolucao_id: string | null; saldo: number; ultimo_mov: string | null }[] = [];
-      for (let de = 0; ; de += 1000) {
-        const { data, error } = await sb.from("vw_quarentena_fila")
-          .select("sku,centro,devolucao_id,devolucao_numero,nf_numero,cliente,produto,saldo,ultimo_mov")
-          .order("devolucao_numero", { nullsFirst: false }).order("sku").order("centro").range(de, de + 999);
-        if (error) throw error;
-        linhas.push(...(data ?? []).filter((linha: { sku?: string; centro?: string; saldo?: number }) => Boolean(linha.sku && linha.centro && Number(linha.saldo) !== 0)).map((linha: { sku: string; centro: string; devolucao_id: string | null; saldo: number; ultimo_mov: string | null }) => ({ ...linha, saldo: Number(linha.saldo) })));
-        if ((data ?? []).length < 1000) break;
-      }
-      const { data: origem, error: origemError } = await sb.from("estoque_condicao").select("exige_liberacao_para_venda").eq("codigo", "quarentena").eq("ativo", true).maybeSingle();
-      if (origemError) throw origemError;
-      if (!origem) throw new Error("Condição de estoque 'quarentena' não encontrada ou inativa.");
-      return { linhas, exigeDocumento: Boolean(origem.exige_liberacao_para_venda) };
-    },
-  });
+  const quarentenaQ = useQuery({ queryKey: QK_QUARENTENA, queryFn: buscarQuarentenaFila });
   const statusMap = useMemo(() => new Map((statusQ.data ?? []).map((s) => [s.codigo, s])), [statusQ.data]);
   // Aberta = status com eh_final=false na dimensão (inclui retorno_concluido).
   const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
