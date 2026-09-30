@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
-import { QuarentenaEstoquePainel } from "@/components/estoque/QuarentenaEstoquePainel";
+import { QuarentenaEstoquePainel, buscarQuarentenaFila } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronRight, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
