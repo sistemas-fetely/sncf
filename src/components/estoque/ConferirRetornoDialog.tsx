@@ -407,7 +407,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
     if (fora.length) partesTxt.push(`fora da devolução: ${fora.join(", ")}`);
     const textoDiv = partesTxt.length ? `Divergências da conferência cega: ${partesTxt.join("; ")}` : "";
     return { linhas, envio, textoDiv };
-  }, [itensPorSku, contados]);
+  }, [itensPorSku, contados, codPorSku]);
 
   async function registrar() {
     if (!devolucao || confronto.envio.length === 0) return;
