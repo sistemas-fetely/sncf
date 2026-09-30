@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RegularizacaoStepper } from "@/components/regularizacao/RegularizacaoStepper";
 import { RegularizacaoStatus } from "@/components/regularizacao/RegularizacaoStatus";
 import { RetornosRegularizacao } from "@/components/regularizacao/RetornosRegularizacao";
+import { CancelarLoteDialog } from "@/components/regularizacao/CancelarLoteDialog";
 import { useGerarRascunhos } from "@/components/regularizacao/useGerarRascunhos";
 import type { RegularizacaoItem, RegularizacaoLote, RegularizacaoRetorno, RegularizacaoRetornoItem } from "@/components/regularizacao/types";
 
