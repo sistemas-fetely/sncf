@@ -9,12 +9,13 @@ export interface RegularizacaoLote {
 
 export interface RegularizacaoItem {
   id: string; lote_id: string; sku: string; quantidade: number; quantidade_coberta: number;
-  nome_comercial?: string | null;
+  cod_cadastro?: string | null; nome_comercial?: string | null;
 }
 
 export interface RegularizacaoRetornoItem {
   id: string; retorno_nf_id: string; sku: string; descricao_origem: string | null; ncm: string | null;
   unidade: string | null; quantidade: number; valor_unit_origem: number;
+  cod_cadastro?: string | null; nome_comercial?: string | null;
 }
 
 export interface RegularizacaoRetorno {
