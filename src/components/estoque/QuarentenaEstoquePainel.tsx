@@ -18,9 +18,10 @@ interface LinhaQuarentena {
   ultimo_mov: string | null;
 }
 
-// Códigos reais de estoque_condicao (conferidos no banco): 'sadio' ativo; avaria ativa é 'avarias'.
+// Códigos reais de estoque_condicao (conferidos no banco): 'sadio' e 'nao_conforme' ativos; avaria ativa é 'avarias'.
 const PARA_SADIO = "sadio";
 const PARA_AVARIA = "avarias";
+const PARA_NAO_CONFORME = "nao_conforme";
 
 async function carregar(): Promise<{ linhas: LinhaQuarentena[]; nomes: Map<string, string> }> {
   const linhas: LinhaQuarentena[] = [];
@@ -100,7 +101,7 @@ export function QuarentenaEstoquePainel() {
       await qc.invalidateQueries({
         predicate: (x) => typeof x.queryKey[0] === "string" && (x.queryKey[0] as string).startsWith("vw_estoque"),
       });
-      toast.success(alvo.para === PARA_SADIO ? "Liberado para venda" : "Marcado como avaria");
+      toast.success(alvo.para === PARA_SADIO ? "Liberado para venda" : alvo.para === PARA_NAO_CONFORME ? "Marcado como não conforme" : "Marcado como avaria");
       setAlvo(null);
     } catch (e) {
       toast.error(formatError(e));
@@ -156,6 +157,7 @@ export function QuarentenaEstoquePainel() {
                   <TableCell className="text-right space-x-2 whitespace-nowrap">
                     <Button size="sm" variant="outline" onClick={() => abrir(l, PARA_SADIO)}>Liberar p/ venda</Button>
                     <Button size="sm" variant="outline" className="text-destructive" onClick={() => abrir(l, PARA_AVARIA)}>Marcar avaria</Button>
+                    <Button size="sm" variant="outline" onClick={() => abrir(l, PARA_NAO_CONFORME)}>Não conforme</Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -167,7 +169,7 @@ export function QuarentenaEstoquePainel() {
       <Dialog open={!!alvo} onOpenChange={(v) => { if (!v && !salvando) setAlvo(null); }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{alvo?.para === PARA_SADIO ? "Liberar para venda" : "Marcar avaria"}</DialogTitle>
+            <DialogTitle>{alvo?.para === PARA_SADIO ? "Liberar para venda" : alvo?.para === PARA_NAO_CONFORME ? "Marcar não conforme" : "Marcar avaria"}</DialogTitle>
             <DialogDescription>
               {alvo?.linha.sku} · {alvo?.linha.centro} · saldo em quarentena {alvo ? fmt(Number(alvo.linha.fiscal)) : ""}
             </DialogDescription>
