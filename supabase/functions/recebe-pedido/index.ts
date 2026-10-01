@@ -387,6 +387,8 @@ if (body.tipo === "dimensoes_produto") {
         "preco_atacado", "preco_varejo", "peso_g", "multiplos", "ativo",
         "altura_cm", "largura_cm", "profundidade_cm",
         "canal_venda", "familia", "qtd_kit",
+        "meta_descricao", "tamanho_ref", "sub_colecao", "sub_colecao2",
+        "descricao_colecao", "numero_vela", "is_vela_numerica",
       ]);
       const desconhecidos = new Set<string>();
       for (const p of body.produtos) {
