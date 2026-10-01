@@ -801,21 +801,22 @@ export default function ChegadaMercadoriaDetalhe() {
             {/* ---------------- LINHAS ---------------- */}
             <TabsContent value="linhas" className="mt-4 space-y-4">
               <ParaQueServe>
-                O que foi pedido ao fornecedor: SKU, quantidade e custo combinado.
+                O que foi pedido e o que veio nas NFs, por produto: quantidade e custo acordado ×
+                realizado.
               </ParaQueServe>
               <Card>
                 <CardContent className="pt-6">
-                  {linhasQ.isLoading ? (
+                  {custosQ.isLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> Carregando linhas...
                     </div>
-                  ) : linhasQ.isError ? (
+                  ) : custosQ.isError ? (
                     <ErroBloco
                       titulo="Falha ao carregar as linhas do pedido."
-                      erro={linhasQ.error}
-                      onRetry={() => linhasQ.refetch()}
+                      erro={custosQ.error}
+                      onRetry={() => custosQ.refetch()}
                     />
-                  ) : (linhasQ.data ?? []).length === 0 ? (
+                  ) : (custosQ.data ?? []).length === 0 ? (
                     <div className="text-sm text-muted-foreground">
                       Este pedido não tem linhas gravadas.
                     </div>
@@ -824,52 +825,148 @@ export default function ChegadaMercadoriaDetalhe() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Descrição</TableHead>
-                            <TableHead className="text-right">Kits</TableHead>
-                            <TableHead className="text-right">Unidades</TableHead>
-                            <TableHead className="text-right">Cx. master</TableHead>
-                            <TableHead className="text-right">Cx. inner</TableHead>
-                            <TableHead className="text-right">Custo unit.</TableHead>
-                            <TableHead className="text-right">Custo total</TableHead>
+                            <TableHead>Cód. cadastro</TableHead>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Cód. fornecedor</TableHead>
+                            {exigeEmbarque && <TableHead className="text-right">Kits</TableHead>}
+                            {exigeEmbarque && (
+                              <TableHead className="text-right">Cx. master</TableHead>
+                            )}
+                            {exigeEmbarque && (
+                              <TableHead className="text-right">Cx. inner</TableHead>
+                            )}
+                            <TableHead className="text-right">Qtd pedida</TableHead>
+                            <TableHead className="text-right">Qtd faturada</TableHead>
+                            <TableHead className="text-right">
+                              {moeda !== "BRL" ? `Custo acordado (${moeda})` : "Custo acordado"}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Último custo (NF){moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Custo médio (NF){moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Total NFs{moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {linhasQ.data!.map((l) => (
-                            <TableRow key={l.id}>
-                              <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                              <TableCell className="max-w-[320px] truncate">
-                                {l.descricao_original ?? "—"}
-                              </TableCell>
-                              <TableCell className="text-right">{fmtNum(l.qtd_kits)}</TableCell>
-                              <TableCell className="text-right">{fmtNum(l.qtd_unitaria)}</TableCell>
-                              <TableCell className="text-right">
-                                {fmtNum(l.total_caixas_master)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtNum(l.total_caixas_inner)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtMoeda(l.custo_unitario, moeda)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtMoeda(l.custo_total, moeda)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {custosQ.data!.map((r) => {
+                            const pedida = Number(r.qtd_pedida ?? 0);
+                            const faturada = Number(r.qtd_faturada ?? 0);
+                            const acimaPedido = faturada > pedida;
+                            const nfCara =
+                              moeda === "BRL" &&
+                              r.ultimo_custo_nf != null &&
+                              r.custo_acordado != null &&
+                              Number(r.ultimo_custo_nf) > Number(r.custo_acordado);
+                            const semNf = Number(r.nfs ?? 0) === 0;
+                            return (
+                              <TableRow key={r.linha_id}>
+                                <TableCell>
+                                  {r.cod_cadastro ? (
+                                    <>
+                                      <div className="font-mono text-xs">{r.cod_cadastro}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {r.sku ?? "—"}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="font-mono text-xs">{r.sku ?? "—"}</span>
+                                  )}
+                                </TableCell>
+                                <TableCell
+                                  className="max-w-[320px] truncate"
+                                  title={r.produto ?? undefined}
+                                >
+                                  {r.produto ?? "—"}
+                                </TableCell>
+                                <TableCell className="font-mono text-xs">
+                                  {r.codigo_fornecedor ?? "—"}
+                                </TableCell>
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_kits)}
+                                  </TableCell>
+                                )}
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.total_caixas_master)}
+                                  </TableCell>
+                                )}
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.total_caixas_inner)}
+                                  </TableCell>
+                                )}
+                                <TableCell className="text-right">
+                                  {fmtNum(r.qtd_pedida)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right ${
+                                    acimaPedido
+                                      ? "text-warning"
+                                      : faturada === 0
+                                        ? "text-muted-foreground"
+                                        : ""
+                                  }`}
+                                  title={
+                                    acimaPedido
+                                      ? `+${fmtNum(faturada - pedida)} além do pedido`
+                                      : undefined
+                                  }
+                                >
+                                  {fmtNum(r.qtd_faturada)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {r.custo_acordado == null
+                                    ? "—"
+                                    : fmtMoeda(r.custo_acordado, moeda)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right ${nfCara ? "text-warning" : ""}`}
+                                  title="Preço unitário da NF mais recente deste pedido"
+                                >
+                                  {semNf || r.ultimo_custo_nf == null
+                                    ? "—"
+                                    : fmtMoeda(r.ultimo_custo_nf, "BRL")}
+                                </TableCell>
+                                <TableCell
+                                  className="text-right"
+                                  title="Média ponderada pela quantidade de todas as NFs deste pedido"
+                                >
+                                  {semNf || r.custo_medio_nf == null
+                                    ? "—"
+                                    : fmtMoeda(r.custo_medio_nf, "BRL")}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {semNf || r.total_nfs == null
+                                    ? "—"
+                                    : fmtMoeda(r.total_nfs, "BRL")}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                         <TableFooter>
                           <TableRow>
-                            <TableCell colSpan={2}>Totais</TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.kits)}</TableCell>
+                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>Total</TableCell>
                             <TableCell className="text-right">
-                              {fmtNum(totaisLinhas.unidades)}
+                              {fmtNum(totaisCustos.qtdPedida)}
                             </TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.master)}</TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.inner)}</TableCell>
+                            <TableCell className="text-right">
+                              {fmtNum(totaisCustos.qtdFaturada)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {fmtMoeda(totaisCustos.acordado, moeda)}
+                            </TableCell>
+                            <TableCell />
                             <TableCell />
                             <TableCell className="text-right">
-                              {fmtMoeda(totaisLinhas.custo, moeda)}
+                              {totaisCustos.totalNfs == null
+                                ? "—"
+                                : fmtMoeda(totaisCustos.totalNfs, "BRL")}
                             </TableCell>
                           </TableRow>
                         </TableFooter>
