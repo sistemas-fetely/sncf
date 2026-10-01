@@ -47,9 +47,9 @@ export default function PainelTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
+      <ParaQueServe>
         O que está vindo, quando e em que pé. Clique numa linha para ver o detalhe.
-      </p>
+      </ParaQueServe>
 
       {q.isError ? (
         <p className="text-sm text-destructive">

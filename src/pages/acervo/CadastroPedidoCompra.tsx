@@ -1159,13 +1159,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Novo pedido de mercadoria</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Para mercadoria de revenda. Insumo e serviço vão em{" "}
-            <Link to="/compras" className="underline underline-offset-2">
-              Compras
-            </Link>
-            .
-          </p>
+          <ParaQueServe>
+            Cadastra um pedido de mercadoria de revenda (cabeçalho e linhas). Use quando o pedido
+            foi colocado no fornecedor. Depois: ligue o embarque no Painel e lance a NF no detalhe
+            do pedido. Insumo e serviço vão em{" "}
+            <Link to="/compras">Compras</Link>.
+          </ParaQueServe>
         </CardHeader>
 
         <CardContent className="space-y-6">

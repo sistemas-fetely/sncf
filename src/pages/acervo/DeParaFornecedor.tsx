@@ -320,9 +320,10 @@ export default function DeParaFornecedor() {
   return (
     <PageShell>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Casamento entre o código que o fornecedor manda na nota e o nosso SKU
-        </p>
+        <ParaQueServe>
+          Ensina ao sistema qual SKU nosso corresponde a cada código que o fornecedor manda na
+          nota. Sem de-para, a linha da NF não vira estoque nem custo.
+        </ParaQueServe>
         <Button
           onClick={() => abrirCriar()}
           style={{ backgroundColor: "#1A4A3A", color: "white" }}

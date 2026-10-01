@@ -832,14 +832,20 @@ export default function RateioNfTab() {
   const [nf, setNf] = useState<NfPendencia | null>(null);
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        {nf ? (
-          <WorklistNf nf={nf} aoVoltar={() => setNf(null)} />
-        ) : (
-          <ListaNfs aoAbrir={setNf} />
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-4">
+      <ParaQueServe>
+        Distribui o valor de cada linha da NF nos nossos SKUs — é o custo de aterrissagem. Abra a
+        NF, confirme o de-para e aloque. Sem rateio, o estoque entra sem custo.
+      </ParaQueServe>
+      <Card>
+        <CardContent className="pt-6">
+          {nf ? (
+            <WorklistNf nf={nf} aoVoltar={() => setNf(null)} />
+          ) : (
+            <ListaNfs aoAbrir={setNf} />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
