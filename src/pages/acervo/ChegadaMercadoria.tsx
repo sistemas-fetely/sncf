@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CadastroPedidoCompra from "@/pages/acervo/CadastroPedidoCompra";
 import DeParaFornecedor from "@/pages/acervo/DeParaFornecedor";
 import RateioNfTab from "@/components/compras/RateioNfTab";
-import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 import PainelTab from "@/components/compras/PainelTab";
 import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
@@ -16,35 +15,41 @@ import { PageHeader } from "@/components/layout/PageHeader";
 interface AbaMercadoria {
   value: string;
   label: string;
+  grupo: "gestao" | "ferramenta";
   render: () => JSX.Element;
 }
 
 // Container de abas para o domínio "Compra de Mercadoria" (importacao_pedido).
 // Abas novas podem ser acrescentadas apenas estendendo o array ABAS.
 const ABAS: AbaMercadoria[] = [
-  { value: "painel", label: "Painel", render: () => <PainelTab /> },
-  { value: "pendencias", label: "Pendências", render: () => <PendenciasTab /> },
-  { value: "recebimento-loja", label: "Recebimento na loja", render: () => <RecebimentoCentroTab /> },
-  { value: "novo", label: "Novo pedido", render: () => <CadastroPedidoCompra vista="novo" /> },
-  { value: "de-para", label: "De-para de fornecedor", render: () => <DeParaFornecedor /> },
-  { value: "rateio-nf", label: "Rateio de NF", render: () => <RateioNfTab /> },
-  { value: "importar-pi", label: "Importar PI", render: () => <ImportarPiPedidoTab /> },
+  { value: "painel", label: "Painel", grupo: "gestao", render: () => <PainelTab /> },
+  { value: "pendencias", label: "Pendências", grupo: "gestao", render: () => <PendenciasTab /> },
+  { value: "novo", label: "Novo pedido", grupo: "ferramenta", render: () => <CadastroPedidoCompra vista="novo" /> },
+  { value: "importar-pi", label: "Importar PI", grupo: "ferramenta", render: () => <ImportarPiPedidoTab /> },
+  { value: "de-para", label: "De-para de fornecedor", grupo: "ferramenta", render: () => <DeParaFornecedor /> },
+  { value: "rateio-nf", label: "Rateio de NF", grupo: "ferramenta", render: () => <RateioNfTab /> },
 ];
 
-
+const gestao = ABAS.filter((a) => a.grupo === "gestao");
+const ferramenta = ABAS.filter((a) => a.grupo === "ferramenta");
 
 export default function ChegadaMercadoria() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  // Compatibilidade com links antigos: embarques/acompanhamento viraram visões do Painel.
+  // Compatibilidade com links antigos: embarques/acompanhamento viraram visões
+  // do Painel; recebimento-loja mora agora em Transferências Internas.
   useEffect(() => {
     const v = params.get("aba");
+    if (v === "recebimento-loja") {
+      navigate("/pedidos/transferencias?aba=receber", { replace: true });
+      return;
+    }
     if (v !== "embarques" && v !== "acompanhamento") return;
     const next = new URLSearchParams(params);
     next.set("aba", "painel");
     next.set("visao", v === "embarques" ? "embarque" : "pedido");
     setParams(next, { replace: true });
-  }, [params, setParams]);
+  }, [params, setParams, navigate]);
   const abaAtual = useMemo(() => {
     const v = params.get("aba");
     return ABAS.some((a) => a.value === v) ? (v as string) : ABAS[0].value;
@@ -67,7 +72,13 @@ export default function ChegadaMercadoria() {
 
       <Tabs value={abaAtual} onValueChange={onChange}>
         <TabsList>
-          {ABAS.map((a) => (
+          {gestao.map((a) => (
+            <TabsTrigger key={a.value} value={a.value}>
+              {a.label}
+            </TabsTrigger>
+          ))}
+          <span aria-hidden className="mx-2 h-5 w-px bg-border self-center" />
+          {ferramenta.map((a) => (
             <TabsTrigger key={a.value} value={a.value}>
               {a.label}
             </TabsTrigger>

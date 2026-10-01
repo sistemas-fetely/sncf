@@ -53,6 +53,7 @@ import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
+import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 
 interface CentroDestino {
   codigo: string;
@@ -311,7 +312,13 @@ export default function TransferenciasInternas() {
   const navigate = useNavigate();
   const permRetorno = usePermissoesTela("tela.regularizacao_estoque");
   const [abaUrl, setAba] = useAbaUrl("transferencias");
-  const aba = abaUrl === "retorno" && permRetorno.podeVer ? "retorno" : "transferencias";
+  // Aba válida: "receber" sempre; "retorno" só com permissão; qualquer outra → "transferencias".
+  const aba =
+    abaUrl === "receber"
+      ? "receber"
+      : abaUrl === "retorno" && permRetorno.podeVer
+        ? "retorno"
+        : "transferencias";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -583,17 +590,21 @@ export default function TransferenciasInternas() {
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
-        {permRetorno.podeVer && (
-          <TabsList>
-            <TabsTrigger value="transferencias">Transferências</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="transferencias">Transferências</TabsTrigger>
+          <TabsTrigger value="receber">Receber no destino</TabsTrigger>
+          {permRetorno.podeVer && (
             <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
-          </TabsList>
-        )}
+          )}
+        </TabsList>
         {permRetorno.podeVer && (
           <TabsContent value="retorno">
             <ListaLotesRetorno />
           </TabsContent>
         )}
+        <TabsContent value="receber">
+          <RecebimentoCentroTab />
+        </TabsContent>
         <TabsContent value="transferencias" className="space-y-6">
 
       <Card>
@@ -1132,12 +1143,16 @@ export default function TransferenciasInternas() {
                           }
                           if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
                             return (
-                              <Link
-                                to="/vendas/produto/chegada-mercadoria?aba=recebimento-loja"
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAba("receber");
+                                  window.scrollTo({ top: 0 });
+                                }}
                                 className="text-xs text-primary underline-offset-2 hover:underline"
                               >
-                                Receber na Chegada de Mercadoria
-                              </Link>
+                                Receber no destino
+                              </button>
                             );
                           }
                           return <span className="text-sm text-muted-foreground">—</span>;
