@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -76,6 +76,12 @@ export default function RecebimentoXpm() {
     }
   }, [centrosQ.data, centro]);
 
+  // Pré-seleção vinda de ?pedido_ref=… (uma única vez; não sobrescreve escolha manual).
+  const [searchParams] = useSearchParams();
+  const pedidoRefUrl = searchParams.get("pedido_ref");
+  const preSelecionou = useRef(false);
+
+
   type PedidoOpt = {
     numero_pedido: string;
     pedido_ref: string;
@@ -114,6 +120,12 @@ export default function RecebimentoXpm() {
       return opts.sort((a, b) => b.numero_pedido.localeCompare(a.numero_pedido));
     },
   });
+
+  useEffect(() => {
+    if (preSelecionou.current || !pedidoRefUrl || !pedidosQ.data) return;
+    preSelecionou.current = true;
+    if (pedidosQ.data.some((p) => p.pedido_ref === pedidoRefUrl)) setPedidoRef(pedidoRefUrl);
+  }, [pedidosQ.data, pedidoRefUrl]);
 
   async function handleGerar() {
     if (!pedidoRef) {

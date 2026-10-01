@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CardIndicador } from "@/components/ui/card-indicador";
@@ -54,6 +54,145 @@ function CelulaFalta({ valor }: { valor: string | number | null | undefined }) {
   return <span>{valor}</span>;
 }
 
+interface NfSemEntrada {
+  pedido_id: number | null;
+  numero_pedido: string | null;
+  pedido_ref_xpm: string | null;
+  nf_numero: string | null;
+  nf_serie: string | null;
+  data_emissao: string | null;
+  fornecedor: string | null;
+  valor: number | null;
+  centro_sugerido: string | null;
+  centro_pela_nf: boolean | null;
+  embarque_ref: string | null;
+  data_chegada: string | null;
+  dias_parada: number | null;
+  rota_recebimento: string | null;
+}
+
+const fmtD = (d: string | null) => {
+  if (!d) return "—";
+  const [y, m, dd] = d.slice(0, 10).split("-");
+  return `${dd}/${m}/${y}`;
+};
+
+function NfsSemEntrada({
+  pedidoFiltro,
+  seletorPedido,
+}: {
+  pedidoFiltro: string;
+  seletorPedido: JSX.Element;
+}) {
+  const navigate = useNavigate();
+  const [busca, setBusca] = useState("");
+  const q = useQuery({
+    queryKey: ["vw_compras_nf_sem_entrada"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_compras_nf_sem_entrada")
+        .select("*")
+        .order("dias_parada", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as NfSemEntrada[];
+    },
+  });
+  const linhas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return (q.data ?? [])
+      .filter((r) => pedidoFiltro === "todos" || String(r.pedido_id) === pedidoFiltro)
+      .filter(
+        (r) =>
+          !termo ||
+          (r.numero_pedido ?? "").toLowerCase().includes(termo) ||
+          (r.nf_numero ?? "").toLowerCase().includes(termo),
+      )
+      .sort((a, b) => Number(b.dias_parada ?? 0) - Number(a.dias_parada ?? 0));
+  }, [q.data, pedidoFiltro, busca]);
+
+  const receber = (r: NfSemEntrada) => {
+    if (r.rota_recebimento) {
+      navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
+    } else {
+      navigate(`/vendas/produto/chegada-mercadoria/${r.pedido_id}`);
+    }
+  };
+
+  return (
+    <TabelaFetely
+      busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar pedido ou NF…" }}
+      filtros={seletorPedido}
+      carregando={q.isLoading}
+      erro={q.error ? (q.error as Error).message : null}
+      aoTentarNovamente={() => void q.refetch()}
+      vazio={{ mensagem: "Nenhuma NF parada. Toda NF de compra lançada já teve entrada no estoque." }}
+      semResultado="Nenhuma NF para esse filtro."
+      total={q.data?.length ?? 0}
+      exibidos={linhas.length}
+      rotulo="NFs"
+    >
+      <div className="overflow-x-auto rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Pedido</TableHead>
+              <TableHead>NF</TableHead>
+              <TableHead>Emissão</TableHead>
+              <TableHead>Fornecedor</TableHead>
+              <TableHead className="text-right">Valor</TableHead>
+              <TableHead>Centro</TableHead>
+              <TableHead>Embarque</TableHead>
+              <TableHead>Chegada</TableHead>
+              <TableHead>Parada</TableHead>
+              <TableHead className="w-32" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {linhas.map((r, i) => (
+              <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`}>
+                <TableCell className="font-medium">{r.numero_pedido ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {r.nf_numero ?? "—"}
+                  {r.nf_serie ? `/${r.nf_serie}` : ""}
+                </TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums">{fmtD(r.data_emissao)}</TableCell>
+                <TableCell className="max-w-[200px] truncate">{r.fornecedor ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums whitespace-nowrap">
+                  {r.valor == null
+                    ? "—"
+                    : Number(r.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                </TableCell>
+                <TableCell>
+                  <div>{r.centro_sugerido ?? "—"}</div>
+                  {r.centro_sugerido && (
+                    <div className="text-[11px] text-muted-foreground">
+                      {r.centro_pela_nf ? "pela NF" : "do pedido"}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell>{r.embarque_ref ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums">{fmtD(r.data_chegada)}</TableCell>
+                <TableCell
+                  className={cn("whitespace-nowrap tabular-nums", Number(r.dias_parada ?? 0) > 7 && "text-warning-strong")}
+                >
+                  {r.dias_parada ?? 0} dias
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button variant="outline" size="sm" onClick={() => receber(r)}>
+                    Receber
+                    <ArrowRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </TabelaFetely>
+  );
+}
+
 export default function PendenciasTab() {
   const [params, setParams] = useSearchParams();
 
@@ -104,6 +243,7 @@ export default function PendenciasTab() {
       codigos_sem_sku: 0,
       nf_linhas_sem_custo: 0,
       ficha_xpm_incompleta: 0,
+      nfs_sem_entrada: 0,
     };
     pendencias.forEach((p) => {
       TIPOS_PENDENCIA.forEach((t) => {
@@ -187,8 +327,11 @@ export default function PendenciasTab() {
 
   return (
     <div className="space-y-4">
+      <p className="text-xs text-muted-foreground">
+        O que falta para a mercadoria entrar certo no estoque. Escolha o tipo de trabalho e resolva.
+      </p>
       {/* Tipo de trabalho é a dimensão principal. */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {TIPOS_PENDENCIA.map((t) => {
           const ativo = t.tipo === tipo;
           const n = totais[t.tipo];
@@ -216,7 +359,9 @@ export default function PendenciasTab() {
       </div>
 
 
-      {tipo === "ficha_xpm_incompleta" ? (
+      {tipo === "nfs_sem_entrada" ? (
+        <NfsSemEntrada pedidoFiltro={pedidoFiltro} seletorPedido={seletorPedido} />
+      ) : tipo === "ficha_xpm_incompleta" ? (
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar código, descrição, pedido…" }}
           filtros={seletorPedido}

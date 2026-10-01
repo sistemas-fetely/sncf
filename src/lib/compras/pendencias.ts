@@ -13,9 +13,10 @@ export interface PendenciaPedido {
   rateios: number | null;
   movimentos: number | null;
   termos: number | null;
+  nfs_sem_entrada: number | null;
 }
 
-export type TipoPendencia = "codigos_sem_sku" | "nf_linhas_sem_custo" | "ficha_xpm_incompleta";
+export type TipoPendencia = "codigos_sem_sku" | "nf_linhas_sem_custo" | "ficha_xpm_incompleta" | "nfs_sem_entrada";
 
 export interface TipoPendenciaMeta {
   tipo: TipoPendencia;
@@ -43,6 +44,12 @@ export const TIPOS_PENDENCIA: TipoPendenciaMeta[] = [
     rotuloCurto: "Ficha XPM",
     descricao: "Item sem NCM, peso ou código de barras para declarar no XPM.",
   },
+  {
+    tipo: "nfs_sem_entrada",
+    rotulo: "Chegou e não entrou",
+    rotuloCurto: "Sem entrada",
+    descricao: "NF de compra lançada sem nenhuma entrada no estoque. Falta receber (termo XPM ou recebimento no centro).",
+  },
 ];
 
 export function totalPendencia(p: PendenciaPedido, tipo: TipoPendencia): number {
@@ -50,4 +57,4 @@ export function totalPendencia(p: PendenciaPedido, tipo: TipoPendencia): number 
 }
 
 export const SELECT_PENDENCIAS =
-  "pedido_id, numero_pedido, codigos_sem_sku, nf_linhas_sem_custo, ficha_xpm_incompleta, skus_sem_peso, nfs_ligadas, rateios, movimentos, termos";
+  "pedido_id, numero_pedido, codigos_sem_sku, nf_linhas_sem_custo, ficha_xpm_incompleta, skus_sem_peso, nfs_ligadas, rateios, movimentos, termos, nfs_sem_entrada";
