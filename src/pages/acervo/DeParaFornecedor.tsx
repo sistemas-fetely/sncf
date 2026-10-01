@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -320,9 +321,10 @@ export default function DeParaFornecedor() {
   return (
     <PageShell>
       <div className="flex items-start justify-between gap-3">
-        <p className="text-sm text-muted-foreground">
-          Casamento entre o código que o fornecedor manda na nota e o nosso SKU
-        </p>
+        <ParaQueServe>
+          Ensina ao sistema qual SKU nosso corresponde a cada código que o fornecedor manda na
+          nota. Sem de-para, a linha da NF não vira estoque nem custo.
+        </ParaQueServe>
         <Button
           onClick={() => abrirCriar()}
           style={{ backgroundColor: "#1A4A3A", color: "white" }}

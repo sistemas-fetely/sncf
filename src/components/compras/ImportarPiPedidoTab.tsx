@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -652,14 +653,15 @@ export default function ImportarPiPedidoTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Esta aba <strong>não cria produto</strong>. Ela cria linha de pedido de importação.
-        Produto novo nasce em{" "}
-        <Link className="underline" to="/vendas/produto/importar-pi">
-          /vendas/produto/importar-pi
+      <ParaQueServe>
+        Sobe a proforma (PI) do fornecedor e cria as linhas de um pedido já existente — lê o
+        arquivo, você confirma as colunas e confere antes de gravar. Não cria produto: produto novo
+        nasce na{" "}
+        <Link to="/vendas/produto/importar-pi" className="underline">
+          Importação de PI do cadastro de produto
         </Link>
         .
-      </p>
+      </ParaQueServe>
 
       {sinonimosQuery.isError && (
         <Alert variant="destructive">

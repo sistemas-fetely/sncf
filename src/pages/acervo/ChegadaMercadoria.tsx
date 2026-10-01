@@ -25,7 +25,7 @@ const ABAS: AbaMercadoria[] = [
   { value: "painel", label: "Painel", grupo: "gestao", render: () => <PainelTab /> },
   { value: "pendencias", label: "Pendências", grupo: "gestao", render: () => <PendenciasTab /> },
   { value: "novo", label: "Novo pedido", grupo: "ferramenta", render: () => <CadastroPedidoCompra vista="novo" /> },
-  { value: "importar-pi", label: "Importar PI", grupo: "ferramenta", render: () => <ImportarPiPedidoTab /> },
+  { value: "importar-pi", label: "Importar linhas da PI", grupo: "ferramenta", render: () => <ImportarPiPedidoTab /> },
   { value: "de-para", label: "De-para de fornecedor", grupo: "ferramenta", render: () => <DeParaFornecedor /> },
   { value: "rateio-nf", label: "Rateio de NF", grupo: "ferramenta", render: () => <RateioNfTab /> },
 ];

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -327,9 +328,9 @@ export default function PendenciasTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
+      <ParaQueServe>
         O que falta para a mercadoria entrar certo no estoque. Escolha o tipo de trabalho e resolva.
-      </p>
+      </ParaQueServe>
       {/* Tipo de trabalho é a dimensão principal. */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {TIPOS_PENDENCIA.map((t) => {
