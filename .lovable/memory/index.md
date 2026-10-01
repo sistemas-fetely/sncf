@@ -1,11 +1,16 @@
 # Project Memory
 
 ## Core
-HR management system for Brazilian companies (CLT + PJ). Portuguese UI. Corporate blue theme.
-All monetary values in BRL (R$). Brazilian labor law compliance (CLT, Lei 13.467/2017).
+SNCF — sistema interno da Fetély (marca de celebração e lifestyle). Cobre pessoas (CLT + PJ),
+financeiro, compras, logística, comercial e estoque. Interface em português do Brasil.
+Tema: cream, ouro mostarda e marrom escuro — NÃO é azul corporativo.
+Valores monetários em BRL (R$). Conformidade com a CLT (Lei 13.467/2017) na parte de pessoas.
+
+## Regra de interface
+Antes de criar ou alterar tela, leia `docs/sistema-visual.md` — cor, tipografia, espaçamento, componentes existentes e as regras §3 a §14. Valores dos tokens: `src/index.css` (fonte da verdade).
 
 ## Memories
-- [Design system](mem://design/tokens) — Corporate blue palette, success/warning/info semantic colors
+- [Design system](mem://design/tokens) — Paleta Fetély: cream, ouro mostarda e marrom escuro; status com variante `-strong` para texto
 - [Permissions](mem://features/permissions) — Role-based permission system with 17 modules, CRUD + special actions
 - [Admin RH role](mem://features/admin-rh-role) — admin_rh role with gestor_direto auto-management trigger
 - [Grupos de acesso](mem://features/grupos-acesso) — Access groups that auto-assign roles on portal activation

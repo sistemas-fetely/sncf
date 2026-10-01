@@ -461,10 +461,12 @@ export function ImportadorNFs({ onImported }: Props) {
       if (result.sucesso + result.enriquecidas > 0) {
         setPreview([]);
         qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+        qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
       }
 
       if (result.boletosCriados > 0) {
         qc.invalidateQueries({ queryKey: ["contas-pagar"] });
+        qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
       }
 
       onImported?.(result);
