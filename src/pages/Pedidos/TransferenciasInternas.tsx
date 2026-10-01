@@ -53,7 +53,7 @@ import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
-import { RecebimentoCentroTab } from "@/components/compras/RecebimentoCentroTab";
+import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 
 interface CentroDestino {
   codigo: string;
