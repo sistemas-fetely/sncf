@@ -443,6 +443,12 @@ export default function RecebimentoXpm() {
                       {resultado.linhas_sem_nf ?? 0}
                     </span>
                   </div>
+                  <div className="rounded-md bg-muted/50 p-2">
+                    <span className="block text-xs text-muted-foreground">SKUs sem custo</span>
+                    <span className={`font-medium ${(resultado.skus_sem_custo ?? 0) > 0 ? "text-warning" : ""}`}>
+                      {resultado.skus_sem_custo ?? 0}
+                    </span>
+                  </div>
                   <div className="rounded-md bg-muted/50 p-2" title="Embarques que receberam a data de chegada e o status Entregue a partir deste termo">
                     <span className="block text-xs text-muted-foreground">Chegada registrada</span>
                     <span className={`font-medium ${(resultado.embarques_carimbados ?? 0) > 0 ? "text-success" : ""}`}>
