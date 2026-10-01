@@ -105,6 +105,26 @@ interface LinhaPedido {
   cbm_total: number | null;
 }
 
+interface LinhaCustos {
+  linha_id: number;
+  sku: string | null;
+  cod_cadastro: string | null;
+  produto: string | null;
+  codigo_fornecedor: string | null;
+  qtd_pedida: number | null;
+  qtd_kits: number | null;
+  total_caixas_master: number | null;
+  total_caixas_inner: number | null;
+  moeda_pedido: string | null;
+  custo_acordado: number | null;
+  total_acordado: number | null;
+  nfs: number | null;
+  qtd_faturada: number | null;
+  total_nfs: number | null;
+  ultimo_custo_nf: number | null;
+  custo_medio_nf: number | null;
+}
+
 interface NfRow {
   id: number;
   numero: string;
@@ -370,6 +390,38 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  const custosQ = useQuery({
+    queryKey: ["vw_importacao_linha_custos", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_importacao_linha_custos")
+        .select("*")
+        .eq("importacao_pedido_id", pedidoId)
+        .order("cod_cadastro", { nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as LinhaCustos[];
+    },
+  });
+
+  const totaisCustos = useMemo(() => {
+    const l = custosQ.data ?? [];
+    let algumNf = false;
+    let totalNfs = 0;
+    for (const r of l) {
+      if (r.total_nfs != null) {
+        algumNf = true;
+        totalNfs += Number(r.total_nfs);
+      }
+    }
+    return {
+      qtdPedida: l.reduce((s, r) => s + Number(r.qtd_pedida ?? 0), 0),
+      qtdFaturada: l.reduce((s, r) => s + Number(r.qtd_faturada ?? 0), 0),
+      acordado: l.reduce((s, r) => s + Number(r.total_acordado ?? 0), 0),
+      totalNfs: algumNf ? totalNfs : null,
+    };
+  }, [custosQ.data]);
+
   const nfsQ = useQuery({
     queryKey: ["pedido-mercadoria-nfs", pedidoId],
     enabled: Number.isFinite(pedidoId),
@@ -502,18 +554,13 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
-  const totaisLinhas = useMemo(() => {
-    const l = linhasQ.data ?? [];
-    return {
-      kits: l.reduce((s, r) => s + Number(r.qtd_kits ?? 0), 0),
-      unidades: l.reduce((s, r) => s + Number(r.qtd_unitaria ?? 0), 0),
-      master: l.reduce((s, r) => s + Number(r.total_caixas_master ?? 0), 0),
-      inner: l.reduce((s, r) => s + Number(r.total_caixas_inner ?? 0), 0),
-      custo: l.reduce((s, r) => s + Number(r.custo_total ?? 0), 0),
-    };
-  }, [linhasQ.data]);
-
   const qc = useQueryClient();
+  const CHAVE_LINHA_CUSTOS = (pedidoId: number) =>
+    ["vw_importacao_linha_custos", pedidoId] as const;
+  const invalidarReguaELinhaCustos = () => {
+    void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+    void qc.invalidateQueries({ queryKey: CHAVE_LINHA_CUSTOS(pedidoId) });
+  };
 
   const naoAlocadas = useMemo(
     () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
@@ -579,7 +626,7 @@ export default function ChegadaMercadoriaDetalhe() {
       toast.success("Linhas alocadas.");
       invalidarCompras(qc);
       void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
-      void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+      invalidarReguaELinhaCustos();
     },
     onError: (e) => toast.error(formatError(e)),
   });
@@ -1364,7 +1411,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={nfDialog}
             onOpenChange={(open) => {
               setNfDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1373,7 +1420,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={vincNfDialog}
             onOpenChange={(open) => {
               setVincNfDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1382,7 +1429,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={invDialog}
             onOpenChange={(open) => {
               setInvDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1394,7 +1441,7 @@ export default function ChegadaMercadoriaDetalhe() {
             pedidoId={pedidoId}
             onSaved={() => {
               invalidarCompras(qc);
-              void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              invalidarReguaELinhaCustos();
             }}
           />
 
@@ -1403,7 +1450,7 @@ export default function ChegadaMercadoriaDetalhe() {
               open={!!receberNf}
               onOpenChange={(v) => {
                 if (!v) setReceberNf(null);
-                if (!v) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+                if (!v) invalidarReguaELinhaCustos();
               }}
               nfId={Number(receberNf.id)}
               nfNumero={`${receberNf.numero}${receberNf.serie ? `/${receberNf.serie}` : ""}`}
