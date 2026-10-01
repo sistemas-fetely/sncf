@@ -27155,6 +27155,41 @@ export type Database = {
         }
         Relationships: []
       }
+      frete_tipo_depara: {
+        Row: {
+          ativo: boolean
+          codigo_externo: string
+          codigo_sncf: string
+          observacao: string | null
+          origem: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_externo: string
+          codigo_sncf: string
+          observacao?: string | null
+          origem: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_externo?: string
+          codigo_sncf?: string
+          observacao?: string | null
+          origem?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "frete_tipo_depara_codigo_sncf_fkey"
+            columns: ["codigo_sncf"]
+            isOneToOne: false
+            referencedRelation: "frete_tipos"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       frete_tipos: {
         Row: {
           ativo: boolean
@@ -31054,6 +31089,7 @@ export type Database = {
           atualizado_em: string
           criado_em: string
           data_chegada: string | null
+          data_chegada_fonte: string | null
           eta: string | null
           eta_precisao: string
           etd: string | null
@@ -31070,6 +31106,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           data_chegada?: string | null
+          data_chegada_fonte?: string | null
           eta?: string | null
           eta_precisao?: string
           etd?: string | null
@@ -31086,6 +31123,7 @@ export type Database = {
           atualizado_em?: string
           criado_em?: string
           data_chegada?: string | null
+          data_chegada_fonte?: string | null
           eta?: string | null
           eta_precisao?: string
           etd?: string | null

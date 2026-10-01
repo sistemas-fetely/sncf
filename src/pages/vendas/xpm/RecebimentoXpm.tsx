@@ -23,6 +23,8 @@ type IngestResult = {
   tarefas: number;
   linhas_sem_nf: number;
   skus_sem_custo: number;
+  embarques_carimbados?: number;
+  embarques_ambiguos?: number;
 };
 
 type AmostraLinha = { sku: string; de: number | null; para: number | null; classe: string };
@@ -447,7 +449,24 @@ export default function RecebimentoXpm() {
                       {resultado.skus_sem_custo ?? 0}
                     </span>
                   </div>
+                  <div className="rounded-md bg-muted/50 p-2" title="Embarques que receberam a data de chegada e o status Entregue a partir deste termo">
+                    <span className="block text-xs text-muted-foreground">Chegada registrada</span>
+                    <span className={`font-medium ${(resultado.embarques_carimbados ?? 0) > 0 ? "text-success" : ""}`}>
+                      {resultado.embarques_carimbados ?? 0}
+                    </span>
+                  </div>
+                  <div className="rounded-md bg-muted/50 p-2" title="Pedido com mais de um embarque em aberto — registre a chegada no Painel da Chegada de Mercadoria">
+                    <span className="block text-xs text-muted-foreground">Embarque ambíguo</span>
+                    <span className={`font-medium ${(resultado.embarques_ambiguos ?? 0) > 0 ? "text-warning" : ""}`}>
+                      {resultado.embarques_ambiguos ?? 0}
+                    </span>
+                  </div>
                 </div>
+                {(resultado.embarques_ambiguos ?? 0) > 0 && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/vendas/produto/chegada-mercadoria?aba=painel&visao=embarque&furada=1">Abrir Painel › Data furada</Link>
+                  </Button>
+                )}
                 {(resultado.tarefas ?? 0) > 0 && (
                   <Button asChild size="sm" variant="outline">
                     <Link to="/tarefas?origem=estoque">Ver tarefas</Link>
