@@ -61990,6 +61990,7 @@ export type Database = {
           cor: string | null
           cor_nome: string | null
           departamento: string | null
+          descricao_colecao: string | null
           descricao_produto: string | null
           dun: string | null
           ean: string | null
@@ -61999,16 +62000,19 @@ export type Database = {
           fase_alterada_motivo: string | null
           fase_alterada_por: string | null
           grupo: string | null
+          is_vela_numerica: boolean | null
           largura_cm: number | null
           linha: string | null
           marca: string | null
           material: string | null
           material_descritivo: string | null
+          meta_descricao: string | null
           multiplos: number
           ncm: string | null
           nome_comercial: string
           nome_completo: string | null
           nome_operacional: string | null
+          numero_vela: number | null
           origem_fisc: string | null
           origem_prod: string | null
           peso_g: number
@@ -62018,7 +62022,10 @@ export type Database = {
           profundidade_cm: number | null
           qtd_kit: number | null
           sku: string
+          sub_colecao: string | null
+          sub_colecao2: string | null
           tamanho_numero: string | null
+          tamanho_ref: string | null
           tipo: string | null
           tipo_embalagem: string | null
         }
@@ -62034,6 +62041,7 @@ export type Database = {
           cor?: string | null
           cor_nome?: string | null
           departamento?: string | null
+          descricao_colecao?: string | null
           descricao_produto?: string | null
           dun?: string | null
           ean?: string | null
@@ -62043,16 +62051,19 @@ export type Database = {
           fase_alterada_motivo?: string | null
           fase_alterada_por?: string | null
           grupo?: string | null
+          is_vela_numerica?: boolean | null
           largura_cm?: number | null
           linha?: string | null
           marca?: string | null
           material?: string | null
           material_descritivo?: string | null
+          meta_descricao?: string | null
           multiplos?: number
           ncm?: string | null
           nome_comercial: string
           nome_completo?: string | null
           nome_operacional?: string | null
+          numero_vela?: number | null
           origem_fisc?: string | null
           origem_prod?: string | null
           peso_g?: number
@@ -62062,7 +62073,10 @@ export type Database = {
           profundidade_cm?: number | null
           qtd_kit?: number | null
           sku: string
+          sub_colecao?: string | null
+          sub_colecao2?: string | null
           tamanho_numero?: string | null
+          tamanho_ref?: string | null
           tipo?: string | null
           tipo_embalagem?: string | null
         }
@@ -62078,6 +62092,7 @@ export type Database = {
           cor?: string | null
           cor_nome?: string | null
           departamento?: string | null
+          descricao_colecao?: string | null
           descricao_produto?: string | null
           dun?: string | null
           ean?: string | null
@@ -62087,16 +62102,19 @@ export type Database = {
           fase_alterada_motivo?: string | null
           fase_alterada_por?: string | null
           grupo?: string | null
+          is_vela_numerica?: boolean | null
           largura_cm?: number | null
           linha?: string | null
           marca?: string | null
           material?: string | null
           material_descritivo?: string | null
+          meta_descricao?: string | null
           multiplos?: number
           ncm?: string | null
           nome_comercial?: string
           nome_completo?: string | null
           nome_operacional?: string | null
+          numero_vela?: number | null
           origem_fisc?: string | null
           origem_prod?: string | null
           peso_g?: number
@@ -62106,7 +62124,10 @@ export type Database = {
           profundidade_cm?: number | null
           qtd_kit?: number | null
           sku?: string
+          sub_colecao?: string | null
+          sub_colecao2?: string | null
           tamanho_numero?: string | null
+          tamanho_ref?: string | null
           tipo?: string | null
           tipo_embalagem?: string | null
         }
