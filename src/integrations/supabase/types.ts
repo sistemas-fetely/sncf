@@ -59010,6 +59010,8 @@ export type Database = {
           atualizado_por: string | null
           id: number
           max_parcelas: number
+          merchant_id_hml: string | null
+          merchant_id_prod: string | null
           parcela_min_centavos: number
           segredo_token_hml: string
           segredo_token_prod: string
@@ -59027,6 +59029,8 @@ export type Database = {
           atualizado_por?: string | null
           id?: number
           max_parcelas?: number
+          merchant_id_hml?: string | null
+          merchant_id_prod?: string | null
           parcela_min_centavos?: number
           segredo_token_hml?: string
           segredo_token_prod?: string
@@ -59044,6 +59048,8 @@ export type Database = {
           atualizado_por?: string | null
           id?: number
           max_parcelas?: number
+          merchant_id_hml?: string | null
+          merchant_id_prod?: string | null
           parcela_min_centavos?: number
           segredo_token_hml?: string
           segredo_token_prod?: string
