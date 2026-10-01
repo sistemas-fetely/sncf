@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {

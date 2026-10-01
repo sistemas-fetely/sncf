@@ -4,6 +4,7 @@ import { CardIndicador } from "@/components/ui/card-indicador";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import CadastroPedidoCompra from "@/pages/acervo/CadastroPedidoCompra";
 import EmbarquesTab from "@/components/compras/EmbarquesTab";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { useEmbarquePainel } from "@/lib/compras/embarque-painel";
 
 const FMT_USD = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "USD" });

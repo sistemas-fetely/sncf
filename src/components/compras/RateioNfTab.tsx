@@ -15,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

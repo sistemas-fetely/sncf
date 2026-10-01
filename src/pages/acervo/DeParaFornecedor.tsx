@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
