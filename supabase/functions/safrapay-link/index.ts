@@ -33,11 +33,11 @@ function msgApi(corpo: any, status: number): string {
 function montarCustomer(parceiro: any, pedido: any, avisos: string[]) {
   const nome = txt(parceiro?.razao_social) ?? txt(parceiro?.nome_fantasia) ?? txt(pedido?.cliente_nome_snapshot);
   const cpf = dig(parceiro?.cpf);
-  if (!nome || cpf.length !== 11) {
-    avisos.push("Cliente sem nome ou CPF válido — link criado sem dados do comprador.");
+  if (!nome || (cpf.length !== 11 && cpf.length !== 14)) {
+    avisos.push("Cliente sem nome ou CPF/CNPJ válido — link criado sem dados do comprador.");
     return undefined;
   }
-  const c: any = { name: nome, document: cpf, documentType: 0 };
+  const c: any = { name: nome, document: cpf, documentType: cpf.length === 14 ? 2 : 1 } // 1 = CPF, 2 = CNPJ;
   const email = txt(parceiro?.email);
   if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) c.email = email;
   let tel = dig(parceiro?.telefone);
@@ -66,17 +66,21 @@ function montarCustomer(parceiro: any, pedido: any, avisos: string[]) {
   return c;
 }
 
-/** Escolhe o tipo "cartão de crédito" em /paymentTypes; null se não der para identificar com segurança. */
-function tipoCredito(corpo: any): unknown | null {
-  const lista: any[] = Array.isArray(corpo) ? corpo : corpo?.paymentTypes ?? corpo?.data ?? corpo?.items ?? [];
-  if (!Array.isArray(lista)) return null;
-  const achados = lista.filter((t) => {
-    const s = `${t?.name ?? ""} ${t?.description ?? ""} ${t?.type ?? ""}`.toLowerCase();
-    return /(cr[eé]dit|credit)/.test(s) && !/d[eé]bit/.test(s);
+/** Lê supportedPaymentTypes (strings, ou objetos por compatibilidade) e diz se "Credit" está disponível. */
+function temCredito(corpo: any): boolean {
+  const lista: any[] = corpo?.supportedPaymentTypes ?? corpo?.data?.supportedPaymentTypes ?? corpo?.paymentTypes ?? (Array.isArray(corpo) ? corpo : []);
+  if (!Array.isArray(lista)) return false;
+  return lista.some((t) => {
+    const v = typeof t === "string" ? t : (t?.name ?? t?.type ?? t?.value ?? t?.code ?? "");
+    return String(v).trim().toLowerCase() === "credit";
   });
-  if (achados.length !== 1) return null;
-  const t = achados[0];
-  return t?.id ?? t?.value ?? t?.code ?? t?.type ?? null;
+}
+
+/** DELETE no Safra falhou só porque o link já não é pagável (expirado/cancelado/pago)? */
+function deleteToleravel(status: number, corpo: any): boolean {
+  if (status === 404 || status === 410) return true;
+  const m = JSON.stringify(corpo ?? "").toLowerCase();
+  return /expir|cancel|paid|pago|already|j[aá] /.test(m);
 }
 
 Deno.serve(async (req) => {
@@ -117,6 +121,7 @@ Deno.serve(async (req) => {
   const portal = String(cfg[`url_portal_${amb}`] ?? "").replace(/\/+$/, "");
   const segredo = cfg[`segredo_token_${amb}`];
   if (!apiBase || !portal || !segredo) return json({ ok: false, erro: `Configuração Safrapay incompleta para ${amb}.` }, 500);
+  const merchantId = String(cfg[`merchant_id_${amb}`] ?? "").trim();
 
   const { data: pedido, error: eP } = await sb
     .from("pedidos")
@@ -145,6 +150,7 @@ Deno.serve(async (req) => {
     .eq("pedido_id", pedidoId).in("status", ["criando", "aberto"]);
   if (eV) return json({ ok: false, erro: `Ler links: ${eV.message}` }, 500);
   const agora = Date.now();
+  const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string }[] = [];
   for (const l of vig ?? []) {
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
     if (valido && !forcarNovo) {
@@ -154,6 +160,10 @@ Deno.serve(async (req) => {
       return json({ ok: false, erro: "Já há um link sendo criado para este pedido. Tente em instantes." }, 409);
     }
     const novoStatus = valido || l.status === "criando" ? "cancelado" : "expirado";
+    if (l.status === "aberto" && l.gateway_link_id) {
+      cancelarNoSafra.push({ id: l.id, gateway_link_id: String(l.gateway_link_id), novoStatus });
+      continue;
+    }
     const { error } = await sb.from("pagamento_link").update({ status: novoStatus }).eq("id", l.id);
     if (error) return json({ ok: false, erro: `Encerrar link anterior: ${error.message}` }, 500);
   }
@@ -184,14 +194,31 @@ Deno.serve(async (req) => {
     const h = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
 
     const avisos: string[] = [];
-    let tipos: unknown[] | undefined;
     const rT = await fetch(`${apiBase}/v2/paymentlink/paymentTypes`, { headers: h });
     const cT = await lerCorpo(rT);
-    const t = rT.ok ? tipoCredito(cT) : null;
-    if (t != null) tipos = [t];
-    else {
-      avisos.push("Tipo cartão de crédito não identificado em paymentTypes — campo não enviado.");
-      console.warn("[safrapay-link] paymentSupportedTypes não enviado", { status: rT.status, resposta: cT });
+    if (!rT.ok) return await falhar(`Consultar tipos de pagamento: ${msgApi(cT, rT.status)}`);
+    if (!temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
+    const tipos = ["Credit"];
+
+    // Cancelar no Safra o(s) link(s) anterior(es) antes de criar o novo — nunca dois links pagáveis.
+    if (cancelarNoSafra.length) {
+      if (!merchantId) return await falhar(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o link anterior.`, 500);
+      for (const ant of cancelarNoSafra) {
+        const rD = await fetch(`${apiBase}/v2/smartcheckout/${encodeURIComponent(ant.gateway_link_id)}`, {
+          method: "DELETE", headers: { Authorization: `Bearer ${accessToken}`, MerchantId: merchantId },
+        });
+        const cD = await lerCorpo(rD);
+        let statusAnt = "cancelado";
+        if (!rD.ok) {
+          if (!deleteToleravel(rD.status, cD)) {
+            return await falhar(`Cancelar link anterior no Safra (${ant.gateway_link_id}): ${msgApi(cD, rD.status)}`);
+          }
+          statusAnt = ant.novoStatus;
+          avisos.push(`Link anterior ${ant.gateway_link_id} já não estava ativo no Safra.`);
+        }
+        const { error } = await sb.from("pagamento_link").update({ status: statusAnt }).eq("id", ant.id);
+        if (error) return await falhar(`Encerrar link anterior: ${error.message}`, 500);
+      }
     }
 
     let parceiro: any = null;
@@ -211,7 +238,7 @@ Deno.serve(async (req) => {
       expiration: expira.toISOString(),
       maxInstallmentNumber: cfg.max_parcelas,
       ...(customer ? { customer } : {}),
-      ...(tipos ? { paymentSupportedTypes: tipos } : {}),
+      paymentSupportedTypes: tipos,
     };
     const rL = await fetch(`${apiBase}/v2/paymentlink`, { method: "POST", headers: h, body: JSON.stringify(payload) });
     const cL = await lerCorpo(rL);
@@ -225,7 +252,7 @@ Deno.serve(async (req) => {
     const { error: eUp } = await sb.from("pagamento_link").update({
       status: "aberto", gateway_link_id: String(linkId), url: urlFinal, expira_em: expiraFinal,
       max_parcelas: cfg.max_parcelas, erro: null,
-      resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, avisos },
+      resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, paymentSupportedTypes: tipos, avisos },
     }).eq("id", linha.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
