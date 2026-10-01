@@ -387,6 +387,8 @@ if (body.tipo === "dimensoes_produto") {
         "preco_atacado", "preco_varejo", "peso_g", "multiplos", "ativo",
         "altura_cm", "largura_cm", "profundidade_cm",
         "canal_venda", "familia", "qtd_kit",
+        "meta_descricao", "tamanho_ref", "sub_colecao", "sub_colecao2",
+        "descricao_colecao", "numero_vela", "is_vela_numerica",
       ]);
       const desconhecidos = new Set<string>();
       for (const p of body.produtos) {
@@ -447,6 +449,16 @@ if (body.tipo === "dimensoes_produto") {
         canal_venda: p.canal_venda,
         familia: p.familia,
         qtd_kit: p.qtd_kit,
+        // 01/10/2026: sete campos que o FOP tinha preenchidos e nunca enviava. Coluna criada
+        // em sncf_produtos e linha acrescentada em fn_upsert_catalogo na mesma data.
+        // Nao remover: campo que sai daqui volta a sumir calado.
+        meta_descricao: p.meta_descricao,
+        tamanho_ref: p.tamanho_ref,
+        sub_colecao: p.sub_colecao,
+        sub_colecao2: p.sub_colecao2,
+        descricao_colecao: p.descricao_colecao,
+        numero_vela: p.numero_vela,
+        is_vela_numerica: p.is_vela_numerica,
       }));
 
       // AUSÊNCIA-NÃO-É-APAGAMENTO vive na RPC (lei do banco), não aqui. Upsert direto em
