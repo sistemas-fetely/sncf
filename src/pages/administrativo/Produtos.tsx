@@ -53,7 +53,7 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
-  RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown,
+  RefreshCw, Search, ImageOff, ArrowDown, ArrowUp, ArrowUpDown, AlertTriangle,
   Calculator, ChevronDown,
 } from "lucide-react";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
@@ -1137,30 +1137,7 @@ const ESTAGIOS_NAO_RESERVAM = new Set([
   "cancelado", "entregue", "em_transporte", "recuperacao_venda",
 ]);
 
-interface SncfProdutoDetalhe {
-  sku: string;
-  ean: string | null;
-  nome_comercial: string | null;
-  nome_completo: string | null;
-  marca: string | null;
-  linha: string | null;
-  colecao: string | null;
-  grupo: string | null;
-  tipo: string | null;
-  cor_nome: string | null;
-  tamanho_numero: string | null;
-  material: string | null;
-  tipo_embalagem: string | null;
-  peso_g: number | null;
-  multiplos: number | null;
-  altura_cm: number | null;
-  largura_cm: number | null;
-  profundidade_cm: number | null;
-  ncm: string | null;
-  cest: string | null;
-  origem_fisc: string | null;
-  origem_prod: string | null;
-}
+type SncfProdutoDetalhe = Record<string, unknown>;
 
 interface MovRow {
   data_mov: string | null;
@@ -1234,6 +1211,48 @@ function PainelSku({
       return (data as unknown as SncfProdutoDetalhe) ?? null;
     },
   });
+
+  type LinhaMatrizCard = { campo: string; rotulo: string | null; bloco: string | null; dono: string | null; ordem: number | null };
+  const matrizCardQ = useQuery({
+    queryKey: ["produto-ficha-matriz-card"],
+    enabled: open,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<LinhaMatrizCard[]> => {
+      const { data, error } = await supabase
+        .from("produto_ficha_nascimento")
+        .select("campo, rotulo, bloco, dono, ordem")
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as LinhaMatrizCard[];
+    },
+  });
+
+  const rotuloLegivel = (slug: string) => {
+    const texto = slug.replace(/_/g, " ");
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  };
+  const valorCadastro = (valor: unknown) => {
+    if (valor === null || valor === undefined || valor === "") return ou(null);
+    if (typeof valor === "boolean") return valor ? "sim" : "não";
+    const texto = String(valor);
+    return texto.length > 120
+      ? <div className="max-h-32 overflow-y-auto whitespace-pre-wrap rounded-md border bg-muted/40 px-3 py-2">{texto}</div>
+      : texto;
+  };
+  const blocosCadastro = new Map<string, LinhaMatrizCard[]>();
+  for (const linha of matrizCardQ.data ?? []) {
+    if (linha.dono === "sistema" || ["foto", "preco_atacado", "preco_varejo"].includes(linha.campo)) continue;
+    const bloco = linha.bloco ?? "outros";
+    if (!blocosCadastro.has(bloco)) blocosCadastro.set(bloco, []);
+    blocosCadastro.get(bloco)?.push(linha);
+  }
+  const camposNaMatriz = new Set((matrizCardQ.data ?? []).map((linha) => linha.campo));
+  const camposSemLugar = cadastro && matrizCardQ.data
+    ? Object.keys(cadastro).filter((campo) => !camposNaMatriz.has(campo) && ![
+        "sku", "cod_cadastro", "atualizado_em", "ativo", "fase", "fase_alterada_por",
+        "fase_alterada_motivo", "nome_operacional", "preco_custo",
+      ].includes(campo))
+    : [];
 
   const { data: movs, isLoading: loadingMov } = useQuery({
     queryKey: ["cockpit-sku-mov", sku],
@@ -1319,42 +1338,45 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                   Copiar solicitação de correção
                 </Button>
               </div>
-              {loadingCad ? (
+              {loadingCad || matrizCardQ.isLoading ? (
                 <div className="grid grid-cols-2 gap-3">
                   {Array.from({ length: 10 }).map((_, i) => <Skeleton key={i} className="h-10" />)}
                 </div>
+              ) : matrizCardQ.isError ? (
+                <p className="text-xs text-destructive">Não foi possível carregar a ficha: {formatError(matrizCardQ.error)}</p>
               ) : (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label="SKU"><span className="font-mono">{cadastro?.sku ?? sku}</span></Field>
-                  <Field label="Cód. cadastro"><span className="font-mono">{ou(row?.cod_cadastro)}</span></Field>
-                  <Field label="EAN">{ou(cadastro?.ean)}</Field>
-                  <Field label="Nome completo" className="col-span-2">{ou(cadastro?.nome_completo)}</Field>
-                  <Field label="Marca">{ou(cadastro?.marca)}</Field>
-                  <Field label="Linha">{ou(cadastro?.linha)}</Field>
-                  <Field label="Coleção">{ou(cadastro?.colecao)}</Field>
-                  <Field label="Grupo">{ou(cadastro?.grupo)}</Field>
-                  <Field label="Tipo">{ou(cadastro?.tipo)}</Field>
-                  <Field label="Cor">{ou(cadastro?.cor_nome)}</Field>
-                  <Field label="Tamanho">{ou(cadastro?.tamanho_numero)}</Field>
-                  <Field label="Material">{ou(cadastro?.material)}</Field>
-                  <Field label="Embalagem">{ou(cadastro?.tipo_embalagem)}</Field>
-                  <Field label="Peso">{cadastro?.peso_g != null ? `${cadastro.peso_g} g` : ou(null)}</Field>
-                  <Field label="Múltiplos">{ou(cadastro?.multiplos)}</Field>
-                  <Field label="Dimensões (A × L × P)" className="col-span-2">{ou(dimensoes)}</Field>
-                </div>
-              )}
-            </Secao>
-
-            {/* 2. Fiscal */}
-            <Secao titulo="Fiscal">
-              {loadingCad ? (
-                <Skeleton className="h-16" />
-              ) : (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  <Field label="NCM">{ou(cadastro?.ncm)}</Field>
-                  <Field label="CEST">{ou(cadastro?.cest)}</Field>
-                  <Field label="Origem fiscal">{ou(cadastro?.origem_fisc)}</Field>
-                  <Field label="Origem produto">{ou(cadastro?.origem_prod)}</Field>
+                <div className="space-y-4">
+                  {[...blocosCadastro].map(([bloco, campos]) => {
+                    let dimensoesExibidas = false;
+                    return (
+                      <div key={bloco}>
+                        <h4 className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">{rotuloLegivel(bloco)}</h4>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                          {campos.map(({ campo, rotulo }) => {
+                            // Única exceção à matriz: as três dimensões são exibidas numa linha composta.
+                            if (["altura_cm", "largura_cm", "profundidade_cm"].includes(campo)) {
+                              if (dimensoesExibidas) return null;
+                              dimensoesExibidas = true;
+                              return <Field key={campo} label="Dimensões (A × L × P)" className="col-span-2">{ou(dimensoes)}</Field>;
+                            }
+                            const existe = cadastro != null && Object.prototype.hasOwnProperty.call(cadastro, campo);
+                            const valor = cadastro?.[campo];
+                            return (
+                              <Field key={campo} label={rotulo ?? rotuloLegivel(campo)} className={valor != null && String(valor).length > 120 ? "col-span-2" : undefined}>
+                                {existe ? valorCadastro(valor) : <span className="text-xs text-muted-foreground">fora do espelho do SNCF</span>}
+                              </Field>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {camposSemLugar.length > 0 && (
+                    <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {camposSemLugar.length} campo(s) no espelho sem lugar na ficha: {camposSemLugar.join(", ")}
+                    </p>
+                  )}
                 </div>
               )}
             </Secao>
