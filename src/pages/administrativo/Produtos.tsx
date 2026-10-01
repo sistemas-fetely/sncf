@@ -1247,6 +1247,9 @@ function PainelSku({
     blocosCadastro.get(bloco)?.push(linha);
   }
   const camposNaMatriz = new Set((matrizCardQ.data ?? []).map((linha) => linha.campo));
+  const primeiroCampoDimensao = (matrizCardQ.data ?? []).find((linha) =>
+    linha.dono !== "sistema" && ["altura_cm", "largura_cm", "profundidade_cm"].includes(linha.campo),
+  )?.campo;
   const camposSemLugar = cadastro && matrizCardQ.data
     ? Object.keys(cadastro).filter((campo) => !camposNaMatriz.has(campo) && ![
         "sku", "cod_cadastro", "atualizado_em", "ativo", "fase", "fase_alterada_por",
@@ -1347,7 +1350,6 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
               ) : (
                 <div className="space-y-4">
                   {[...blocosCadastro].map(([bloco, campos]) => {
-                    let dimensoesExibidas = false;
                     return (
                       <div key={bloco}>
                         <h4 className="mb-2 text-[11px] uppercase tracking-wider text-muted-foreground">{rotuloLegivel(bloco)}</h4>
@@ -1355,8 +1357,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
                           {campos.map(({ campo, rotulo }) => {
                             // Única exceção à matriz: as três dimensões são exibidas numa linha composta.
                             if (["altura_cm", "largura_cm", "profundidade_cm"].includes(campo)) {
-                              if (dimensoesExibidas) return null;
-                              dimensoesExibidas = true;
+                              if (campo !== primeiroCampoDimensao) return null;
                               return <Field key={campo} label="Dimensões (A × L × P)" className="col-span-2">{ou(dimensoes)}</Field>;
                             }
                             const existe = cadastro != null && Object.prototype.hasOwnProperty.call(cadastro, campo);
