@@ -105,6 +105,26 @@ interface LinhaPedido {
   cbm_total: number | null;
 }
 
+interface LinhaCustos {
+  linha_id: number;
+  sku: string | null;
+  cod_cadastro: string | null;
+  produto: string | null;
+  codigo_fornecedor: string | null;
+  qtd_pedida: number | null;
+  qtd_kits: number | null;
+  total_caixas_master: number | null;
+  total_caixas_inner: number | null;
+  moeda_pedido: string | null;
+  custo_acordado: number | null;
+  total_acordado: number | null;
+  nfs: number | null;
+  qtd_faturada: number | null;
+  total_nfs: number | null;
+  ultimo_custo_nf: number | null;
+  custo_medio_nf: number | null;
+}
+
 interface NfRow {
   id: number;
   numero: string;
@@ -370,6 +390,38 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  const custosQ = useQuery({
+    queryKey: ["vw_importacao_linha_custos", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_importacao_linha_custos")
+        .select("*")
+        .eq("importacao_pedido_id", pedidoId)
+        .order("cod_cadastro", { nullsFirst: false });
+      if (error) throw error;
+      return (data ?? []) as LinhaCustos[];
+    },
+  });
+
+  const totaisCustos = useMemo(() => {
+    const l = custosQ.data ?? [];
+    let algumNf = false;
+    let totalNfs = 0;
+    for (const r of l) {
+      if (r.total_nfs != null) {
+        algumNf = true;
+        totalNfs += Number(r.total_nfs);
+      }
+    }
+    return {
+      qtdPedida: l.reduce((s, r) => s + Number(r.qtd_pedida ?? 0), 0),
+      qtdFaturada: l.reduce((s, r) => s + Number(r.qtd_faturada ?? 0), 0),
+      acordado: l.reduce((s, r) => s + Number(r.total_acordado ?? 0), 0),
+      totalNfs: algumNf ? totalNfs : null,
+    };
+  }, [custosQ.data]);
+
   const nfsQ = useQuery({
     queryKey: ["pedido-mercadoria-nfs", pedidoId],
     enabled: Number.isFinite(pedidoId),
@@ -502,18 +554,13 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
-  const totaisLinhas = useMemo(() => {
-    const l = linhasQ.data ?? [];
-    return {
-      kits: l.reduce((s, r) => s + Number(r.qtd_kits ?? 0), 0),
-      unidades: l.reduce((s, r) => s + Number(r.qtd_unitaria ?? 0), 0),
-      master: l.reduce((s, r) => s + Number(r.total_caixas_master ?? 0), 0),
-      inner: l.reduce((s, r) => s + Number(r.total_caixas_inner ?? 0), 0),
-      custo: l.reduce((s, r) => s + Number(r.custo_total ?? 0), 0),
-    };
-  }, [linhasQ.data]);
-
   const qc = useQueryClient();
+  const CHAVE_LINHA_CUSTOS = (pedidoId: number) =>
+    ["vw_importacao_linha_custos", pedidoId] as const;
+  const invalidarReguaELinhaCustos = () => {
+    void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+    void qc.invalidateQueries({ queryKey: CHAVE_LINHA_CUSTOS(pedidoId) });
+  };
 
   const naoAlocadas = useMemo(
     () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
@@ -579,7 +626,7 @@ export default function ChegadaMercadoriaDetalhe() {
       toast.success("Linhas alocadas.");
       invalidarCompras(qc);
       void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
-      void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+      invalidarReguaELinhaCustos();
     },
     onError: (e) => toast.error(formatError(e)),
   });
@@ -754,21 +801,22 @@ export default function ChegadaMercadoriaDetalhe() {
             {/* ---------------- LINHAS ---------------- */}
             <TabsContent value="linhas" className="mt-4 space-y-4">
               <ParaQueServe>
-                O que foi pedido ao fornecedor: SKU, quantidade e custo combinado.
+                O que foi pedido e o que veio nas NFs, por produto: quantidade e custo acordado ×
+                realizado.
               </ParaQueServe>
               <Card>
                 <CardContent className="pt-6">
-                  {linhasQ.isLoading ? (
+                  {custosQ.isLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" /> Carregando linhas...
                     </div>
-                  ) : linhasQ.isError ? (
+                  ) : custosQ.isError ? (
                     <ErroBloco
                       titulo="Falha ao carregar as linhas do pedido."
-                      erro={linhasQ.error}
-                      onRetry={() => linhasQ.refetch()}
+                      erro={custosQ.error}
+                      onRetry={() => custosQ.refetch()}
                     />
-                  ) : (linhasQ.data ?? []).length === 0 ? (
+                  ) : (custosQ.data ?? []).length === 0 ? (
                     <div className="text-sm text-muted-foreground">
                       Este pedido não tem linhas gravadas.
                     </div>
@@ -777,52 +825,148 @@ export default function ChegadaMercadoriaDetalhe() {
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>SKU</TableHead>
-                            <TableHead>Descrição</TableHead>
-                            <TableHead className="text-right">Kits</TableHead>
-                            <TableHead className="text-right">Unidades</TableHead>
-                            <TableHead className="text-right">Cx. master</TableHead>
-                            <TableHead className="text-right">Cx. inner</TableHead>
-                            <TableHead className="text-right">Custo unit.</TableHead>
-                            <TableHead className="text-right">Custo total</TableHead>
+                            <TableHead>Cód. cadastro</TableHead>
+                            <TableHead>Produto</TableHead>
+                            <TableHead>Cód. fornecedor</TableHead>
+                            {exigeEmbarque && <TableHead className="text-right">Kits</TableHead>}
+                            {exigeEmbarque && (
+                              <TableHead className="text-right">Cx. master</TableHead>
+                            )}
+                            {exigeEmbarque && (
+                              <TableHead className="text-right">Cx. inner</TableHead>
+                            )}
+                            <TableHead className="text-right">Qtd pedida</TableHead>
+                            <TableHead className="text-right">Qtd faturada</TableHead>
+                            <TableHead className="text-right">
+                              {moeda !== "BRL" ? `Custo acordado (${moeda})` : "Custo acordado"}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Último custo (NF){moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Custo médio (NF){moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
+                            <TableHead className="text-right">
+                              Total NFs{moeda !== "BRL" ? " (R$)" : ""}
+                            </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {linhasQ.data!.map((l) => (
-                            <TableRow key={l.id}>
-                              <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                              <TableCell className="max-w-[320px] truncate">
-                                {l.descricao_original ?? "—"}
-                              </TableCell>
-                              <TableCell className="text-right">{fmtNum(l.qtd_kits)}</TableCell>
-                              <TableCell className="text-right">{fmtNum(l.qtd_unitaria)}</TableCell>
-                              <TableCell className="text-right">
-                                {fmtNum(l.total_caixas_master)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtNum(l.total_caixas_inner)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtMoeda(l.custo_unitario, moeda)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {fmtMoeda(l.custo_total, moeda)}
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {custosQ.data!.map((r) => {
+                            const pedida = Number(r.qtd_pedida ?? 0);
+                            const faturada = Number(r.qtd_faturada ?? 0);
+                            const acimaPedido = faturada > pedida;
+                            const nfCara =
+                              moeda === "BRL" &&
+                              r.ultimo_custo_nf != null &&
+                              r.custo_acordado != null &&
+                              Number(r.ultimo_custo_nf) > Number(r.custo_acordado);
+                            const semNf = Number(r.nfs ?? 0) === 0;
+                            return (
+                              <TableRow key={r.linha_id}>
+                                <TableCell>
+                                  {r.cod_cadastro ? (
+                                    <>
+                                      <div className="font-mono text-xs">{r.cod_cadastro}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {r.sku ?? "—"}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <span className="font-mono text-xs">{r.sku ?? "—"}</span>
+                                  )}
+                                </TableCell>
+                                <TableCell
+                                  className="max-w-[320px] truncate"
+                                  title={r.produto ?? undefined}
+                                >
+                                  {r.produto ?? "—"}
+                                </TableCell>
+                                <TableCell className="font-mono text-xs">
+                                  {r.codigo_fornecedor ?? "—"}
+                                </TableCell>
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.qtd_kits)}
+                                  </TableCell>
+                                )}
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.total_caixas_master)}
+                                  </TableCell>
+                                )}
+                                {exigeEmbarque && (
+                                  <TableCell className="text-right">
+                                    {fmtNum(r.total_caixas_inner)}
+                                  </TableCell>
+                                )}
+                                <TableCell className="text-right">
+                                  {fmtNum(r.qtd_pedida)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right ${
+                                    acimaPedido
+                                      ? "text-warning"
+                                      : faturada === 0
+                                        ? "text-muted-foreground"
+                                        : ""
+                                  }`}
+                                  title={
+                                    acimaPedido
+                                      ? `+${fmtNum(faturada - pedida)} além do pedido`
+                                      : undefined
+                                  }
+                                >
+                                  {fmtNum(r.qtd_faturada)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {r.custo_acordado == null
+                                    ? "—"
+                                    : fmtMoeda(r.custo_acordado, moeda)}
+                                </TableCell>
+                                <TableCell
+                                  className={`text-right ${nfCara ? "text-warning" : ""}`}
+                                  title="Preço unitário da NF mais recente deste pedido"
+                                >
+                                  {semNf || r.ultimo_custo_nf == null
+                                    ? "—"
+                                    : fmtMoeda(r.ultimo_custo_nf, "BRL")}
+                                </TableCell>
+                                <TableCell
+                                  className="text-right"
+                                  title="Média ponderada pela quantidade de todas as NFs deste pedido"
+                                >
+                                  {semNf || r.custo_medio_nf == null
+                                    ? "—"
+                                    : fmtMoeda(r.custo_medio_nf, "BRL")}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {semNf || r.total_nfs == null
+                                    ? "—"
+                                    : fmtMoeda(r.total_nfs, "BRL")}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
                         </TableBody>
                         <TableFooter>
                           <TableRow>
-                            <TableCell colSpan={2}>Totais</TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.kits)}</TableCell>
+                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>Total</TableCell>
                             <TableCell className="text-right">
-                              {fmtNum(totaisLinhas.unidades)}
+                              {fmtNum(totaisCustos.qtdPedida)}
                             </TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.master)}</TableCell>
-                            <TableCell className="text-right">{fmtNum(totaisLinhas.inner)}</TableCell>
+                            <TableCell className="text-right">
+                              {fmtNum(totaisCustos.qtdFaturada)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {fmtMoeda(totaisCustos.acordado, moeda)}
+                            </TableCell>
+                            <TableCell />
                             <TableCell />
                             <TableCell className="text-right">
-                              {fmtMoeda(totaisLinhas.custo, moeda)}
+                              {totaisCustos.totalNfs == null
+                                ? "—"
+                                : fmtMoeda(totaisCustos.totalNfs, "BRL")}
                             </TableCell>
                           </TableRow>
                         </TableFooter>
@@ -1364,7 +1508,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={nfDialog}
             onOpenChange={(open) => {
               setNfDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1373,7 +1517,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={vincNfDialog}
             onOpenChange={(open) => {
               setVincNfDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1382,7 +1526,7 @@ export default function ChegadaMercadoriaDetalhe() {
             open={invDialog}
             onOpenChange={(open) => {
               setInvDialog(open);
-              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              if (!open) invalidarReguaELinhaCustos();
             }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
@@ -1394,7 +1538,7 @@ export default function ChegadaMercadoriaDetalhe() {
             pedidoId={pedidoId}
             onSaved={() => {
               invalidarCompras(qc);
-              void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+              invalidarReguaELinhaCustos();
             }}
           />
 
@@ -1403,7 +1547,7 @@ export default function ChegadaMercadoriaDetalhe() {
               open={!!receberNf}
               onOpenChange={(v) => {
                 if (!v) setReceberNf(null);
-                if (!v) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+                if (!v) invalidarReguaELinhaCustos();
               }}
               nfId={Number(receberNf.id)}
               nfNumero={`${receberNf.numero}${receberNf.serie ? `/${receberNf.serie}` : ""}`}
