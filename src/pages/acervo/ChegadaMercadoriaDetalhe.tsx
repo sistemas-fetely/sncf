@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
@@ -43,6 +43,11 @@ import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMerca
 import SaldoPedidoTab from "@/components/compras/SaldoPedidoTab";
 import VincularNfDialog from "@/components/compras/VincularNfDialog";
 import ReceberForaXpmDialog from "@/components/compras/ReceberForaXpmDialog";
+import ReguaPedido, {
+  CHAVE_REGUA,
+  usePedidoRegua,
+} from "@/components/compras/ReguaPedido";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 
 
 
@@ -282,6 +287,13 @@ function Stat({ rotulo, valor }: { rotulo: string; valor: React.ReactNode }) {
 export default function ChegadaMercadoriaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const pedidoId = Number(id);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const subParam = searchParams.get("sub");
+  const subAba = ["linhas", "documentos", "conferencia", "saldo", "historico"].includes(
+    subParam ?? "",
+  )
+    ? (subParam as string)
+    : "linhas";
   const [nfDialog, setNfDialog] = useState(false);
   const [invDialog, setInvDialog] = useState(false);
   const [nfAberta, setNfAberta] = useState<number | null>(null);
@@ -307,6 +319,15 @@ export default function ChegadaMercadoriaDetalhe() {
 
   const pedido = pedidoQ.data;
   const moeda = pedido?.moeda ?? "BRL";
+  const reguaQ = usePedidoRegua(pedidoId);
+  const exigeEmbarque = reguaQ.data?.exige_embarque !== false;
+
+  const irSubAba = (sub: string) => {
+    const proximos = new URLSearchParams(searchParams);
+    if (sub === "linhas") proximos.delete("sub");
+    else proximos.set("sub", sub);
+    setSearchParams(proximos, { replace: true });
+  };
 
   // Léxico único: A faturar (fornecedor deve NF) · A confirmar (XPM deve conferência)
   const saldoQ = useQuery({
@@ -558,6 +579,7 @@ export default function ChegadaMercadoriaDetalhe() {
       toast.success("Linhas alocadas.");
       invalidarCompras(qc);
       void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
+      void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
     },
     onError: (e) => toast.error(formatError(e)),
   });
@@ -639,6 +661,8 @@ export default function ChegadaMercadoriaDetalhe() {
             </div>
           </div>
 
+          <ReguaPedido pedidoId={pedidoId} onIrSubAba={irSubAba} />
+
           {Number(pedido.skus_incompletos_xpm ?? 0) > 0 && (
             <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm flex items-start gap-2">
               <AlertTriangle className="h-4 w-4 mt-0.5 text-warning" />
@@ -694,10 +718,10 @@ export default function ChegadaMercadoriaDetalhe() {
                 />
               );
             })()}
-            <Stat rotulo="ETD" valor={fmtDate(pedido.etd)} />
-            <Stat rotulo="ETA" valor={fmtDate(pedido.eta)} />
+            {exigeEmbarque && <Stat rotulo="ETD" valor={fmtDate(pedido.etd)} />}
+            {exigeEmbarque && <Stat rotulo="ETA" valor={fmtDate(pedido.eta)} />}
             <Stat rotulo="NFs" valor={fmtNum(pedido.nfs)} />
-            <Stat rotulo="Invoices" valor={fmtNum(pedido.invoices)} />
+            {exigeEmbarque && <Stat rotulo="Invoices" valor={fmtNum(pedido.invoices)} />}
             <Stat
               rotulo="A faturar"
               valor={
@@ -716,7 +740,7 @@ export default function ChegadaMercadoriaDetalhe() {
             />
           </div>
 
-          <Tabs defaultValue="linhas">
+          <Tabs value={subAba} onValueChange={irSubAba}>
             <TabsList>
               <TabsTrigger value="linhas">Linhas</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
@@ -728,7 +752,10 @@ export default function ChegadaMercadoriaDetalhe() {
 
 
             {/* ---------------- LINHAS ---------------- */}
-            <TabsContent value="linhas" className="mt-4">
+            <TabsContent value="linhas" className="mt-4 space-y-4">
+              <ParaQueServe>
+                O que foi pedido ao fornecedor: SKU, quantidade e custo combinado.
+              </ParaQueServe>
               <Card>
                 <CardContent className="pt-6">
                   {linhasQ.isLoading ? (
@@ -808,6 +835,9 @@ export default function ChegadaMercadoriaDetalhe() {
 
             {/* ---------------- DOCUMENTOS ---------------- */}
             <TabsContent value="documentos" className="mt-4 space-y-6">
+              <ParaQueServe>
+                NFs e invoices deste pedido. Lance a NF quando a mercadoria for faturada; vincule se ela já existe no sistema.
+              </ParaQueServe>
               {/* NFs */}
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
@@ -871,9 +901,9 @@ export default function ChegadaMercadoriaDetalhe() {
                                 <span className="text-muted-foreground">
                                   {fmtMoeda(nf.valor_total, "BRL")}
                                 </span>
-                                <span className="text-muted-foreground">
-                                  {nf.container ?? "sem container"}
-                                </span>
+                                {nf.container && (
+                                  <span className="text-muted-foreground">{nf.container}</span>
+                                )}
                                 <span className="ml-auto text-xs text-muted-foreground">
                                   {linhas.length} linha(s)
                                 </span>
@@ -1002,9 +1032,9 @@ export default function ChegadaMercadoriaDetalhe() {
                               <span className="text-muted-foreground">
                                 {fmtMoeda(inv.valor_total, inv.moeda ?? moeda)}
                               </span>
-                              <span className="text-muted-foreground">
-                                {inv.container ?? "sem container"}
-                              </span>
+                              {inv.container && (
+                                <span className="text-muted-foreground">{inv.container}</span>
+                              )}
                               {inv.incoterm && (
                                 <Badge variant="outline">{inv.incoterm}</Badge>
                               )}
@@ -1071,6 +1101,9 @@ export default function ChegadaMercadoriaDetalhe() {
 
             {/* ---------------- CONFERÊNCIA ---------------- */}
             <TabsContent value="conferencia" className="mt-4 space-y-6">
+              <ParaQueServe>
+                Compara o pedido com o que veio na NF e na invoice — quantidade e preço, linha a linha.
+              </ParaQueServe>
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Pedido × NF</CardTitle>
@@ -1314,12 +1347,14 @@ export default function ChegadaMercadoriaDetalhe() {
             </TabsContent>
 
             {/* ==================== SALDO ==================== */}
-            <TabsContent value="saldo" className="mt-4">
+            <TabsContent value="saldo" className="mt-4 space-y-4">
+              <ParaQueServe>O que ainda falta faturar ou confirmar, por SKU.</ParaQueServe>
               <SaldoPedidoTab pedidoId={pedidoId} />
             </TabsContent>
 
             {/* ==================== HISTÓRICO ==================== */}
-            <TabsContent value="historico" className="mt-4">
+            <TabsContent value="historico" className="mt-4 space-y-4">
+              <ParaQueServe>Tudo o que aconteceu com o pedido, em ordem.</ParaQueServe>
               <HistoricoTab pedidoId={pedidoId} />
             </TabsContent>
 
@@ -1327,19 +1362,28 @@ export default function ChegadaMercadoriaDetalhe() {
 
           <LancarNfDialog
             open={nfDialog}
-            onOpenChange={setNfDialog}
+            onOpenChange={(open) => {
+              setNfDialog(open);
+              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+            }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
           />
           <VincularNfDialog
             open={vincNfDialog}
-            onOpenChange={setVincNfDialog}
+            onOpenChange={(open) => {
+              setVincNfDialog(open);
+              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+            }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
           />
           <LancarInvoiceDialog
             open={invDialog}
-            onOpenChange={setInvDialog}
+            onOpenChange={(open) => {
+              setInvDialog(open);
+              if (!open) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+            }}
             pedidoId={pedidoId}
             fornecedorId={pedido.fornecedor_id}
             moedaPadrao={pedido.moeda}
@@ -1348,7 +1392,10 @@ export default function ChegadaMercadoriaDetalhe() {
             open={editOpen}
             onOpenChange={setEditOpen}
             pedidoId={pedidoId}
-            onSaved={() => invalidarCompras(qc)}
+            onSaved={() => {
+              invalidarCompras(qc);
+              void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
+            }}
           />
 
           {receberNf && (
@@ -1356,6 +1403,7 @@ export default function ChegadaMercadoriaDetalhe() {
               open={!!receberNf}
               onOpenChange={(v) => {
                 if (!v) setReceberNf(null);
+                if (!v) void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
               }}
               nfId={Number(receberNf.id)}
               nfNumero={`${receberNf.numero}${receberNf.serie ? `/${receberNf.serie}` : ""}`}
