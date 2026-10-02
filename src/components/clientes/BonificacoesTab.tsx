@@ -19,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { ConcederBonificacaoDialog, QK_BONIFICACOES_CLIENTE } from "./ConcederBonificacaoDialog";
+import { useBonificacoesSemRegistro, type BonificacaoSemRegistro } from "./BonificacoesPendentesTab";
 
 interface Concessao {
   id: string;
@@ -31,7 +32,7 @@ interface Concessao {
   autorizado_por_nome: string | null;
   motivo: { nome: string } | null;
   instr: { rotulo: string } | null;
-  pedido: { id_externo: string | null; estagio: string | null } | null;
+  pedido: { id_externo: string | null; estagio: string | null; estagio_dim: { rotulo: string } | null } | null;
   haver: { saldo: number | null; status: string | null } | null;
 }
 
@@ -49,6 +50,8 @@ function dataBR(iso: string | null | undefined) {
 
 export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
   const [aberto, setAberto] = useState(false);
+  const [registro, setRegistro] = useState<BonificacaoSemRegistro | null>(null);
+  const semRegistroQ = useBonificacoesSemRegistro(parceiroId);
   const q = useQuery({
     queryKey: [QK_BONIFICACOES_CLIENTE, parceiroId],
     queryFn: async (): Promise<Concessao[]> => {
@@ -56,7 +59,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
       const { data, error } = await (supabase as any)
         .from("concessao_ocorrencia")
         .select(
-          "id, criado_em, instrumento, sku, quantidade, custo_total, valor_bonificado, autorizado_por_nome, motivo:motivos_concessao(nome), instr:bonificacao_instrumento_dim(rotulo), pedido:pedidos!concessao_ocorrencia_pedido_id_fkey(id_externo, estagio), haver:haver_cliente(saldo, status)",
+          "id, criado_em, instrumento, sku, quantidade, custo_total, valor_bonificado, autorizado_por_nome, motivo:motivos_concessao(nome), instr:bonificacao_instrumento_dim(rotulo), pedido:pedidos!concessao_ocorrencia_pedido_id_fkey(id_externo, estagio, estagio_dim:pedido_estagio!pedidos_estagio_fkey(rotulo)), haver:haver_cliente(saldo, status)",
         )
         .eq("parceiro_id", parceiroId)
         .order("criado_em", { ascending: false });
@@ -88,6 +91,35 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Não foi possível carregar as bonificações</AlertTitle>
           <AlertDescription>{formatError(q.error)}</AlertDescription>
+        </Alert>
+      )}
+      {semRegistroQ.isError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Não foi possível carregar os pedidos sem registro</AlertTitle>
+          <AlertDescription>{formatError(semRegistroQ.error)}</AlertDescription>
+        </Alert>
+      )}
+
+      {(semRegistroQ.data?.length ?? 0) > 0 && (
+        <Alert className="border-warning/40 bg-warning/5">
+          <AlertTriangle className="h-4 w-4 text-warning" />
+          <AlertTitle>Pedidos bonificados sem registro</AlertTitle>
+          <AlertDescription className="space-y-3">
+            <p>Pedido saiu como bonificação sem motivo nem quem autorizou. Registre para entrar na conta do que já foi dado.</p>
+            <div className="space-y-1.5">
+              {semRegistroQ.data?.map((p) => (
+                <div key={p.pedido_id} className="grid items-center gap-2 rounded-md border border-border/60 bg-background/70 p-2 text-xs sm:grid-cols-[auto_auto_1fr_auto_auto_auto]">
+                  <span className="font-medium">{p.id_externo ?? p.pedido_id.slice(0, 8)}</span>
+                  <span className="text-muted-foreground">{dataBR(p.data_pedido)}</span>
+                  <span>{p.estagio_rotulo ?? p.estagio ?? "—"}</span>
+                  <span className="text-right tabular-nums">{Number(p.itens ?? 0)} itens · {Number(p.quantidade ?? 0)} un</span>
+                  <span className="text-right font-medium tabular-nums">{formatBRL(Number(p.valor_bruto ?? 0))}</span>
+                  <Button size="sm" variant="outline" onClick={() => setRegistro(p)}>Registrar</Button>
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
         </Alert>
       )}
 
@@ -155,7 +187,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
                   <TableCell className="text-sm">{l.motivo?.nome ?? "—"}</TableCell>
                   <TableCell className="text-sm">
                     {l.pedido
-                      ? `${l.pedido.id_externo ?? "pedido"}${l.pedido.estagio ? ` · ${l.pedido.estagio}` : ""}`
+                      ? `${l.pedido.id_externo ?? "pedido"}${l.pedido.estagio ? ` · ${l.pedido.estagio_dim?.rotulo ?? l.pedido.estagio}` : ""}`
                       : l.haver
                         ? `haver: saldo ${formatBRL(Number(l.haver.saldo ?? 0))} · ${l.haver.status ?? "—"}`
                         : "—"}
@@ -178,6 +210,15 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
       )}
 
       <ConcederBonificacaoDialog parceiroId={parceiroId} open={aberto} onOpenChange={setAberto} />
+      {registro && (
+        <ConcederBonificacaoDialog
+          parceiroId={parceiroId}
+          instrumentoInicial="pedido_bonificado"
+          pedidoInicial={registro.pedido_id}
+          open
+          onOpenChange={(v) => { if (!v) setRegistro(null); }}
+        />
+      )}
     </div>
   );
 }
