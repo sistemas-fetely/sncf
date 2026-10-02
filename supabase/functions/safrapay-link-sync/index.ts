@@ -48,11 +48,11 @@ function lerCharge(c: any) {
   const id = primeiro(c?.id, c?.chargeId);
   const nsu = primeiro(tx?.transactionId, tx?.nsu, c?.nsu);
   const amountRaw = primeiro(tx?.amount, c?.amount, c?.totalAmount);
-  const data = primeiro(tx?.captureDateTime, c?.addedAtUtc);
+  const data = dataSafra(tx?.captureDateTime, false) ?? dataSafra(c?.addedAtUtc, true);
   return {
     status, id: id != null ? String(id) : null, nsu: nsu != null ? String(nsu) : null,
     valorCentavos: amountRaw != null && Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : null,
-    data: data ? new Date(String(data)).toISOString() : new Date().toISOString(),
+    data: data ?? new Date().toISOString(),
     aut: tx?.authorizationCode != null ? String(tx.authorizationCode) : null,
     bandeira: tx?.card?.brandName ?? null,
     final: tx?.card?.lastFourDigits ?? null,
