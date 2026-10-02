@@ -48,6 +48,12 @@ import ReguaPedido, {
   usePedidoRegua,
 } from "@/components/compras/ReguaPedido";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
+import { TabelaFetely } from "@/components/ui/tabela-fetely";
+import {
+  RodapePaginacao,
+  DEFAULT_PAGE_SIZE,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 
 
 
