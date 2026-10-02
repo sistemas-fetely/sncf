@@ -92,10 +92,13 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
 
   const produtosQ = useProdutos(busca);
 
-  const coberturaQ = useCoberturaItens([pedidoId]);
+  const sobraQ = useSobraLivrePorSku(
+    itens.map((i) => i.sku).filter(Boolean) as string[]
+  );
   useEffect(() => {
-    if (coberturaQ.error) toast.error((coberturaQ.error as Error).message);
-  }, [coberturaQ.error]);
+    if (sobraQ.error) toast.error((sobraQ.error as Error).message);
+  }, [sobraQ.error]);
+
 
   const salvar = useMutation({
     mutationFn: async () => {
