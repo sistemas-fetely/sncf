@@ -223,7 +223,7 @@ export default function RecebimentoXpm() {
       void qc.invalidateQueries({ queryKey: ["vw_compras_nf_sem_entrada"] });
       void qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
       void qc.invalidateQueries({ queryKey: ["compras-pendencias-xpm"] });
-      void qc.invalidateQueries({ queryKey: ["importacao-pedido-regua"] });
+      void qc.invalidateQueries({ queryKey: ["vw_importacao_pedido_regua"] });
       toast.success("Termo ingerido com sucesso");
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao ingerir Termo");
