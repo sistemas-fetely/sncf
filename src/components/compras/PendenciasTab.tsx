@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,11 @@ import { CardIndicador } from "@/components/ui/card-indicador";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
+import {
+  RodapePaginacao,
+  DEFAULT_PAGE_SIZE,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import {
   Table,
   TableBody,
@@ -87,6 +92,8 @@ function NfsSemEntrada({
 }) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const q = useQuery({
     queryKey: ["vw_compras_nf_sem_entrada"],
     queryFn: async () => {
@@ -112,6 +119,14 @@ function NfsSemEntrada({
       .sort((a, b) => Number(b.dias_parada ?? 0) - Number(a.dias_parada ?? 0));
   }, [q.data, pedidoFiltro, busca]);
 
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, pedidoFiltro, tamanho]);
+
+  const totalPaginas = Math.max(1, Math.ceil(linhas.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const naPagina = linhas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+
   const receber = (r: NfSemEntrada) => {
     if (r.rota_recebimento) {
       navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
@@ -133,12 +148,13 @@ function NfsSemEntrada({
       exibidos={linhas.length}
       rotulo="NFs"
     >
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pedido</TableHead>
-              <TableHead>NF</TableHead>
+      <>
+        <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+          <Table containerClassName="overflow-visible">
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              <TableRow>
+                <TableHead>Pedido</TableHead>
+                <TableHead>NF</TableHead>
               <TableHead>Emissão</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead className="text-right">Valor</TableHead>
@@ -150,7 +166,7 @@ function NfsSemEntrada({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.map((r, i) => (
+            {naPagina.map((r, i) => (
               <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`}>
                 <TableCell className="font-medium">{r.numero_pedido ?? "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">
@@ -190,6 +206,15 @@ function NfsSemEntrada({
           </TableBody>
         </Table>
       </div>
+      <RodapePaginacao
+        total={linhas.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanho}
+        tela="pendencias_nfs_sem_entrada"
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+      />
+      </>
     </TabelaFetely>
   );
 }
