@@ -362,7 +362,8 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                       className={cn(
                         "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
                         descoberto && "bg-destructive/10 border-destructive/40",
-                        parcial && "bg-warning/10 border-warning/40"
+                        parcial && "bg-warning/10 border-warning/40",
+                        apurando && "bg-muted/50 border-border"
                       )}
                     >
                       <div className="flex-1 min-w-0">
