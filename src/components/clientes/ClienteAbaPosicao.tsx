@@ -94,7 +94,7 @@ function Indicador({
     <CardIndicador
       compacto={!heroi}
       rotulo={rotulo}
-      tom={regua ? TOM_ : "neutro"}
+      tom={regua ? TOM_REGUA[regua] : "neutro"}
       valor={heroi ? valor : <span className="text-[21px] leading-[1.2]">{valor}</span>}
       nota={nota}
     />
