@@ -21,6 +21,8 @@ export interface PedidoReguaRow {
   codigos_sem_sku: number | null;
   nf_linhas_sem_custo: number | null;
   ficha_xpm_incompleta: number | null;
+  skus_fora_pedido: number | null;
+  nf_linhas_rateio_incompleto: number | null;
   nfs_sem_entrada: number | null;
   alerta_embarque: "eta_vencida" | "entregue_sem_data" | null;
   exige_embarque: boolean | null;
@@ -34,7 +36,7 @@ export function usePedidoRegua(pedidoId: number) {
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_regua")
         .select(
-          "etapa_embarque,etapa_nf,etapa_traducao,etapa_entrada,embarques,embarques_chegados,nfs_ligadas,codigos_sem_sku,nf_linhas_sem_custo,ficha_xpm_incompleta,nfs_sem_entrada,alerta_embarque,exige_embarque",
+          "etapa_embarque,etapa_nf,etapa_traducao,etapa_entrada,embarques,embarques_chegados,nfs_ligadas,codigos_sem_sku,nf_linhas_sem_custo,ficha_xpm_incompleta,skus_fora_pedido,nf_linhas_rateio_incompleto,nfs_sem_entrada,alerta_embarque,exige_embarque",
         )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
@@ -113,6 +115,8 @@ export default function ReguaPedido({ pedidoId, onIrSubAba }: Props) {
   const semSku = Number(r.codigos_sem_sku ?? 0);
   const semCusto = Number(r.nf_linhas_sem_custo ?? 0);
   const fichaXpm = Number(r.ficha_xpm_incompleta ?? 0);
+  const skusFora = Number(r.skus_fora_pedido ?? 0);
+  const rateioIncompleto = Number(r.nf_linhas_rateio_incompleto ?? 0);
   const semEntrada = Number(r.nfs_sem_entrada ?? 0);
 
   const detalheEmbarque = r.etapa_embarque === "na"
@@ -139,6 +143,8 @@ export default function ReguaPedido({ pedidoId, onIrSubAba }: Props) {
     semSku > 0 ? `${semSku} sem SKU` : null,
     semCusto > 0 ? `${semCusto} sem custo` : null,
     fichaXpm > 0 ? `${fichaXpm} ficha XPM` : null,
+    skusFora > 0 ? `${skusFora} SKU fora do pedido` : null,
+    rateioIncompleto > 0 ? `${rateioIncompleto} rateio incompleto` : null,
   ].filter(Boolean).join(" · ");
   const detalheTraducao = r.etapa_traducao === "ok"
     ? "Completa"
@@ -158,7 +164,13 @@ export default function ReguaPedido({ pedidoId, onIrSubAba }: Props) {
     ? "codigos_sem_sku"
     : semCusto > 0
       ? "nf_linhas_sem_custo"
-      : "ficha_xpm_incompleta";
+      : fichaXpm > 0
+        ? "ficha_xpm_incompleta"
+        : skusFora > 0
+          ? "skus_fora_pedido"
+          : "nf_linhas_rateio_incompleto";
+  const traducaoVaiParaRateio =
+    primeiroTipo === "skus_fora_pedido" || primeiroTipo === "nf_linhas_rateio_incompleto";
 
   const etapas: EtapaProps[] = [
     { rotulo: "Pedido", detalhe: "Cadastrado", estado: "ok" },
@@ -178,7 +190,12 @@ export default function ReguaPedido({ pedidoId, onIrSubAba }: Props) {
       rotulo: "Tradução",
       detalhe: detalheTraducao,
       estado: r.etapa_traducao,
-      onClick: () => navigate(`/vendas/produto/chegada-mercadoria?aba=pendencias&tipo=${primeiroTipo}&pedido=${pedidoId}`),
+      onClick: () =>
+        navigate(
+          traducaoVaiParaRateio
+            ? "/vendas/produto/chegada-mercadoria?aba=rateio-nf"
+            : `/vendas/produto/chegada-mercadoria?aba=pendencias&tipo=${primeiroTipo}&pedido=${pedidoId}`,
+        ),
     },
     {
       rotulo: "Entrada no estoque",

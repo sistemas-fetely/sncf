@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -181,41 +181,6 @@ interface InvoiceLinha {
   valor_total: number | null;
 }
 
-interface ConfNf {
-  importacao_pedido_id: number;
-  numero_pedido: string | null;
-  nf_id: number | null;
-  nf_numero: string | null;
-  nf_linha_id: number | null;
-  item_seq: number | null;
-  codigo_nf: string | null;
-  ncm: string | null;
-  qtd_nf: number | null;
-  valor_nf: number | null;
-  sku: string | null;
-  qtd_alocada: number | null;
-  qtd_pedido: number | null;
-  situacao: string | null;
-}
-
-interface ConfInv {
-  importacao_pedido_id: number;
-  numero_pedido: string | null;
-  invoice_id: number | null;
-  invoice_numero: string | null;
-  data_emissao: string | null;
-  sku: string | null;
-  codigo_fornecedor: string | null;
-  qtd_pedido: number | null;
-  qtd_invoice: number | null;
-  declarado_invoice: number | null;
-  a_embarcar: number | null;
-  custo_pedido: number | null;
-  custo_invoice: number | null;
-  delta_preco: number | null;
-  situacao: string | null;
-}
-
 // ============================================================================
 // Helpers
 // ============================================================================
@@ -228,49 +193,6 @@ const fmtDate = (d?: string | null) => {
     return d;
   }
 };
-const SITUACAO_NF: Record<
-  string,
-  { rotulo: string; badge: string; linha?: string }
-> = {
-  ok: { rotulo: "OK", badge: "border-success/40 bg-success/10 text-success" },
-  nao_alocado: {
-    rotulo: "Não alocado",
-    badge: "border-warning/40 bg-warning/10 text-warning",
-    linha: "bg-warning/5",
-  },
-  so_nf: {
-    rotulo: "Só na NF",
-    badge: "border-destructive/40 bg-destructive/10 text-destructive",
-    linha: "bg-destructive/10",
-  },
-  divergente: {
-    rotulo: "Divergente",
-    badge: "border-destructive/40 bg-destructive/10 text-destructive",
-    linha: "bg-destructive/10",
-  },
-};
-
-// Conferência Pedido × Invoice: embarque parcial NÃO é problema. Realce de
-// linha só para erro de fato (excesso de embarque ou SKU fora do pedido).
-const SITUACAO_INV: Record<
-  string,
-  { rotulo: string; estado: EstadoSelo; linha?: string }
-> = {
-  ok: { rotulo: "OK", estado: "success" },
-  preco_divergente: { rotulo: "Preço divergente", estado: "warning" },
-  embarque_excede_pedido: {
-    rotulo: "Embarque acima do pedido",
-    estado: "destructive",
-    linha: "bg-destructive/10",
-  },
-  sku_fora_do_pedido: {
-    rotulo: "SKU fora do pedido",
-    estado: "destructive",
-    linha: "bg-destructive/10",
-  },
-};
-
-
 const fmtNum = (v: number | null | undefined, casas = 0) =>
   v === null || v === undefined ? "—" : Number(v).toLocaleString("pt-BR", {
     minimumFractionDigits: casas,
@@ -317,11 +239,18 @@ export default function ChegadaMercadoriaDetalhe() {
   const pedidoId = Number(id);
   const [searchParams, setSearchParams] = useSearchParams();
   const subParam = searchParams.get("sub");
-  const subAba = ["linhas", "documentos", "conferencia", "saldo", "historico"].includes(
+  const subAba = ["linhas", "documentos", "saldo", "historico"].includes(
     subParam ?? "",
   )
     ? (subParam as string)
     : "linhas";
+  useEffect(() => {
+    if (subParam === "conferencia") {
+      const proximos = new URLSearchParams(searchParams);
+      proximos.delete("sub");
+      setSearchParams(proximos, { replace: true });
+    }
+  }, [subParam, searchParams, setSearchParams]);
   const [nfDialog, setNfDialog] = useState(false);
   const [invDialog, setInvDialog] = useState(false);
   const [nfAberta, setNfAberta] = useState<number | null>(null);
@@ -489,6 +418,8 @@ export default function ChegadaMercadoriaDetalhe() {
     [nfsQ.data],
   );
 
+  const nfIds = nfIdsCard;
+
   const recebimentosQ = useQuery({
     queryKey: ["nf-recebimento", nfIdsCard],
     enabled: nfIdsCard.length > 0,
@@ -558,36 +489,6 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
-  const confNfQ = useQuery({
-    queryKey: ["pedido-mercadoria-conferencia-nf", pedidoId],
-    enabled: Number.isFinite(pedidoId),
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_pedido_conferencia_nf")
-        .select(
-          "importacao_pedido_id, numero_pedido, nf_id, nf_numero, nf_linha_id, item_seq, codigo_nf, ncm, qtd_nf, valor_nf, sku, qtd_alocada, qtd_pedido, situacao",
-        )
-        .eq("importacao_pedido_id", pedidoId);
-      if (error) throw error;
-      return (data ?? []) as ConfNf[];
-    },
-  });
-
-  const confInvQ = useQuery({
-    queryKey: ["pedido-mercadoria-conferencia-inv", pedidoId],
-    enabled: Number.isFinite(pedidoId),
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_invoice_conferencia")
-        .select(
-          "importacao_pedido_id, numero_pedido, invoice_id, invoice_numero, data_emissao, sku, codigo_fornecedor, qtd_pedido, qtd_invoice, declarado_invoice, a_embarcar, custo_pedido, custo_invoice, delta_preco, situacao",
-        )
-        .eq("importacao_pedido_id", pedidoId);
-      if (error) throw error;
-      return (data ?? []) as ConfInv[];
-    },
-  });
-
   const qc = useQueryClient();
   const CHAVE_LINHA_CUSTOS = (pedidoId: number) =>
     ["vw_importacao_linha_custos", pedidoId] as const;
@@ -595,79 +496,6 @@ export default function ChegadaMercadoriaDetalhe() {
     void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
     void qc.invalidateQueries({ queryKey: CHAVE_LINHA_CUSTOS(pedidoId) });
   };
-
-  const naoAlocadas = useMemo(
-    () => (confNfQ.data ?? []).filter((r) => r.situacao === "nao_alocado").length,
-    [confNfQ.data],
-  );
-
-  /**
-   * Furo de verdade é erro de rateio DENTRO do documento: Qtd NF da linha contra a
-   * soma do que foi alocado nos SKUs daquela mesma linha. Saldo de pedido não entra aqui —
-   * ele vive na aba Saldo, como "A faturar" e "A confirmar".
-   */
-  const rateioPorLinhaNf = useMemo(() => {
-    const m = new Map<number, { qtdNf: number; alocada: number }>();
-    for (const r of confNfQ.data ?? []) {
-      if (r.nf_linha_id == null) continue;
-      const k = Number(r.nf_linha_id);
-      const atual = m.get(k) ?? { qtdNf: Number(r.qtd_nf ?? 0), alocada: 0 };
-      atual.alocada += Number(r.qtd_alocada ?? 0);
-      m.set(k, atual);
-    }
-    return m;
-  }, [confNfQ.data]);
-
-  const nfIds = useMemo(
-    () => (nfsQ.data?.nfs ?? []).map((n) => Number(n.id)).sort((a, b) => a - b),
-    [nfsQ.data],
-  );
-
-  // Diagnostico real: o banco decide se falta de-para ou falta so rodar a alocacao.
-  const diagAlocQ = useQuery({
-    queryKey: ["pedido-mercadoria-diag-alocacao", pedidoId, nfIds.join(",")],
-    enabled: nfIds.length > 0 && naoAlocadas > 0,
-    queryFn: async () => {
-      let sem_depara = 0;
-      let linhas_alocaveis = 0;
-      let servico_sem_destino = 0;
-      for (const nfId of nfIds) {
-        const { data, error } = await (supabase as any).rpc("alocar_nf_linhas", {
-          p_nf_id: nfId,
-          p_confirmar: false,
-        });
-        if (error) throw error;
-        const r = (Array.isArray(data) ? data[0] : data) ?? {};
-        sem_depara += Number(r.sem_depara ?? 0);
-        linhas_alocaveis += Number(r.linhas_alocaveis ?? 0);
-        servico_sem_destino += Number(r.servico_sem_destino ?? 0);
-      }
-      return { sem_depara, linhas_alocaveis, servico_sem_destino };
-    },
-  });
-
-  const alocarAgora = useMutation({
-    mutationFn: async () => {
-      for (const nfId of nfIds) {
-        const { error } = await (supabase as any).rpc("alocar_nf_linhas", {
-          p_nf_id: nfId,
-          p_confirmar: true,
-        });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success("Linhas alocadas.");
-      invalidarCompras(qc);
-      void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
-      invalidarReguaELinhaCustos();
-    },
-    onError: (e) => toast.error(formatError(e)),
-  });
-
-
-
-  const diagAloc = diagAlocQ.data ?? null;
 
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
   const invLinhasPor = (invId: number) =>
@@ -825,7 +653,6 @@ export default function ChegadaMercadoriaDetalhe() {
             <TabsList>
               <TabsTrigger value="linhas">Linhas</TabsTrigger>
               <TabsTrigger value="documentos">Documentos</TabsTrigger>
-              <TabsTrigger value="conferencia">Conferência</TabsTrigger>
               <TabsTrigger value="saldo">Saldo</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
 
@@ -1290,253 +1117,6 @@ export default function ChegadaMercadoriaDetalhe() {
                           </div>
                         );
                       })}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* ---------------- CONFERÊNCIA ---------------- */}
-            <TabsContent value="conferencia" className="mt-4 space-y-6">
-              <ParaQueServe>
-                Compara o pedido com o que veio na NF e na invoice — quantidade e preço, linha a linha.
-              </ParaQueServe>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Pedido × NF</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {confNfQ.isLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando conferência...
-                    </div>
-                  ) : confNfQ.isError ? (
-                    <ErroBloco
-                      titulo="Falha ao carregar a conferência de NF."
-                      erro={confNfQ.error}
-                      onRetry={() => confNfQ.refetch()}
-                    />
-                  ) : (confNfQ.data ?? []).length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      A conferência aparece quando houver NF vinculada a este pedido.
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {naoAlocadas > 0 && diagAloc && diagAloc.sem_depara > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-                          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                          <span>
-                            {diagAloc.sem_depara} linha(s) sem de-para do fornecedor.
-                          </span>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to="/vendas/produto/chegada-mercadoria?aba=de-para">
-                              Preencher de-para <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                            </Link>
-                          </Button>
-                        </div>
-                      )}
-                      {naoAlocadas > 0 &&
-                        diagAloc &&
-                        diagAloc.sem_depara === 0 &&
-                        diagAloc.linhas_alocaveis > 0 && (
-                          <div className="flex flex-wrap items-center gap-2 rounded-md border border-info/40 bg-info/10 p-3 text-sm text-info">
-                            <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                            <span>
-                              {diagAloc.linhas_alocaveis} linha(s) prontas para alocar. O de-para já
-                              está preenchido.
-                            </span>
-                            <Button
-                              size="sm"
-                              onClick={() => alocarAgora.mutate()}
-                              disabled={alocarAgora.isPending}
-                            >
-                              {alocarAgora.isPending && (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
-                              )}
-                              Alocar agora
-                            </Button>
-                          </div>
-                        )}
-                      {naoAlocadas > 0 && diagAloc && diagAloc.servico_sem_destino > 0 && (
-                        <div className="flex flex-wrap items-center gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-                          <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                          <span>
-                            {diagAloc.servico_sem_destino} linha(s) de serviço sem destino. Escolha o
-                            SKU de destino do serviço no de-para do fornecedor.
-                          </span>
-                        </div>
-                      )}
-                      {naoAlocadas > 0 && diagAlocQ.isLoading && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                          Checando o que falta para alocar...
-                        </div>
-                      )}
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>NF</TableHead>
-                              <TableHead className="text-right">Item</TableHead>
-                              <TableHead>Código</TableHead>
-                              <TableHead>NCM</TableHead>
-                              <TableHead className="text-right">Qtd NF</TableHead>
-                              <TableHead className="text-right">Valor NF</TableHead>
-                              <TableHead>SKU</TableHead>
-                              <TableHead className="text-right">Qtd alocada</TableHead>
-                              <TableHead className="text-right">Qtd pedido</TableHead>
-                              <TableHead>Situação</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {confNfQ.data!.map((r, i) => {
-                              const meta = SITUACAO_NF[r.situacao ?? ""] ?? {
-                                rotulo: r.situacao ?? "—",
-                                badge: "bg-muted text-muted-foreground",
-                                linha: undefined,
-                              };
-                              return (
-                                <TableRow
-                                  key={`${r.nf_linha_id ?? i}-${r.sku ?? "s"}-${i}`}
-                                  className={meta.linha}
-                                >
-                                  <TableCell className="font-mono text-xs">
-                                    {r.nf_numero ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="text-right">{r.item_seq ?? "—"}</TableCell>
-                                  <TableCell className="font-mono text-xs">
-                                    {r.codigo_nf ?? "—"}
-                                  </TableCell>
-                                  <TableCell className="font-mono text-xs">{r.ncm ?? "—"}</TableCell>
-                                  <TableCell className="text-right">{fmtNum(r.qtd_nf)}</TableCell>
-                                  <TableCell className="text-right">
-                                    {r.valor_nf === null || r.valor_nf === undefined
-                                      ? "—"
-                                      : fmtMoeda(r.valor_nf, "BRL")}
-                                  </TableCell>
-                                  <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                                  <TableCell className="text-right">
-                                    {fmtNum(r.qtd_alocada)}
-                                  </TableCell>
-                                  <TableCell className="text-right">
-                                    {fmtNum(r.qtd_pedido)}
-                                  </TableCell>
-                                  <TableCell>
-                                    {(() => {
-                                      const rat =
-                                        r.nf_linha_id == null
-                                          ? null
-                                          : rateioPorLinhaNf.get(Number(r.nf_linha_id));
-                                      if (!rat) {
-                                        return (
-                                          <Badge className={meta.badge} variant="outline">
-                                            {meta.rotulo}
-                                          </Badge>
-                                        );
-                                      }
-                                      const dif = rat.qtdNf - rat.alocada;
-                                      if (dif === 0) return <Selo estado="success">Rateio ok</Selo>;
-                                      return (
-                                        <Selo estado="destructive">
-                                          {dif > 0
-                                            ? `Falta ratear ${fmtNum(dif)}`
-                                            : `Rateio excede em ${fmtNum(Math.abs(dif))}`}
-                                        </Selo>
-                                      );
-                                    })()}
-                                  </TableCell>
-                                </TableRow>
-                              );
-                            })}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Pedido × Invoice</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {confInvQ.isLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando conferência...
-                    </div>
-                  ) : confInvQ.isError ? (
-                    <ErroBloco
-                      titulo="Falha ao carregar a conferência de invoice."
-                      erro={confInvQ.error}
-                      onRetry={() => confInvQ.refetch()}
-                    />
-                  ) : (confInvQ.data ?? []).length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      A conferência aparece quando houver invoice vinculada a este pedido.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Invoice</TableHead>
-                            <TableHead>SKU</TableHead>
-                            <TableHead className="text-right">Qtd pedido</TableHead>
-                            <TableHead className="text-right">Qtd nesta invoice</TableHead>
-                            <TableHead className="text-right">Declarado (invoice)</TableHead>
-                            <TableHead className="text-right">A embarcar</TableHead>
-                            <TableHead className="text-right">Custo pedido</TableHead>
-                            <TableHead className="text-right">Custo invoice</TableHead>
-                            <TableHead className="text-right">Δ preço</TableHead>
-                            <TableHead>Situação</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {confInvQ.data!.map((r, i) => {
-                            const sit = SITUACAO_INV[r.situacao ?? ""] ?? {
-                              rotulo: r.situacao ?? "—",
-                              estado: "muted" as EstadoSelo,
-                            };
-                            const deltaPreco =
-                              r.delta_preco != null && Number(r.delta_preco) !== 0;
-                            return (
-                              <TableRow
-                                key={`${r.invoice_id}-${r.sku}-${i}`}
-                                className={sit.linha}
-                              >
-                                <TableCell>{r.invoice_numero ?? "—"}</TableCell>
-                                <TableCell className="font-mono text-xs">{r.sku ?? "—"}</TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_pedido)}</TableCell>
-                                <TableCell className="text-right">{fmtNum(r.qtd_invoice)}</TableCell>
-                                <TableCell className="text-right">{fmtNum(r.declarado_invoice)}</TableCell>
-                                <TableCell
-                                  className={
-                                    (r.a_embarcar ?? 0) > 0
-                                      ? "text-right font-medium text-warning"
-                                      : "text-right"
-                                  }
-                                >
-                                  {fmtNum(r.a_embarcar)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {fmtMoeda(r.custo_pedido, moeda)}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  {fmtMoeda(r.custo_invoice, moeda)}
-                                </TableCell>
-                                <CelulaDinheiro
-                                  valor={r.delta_preco}
-                                  className={deltaPreco ? "font-medium text-warning" : undefined}
-                                />
-                                <TableCell>
-                                  <Selo estado={sit.estado}>{sit.rotulo}</Selo>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
                     </div>
                   )}
                 </CardContent>
