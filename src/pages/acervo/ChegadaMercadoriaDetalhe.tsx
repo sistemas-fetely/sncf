@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
+import { Selo } from "@/components/ui/selo";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -291,7 +293,7 @@ export default function ChegadaMercadoriaDetalhe() {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
         .select(
-          "a_faturar, a_confirmar, custo_projetado, delta_custo, delta_custo_pct, custo_comparavel, custo_incomparavel_motivo",
+          "a_faturar, a_confirmar, aguarda_recebimento, falta_xpm, custo_projetado, delta_custo, delta_custo_pct, custo_comparavel, custo_incomparavel_motivo",
         )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
@@ -299,6 +301,8 @@ export default function ChegadaMercadoriaDetalhe() {
       return (data ?? null) as {
         a_faturar: number | null;
         a_confirmar: number | null;
+        aguarda_recebimento: number | null;
+        falta_xpm: number | null;
         custo_projetado: number | null;
         delta_custo: number | null;
         delta_custo_pct: number | null;
@@ -492,6 +496,7 @@ export default function ChegadaMercadoriaDetalhe() {
   const invalidarReguaELinhaCustos = () => {
     void qc.invalidateQueries({ queryKey: CHAVE_REGUA(pedidoId) });
     void qc.invalidateQueries({ queryKey: CHAVE_LINHA_CUSTOS(pedidoId) });
+    void qc.invalidateQueries({ queryKey: CHAVE_HISTORICO(pedidoId) });
   };
 
   const nfLinhasPor = (nfId: number) => (nfsQ.data?.linhas ?? []).filter((l) => l.nf_id === nfId);
@@ -637,10 +642,13 @@ export default function ChegadaMercadoriaDetalhe() {
               }
             />
             <Stat
-              rotulo="A confirmar"
+              rotulo="Aguarda recebimento"
               valor={
-                <span className={(saldoQ.data?.a_confirmar ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
-                  {fmtNum(saldoQ.data?.a_confirmar ?? 0)}
+                <span className={(saldoQ.data?.aguarda_recebimento ?? 0) > 0 ? "text-warning" : "text-muted-foreground"}>
+                  {fmtNum(saldoQ.data?.aguarda_recebimento ?? 0)}
+                  {Number(saldoQ.data?.falta_xpm ?? 0) > 0 && (
+                    <span className="ml-1 text-xs text-destructive">+ {fmtNum(saldoQ.data?.falta_xpm)} em falta</span>
+                  )}
                 </span>
               }
             />
@@ -1131,7 +1139,7 @@ export default function ChegadaMercadoriaDetalhe() {
 
             {/* ==================== HISTÓRICO ==================== */}
             <TabsContent value="historico" className="mt-4 space-y-4">
-              <ParaQueServe>Tudo o que aconteceu com o pedido, em ordem.</ParaQueServe>
+              <ParaQueServe>Tudo o que aconteceu com o pedido, do mais recente ao mais antigo: NFs, rateios, recebimentos, chegada e edições.</ParaQueServe>
               <HistoricoTab pedidoId={pedidoId} />
             </TabsContent>
 
@@ -1216,90 +1224,155 @@ interface EventoPedido {
   created_at: string;
 }
 
+const CHAVE_HISTORICO = (pedidoId: number) => ["vw_importacao_pedido_timeline", pedidoId] as const;
+
+interface EventoTimeline {
+  pedido_id: number;
+  quando: string;
+  tipo: string;
+  titulo: string | null;
+  detalhe: string | null;
+  quantidade: number | null;
+  valor: number | null;
+  autor_id: string | null;
+  autor: string | null;
+}
+
+const TIPO_TIMELINE: Record<string, { rotulo: string; estado: "muted" | "info" | "success" }> = {
+  criacao: { rotulo: "Pedido", estado: "muted" },
+  alteracao: { rotulo: "Edição", estado: "muted" },
+  mudanca_status: { rotulo: "Status", estado: "info" },
+  nf: { rotulo: "NF", estado: "info" },
+  alocacao: { rotulo: "Rateio", estado: "muted" },
+  recebimento: { rotulo: "Recebimento", estado: "success" },
+  chegada: { rotulo: "Chegada", estado: "success" },
+  invoice: { rotulo: "Invoice", estado: "info" },
+};
+
+const FILTROS_TIMELINE: { chave: string; rotulo: string; tipos: string[] }[] = [
+  { chave: "nf", rotulo: "NF", tipos: ["nf"] },
+  { chave: "alocacao", rotulo: "Rateio", tipos: ["alocacao"] },
+  { chave: "recebimento", rotulo: "Recebimento", tipos: ["recebimento"] },
+  { chave: "chegada", rotulo: "Chegada", tipos: ["chegada"] },
+  { chave: "pedido", rotulo: "Pedido", tipos: ["criacao", "alteracao", "mudanca_status"] },
+  { chave: "invoice", rotulo: "Invoice", tipos: ["invoice"] },
+];
+
+const FMT_QUANDO = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
 function HistoricoTab({ pedidoId }: { pedidoId: number }) {
-  const eventosQ = useQuery({
-    queryKey: ["importacao-pedido-evento", pedidoId],
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState("todos");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+
+  const q = useQuery({
+    queryKey: CHAVE_HISTORICO(pedidoId),
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("importacao_pedido_evento")
-        .select("id, tipo, campo, valor_de, valor_para, payload, created_at")
+        .from("vw_importacao_pedido_timeline")
+        .select("*")
         .eq("pedido_id", pedidoId)
-        .order("created_at", { ascending: false });
+        .order("quando", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as EventoPedido[];
+      return (data ?? []) as EventoTimeline[];
     },
   });
 
-  if (eventosQ.isLoading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...
-      </div>
-    );
-  }
-  if (eventosQ.isError) {
-    return (
-      <ErroBloco
-        titulo="Falha ao carregar o histórico do pedido."
-        erro={eventosQ.error}
-        onRetry={() => eventosQ.refetch()}
-      />
-    );
-  }
-  const eventos = eventosQ.data ?? [];
-  if (eventos.length === 0) {
-    return <div className="text-sm text-muted-foreground">Nenhuma alteração registrada.</div>;
-  }
+  const todos = q.data ?? [];
+  const filtradas = useMemo(() => {
+    const t = busca.trim().toLowerCase();
+    const tipos = FILTROS_TIMELINE.find((f) => f.chave === filtro)?.tipos;
+    return todos.filter((e) => {
+      if (tipos && !tipos.includes(e.tipo)) return false;
+      if (!t) return true;
+      return (e.titulo ?? "").toLowerCase().includes(t) || (e.detalhe ?? "").toLowerCase().includes(t);
+    });
+  }, [todos, busca, filtro]);
+
+  useEffect(() => setPagina(1), [busca, filtro, tamanho]);
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const fatia = filtradas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Histórico</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="whitespace-nowrap">Quando</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Campo</TableHead>
-                <TableHead>De</TableHead>
-                <TableHead>Para</TableHead>
-                <TableHead>Motivo</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {eventos.map((ev) => {
-                const motivo =
-                  ev.payload && typeof ev.payload === "object"
-                    ? ((ev.payload as Record<string, unknown>).motivo as string | undefined)
-                    : undefined;
-                return (
-                  <TableRow key={ev.id}>
-                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                      {ev.created_at
-                        ? format(parseISO(ev.created_at), "dd/MM/yyyy HH:mm")
-                        : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">
-                        {ROTULO_TIPO_EVENTO[ev.tipo ?? ""] ?? ev.tipo ?? "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{ev.campo ?? "—"}</TableCell>
-                    <TableCell className="text-muted-foreground">{ev.valor_de ?? "—"}</TableCell>
-                    <TableCell className="font-medium">{ev.valor_para ?? "—"}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground max-w-[24rem]">
-                      {motivo || "—"}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+    <TabelaFetely
+      busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar no histórico…" }}
+      filtros={
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button size="sm" variant={filtro === "todos" ? "secondary" : "ghost"} onClick={() => setFiltro("todos")}
+            disabled={todos.length === 0} className={cn(todos.length === 0 && "text-muted-foreground")}>
+            Todos · {todos.length}
+          </Button>
+          {FILTROS_TIMELINE.map((f) => {
+            const n = todos.filter((e) => f.tipos.includes(e.tipo)).length;
+            return (
+              <Button key={f.chave} size="sm" variant={filtro === f.chave ? "secondary" : "ghost"}
+                onClick={() => setFiltro(f.chave)} disabled={n === 0} className={cn(n === 0 && "text-muted-foreground")}>
+                {f.rotulo} · {n}
+              </Button>
+            );
+          })}
         </div>
-      </CardContent>
-    </Card>
+      }
+      carregando={q.isLoading}
+      erro={q.isError ? formatError(q.error) : null}
+      aoTentarNovamente={() => q.refetch()}
+      vazio={{ mensagem: "Nada aconteceu com este pedido ainda." }}
+      semResultado="Nenhum evento para esse filtro."
+      total={todos.length}
+      exibidos={filtradas.length}
+      rotulo="eventos"
+    >
+      <Card>
+        <CardContent className="p-0">
+          <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+            <Table containerClassName="overflow-visible">
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                  <TableHead className="whitespace-nowrap">Quando</TableHead>
+                  <TableHead>Evento</TableHead>
+                  <TableHead>Detalhe</TableHead>
+                  <TableHead className="text-right">Qtd</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>Quem</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {fatia.map((e, i) => {
+                  const t = TIPO_TIMELINE[e.tipo] ?? { rotulo: e.tipo, estado: "muted" as const };
+                  return (
+                    <TableRow key={`${e.quando}-${e.tipo}-${i}`}>
+                      <TableCell className="whitespace-nowrap text-xs text-muted-foreground tabular-nums">
+                        {e.quando ? FMT_QUANDO.format(new Date(e.quando)).replace(",", "") : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Selo estado={t.estado}>{t.rotulo}</Selo>
+                          <span className="text-sm">{e.titulo ?? ""}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground max-w-[28rem]">{e.detalhe || "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">{e.quantidade == null ? "—" : fmtNum(e.quantidade)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{e.valor == null ? "—" : fmtMoeda(e.valor, "BRL")}</TableCell>
+                      <TableCell className="text-sm">{e.autor || "—"}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+          <RodapePaginacao total={filtradas.length} pagina={paginaAtual} tamanhoPagina={tamanho}
+            tela="pedido_historico" onPagina={setPagina} onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)} />
+        </CardContent>
+      </Card>
+    </TabelaFetely>
   );
 }

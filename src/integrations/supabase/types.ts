@@ -83779,6 +83779,7 @@ export type Database = {
           a_confirmar: number | null
           a_confirmar_liquido: number | null
           a_faturar: number | null
+          aguarda_recebimento: number | null
           aviso_iv_a_menos: number | null
           ciclo_estado: string | null
           confirmada_iv: number | null
@@ -97429,6 +97430,20 @@ export type Database = {
           },
         ]
       }
+      vw_importacao_pedido_timeline: {
+        Row: {
+          autor: string | null
+          autor_id: string | null
+          detalhe: string | null
+          pedido_id: number | null
+          quando: string | null
+          quantidade: number | null
+          tipo: string | null
+          titulo: string | null
+          valor: number | null
+        }
+        Relationships: []
+      }
       vw_importacao_saldo_pedido: {
         Row: {
           data_pedido: string | null
@@ -102298,14 +102313,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -104036,14 +104051,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]

@@ -44,7 +44,7 @@ export const ESTADO_QUEM_DEVE: Record<string, "success" | "warning" | "destructi
 
 export const ROTULO_QUEM_DEVE: Record<string, string> = {
   "fornecedor deve NF": "Fornecedor deve NF",
-  "XPM deve confirmacao": "XPM deve confirmação",
+  "XPM deve confirmacao": "Aguarda recebimento",
   "divergencia no recebimento": "Divergência no recebimento",
   "ciclo completo": "Ciclo completo",
 };
@@ -65,6 +65,7 @@ interface TresCamadasPedido {
   confirmada_xpm: number | null;
   a_faturar: number | null;
   a_confirmar: number | null;
+  aguarda_recebimento: number | null;
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
@@ -85,13 +86,23 @@ interface TresCamadasSku {
   confirmada_xpm: number | null;
   a_faturar: number | null;
   a_confirmar: number | null;
+  aguarda_recebimento: number | null;
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
   quem_deve: string | null;
+  estados: string[] | null;
   ultimo_termo: string | null;
   nome_comercial?: string | null;
   cod_cadastro?: string | null;
+}
+
+const ORDEM_ESTADOS = ["fornecedor deve NF", "XPM deve confirmacao", "divergencia no recebimento"];
+
+/** SKU conta em CADA estado do array; array vazio = ciclo completo. */
+function temEstado(l: TresCamadasSku, chave: string): boolean {
+  const est = l.estados ?? [];
+  return chave === "ciclo completo" ? est.length === 0 : est.includes(chave);
 }
 
 const NUM = new Intl.NumberFormat("pt-BR");
@@ -127,7 +138,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
         .select(
-          "pedido_id, numero_pedido, modalidade, data_pedido, prazo_entrega_acordado, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, falta_xpm, excesso_xpm, nao_conforme_xpm, pct_faturado, pct_confirmado, valor_a_faturar_acordado, valor_a_faturar_vigente, skus_custo_incompleto, dias_atraso, quem_deve",
+          "pedido_id, numero_pedido, modalidade, data_pedido, prazo_entrega_acordado, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, aguarda_recebimento, falta_xpm, excesso_xpm, nao_conforme_xpm, pct_faturado, pct_confirmado, valor_a_faturar_acordado, valor_a_faturar_vigente, skus_custo_incompleto, dias_atraso, quem_deve",
         )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
@@ -143,7 +154,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas")
         .select(
-          "pedido_id, sku, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, falta_xpm, excesso_xpm, nao_conforme_xpm, quem_deve, ultimo_termo",
+          "pedido_id, sku, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, aguarda_recebimento, estados, falta_xpm, excesso_xpm, nao_conforme_xpm, quem_deve, ultimo_termo",
         )
         .eq("pedido_id", pedidoId);
       if (error) throw error;
@@ -182,7 +193,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
   const opcoesQuemDeve = useMemo(() => {
     const explicacoes: Record<string, string> = {
       "fornecedor deve NF": "O pedido tem mais do que já veio em NF.",
-      "XPM deve confirmacao": "Veio em NF, mas a XPM ainda não conferiu tudo.",
+      "XPM deve confirmacao": "Veio em NF, mas a mercadoria ainda não deu entrada no estoque.",
       "divergencia no recebimento": "A XPM conferiu e achou falta, excesso ou não conforme.",
       "ciclo completo": "Tudo o que veio em NF foi conferido sem divergência.",
     };
@@ -190,7 +201,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       chave,
       rotulo: ROTULO_QUEM_DEVE[chave],
       explicacao: explicacoes[chave],
-      total: todas.filter((l) => l.quem_deve === chave).length,
+      total: todas.filter((l) => temEstado(l, chave)).length,
     }));
   }, [todas]);
 
@@ -198,14 +209,14 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
     return [...todas].sort((a, b) => {
       const r = Number(b.a_faturar ?? 0) - Number(a.a_faturar ?? 0);
       if (r !== 0) return r;
-      return Number(b.a_confirmar ?? 0) - Number(a.a_confirmar ?? 0);
+      return Number(b.aguarda_recebimento ?? 0) - Number(a.aguarda_recebimento ?? 0);
     });
   }, [todas]);
 
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     return ordenadas.filter((l) => {
-      if (quemDeve !== "todos" && l.quem_deve !== quemDeve) return false;
+      if (quemDeve !== "todos" && !temEstado(l, quemDeve)) return false;
       if (!t) return true;
       return (
         (l.cod_cadastro ?? "").toLowerCase().includes(t) ||
@@ -225,7 +236,9 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
 
   const resumo = resumoQ.data;
   const aFaturar = Number(resumo?.a_faturar ?? 0);
-  const aConfirmar = Number(resumo?.a_confirmar ?? 0);
+  const aguarda = Number(resumo?.aguarda_recebimento ?? 0);
+  const faltaR = Number(resumo?.falta_xpm ?? 0);
+  const divergencia = faltaR + Number(resumo?.nao_conforme_xpm ?? 0);
   const diasAtraso = Number(resumo?.dias_atraso ?? 0);
 
   return (
@@ -298,10 +311,17 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   />
                   <CardIndicador
                     compacto
-                    rotulo="A confirmar"
-                    valor={fmtQtd(resumo.a_confirmar)}
-                    nota="XPM deve conferência"
-                    tom={aConfirmar > 0 ? "atencao" : "neutro"}
+                    rotulo="Aguarda recebimento"
+                    valor={fmtQtd(resumo.aguarda_recebimento)}
+                    nota="NF ainda sem entrada no estoque"
+                    tom={aguarda > 0 ? "atencao" : "neutro"}
+                  />
+                  <CardIndicador
+                    compacto
+                    rotulo="Divergência"
+                    valor={fmtQtd(divergencia)}
+                    nota={`falta ${fmtQtd(faltaR)} · excesso ${fmtQtd(resumo.excesso_xpm)}`}
+                    tom={divergencia > 0 ? "atencao" : "neutro"}
                   />
                 </div>
               </>
@@ -360,7 +380,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   <TableHead className="text-right">Declarado (NF)</TableHead>
                   <TableHead className="text-right">Confirmado (XPM)</TableHead>
                   <TableHead className="bg-muted text-right">A faturar</TableHead>
-                  <TableHead className="bg-muted text-right">A confirmar</TableHead>
+                  <TableHead className="bg-muted text-right">Aguarda recebimento</TableHead>
                   <TableHead className="text-right">Falta</TableHead>
                   <TableHead className="text-right">Excesso</TableHead>
                   <TableHead className="text-right">Não conforme</TableHead>
@@ -372,7 +392,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   const atencao =
                     Number(l.nao_conforme_xpm ?? 0) > 0 || Number(l.excesso_xpm ?? 0) > 0;
                   const linhaAFaturar = Number(l.a_faturar ?? 0);
-                  const linhaAConfirmar = Number(l.a_confirmar ?? 0);
+                  const linhaAguarda = Number(l.aguarda_recebimento ?? 0);
                   return (
                     <TableRow
                       key={`${l.sku ?? "sem-sku"}-${i}`}
@@ -407,10 +427,10 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                       <TableCell
                         className={cn(
                           "bg-muted/50 text-right tabular-nums font-medium",
-                          linhaAConfirmar > 0 && "text-warning",
+                          linhaAguarda > 0 && "text-warning",
                         )}
                       >
-                        {fmtQtd(l.a_confirmar)}
+                        {fmtQtd(l.aguarda_recebimento)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {fmtQtd(l.falta_xpm)}
@@ -422,9 +442,17 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                         {fmtQtd(l.nao_conforme_xpm)}
                       </TableCell>
                       <TableCell>
-                        <Selo estado={ESTADO_QUEM_DEVE[l.quem_deve ?? ""] ?? "muted"}>
-                          {rotuloQuemDeve(l.quem_deve)}
-                        </Selo>
+                        <div className="flex flex-wrap gap-1">
+                          {(l.estados ?? []).length === 0 ? (
+                            <Selo estado="success">{ROTULO_QUEM_DEVE["ciclo completo"]}</Selo>
+                          ) : (
+                            ORDEM_ESTADOS.filter((e) => (l.estados ?? []).includes(e)).map((e) => (
+                              <Selo key={e} estado={ESTADO_QUEM_DEVE[e] ?? "muted"}>
+                                {rotuloQuemDeve(e)}
+                              </Selo>
+                            ))
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
