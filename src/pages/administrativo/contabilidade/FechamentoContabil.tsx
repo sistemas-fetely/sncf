@@ -13,7 +13,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock, Download, FileSpreadsheet } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock, Download, FileSpreadsheet, Clock3 } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
@@ -21,6 +21,8 @@ import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,7 +37,50 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
-type StatusComp = "aberto" | "fechado" | "reaberto";
+type StatusComp = "aberto" | "fechado" | "reaberto" | "pre_fechado";
+
+interface Presuncao {
+  nf_id: string;
+  nf: string;
+  fornecedor: string;
+  data_chegada: string | null;
+  centro: string | null;
+  unidades: number;
+  valor_nf: number;
+  motivo: string;
+}
+
+interface PreFechamento {
+  fechado_em: string;
+  valor_custo: number;
+  unidades: number;
+  valor_presumido: number;
+  presuncoes: Presuncao[];
+  itens_presumidos: unknown;
+}
+
+interface LinhaPresuncao extends Presuncao {
+  centro_id: string | null;
+  linhas: number;
+  presumivel: boolean;
+  porque: string | null;
+}
+
+interface LinhaDelta {
+  competencia: string;
+  rotulo: string;
+  status: string;
+  pre_fechado_em: string | null;
+  nf_id: string;
+  nf: string;
+  sku: string;
+  qtd_presumida: number;
+  qtd_real: number;
+  delta_qtd: number;
+  valor_presumido: number;
+  valor_real: number;
+  delta_valor: number;
+}
 
 interface Competencia {
   competencia: string;
@@ -43,6 +88,8 @@ interface Competencia {
   status: StatusComp;
   unidades: number;
   valor_custo: number;
+  valor_presumido: number | null;
+  pre_fechamento: PreFechamento | null;
   valor_custo_nf: number | null;
   icms_excluido: number | null;
   skus: number;
@@ -74,7 +121,7 @@ interface LinhaPosicao {
   ipi_aliq: number | null;
   valor_unit_nf: number | null;
   delta_icms: number | null;
-  fonte: "snapshot" | "calculado";
+  fonte: "snapshot" | "calculado" | "presumido";
 }
 
 /** Linha da RPC fn_contabil_evolucao_mensal: um SKU por competência fechada. */
@@ -111,6 +158,12 @@ const fmtUn = (v: number | null | undefined) =>
 const fmtUnit = (v: number | null | undefined) =>
   Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
+const fmtData = (v: string | null | undefined) => v ? v.slice(0, 10).split("-").reverse().join("/") : "—";
+const fmtDataHora = (v: string | null | undefined) => v ? new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
+const fmtChegada = (v: string | null | undefined) => v ? fmtData(v).slice(0, 5) : "—";
+const presuncoesDe = (c: Competencia | null) => (c?.politica?.presuncoes ?? []) as Presuncao[];
+const descricaoPresuncao = (p: Presuncao) => `${p.nf} · ${p.fornecedor} · chegada ${fmtChegada(p.data_chegada)} · ${fmtDinheiro(p.valor_nf)} · ${p.motivo}`;
+
 /** Alíquota vem como fração (0.0675) — exibida como 6,75%. */
 const fmtAliq = (v: number | null | undefined) =>
   v == null ? "—" : `${(Number(v) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
@@ -122,6 +175,7 @@ const SELO_STATUS: Record<StatusComp, { estado: EstadoSelo; texto: string }> = {
   fechado: { estado: "success", texto: "Fechado" },
   aberto: { estado: "info", texto: "Aberto" },
   reaberto: { estado: "warning", texto: "Reaberto" },
+  pre_fechado: { estado: "warning", texto: "Pré-fechado" },
 };
 
 const SELO_SEVERIDADE: Record<Severidade, { estado: EstadoSelo; texto: string }> = {
@@ -150,6 +204,8 @@ export default function FechamentoContabil() {
   const [pagina, setPagina] = useState(0);
   const [dialogFechar, setDialogFechar] = useState<"normal" | "forcar" | null>(null);
   const [dialogReabrir, setDialogReabrir] = useState(false);
+  const [dialogPre, setDialogPre] = useState(false);
+  const [motivoPre, setMotivoPre] = useState("");
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
   // Aba da tabela de posição vive na URL, em ?base= (padrão: aterrissagem).
@@ -197,6 +253,28 @@ export default function FechamentoContabil() {
     },
   });
 
+  const presuncoes = useQuery({
+    queryKey: ["contabil-presuncoes", selecionada],
+    enabled: !!selecionada && (comp?.status === "aberto" || comp?.status === "reaberto" || comp?.status === "pre_fechado"),
+    queryFn: async () => {
+      if (!selecionada) return [];
+      const { data, error } = await (supabase as any).rpc("fn_contabil_presuncoes", { p_competencia: selecionada });
+      if (error) throw error;
+      return (data ?? []) as LinhaPresuncao[];
+    },
+  });
+
+  const deltaPre = useQuery({
+    queryKey: ["contabil-delta-pre", selecionada],
+    enabled: !!selecionada && comp?.status === "fechado" && !!comp.pre_fechamento,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("vw_contabil_delta_pre_fechamento")
+        .select("*").eq("competencia", selecionada);
+      if (error) throw error;
+      return (data ?? []) as LinhaDelta[];
+    },
+  });
+
   useEffect(() => { setPagina(0); }, [selecionada, busca, ordem]);
 
   const linhas = posicao.data ?? [];
@@ -238,12 +316,33 @@ export default function FechamentoContabil() {
   );
 
   const fonte = linhas[0]?.fonte;
+  const isPre = comp?.status === "pre_fechado";
+  const presuncoesAtivas = presuncoesDe(comp);
+  const presuncoesElegiveis = (presuncoes.data ?? []).some((p) => p.presumivel);
+  const presuncoesImpedidas = (presuncoes.data ?? []).some((p) => !p.presumivel);
+  const linhasDelta = (deltaPre.data ?? []).filter((l) => num(l.delta_qtd) !== 0);
   const gatesBloqueantes = (gates.data ?? []).filter((g) => g.severidade === "bloqueante" && g.quantidade > 0);
   const todosLimpos = (gates.data ?? []).length > 0 && (gates.data ?? []).every((g) => g.quantidade === 0);
 
   /* ── exportações .xlsx (padrão PacoteContador: monta no cliente, baixa Blob) ── */
 
-  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}` : "";
+  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}${isPre ? "_PRE-FECHAMENTO" : ""}` : "";
+
+  const metadadosExportacao = (): (string | null)[][] => [
+    ["Competência", comp?.rotulo ?? ""],
+    ["Status", isPre ? "Pré-fechado (NÃO definitivo)" : comp?.status ?? ""],
+    ["Fechado em", fmtDataHora(comp?.fechado_em)],
+    ["Fonte da posição", isPre ? "Snapshot de pré-fechamento" : fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+    ...(isPre ? [
+      ["Valor presumido", fmtDinheiro(comp?.valor_presumido)],
+      ...presuncoesAtivas.map((p) => ["Presunção", descricaoPresuncao(p)]),
+    ] : []),
+  ];
+  const anexarMetadados = (wb: XLSX.WorkBook) => {
+    const ws = XLSX.utils.aoa_to_sheet(metadadosExportacao());
+    ws["!cols"] = [{ wch: 32 }, { wch: 95 }];
+    XLSX.utils.book_append_sheet(wb, ws, "Metadados");
+  };
 
   const negritarLinha = (ws: XLSX.WorkSheet, linha: number, colunas: number) => {
     for (let c = 0; c < colunas; c++) {
@@ -268,7 +367,7 @@ export default function FechamentoContabil() {
   const exportarAterrissagem = () => {
     try {
       const aoa = [
-        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total"],
+        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total", "Presumido"],
         ...filtradas.map((l) => [
           l.sku,
           l.produto ?? "",
@@ -276,15 +375,17 @@ export default function FechamentoContabil() {
           num(l.quantidade),
           num(l.custo_unitario),
           num(l.valor_total),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, totais.rs],
+        ["TOTAL", "", "", totais.un, null, totais.rs, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }];
-      negritarLinha(ws, 0, 6);
-      negritarLinha(ws, aoa.length - 1, 6);
+      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 12 }];
+      negritarLinha(ws, 0, 7);
+      negritarLinha(ws, aoa.length - 1, 7);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      anexarMetadados(wb);
       baixar(wb, `Fetely_Estoque_Aterrissagem_${sufixoArquivo}.xlsx`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -294,7 +395,7 @@ export default function FechamentoContabil() {
   const exportarCustoNf = () => {
     try {
       const aoa = [
-        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF"],
+        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF", "Presumido"],
         ...filtradas.map((l) => [
           l.sku,
           l.produto ?? "",
@@ -304,18 +405,20 @@ export default function FechamentoContabil() {
           l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
           l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
           l.valor_nf_total == null ? null : num(l.valor_nf_total),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf],
+        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 },
-        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 },
+        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 }, { wch: 12 },
       ];
-      negritarLinha(ws, 0, 8);
-      negritarLinha(ws, aoa.length - 1, 8);
+      negritarLinha(ws, 0, 9);
+      negritarLinha(ws, aoa.length - 1, 9);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      anexarMetadados(wb);
       baixar(wb, `Fetely_Estoque_CustoNF_${sufixoArquivo}.xlsx`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -328,7 +431,7 @@ export default function FechamentoContabil() {
         [
           "SKU", "Produto", "Centro", "Quantidade",
           "Custo Aterrissagem Unit.", "Valor Aterrissagem",
-          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença",
+          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença", "Presumido",
         ],
         ...filtradas.map((l) => [
           l.sku,
@@ -342,22 +445,20 @@ export default function FechamentoContabil() {
           l.icms_aliq == null ? null : num(l.icms_aliq) * 100,
           l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
           l.delta_icms == null ? null : num(l.delta_icms),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta],
+        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 18 },
-        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 },
+        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 }, { wch: 12 },
       ];
-      negritarLinha(ws, 0, 11);
-      negritarLinha(ws, aoa.length - 1, 11);
+      negritarLinha(ws, 0, 12);
+      negritarLinha(ws, aoa.length - 1, 12);
 
       const criterio: (string | null)[][] = [
-        ["Competência", comp?.rotulo ?? ""],
-        ["Status", comp?.status ?? ""],
-        ["Fechado em", comp?.fechado_em ? new Date(comp.fechado_em).toLocaleString("pt-BR") : "—"],
-        ["Fonte da posição", fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+        ...metadadosExportacao(),
         [null, null],
         ["Critério", "Valor"],
         ...Object.entries(comp?.politica ?? {}).map(([k, v]) => [
@@ -367,7 +468,7 @@ export default function FechamentoContabil() {
       ];
       const wsCriterio = XLSX.utils.aoa_to_sheet(criterio);
       wsCriterio["!cols"] = [{ wch: 34 }, { wch: 60 }];
-      negritarLinha(wsCriterio, 5, 2);
+      negritarLinha(wsCriterio, criterio.findIndex((r) => r[0] === "Critério"), 2);
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
