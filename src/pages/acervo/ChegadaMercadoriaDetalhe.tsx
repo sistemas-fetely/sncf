@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
   ArrowLeft,
@@ -17,15 +17,12 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { invalidarCompras } from "@/lib/compras/invalidar";
-import { toast } from "sonner";
 import { fmtMoeda, VERDE } from "@/lib/compras/lancamento-utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
-import { Selo, type EstadoSelo } from "@/components/ui/selo";
-import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
