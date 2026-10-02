@@ -28,6 +28,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { CardIndicador } from "@/components/ui/card-indicador";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -117,13 +119,13 @@ function FaixaCell({ value, className }: { value: number | null; className?: str
   const v = num(value);
   if (v === 0) {
     return (
-      <TableCell className="text-right font-mono text-muted-foreground/60">
+      <TableCell className="text-right text-xs tabular-nums text-muted-foreground/60">
         {formatBRL(0)}
       </TableCell>
     );
   }
   return (
-    <TableCell className={cn("text-right font-mono font-medium", className)}>
+    <TableCell className={cn("text-right text-xs font-medium tabular-nums", className)}>
       {formatBRL(v)}
     </TableCell>
   );
@@ -175,9 +177,7 @@ function TitulosAbertosCliente({
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Nenhum título com NF para este cliente.
-      </div>
+      <EstadoVazio className="m-4 p-6" mensagem="Nenhum título com NF para este cliente." />
     );
   }
 
@@ -206,7 +206,7 @@ function TitulosAbertosCliente({
                 <TableCell className="font-mono">{t.nf_numero ?? "—"}</TableCell>
                 <TableCell className="font-mono">{parcela}</TableCell>
                 <TableCell>{formatDateBR(t.data_vencimento)}</TableCell>
-                <TableCell className="text-right font-mono">{formatBRL(num(t.valor))}</TableCell>
+                <TableCell className="text-right text-xs tabular-nums">{formatBRL(num(t.valor))}</TableCell>
                 <TableCell>
                   <Badge className={STATUS_BADGE[status] ?? STATUS_BADGE.em_aberto}>
                     {STATUS_LABEL[status] ?? status}
@@ -334,28 +334,25 @@ export function RecebiveisPorClienteTab() {
         ref={kpisRef}
         className="sticky top-16 z-20 grid gap-3 bg-background py-2 md:grid-cols-3"
       >
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Users className="h-3.5 w-3.5" /> Total a receber
-          </p>
-          <p className="text-sm font-medium">{error ? "—" : formatBRL(kpis.total)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <AlertTriangle className="h-3.5 w-3.5 text-destructive" /> Total vencido
-          </p>
-          <p className="text-sm font-medium text-destructive">
-            {error ? "—" : formatBRL(kpis.vencido)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <Percent className="h-3.5 w-3.5" /> Inadimplência
-          </p>
-          <p className="text-sm font-medium">
-            {error ? "—" : `${kpis.inad.toFixed(1)}%`}
-          </p>
-        </div>
+        <CardIndicador
+          compacto
+          rotulo="Total a receber"
+          adorno={<Users className="h-3.5 w-3.5 text-muted-foreground" />}
+          valor={isLoading ? <Skeleton className="h-6 w-28" /> : error ? "—" : formatBRL(kpis.total)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Total vencido"
+          adorno={<AlertTriangle className="h-3.5 w-3.5 text-muted-foreground" />}
+          tom={!error && kpis.vencido > 0 ? "critico" : "neutro"}
+          valor={isLoading ? <Skeleton className="h-6 w-28" /> : error ? "—" : formatBRL(kpis.vencido)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Inadimplência"
+          adorno={<Percent className="h-3.5 w-3.5 text-muted-foreground" />}
+          valor={isLoading ? <Skeleton className="h-6 w-16" /> : error ? "—" : `${kpis.inad.toFixed(1)}%`}
+        />
       </div>
 
       <Card>
@@ -393,10 +390,11 @@ export function RecebiveisPorClienteTab() {
               ))}
             </div>
           ) : ordenados.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 py-10 text-sm text-muted-foreground">
-              <Inbox className="h-5 w-5" />
-              Nenhum cliente com título em aberto.
-            </div>
+            <EstadoVazio
+              icone={Inbox}
+              className="border-0"
+              mensagem={busca.trim() ? "Nenhum cliente com título em aberto nesta busca." : "Nenhum cliente com título em aberto."}
+            />
           ) : (
             <>
               <Table containerClassName="overflow-visible">
@@ -466,7 +464,7 @@ export function RecebiveisPorClienteTab() {
                               {r.cliente ?? "(sem nome)"}
                             </button>
                           </TableCell>
-                          <TableCell className="text-right font-mono font-medium">
+                          <TableCell className="text-right text-xs font-medium tabular-nums">
                             {formatBRL(num(r.total_a_receber))}
                           </TableCell>
                           <FaixaCell value={r.faixa_a_vencer} className="text-foreground" />
@@ -474,12 +472,12 @@ export function RecebiveisPorClienteTab() {
                           <FaixaCell value={r.faixa_8_30} className="text-warning" />
                           <FaixaCell value={r.faixa_31_60} className="text-destructive" />
                           <FaixaCell value={r.faixa_60_mais} className="text-destructive" />
-                          <TableCell className="text-right font-mono font-medium text-destructive">
+                          <TableCell className="text-right text-xs font-medium tabular-nums text-destructive">
                             {formatBRL(num(r.total_vencido))}
                           </TableCell>
                           <TableCell
                             className={cn(
-                              "text-right font-mono",
+                              "text-right text-xs tabular-nums",
                               atraso > 0
                                 ? "font-medium text-destructive"
                                 : "text-muted-foreground",
