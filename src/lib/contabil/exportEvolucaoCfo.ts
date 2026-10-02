@@ -74,9 +74,9 @@ const num = (v: unknown) => Number(v || 0);
 
 const mesExtenso = (competencia: string) => {
   const [ano, mes] = competencia.slice(0, 10).split("-").map(Number);
-  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long", year: "numeric", timeZone: "UTC" })
+  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long", timeZone: "UTC" })
     .format(new Date(Date.UTC(ano, mes - 1, 1)));
-  return nome.charAt(0).toUpperCase() + nome.slice(1);
+  return `${nome.charAt(0).toUpperCase()}${nome.slice(1)}/${ano}`;
 };
 
 const mesNumerico = (competencia: string) => `${competencia.slice(5, 7)}/${competencia.slice(0, 4)}`;
