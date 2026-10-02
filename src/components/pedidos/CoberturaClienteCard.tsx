@@ -26,6 +26,7 @@ import {
 } from "@/hooks/financeiro/useContaCliente";
 import { Selo } from "@/components/ui/selo";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
@@ -124,8 +125,12 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
 
   if (isLoading) {
     return (
-      <div className="rounded-md border border-border/60 p-3 flex items-center gap-2 text-xs text-muted-foreground">
-        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Cobertura do cliente
+      <div className="rounded-md border border-border/60 p-3 space-y-2" aria-busy="true">
+        <span className="text-[15px] font-medium text-muted-foreground">Cobertura do cliente</span>
+        <Skeleton className="h-7 w-32" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-7 w-full" />
       </div>
     );
   }
@@ -219,7 +224,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
     >
       <div className="flex items-center justify-between gap-2">
         <div className="group flex items-center gap-1.5">
-          <span className="text-xs font-medium">Cobertura do cliente</span>
+          <span className="text-[15px] font-medium">Cobertura do cliente</span>
           <InfoMetrica rotulo="Cobertura do cliente">
             Cobertura = dinheiro na conta do cliente + limite de crédito (limite só vale em pedido a prazo).
           </InfoMetrica>
@@ -238,13 +243,13 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       <div className="flex items-baseline gap-2">
         <span
           className={cn(
-            "text-lg font-semibold",
+            "text-lg font-medium tabular-nums",
             !valorConhecido ? "text-muted-foreground" : cobre ? "text-success" : "text-warning",
           )}
         >
           {formatBRL(total)}
         </span>
-        <span className="text-[11px] text-muted-foreground">
+        <span className="text-[11px] text-muted-foreground tabular-nums">
           pedido {formatBRL(valor)}
         </span>
       </div>
@@ -264,9 +269,9 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
 
       <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
         <dt>Dinheiro na conta</dt>
-        <dd className="text-right text-foreground">{formatBRL(cob.fonte1_saldo_disponivel)}</dd>
+        <dd className="text-right text-foreground tabular-nums">{formatBRL(cob.fonte1_saldo_disponivel)}</dd>
         <dt>Limite de crédito</dt>
-        <dd className="text-right">
+        <dd className="text-right tabular-nums">
           <span className={cn("text-foreground", !limiteElegivel && "line-through opacity-50") }>
             {formatBRL(cob.fonte3_limite_disponivel)}
           </span>
@@ -279,13 +284,13 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
         {empenhosOutros > 0 && (
           <>
             <dt>Empenhado em outros pedidos</dt>
-            <dd className="text-right text-foreground">{formatBRL(empenhosOutros)}</dd>
+            <dd className="text-right text-foreground tabular-nums">{formatBRL(empenhosOutros)}</dd>
           </>
         )}
         {Number(cob.vencido_em_aberto ?? 0) > 0 && (
           <>
             <dt className="text-warning">Vencido em aberto</dt>
-            <dd className="text-right font-medium text-warning">{formatBRL(cob.vencido_em_aberto)}</dd>
+            <dd className="text-right font-medium text-warning tabular-nums">{formatBRL(cob.vencido_em_aberto)}</dd>
           </>
         )}
       </dl>
@@ -300,7 +305,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
               <div key={haver.registro_id} className="rounded-md border border-border/60 bg-background/60 p-2 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
                   <span className="text-[11px] text-muted-foreground">{origem}</span>
-                  <span className="shrink-0 text-sm font-semibold text-success">{formatBRL(haver.saldo)}</span>
+                  <span className="shrink-0 text-sm font-medium text-success tabular-nums">{formatBRL(haver.saldo)}</span>
                 </div>
                 {haver.descricao && (
                   <TooltipProvider>
