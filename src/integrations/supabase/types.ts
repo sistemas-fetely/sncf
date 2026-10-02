@@ -97185,11 +97185,13 @@ export type Database = {
           exige_embarque: boolean | null
           ficha_xpm_incompleta: number | null
           modalidade: string | null
+          nf_linhas_rateio_incompleto: number | null
           nf_linhas_sem_custo: number | null
           nfs_ligadas: number | null
           nfs_sem_entrada: number | null
           numero_pedido: string | null
           pedido_id: number | null
+          skus_fora_pedido: number | null
         }
         Relationships: [
           {
@@ -115165,14 +115167,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
