@@ -458,6 +458,15 @@ export default function PendenciasTab() {
               </TableBody>
             </Table>
           </div>
+            <RodapePaginacao
+              total={itensXpm.length}
+              pagina={paginaAtualXpm}
+              tamanhoPagina={tamanho}
+              tela="pendencias_ficha_xpm_incompleta"
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
+          </>
         </TabelaFetely>
       ) : (
         <TabelaFetely
@@ -478,17 +487,18 @@ export default function PendenciasTab() {
           exibidos={filaPedidos.length}
           rotulo="pedidos"
         >
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead className="text-right">Pendentes</TableHead>
-                  <TableHead className="w-32" />
-                </TableRow>
-              </TableHeader>
+          <>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead className="text-right">Pendentes</TableHead>
+                    <TableHead className="w-32" />
+                  </TableRow>
+                </TableHeader>
               <TableBody>
-                {filaPedidos.map((p) => (
+                {naPaginaPedidos.map((p) => (
                   <TableRow key={p.pedido_id}>
                     <TableCell className="font-medium">
                       {p.numero_pedido ?? `#${p.pedido_id}`}
@@ -511,6 +521,15 @@ export default function PendenciasTab() {
               </TableBody>
             </Table>
           </div>
+            <RodapePaginacao
+              total={filaPedidos.length}
+              pagina={paginaAtualPedidos}
+              tamanhoPagina={tamanho}
+              tela={`pendencias_${tipo}`}
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
+          </>
         </TabelaFetely>
       )}
     </div>
