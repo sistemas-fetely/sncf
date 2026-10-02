@@ -128,7 +128,6 @@ interface LinhaPosicao {
 interface EvolucaoLinha {
   competencia: string;
   rotulo: string;
-  fonte?: LinhaPosicao["fonte"];
   sku: string;
   produto: string | null;
   grupo: string | null;
@@ -626,7 +625,7 @@ export default function FechamentoContabil() {
 
       /* ── Aba 3 — Evolução por SKU ── */
       const skus = [...new Set(dados.map((l) => l.sku))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-      const ID_COLS = 10;
+      const ID_COLS = 9;
       // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 6 colunas.
       const faixa: (string | null)[] = Array(ID_COLS).fill(null);
       comps.forEach(({ rotulo }) => {
@@ -634,7 +633,7 @@ export default function FechamentoContabil() {
       });
       const cabSku: (string | number | null)[] = [
         "SKU", "Produto", "Grupo", "NCM", "NF de entrada",
-        "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %", "Presumido",
+        "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %",
       ];
       comps.forEach(() =>
         cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)"),
@@ -651,7 +650,6 @@ export default function FechamentoContabil() {
           ref.custo_aterrissagem_unitario == null ? null : num(ref.custo_aterrissagem_unitario),
           ref.icms_aliq == null ? null : num(ref.icms_aliq) * 100,
           ref.ipi_aliq == null ? null : num(ref.ipi_aliq) * 100,
-          ref.fonte === "presumido" ? "Sim" : "Não",
         ];
         comps.forEach(({ competencia }) => {
           const l = porCompSku.get(chave(competencia, sku));
@@ -662,7 +660,7 @@ export default function FechamentoContabil() {
         });
         return linha;
       });
-      const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null, null];
+      const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null];
       for (let c = ID_COLS; c < cabSku.length; c++) {
         totalSku.push(linhasSku.reduce((a, l) => a + num(l[c]), 0));
       }
@@ -670,7 +668,7 @@ export default function FechamentoContabil() {
       const wsSku = XLSX.utils.aoa_to_sheet(aoaSku);
       wsSku["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 24 }, { wch: 12 }, { wch: 16 },
-        { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 }, { wch: 12 },
+        { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 },
         ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }]),
       ];
       wsSku["!merges"] = comps.map((_, i) => ({
@@ -1274,7 +1272,7 @@ export default function FechamentoContabil() {
             <tbody className="divide-y">{(presuncoes.data ?? []).map((p) => <tr key={p.nf_id} className={cn(!p.presumivel && "bg-destructive/10 text-destructive")}>
               <td className="px-3 py-2">{p.nf}</td><td className="px-3 py-2">{p.fornecedor}</td><td className="px-3 py-2">{fmtChegada(p.data_chegada)}</td>
               <td className="px-3 py-2">{p.centro ?? "—"}</td><td className="px-3 py-2 text-right tabular-nums">{fmtUn(p.unidades)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.motivo}{!p.presumivel && <p className="text-xs">{p.porque}</p>}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.motivo ?? p.porque ?? "—"}{!p.presumivel && p.motivo && <p className="text-xs">{p.porque}</p>}</td>
             </tr>)}</tbody>
           </table></div>}
           <div className="space-y-1.5"><Label htmlFor="motivo-pre">Motivo do pré-fechamento (mínimo 20 caracteres)</Label>
