@@ -13,7 +13,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock, Download, FileSpreadsheet } from "lucide-react";
+import { ChevronDown, ChevronUp, Lock, LockOpen, CheckCircle2, ArrowUpDown, BookLock, Download, FileSpreadsheet, Clock3 } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
@@ -21,6 +21,8 @@ import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,7 +37,57 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 
 /* ────────────────────────────── tipos ────────────────────────────── */
 
-type StatusComp = "aberto" | "fechado" | "reaberto";
+type StatusComp = "aberto" | "fechado" | "reaberto" | "pre_fechado";
+
+interface Presuncao {
+  nf_id: number;
+  nf: string;
+  fornecedor: string;
+  data_chegada: string | null;
+  centro: string | null;
+  unidades: number;
+  valor_nf: number;
+  motivo: string;
+}
+
+interface PreFechamento {
+  fechado_em: string;
+  valor_custo: number;
+  unidades: number;
+  valor_presumido: number;
+  presuncoes: Presuncao[];
+  itens_presumidos: unknown;
+}
+
+interface LinhaPresuncao {
+  nf_id: number;
+  nf: string;
+  fornecedor: string;
+  data_chegada: string | null;
+  centro_id: string | null;
+  centro: string | null;
+  linhas: number;
+  unidades: number;
+  valor_nf: number;
+  presumivel: boolean;
+  porque: string | null;
+}
+
+interface LinhaDelta {
+  competencia: string;
+  rotulo: string;
+  status: string;
+  pre_fechado_em: string | null;
+  nf_id: number;
+  nf: string;
+  sku: string;
+  qtd_presumida: number;
+  qtd_real: number;
+  delta_qtd: number;
+  valor_presumido: number;
+  valor_real: number;
+  delta_valor: number;
+}
 
 interface Competencia {
   competencia: string;
@@ -43,6 +95,8 @@ interface Competencia {
   status: StatusComp;
   unidades: number;
   valor_custo: number;
+  valor_presumido: number | null;
+  pre_fechamento: PreFechamento | null;
   valor_custo_nf: number | null;
   icms_excluido: number | null;
   skus: number;
@@ -74,7 +128,7 @@ interface LinhaPosicao {
   ipi_aliq: number | null;
   valor_unit_nf: number | null;
   delta_icms: number | null;
-  fonte: "snapshot" | "calculado";
+  fonte: "snapshot" | "calculado" | "presumido";
 }
 
 /** Linha da RPC fn_contabil_evolucao_mensal: um SKU por competência fechada. */
@@ -111,6 +165,12 @@ const fmtUn = (v: number | null | undefined) =>
 const fmtUnit = (v: number | null | undefined) =>
   Number(v || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 6 });
 
+const fmtData = (v: string | null | undefined) => v ? v.slice(0, 10).split("-").reverse().join("/") : "—";
+const fmtDataHora = (v: string | null | undefined) => v ? new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—";
+const fmtChegada = (v: string | null | undefined) => v ? fmtData(v).slice(0, 5) : "—";
+const presuncoesDe = (c: Competencia | null) => (c?.politica?.presuncoes ?? []) as Presuncao[];
+const descricaoPresuncao = (p: Presuncao) => `${p.nf} · ${p.fornecedor} · chegada ${fmtChegada(p.data_chegada)} · ${fmtDinheiro(p.valor_nf)} · ${p.motivo}`;
+
 /** Alíquota vem como fração (0.0675) — exibida como 6,75%. */
 const fmtAliq = (v: number | null | undefined) =>
   v == null ? "—" : `${(Number(v) * 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
@@ -122,6 +182,7 @@ const SELO_STATUS: Record<StatusComp, { estado: EstadoSelo; texto: string }> = {
   fechado: { estado: "success", texto: "Fechado" },
   aberto: { estado: "info", texto: "Aberto" },
   reaberto: { estado: "warning", texto: "Reaberto" },
+  pre_fechado: { estado: "warning", texto: "Pré-fechado" },
 };
 
 const SELO_SEVERIDADE: Record<Severidade, { estado: EstadoSelo; texto: string }> = {
@@ -150,6 +211,8 @@ export default function FechamentoContabil() {
   const [pagina, setPagina] = useState(0);
   const [dialogFechar, setDialogFechar] = useState<"normal" | "forcar" | null>(null);
   const [dialogReabrir, setDialogReabrir] = useState(false);
+  const [dialogPre, setDialogPre] = useState(false);
+  const [motivoPre, setMotivoPre] = useState("");
   const [obs, setObs] = useState("");
   const [motivo, setMotivo] = useState("");
   // Aba da tabela de posição vive na URL, em ?base= (padrão: aterrissagem).
@@ -197,6 +260,28 @@ export default function FechamentoContabil() {
     },
   });
 
+  const presuncoes = useQuery({
+    queryKey: ["contabil-presuncoes", selecionada],
+    enabled: !!selecionada && (comp?.status === "aberto" || comp?.status === "reaberto" || comp?.status === "pre_fechado"),
+    queryFn: async () => {
+      if (!selecionada) return [];
+      const { data, error } = await (supabase as any).rpc("fn_contabil_presuncoes", { p_competencia: selecionada });
+      if (error) throw error;
+      return (data ?? []) as LinhaPresuncao[];
+    },
+  });
+
+  const deltaPre = useQuery({
+    queryKey: ["contabil-delta-pre", selecionada],
+    enabled: !!selecionada && comp?.status === "fechado" && !!comp.pre_fechamento,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("vw_contabil_delta_pre_fechamento")
+        .select("*").eq("competencia", selecionada);
+      if (error) throw error;
+      return (data ?? []) as LinhaDelta[];
+    },
+  });
+
   useEffect(() => { setPagina(0); }, [selecionada, busca, ordem]);
 
   const linhas = posicao.data ?? [];
@@ -238,12 +323,33 @@ export default function FechamentoContabil() {
   );
 
   const fonte = linhas[0]?.fonte;
+  const isPre = comp?.status === "pre_fechado";
+  const presuncoesAtivas = presuncoesDe(comp);
+  const presuncoesElegiveis = (presuncoes.data ?? []).some((p) => p.presumivel);
+  const presuncoesImpedidas = (presuncoes.data ?? []).some((p) => !p.presumivel);
+  const linhasDelta = (deltaPre.data ?? []).filter((l) => num(l.delta_qtd) !== 0);
   const gatesBloqueantes = (gates.data ?? []).filter((g) => g.severidade === "bloqueante" && g.quantidade > 0);
   const todosLimpos = (gates.data ?? []).length > 0 && (gates.data ?? []).every((g) => g.quantidade === 0);
 
   /* ── exportações .xlsx (padrão PacoteContador: monta no cliente, baixa Blob) ── */
 
-  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}` : "";
+  const sufixoArquivo = selecionada ? `${selecionada.slice(5, 7)}-${selecionada.slice(0, 4)}${isPre ? "_PRE-FECHAMENTO" : ""}` : "";
+
+  const metadadosExportacao = (): (string | null)[][] => [
+    ["Competência", comp?.rotulo ?? ""],
+    ["Status", isPre ? "Pré-fechado (NÃO definitivo)" : comp?.status ?? ""],
+    ["Fechado em", fmtDataHora(comp?.fechado_em)],
+    ["Fonte da posição", isPre ? "Snapshot de pré-fechamento" : fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+    ...(isPre ? [
+      ["Valor presumido", fmtDinheiro(comp?.valor_presumido)],
+      ...presuncoesAtivas.map((p) => ["Presunção", descricaoPresuncao(p)]),
+    ] : []),
+  ];
+  const anexarMetadados = (wb: XLSX.WorkBook) => {
+    const ws = XLSX.utils.aoa_to_sheet(metadadosExportacao());
+    ws["!cols"] = [{ wch: 32 }, { wch: 95 }];
+    XLSX.utils.book_append_sheet(wb, ws, "Metadados");
+  };
 
   const negritarLinha = (ws: XLSX.WorkSheet, linha: number, colunas: number) => {
     for (let c = 0; c < colunas; c++) {
@@ -268,7 +374,7 @@ export default function FechamentoContabil() {
   const exportarAterrissagem = () => {
     try {
       const aoa = [
-        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total"],
+        ["SKU", "Produto", "Centro", "Quantidade", "Custo Unitário", "Valor Total", "Presumido"],
         ...filtradas.map((l) => [
           l.sku,
           l.produto ?? "",
@@ -276,15 +382,17 @@ export default function FechamentoContabil() {
           num(l.quantidade),
           num(l.custo_unitario),
           num(l.valor_total),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, totais.rs],
+        ["TOTAL", "", "", totais.un, null, totais.rs, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
-      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }];
-      negritarLinha(ws, 0, 6);
-      negritarLinha(ws, aoa.length - 1, 6);
+      ws["!cols"] = [{ wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 14 }, { wch: 16 }, { wch: 12 }];
+      negritarLinha(ws, 0, 7);
+      negritarLinha(ws, aoa.length - 1, 7);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      anexarMetadados(wb);
       baixar(wb, `Fetely_Estoque_Aterrissagem_${sufixoArquivo}.xlsx`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -294,7 +402,7 @@ export default function FechamentoContabil() {
   const exportarCustoNf = () => {
     try {
       const aoa = [
-        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF"],
+        ["SKU", "Produto", "Centro", "Quantidade", "Valor Unit. NF", "IPI %", "Custo NF Unitário", "Valor Total NF", "Presumido"],
         ...filtradas.map((l) => [
           l.sku,
           l.produto ?? "",
@@ -304,18 +412,20 @@ export default function FechamentoContabil() {
           l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
           l.custo_nf_unitario == null ? null : num(l.custo_nf_unitario),
           l.valor_nf_total == null ? null : num(l.valor_nf_total),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf],
+        ["TOTAL", "", "", totais.un, null, null, null, totais.rsNf, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 },
-        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 },
+        { wch: 15 }, { wch: 9 }, { wch: 18 }, { wch: 17 }, { wch: 12 },
       ];
-      negritarLinha(ws, 0, 8);
-      negritarLinha(ws, aoa.length - 1, 8);
+      negritarLinha(ws, 0, 9);
+      negritarLinha(ws, aoa.length - 1, 9);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Posição de Estoque");
+      anexarMetadados(wb);
       baixar(wb, `Fetely_Estoque_CustoNF_${sufixoArquivo}.xlsx`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -328,7 +438,7 @@ export default function FechamentoContabil() {
         [
           "SKU", "Produto", "Centro", "Quantidade",
           "Custo Aterrissagem Unit.", "Valor Aterrissagem",
-          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença",
+          "Custo NF Unit.", "Valor NF", "ICMS %", "IPI %", "Diferença", "Presumido",
         ],
         ...filtradas.map((l) => [
           l.sku,
@@ -342,22 +452,20 @@ export default function FechamentoContabil() {
           l.icms_aliq == null ? null : num(l.icms_aliq) * 100,
           l.ipi_aliq == null ? null : num(l.ipi_aliq) * 100,
           l.delta_icms == null ? null : num(l.delta_icms),
+          l.fonte === "presumido" ? "Sim" : "Não",
         ]),
-        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta],
+        ["TOTAL", "", "", totais.un, null, totais.rs, null, totais.rsNf, null, null, totais.delta, ""],
       ];
       const ws = XLSX.utils.aoa_to_sheet(aoa);
       ws["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 18 },
-        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 },
+        { wch: 16 }, { wch: 16 }, { wch: 9 }, { wch: 9 }, { wch: 16 }, { wch: 12 },
       ];
-      negritarLinha(ws, 0, 11);
-      negritarLinha(ws, aoa.length - 1, 11);
+      negritarLinha(ws, 0, 12);
+      negritarLinha(ws, aoa.length - 1, 12);
 
       const criterio: (string | null)[][] = [
-        ["Competência", comp?.rotulo ?? ""],
-        ["Status", comp?.status ?? ""],
-        ["Fechado em", comp?.fechado_em ? new Date(comp.fechado_em).toLocaleString("pt-BR") : "—"],
-        ["Fonte da posição", fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"],
+        ...metadadosExportacao(),
         [null, null],
         ["Critério", "Valor"],
         ...Object.entries(comp?.politica ?? {}).map(([k, v]) => [
@@ -367,7 +475,7 @@ export default function FechamentoContabil() {
       ];
       const wsCriterio = XLSX.utils.aoa_to_sheet(criterio);
       wsCriterio["!cols"] = [{ wch: 34 }, { wch: 60 }];
-      negritarLinha(wsCriterio, 5, 2);
+      negritarLinha(wsCriterio, criterio.findIndex((r) => r[0] === "Critério"), 2);
 
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Comparativo");
@@ -409,7 +517,7 @@ export default function FechamentoContabil() {
       if (error) throw error;
       const dados = (data ?? []) as unknown as EvolucaoLinha[];
       if (!dados.length) {
-        toast.info("Nenhuma competência fechada para exportar");
+        toast.info("Nenhuma competência fechada ou pré-fechada");
         return;
       }
 
@@ -420,6 +528,14 @@ export default function FechamentoContabil() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([competencia, rotulo]) => ({ competencia, rotulo }));
       const ultima = comps[comps.length - 1];
+      // A evolução não devolve fonte: buscar a posição apenas dos meses pré-fechados.
+      const skusPresumidos = new Map<string, Set<string>>();
+      for (const c of comps) {
+        if ((competencias.data ?? []).find((item) => item.competencia === c.competencia)?.status !== "pre_fechado") continue;
+        const { data: pos, error: erroPos } = await supabase.rpc("fn_contabil_posicao", { p_competencia: c.competencia });
+        if (erroPos) throw erroPos;
+        skusPresumidos.set(c.competencia, new Set((pos ?? []).filter((l) => l.fonte === "presumido").map((l) => l.sku)));
+      }
 
       const chave = (competencia: string, sku: string) => `${competencia}|${sku}`;
       const porCompSku = new Map<string, EvolucaoLinha>();
@@ -525,17 +641,17 @@ export default function FechamentoContabil() {
       /* ── Aba 3 — Evolução por SKU ── */
       const skus = [...new Set(dados.map((l) => l.sku))].sort((a, b) => a.localeCompare(b, "pt-BR"));
       const ID_COLS = 9;
-      // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 6 colunas.
+      // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 7 colunas.
       const faixa: (string | null)[] = Array(ID_COLS).fill(null);
       comps.forEach(({ rotulo }) => {
-        faixa.push(rotulo, null, null, null, null, null);
+        faixa.push(rotulo, null, null, null, null, null, null);
       });
       const cabSku: (string | number | null)[] = [
         "SKU", "Produto", "Grupo", "NCM", "NF de entrada",
         "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %",
       ];
       comps.forEach(() =>
-        cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)"),
+        cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)", "Presumido"),
       );
       const linhasSku = skus.map((sku) => {
         const ref = porCompSku.get(chave(ultima.competencia, sku)) ?? dados.find((l) => l.sku === sku)!;
@@ -555,24 +671,25 @@ export default function FechamentoContabil() {
           linha.push(
             num(l?.entrada), num(l?.saida), num(l?.cmv),
             num(l?.estoque), num(l?.valor_nf), num(l?.valor_aterrissagem),
+            skusPresumidos.get(competencia)?.has(sku) ? "Sim" : "Não",
           );
         });
         return linha;
       });
       const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null];
       for (let c = ID_COLS; c < cabSku.length; c++) {
-        totalSku.push(linhasSku.reduce((a, l) => a + num(l[c]), 0));
+        totalSku.push((c - ID_COLS) % 7 === 6 ? null : linhasSku.reduce((a, l) => a + num(l[c]), 0));
       }
       const aoaSku = [faixa, cabSku, ...linhasSku, totalSku];
       const wsSku = XLSX.utils.aoa_to_sheet(aoaSku);
       wsSku["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 24 }, { wch: 12 }, { wch: 16 },
         { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 },
-        ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }]),
+        ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }, { wch: 12 }]),
       ];
       wsSku["!merges"] = comps.map((_, i) => ({
-        s: { r: 0, c: ID_COLS + i * 6 },
-        e: { r: 0, c: ID_COLS + i * 6 + 5 },
+        s: { r: 0, c: ID_COLS + i * 7 },
+        e: { r: 0, c: ID_COLS + i * 7 + 6 },
       }));
       wsSku["!freeze"] = { xSplit: 3, ySplit: 2 };
       wsSku["!autofilter"] = {
@@ -586,7 +703,7 @@ export default function FechamentoContabil() {
       negritarLinha(wsSku, aoaSku.length - 1, cabSku.length);
       const fmtSku: Record<number, string> = { 5: Z_UNIT, 6: Z_UNIT, 7: Z_PCT, 8: Z_PCT };
       comps.forEach((_, i) => {
-        const b = ID_COLS + i * 6;
+        const b = ID_COLS + i * 7;
         fmtSku[b] = Z_UN;
         fmtSku[b + 1] = Z_UN;
         fmtSku[b + 2] = Z_RS;
@@ -598,7 +715,7 @@ export default function FechamentoContabil() {
 
       /* ── Aba 4 — Critério e Premissas ── */
       const fechamentoRecente = (competencias.data ?? [])
-        .filter((c) => c.status === "fechado")
+        .filter((c) => c.status === "fechado" || c.status === "pre_fechado")
         .sort((a, b) => b.competencia.localeCompare(a.competencia))[0];
       const aoaCriterio: (string | null)[][] = [
         ["Custo NF", "=  valor do produto na NF  +  IPI"],
@@ -609,6 +726,13 @@ export default function FechamentoContabil() {
         ["Base gerencial", "Custo NF (produto + IPI, sem excluir ICMS)"],
         ["Fonte dos números", "Snapshots congelados de cada fechamento contábil"],
         ["Competências incluídas", comps.map((c) => c.rotulo).join(", ")],
+        ...(() => {
+          const c = (competencias.data ?? []).find((item) => item.competencia === ultima.competencia);
+          return c?.status === "pre_fechado" ? [
+            ["Aviso", `${ultima.rotulo} é PRÉ-FECHAMENTO — inclui ${fmtDinheiro(c.valor_presumido)} presumidos`],
+            ...presuncoesDe(c).map((p) => ["Presunção", descricaoPresuncao(p)]),
+          ] : [];
+        })(),
         ...Object.entries(fechamentoRecente?.politica ?? {}).map(([k, v]) => [
           k,
           Array.isArray(v) ? v.join(", ") : typeof v === "object" && v !== null ? JSON.stringify(v) : String(v),
@@ -625,7 +749,7 @@ export default function FechamentoContabil() {
       XLSX.utils.book_append_sheet(wb, wsGrupo, "Por Grupo");
       XLSX.utils.book_append_sheet(wb, wsSku, "Evolução por SKU");
       XLSX.utils.book_append_sheet(wb, wsCriterio, "Critério e Premissas");
-      baixar(wb, `Fetely_Estoque_Mensal_CFO_${ultima.competencia.slice(0, 4)}.xlsx`);
+      baixar(wb, `Fetely_Estoque_Mensal_CFO_${ultima.competencia.slice(0, 4)}${(competencias.data ?? []).some((c) => comps.some((m) => m.competencia === c.competencia) && c.status === "pre_fechado") ? "_PRE-FECHAMENTO" : ""}.xlsx`);
       toast.success(`Evolução mensal exportada — ${comps.length} competência(s), ${skus.length} SKU(s).`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -640,7 +764,26 @@ export default function FechamentoContabil() {
     qc.invalidateQueries({ queryKey: ["contabil-competencias"] });
     qc.invalidateQueries({ queryKey: ["contabil-gates", selecionada] });
     qc.invalidateQueries({ queryKey: ["contabil-posicao", selecionada] });
+    qc.invalidateQueries({ queryKey: ["contabil-presuncoes", selecionada] });
+    qc.invalidateQueries({ queryKey: ["contabil-delta-pre", selecionada] });
   };
+
+  const preFechar = useMutation({
+    mutationFn: async (observacao: string) => {
+      if (!selecionada) throw new Error("Selecione uma competência.");
+      const { error } = await (supabase as any).rpc("fn_contabil_fechar", {
+        p_competencia: selecionada, p_forcar: false, p_obs: observacao, p_pre_fechamento: true,
+      });
+      if (error) throw error;
+    },
+    onError: (e) => toast.error(rawMessage(e)),
+    onSuccess: () => {
+      toast.success(`Competência ${comp?.rotulo} pré-fechada.`);
+      setDialogPre(false);
+      setMotivoPre("");
+      invalidar();
+    },
+  });
 
   const fechar = useMutation({
     mutationFn: async ({ forcar, observacao }: { forcar: boolean; observacao: string }) => {
@@ -652,6 +795,7 @@ export default function FechamentoContabil() {
       if (error) throw error;
     },
     onMutate: () => {
+      if (comp?.status === "pre_fechado") return { anterior: undefined };
       // rollback otimista: guarda o cache atual antes de mexer
       const anterior = qc.getQueryData(["contabil-competencias"]);
       qc.setQueryData<Competencia[]>(["contabil-competencias"], (old) =>
@@ -731,6 +875,12 @@ export default function FechamentoContabil() {
                     <Lock className="mr-1.5 h-4 w-4" aria-hidden="true" />
                     Fechar competência
                   </Button>
+                  {comp.gates_bloqueantes > 0 && presuncoesElegiveis && (
+                    <Button size="sm" variant="outline" onClick={() => setDialogPre(true)}>
+                      <Clock3 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      Pré-fechar
+                    </Button>
+                  )}
                   {comp.gates_bloqueantes > 0 && (
                     <button
                       type="button"
@@ -740,6 +890,27 @@ export default function FechamentoContabil() {
                       Fechar mesmo assim
                     </button>
                   )}
+                </>
+              )}
+              {comp.status === "pre_fechado" && (
+                <>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={comp.gates_bloqueantes > 0 ? 0 : undefined}>
+                          <Button size="sm" disabled={comp.gates_bloqueantes > 0 || fechar.isPending} onClick={() => setDialogFechar("normal")}>
+                            <Lock className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            Fechar competência
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {comp.gates_bloqueantes > 0 && <TooltipContent>Aguardando: {presuncoesAtivas.map((p) => p.nf).join(", ") || "NFs presumidas"}</TooltipContent>}
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button size="sm" variant="ghost" onClick={() => setDialogPre(true)}>
+                    <Clock3 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                    Refazer pré-fechamento
+                  </Button>
                 </>
               )}
               {comp.status === "fechado" && (
@@ -752,6 +923,17 @@ export default function FechamentoContabil() {
           )
         }
       />
+
+      {isPre && comp && (
+        <Alert className="border-warning/40 bg-warning/10">
+          <AlertTitle>PRÉ-FECHAMENTO — não definitivo</AlertTitle>
+          <AlertDescription>
+            <p>Inclui {fmtDinheiro(comp.valor_presumido)} presumidos:</p>
+            {presuncoesAtivas.map((p) => <p key={p.nf_id}>{p.nf} {p.fornecedor} (chegada {fmtChegada(p.data_chegada)}, {p.motivo})</p>)}
+            <p>Pré-fechado em {fmtDataHora(comp.fechado_em)}</p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* ZONA 2 — faixa de competências */}
       {competencias.isLoading ? (
@@ -787,6 +969,7 @@ export default function FechamentoContabil() {
                 <p className="text-[11px] tabular-nums text-muted-foreground">
                   {fmtUn(c.unidades)} un · {fmtUn(c.skus)} SKUs
                 </p>
+                {c.status === "pre_fechado" && <p className="text-[11px] tabular-nums text-warning">inclui {fmtDinheiro(c.valor_presumido)} presumido</p>}
                 {c.gates_bloqueantes > 0 && (
                   <div className="mt-1.5">
                     <Selo estado="warning">{c.gates_bloqueantes} pendências</Selo>
@@ -837,6 +1020,37 @@ export default function FechamentoContabil() {
         </section>
       )}
 
+      {comp?.status === "fechado" && comp.pre_fechamento && (
+        <section className="space-y-3 rounded-md border p-4">
+          <h2 className="text-sm font-medium">Pré × definitivo</h2>
+          <p className="text-sm tabular-nums">Pré-fechado em {fmtDataHora(comp.pre_fechamento.fechado_em)}: {fmtDinheiro(comp.pre_fechamento.valor_custo)} · Definitivo: {fmtDinheiro(comp.valor_custo)} · Δ {fmtDinheiro(num(comp.valor_custo) - num(comp.pre_fechamento.valor_custo))}</p>
+          {deltaPre.isLoading ? <div className="h-24 animate-pulse rounded-md bg-muted" /> : deltaPre.error ? (
+            <p className="text-sm text-destructive">{rawMessage(deltaPre.error)}</p>
+          ) : linhasDelta.length === 0 ? <p className="text-sm text-muted-foreground">Termo bateu 100% com a NF</p> : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/40"><tr>
+                  <th className="px-3 py-2 text-left font-medium">NF</th><th className="px-3 py-2 text-left font-medium">SKU</th>
+                  <th className="px-3 py-2 text-right font-medium">Presumido</th><th className="px-3 py-2 text-right font-medium">Real</th>
+                  <th className="px-3 py-2 text-right font-medium">Δ qtd</th><th className="px-3 py-2 text-right font-medium">Δ R$</th>
+                </tr></thead>
+                <tbody className="divide-y">{linhasDelta.map((l, i) => <tr key={`${l.nf_id}-${l.sku}-${i}`}>
+                  <td className="px-3 py-2">{l.nf}</td><td className="px-3 py-2">{l.sku}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_presumida)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_real)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.delta_qtd)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.delta_valor)}</td>
+                </tr>)}</tbody>
+                <tfoot className="border-t bg-background"><tr><td colSpan={4} className="px-3 py-2 font-medium">Total</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(linhasDelta.reduce((s, l) => s + num(l.delta_qtd), 0))}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(linhasDelta.reduce((s, l) => s + num(l.delta_valor), 0))}</td>
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ZONA 4 — duas bases de valorização */}
       {comp && (
         <section className="space-y-3">
@@ -871,7 +1085,7 @@ export default function FechamentoContabil() {
             <h2 className="text-sm font-medium">Posição por SKU</h2>
             {fonte && (
               <Selo estado={fonte === "snapshot" ? "success" : "info"}>
-                {fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"}
+                {isPre ? "Snapshot de pré-fechamento" : fonte === "snapshot" || fonte === "presumido" ? "Snapshot congelado" : "Cálculo ao vivo"}
               </Selo>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -956,6 +1170,7 @@ export default function FechamentoContabil() {
                           <td className="whitespace-nowrap px-3 py-2 font-medium">
                             <span className="inline-flex items-center gap-1.5">
                               {l.sku}
+                              {l.fonte === "presumido" && <Selo estado="warning">Presumido</Selo>}
                               {semNf && <Selo estado="warning">Sem custo NF</Selo>}
                             </span>
                           </td>
@@ -1004,7 +1219,7 @@ export default function FechamentoContabil() {
                   <tbody className="divide-y">
                     {visiveis.map((l, i) => (
                       <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
-                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
+                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku} {l.fonte === "presumido" && <Selo estado="warning">Presumido</Selo>}</td>
                         <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
@@ -1060,6 +1275,34 @@ export default function FechamentoContabil() {
       )}
 
       {/* Dialog — fechar */}
+      <Dialog open={dialogPre} onOpenChange={(o) => { if (!o && !preFechar.isPending) { setDialogPre(false); setMotivoPre(""); } }}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Pré-fechar {comp?.rotulo ?? "competência"}</DialogTitle>
+            <DialogDescription>O snapshot vai considerar estas NFs 100% corretas pela quantidade da nota, ao custo de aterrissagem. Nada entra no estoque. Quando o termo chegar, o fechamento definitivo substitui este e mostra a diferença.</DialogDescription>
+          </DialogHeader>
+          {presuncoes.isLoading ? <div className="h-32 animate-pulse bg-muted" /> : presuncoes.error ? (
+            <p className="text-sm text-destructive">{rawMessage(presuncoes.error)}</p>
+          ) : <div className="max-h-[50vh] overflow-auto rounded-md border"><table className="w-full text-sm">
+            <thead className="sticky top-0 bg-background"><tr>{["NF", "Fornecedor", "Chegada", "Centro", "Unidades", "Valor da NF", "Motivo"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr></thead>
+            <tbody className="divide-y">{(presuncoes.data ?? []).map((p) => <tr key={p.nf_id} className={cn(!p.presumivel && "bg-destructive/10 text-destructive")}>
+              <td className="px-3 py-2">{p.nf}</td><td className="px-3 py-2">{p.fornecedor}</td><td className="px-3 py-2">{fmtChegada(p.data_chegada)}</td>
+              <td className="px-3 py-2">{p.centro ?? "—"}</td><td className="px-3 py-2 text-right tabular-nums">{fmtUn(p.unidades)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.porque ?? "—"}</td>
+            </tr>)}</tbody>
+          </table></div>}
+          <div className="space-y-1.5"><Label htmlFor="motivo-pre">Motivo do pré-fechamento (mínimo 20 caracteres)</Label>
+            <Textarea id="motivo-pre" value={motivoPre} onChange={(e) => setMotivoPre(e.target.value)} rows={3} />
+            <p className="text-[11px] tabular-nums text-muted-foreground">{motivoPre.trim().length} / 20</p>
+          </div>
+          <DialogFooter><Button variant="ghost" disabled={preFechar.isPending} onClick={() => { setDialogPre(false); setMotivoPre(""); }}>Cancelar</Button>
+            <Button disabled={preFechar.isPending || presuncoes.isLoading || !!presuncoes.error || !presuncoesElegiveis || presuncoesImpedidas || motivoPre.trim().length < 20} onClick={() => preFechar.mutate(motivoPre.trim())}>
+              {preFechar.isPending ? "Pré-fechando…" : "Pré-fechar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogFechar !== null} onOpenChange={(o) => { if (!o) { setDialogFechar(null); setObs(""); } }}>
         <DialogContent>
           <DialogHeader>

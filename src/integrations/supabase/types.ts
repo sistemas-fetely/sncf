@@ -18081,10 +18081,12 @@ export type Database = {
           id: string
           obs: string | null
           politica: Json | null
+          pre_fechamento: Json | null
           skus: number | null
           status: string
           unidades: number | null
           valor_custo: number | null
+          valor_presumido: number | null
         }
         Insert: {
           competencia: string
@@ -18094,10 +18096,12 @@ export type Database = {
           id?: string
           obs?: string | null
           politica?: Json | null
+          pre_fechamento?: Json | null
           skus?: number | null
           status?: string
           unidades?: number | null
           valor_custo?: number | null
+          valor_presumido?: number | null
         }
         Update: {
           competencia?: string
@@ -18107,12 +18111,22 @@ export type Database = {
           id?: string
           obs?: string | null
           politica?: Json | null
+          pre_fechamento?: Json | null
           skus?: number | null
           status?: string
           unidades?: number | null
           valor_custo?: number | null
+          valor_presumido?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contabil_fechamento_status_fk"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "contabil_fechamento_status_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       contabil_fechamento_item: {
         Row: {
@@ -18123,6 +18137,8 @@ export type Database = {
           icms_aliq: number | null
           id: string
           ipi_aliq: number | null
+          presumido: boolean
+          presuncao_nf_id: number | null
           quantidade: number
           sku: string
           valor_nf_total: number | null
@@ -18136,6 +18152,8 @@ export type Database = {
           icms_aliq?: number | null
           id?: string
           ipi_aliq?: number | null
+          presumido?: boolean
+          presuncao_nf_id?: number | null
           quantidade: number
           sku: string
           valor_nf_total?: number | null
@@ -18149,6 +18167,8 @@ export type Database = {
           icms_aliq?: number | null
           id?: string
           ipi_aliq?: number | null
+          presumido?: boolean
+          presuncao_nf_id?: number | null
           quantidade?: number
           sku?: string
           valor_nf_total?: number | null
@@ -18162,7 +18182,73 @@ export type Database = {
             referencedRelation: "contabil_fechamento"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "contabil_fechamento_item_presuncao_nf_id_fkey"
+            columns: ["presuncao_nf_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contabil_fechamento_item_presuncao_nf_id_fkey"
+            columns: ["presuncao_nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_nf_sem_entrada"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "contabil_fechamento_item_presuncao_nf_id_fkey"
+            columns: ["presuncao_nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
         ]
+      }
+      contabil_fechamento_status_dim: {
+        Row: {
+          codigo: string
+          definitivo: boolean
+          descricao: string | null
+          ordem: number
+          rotulo: string
+          usa_snapshot: boolean
+        }
+        Insert: {
+          codigo: string
+          definitivo: boolean
+          descricao?: string | null
+          ordem?: number
+          rotulo: string
+          usa_snapshot: boolean
+        }
+        Update: {
+          codigo?: string
+          definitivo?: boolean
+          descricao?: string | null
+          ordem?: number
+          rotulo?: string
+          usa_snapshot?: boolean
+        }
+        Relationships: []
+      }
+      contabil_gate_presuncao: {
+        Row: {
+          criterio: string
+          gate: string
+          presumivel: boolean
+        }
+        Insert: {
+          criterio: string
+          gate: string
+          presumivel: boolean
+        }
+        Update: {
+          criterio?: string
+          gate?: string
+          presumivel?: boolean
+        }
+        Relationships: []
       }
       contagem_estoque: {
         Row: {
@@ -85733,14 +85819,42 @@ export type Database = {
           icms_excluido: number | null
           obs: string | null
           politica: Json | null
+          pre_fechamento: Json | null
           rotulo: string | null
           skus: number | null
           status: string | null
           unidades: number | null
           valor_custo: number | null
           valor_custo_nf: number | null
+          valor_presumido: number | null
         }
         Relationships: []
+      }
+      vw_contabil_delta_pre_fechamento: {
+        Row: {
+          competencia: string | null
+          delta_qtd: number | null
+          delta_valor: number | null
+          nf: string | null
+          nf_id: number | null
+          pre_fechado_em: string | null
+          qtd_presumida: number | null
+          qtd_real: number | null
+          rotulo: string | null
+          sku: string | null
+          status: string | null
+          valor_presumido: number | null
+          valor_real: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contabil_fechamento_status_fk"
+            columns: ["status"]
+            isOneToOne: false
+            referencedRelation: "contabil_fechamento_status_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
       }
       vw_contabil_nfs_periodo: {
         Row: {
@@ -102431,14 +102545,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -104169,14 +104283,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -115559,14 +115673,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -122790,7 +122904,12 @@ export type Database = {
         }[]
       }
       fn_contabil_fechar: {
-        Args: { p_competencia: string; p_forcar?: boolean; p_obs?: string }
+        Args: {
+          p_competencia: string
+          p_forcar?: boolean
+          p_obs?: string
+          p_pre_fechamento?: boolean
+        }
         Returns: Json
       }
       fn_contabil_gates: {
@@ -122818,6 +122937,22 @@ export type Database = {
           valor_nf_total: number
           valor_total: number
           valor_unit_nf: number
+        }[]
+      }
+      fn_contabil_presuncoes: {
+        Args: { p_competencia: string }
+        Returns: {
+          centro: string
+          centro_id: string
+          data_chegada: string
+          fornecedor: string
+          linhas: number
+          nf: string
+          nf_id: number
+          porque: string
+          presumivel: boolean
+          unidades: number
+          valor_nf: number
         }[]
       }
       fn_contabil_reabrir: {
