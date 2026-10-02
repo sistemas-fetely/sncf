@@ -1,13 +1,19 @@
-# Conclusão e salvamento da ficha da tarefa
+# F5 + F6 — Cobertura do cliente no pedido
 
 ## Implementação
-- Extrair e reutilizar o controle circular já usado no board, aplicando-o ao título do peek e da página.
-- Manter a escolha dos status de concluir/reabrir pela dimensão e guardar o status anterior para a ação “Desfazer”.
-- Identificar gravações da tarefa por `mutationKey` e exibir “Salvando…”/“Salvo” no peek e na página; erros deixam o indicador vazio.
-- Ajustar o rodapé do peek para “Fechar” e “Abrir tarefa completa”, ambos sem destaque principal.
-- Tornar o selo do projeto legível com texto semântico e um ponto na cor do projeto.
+- Reorganizar apenas o card lateral “Cobertura do cliente”, mantendo a leitura e a liberação atuais.
+- Exibir cobertura total, rota, decomposição financeira e uma justificativa sempre visível quando a liberação não estiver disponível.
+- Usar `InfoMetrica` no título para explicar a composição da cobertura.
+- Consultar os créditos livres do cliente e ocultar a seção quando não houver nenhum.
+- Permitir aplicar cada crédito nos estágios definidos, usando a função existente e mostrando a mensagem real em caso de erro.
+- Após sucesso, atualizar o pedido, a cobertura e a lista de créditos.
 
-## Detalhes técnicos
-- Alterar somente os componentes e hooks de tarefas necessários, sem banco e sem publicação.
-- Preservar a invalidação pelo prefixo `["tarefas"]` e o tratamento de erros existente.
-- Executar `bunx tsgo --noEmit -p tsconfig.app.json` ao final.
+## Regras preservadas
+- Sem alterações em funções ou views do banco.
+- Sem mudanças fora do card e de sua camada de dados estritamente necessária.
+- Somente tokens do design system; responsivo e compatível com modo escuro.
+- Não publicar.
+
+## Validação
+- Rodar o typecheck.
+- Conferir no navegador o card, os estados sem botão, os créditos e a adaptação em larguras menores.
