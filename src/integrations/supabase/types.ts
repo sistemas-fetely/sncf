@@ -33237,6 +33237,13 @@ export type Database = {
             referencedColumns: ["nf_linha_id"]
           },
           {
+            foreignKeyName: "importacao_nf_linha_sku_nf_linha_id_fkey"
+            columns: ["nf_linha_id"]
+            isOneToOne: false
+            referencedRelation: "vw_rateio_nf_linha"
+            referencedColumns: ["nf_linha_id"]
+          },
+          {
             foreignKeyName: "importacao_nf_linha_sku_sku_fkey"
             columns: ["sku"]
             isOneToOne: false
@@ -101273,14 +101280,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -104051,14 +104058,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -110563,6 +110570,39 @@ export type Database = {
           },
         ]
       }
+      vw_rateio_nf_linha: {
+        Row: {
+          alocacoes: Json | null
+          codigo_nf: string | null
+          depara: Json | null
+          item_seq: number | null
+          nf_id: number | null
+          nf_linha_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "importacao_nf_linha_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_nf"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_nf_sem_entrada"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "importacao_nf_linha_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_conferencia_nf"
+            referencedColumns: ["nf_id"]
+          },
+        ]
+      }
       vw_recebimento_divergencia: {
         Row: {
           aritmetica_ok: boolean | null
@@ -115408,14 +115448,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
