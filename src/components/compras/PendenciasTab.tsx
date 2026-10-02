@@ -228,6 +228,8 @@ export default function PendenciasTab() {
     : "codigos_sem_sku";
   const pedidoFiltro = params.get("pedido") ?? "todos";
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const setTipo = (t: TipoPendencia) => {
     const next = new URLSearchParams(params);
@@ -333,7 +335,22 @@ export default function PendenciasTab() {
   }, [xpmQ.data, busca]);
 
   
+  useEffect(() => {
+    setPagina(1);
+  }, [tipo, pedidoFiltro, busca, tamanho]);
+
   const totalDoTipo = totais[tipo];
+
+  const totalPaginasXpm = Math.max(1, Math.ceil(itensXpm.length / tamanho));
+  const paginaAtualXpm = Math.min(pagina, totalPaginasXpm);
+  const naPaginaXpm = itensXpm.slice((paginaAtualXpm - 1) * tamanho, paginaAtualXpm * tamanho);
+
+  const totalPaginasPedidos = Math.max(1, Math.ceil(filaPedidos.length / tamanho));
+  const paginaAtualPedidos = Math.min(pagina, totalPaginasPedidos);
+  const naPaginaPedidos = filaPedidos.slice(
+    (paginaAtualPedidos - 1) * tamanho,
+    paginaAtualPedidos * tamanho,
+  );
 
   const seletorPedido = (
     <Select value={pedidoFiltro} onValueChange={setPedido}>
