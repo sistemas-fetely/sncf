@@ -995,7 +995,9 @@ export default function ChegadaMercadoriaDetalhe() {
                         </TableBody>
                         <TableFooter>
                           <TableRow>
-                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>Total</TableCell>
+                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>
+                              {buscaLinhas.trim() ? "Total (filtrado)" : "Total"}
+                            </TableCell>
                             <TableCell className="text-right">
                               {fmtNum(totaisCustos.qtdPedida)}
                             </TableCell>
