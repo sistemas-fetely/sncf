@@ -116,13 +116,15 @@ interface LinhaCustos {
   total_caixas_master: number | null;
   total_caixas_inner: number | null;
   moeda_pedido: string | null;
-  custo_acordado: number | null;
-  total_acordado: number | null;
   nfs: number | null;
   qtd_faturada: number | null;
   total_nfs: number | null;
   ultimo_custo_nf: number | null;
   custo_medio_nf: number | null;
+  menor_custo_hist: number | null;
+  menor_custo_nf: string | null;
+  maior_custo_hist: number | null;
+  maior_custo_nf: string | null;
 }
 
 interface NfRow {
@@ -404,6 +406,9 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  /** Número da NF sem zeros à esquerda (ex.: "000055261" → "55261"). */
+  const nfSemZeros = (nf: string | null | undefined) => (nf ? nf.replace(/^0+/, "") : "");
+
   const totaisCustos = useMemo(() => {
     const l = custosQ.data ?? [];
     let algumNf = false;
@@ -417,7 +422,6 @@ export default function ChegadaMercadoriaDetalhe() {
     return {
       qtdPedida: l.reduce((s, r) => s + Number(r.qtd_pedida ?? 0), 0),
       qtdFaturada: l.reduce((s, r) => s + Number(r.qtd_faturada ?? 0), 0),
-      acordado: l.reduce((s, r) => s + Number(r.total_acordado ?? 0), 0),
       totalNfs: algumNf ? totalNfs : null,
     };
   }, [custosQ.data]);
@@ -801,8 +805,8 @@ export default function ChegadaMercadoriaDetalhe() {
             {/* ---------------- LINHAS ---------------- */}
             <TabsContent value="linhas" className="mt-4 space-y-4">
               <ParaQueServe>
-                O que foi pedido e o que veio nas NFs, por produto: quantidade e custo acordado ×
-                realizado.
+                O que foi pedido e o que veio nas NFs, por produto: quantidade, custo realizado e
+                a faixa histórica de preço.
               </ParaQueServe>
               <Card>
                 <CardContent className="pt-6">
@@ -837,18 +841,11 @@ export default function ChegadaMercadoriaDetalhe() {
                             )}
                             <TableHead className="text-right">Qtd pedida</TableHead>
                             <TableHead className="text-right">Qtd faturada</TableHead>
-                            <TableHead className="text-right">
-                              {moeda !== "BRL" ? `Custo acordado (${moeda})` : "Custo acordado"}
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Último custo (NF){moeda !== "BRL" ? " (R$)" : ""}
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Custo médio (NF){moeda !== "BRL" ? " (R$)" : ""}
-                            </TableHead>
-                            <TableHead className="text-right">
-                              Total NFs{moeda !== "BRL" ? " (R$)" : ""}
-                            </TableHead>
+                            <TableHead className="text-right">Último custo (NF)</TableHead>
+                            <TableHead className="text-right">Custo médio (NF)</TableHead>
+                            <TableHead className="text-right">Menor preço (hist.)</TableHead>
+                            <TableHead className="text-right">Maior preço (hist.)</TableHead>
+                            <TableHead className="text-right">Total NFs</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -856,11 +853,6 @@ export default function ChegadaMercadoriaDetalhe() {
                             const pedida = Number(r.qtd_pedida ?? 0);
                             const faturada = Number(r.qtd_faturada ?? 0);
                             const acimaPedido = faturada > pedida;
-                            const nfCara =
-                              moeda === "BRL" &&
-                              r.ultimo_custo_nf != null &&
-                              r.custo_acordado != null &&
-                              Number(r.ultimo_custo_nf) > Number(r.custo_acordado);
                             const semNf = Number(r.nfs ?? 0) === 0;
                             return (
                               <TableRow key={r.linha_id}>
@@ -919,13 +911,8 @@ export default function ChegadaMercadoriaDetalhe() {
                                 >
                                   {fmtNum(r.qtd_faturada)}
                                 </TableCell>
-                                <TableCell className="text-right">
-                                  {r.custo_acordado == null
-                                    ? "—"
-                                    : fmtMoeda(r.custo_acordado, moeda)}
-                                </TableCell>
                                 <TableCell
-                                  className={`text-right ${nfCara ? "text-warning" : ""}`}
+                                  className="text-right"
                                   title="Preço unitário da NF mais recente deste pedido"
                                 >
                                   {semNf || r.ultimo_custo_nf == null
@@ -939,6 +926,30 @@ export default function ChegadaMercadoriaDetalhe() {
                                   {semNf || r.custo_medio_nf == null
                                     ? "—"
                                     : fmtMoeda(r.custo_medio_nf, "BRL")}
+                                </TableCell>
+                                <TableCell
+                                  className="text-right"
+                                  title={
+                                    nfSemZeros(r.menor_custo_nf)
+                                      ? `Menor preço unitário em todas as NFs de compra deste produto — NF ${nfSemZeros(r.menor_custo_nf)}`
+                                      : "Menor preço unitário em todas as NFs de compra deste produto"
+                                  }
+                                >
+                                  {r.menor_custo_hist == null
+                                    ? "—"
+                                    : fmtMoeda(r.menor_custo_hist, "BRL")}
+                                </TableCell>
+                                <TableCell
+                                  className="text-right"
+                                  title={
+                                    nfSemZeros(r.maior_custo_nf)
+                                      ? `Maior preço unitário em todas as NFs de compra deste produto — NF ${nfSemZeros(r.maior_custo_nf)}`
+                                      : "Maior preço unitário em todas as NFs de compra deste produto"
+                                  }
+                                >
+                                  {r.maior_custo_hist == null
+                                    ? "—"
+                                    : fmtMoeda(r.maior_custo_hist, "BRL")}
                                 </TableCell>
                                 <TableCell className="text-right">
                                   {semNf || r.total_nfs == null
@@ -958,9 +969,8 @@ export default function ChegadaMercadoriaDetalhe() {
                             <TableCell className="text-right">
                               {fmtNum(totaisCustos.qtdFaturada)}
                             </TableCell>
-                            <TableCell className="text-right">
-                              {fmtMoeda(totaisCustos.acordado, moeda)}
-                            </TableCell>
+                            <TableCell />
+                            <TableCell />
                             <TableCell />
                             <TableCell />
                             <TableCell className="text-right">
