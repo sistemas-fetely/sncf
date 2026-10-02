@@ -744,7 +744,7 @@ export default function ChegadaMercadoriaDetalhe() {
               const nota = !comparavel
                 ? (s?.custo_incomparavel_motivo ?? "Custo não comparável")
                 : delta !== 0
-                  ? `${delta > 0 ? "+" : "−"}${fmtMoeda(Math.abs(delta), "BRL")} · ${pct != null ? fmtNum(Math.abs(pct), 1) : "—"}% vs acordado`
+? `${delta > 0 ? "+" : "−"}${fmtMoeda(Math.abs(delta), "BRL")} · ${pct != null ? fmtNum(Math.abs(pct), 1) : "—"}% vs PI original`
                   : "igual ao acordado";
               const tom = !comparavel
                 ? "neutro"
