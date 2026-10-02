@@ -50,7 +50,6 @@ const QK_CREDITOS_CLIENTE_LIVRES = "creditos-cliente-livres";
 const ESTAGIOS_APLICACAO_CREDITO = new Set([
   "recebido",
   "em_analise",
-  "em_analise_credito",
   "cobranca",
   "aguardando_pagamento",
 ]);
