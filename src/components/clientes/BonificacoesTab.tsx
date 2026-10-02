@@ -12,7 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
-import { InfoMetrica } from "@/components/ui/info-metrica";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
@@ -96,7 +96,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
         </div>
         <div className="rounded-md border border-border/60 p-2.5">
           <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            Custo real · 12 meses <InfoMetrica texto="Custo de aterrissagem — a perda de verdade." />
+            Custo real · 12 meses <InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>
           </p>
           <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : formatBRL(totalCusto)}</p>
         </div>
@@ -128,7 +128,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
                 <TableHead className="text-right">Valor bonificado</TableHead>
                 <TableHead className="text-right">
                   <span className="inline-flex items-center gap-1">
-                    Custo real <InfoMetrica texto="Custo de aterrissagem — a perda de verdade." />
+                    Custo real <InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>
                   </span>
                 </TableHead>
                 <TableHead>Autorizado por</TableHead>
