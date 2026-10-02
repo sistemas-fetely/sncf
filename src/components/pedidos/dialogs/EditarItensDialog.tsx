@@ -299,8 +299,19 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
               coberturaQ.data ?? new Map<string, CoberturaItem>(),
             );
             const coberturaDe = (sku: string | null) => (sku ? porSku.get(sku) : undefined);
+            // Fallback por sobra livre (vw_estoque_rede) para SKUs fora do snapshot
+            // de cobertura — ex.: produto recém-adicionado pelo catálogo.
+            // null = coberto/sem decisão; caso contrário, valor do enum de problema.
+            const problemaFallbackDe = (i: Item): "parcial" | "sem_lastro" | null => {
+              if (coberturaDe(i.sku)) return null;
+              const sobra = sobraQ.data?.get(i.sku ?? "");
+              if (sobraQ.isLoading || sobra === undefined) return null;
+              if (sobra <= 0) return "sem_lastro";
+              if (sobra < i.quantidade) return "parcial";
+              return null;
+            };
             const problemas = itens
-              .map((i) => coberturaDe(i.sku)?.cobertura)
+              .map((i) => coberturaDe(i.sku)?.cobertura ?? problemaFallbackDe(i))
               .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
             const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
             return (
