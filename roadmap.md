@@ -9,6 +9,6 @@
 - [x] Paginar todas as RPCs do Fechamento Mensal sem truncamento.
 - [x] Refazer o export Evolução Mensal CFO em ExcelJS com trava de conferência.
 - [x] Validar contagens, arquivo, recusa por divergência, estilos e erros no navegador.
-- [ ] Aplicar rolagem interna e cabeçalhos congelados às cinco tabelas de Importar PI.
-- [ ] Paginar Conferência, Efetivação e Nascer no FOP acima de 50 linhas.
-- [ ] Executar o typecheck sem publicar.
+- [x] Aplicar rolagem interna e cabeçalhos congelados às cinco tabelas de Importar PI.
+- [x] Paginar Conferência, Efetivação e Nascer no FOP acima de 50 linhas.
+- [x] Executar o typecheck sem publicar.
