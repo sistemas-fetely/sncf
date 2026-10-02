@@ -510,7 +510,7 @@ export default function FechamentoContabil() {
       if (error) throw error;
       const dados = (data ?? []) as unknown as EvolucaoLinha[];
       if (!dados.length) {
-        toast.info("Nenhuma competência fechada para exportar");
+        toast.info("Nenhuma competência fechada ou pré-fechada");
         return;
       }
 
@@ -625,7 +625,7 @@ export default function FechamentoContabil() {
 
       /* ── Aba 3 — Evolução por SKU ── */
       const skus = [...new Set(dados.map((l) => l.sku))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-      const ID_COLS = 9;
+      const ID_COLS = 10;
       // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 6 colunas.
       const faixa: (string | null)[] = Array(ID_COLS).fill(null);
       comps.forEach(({ rotulo }) => {
@@ -633,7 +633,7 @@ export default function FechamentoContabil() {
       });
       const cabSku: (string | number | null)[] = [
         "SKU", "Produto", "Grupo", "NCM", "NF de entrada",
-        "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %",
+        "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %", "Presumido",
       ];
       comps.forEach(() =>
         cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)"),
@@ -650,6 +650,7 @@ export default function FechamentoContabil() {
           ref.custo_aterrissagem_unitario == null ? null : num(ref.custo_aterrissagem_unitario),
           ref.icms_aliq == null ? null : num(ref.icms_aliq) * 100,
           ref.ipi_aliq == null ? null : num(ref.ipi_aliq) * 100,
+          ref.competencia === ultima.competencia && (competencias.data ?? []).find((c) => c.competencia === ultima.competencia)?.status === "pre_fechado" ? "Sim" : "Não",
         ];
         comps.forEach(({ competencia }) => {
           const l = porCompSku.get(chave(competencia, sku));
@@ -660,7 +661,7 @@ export default function FechamentoContabil() {
         });
         return linha;
       });
-      const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null];
+      const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null, null];
       for (let c = ID_COLS; c < cabSku.length; c++) {
         totalSku.push(linhasSku.reduce((a, l) => a + num(l[c]), 0));
       }
@@ -668,7 +669,7 @@ export default function FechamentoContabil() {
       const wsSku = XLSX.utils.aoa_to_sheet(aoaSku);
       wsSku["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 24 }, { wch: 12 }, { wch: 16 },
-        { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 },
+        { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 }, { wch: 12 },
         ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }]),
       ];
       wsSku["!merges"] = comps.map((_, i) => ({
@@ -699,7 +700,7 @@ export default function FechamentoContabil() {
 
       /* ── Aba 4 — Critério e Premissas ── */
       const fechamentoRecente = (competencias.data ?? [])
-        .filter((c) => c.status === "fechado")
+        .filter((c) => c.status === "fechado" || c.status === "pre_fechado")
         .sort((a, b) => b.competencia.localeCompare(a.competencia))[0];
       const aoaCriterio: (string | null)[][] = [
         ["Custo NF", "=  valor do produto na NF  +  IPI"],
@@ -710,6 +711,13 @@ export default function FechamentoContabil() {
         ["Base gerencial", "Custo NF (produto + IPI, sem excluir ICMS)"],
         ["Fonte dos números", "Snapshots congelados de cada fechamento contábil"],
         ["Competências incluídas", comps.map((c) => c.rotulo).join(", ")],
+        ...(() => {
+          const c = (competencias.data ?? []).find((item) => item.competencia === ultima.competencia);
+          return c?.status === "pre_fechado" ? [
+            ["Aviso", `${ultima.rotulo} é PRÉ-FECHAMENTO — inclui ${fmtDinheiro(c.valor_presumido)} presumidos`],
+            ...presuncoesDe(c).map((p) => ["Presunção", descricaoPresuncao(p)]),
+          ] : [];
+        })(),
         ...Object.entries(fechamentoRecente?.politica ?? {}).map(([k, v]) => [
           k,
           Array.isArray(v) ? v.join(", ") : typeof v === "object" && v !== null ? JSON.stringify(v) : String(v),
@@ -726,7 +734,7 @@ export default function FechamentoContabil() {
       XLSX.utils.book_append_sheet(wb, wsGrupo, "Por Grupo");
       XLSX.utils.book_append_sheet(wb, wsSku, "Evolução por SKU");
       XLSX.utils.book_append_sheet(wb, wsCriterio, "Critério e Premissas");
-      baixar(wb, `Fetely_Estoque_Mensal_CFO_${ultima.competencia.slice(0, 4)}.xlsx`);
+      baixar(wb, `Fetely_Estoque_Mensal_CFO_${ultima.competencia.slice(0, 4)}${(competencias.data ?? []).some((c) => comps.some((m) => m.competencia === c.competencia) && c.status === "pre_fechado") ? "_PRE-FECHAMENTO" : ""}.xlsx`);
       toast.success(`Evolução mensal exportada — ${comps.length} competência(s), ${skus.length} SKU(s).`);
     } catch (e) {
       toast.error(rawMessage(e));
@@ -741,7 +749,26 @@ export default function FechamentoContabil() {
     qc.invalidateQueries({ queryKey: ["contabil-competencias"] });
     qc.invalidateQueries({ queryKey: ["contabil-gates", selecionada] });
     qc.invalidateQueries({ queryKey: ["contabil-posicao", selecionada] });
+    qc.invalidateQueries({ queryKey: ["contabil-presuncoes", selecionada] });
+    qc.invalidateQueries({ queryKey: ["contabil-delta-pre", selecionada] });
   };
+
+  const preFechar = useMutation({
+    mutationFn: async (observacao: string) => {
+      if (!selecionada) throw new Error("Selecione uma competência.");
+      const { error } = await (supabase as any).rpc("fn_contabil_fechar", {
+        p_competencia: selecionada, p_forcar: false, p_obs: observacao, p_pre_fechamento: true,
+      });
+      if (error) throw error;
+    },
+    onError: (e) => toast.error(rawMessage(e)),
+    onSuccess: () => {
+      toast.success(`Competência ${comp?.rotulo} pré-fechada.`);
+      setDialogPre(false);
+      setMotivoPre("");
+      invalidar();
+    },
+  });
 
   const fechar = useMutation({
     mutationFn: async ({ forcar, observacao }: { forcar: boolean; observacao: string }) => {
@@ -753,6 +780,7 @@ export default function FechamentoContabil() {
       if (error) throw error;
     },
     onMutate: () => {
+      if (comp?.status === "pre_fechado") return { anterior: undefined };
       // rollback otimista: guarda o cache atual antes de mexer
       const anterior = qc.getQueryData(["contabil-competencias"]);
       qc.setQueryData<Competencia[]>(["contabil-competencias"], (old) =>
