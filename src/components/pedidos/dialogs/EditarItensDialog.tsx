@@ -81,6 +81,8 @@ function useSobraLivrePorSku(skus: string[]) {
     },
   });
 }
+
+export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo }: Props) {
   const { regraDe } = usePedidoEdicaoCampo(estagioAtual);
   const [open, setOpen] = useState(false);
   const [itens, setItens] = useState<Item[]>([]);
