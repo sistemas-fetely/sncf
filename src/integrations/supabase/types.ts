@@ -8077,6 +8077,27 @@ export type Database = {
           },
         ]
       }
+      bonificacao_instrumento_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string | null
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao?: string | null
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string | null
+          rotulo?: string
+        }
+        Relationships: []
+      }
       cadastro_documento_tipo: {
         Row: {
           ativo: boolean
@@ -14415,57 +14436,260 @@ export type Database = {
       }
       concessao_ocorrencia: {
         Row: {
+          autorizado_por: string | null
+          autorizado_por_nome: string | null
           causa_status: string
           criado_em: string
+          criado_por: string | null
           custo_total: number | null
           custo_unitario: number | null
+          haver_id: string | null
           id: string
+          instrumento: string
           motivo_id: string
           observacao: string | null
-          pedido_id: string
+          parceiro_id: string | null
+          pedido_id: string | null
           pedido_origem_id: string | null
           quantidade: number
-          sku: string
+          sku: string | null
           status_cobranca: string
+          valor_bonificado: number | null
           valor_referencia_tabela: number | null
         }
         Insert: {
+          autorizado_por?: string | null
+          autorizado_por_nome?: string | null
           causa_status?: string
           criado_em?: string
+          criado_por?: string | null
           custo_total?: number | null
           custo_unitario?: number | null
+          haver_id?: string | null
           id?: string
+          instrumento?: string
           motivo_id: string
           observacao?: string | null
-          pedido_id: string
+          parceiro_id?: string | null
+          pedido_id?: string | null
           pedido_origem_id?: string | null
           quantidade: number
-          sku: string
+          sku?: string | null
           status_cobranca?: string
+          valor_bonificado?: number | null
           valor_referencia_tabela?: number | null
         }
         Update: {
+          autorizado_por?: string | null
+          autorizado_por_nome?: string | null
           causa_status?: string
           criado_em?: string
+          criado_por?: string | null
           custo_total?: number | null
           custo_unitario?: number | null
+          haver_id?: string | null
           id?: string
+          instrumento?: string
           motivo_id?: string
           observacao?: string | null
-          pedido_id?: string
+          parceiro_id?: string | null
+          pedido_id?: string | null
           pedido_origem_id?: string | null
           quantidade?: number
-          sku?: string
+          sku?: string | null
           status_cobranca?: string
+          valor_bonificado?: number | null
           valor_referencia_tabela?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "pessoas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_gestao_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_meu_cadastro_pendencia"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_organograma"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_pessoa_para_projeto"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_pagamentos"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_autorizado_por_fkey"
+            columns: ["autorizado_por"]
+            isOneToOne: false
+            referencedRelation: "vw_reembolso_saneamento"
+            referencedColumns: ["pessoa_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_haver_id_fkey"
+            columns: ["haver_id"]
+            isOneToOne: false
+            referencedRelation: "haver_cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_instrumento_fkey"
+            columns: ["instrumento"]
+            isOneToOne: false
+            referencedRelation: "bonificacao_instrumento_dim"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "concessao_ocorrencia_motivo_id_fkey"
             columns: ["motivo_id"]
             isOneToOne: false
             referencedRelation: "motivos_concessao"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "concessao_ocorrencia_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
           },
           {
             foreignKeyName: "concessao_ocorrencia_pedido_id_fkey"
@@ -83237,6 +83461,7 @@ export type Database = {
         Row: {
           a_confirmar: number | null
           a_faturar: number | null
+          aguarda_recebimento: number | null
           aviso_iv_a_menos: number | null
           cambio_referencia: number | null
           confirmada_iv: number | null
@@ -83255,6 +83480,7 @@ export type Database = {
           custo_vigente: number | null
           data_ultima_nf: string | null
           declarada_nf: number | null
+          estados: string[] | null
           excesso_xpm: number | null
           falta_xpm: number | null
           modalidade: string | null
@@ -102072,14 +102298,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -103810,14 +104036,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -120875,6 +121101,21 @@ export type Database = {
           p_departamento_id?: string
           p_template_id: string
           p_user_id: string
+        }
+        Returns: Json
+      }
+      conceder_bonificacao: {
+        Args: {
+          p_autorizado_por?: string
+          p_autorizado_por_nome: string
+          p_instrumento: string
+          p_itens?: Json
+          p_motivo_codigo: string
+          p_observacao?: string
+          p_parceiro_id: string
+          p_pedido_id?: string
+          p_validade_dias?: number
+          p_valor: number
         }
         Returns: Json
       }
