@@ -155,13 +155,12 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     try {
       const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
       toast.success(`Novo link gerado · até ${r.max_parcelas}x`);
-      qc.removeQueries({ queryKey: ["venda-direta-pagamento-link", linha.id], exact: true });
       qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
     } catch (e) {
       toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));
     } finally {
       setOcupado(null);
-      await qc.refetchQueries({ queryKey: ["venda-direta-pagamento-link", linha.id], exact: true });
+      await qc.resetQueries({ queryKey: ["venda-direta-pagamento-link", linha.id], exact: true });
     }
   };
 
