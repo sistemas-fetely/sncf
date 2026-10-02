@@ -8,12 +8,64 @@ import { formatBRL } from "@/lib/format-currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
-export interface LinkCartaoOk { ok: true; url: string; expira_em: string; max_parcelas: number; pagamento_link_id: string }
+export interface LinkCartaoOk { ok: true; url: string; expira_em: string; max_parcelas: number; parcelas_padrao?: number; pagamento_link_id: string }
+
+export interface CfgParcelas { max_parcelas: number; valor_minimo_parcelar_centavos: number; parcela_min_centavos: number }
+
+/** Regras de parcelamento lidas de safrapay_config. */
+export function useCfgParcelas() {
+  return useQuery({
+    queryKey: ["safrapay-config-parcelas"],
+    queryFn: async (): Promise<CfgParcelas> => {
+      const { data, error } = await supabase
+        .from("safrapay_config" as never)
+        .select("max_parcelas, valor_minimo_parcelar_centavos, parcela_min_centavos")
+        .eq("id", 1).maybeSingle();
+      if (error) throw error;
+      if (!data) throw new Error("Configuração Safrapay ausente.");
+      const d = data as unknown as Record<string, number | null>;
+      return {
+        max_parcelas: Number(d.max_parcelas ?? 1),
+        valor_minimo_parcelar_centavos: Number(d.valor_minimo_parcelar_centavos ?? 0),
+        parcela_min_centavos: Number(d.parcela_min_centavos ?? 0),
+      };
+    },
+  });
+}
+
+/** Mesma regra da edge safrapay-link. */
+export function parcelasPadrao(cfg: CfgParcelas, total: number) {
+  const c = Math.round(total * 100);
+  let n = c < cfg.valor_minimo_parcelar_centavos ? 1 : Math.max(1, cfg.max_parcelas);
+  if (cfg.parcela_min_centavos > 0) n = Math.min(n, Math.floor(c / cfg.parcela_min_centavos));
+  return Math.max(1, n);
+}
+
+export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}x`);
+
+export function textoPadraoParcelas(cfg: CfgParcelas | undefined) {
+  if (!cfg) return null;
+  return `Padrão: até ${cfg.max_parcelas}x a partir de ${formatBRL(cfg.valor_minimo_parcelar_centavos / 100)}`;
+}
+
+export function SelectParcelas({ value, onChange, disabled }: { value: number; onChange: (n: number) => void; disabled?: boolean }) {
+  return (
+    <Select value={String(value)} onValueChange={(v) => onChange(Number(v))} disabled={disabled}>
+      <SelectTrigger className="w-28 tabular-nums" aria-label="Parcelas no link"><SelectValue /></SelectTrigger>
+      <SelectContent>
+        {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+          <SelectItem key={n} value={String(n)} className="tabular-nums">{n}x</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
 export class ErroEdge extends Error {
   constructor(msg: string, readonly status: number | null) { super(msg); }
 }
@@ -46,14 +98,14 @@ function whatsappUrl(telefone: string | null | undefined, nome: string | null | 
   if (t.length < 10) return null;
   const tel = t.length <= 11 ? `55${t}` : t;
   const primeiro = (nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague com cartão em até ${n}x neste link: ${url}`;
+  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague com cartão ${textoParcelas(n)} neste link: ${url}`;
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
 
 function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Link do cartão (até {maxParcelas}x)</p>
+      <p className="text-sm font-medium">Link do cartão ({textoParcelas(maxParcelas)})</p>
       <div className="flex gap-2">
         <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
         <Button
@@ -78,8 +130,8 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcela
 export const AVISO_409 = "Link de cartão indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
 
 /** Painel da tela Novo pedido: gera o link automaticamente. */
-export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone }: {
-  pedidoId: string; idExterno: string | null; total: number | null; clienteNome: string | null; telefone: string | null;
+export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas }: {
+  pedidoId: string; idExterno: string | null; total: number | null; clienteNome: string | null; telefone: string | null; maxParcelas?: number;
 }) {
   const [estado, setEstado] = useState<{ fase: "carregando" } | { fase: "ok"; r: LinkCartaoOk } | { fase: "off" } | { fase: "erro"; msg: string }>({ fase: "carregando" });
   const pedidoRef = useRef<string | null>(null);
@@ -87,7 +139,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
   const gerar = async () => {
     setEstado({ fase: "carregando" });
     try {
-      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: pedidoId });
+      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: pedidoId, ...(maxParcelas ? { max_parcelas: maxParcelas } : {}) });
       setEstado({ fase: "ok", r });
     } catch (e) {
       if (e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message)) setEstado({ fase: "off" });
@@ -130,8 +182,10 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState<null | "gerar" | "verificar">(null);
   const [resultado, setResultado] = useState<string | null>(null);
+  const [parcelas, setParcelas] = useState<number | null>(null);
+  const cfgQ = useCfgParcelas();
 
-  useEffect(() => { setResultado(null); }, [linha?.id]);
+  useEffect(() => { setResultado(null); setParcelas(null); }, [linha?.id]);
 
   const q = useQuery({
     queryKey: ["venda-direta-pagamento-link", linha?.id],
@@ -149,12 +203,17 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     },
   });
 
+  const padraoAtual = q.data?.max_parcelas
+    ?? (cfgQ.data ? parcelasPadrao(cfgQ.data, Number(linha?.valor_liquido ?? 0)) : 1);
+  const parcelasEfetivas = parcelas ?? padraoAtual;
+
   const gerarNovo = async () => {
     if (!linha) return;
     setOcupado("gerar"); setResultado(null);
     try {
-      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
-      toast.success(`Novo link gerado · até ${r.max_parcelas}x`);
+      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, max_parcelas: parcelasEfetivas });
+      toast.success(`Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
+      setParcelas(null);
       qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
     } catch (e) {
       toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));
@@ -216,15 +275,20 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
                 wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!)}
               />
             ) : l.url ? (
-              <p className="break-all text-sm text-muted-foreground">{l.url} · validade {fmtDataHora(l.expira_em)}</p>
+              <p className="break-all text-sm text-muted-foreground">{l.url} · vale até {fmtDataHora(l.expira_em)}</p>
             ) : null}
           </div>
         )}
         {resultado && <p className="text-sm">{resultado}</p>}
+        {cfgQ.isError && <p className="text-sm text-destructive">Regras de parcelamento: {rawMessage(cfgQ.error)}</p>}
         <DialogFooter className="flex-wrap gap-2">
           <Button variant="outline" disabled={!!ocupado} onClick={verificar}>
             {ocupado === "verificar" && <Loader2 className="h-4 w-4 animate-spin" />} Verificar pagamento agora
           </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Parcelas no link</span>
+            <SelectParcelas value={parcelasEfetivas} onChange={setParcelas} disabled={!!ocupado} />
+          </div>
           <Button variant="outline" disabled={!!ocupado} onClick={gerarNovo}>
             {ocupado === "gerar" && <Loader2 className="h-4 w-4 animate-spin" />} Gerar novo link
           </Button>

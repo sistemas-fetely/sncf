@@ -59679,6 +59679,7 @@ export type Database = {
           url_portal_hml: string
           url_portal_prod: string
           validade_horas: number
+          valor_minimo_parcelar_centavos: number
         }
         Insert: {
           adquirente_id?: string | null
@@ -59698,6 +59699,7 @@ export type Database = {
           url_portal_hml?: string
           url_portal_prod?: string
           validade_horas?: number
+          valor_minimo_parcelar_centavos?: number
         }
         Update: {
           adquirente_id?: string | null
@@ -59717,6 +59719,7 @@ export type Database = {
           url_portal_hml?: string
           url_portal_prod?: string
           validade_horas?: number
+          valor_minimo_parcelar_centavos?: number
         }
         Relationships: [
           {

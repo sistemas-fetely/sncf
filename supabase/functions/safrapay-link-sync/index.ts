@@ -17,6 +17,11 @@ const msgApi = (c: any, s: number) => {
   const m = c?.errors?.map?.((e: any) => e?.message ?? JSON.stringify(e)).join("; ") || c?.message || c?.error || c?.title || c?.texto;
   return `Safrapay HTTP ${s}${m ? `: ${typeof m === "string" ? m : JSON.stringify(m)}` : ""}`;
 };
+function deleteToleravel(status: number, corpo: any): boolean {
+  if (status === 404 || status === 410) return true;
+  const m = JSON.stringify(corpo ?? "").toLowerCase();
+  return /expir|cancel|already|j[aá] /.test(m);
+}
 const primeiro = (...v: unknown[]) => v.find((x) => x !== undefined && x !== null && x !== "");
 
 /**
@@ -119,7 +124,62 @@ Deno.serve(async (req) => {
     return { api, bearer: at };
   }
 
-  for (const l of links ?? []) {
+  // 1) Pedido cancelado não pode ter link pagável — roda antes de procurar pagamentos.
+  const pedidoIds = [...new Set((links ?? []).map((l: any) => l.pedido_id))];
+  const cancelados = new Set<string>();
+  if (pedidoIds.length) {
+    const { data: peds, error: ePd } = await sb.from("pedidos").select("id, cancelado_em, estagio").in("id", pedidoIds);
+    if (ePd) return json({ ok: false, erro: `Ler pedidos: ${ePd.message}` }, 500);
+    for (const p of peds ?? []) if (p.cancelado_em || p.estagio === "cancelado") cancelados.add(p.id);
+  }
+  for (const l of (links ?? []).filter((x: any) => cancelados.has(x.pedido_id))) {
+    resumo.verificados++;
+    const base: any = { ultimo_sync_em: new Date().toISOString(), tentativas_sync: (l.tentativas_sync ?? 0) + 1 };
+    try {
+      const amb = l.ambiente === "prod" ? "prod" : "hml";
+      if (!l.gateway_link_id) {
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — link cancelado no Safra" }).eq("id", l.id);
+        if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado (pedido cancelado)" });
+        continue;
+      }
+      const { api, bearer } = await token(amb);
+      // Já tem cobrança aprovada? Então não cancela — vai para estorno manual.
+      const rC = await fetch(`${api}/v2/smartcheckout/${encodeURIComponent(l.gateway_link_id)}/detail`, {
+        headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+      });
+      const cC = await lerCorpo(rC);
+      if (!rC.ok) throw new Error(`Consultar antes de cancelar: ${msgApi(cC, rC.status)}`);
+      const scC = cC?.smartCheckout ?? cC?.data?.smartCheckout ?? cC?.data ?? cC;
+      const chs = Array.isArray(scC?.charges) ? scC.charges : [];
+      const aprovado = Number(scC?.status) === 100 || chs.some((c: any) => Number(primeiro(c?.chargeStatus, c?.status)) === 1);
+      if (aprovado) {
+        const erro = "Pedido cancelado com pagamento aprovado — estornar";
+        const { error } = await sb.from("pagamento_link").update({ ...base, erro, resposta_ultimo_sync: cC }).eq("id", l.id);
+        if (error) throw new Error(`Gravar alerta: ${error.message}`);
+        resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+        continue;
+      }
+      const merchantId = String(cfg[`merchant_id_${amb}`] ?? "").trim();
+      if (!merchantId) throw new Error(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o link.`);
+      const rD = await fetch(`${api}/v2/smartcheckout/${encodeURIComponent(l.gateway_link_id)}`, {
+        method: "DELETE", headers: { Authorization: `Bearer ${bearer}`, MerchantId: merchantId },
+      });
+      const cD = await lerCorpo(rD);
+      if (!rD.ok && !deleteToleravel(rD.status, cD)) throw new Error(`Cancelar link no Safra: ${msgApi(cD, rD.status)}`);
+      const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — link cancelado no Safra" }).eq("id", l.id);
+      if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+      resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado (pedido cancelado)" });
+    } catch (e) {
+      const erro = e instanceof Error ? e.message : String(e);
+      await sb.from("pagamento_link").update({ ...base, erro }).eq("id", l.id);
+      resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+      console.error("[safrapay-link-sync] cancelar", { pedido_id: l.pedido_id, erro });
+    }
+  }
+
+  // 2) Procurar pagamentos nos demais.
+  for (const l of (links ?? []).filter((x: any) => !cancelados.has(x.pedido_id))) {
     resumo.verificados++;
     const base: any = { ultimo_sync_em: new Date().toISOString(), tentativas_sync: (l.tentativas_sync ?? 0) + 1 };
     try {
@@ -138,15 +198,16 @@ Deno.serve(async (req) => {
       const pre = charges.find((ch: any) => ch.status === 2);
 
       if (paga) {
+        if (!paga.nsu) throw new Error("Pagamento aprovado sem transactionId (NSU) — confirmar manualmente.");
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
         if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
         const { error: eRpc } = await sb.rpc("confirmar_cartao_capturado", {
           p_pedido_id: l.pedido_id,
-          p_nsu: paga.nsu ?? paga.id,
+          p_nsu: paga.nsu,
           p_data_captura: paga.data,
           p_valor_capturado: valorPago,
-          p_observacao: `Safrapay link ${l.gateway_link_id} · charge ${paga.id}`,
+          p_observacao: `Safrapay link ${l.gateway_link_id} · charge ${paga.id} · aut ${paga.aut ?? "—"} · ${paga.bandeira ?? "—"} ****${paga.final ?? "—"} · ${paga.parcelas ?? "—"}x`,
           p_adquirente_id: cfg.adquirente_id,
         });
         if (eRpc) {
