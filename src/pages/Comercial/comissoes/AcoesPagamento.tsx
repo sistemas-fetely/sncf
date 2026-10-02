@@ -39,9 +39,12 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
     try {
       const r = await rpc("fn_comissao_extrato_fechar", { p_competencia: competencia });
       if (r.ok === false) throw new Error(r.erro ?? JSON.stringify(r));
+      const complementares = Number(r.complementares ?? 0);
       toast.success(
         `Extrato de pagamento ${fmtCompetencia(competencia)} fechado: ${Number(r.extratos_fechados ?? 0)} extrato(s), ${fmtBRL(r.valor_total)}`,
-        { description: `${Number(r.ja_fechados_ignorados ?? 0)} já fechado(s) ignorado(s)` },
+        complementares > 0
+          ? { description: `${complementares} extrato(s) complementar(es) de recebimentos que chegaram depois do fechamento` }
+          : undefined,
       );
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["comissao-extrato"] }),
@@ -100,7 +103,7 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
    Enviar e-mail e gerar título a pagar vivem num único lugar:
    Representantes · Ciclo mensal. Aqui só se consulta o que já foi congelado. */
 interface ExtratoFechado {
-  id: string; vendedor_id: string; competencia: string; pagar_ate: string | null; valor_total: number;
+  id: string; vendedor_id: string; competencia: string; sequencia: number; pagar_ate: string | null; valor_total: number;
   liberacoes: number; notas: number; cpr_id: string | null; cpr_em: string | null; representante: string;
   enviado_em: string | null; enviado_para: string | null;
 }
@@ -111,8 +114,9 @@ export function ExtratosFechados() {
     queryFn: async (): Promise<ExtratoFechado[]> => {
       const { data, error } = await (supabase as any)
         .from("comissao_extrato")
-        .select("id,vendedor_id,competencia,pagar_ate,valor_total,liberacoes,notas,cpr_id,cpr_em,enviado_em,enviado_para")
-        .order("competencia", { ascending: false });
+        .select("id,vendedor_id,competencia,sequencia,pagar_ate,valor_total,liberacoes,notas,cpr_id,cpr_em,enviado_em,enviado_para")
+        .order("competencia", { ascending: false })
+        .order("sequencia", { ascending: false });
       if (error) throw error;
       const linhas = (data ?? []) as Omit<ExtratoFechado, "representante">[];
       const ids = [...new Set(linhas.map((l) => l.vendedor_id))];
@@ -156,7 +160,14 @@ export function ExtratosFechados() {
                   </TableCell>
                   <TableCell>
                     <div className="space-y-0.5">
-                      <div>{fmtCompetencia(l.competencia)}</div>
+                      <div className="flex items-center gap-2">
+                        <span>{fmtCompetencia(l.competencia)}</span>
+                        {Number(l.sequencia ?? 1) > 1 && (
+                          <Badge variant="outline" className="bg-muted text-muted-foreground border-border/60">
+                            complementar nº {l.sequencia}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">
                         receb. {fmtJanelaRecebimento(l.competencia).replace(/\/\d{4}$/, "")}
                       </div>

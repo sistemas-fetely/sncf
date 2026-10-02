@@ -12661,6 +12661,7 @@ export type Database = {
           liberacoes: number
           notas: number
           pagar_ate: string
+          sequencia: number
           snapshot_identidade: Json
           valor_total: number
           vendedor_id: string
@@ -12678,6 +12679,7 @@ export type Database = {
           liberacoes: number
           notas: number
           pagar_ate: string
+          sequencia?: number
           snapshot_identidade: Json
           valor_total: number
           vendedor_id: string
@@ -12695,6 +12697,7 @@ export type Database = {
           liberacoes?: number
           notas?: number
           pagar_ate?: string
+          sequencia?: number
           snapshot_identidade?: Json
           valor_total?: number
           vendedor_id?: string
@@ -102150,14 +102153,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -104956,14 +104959,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
