@@ -190,6 +190,22 @@ interface SaldoLinha {
   credito_futuro_boleto: number;
 }
 
+function useRotulosLancamento() {
+  return useQuery({
+    queryKey: ["extrato-lancamento-tipos"],
+    staleTime: 60 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const { data, error } = await supabase
+        .from("extrato_lancamento_tipo_dim" as any)
+        .select("codigo, rotulo")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return new Map(((data ?? []) as unknown as Array<{ codigo: string; rotulo: string }>).map((l) => [l.codigo, l.rotulo]));
+    },
+  });
+}
+
 /** Saldo do cliente — fonte única `vw_conta_cliente_saldo`, filtrada pelo parceiro. */
 function useSaldoContaCliente(parceiroId: string) {
   return useQuery({
@@ -272,6 +288,7 @@ export function ClienteAbaExtrato({
   const enviarComprovanteCliente = useEnviarComprovanteCliente(parceiroId);
   const saldoQ = useSaldoContaCliente(parceiroId);
   const estornosQ = useEstornosContaCliente(parceiroId);
+  const rotulosQ = useRotulosLancamento();
 
   // SALDO CORRIDO — só front, a ordem de exibição (data desc) não muda.
   // Ordena por data ASC, desempate por tipo, e acumula sinal × valor.
@@ -386,6 +403,11 @@ export function ClienteAbaExtrato({
           {(estornosQ.error as any)?.message ?? "Falha ao carregar os estornos."}
         </p>
       )}
+      {rotulosQ.isError && (
+        <p className="text-xs text-destructive">
+          {(rotulosQ.error as any)?.message ?? "Falha ao carregar os tipos de lançamento."}
+        </p>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <CardIndicador
@@ -490,9 +512,9 @@ export function ClienteAbaExtrato({
                     <TableCell className="text-xs">{dataBR(l.data)}</TableCell>
                     <TableCell className="text-xs">
                       {l.tipo === "estorno_conta" ? (
-                        <Selo estado="destructive">estorno</Selo>
+                        <Selo estado="destructive">Estorno</Selo>
                       ) : (
-                        l.tipo
+                        rotulosQ.data?.get(l.tipo) ?? l.tipo
                       )}
                     </TableCell>
                     <TableCell className="text-xs">
