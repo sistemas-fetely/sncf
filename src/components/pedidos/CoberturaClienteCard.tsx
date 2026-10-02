@@ -162,7 +162,8 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
   const empenhoParcial = empenhoPedido > 0 && empenhoPedido < valor;
   // REGRA ÚNICA DE LIBERAÇÃO: sem empenho prévio e cobertura para todo o valor
   // ainda necessário. O banco continua sendo a autoridade final da ação.
-  const podeLiberar = !!pedidoId && empenhoPedido === 0 && total >= faltaEmpenhar && !empenhado;
+  const podeLiberar =
+    !!pedidoId && valorConhecido && empenhoPedido === 0 && total >= faltaEmpenhar && !empenhado;
   const empenhosOutros =
     Number(detalhesCobertura.empenhos_vivos_saldo ?? 0) +
     Number(detalhesCobertura.empenhos_vivos_limite ?? 0);
