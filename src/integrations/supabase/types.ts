@@ -96426,6 +96426,10 @@ export type Database = {
           custo_medio_nf: number | null
           importacao_pedido_id: number | null
           linha_id: number | null
+          maior_custo_hist: number | null
+          maior_custo_nf: string | null
+          menor_custo_hist: number | null
+          menor_custo_nf: string | null
           moeda_pedido: string | null
           nfs: number | null
           produto: string | null
@@ -115161,14 +115165,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
