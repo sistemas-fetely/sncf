@@ -19,6 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { CardIndicador } from "@/components/ui/card-indicador";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
@@ -208,26 +210,27 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
         ref={kpisRef}
         className="sticky top-16 z-20 grid grid-cols-2 md:grid-cols-4 gap-3 bg-background py-2"
       >
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Crédito a favor de clientes</p>
-          <p className="text-sm font-medium text-success">
-            {isError ? "—" : formatBRL(kpis.credito)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Clientes devendo</p>
-          <p className="text-sm font-medium">{isError ? "—" : formatBRL(kpis.devendo)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
-          <p className="text-sm font-medium text-destructive">
-            {isError ? "—" : formatBRL(kpis.vencido)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Clientes</p>
-          <p className="text-sm font-medium">{isError ? "—" : kpis.clientes}</p>
-        </div>
+        <CardIndicador
+          compacto
+          rotulo="Crédito a favor de clientes"
+          valor={isLoading ? <Skeleton className="h-6 w-28" /> : isError ? "—" : formatBRL(kpis.credito)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Clientes devendo"
+          valor={isLoading ? <Skeleton className="h-6 w-28" /> : isError ? "—" : formatBRL(kpis.devendo)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Vencido em aberto"
+          tom={!isError && kpis.vencido > 0 ? "critico" : "neutro"}
+          valor={isLoading ? <Skeleton className="h-6 w-28" /> : isError ? "—" : formatBRL(kpis.vencido)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Clientes"
+          valor={isLoading ? <Skeleton className="h-6 w-12" /> : isError ? "—" : kpis.clientes}
+        />
       </div>
 
       <div className="relative max-w-sm">
@@ -264,8 +267,12 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
             <TableBody>
               {ordenadas.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
-                    Nenhum cliente com movimento em conta.
+                  <TableCell colSpan={7} className="p-0">
+                    <EstadoVazio
+                      icone={Users}
+                      className="border-0"
+                      mensagem={busca.trim() ? "Nenhum cliente com movimento em conta nesta busca." : "Nenhum cliente com movimento em conta."}
+                    />
                   </TableCell>
                 </TableRow>
               )}
@@ -292,19 +299,19 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
                     </TableCell>
                     <TableCell
                       className={cn(
-                        "text-right text-xs font-medium",
+                        "text-right text-xs font-medium tabular-nums",
                         s > 0 ? "text-success" : s < 0 ? "text-warning" : "",
                       )}
                     >
                       {formatBRL(s)}
                     </TableCell>
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {formatBRL(c.vencido_em_aberto ?? 0)}
                     </TableCell>
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {formatBRL(c.a_vencer ?? 0)}
                     </TableCell>
-                    <TableCell className="text-right text-xs">
+                    <TableCell className="text-right text-xs tabular-nums">
                       {formatBRL(c.credito_futuro_boleto ?? 0)}
                     </TableCell>
                     <TableCell className="text-xs">{dataBR(c.ultima_movimentacao)}</TableCell>
