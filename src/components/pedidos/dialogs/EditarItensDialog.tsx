@@ -335,9 +335,27 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                 )}
                 {itens.map((item, idx) => {
                   const cob = coberturaDe(item.sku);
-                  const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
-                  const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
-                  const parcial = cob?.cobertura === "parcial";
+                  let rotulo: string | null = null;
+                  let descoberto = false;
+                  let parcial = false;
+                  let apurando = false;
+                  if (cob) {
+                    // Itens JÁ no snapshot de cobertura: a view manda, fallback não sobrescreve.
+                    rotulo = rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade);
+                    descoberto = cob.cobertura === "descoberto" || cob.cobertura === "sem_lastro";
+                    parcial = cob.cobertura === "parcial";
+                  } else {
+                    const sobra = sobraQ.data?.get(item.sku ?? "");
+                    if (sobraQ.isLoading || sobra === undefined) {
+                      apurando = true;
+                    } else if (sobra <= 0) {
+                      descoberto = true;
+                      rotulo = "Sem lastro livre";
+                    } else if (sobra < item.quantidade) {
+                      parcial = true;
+                      rotulo = `Parcial · ${sobra} de ${item.quantidade}`;
+                    }
+                  }
                   return (
                     <div
                       key={`${item.sku ?? "x"}-${idx}`}
