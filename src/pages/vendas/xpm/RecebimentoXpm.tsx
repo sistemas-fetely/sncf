@@ -218,6 +218,12 @@ export default function RecebimentoXpm() {
       const json = await resp.json();
       if (!resp.ok || json?.error) throw new Error(json?.error ?? "Erro ao ingerir Termo");
       setResultado(json as IngestResult);
+      // AÇÃO-INVALIDA-LEITURA: a fila "Chegou e não entrou" das Pendências e a régua
+      // do pedido mudam com a entrada no estoque — derruba as leituras.
+      void qc.invalidateQueries({ queryKey: ["vw_compras_nf_sem_entrada"] });
+      void qc.invalidateQueries({ queryKey: ["compras-pendencias"] });
+      void qc.invalidateQueries({ queryKey: ["compras-pendencias-xpm"] });
+      void qc.invalidateQueries({ queryKey: ["importacao-pedido-regua"] });
       toast.success("Termo ingerido com sucesso");
     } catch (e: any) {
       toast.error(e.message ?? "Erro ao ingerir Termo");
