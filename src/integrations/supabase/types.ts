@@ -76678,6 +76678,13 @@ export type Database = {
             referencedRelation: "termo_entrada"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "xpm_termo_linha_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "vw_termo_entrada"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
@@ -101384,14 +101391,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -115922,6 +115929,60 @@ export type Database = {
           },
         ]
       }
+      vw_termo_entrada: {
+        Row: {
+          arquivo_nao_preservado: boolean | null
+          arquivo_path: string | null
+          centro_codigo: string | null
+          centro_id: string | null
+          centro_rotulo: string | null
+          data_recebimento: string | null
+          documento_ref: string | null
+          exige_arquivo: boolean | null
+          id: string | null
+          ingerido_em: string | null
+          ingerido_por: string | null
+          linhas: number | null
+          nfs: string[] | null
+          numero: string | null
+          partes_documento: number | null
+          porta_codigo: string | null
+          porta_rotulo: string | null
+          skus: number | null
+          status: string | null
+          tarefas_abertas: number | null
+          tarefas_total: number | null
+          un_avaria: number | null
+          un_coberto: number | null
+          un_declarado: number | null
+          un_excesso: number | null
+          un_falta: number | null
+          un_recebido: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "termo_entrada_porta_codigo_fkey"
+            columns: ["porta_codigo"]
+            isOneToOne: false
+            referencedRelation: "termo_entrada_porta_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       vw_titulo_boleto_vigente: {
         Row: {
           boleto_id: string | null
@@ -124261,6 +124322,7 @@ export type Database = {
         Returns: boolean
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_termo_entrada_hash_linhas: { Args: { p_rows: Json }; Returns: string }
       fn_termo_entrada_proximo_numero: { Args: never; Returns: string }
       fn_titulo_coberto_pela_conta: {
         Args: { p_titulo_id: string }
@@ -124632,8 +124694,10 @@ export type Database = {
       }
       ingerir_termo_conferencia: {
         Args: {
+          p_arquivo_path?: string
           p_centro_codigo?: string
           p_data_recebimento: string
+          p_porta?: string
           p_rows: Json
           p_termo: string
         }

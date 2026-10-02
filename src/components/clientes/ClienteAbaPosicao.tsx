@@ -9,7 +9,9 @@
  * Pesos: só 400 e 500. Número é tipografia: tabular-nums, alinhado à direita.
  * Cor em indicador entra como régua lateral de 3px, nunca fundo ou texto solto.
  */
-import { Loader2 } from "lucide-react";
+import { CardIndicador, type TomIndicador } from "@/components/ui/card-indicador";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Bar,
   CartesianGrid,
@@ -43,11 +45,6 @@ function dataBR(iso: string | null | undefined) {
 
 /** Régua lateral de 3px no token do estado. Sem fundo, sem texto colorido. */
 type Regua = "success" | "warning" | "destructive" | undefined;
-const REGUA: Record<Exclude<Regua, undefined>, string> = {
-  success: "border-l-[3px] border-l-success",
-  warning: "border-l-[3px] border-l-warning",
-  destructive: "border-l-[3px] border-l-destructive",
-};
 
 function TituloSecao({ children }: { children: React.ReactNode }) {
   return <h3 className="text-[15px] font-medium leading-tight">{children}</h3>;
@@ -55,15 +52,22 @@ function TituloSecao({ children }: { children: React.ReactNode }) {
 
 function Barra({ pct, tom }: { pct: number; tom: string }) {
   return (
-    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-      <div
-        className={cn("h-full rounded-full", tom)}
+    <span className="block h-1.5 w-full overflow-hidden rounded-full bg-muted">
+      <span
+        className={cn("block h-full rounded-full", tom)}
         style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
       />
-    </div>
+    </span>
   );
 }
 
+const TOM_REGUA: Record<Exclude<Regua, undefined>, TomIndicador> = {
+  success: "positivo",
+  warning: "atencao",
+  destructive: "critico",
+};
+
+/** Indicador da Posição = CardIndicador. Herói usa o tamanho padrão; os demais, 21px. */
 function Indicador({
   rotulo,
   valor,
@@ -79,33 +83,27 @@ function Indicador({
   heroi?: boolean;
   children?: React.ReactNode;
 }) {
+  const nota =
+    legenda || children ? (
+      <>
+        {legenda}
+        {children && <span className="block">{children}</span>}
+      </>
+    ) : undefined;
   return (
-    <div
-      className={cn(
-        "rounded-lg border border-border/60 bg-card p-3",
-        regua && REGUA[regua],
-      )}
-    >
-      <p className="text-[11px] font-normal text-muted-foreground">{rotulo}</p>
-      <p
-        className={cn(
-          "font-medium tabular-nums",
-          heroi ? "text-[32px] leading-[1.15]" : "text-[21px] leading-[1.2]",
-        )}
-      >
-        {valor}
-      </p>
-      {legenda && (
-        <p className="mt-0.5 text-[11px] font-normal text-muted-foreground">{legenda}</p>
-      )}
-      {children}
-    </div>
+    <CardIndicador
+      compacto={!heroi}
+      rotulo={rotulo}
+      tom={regua ? TOM_REGUA[regua] : "neutro"}
+      valor={heroi ? valor : <span className="text-[21px] leading-[1.2]">{valor}</span>}
+      nota={nota}
+    />
   );
 }
 
 function Linha({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="flex justify-between gap-3 text-[13px]">
+    <div className="flex justify-between gap-3 text-sm">
       <span className="font-normal text-muted-foreground">{label}</span>
       <span className="text-right tabular-nums">{value || "—"}</span>
     </div>
@@ -204,12 +202,13 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
       <div className="space-y-3">
         <TituloSecao>Cobertura para novos pedidos</TituloSecao>
         {cobertura.isLoading && (
-          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> consultando
-          </p>
+          <div className="space-y-2" aria-busy="true">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
         )}
         {cobertura.isError && (
-          <p className="text-[13px] font-normal text-destructive">
+          <p className="text-sm font-normal text-destructive">
             {(cobertura.error as any)?.message ?? "Falha ao consultar a cobertura."}
           </p>
         )}
@@ -221,27 +220,27 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               legenda="o quanto ainda dá para liberar"
             >
               {cobertura.data.sinal_analise_credito && (
-                <div className="pt-2">
+                <span className="block pt-2">
                   <Selo estado="warning">sinal para análise de crédito</Selo>
-                </div>
+                </span>
               )}
             </Indicador>
             <div className="rounded-lg border border-border/60 bg-card p-3">
               <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px] font-normal text-muted-foreground">
                 <dt>Saldo disponível</dt>
-                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                <dd className="text-right text-xs tabular-nums text-foreground">
                   {formatBRL(cobertura.data.fonte1_saldo_disponivel)}
                 </dd>
                 <dt>Limite vigente</dt>
-                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                <dd className="text-right text-xs tabular-nums text-foreground">
                   {formatBRL(cobertura.data.limite_vigente)}
                 </dd>
                 <dt>Limite disponível</dt>
-                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                <dd className="text-right text-xs tabular-nums text-foreground">
                   {formatBRL(cobertura.data.fonte3_limite_disponivel)}
                 </dd>
                 <dt>Exposição em aberto</dt>
-                <dd className="text-right text-[13px] tabular-nums text-foreground">
+                <dd className="text-right text-xs tabular-nums text-foreground">
                   {formatBRL(cobertura.data.exposicao_em_aberto)}
                 </dd>
               </dl>
@@ -253,7 +252,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                 legenda="do limite aprovado já comprometido"
                 regua={utilizacao >= 80 ? "destructive" : utilizacao >= 50 ? "warning" : undefined}
               >
-                <div className="pt-2">
+                <span className="block pt-2">
                   <Barra
                     pct={utilizacao}
                     tom={
@@ -264,7 +263,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                           : "bg-success"
                     }
                   />
-                </div>
+                </span>
               </Indicador>
             )}
           </div>
@@ -275,14 +274,13 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
       <div className="space-y-3">
         <TituloSecao>Comportamento de pagamento</TituloSecao>
         {kpi.isLoading && (
-          <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-            <Loader2 className="h-3 w-3 animate-spin" /> carregando
-          </p>
+          <div className="space-y-2" aria-busy="true">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
         )}
         {!kpi.isLoading && titulosPagos === 0 && (
-          <p className="text-[13px] font-normal text-muted-foreground">
-            Sem histórico de pagamento ainda.
-          </p>
+          <EstadoVazio className="p-6" mensagem="Sem pagamento registrado ainda — o comportamento aparece aqui depois do primeiro título pago." />
         )}
         {!kpi.isLoading && titulosPagos > 0 && k && (
           <>
@@ -302,7 +300,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                 }
               >
                 {k.pontualidade_pct != null && (
-                  <div className="pt-2">
+                  <span className="block pt-2">
                     <Barra
                       pct={k.pontualidade_pct}
                       tom={
@@ -313,7 +311,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
                             : "bg-destructive"
                       }
                     />
-                  </div>
+                  </span>
                 )}
               </Indicador>
               <Indicador
@@ -427,17 +425,18 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         <div className="space-y-3 rounded-lg border border-border/60 bg-card p-3">
           <TituloSecao>Movimento dos últimos meses</TituloSecao>
           {serie.isLoading && (
-            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> carregando
-            </p>
+            <div className="space-y-2" aria-busy="true">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
           )}
           {!serie.isLoading && serie.isError && (
-            <p className="text-[13px] font-normal text-destructive">
+            <p className="text-sm font-normal text-destructive">
               {(serie.error as any)?.message ?? "Falha ao consultar o movimento mensal."}
             </p>
           )}
           {!serie.isLoading && !serie.isError && dados.length < 2 && (
-            <p className="text-[13px] font-normal text-muted-foreground">Histórico curto demais para gráfico.</p>
+            <EstadoVazio className="border-0 p-6" mensagem="O gráfico aparece a partir de dois meses de movimento." />
           )}
           {!serie.isLoading && !serie.isError && dados.length >= 2 && (
             <>
@@ -514,24 +513,23 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
         </CardHeader>
         <CardContent className="space-y-1.5">
           {analise.isLoading && (
-            <p className="flex items-center gap-2 text-[13px] font-normal text-muted-foreground">
-              <Loader2 className="h-3 w-3 animate-spin" /> carregando
-            </p>
+            <div className="space-y-2" aria-busy="true">
+            <Skeleton className="h-4 w-1/3" />
+            <Skeleton className="h-16 w-full" />
+          </div>
           )}
           {analise.isError && (
-            <p className="text-[13px] font-normal text-destructive">
+            <p className="text-sm font-normal text-destructive">
               {(analise.error as any)?.message ?? "Falha ao carregar a análise."}
             </p>
           )}
           {!analise.isLoading && !analise.isError && !analise.data && (
-            <p className="text-[13px] font-normal text-muted-foreground">
-              Este cliente não tem análise de crédito decidida.
-            </p>
+            <EstadoVazio className="p-6" mensagem="Este cliente ainda não tem análise de crédito decidida." />
           )}
           {analise.data && (
             <>
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[13px] font-normal text-muted-foreground">Decisão</span>
+                <span className="text-sm font-normal text-muted-foreground">Decisão</span>
                 <Selo
                   estado={
                     analise.data.status_final === "aprovado"
@@ -566,13 +564,13 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               {analise.data.ressalva && (
                 <div className="rounded-lg border border-border/60 bg-card border-l-[3px] border-l-warning p-3">
                   <p className="text-[11px] font-normal text-muted-foreground">Ressalva</p>
-                  <p className="text-[13px] font-normal">{analise.data.ressalva}</p>
+                  <p className="text-sm font-normal">{analise.data.ressalva}</p>
                 </div>
               )}
               {analise.data.parecer_final && (
                 <div className="rounded-lg border border-border/60 bg-card p-3">
                   <p className="text-[11px] font-normal text-muted-foreground">Parecer</p>
-                  <p className="whitespace-pre-line text-[13px] font-normal">
+                  <p className="whitespace-pre-line text-sm font-normal">
                     {analise.data.parecer_final}
                   </p>
                 </div>
