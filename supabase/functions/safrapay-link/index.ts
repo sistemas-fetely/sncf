@@ -169,16 +169,11 @@ Deno.serve(async (req) => {
   }
 
   const expira = new Date(agora + Number(cfg.validade_horas ?? 24) * 3600_000);
-  const { data: linha, error: eIns } = await sb.from("pagamento_link").insert({
-    criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
-    valor, max_parcelas: cfg.max_parcelas, expira_em: expira.toISOString(), status: "criando",
-  }).select("id").single();
-  if (eIns) return json({ ok: false, erro: `Registrar link: ${eIns.message}` }, 409);
-
+  let linha: { id: string } | null = null; // só existe depois de encerrar os links anteriores
   const falhar = async (erro: string, status = 502) => {
-    await sb.from("pagamento_link").update({ status: "erro", erro }).eq("id", linha.id);
+    if (linha) await sb.from("pagamento_link").update({ status: "erro", erro }).eq("id", linha.id);
     console.error("[safrapay-link] erro", { pedido_id: pedidoId, erro });
-    return json({ ok: false, erro, pagamento_link_id: linha.id }, status);
+    return json(linha ? { ok: false, erro, pagamento_link_id: linha.id } : { ok: false, erro }, status);
   };
 
   try {
@@ -221,6 +216,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
+      criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
+      valor, max_parcelas: cfg.max_parcelas, expira_em: expira.toISOString(), status: "criando",
+    }).select("id").single();
+    if (eIns) return await falhar(`Registrar link: ${eIns.message}`, 409);
+    linha = linhaNova;
+
     let parceiro: any = null;
     if (pedido.parceiro_id) {
       const { data: pc, error: ePc } = await sb.from("parceiros_comerciais")
@@ -253,10 +255,10 @@ Deno.serve(async (req) => {
       status: "aberto", gateway_link_id: String(linkId), url: urlFinal, expira_em: expiraFinal,
       max_parcelas: cfg.max_parcelas, erro: null,
       resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, paymentSupportedTypes: tipos, avisos },
-    }).eq("id", linha.id);
+    }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
-    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: cfg.max_parcelas, pagamento_link_id: linha.id, avisos });
+    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: cfg.max_parcelas, pagamento_link_id: linha!.id, avisos });
   } catch (e) {
     return await falhar(e instanceof Error ? e.message : String(e));
   }
