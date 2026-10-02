@@ -20,6 +20,21 @@ const msgApi = (c: any, s: number) => {
 const primeiro = (...v: unknown[]) => v.find((x) => x !== undefined && x !== null && x !== "");
 
 /**
+ * Data do Safra com fuso correto.
+ * captureDateTime vem SEM fuso em horário de Brasília ("2026-10-02T15:55:01.109" = 15h55 em SP) —
+ * quando a string não tem Z nem offset, interpretar como -03:00 (America/Sao_Paulo).
+ * addedAtUtc vem em UTC (o nome diz) — quando não tem Z nem offset, interpretar como Z.
+ */
+function dataSafra(v: unknown, utc: boolean): string | null {
+  const s = String(v ?? "").trim();
+  if (!s) return null;
+  const temFuso = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(s);
+  const comFuso = temFuso ? s : `${s}${utc ? "Z" : "-03:00"}`;
+  const d = new Date(comFuso);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+}
+
+/**
  * Leitura da charge (formato confirmado em homologação 02/10).
  * NSU de verdade = transactions[].transactionId da transação aprovada (12 dígitos,
  * o que sai no comprovante e no relatório). charges[].nsu é numeração interna.
@@ -27,7 +42,7 @@ const primeiro = (...v: unknown[]) => v.find((x) => x !== undefined && x !== nul
 function lerCharge(c: any) {
   const txs: any[] = Array.isArray(c?.transactions) ? c.transactions : [];
   const aprovadas = txs.filter((t) => String(t?.authorizationResponseCode ?? "") === "00" || Number(t?.transactionStatus) === 2);
-  const ts = (t: any) => { const v = Date.parse(String(t?.captureDateTime ?? "")); return Number.isFinite(v) ? v : 0; };
+  const ts = (t: any) => { const v = dataSafra(t?.captureDateTime, false); return v ? Date.parse(v) : 0; };
   const tx = aprovadas.sort((a, b) => ts(b) - ts(a))[0] ?? null;
   const status = Number(primeiro(c?.chargeStatus, c?.status));
   const id = primeiro(c?.id, c?.chargeId);
