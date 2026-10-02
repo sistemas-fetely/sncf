@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
   if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
   if (!pedido) return json({ ok: false, erro: "Pedido não encontrado." }, 404);
   if (pedido.origem !== "venda_direta") return json({ ok: false, erro: "Pedido não é da Venda Direta." }, 409);
-  if (pedido.forma_solicitada !== "cartao_credito") return json({ ok: false, erro: "Pedido não é de cartão de crédito." }, 409);
+  if (!["cartao", "cartao_credito"].includes(String(pedido.forma_solicitada))) return json({ ok: false, erro: "Pedido não é de cartão de crédito." }, 409);
   if (pedido.cancelado_em) return json({ ok: false, erro: "Pedido cancelado." }, 409);
   if (pedido.estagio !== "aguardando_pagamento") return json({ ok: false, erro: `Pedido não está aguardando pagamento (estágio ${pedido.estagio}).` }, 409);
   const valor = Number(pedido.valor_liquido ?? 0);
