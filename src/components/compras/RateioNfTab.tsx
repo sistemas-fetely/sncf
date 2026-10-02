@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -176,16 +177,38 @@ function useNfsPendencia() {
 
 function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
   const [busca, setBusca] = useState("");
+  const [modo, setModo] = useState<"pendentes" | "todas">("pendentes");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(DEFAULT_PAGE_SIZE);
   const q = useNfsPendencia();
-  const todas = q.data ?? [];
+  const todasNfs = q.data ?? [];
+  const pendentesNfs = useMemo(() => todasNfs.filter((n) => n.linhas - n.alocadas > 0), [todasNfs]);
+  const todas = modo === "pendentes" ? pendentesNfs : todasNfs;
 
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     if (!t) return todas;
     return todas.filter((n) => (n.numero ?? "").toLowerCase().includes(t));
   }, [todas, busca]);
+  useEffect(() => setPagina(1), [busca, modo, tamanho]);
+  const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   return (
+    <div className="space-y-3">
+      <FiltroDuplo
+        opcoes={[
+          { valor: "pendentes", rotulo: "Pendentes", n: pendentesNfs.length },
+          { valor: "todas", rotulo: "Todas", n: todasNfs.length },
+        ]}
+        atual={modo}
+        aoMudar={(v) => setModo(v as "pendentes" | "todas")}
+      />
+      {modo === "pendentes" && !q.isLoading && !q.isError && todasNfs.length > 0 && pendentesNfs.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-md border p-8 text-center text-sm text-muted-foreground">
+          Nenhuma NF com linha a ratear — todas as linhas de NF já estão alocadas.
+          <Button variant="outline" size="sm" onClick={() => setModo("todas")}>Ver todas</Button>
+        </div>
+      ) : (
     <TabelaFetely
       busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar número da NF…" }}
       carregando={q.isLoading}
@@ -201,9 +224,9 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
       exibidos={filtradas.length}
       rotulo="NFs"
     >
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
+      <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+        <Table containerClassName="overflow-visible">
+          <TableHeader className="sticky top-0 z-10 bg-background">
             <TableRow>
               <TableHead>NF</TableHead>
               <TableHead>Data</TableHead>
@@ -215,7 +238,7 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtradas.map((n) => {
+            {fatia.map((n) => {
               const pendentes = n.linhas - n.alocadas;
               return (
                 <TableRow
@@ -246,7 +269,17 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
           </TableBody>
         </Table>
       </div>
+      <RodapePaginacao
+        total={filtradas.length}
+        pagina={pagina}
+        tamanhoPagina={tamanho}
+        tela="rateio_nfs"
+        onPagina={setPagina}
+        onTamanhoPagina={setTamanho}
+      />
     </TabelaFetely>
+      )}
+    </div>
   );
 }
 
@@ -423,6 +456,10 @@ function PainelMapeamento({
   return (
     <div className="space-y-4 rounded-md border bg-muted/40 p-4">
       <div className="space-y-2">
+        <p className="text-xs text-muted-foreground">
+          Candidatos calculados por: está no pedido · mesmo NCM · já comprado deste fornecedor.
+          Confira o produto antes de adicionar — mesmo NCM não significa mesmo produto.
+        </p>
         <Label>Sugestões do sistema</Label>
         {sugestoes.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -617,6 +654,191 @@ function PainelMapeamento({
 }
 
 /* ------------------------------------------------------------------ */
+/* Linha expandida: destino + de-para                                */
+/* ------------------------------------------------------------------ */
+
+interface RateioAlocacao {
+  sku: string | null;
+  cod_cadastro: string | null;
+  produto: string | null;
+  quantidade: number | null;
+  valor: number | null;
+  base_rateio: string | null;
+  origem: string | null;
+  pedido: string | null;
+}
+interface RateioDepara {
+  sku: string | null;
+  cod_cadastro: string | null;
+  produto: string | null;
+  rateio_pct: number | null;
+  usado_nesta_nf: boolean | null;
+}
+interface RateioLinha {
+  nf_linha_id: string;
+  alocacoes: RateioAlocacao[] | null;
+  depara: RateioDepara[] | null;
+}
+
+const ROTULO_BASE: Record<string, string> = {
+  proporcional_ao_pedido: "Proporcional ao pedido",
+  quantidade: "Por quantidade",
+  valor: "Por valor",
+  rateio_declarado: "% declarado no de-para",
+};
+
+function rotuloRegra(a: RateioAlocacao): string {
+  const base = a.base_rateio ? (ROTULO_BASE[a.base_rateio] ?? a.base_rateio) : "Direto";
+  return a.origem === "romaneio" ? `${base} (romaneio)` : base;
+}
+
+function FiltroDuplo({
+  opcoes,
+  atual,
+  aoMudar,
+}: {
+  opcoes: { valor: string; rotulo: string; n: number }[];
+  atual: string;
+  aoMudar: (v: string) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opcoes.map((o) => (
+        <Button
+          key={o.valor}
+          size="sm"
+          variant={atual === o.valor ? "default" : "outline"}
+          onClick={() => aoMudar(o.valor)}
+        >
+          {o.rotulo} · {o.n}
+        </Button>
+      ))}
+    </div>
+  );
+}
+
+function CodCadastro({ cod, sku }: { cod: string | null; sku: string | null }) {
+  return (
+    <div>
+      <div className="font-mono text-xs">{cod ?? sku ?? "—"}</div>
+      {cod && sku && <div className="text-xs text-muted-foreground">{sku}</div>}
+    </div>
+  );
+}
+
+function BlocoDepara({ depara }: { depara: RateioDepara[] }) {
+  const naoUsados = depara.filter((d) => !d.usado_nesta_nf).length;
+  return (
+    <div className="space-y-2 rounded-md border p-3">
+      <Label>De-para deste código</Label>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Cód. cadastro</TableHead>
+            <TableHead>Produto</TableHead>
+            <TableHead className="text-right">% rateio</TableHead>
+            <TableHead />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {depara.map((d, i) => (
+            <TableRow key={`${d.sku}-${i}`}>
+              <TableCell><CodCadastro cod={d.cod_cadastro} sku={d.sku} /></TableCell>
+              <TableCell>{d.produto ?? "—"}</TableCell>
+              <TableCell className="text-right tabular-nums">
+                {d.rateio_pct != null ? `${NUM.format(Number(d.rateio_pct))}%` : "—"}
+              </TableCell>
+              <TableCell>{d.usado_nesta_nf && <Selo estado="success">Usado nesta NF</Selo>}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {depara.length > 1 && naoUsados > 0 && (
+        <p className="rounded-md border border-info/40 bg-info/10 p-2 text-xs text-info">
+          Este código do fornecedor está ligado a {depara.length} produtos. Nesta NF só entraram
+          os que estão no pedido.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function LinhaExpandida({
+  nf,
+  linha,
+  destino,
+  aoSalvo,
+}: {
+  nf: NfPendencia;
+  linha: WorklistLinha;
+  destino: RateioLinha | undefined;
+  aoSalvo: () => void;
+}) {
+  const [revisar, setRevisar] = useState(false);
+  const alocs = destino?.alocacoes ?? [];
+  const depara = destino?.depara ?? [];
+
+  if (!linha.alocada) {
+    return (
+      <div className="space-y-3">
+        {depara.length > 0 && <BlocoDepara depara={depara} />}
+        <PainelMapeamento nf={nf} linha={linha} aoSalvo={aoSalvo} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-2 rounded-md border p-3">
+        <Label>Para onde foi</Label>
+        {alocs.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Destino ainda não carregado.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cód. cadastro</TableHead>
+                <TableHead>Produto</TableHead>
+                <TableHead className="text-right">Qtd</TableHead>
+                <TableHead className="text-right">Valor (R$)</TableHead>
+                <TableHead>Regra</TableHead>
+                <TableHead>Pedido</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {alocs.map((a, i) => (
+                <TableRow key={`${a.sku}-${i}`}>
+                  <TableCell><CodCadastro cod={a.cod_cadastro} sku={a.sku} /></TableCell>
+                  <TableCell>{a.produto ?? "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{fmtQtd(a.quantidade)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatBRL(a.valor)}</TableCell>
+                  <TableCell>{rotuloRegra(a)}</TableCell>
+                  <TableCell>{a.pedido ?? "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+      {depara.length > 0 && <BlocoDepara depara={depara} />}
+      {!revisar ? (
+        <Button variant="outline" size="sm" onClick={() => setRevisar(true)}>
+          Revisar de-para
+        </Button>
+      ) : (
+        <div className="space-y-3">
+          <p className="rounded-md border border-warning/40 bg-warning/10 p-2 text-sm text-warning">
+            Alterar o de-para muda como as PRÓXIMAS NFs com este código serão rateadas. Esta NF não
+            é re-rateada automaticamente.
+          </p>
+          <PainelMapeamento nf={nf} linha={linha} aoSalvo={aoSalvo} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Nivel 2 — worklist                                                 */
 /* ------------------------------------------------------------------ */
 
@@ -640,7 +862,30 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
     },
   });
 
-  const todas = q.data ?? [];
+  const destinoQ = useQuery({
+    queryKey: ["vw_rateio_nf_linha", nf.id],
+    queryFn: async (): Promise<Map<string, RateioLinha>> => {
+      const { data, error } = await db
+        .from("vw_rateio_nf_linha")
+        .select("nf_linha_id, alocacoes, depara")
+        .eq("nf_id", nf.id);
+      if (error) throw error;
+      const m = new Map<string, RateioLinha>();
+      ((data ?? []) as RateioLinha[]).forEach((r) => m.set(r.nf_linha_id, r));
+      return m;
+    },
+  });
+  useEffect(() => {
+    if (destinoQ.error) toast.error(formatError(destinoQ.error));
+  }, [destinoQ.error]);
+
+  const [modo, setModo] = useState<"nao_alocadas" | "todas" | null>(null);
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState(DEFAULT_PAGE_SIZE);
+  const todasLinhas = q.data ?? [];
+  const naoAlocadas = useMemo(() => todasLinhas.filter((l) => !l.alocada), [todasLinhas]);
+  const modoEf = modo ?? (naoAlocadas.length > 0 ? "nao_alocadas" : "todas");
+  const todas = modoEf === "nao_alocadas" ? naoAlocadas : todasLinhas;
   const filtradas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     if (!t) return todas;
@@ -650,9 +895,12 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         (l.descricao ?? "").toLowerCase().includes(t),
     );
   }, [todas, busca]);
+  useEffect(() => setPagina(1), [busca, modoEf, tamanho]);
+  const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   function invalidar() {
     invalidarCompras(qc);
+    void qc.invalidateQueries({ queryKey: ["vw_rateio_nf_linha", nf.id] });
     void qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
   }
 
@@ -714,6 +962,14 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         </Button>
       </div>
 
+      <FiltroDuplo
+        opcoes={[
+          { valor: "nao_alocadas", rotulo: "Não alocadas", n: naoAlocadas.length },
+          { valor: "todas", rotulo: "Todas", n: todasLinhas.length },
+        ]}
+        atual={modoEf}
+        aoMudar={(v) => setModo(v as "nao_alocadas" | "todas")}
+      />
       <TabelaFetely
         busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar código ou descrição…" }}
         carregando={q.isLoading}
@@ -729,9 +985,9 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         exibidos={filtradas.length}
         rotulo="itens"
       >
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
-            <TableHeader>
+        <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+          <Table containerClassName="overflow-visible">
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead className="w-[40px]" />
                 <TableHead className="text-right">Item</TableHead>
@@ -740,12 +996,15 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
                 <TableHead>NCM</TableHead>
                 <TableHead className="text-right">Qtd</TableHead>
                 <TableHead className="text-right">Valor total</TableHead>
+                <TableHead>Foi para</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtradas.map((l) => {
+              {fatia.map((l) => {
                 const expandida = aberta === l.nf_linha_id;
+                const destino = destinoQ.data?.get(l.nf_linha_id);
+                const alocs = destino?.alocacoes ?? [];
                 const mapeados = Number(l.skus_ja_mapeados ?? 0);
                 const selo = l.alocada ? (
                   <Selo estado="success">Alocada</Selo>
@@ -781,12 +1040,22 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
                       <TableCell className="text-right tabular-nums">
                         {formatBRL(l.valor_total)}
                       </TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {alocs.length > 0
+                          ? `${alocs[0].cod_cadastro ?? alocs[0].sku ?? "—"}${alocs.length > 1 ? ` +${alocs.length - 1}` : ""}`
+                          : "—"}
+                      </TableCell>
                       <TableCell>{selo}</TableCell>
                     </TableRow>
                     {expandida && (
                       <TableRow>
-                        <TableCell colSpan={8} className="p-3">
-                          <PainelMapeamento nf={nf} linha={l} aoSalvo={invalidar} />
+                        <TableCell colSpan={9} className="p-3">
+                          <LinhaExpandida
+                            nf={nf}
+                            linha={l}
+                            destino={destino}
+                            aoSalvo={invalidar}
+                          />
                         </TableCell>
                       </TableRow>
                     )}
@@ -796,6 +1065,14 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
             </TableBody>
           </Table>
         </div>
+        <RodapePaginacao
+          total={filtradas.length}
+          pagina={pagina}
+          tamanhoPagina={tamanho}
+          tela="rateio_nf_linhas"
+          onPagina={setPagina}
+          onTamanhoPagina={setTamanho}
+        />
       </TabelaFetely>
 
       <Dialog open={previaAloc !== null} onOpenChange={(v) => !v && setPreviaAloc(null)}>
@@ -835,8 +1112,9 @@ export default function RateioNfTab() {
   return (
     <div className="space-y-4">
       <ParaQueServe>
-        Distribui o valor de cada linha da NF nos nossos SKUs — é o custo de aterrissagem. Abra a
-        NF, confirme o de-para e aloque. Sem rateio, o estoque entra sem custo.
+        Traduz cada linha da NF (código do fornecedor) para os nossos SKUs e reparte quantidade e
+        valor — é o que dá custo ao produto e permite a entrada no estoque. Abra uma NF pendente,
+        confira o de-para e aloque.
       </ParaQueServe>
       <Card>
         <CardContent className="pt-6">
