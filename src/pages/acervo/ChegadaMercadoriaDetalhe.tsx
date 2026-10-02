@@ -1017,9 +1017,17 @@ export default function ChegadaMercadoriaDetalhe() {
                         </TableFooter>
                       </Table>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    <RodapePaginacao
+                      total={linhasFiltradas.length}
+                      pagina={paginaLinhas}
+                      tamanhoPagina={tamanho}
+                      tela="pedido_linhas_custos"
+                      onPagina={setPagina}
+                      onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+                    />
+                  </CardContent>
+                </Card>
+              </TabelaFetely>
             </TabsContent>
 
             {/* ---------------- DOCUMENTOS ---------------- */}
