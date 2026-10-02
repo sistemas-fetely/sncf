@@ -179,7 +179,7 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
   const [busca, setBusca] = useState("");
   const [modo, setModo] = useState<"pendentes" | "todas">("pendentes");
   const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(DEFAULT_PAGE_SIZE);
+  const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const q = useNfsPendencia();
   const todasNfs = q.data ?? [];
   const pendentesNfs = useMemo(() => todasNfs.filter((n) => n.linhas - n.alocadas > 0), [todasNfs]);
@@ -881,7 +881,7 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
 
   const [modo, setModo] = useState<"nao_alocadas" | "todas" | null>(null);
   const [pagina, setPagina] = useState(1);
-  const [tamanho, setTamanho] = useState(DEFAULT_PAGE_SIZE);
+  const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const todasLinhas = q.data ?? [];
   const naoAlocadas = useMemo(() => todasLinhas.filter((l) => !l.alocada), [todasLinhas]);
   const modoEf = modo ?? (naoAlocadas.length > 0 ? "nao_alocadas" : "todas");
