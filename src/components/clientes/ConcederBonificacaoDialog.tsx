@@ -150,7 +150,7 @@ export function ConcederBonificacaoDialog({
 
         {dimQ.isError ? (
           <Alert variant="destructive"><AlertDescription>{formatError(dimQ.error)}</AlertDescription></Alert>
-        ) : dimQ.isLoading ? (
+        ) : !dimQ.data ? (
           <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
         ) : (
           <div className="space-y-5">
