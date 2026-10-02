@@ -225,6 +225,7 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
         .map((i: any) => coberturaMap.get(i.id)?.cobertura)
         .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
   const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
+  const qtdApurando = jaReservado || coberturaQ.isLoading ? 0 : itens.filter((i: any) => !coberturaMap.get(i.id)).length;
   return (
     <>
       {problemas.length > 0 && (
@@ -240,6 +241,14 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
           </p>
         </div>
       )}
+      {qtdApurando > 0 && (
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted/50 px-3 py-2 mb-3">
+          <AlertCircle className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-xs text-muted-foreground">
+            {qtdApurando} item(ns) com lastro ainda não apurado — o cálculo roda em instantes. Não trate como "tem estoque".
+          </p>
+        </div>
+      )}
       {itens.length === 0
         ? <p className="text-sm text-muted-foreground text-center py-6">Itens ainda não importados.</p>
         : itens.map((item: any) => {
@@ -247,13 +256,15 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
             const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
             const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
             const parcial = cob?.cobertura === "parcial";
+            const apurando = !jaReservado && !cob && !coberturaQ.isLoading;
             return (
               <div
                 key={item.id}
                 className={cn(
                   "flex justify-between items-center gap-3 py-2.5 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
                   descoberto && "bg-destructive/10 border-destructive/40",
-                  parcial && "bg-warning/10 border-warning/40"
+                  parcial && "bg-warning/10 border-warning/40",
+                  apurando && "bg-muted/50 border-border"
                 )}
               >
                 <div className="min-w-0">
@@ -270,6 +281,11 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
                         )}
                       >
                         {rotulo}
+                      </Badge>
+                    )}
+                    {apurando && (
+                      <Badge variant="outline" className="text-[10px] h-5 border-border text-muted-foreground bg-muted/50">
+                        Apurando lastro
                       </Badge>
                     )}
                   </div>
