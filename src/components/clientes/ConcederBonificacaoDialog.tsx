@@ -20,7 +20,7 @@ import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
-import { QK_CONTA_CLIENTE_COBERTURA } from "@/components/pedidos/CoberturaClienteCard";
+import { QK_CONTA_CLIENTE_COBERTURA } from "@/hooks/financeiro/useContaCliente";
 
 export const QK_BONIFICACOES_CLIENTE = "bonificacoes-cliente";
 const ESTAGIOS_VIVOS = ["recebido", "em_analise", "cobranca", "aguardando_pagamento"];
