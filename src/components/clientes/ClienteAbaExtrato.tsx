@@ -8,7 +8,10 @@
  */
 import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus, Wallet } from "lucide-react";
+import { CardIndicador } from "@/components/ui/card-indicador";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
+import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -155,14 +158,14 @@ function AlocacoesDetalhe({ l }: { l: ContaClienteLancamento }) {
 
   return (
     <div className="space-y-1">
-      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
         Alocado em
       </p>
       <ul className="space-y-0.5">
         {alocacoes.map((a) => (
           <li key={a.id} className="text-xs flex flex-wrap items-center gap-x-2">
             <span className="font-medium">{a.numero_titulo ?? "—"}</span>
-            <span>{formatBRL(a.valor)}</span>
+            <span className="tabular-nums">{formatBRL(a.valor)}</span>
             <span className="text-muted-foreground">{a.modo}</span>
             <span className="text-muted-foreground">
               {a.status_titulo ?? "—"}
@@ -385,46 +388,46 @@ export function ClienteAbaExtrato({
       )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Saldo atual</p>
-          <p className={cn("text-sm font-medium", saldoAtual > 0 ? "text-success" : "")}>
-            {saldoQ.isLoading ? "—" : formatBRL(saldoAtual)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
-            Saldo futuro
+        <CardIndicador
+          compacto
+          rotulo="Saldo atual"
+          valor={saldoQ.isLoading ? <Skeleton className="h-6 w-24" /> : formatBRL(saldoAtual)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Saldo futuro"
+          adorno={
             <InfoMetrica rotulo="Saldo futuro">
               <p>Como a conta fecha quando os títulos a vencer forem pagos.</p>
             </InfoMetrica>
-          </p>
-          <p className="text-sm font-medium">
-            {saldoQ.isLoading ? "—" : formatBRL(saldoFuturo)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
-          <p className={cn("text-sm font-medium", vencidoAberto > 0 ? "text-destructive" : "")}>
-            {saldoQ.isLoading ? "—" : formatBRL(vencidoAberto)}
-          </p>
-        </div>
-        <div className="rounded-md border border-border/60 bg-card p-2.5">
-          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
-            Crédito futuro (boleto)
+          }
+          valor={saldoQ.isLoading ? <Skeleton className="h-6 w-24" /> : formatBRL(saldoFuturo)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Vencido em aberto"
+          tom={vencidoAberto > 0 ? "critico" : "neutro"}
+          valor={saldoQ.isLoading ? <Skeleton className="h-6 w-24" /> : formatBRL(vencidoAberto)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Crédito futuro (boleto)"
+          adorno={
             <InfoMetrica rotulo="Crédito futuro (boleto)">
               <p>Boletos registrados no banco — dinheiro a caminho.</p>
             </InfoMetrica>
-          </p>
-          <p className="text-sm font-medium">
-            {saldoQ.isLoading ? "—" : formatBRL(creditoFuturo)}
-          </p>
-        </div>
+          }
+          valor={saldoQ.isLoading ? <Skeleton className="h-6 w-24" /> : formatBRL(creditoFuturo)}
+        />
       </div>
 
       {lancamentos.isLoading && (
-        <p className="text-xs text-muted-foreground flex items-center gap-2">
-          <Loader2 className="h-3 w-3 animate-spin" /> carregando
-        </p>
+        <div className="rounded-md border border-border/60 p-3 space-y-2" aria-busy="true">
+          <Skeleton className="h-5 w-full" />
+          {[0, 1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-8 w-full" />
+          ))}
+        </div>
       )}
 
       {lancamentos.isError && (
@@ -434,7 +437,17 @@ export function ClienteAbaExtrato({
       )}
 
       {lancamentos.data && lancamentos.data.length === 0 && (
-        <p className="text-xs text-muted-foreground">Sem lançamentos.</p>
+        <EstadoVazio
+          icone={Wallet}
+          mensagem="Nenhum lançamento na conta deste cliente."
+          acao={
+            <RegistrarRecebimentoDialog parceiroId={parceiroId} parceiroNome={clienteNome}>
+              <Button size="sm" variant="ghost" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" /> Registrar recebimento
+              </Button>
+            </RegistrarRecebimentoDialog>
+          }
+        />
       )}
 
       {lancamentos.data && lancamentos.data.length > 0 && (
@@ -495,21 +508,21 @@ export function ClienteAbaExtrato({
                     <TableCell className="text-xs">
                       {dataBR(l.vencimento)}
                       {l.vencido_aberto && (
-                        <span className="ml-1 text-[10px] text-destructive">vencido</span>
+                        <span className="ml-1 text-[11px] text-destructive">vencido</span>
                       )}
                     </TableCell>
                     <TableCell className="text-xs">{dataBR(l.data_pagamento)}</TableCell>
                     <TableCell className="text-[11px]">{meioBanco(l.meio, l.banco)}</TableCell>
                     <TableCell
                       className={cn(
-                        "text-right text-xs font-medium",
+                        "text-right text-xs font-medium tabular-nums",
                         credito ? "text-success" : "text-foreground",
                       )}
                     >
                       {credito ? "+" : "−"}
                       {formatBRL(Math.abs(Number(l.valor ?? 0)))}
                     </TableCell>
-                    <TableCell className="text-right text-xs text-muted-foreground">
+                    <TableCell className="text-right text-xs text-muted-foreground tabular-nums">
                       {formatBRL(saldoCorrido.get(i) ?? 0)}
                     </TableCell>
                   </TableRow>,

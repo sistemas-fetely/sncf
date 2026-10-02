@@ -65757,6 +65757,100 @@ export type Database = {
         }
         Relationships: []
       }
+      termo_entrada: {
+        Row: {
+          arquivo_nao_preservado: boolean
+          arquivo_path: string | null
+          centro_id: string
+          chave: string
+          conteudo_hash: string | null
+          data_recebimento: string
+          documento_ref: string | null
+          id: string
+          ingerido_em: string
+          ingerido_por: string | null
+          numero: string
+          obs: string | null
+          porta_codigo: string
+        }
+        Insert: {
+          arquivo_nao_preservado?: boolean
+          arquivo_path?: string | null
+          centro_id: string
+          chave: string
+          conteudo_hash?: string | null
+          data_recebimento: string
+          documento_ref?: string | null
+          id?: string
+          ingerido_em?: string
+          ingerido_por?: string | null
+          numero: string
+          obs?: string | null
+          porta_codigo: string
+        }
+        Update: {
+          arquivo_nao_preservado?: boolean
+          arquivo_path?: string | null
+          centro_id?: string
+          chave?: string
+          conteudo_hash?: string | null
+          data_recebimento?: string
+          documento_ref?: string | null
+          id?: string
+          ingerido_em?: string
+          ingerido_por?: string | null
+          numero?: string
+          obs?: string | null
+          porta_codigo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "termo_entrada_porta_codigo_fkey"
+            columns: ["porta_codigo"]
+            isOneToOne: false
+            referencedRelation: "termo_entrada_porta_dim"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      termo_entrada_porta_dim: {
+        Row: {
+          codigo: string
+          descricao: string | null
+          exige_arquivo: boolean
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          codigo: string
+          descricao?: string | null
+          exige_arquivo: boolean
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          codigo?: string
+          descricao?: string | null
+          exige_arquivo?: boolean
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       termo_restrito: {
         Row: {
           ativo: boolean
@@ -76212,6 +76306,7 @@ export type Database = {
           sku: string
           tarefa_id: string | null
           termo: string
+          termo_entrada_id: string | null
           validade_serie: string | null
         }
         Insert: {
@@ -76234,6 +76329,7 @@ export type Database = {
           sku: string
           tarefa_id?: string | null
           termo: string
+          termo_entrada_id?: string | null
           validade_serie?: string | null
         }
         Update: {
@@ -76256,6 +76352,7 @@ export type Database = {
           sku?: string
           tarefa_id?: string | null
           termo?: string
+          termo_entrada_id?: string | null
           validade_serie?: string | null
         }
         Relationships: [
@@ -76572,6 +76669,13 @@ export type Database = {
             columns: ["tarefa_id"]
             isOneToOne: false
             referencedRelation: "vw_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_termo_linha_termo_entrada_id_fkey"
+            columns: ["termo_entrada_id"]
+            isOneToOne: false
+            referencedRelation: "termo_entrada"
             referencedColumns: ["id"]
           },
         ]
@@ -124157,6 +124261,7 @@ export type Database = {
         Returns: boolean
       }
       fn_tem_nf_anexada: { Args: { p_conta_id: string }; Returns: boolean }
+      fn_termo_entrada_proximo_numero: { Args: never; Returns: string }
       fn_titulo_coberto_pela_conta: {
         Args: { p_titulo_id: string }
         Returns: boolean
