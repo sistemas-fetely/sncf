@@ -59,6 +59,29 @@ function useProdutos(busca: string) {
   });
 }
 
+// Fallback de lastro para SKUs que ainda NÃO estão no snapshot de cobertura
+// (ex.: produto recém-adicionado pelo catálogo). Sem isso, `cob` fica undefined
+// e o silêncio é lido como "tem estoque".
+function useSobraLivrePorSku(skus: string[]) {
+  const chave = Array.from(new Set(skus.filter(Boolean))).sort().join("|");
+  return useQuery({
+    queryKey: ["sobra-livre-sku", chave],
+    enabled: chave.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const lista = chave.split("|").filter(Boolean);
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_rede")
+        .select("sku, disponivel")
+        .in("sku", lista);
+      if (error) throw new Error(`[lastro] falha ao ler vw_estoque_rede: ${error.message}`);
+      const m = new Map<string, number>();
+      for (const r of data ?? []) m.set(r.sku, Number(r.disponivel ?? 0));
+      return m;
+    },
+  });
+}
+
 export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo }: Props) {
   const { regraDe } = usePedidoEdicaoCampo(estagioAtual);
   const [open, setOpen] = useState(false);
@@ -73,6 +96,13 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
   useEffect(() => {
     if (coberturaQ.error) toast.error((coberturaQ.error as Error).message);
   }, [coberturaQ.error]);
+  const sobraQ = useSobraLivrePorSku(
+    itens.map((i) => i.sku).filter(Boolean) as string[]
+  );
+  useEffect(() => {
+    if (sobraQ.error) toast.error((sobraQ.error as Error).message);
+  }, [sobraQ.error]);
+
 
   const salvar = useMutation({
     mutationFn: async () => {
@@ -269,8 +299,19 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
               coberturaQ.data ?? new Map<string, CoberturaItem>(),
             );
             const coberturaDe = (sku: string | null) => (sku ? porSku.get(sku) : undefined);
+            // Fallback por sobra livre (vw_estoque_rede) para SKUs fora do snapshot
+            // de cobertura — ex.: produto recém-adicionado pelo catálogo.
+            // null = coberto/sem decisão; caso contrário, valor do enum de problema.
+            const problemaFallbackDe = (i: Item): "parcial" | "sem_lastro" | null => {
+              if (coberturaDe(i.sku)) return null;
+              const sobra = sobraQ.data?.get(i.sku ?? "");
+              if (sobraQ.isLoading || sobra === undefined) return null;
+              if (sobra <= 0) return "sem_lastro";
+              if (sobra < i.quantidade) return "parcial";
+              return null;
+            };
             const problemas = itens
-              .map((i) => coberturaDe(i.sku)?.cobertura)
+              .map((i) => coberturaDe(i.sku)?.cobertura ?? problemaFallbackDe(i))
               .filter((c) => c === "parcial" || c === "descoberto" || c === "sem_lastro");
             const temDescoberto = problemas.some((c) => c === "descoberto" || c === "sem_lastro");
             return (
@@ -294,21 +335,45 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                 )}
                 {itens.map((item, idx) => {
                   const cob = coberturaDe(item.sku);
-                  const rotulo = cob ? rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade) : null;
-                  const descoberto = cob?.cobertura === "descoberto" || cob?.cobertura === "sem_lastro";
-                  const parcial = cob?.cobertura === "parcial";
+                  let rotulo: string | null = null;
+                  let descoberto = false;
+                  let parcial = false;
+                  let apurando = false;
+                  if (cob) {
+                    // Itens JÁ no snapshot de cobertura: a view manda, fallback não sobrescreve.
+                    rotulo = rotuloCobertura(cob.cobertura, cob.qtd_coberta, cob.quantidade);
+                    descoberto = cob.cobertura === "descoberto" || cob.cobertura === "sem_lastro";
+                    parcial = cob.cobertura === "parcial";
+                  } else {
+                    const sobra = sobraQ.data?.get(item.sku ?? "");
+                    if (sobraQ.isLoading || sobra === undefined) {
+                      apurando = true;
+                    } else if (sobra <= 0) {
+                      descoberto = true;
+                      rotulo = "Sem lastro livre";
+                    } else if (sobra < item.quantidade) {
+                      parcial = true;
+                      rotulo = `Parcial · ${sobra} de ${item.quantidade}`;
+                    }
+                  }
                   return (
                     <div
                       key={`${item.sku ?? "x"}-${idx}`}
                       className={cn(
                         "flex items-center gap-2 py-2 border-b border-border/40 last:border-0 rounded-md px-2 -mx-2",
                         descoberto && "bg-destructive/10 border-destructive/40",
-                        parcial && "bg-warning/10 border-warning/40"
+                        parcial && "bg-warning/10 border-warning/40",
+                        apurando && "bg-muted/50 border-border"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{item.descricao}</p>
+                          {apurando && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-border text-muted-foreground bg-muted/50">
+                              Apurando lastro
+                            </Badge>
+                          )}
                           {rotulo && (
                             <Badge
                               variant="outline"
