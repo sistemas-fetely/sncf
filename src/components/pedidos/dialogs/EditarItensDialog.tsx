@@ -369,6 +369,11 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium truncate">{item.descricao}</p>
+                          {apurando && (
+                            <Badge variant="outline" className="text-[10px] h-5 border-border text-muted-foreground bg-muted/50">
+                              Apurando lastro
+                            </Badge>
+                          )}
                           {rotulo && (
                             <Badge
                               variant="outline"
