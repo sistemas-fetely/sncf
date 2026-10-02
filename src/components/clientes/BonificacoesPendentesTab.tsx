@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
+import { RodapePaginacao, DEFAULT_PAGE_SIZE, type PageSizeOption } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
@@ -166,7 +166,7 @@ export function BonificacoesPendentesTab() {
             tamanhoPagina={tamanhoPagina}
             tela="cliente_bonificacoes_pendentes"
             onPagina={setPagina}
-            onTamanhoPagina={setTamanhoPagina}
+            onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)}
           />
         </div>
       )}
