@@ -111,6 +111,12 @@ Deno.serve(async (req) => {
   const pedidoId = String(body?.pedido_id ?? "");
   const forcarNovo = body?.forcar_novo === true;
   if (!/^[0-9a-f-]{36}$/i.test(pedidoId)) return json({ ok: false, erro: "pedido_id inválido." }, 400);
+  let parcelasEscolhidas: number | null = null;
+  if (body?.max_parcelas !== undefined && body?.max_parcelas !== null) {
+    const n = Number(body.max_parcelas);
+    if (!Number.isInteger(n) || n < 1 || n > 12) return json({ ok: false, erro: "max_parcelas deve ser inteiro entre 1 e 12." }, 400);
+    parcelasEscolhidas = n;
+  }
 
   const { data: cfg, error: eCfg } = await sb.from("safrapay_config").select("*").eq("id", 1).maybeSingle();
   if (eCfg) return json({ ok: false, erro: `Ler configuração Safrapay: ${eCfg.message}` }, 500);
@@ -216,8 +222,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Padrão: abaixo do valor mínimo para parcelar → 1x; senão max_parcelas (limitado por parcela_min se > 0).
+    const cfgMax = Math.max(1, Number(cfg.max_parcelas ?? 1));
+    const minParcelar = Number(cfg.valor_minimo_parcelar_centavos ?? 0);
     const parcelaMin = Number(cfg.parcela_min_centavos ?? 0);
-    const maxParcelas = Math.max(1, Math.min(Number(cfg.max_parcelas ?? 1), parcelaMin > 0 ? Math.floor(amount / parcelaMin) : Number(cfg.max_parcelas ?? 1)));
+    let parcelasPadrao = amount < minParcelar ? 1 : cfgMax;
+    if (parcelaMin > 0) parcelasPadrao = Math.min(parcelasPadrao, Math.floor(amount / parcelaMin));
+    parcelasPadrao = Math.max(1, parcelasPadrao);
+    const maxParcelas = parcelasEscolhidas ?? parcelasPadrao;
 
     const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
       criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
@@ -261,7 +273,7 @@ Deno.serve(async (req) => {
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
-    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, pagamento_link_id: linha!.id, avisos });
+    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, parcelas_padrao: parcelasPadrao, pagamento_link_id: linha!.id, avisos });
   } catch (e) {
     return await falhar(e instanceof Error ? e.message : String(e));
   }
