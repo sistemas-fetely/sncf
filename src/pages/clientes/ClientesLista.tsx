@@ -18,20 +18,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePodeVerAba } from "@/components/AbaGate";
 import { ListaContasClientes } from "@/components/clientes/ListaContasClientes";
 import { RecebiveisPorClienteTab } from "@/components/clientes/RecebiveisPorClienteTab";
+import { BonificacoesPendentesTab, useBonificacoesSemRegistro } from "@/components/clientes/BonificacoesPendentesTab";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 
 const ABA_RECEBIVEIS = "tela.cliente_recebiveis";
+const ABA_BONIFICACOES = "tela.cliente_bonificacoes";
 
 export default function ClientesLista() {
   const [params, setParams] = useSearchParams();
 
   const podeRecebiveis = usePodeVerAba(ABA_RECEBIVEIS);
+  const podeBonificacoes = usePodeVerAba(ABA_BONIFICACOES);
+  const bonificacoesQ = useBonificacoesSemRegistro(undefined, podeBonificacoes.podeVer);
 
   const visiveis = useMemo(() => {
     const abas = [{ value: "contas", label: "Contas de clientes" }];
     if (podeRecebiveis.podeVer) abas.push({ value: "recebiveis", label: "Recebíveis" });
+    if (podeBonificacoes.podeVer) {
+      const total = bonificacoesQ.data?.length ?? 0;
+      abas.push({ value: "bonificacoes-pendentes", label: `Bonificações a registrar${total > 0 ? ` · ${total}` : ""}` });
+    }
     return abas;
-  }, [podeRecebiveis.podeVer]);
+  }, [bonificacoesQ.data?.length, podeBonificacoes.podeVer, podeRecebiveis.podeVer]);
 
   const abaUrl = params.get("aba");
   const abaAtiva = visiveis.find((a) => a.value === abaUrl)?.value ?? "contas";
@@ -88,6 +96,12 @@ export default function ClientesLista() {
         {podeRecebiveis.podeVer && (
           <TabsContent value="recebiveis" className="mt-4">
             <RecebiveisPorClienteTab />
+          </TabsContent>
+        )}
+
+        {podeBonificacoes.podeVer && (
+          <TabsContent value="bonificacoes-pendentes" className="mt-4">
+            <BonificacoesPendentesTab />
           </TabsContent>
         )}
 

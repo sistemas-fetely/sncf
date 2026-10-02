@@ -2,7 +2,7 @@
  * CONCEDER BONIFICAÇÃO — dialog da aba Bonificações.
  * Toda validação de negócio vive na RPC conceder_bonificacao; o front só coleta.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +25,20 @@ import { QK_CONTA_CLIENTE_COBERTURA } from "@/hooks/financeiro/useContaCliente";
 export const QK_BONIFICACOES_CLIENTE = "bonificacoes-cliente";
 const ESTAGIOS_VIVOS = ["recebido", "em_analise", "cobranca", "aguardando_pagamento"];
 const OUTRA_PESSOA = "__outra__";
+const QK_BONIFICACOES_SEM_REGISTRO = "bonificacoes-sem-registro";
+
+interface BonificacaoSemRegistro {
+  pedido_id: string;
+  id_externo: string | null;
+  parceiro_id: string;
+  cliente: string | null;
+  data_pedido: string | null;
+  estagio: string | null;
+  estagio_rotulo: string | null;
+  valor_bruto: number | null;
+  itens: number | null;
+  quantidade: number | null;
+}
 
 interface ItemBonif {
   chave: number;
@@ -42,17 +56,21 @@ export function ConcederBonificacaoDialog({
   parceiroId,
   open,
   onOpenChange,
+  instrumentoInicial,
+  pedidoInicial,
 }: {
   parceiroId: string;
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  instrumentoInicial?: string;
+  pedidoInicial?: string;
 }) {
   const qc = useQueryClient();
-  const [instrumento, setInstrumento] = useState("");
+  const [instrumento, setInstrumento] = useState(instrumentoInicial ?? "");
   const [motivo, setMotivo] = useState("");
   const [pessoaSel, setPessoaSel] = useState("");
   const [nomeLivre, setNomeLivre] = useState("");
-  const [pedidoId, setPedidoId] = useState("");
+  const [pedidoId, setPedidoId] = useState(pedidoInicial ?? "");
   const [itens, setItens] = useState<ItemBonif[]>([]);
   const [valorCredito, setValorCredito] = useState(0);
   const [validade, setValidade] = useState(180);
@@ -63,16 +81,18 @@ export function ConcederBonificacaoDialog({
     enabled: open,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const [i, m, p] = await Promise.all([
+      const [i, m, p, e] = await Promise.all([
         sb.from("bonificacao_instrumento_dim").select("codigo, rotulo, descricao").eq("ativo", true).order("rotulo"),
         sb.from("motivos_concessao").select("codigo, nome").eq("ativo", true).order("nome"),
         sb.from("pessoas").select("id, nome_completo").order("nome_completo"),
+        sb.from("pedido_estagio").select("codigo, rotulo"),
       ]);
-      for (const r of [i, m, p]) if (r.error) throw r.error;
+      for (const r of [i, m, p, e]) if (r.error) throw r.error;
       return {
         instrumentos: i.data as { codigo: string; rotulo: string; descricao: string | null }[],
         motivos: m.data as { codigo: string; nome: string }[],
         pessoas: (p.data as { id: string; nome_completo: string | null }[]).filter((x) => x.nome_completo),
+        estagios: new Map((e.data as { codigo: string; rotulo: string }[]).map((x) => [x.codigo, x.rotulo])),
       };
     },
   });
@@ -81,6 +101,15 @@ export function ConcederBonificacaoDialog({
     queryKey: ["bonificacao-pedidos", parceiroId, instrumento],
     enabled: open && (instrumento === "produto_bonificado" || instrumento === "pedido_bonificado"),
     queryFn: async () => {
+      if (instrumento === "pedido_bonificado") {
+        const { data, error } = await sb
+          .from("vw_bonificacao_sem_registro")
+          .select("pedido_id, id_externo, parceiro_id, cliente, data_pedido, estagio, estagio_rotulo, valor_bruto, itens, quantidade")
+          .eq("parceiro_id", parceiroId)
+          .order("data_pedido", { ascending: false });
+        if (error) throw error;
+        return (data ?? []) as BonificacaoSemRegistro[];
+      }
       let q = sb
         .from("pedidos")
         .select("id, id_externo, estagio, valor_liquido, data_pedido, natureza:naturezas_operacao!inner(codigo)")
@@ -88,22 +117,31 @@ export function ConcederBonificacaoDialog({
         .is("cancelado_em", null)
         .order("data_pedido", { ascending: false })
         .limit(100);
-      if (instrumento === "produto_bonificado") q = q.in("estagio", ESTAGIOS_VIVOS);
-      else q = q.eq("natureza.codigo", "bonificacao");
+      q = q.in("estagio", ESTAGIOS_VIVOS);
       const { data, error } = await q;
       if (error) throw error;
       return data as { id: string; id_externo: string | null; estagio: string; valor_liquido: number | null; data_pedido: string | null }[];
     },
   });
 
+  useEffect(() => {
+    if (!open) return;
+    setInstrumento(instrumentoInicial ?? "");
+    setPedidoId(pedidoInicial ?? "");
+  }, [open, instrumentoInicial, pedidoInicial]);
+
   const totalItens = useMemo(() => itens.reduce((s, i) => s + (Number(i.valor) || 0), 0), [itens]);
   const pessoa = dimQ.data?.pessoas.find((p) => p.id === pessoaSel);
   const nomeAutorizador = pessoaSel === OUTRA_PESSOA ? nomeLivre.trim() : pessoa?.nome_completo ?? "";
   const valor = instrumento === "produto_bonificado" ? totalItens : instrumento === "credito_conta" ? valorCredito : 0;
+  const pedidoSelecionado = pedidosQ.data?.find((p) => ("pedido_id" in p ? p.pedido_id : p.id) === pedidoId);
+  const valorPedidoBonificado = instrumento === "pedido_bonificado" && pedidoSelecionado && "valor_bruto" in pedidoSelecionado
+    ? Number(pedidoSelecionado.valor_bruto ?? 0)
+    : 0;
   const rotuloInstr = dimQ.data?.instrumentos.find((i) => i.codigo === instrumento)?.rotulo ?? instrumento;
 
   function reset() {
-    setInstrumento(""); setMotivo(""); setPessoaSel(""); setNomeLivre(""); setPedidoId("");
+    setInstrumento(instrumentoInicial ?? ""); setMotivo(""); setPessoaSel(""); setNomeLivre(""); setPedidoId(pedidoInicial ?? "");
     setItens([]); setValorCredito(0); setValidade(180); setObservacao("");
   }
 
@@ -130,6 +168,7 @@ export function ConcederBonificacaoDialog({
     onSuccess: () => {
       toast.success(`Bonificação concedida: ${formatBRL(valor)} · ${rotuloInstr}`);
       qc.invalidateQueries({ queryKey: [QK_BONIFICACOES_CLIENTE, parceiroId] });
+      qc.invalidateQueries({ queryKey: [QK_BONIFICACOES_SEM_REGISTRO] });
       qc.invalidateQueries({ queryKey: ["haver-disponivel", parceiroId] });
       qc.invalidateQueries({ queryKey: ["creditos-cliente-livres", parceiroId] });
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA] });
@@ -156,7 +195,7 @@ export function ConcederBonificacaoDialog({
           <div className="space-y-5">
             <div className="space-y-2">
               <Label>Instrumento</Label>
-              <RadioGroup value={instrumento} onValueChange={(v) => { setInstrumento(v); setPedidoId(""); }}>
+                <RadioGroup value={instrumento} onValueChange={(v) => { setInstrumento(v); setPedidoId(""); }}>
                 {dimQ.data!.instrumentos.map((i) => (
                   <label key={i.codigo} className="flex items-start gap-2 rounded-md border border-border/60 p-2.5 cursor-pointer has-[:checked]:border-primary">
                     <RadioGroupItem value={i.codigo} className="mt-0.5" />
@@ -206,15 +245,18 @@ export function ConcederBonificacaoDialog({
                     </SelectTrigger>
                     <SelectContent>
                       {(pedidosQ.data ?? []).map((p) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.id_externo ?? p.id.slice(0, 8)} · {p.estagio} · {formatBRL(Number(p.valor_liquido ?? 0))}
+                        <SelectItem key={"pedido_id" in p ? p.pedido_id : p.id} value={"pedido_id" in p ? p.pedido_id : p.id}>
+                          {p.id_externo ?? ("pedido_id" in p ? p.pedido_id : p.id).slice(0, 8)} · {"estagio_rotulo" in p ? p.estagio_rotulo : dimQ.data?.estagios.get(p.estagio)} · {formatBRL(Number("valor_bruto" in p ? p.valor_bruto : p.valor_liquido ?? 0))}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 )}
                 {instrumento === "pedido_bonificado" && (
-                  <p className="text-xs text-muted-foreground">Só registra o analítico; não altera valores do pedido.</p>
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    {pedidoSelecionado && <p>Valor registrado: <span className="tabular-nums">{formatBRL(valorPedidoBonificado)}</span> — vem dos itens do pedido.</p>}
+                    <p>Só registra o analítico; não altera valores do pedido.</p>
+                  </div>
                 )}
               </div>
             )}
@@ -282,7 +324,7 @@ export function ConcederBonificacaoDialog({
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={() => conceder.mutate()} disabled={conceder.isPending || !instrumento || !nomeAutorizador}>
             {conceder.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-            Conceder {valor > 0 ? formatBRL(valor) : ""}
+            Conceder {(instrumento === "pedido_bonificado" ? valorPedidoBonificado : valor) > 0 ? formatBRL(instrumento === "pedido_bonificado" ? valorPedidoBonificado : valor) : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
