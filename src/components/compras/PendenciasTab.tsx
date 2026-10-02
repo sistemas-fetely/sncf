@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,11 @@ import { CardIndicador } from "@/components/ui/card-indicador";
 import { Button } from "@/components/ui/button";
 import { Selo } from "@/components/ui/selo";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
+import {
+  RodapePaginacao,
+  DEFAULT_PAGE_SIZE,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import {
   Table,
   TableBody,
@@ -87,6 +92,8 @@ function NfsSemEntrada({
 }) {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const q = useQuery({
     queryKey: ["vw_compras_nf_sem_entrada"],
     queryFn: async () => {
@@ -112,6 +119,14 @@ function NfsSemEntrada({
       .sort((a, b) => Number(b.dias_parada ?? 0) - Number(a.dias_parada ?? 0));
   }, [q.data, pedidoFiltro, busca]);
 
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, pedidoFiltro, tamanho]);
+
+  const totalPaginas = Math.max(1, Math.ceil(linhas.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const naPagina = linhas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+
   const receber = (r: NfSemEntrada) => {
     if (r.rota_recebimento) {
       navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
@@ -133,12 +148,13 @@ function NfsSemEntrada({
       exibidos={linhas.length}
       rotulo="NFs"
     >
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Pedido</TableHead>
-              <TableHead>NF</TableHead>
+      <>
+        <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+          <Table containerClassName="overflow-visible">
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              <TableRow>
+                <TableHead>Pedido</TableHead>
+                <TableHead>NF</TableHead>
               <TableHead>Emissão</TableHead>
               <TableHead>Fornecedor</TableHead>
               <TableHead className="text-right">Valor</TableHead>
@@ -150,7 +166,7 @@ function NfsSemEntrada({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {linhas.map((r, i) => (
+            {naPagina.map((r, i) => (
               <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`}>
                 <TableCell className="font-medium">{r.numero_pedido ?? "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">
@@ -190,6 +206,15 @@ function NfsSemEntrada({
           </TableBody>
         </Table>
       </div>
+      <RodapePaginacao
+        total={linhas.length}
+        pagina={paginaAtual}
+        tamanhoPagina={tamanho}
+        tela="pendencias_nfs_sem_entrada"
+        onPagina={setPagina}
+        onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+      />
+      </>
     </TabelaFetely>
   );
 }
@@ -203,6 +228,8 @@ export default function PendenciasTab() {
     : "codigos_sem_sku";
   const pedidoFiltro = params.get("pedido") ?? "todos";
   const [busca, setBusca] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const setTipo = (t: TipoPendencia) => {
     const next = new URLSearchParams(params);
@@ -308,7 +335,22 @@ export default function PendenciasTab() {
   }, [xpmQ.data, busca]);
 
   
+  useEffect(() => {
+    setPagina(1);
+  }, [tipo, pedidoFiltro, busca, tamanho]);
+
   const totalDoTipo = totais[tipo];
+
+  const totalPaginasXpm = Math.max(1, Math.ceil(itensXpm.length / tamanho));
+  const paginaAtualXpm = Math.min(pagina, totalPaginasXpm);
+  const naPaginaXpm = itensXpm.slice((paginaAtualXpm - 1) * tamanho, paginaAtualXpm * tamanho);
+
+  const totalPaginasPedidos = Math.max(1, Math.ceil(filaPedidos.length / tamanho));
+  const paginaAtualPedidos = Math.min(pagina, totalPaginasPedidos);
+  const naPaginaPedidos = filaPedidos.slice(
+    (paginaAtualPedidos - 1) * tamanho,
+    paginaAtualPedidos * tamanho,
+  );
 
   const seletorPedido = (
     <Select value={pedidoFiltro} onValueChange={setPedido}>
@@ -379,11 +421,12 @@ export default function PendenciasTab() {
           exibidos={itensXpm.length}
           rotulo="itens"
         >
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
+          <>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Código</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Pedido</TableHead>
                   <TableHead>NCM</TableHead>
@@ -393,7 +436,7 @@ export default function PendenciasTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itensXpm.map((i, idx) => (
+                {naPaginaXpm.map((i, idx) => (
                   <TableRow key={`${i.codigo_material}-${i.numero_pedido}-${idx}`}>
                     <TableCell className="font-medium">{i.codigo_material ?? "—"}</TableCell>
                     <TableCell className="max-w-[280px] truncate">{i.descricao ?? "—"}</TableCell>
@@ -415,6 +458,15 @@ export default function PendenciasTab() {
               </TableBody>
             </Table>
           </div>
+            <RodapePaginacao
+              total={itensXpm.length}
+              pagina={paginaAtualXpm}
+              tamanhoPagina={tamanho}
+              tela="pendencias_ficha_xpm_incompleta"
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
+          </>
         </TabelaFetely>
       ) : (
         <TabelaFetely
@@ -435,17 +487,18 @@ export default function PendenciasTab() {
           exibidos={filaPedidos.length}
           rotulo="pedidos"
         >
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pedido</TableHead>
-                  <TableHead className="text-right">Pendentes</TableHead>
-                  <TableHead className="w-32" />
-                </TableRow>
-              </TableHeader>
+          <>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Pedido</TableHead>
+                    <TableHead className="text-right">Pendentes</TableHead>
+                    <TableHead className="w-32" />
+                  </TableRow>
+                </TableHeader>
               <TableBody>
-                {filaPedidos.map((p) => (
+                {naPaginaPedidos.map((p) => (
                   <TableRow key={p.pedido_id}>
                     <TableCell className="font-medium">
                       {p.numero_pedido ?? `#${p.pedido_id}`}
@@ -468,6 +521,15 @@ export default function PendenciasTab() {
               </TableBody>
             </Table>
           </div>
+            <RodapePaginacao
+              total={filaPedidos.length}
+              pagina={paginaAtualPedidos}
+              tamanhoPagina={tamanho}
+              tela={`pendencias_${tipo}`}
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
+          </>
         </TabelaFetely>
       )}
     </div>
