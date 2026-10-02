@@ -198,15 +198,16 @@ Deno.serve(async (req) => {
       const pre = charges.find((ch: any) => ch.status === 2);
 
       if (paga) {
+        if (!paga.nsu) throw new Error("Pagamento aprovado sem transactionId (NSU) — confirmar manualmente.");
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
         if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
         const { error: eRpc } = await sb.rpc("confirmar_cartao_capturado", {
           p_pedido_id: l.pedido_id,
-          p_nsu: paga.nsu ?? paga.id,
+          p_nsu: paga.nsu,
           p_data_captura: paga.data,
           p_valor_capturado: valorPago,
-          p_observacao: `Safrapay link ${l.gateway_link_id} · charge ${paga.id}`,
+          p_observacao: `Safrapay link ${l.gateway_link_id} · charge ${paga.id} · aut ${paga.aut ?? "—"} · ${paga.bandeira ?? "—"} ****${paga.final ?? "—"} · ${paga.parcelas ?? "—"}x`,
           p_adquirente_id: cfg.adquirente_id,
         });
         if (eRpc) {
