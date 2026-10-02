@@ -1122,7 +1122,10 @@ export default function ChegadaMercadoriaDetalhe() {
 
             {/* ==================== SALDO ==================== */}
             <TabsContent value="saldo" className="mt-4 space-y-4">
-              <ParaQueServe>O que ainda falta faturar ou confirmar, por SKU.</ParaQueServe>
+              <ParaQueServe>
+                O que falta chegar e de quem é a próxima ação, por produto: pedido → NF →
+                conferência da XPM.
+              </ParaQueServe>
               <SaldoPedidoTab pedidoId={pedidoId} />
             </TabsContent>
 
