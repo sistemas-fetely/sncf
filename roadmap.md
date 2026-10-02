@@ -6,6 +6,6 @@
 - [x] Exibir o estado agregado de salvamento no peek e na página.
 - [x] Ajustar o rodapé do peek e a legibilidade do selo do projeto.
 - [x] Executar o typecheck sem publicar.
-- [ ] Paginar todas as RPCs do Fechamento Mensal sem truncamento.
-- [ ] Refazer o export Evolução Mensal CFO em ExcelJS com trava de conferência.
-- [ ] Validar contagens, arquivo, recusa por divergência, estilos e erros no navegador.
+- [x] Paginar todas as RPCs do Fechamento Mensal sem truncamento.
+- [x] Refazer o export Evolução Mensal CFO em ExcelJS com trava de conferência.
+- [x] Validar contagens, arquivo, recusa por divergência, estilos e erros no navegador.
