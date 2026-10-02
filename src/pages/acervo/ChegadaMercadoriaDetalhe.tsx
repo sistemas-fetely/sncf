@@ -48,6 +48,12 @@ import ReguaPedido, {
   usePedidoRegua,
 } from "@/components/compras/ReguaPedido";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
+import { TabelaFetely } from "@/components/ui/tabela-fetely";
+import {
+  RodapePaginacao,
+  DEFAULT_PAGE_SIZE,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 
 
 
@@ -406,11 +412,35 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  // PADRÃO FETELY DE LISTAGEM: moldura TabelaFetely + cabeçalho congelado +
+  // RodapePaginacao. Busca local; totais somam o recorte filtrado.
+  const [buscaLinhas, setBuscaLinhas] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+
+  const linhasFiltradas = useMemo(() => {
+    const l = custosQ.data ?? [];
+    const q = buscaLinhas.trim().toLowerCase();
+    if (!q) return l;
+    return l.filter((r) =>
+      [r.cod_cadastro, r.sku, r.produto, r.codigo_fornecedor]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [custosQ.data, buscaLinhas]);
+
+  const totalPaginasLinhas = Math.max(1, Math.ceil(linhasFiltradas.length / tamanho));
+  const paginaLinhas = Math.min(pagina, totalPaginasLinhas);
+  const linhasPagina = linhasFiltradas.slice(
+    (paginaLinhas - 1) * tamanho,
+    paginaLinhas * tamanho,
+  );
+
   /** Número da NF sem zeros à esquerda (ex.: "000055261" → "55261"). */
   const nfSemZeros = (nf: string | null | undefined) => (nf ? nf.replace(/^0+/, "") : "");
 
   const totaisCustos = useMemo(() => {
-    const l = custosQ.data ?? [];
+    const l = linhasFiltradas;
     let algumNf = false;
     let totalNfs = 0;
     for (const r of l) {
@@ -424,7 +454,7 @@ export default function ChegadaMercadoriaDetalhe() {
       qtdFaturada: l.reduce((s, r) => s + Number(r.qtd_faturada ?? 0), 0),
       totalNfs: algumNf ? totalNfs : null,
     };
-  }, [custosQ.data]);
+  }, [linhasFiltradas]);
 
   const nfsQ = useQuery({
     queryKey: ["pedido-mercadoria-nfs", pedidoId],
@@ -808,26 +838,29 @@ export default function ChegadaMercadoriaDetalhe() {
                 O que foi pedido e o que veio nas NFs, por produto: quantidade, custo realizado e
                 a faixa histórica de preço.
               </ParaQueServe>
-              <Card>
-                <CardContent className="pt-6">
-                  {custosQ.isLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando linhas...
-                    </div>
-                  ) : custosQ.isError ? (
-                    <ErroBloco
-                      titulo="Falha ao carregar as linhas do pedido."
-                      erro={custosQ.error}
-                      onRetry={() => custosQ.refetch()}
-                    />
-                  ) : (custosQ.data ?? []).length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      Este pedido não tem linhas gravadas.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
+              <TabelaFetely
+                busca={{
+                  valor: buscaLinhas,
+                  aoMudar: (v) => {
+                    setBuscaLinhas(v);
+                    setPagina(1);
+                  },
+                  placeholder: "Buscar por código, produto ou cód. fornecedor…",
+                }}
+                carregando={custosQ.isLoading}
+                erro={custosQ.error ? (custosQ.error as Error).message : null}
+                aoTentarNovamente={() => custosQ.refetch()}
+                vazio={{ mensagem: "Este pedido ainda não tem linhas." }}
+                semResultado="Nenhuma linha para essa busca."
+                total={(custosQ.data ?? []).length}
+                exibidos={linhasFiltradas.length}
+                rotulo="linhas"
+              >
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+                      <Table containerClassName="overflow-visible">
+                        <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
                             <TableHead>Cód. cadastro</TableHead>
                             <TableHead>Produto</TableHead>
@@ -849,7 +882,7 @@ export default function ChegadaMercadoriaDetalhe() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {custosQ.data!.map((r) => {
+                          {linhasPagina.map((r) => {
                             const pedida = Number(r.qtd_pedida ?? 0);
                             const faturada = Number(r.qtd_faturada ?? 0);
                             const acimaPedido = faturada > pedida;
@@ -962,7 +995,9 @@ export default function ChegadaMercadoriaDetalhe() {
                         </TableBody>
                         <TableFooter>
                           <TableRow>
-                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>Total</TableCell>
+                            <TableCell colSpan={3 + (exigeEmbarque ? 3 : 0)}>
+                              {buscaLinhas.trim() ? "Total (filtrado)" : "Total"}
+                            </TableCell>
                             <TableCell className="text-right">
                               {fmtNum(totaisCustos.qtdPedida)}
                             </TableCell>
@@ -982,9 +1017,17 @@ export default function ChegadaMercadoriaDetalhe() {
                         </TableFooter>
                       </Table>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                    <RodapePaginacao
+                      total={linhasFiltradas.length}
+                      pagina={paginaLinhas}
+                      tamanhoPagina={tamanho}
+                      tela="pedido_linhas_custos"
+                      onPagina={setPagina}
+                      onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+                    />
+                  </CardContent>
+                </Card>
+              </TabelaFetely>
             </TabsContent>
 
             {/* ---------------- DOCUMENTOS ---------------- */}
