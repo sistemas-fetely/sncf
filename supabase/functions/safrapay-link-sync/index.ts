@@ -19,18 +19,29 @@ const msgApi = (c: any, s: number) => {
 };
 const primeiro = (...v: unknown[]) => v.find((x) => x !== undefined && x !== null && x !== "");
 
-/** Leitura defensiva da charge (nomes de campo ainda não confirmados). */
+/**
+ * Leitura da charge (formato confirmado em homologação 02/10).
+ * NSU de verdade = transactions[].transactionId da transação aprovada (12 dígitos,
+ * o que sai no comprovante e no relatório). charges[].nsu é numeração interna.
+ */
 function lerCharge(c: any) {
-  const tx: any[] = Array.isArray(c?.transactions) ? c.transactions : [];
+  const txs: any[] = Array.isArray(c?.transactions) ? c.transactions : [];
+  const aprovadas = txs.filter((t) => String(t?.authorizationResponseCode ?? "") === "00" || Number(t?.transactionStatus) === 2);
+  const ts = (t: any) => { const v = Date.parse(String(t?.captureDateTime ?? "")); return Number.isFinite(v) ? v : 0; };
+  const tx = aprovadas.sort((a, b) => ts(b) - ts(a))[0] ?? null;
   const status = Number(primeiro(c?.chargeStatus, c?.status));
   const id = primeiro(c?.id, c?.chargeId);
-  const nsu = primeiro(c?.nsu, c?.authorizationCode, ...tx.map((t) => t?.nsu), ...tx.map((t) => t?.authorizationCode));
-  const amountRaw = primeiro(c?.amount, c?.totalAmount, ...tx.map((t) => t?.amount));
-  const data = primeiro(c?.capturedDate, c?.authorizedDate, c?.createdDate, c?.date, ...tx.map((t) => t?.date ?? t?.createdDate));
+  const nsu = primeiro(tx?.transactionId, tx?.nsu, c?.nsu);
+  const amountRaw = primeiro(tx?.amount, c?.amount, c?.totalAmount);
+  const data = primeiro(tx?.captureDateTime, c?.addedAtUtc);
   return {
     status, id: id != null ? String(id) : null, nsu: nsu != null ? String(nsu) : null,
     valorCentavos: amountRaw != null && Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : null,
     data: data ? new Date(String(data)).toISOString() : new Date().toISOString(),
+    aut: tx?.authorizationCode != null ? String(tx.authorizationCode) : null,
+    bandeira: tx?.card?.brandName ?? null,
+    final: tx?.card?.lastFourDigits ?? null,
+    parcelas: tx?.installmentNumber ?? null,
   };
 }
 
