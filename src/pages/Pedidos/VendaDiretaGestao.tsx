@@ -354,8 +354,7 @@ export default function VendaDiretaGestao() {
                   <TableRow>
                     <TableHead>Nº</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Modal</TableHead>
-                    <TableHead>Pagamento</TableHead>
+                    <TableHead>Entrega · Pagto</TableHead>
                     <TableHead className="text-right">Frete</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Situação</TableHead>
@@ -384,8 +383,10 @@ export default function VendaDiretaGestao() {
                           <div>{l.cliente_nome ?? "—"}</div>
                           <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
                         </TableCell>
-                        <TableCell><Badge variant="outline">{modalLabel(l.modal)}</Badge></TableCell>
-                        <TableCell>{l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="whitespace-nowrap">{modalLabel(l.modal)}</Badge>
+                          <div className="mt-1 text-xs text-muted-foreground">{l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"}</div>
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {l.frete ? (
                             <Tooltip>
