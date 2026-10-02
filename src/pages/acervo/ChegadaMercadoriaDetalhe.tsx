@@ -838,26 +838,29 @@ export default function ChegadaMercadoriaDetalhe() {
                 O que foi pedido e o que veio nas NFs, por produto: quantidade, custo realizado e
                 a faixa histórica de preço.
               </ParaQueServe>
-              <Card>
-                <CardContent className="pt-6">
-                  {custosQ.isLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Carregando linhas...
-                    </div>
-                  ) : custosQ.isError ? (
-                    <ErroBloco
-                      titulo="Falha ao carregar as linhas do pedido."
-                      erro={custosQ.error}
-                      onRetry={() => custosQ.refetch()}
-                    />
-                  ) : (custosQ.data ?? []).length === 0 ? (
-                    <div className="text-sm text-muted-foreground">
-                      Este pedido não tem linhas gravadas.
-                    </div>
-                  ) : (
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
+              <TabelaFetely
+                busca={{
+                  valor: buscaLinhas,
+                  aoMudar: (v) => {
+                    setBuscaLinhas(v);
+                    setPagina(1);
+                  },
+                  placeholder: "Buscar por código, produto ou cód. fornecedor…",
+                }}
+                carregando={custosQ.isLoading}
+                erro={custosQ.error ? (custosQ.error as Error).message : null}
+                aoTentarNovamente={() => custosQ.refetch()}
+                vazio={{ mensagem: "Este pedido ainda não tem linhas." }}
+                semResultado="Nenhuma linha para essa busca."
+                total={(custosQ.data ?? []).length}
+                exibidos={linhasFiltradas.length}
+                rotulo="linhas"
+              >
+                <Card>
+                  <CardContent className="p-0">
+                    <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+                      <Table containerClassName="overflow-visible">
+                        <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
                             <TableHead>Cód. cadastro</TableHead>
                             <TableHead>Produto</TableHead>
