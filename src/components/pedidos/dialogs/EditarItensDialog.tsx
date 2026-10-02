@@ -59,7 +59,28 @@ function useProdutos(busca: string) {
   });
 }
 
-export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo }: Props) {
+// Fallback de lastro para SKUs que ainda NÃO estão no snapshot de cobertura
+// (ex.: produto recém-adicionado pelo catálogo). Sem isso, `cob` fica undefined
+// e o silêncio é lido como "tem estoque".
+function useSobraLivrePorSku(skus: string[]) {
+  const chave = Array.from(new Set(skus.filter(Boolean))).sort().join("|");
+  return useQuery({
+    queryKey: ["sobra-livre-sku", chave],
+    enabled: chave.length > 0,
+    staleTime: 60 * 1000,
+    queryFn: async () => {
+      const lista = chave.split("|").filter(Boolean);
+      const { data, error } = await (supabase as any)
+        .from("vw_estoque_rede")
+        .select("sku, disponivel")
+        .in("sku", lista);
+      if (error) throw new Error(`[lastro] falha ao ler vw_estoque_rede: ${error.message}`);
+      const m = new Map<string, number>();
+      for (const r of data ?? []) m.set(r.sku, Number(r.disponivel ?? 0));
+      return m;
+    },
+  });
+}
   const { regraDe } = usePedidoEdicaoCampo(estagioAtual);
   const [open, setOpen] = useState(false);
   const [itens, setItens] = useState<Item[]>([]);
