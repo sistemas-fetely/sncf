@@ -24,6 +24,7 @@ import { CardIndicador } from "@/components/ui/card-indicador";
 
 import { Badge } from "@/components/ui/badge";
 import { Selo } from "@/components/ui/selo";
+import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
