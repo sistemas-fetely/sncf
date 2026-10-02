@@ -6,7 +6,7 @@
  * `estorno_conta` na view) expandem e mostram onde o dinheiro foi alocado
  * (`conta_cliente_alocacao` → título). A leitura é sob demanda, ao expandir.
  */
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +27,8 @@ import {
 } from "@/hooks/financeiro/useContaCliente";
 import { useEnviarComprovanteCliente } from "@/hooks/comercial/useComprovantePagamento";
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
+import { Selo } from "@/components/ui/selo";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -178,6 +180,82 @@ function AlocacoesDetalhe({ l }: { l: ContaClienteLancamento }) {
   );
 }
 
+interface SaldoLinha {
+  saldo: number;
+  vencido_em_aberto: number;
+  a_vencer: number;
+  credito_futuro_boleto: number;
+}
+
+/** Saldo do cliente — fonte única `vw_conta_cliente_saldo`, filtrada pelo parceiro. */
+function useSaldoContaCliente(parceiroId: string) {
+  return useQuery({
+    queryKey: ["conta-cliente-saldo", parceiroId],
+    enabled: !!parceiroId,
+    staleTime: 15 * 1000,
+    queryFn: async (): Promise<SaldoLinha | null> => {
+      const { data, error } = await supabase
+        .from("vw_conta_cliente_saldo")
+        .select("saldo, vencido_em_aberto, a_vencer, credito_futuro_boleto")
+        .eq("parceiro_id", parceiroId)
+        .maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as SaldoLinha | null;
+    },
+  });
+}
+
+interface EstornoComOrigem {
+  data: string;
+  valor: number;
+  meio: string | null;
+  dataOriginal: string | null;
+}
+
+/**
+ * Datas dos lançamentos estornados (`conta_cliente_lancamento.estornado_de`).
+ * A view do extrato não expõe o vínculo; a amarra na exibição é pela chave
+ * natural: parceiro + data + valor + meio (mesma política das alocações).
+ */
+function useEstornosContaCliente(parceiroId: string) {
+  return useQuery({
+    queryKey: ["conta-cliente-estornos", parceiroId],
+    enabled: !!parceiroId,
+    staleTime: 15 * 1000,
+    queryFn: async (): Promise<EstornoComOrigem[]> => {
+      const { data, error } = await supabase
+        .from("conta_cliente_lancamento")
+        .select("data_recebimento, valor, meio, estornado_de")
+        .eq("parceiro_id", parceiroId)
+        .eq("tipo", "estorno")
+        .not("estornado_de", "is", null);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{
+        data_recebimento: string;
+        valor: number;
+        meio: string | null;
+        estornado_de: string;
+      }>;
+      const ids = Array.from(new Set(rows.map((r) => r.estornado_de)));
+      if (!ids.length) return [];
+      const { data: origs, error: erroOrig } = await supabase
+        .from("conta_cliente_lancamento")
+        .select("id, data_recebimento")
+        .in("id", ids);
+      if (erroOrig) throw erroOrig;
+      const dataDe = new Map(
+        (origs ?? []).map((o) => [o.id, o.data_recebimento as string]),
+      );
+      return rows.map((r) => ({
+        data: r.data_recebimento,
+        valor: Number(r.valor ?? 0),
+        meio: r.meio ?? null,
+        dataOriginal: dataDe.get(r.estornado_de) ?? null,
+      }));
+    },
+  });
+}
+
 export function ClienteAbaExtrato({
   parceiroId,
   clienteNome,
@@ -189,6 +267,58 @@ export function ClienteAbaExtrato({
   const [abertos, setAbertos] = useState<Record<string, boolean>>({});
   const inputComprovanteRef = useRef<HTMLInputElement>(null);
   const enviarComprovanteCliente = useEnviarComprovanteCliente(parceiroId);
+  const saldoQ = useSaldoContaCliente(parceiroId);
+  const estornosQ = useEstornosContaCliente(parceiroId);
+
+  // SALDO CORRIDO — só front, a ordem de exibição (data desc) não muda.
+  // Ordena por data ASC, desempate por tipo, e acumula sinal × valor.
+  const saldoCorrido = useMemo(() => {
+    const m = new Map<number, number>();
+    const linhas = lancamentos.data ?? [];
+    const asc = linhas
+      .map((l, idx) => ({ l, idx }))
+      .sort((a, b) => {
+        const d = (a.l.data ?? "").localeCompare(b.l.data ?? "");
+        if (d !== 0) return d;
+        return (a.l.tipo ?? "").localeCompare(b.l.tipo ?? "");
+      });
+    let acc = 0;
+    for (const { l, idx } of asc) {
+      acc += Number(l.sinal ?? 0) * Number(l.valor ?? 0);
+      m.set(idx, acc);
+    }
+    return m;
+  }, [lancamentos.data]);
+
+  // Estorno → data do lançamento estornado. Multiset pela chave natural
+  // (data + valor + meio) para não colidir estornos gêmeos.
+  const estornoOrigem = useMemo(() => {
+    const m = new Map<number, string>();
+    const pendente = new Map<string, string[]>();
+    for (const e of estornosQ.data ?? []) {
+      const key = `${e.data}|${e.valor}|${e.meio ?? ""}`;
+      const arr = pendente.get(key) ?? [];
+      if (e.dataOriginal) arr.push(e.dataOriginal);
+      pendente.set(key, arr);
+    }
+    (lancamentos.data ?? []).forEach((l, i) => {
+      if (l.tipo !== "estorno_conta") return;
+      const key = `${l.data}|${Number(l.valor ?? 0)}|${l.meio ?? ""}`;
+      const arr = pendente.get(key);
+      if (arr && arr.length) {
+        const orig = arr.shift()!;
+        m.set(i, orig);
+        if (!arr.length) pendente.delete(key);
+      }
+    });
+    return m;
+  }, [estornosQ.data, lancamentos.data]);
+
+  const s = saldoQ.data;
+  const saldoAtual = Number(s?.saldo ?? 0) + Number(s?.a_vencer ?? 0);
+  const saldoFuturo = Number(s?.saldo ?? 0);
+  const vencidoAberto = Number(s?.vencido_em_aberto ?? 0);
+  const creditoFuturo = Number(s?.credito_futuro_boleto ?? 0);
 
   function alternar(chave: string) {
     setAbertos((prev) => ({ ...prev, [chave]: !prev[chave] }));
@@ -243,6 +373,54 @@ export function ClienteAbaExtrato({
         </div>
       </div>
 
+      {saldoQ.isError && (
+        <p className="text-xs text-destructive">
+          {(saldoQ.error as any)?.message ?? "Falha ao carregar o saldo."}
+        </p>
+      )}
+      {estornosQ.isError && (
+        <p className="text-xs text-destructive">
+          {(estornosQ.error as any)?.message ?? "Falha ao carregar os estornos."}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground">Saldo atual</p>
+          <p className={cn("text-sm font-medium", saldoAtual > 0 ? "text-success" : "")}>
+            {saldoQ.isLoading ? "—" : formatBRL(saldoAtual)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
+            Saldo futuro
+            <InfoMetrica rotulo="Saldo futuro">
+              <p>Como a conta fecha quando os títulos a vencer forem pagos.</p>
+            </InfoMetrica>
+          </p>
+          <p className="text-sm font-medium">
+            {saldoQ.isLoading ? "—" : formatBRL(saldoFuturo)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
+          <p className={cn("text-sm font-medium", vencidoAberto > 0 ? "text-destructive" : "")}>
+            {saldoQ.isLoading ? "—" : formatBRL(vencidoAberto)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
+            Crédito futuro (boleto)
+            <InfoMetrica rotulo="Crédito futuro (boleto)">
+              <p>Boletos registrados no banco — dinheiro a caminho.</p>
+            </InfoMetrica>
+          </p>
+          <p className="text-sm font-medium">
+            {saldoQ.isLoading ? "—" : formatBRL(creditoFuturo)}
+          </p>
+        </div>
+      </div>
+
       {lancamentos.isLoading && (
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" /> carregando
@@ -273,6 +451,7 @@ export function ClienteAbaExtrato({
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Meio · Banco</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -296,8 +475,22 @@ export function ClienteAbaExtrato({
                         ))}
                     </TableCell>
                     <TableCell className="text-xs">{dataBR(l.data)}</TableCell>
-                    <TableCell className="text-xs">{l.tipo}</TableCell>
-                    <TableCell className="text-xs">{l.ref ?? "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {l.tipo === "estorno_conta" ? (
+                        <Selo estado="destructive">estorno</Selo>
+                      ) : (
+                        l.tipo
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {estornoOrigem.get(i) ? (
+                        <span className="text-destructive">
+                          estorna lançamento de {dataBR(estornoOrigem.get(i)!)}
+                        </span>
+                      ) : (
+                        (l.ref ?? "—")
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{l.pedido_ref ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       {dataBR(l.vencimento)}
@@ -316,11 +509,14 @@ export function ClienteAbaExtrato({
                       {credito ? "+" : "−"}
                       {formatBRL(Math.abs(Number(l.valor ?? 0)))}
                     </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {formatBRL(saldoCorrido.get(i) ?? 0)}
+                    </TableCell>
                   </TableRow>,
                   expansivel && aberto ? (
                     <TableRow key={`${chave}-detalhe`} className="hover:bg-transparent">
                       <TableCell />
-                      <TableCell colSpan={8} className="bg-muted/30 py-2">
+                      <TableCell colSpan={9} className="bg-muted/30 py-2">
                         <AlocacoesDetalhe l={l} />
                       </TableCell>
                     </TableRow>
