@@ -437,7 +437,7 @@ export async function exportarEvolucaoCfo({ dados, competencias, posicoesPre }: 
   const tecnicas = new Set(["presuncoes", "pre_fechamento", "forcado"]);
   Object.entries(recente?.politica ?? {}).filter(([chave]) => !tecnicas.has(chave)).forEach(([chave, valor]) => {
     const texto = Array.isArray(valor) ? valor.map(String).join(", ") : typeof valor === "object" && valor !== null ? JSON.stringify(valor) : String(valor ?? "");
-    tratamentos.push([rotulosPolitica[chave] ?? chave.replaceAll("_", " "), texto]);
+    tratamentos.push([rotulosPolitica[chave] ?? chave.replace(/_/g, " "), texto]);
   });
   tratamentos.forEach((item) => wsCriterio.addRow(item));
   wsCriterio.columns = [{ width: 34 }, { width: 95 }];
