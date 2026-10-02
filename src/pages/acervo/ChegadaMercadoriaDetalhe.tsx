@@ -882,7 +882,7 @@ export default function ChegadaMercadoriaDetalhe() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {custosQ.data!.map((r) => {
+                          {linhasPagina.map((r) => {
                             const pedida = Number(r.qtd_pedida ?? 0);
                             const faturada = Number(r.qtd_faturada ?? 0);
                             const acimaPedido = faturada > pedida;
