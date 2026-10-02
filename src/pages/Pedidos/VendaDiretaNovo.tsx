@@ -19,7 +19,7 @@ import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
-import { LinkCartaoPainel } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
@@ -201,6 +201,10 @@ export default function VendaDiretaNovo() {
     if (modo !== "retirada" && opcaoSel && !opcaoSel.disponivel && !frete.cotando) setModo("retirada");
   }, [modo, opcaoSel, frete.cotando]);
   const total = valorItens + freteCobrado;
+  // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
+  const cfgParcelasQ = useCfgParcelas();
+  const [parcelasManual, setParcelasManual] = useState<number | null>(null);
+  const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
 
   const pendencia = useMemo((): string | null => {
     if (!cliente && !novo) return "Selecione ou cadastre o cliente.";
@@ -321,6 +325,7 @@ export default function VendaDiretaNovo() {
                 total={r.valor_total}
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
+                maxParcelas={parcelasLink}
               />
             )}
             {r.avisos && r.avisos.length > 0 && (
@@ -506,6 +511,15 @@ export default function VendaDiretaNovo() {
             <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="cartao" /> Cartão</label>
           </RadioGroup>
           {pagamento === "cartao" && (
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Label className="text-sm">Parcelas no link</Label>
+              <SelectParcelas value={parcelasLink} onChange={setParcelasManual} />
+              {cfgParcelasQ.isError
+                ? <span className="text-sm text-destructive">Regras de parcelamento: {rawMessage(cfgParcelasQ.error)}</span>
+                : <span className="text-sm text-muted-foreground">{textoPadraoParcelas(cfgParcelasQ.data)}</span>}
+            </div>
+          )}
+          {pagamento === "cartao" && (
             <p className="text-xs text-muted-foreground">O link do cartão é enviado à parte; o Financeiro libera o pedido ao confirmar o pagamento.</p>
           )}
         </CardContent>
@@ -557,7 +571,7 @@ export default function VendaDiretaNovo() {
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? "PIX" : "Cartão"}
+                {pagamento === "pix" ? "PIX" : `Cartão · até ${parcelasLink}x`}
               </p>
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
