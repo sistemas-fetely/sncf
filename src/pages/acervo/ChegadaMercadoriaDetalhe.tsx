@@ -412,11 +412,35 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  // PADRÃO FETELY DE LISTAGEM: moldura TabelaFetely + cabeçalho congelado +
+  // RodapePaginacao. Busca local; totais somam o recorte filtrado.
+  const [buscaLinhas, setBuscaLinhas] = useState("");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+
+  const linhasFiltradas = useMemo(() => {
+    const l = custosQ.data ?? [];
+    const q = buscaLinhas.trim().toLowerCase();
+    if (!q) return l;
+    return l.filter((r) =>
+      [r.cod_cadastro, r.sku, r.produto, r.codigo_fornecedor]
+        .filter(Boolean)
+        .some((v) => String(v).toLowerCase().includes(q)),
+    );
+  }, [custosQ.data, buscaLinhas]);
+
+  const totalPaginasLinhas = Math.max(1, Math.ceil(linhasFiltradas.length / tamanho));
+  const paginaLinhas = Math.min(pagina, totalPaginasLinhas);
+  const linhasPagina = linhasFiltradas.slice(
+    (paginaLinhas - 1) * tamanho,
+    paginaLinhas * tamanho,
+  );
+
   /** Número da NF sem zeros à esquerda (ex.: "000055261" → "55261"). */
   const nfSemZeros = (nf: string | null | undefined) => (nf ? nf.replace(/^0+/, "") : "");
 
   const totaisCustos = useMemo(() => {
-    const l = custosQ.data ?? [];
+    const l = linhasFiltradas;
     let algumNf = false;
     let totalNfs = 0;
     for (const r of l) {
@@ -430,7 +454,7 @@ export default function ChegadaMercadoriaDetalhe() {
       qtdFaturada: l.reduce((s, r) => s + Number(r.qtd_faturada ?? 0), 0),
       totalNfs: algumNf ? totalNfs : null,
     };
-  }, [custosQ.data]);
+  }, [linhasFiltradas]);
 
   const nfsQ = useQuery({
     queryKey: ["pedido-mercadoria-nfs", pedidoId],
