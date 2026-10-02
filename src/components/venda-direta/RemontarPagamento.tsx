@@ -16,7 +16,7 @@ export interface RemontarResultado {
   ok: boolean;
   id_externo: string | null;
   valor: number | null;
-  forma: "pix" | "cartao_credito";
+  forma: "pix" | "cartao" | "cartao_credito";
   link_pagamento: string | null;
   pix_copia_cola: string | null;
   precisa_novo_link_cartao: boolean | null;
@@ -44,7 +44,7 @@ export function RemontarPagamentoDialog<T extends LinhaVD>({ linha, onClose, onP
       qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
       const atualizada = { ...linha, valor_liquido: r.valor ?? linha.valor_liquido, link_pagamento: r.link_pagamento ?? linha.link_pagamento } as T;
       onClose();
-      if (r.precisa_novo_link_cartao || r.forma === "cartao_credito") {
+      if (r.precisa_novo_link_cartao || r.forma !== "pix") {
         if (r.precisa_novo_link_cartao) {
           try {
             await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
