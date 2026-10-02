@@ -40,7 +40,7 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 type StatusComp = "aberto" | "fechado" | "reaberto" | "pre_fechado";
 
 interface Presuncao {
-  nf_id: string;
+  nf_id: number;
   nf: string;
   fornecedor: string;
   data_chegada: string | null;
@@ -59,9 +59,16 @@ interface PreFechamento {
   itens_presumidos: unknown;
 }
 
-interface LinhaPresuncao extends Presuncao {
+interface LinhaPresuncao {
+  nf_id: number;
+  nf: string;
+  fornecedor: string;
+  data_chegada: string | null;
   centro_id: string | null;
+  centro: string | null;
   linhas: number;
+  unidades: number;
+  valor_nf: number;
   presumivel: boolean;
   porque: string | null;
 }
@@ -71,7 +78,7 @@ interface LinhaDelta {
   rotulo: string;
   status: string;
   pre_fechado_em: string | null;
-  nf_id: string;
+  nf_id: number;
   nf: string;
   sku: string;
   qtd_presumida: number;
@@ -1272,7 +1279,7 @@ export default function FechamentoContabil() {
             <tbody className="divide-y">{(presuncoes.data ?? []).map((p) => <tr key={p.nf_id} className={cn(!p.presumivel && "bg-destructive/10 text-destructive")}>
               <td className="px-3 py-2">{p.nf}</td><td className="px-3 py-2">{p.fornecedor}</td><td className="px-3 py-2">{fmtChegada(p.data_chegada)}</td>
               <td className="px-3 py-2">{p.centro ?? "—"}</td><td className="px-3 py-2 text-right tabular-nums">{fmtUn(p.unidades)}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.motivo ?? p.porque ?? "—"}{!p.presumivel && p.motivo && <p className="text-xs">{p.porque}</p>}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.porque ?? "—"}</td>
             </tr>)}</tbody>
           </table></div>}
           <div className="space-y-1.5"><Label htmlFor="motivo-pre">Motivo do pré-fechamento (mínimo 20 caracteres)</Label>
