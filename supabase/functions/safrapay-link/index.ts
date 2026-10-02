@@ -216,9 +216,12 @@ Deno.serve(async (req) => {
       }
     }
 
+    const parcelaMin = Number(cfg.parcela_min_centavos ?? 0);
+    const maxParcelas = Math.max(1, Math.min(Number(cfg.max_parcelas ?? 1), parcelaMin > 0 ? Math.floor(amount / parcelaMin) : Number(cfg.max_parcelas ?? 1)));
+
     const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
       criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
-      valor, max_parcelas: cfg.max_parcelas, expira_em: expira.toISOString(), status: "criando",
+      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando",
     }).select("id").single();
     if (eIns) return await falhar(`Registrar link: ${eIns.message}`, 409);
     linha = linhaNova;
@@ -238,7 +241,7 @@ Deno.serve(async (req) => {
       description: `Fetely · ${pedido.id_externo}`,
       orderCode: pedido.id_externo,
       expiration: expira.toISOString(),
-      maxInstallmentNumber: cfg.max_parcelas,
+      maxInstallmentNumber: maxParcelas,
       ...(customer ? { customer } : {}),
       paymentSupportedTypes: tipos,
     };
@@ -253,12 +256,12 @@ Deno.serve(async (req) => {
 
     const { error: eUp } = await sb.from("pagamento_link").update({
       status: "aberto", gateway_link_id: String(linkId), url: urlFinal, expira_em: expiraFinal,
-      max_parcelas: cfg.max_parcelas, erro: null,
+      max_parcelas: maxParcelas, erro: null,
       resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, paymentSupportedTypes: tipos, avisos },
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
-    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: cfg.max_parcelas, pagamento_link_id: linha!.id, avisos });
+    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, pagamento_link_id: linha!.id, avisos });
   } catch (e) {
     return await falhar(e instanceof Error ? e.message : String(e));
   }
