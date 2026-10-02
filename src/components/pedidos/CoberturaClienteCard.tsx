@@ -66,7 +66,7 @@ function motivoLimiteInelegivel(formaAPrazo: boolean | null | undefined, classeM
   if (formaAPrazo === false) return "não conta — pedido à vista";
   if (classeMotivo === "limite_zero") return "cliente sem limite concedido";
   if (classeMotivo === "limite_vencido") return "limite vencido";
-  return classeMotivo?.replaceAll("_", " ") || "limite não elegível";
+  return classeMotivo?.split("_").join(" ") || "limite não elegível";
 }
 
 export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagio }: Props) {
@@ -142,6 +142,12 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
 
   if (!cob) return null;
 
+  const detalhesCobertura = cob as typeof cob & {
+    classe_motivo?: string | null;
+    empenhos_vivos_saldo?: number | null;
+    empenhos_vivos_limite?: number | null;
+  };
+
   const valor = Number(valorPedido ?? 0);
   const total = Number(cob.cobertura_total ?? 0);
   const valorConhecido = valor > 0;
@@ -158,7 +164,9 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
   // REGRA ÚNICA DE LIBERAÇÃO: sem empenho prévio e cobertura para todo o valor
   // ainda necessário. O banco continua sendo a autoridade final da ação.
   const podeLiberar = !!pedidoId && empenhoPedido === 0 && total >= faltaEmpenhar && !empenhado;
-  const empenhosOutros = Number(cob.empenhos_vivos_saldo ?? 0) + Number(cob.empenhos_vivos_limite ?? 0);
+  const empenhosOutros =
+    Number(detalhesCobertura.empenhos_vivos_saldo ?? 0) +
+    Number(detalhesCobertura.empenhos_vivos_limite ?? 0);
   const limiteElegivel = cob.fonte3_elegivel !== false;
   const podeAplicarCredito = !!pedidoId && ESTAGIOS_APLICACAO_CREDITO.has(estagio ?? "");
 
@@ -264,7 +272,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
           </span>
           {!limiteElegivel && (
             <span className="ml-1 text-muted-foreground">
-              · {motivoLimiteInelegivel(cob.forma_a_prazo, cob.classe_motivo)}
+              · {motivoLimiteInelegivel(cob.forma_a_prazo, detalhesCobertura.classe_motivo)}
             </span>
           )}
         </dd>
@@ -286,7 +294,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
         <div className="border-t border-border/60 pt-2 space-y-2">
           <p className="text-xs font-medium">Crédito do cliente</p>
           {creditosQ.data?.map((haver) => {
-            const origem = ROTULOS_ORIGEM[haver.origem ?? ""] ?? haver.origem?.replaceAll("_", " ") ?? "Crédito";
+            const origem = ROTULOS_ORIGEM[haver.origem ?? ""] ?? haver.origem?.split("_").join(" ") ?? "Crédito";
             const aplicandoEste = aplicarHaver.isPending && aplicarHaver.variables?.registro_id === haver.registro_id;
             return (
               <div key={haver.registro_id} className="rounded-md border border-border/60 bg-background/60 p-2 space-y-1.5">
