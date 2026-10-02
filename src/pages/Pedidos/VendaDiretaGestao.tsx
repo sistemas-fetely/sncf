@@ -131,7 +131,7 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
       onClick={onClick}
       onKeyDown={(e) => e.key === "Enter" && onClick()}
       className={cn(
-        "flex-1 cursor-pointer transition-colors hover:bg-muted/50",
+        "flex-1 cursor-pointer bg-card transition-colors hover:bg-muted/50",
         ativo && "ring-2 ring-primary",
         destaque === "destructive" && "border-destructive bg-destructive/10",
         destaque === "warning" && "border-warning bg-warning/10",
@@ -347,10 +347,10 @@ export default function VendaDiretaGestao() {
           exibidos={linhas.length}
           rotulo="pedidos"
         >
-          <div className="rounded-md border">
+          <div className="overflow-hidden rounded-md border bg-card">
             <div className="max-h-[calc(100vh-18rem)] overflow-auto">
               <Table containerClassName="overflow-visible">
-                <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableHeader className="sticky top-0 z-10 bg-muted">
                   <TableRow>
                     <TableHead>Nº</TableHead>
                     <TableHead>Cliente</TableHead>
@@ -384,7 +384,7 @@ export default function VendaDiretaGestao() {
                           <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="whitespace-nowrap">{modalLabel(l.modal)}</Badge>
+                          <div className="whitespace-nowrap text-xs text-muted-foreground">{modalLabel(l.modal)}</div>
                           <div className="mt-1 text-xs text-muted-foreground">{l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"}</div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
@@ -405,26 +405,26 @@ export default function VendaDiretaGestao() {
                             className={cn(l.situacao === "pausado" && "text-muted-foreground")}>
                             {LABEL[l.situacao] ?? l.situacao}
                           </Badge>
-                          <div className="mt-1 flex flex-wrap gap-1">
+                          <div className="mt-1 space-y-0.5 text-xs">
                             {l.alerta_sem_pagamento && (
-                              <Badge variant="outline" className="border-warning text-warning">
+                              <div className="text-warning-strong">
                                 Sem pagamento há {Math.floor(Number(l.horas_sem_pagamento ?? 0))}h
-                              </Badge>
+                              </div>
                             )}
                             {l.pagamento_desatualizado && (
                               <Tooltip>
-                                <TooltipTrigger asChild><Badge variant="outline" className="cursor-help border-warning text-warning">Pagamento desatualizado</Badge></TooltipTrigger>
+                                <TooltipTrigger asChild><span className="block cursor-help text-warning-strong">Pagamento desatualizado</span></TooltipTrigger>
                                 <TooltipContent className="max-w-sm">Os itens mudaram depois do pedido. O PIX/link antigo não vale mais — remonte e reenvie ao cliente.</TooltipContent>
                               </Tooltip>
                             )}
                             {temFalta(l) && (
                               <Tooltip>
-                                <TooltipTrigger asChild><Badge variant="destructive" className="cursor-help">Falta no Site SP</Badge></TooltipTrigger>
+                                <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
                                 <TooltipContent className="max-w-sm">
                                   {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
                                   {l.faltando_site_sp!.map((f) => {
                                     const p = prodFalta.data?.get(f.sku);
-                                    return <div key={f.sku}>{p?.cod_cadastro ?? f.sku}{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
+                                    return <div key={f.sku} className="tabular-nums">{p?.cod_cadastro ?? f.sku}{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
                                   })}
                                 </TooltipContent>
                               </Tooltip>
