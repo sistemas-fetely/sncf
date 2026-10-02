@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 
@@ -8,14 +8,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Selo } from "@/components/ui/selo";
-import { CelulaDinheiro } from "@/components/ui/celula-dinheiro";
 import { CardIndicador } from "@/components/ui/card-indicador";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DEFAULT_PAGE_SIZE,
+  RodapePaginacao,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import {
@@ -89,15 +88,10 @@ interface TresCamadasSku {
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
-  valor_nf: number | null;
-  custo_medio_nf: number | null;
-  custo_acordado: number | null;
-  custo_vigente: number | null;
-  custo_reposicao: number | null;
-  custo_incompleto: boolean | null;
   quem_deve: string | null;
   ultimo_termo: string | null;
   nome_comercial?: string | null;
+  cod_cadastro?: string | null;
 }
 
 const NUM = new Intl.NumberFormat("pt-BR");
@@ -123,6 +117,8 @@ function fmtData(v: string | null | undefined): string {
 export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
   const [busca, setBusca] = useState("");
   const [quemDeve, setQuemDeve] = useState<string>("todos");
+  const [pagina, setPagina] = useState(1);
+  const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const resumoQ = useQuery({
     queryKey: ["compra-tres-camadas-pedido", pedidoId],
@@ -147,7 +143,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas")
         .select(
-          "pedido_id, sku, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, falta_xpm, excesso_xpm, nao_conforme_xpm, valor_nf, custo_medio_nf, custo_acordado, custo_vigente, custo_reposicao, custo_incompleto, quem_deve, ultimo_termo",
+          "pedido_id, sku, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, falta_xpm, excesso_xpm, nao_conforme_xpm, quem_deve, ultimo_termo",
         )
         .eq("pedido_id", pedidoId);
       if (error) throw error;
@@ -155,30 +151,47 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
 
       // A view não traz nome do produto — vem de sncf_produtos, como nas outras telas.
       const skus = Array.from(new Set(linhas.map((l) => l.sku).filter(Boolean))) as string[];
-      const nomes = new Map<string, string>();
+      const produtos = new Map<string, { nome_comercial: string | null; cod_cadastro: string | null }>();
       if (skus.length) {
         const { data: prods, error: errProd } = await (supabase as any)
           .from("sncf_produtos")
-          .select("sku, nome_comercial")
+          .select("sku, nome_comercial, cod_cadastro")
           .in("sku", skus);
         if (errProd) throw errProd;
-        for (const p of (prods ?? []) as Array<{ sku: string; nome_comercial: string | null }>) {
-          if (p.nome_comercial) nomes.set(p.sku, p.nome_comercial);
+        for (const p of (prods ?? []) as Array<{
+          sku: string;
+          nome_comercial: string | null;
+          cod_cadastro: string | null;
+        }>) {
+          produtos.set(p.sku, {
+            nome_comercial: p.nome_comercial,
+            cod_cadastro: p.cod_cadastro,
+          });
         }
       }
       return linhas.map((l) => ({
         ...l,
-        nome_comercial: l.sku ? nomes.get(l.sku) ?? null : null,
+        nome_comercial: l.sku ? produtos.get(l.sku)?.nome_comercial ?? null : null,
+        cod_cadastro: l.sku ? produtos.get(l.sku)?.cod_cadastro ?? null : null,
       }));
     },
   });
 
   const todas = skusQ.data ?? [];
 
-  const donos = useMemo(() => {
-    const set = new Set<string>();
-    todas.forEach((l) => l.quem_deve && set.add(l.quem_deve));
-    return Array.from(set);
+  const opcoesQuemDeve = useMemo(() => {
+    const explicacoes: Record<string, string> = {
+      "fornecedor deve NF": "O pedido tem mais do que já veio em NF.",
+      "XPM deve confirmacao": "Veio em NF, mas a XPM ainda não conferiu tudo.",
+      "divergencia no recebimento": "A XPM conferiu e achou falta, excesso ou não conforme.",
+      "ciclo completo": "Tudo o que veio em NF foi conferido sem divergência.",
+    };
+    return Object.keys(ROTULO_QUEM_DEVE).map((chave) => ({
+      chave,
+      rotulo: ROTULO_QUEM_DEVE[chave],
+      explicacao: explicacoes[chave],
+      total: todas.filter((l) => l.quem_deve === chave).length,
+    }));
   }, [todas]);
 
   const ordenadas = useMemo(() => {
@@ -195,11 +208,20 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       if (quemDeve !== "todos" && l.quem_deve !== quemDeve) return false;
       if (!t) return true;
       return (
+        (l.cod_cadastro ?? "").toLowerCase().includes(t) ||
         (l.sku ?? "").toLowerCase().includes(t) ||
         (l.nome_comercial ?? "").toLowerCase().includes(t)
       );
     });
   }, [ordenadas, busca, quemDeve]);
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, quemDeve, tamanho]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const linhasPagina = filtradas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
   const resumo = resumoQ.data;
   const aFaturar = Number(resumo?.a_faturar ?? 0);
@@ -288,24 +310,29 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         </Card>
 
         <TabelaFetely
-          busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar SKU ou produto…" }}
+          busca={{ valor: busca, aoMudar: setBusca, placeholder: "Buscar por código ou produto…" }}
           filtros={
             <div className="flex flex-wrap items-center gap-1.5">
               <Button
                 size="sm"
                 variant={quemDeve === "todos" ? "secondary" : "ghost"}
                 onClick={() => setQuemDeve("todos")}
+                disabled={todas.length === 0}
+                className={cn(todas.length === 0 && "text-muted-foreground")}
               >
-                Todos
+                Todos · {todas.length}
               </Button>
-              {donos.map((d) => (
+              {opcoesQuemDeve.map((opcao) => (
                 <Button
-                  key={d}
+                  key={opcao.chave}
                   size="sm"
-                  variant={quemDeve === d ? "secondary" : "ghost"}
-                  onClick={() => setQuemDeve(d)}
+                  variant={quemDeve === opcao.chave ? "secondary" : "ghost"}
+                  onClick={() => setQuemDeve(opcao.chave)}
+                  disabled={opcao.total === 0}
+                  className={cn(opcao.total === 0 && "text-muted-foreground")}
+                  title={opcao.explicacao}
                 >
-                  {rotuloQuemDeve(d)}
+                  {opcao.rotulo} · {opcao.total}
                 </Button>
               ))}
             </div>
@@ -322,27 +349,26 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
           exibidos={filtradas.length}
           rotulo="SKUs"
         >
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
+          <>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+              <Table containerClassName="overflow-visible">
+              <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableHead>SKU</TableHead>
+                  <TableHead>Cód. cadastro</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Pedido</TableHead>
                   <TableHead className="text-right">Declarado (NF)</TableHead>
                   <TableHead className="text-right">Confirmado (XPM)</TableHead>
-                  <TableHead className="bg-muted/50 text-right">A faturar</TableHead>
-                  <TableHead className="bg-muted/50 text-right">A confirmar</TableHead>
+                  <TableHead className="bg-muted text-right">A faturar</TableHead>
+                  <TableHead className="bg-muted text-right">A confirmar</TableHead>
                   <TableHead className="text-right">Falta</TableHead>
                   <TableHead className="text-right">Excesso</TableHead>
                   <TableHead className="text-right">Não conforme</TableHead>
-                  <TableHead className="text-right">Custo acordado</TableHead>
-                  <TableHead className="text-right">Custo reposição</TableHead>
                   <TableHead>Situação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtradas.map((l, i) => {
+                {linhasPagina.map((l, i) => {
                   const atencao =
                     Number(l.nao_conforme_xpm ?? 0) > 0 || Number(l.excesso_xpm ?? 0) > 0;
                   const linhaAFaturar = Number(l.a_faturar ?? 0);
@@ -352,7 +378,16 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                       key={`${l.sku ?? "sem-sku"}-${i}`}
                       className={cn(atencao && "bg-warning/10")}
                     >
-                      <TableCell className="font-medium">{l.sku ?? "—"}</TableCell>
+                      <TableCell>
+                        {l.cod_cadastro ? (
+                          <>
+                            <div className="font-mono text-xs">{l.cod_cadastro}</div>
+                            <div className="text-xs text-muted-foreground">{l.sku ?? "—"}</div>
+                          </>
+                        ) : (
+                          <span className="font-mono text-xs">{l.sku ?? "—"}</span>
+                        )}
+                      </TableCell>
                       <TableCell>{l.nome_comercial ?? "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtQtd(l.pedida)}</TableCell>
                       <TableCell className="text-right tabular-nums">
@@ -386,31 +421,6 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                       <TableCell className="text-right tabular-nums">
                         {fmtQtd(l.nao_conforme_xpm)}
                       </TableCell>
-                      <CelulaDinheiro
-                        valor={l.custo_acordado}
-                        indisponivel={l.custo_acordado == null}
-                      />
-                      <TableCell className="text-right tabular-nums">
-                        <div className="flex flex-col items-end gap-0.5">
-                          <span>
-                            {l.custo_reposicao == null
-                              ? "—"
-                              : BRL.format(Number(l.custo_reposicao))}
-                          </span>
-                          {l.custo_incompleto && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span>
-                                  <Selo estado="warning">custo incompleto</Selo>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                frete de entrada pendente de apuração
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
-                        </div>
-                      </TableCell>
                       <TableCell>
                         <Selo estado={ESTADO_QUEM_DEVE[l.quem_deve ?? ""] ?? "muted"}>
                           {rotuloQuemDeve(l.quem_deve)}
@@ -420,8 +430,17 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   );
                 })}
               </TableBody>
-            </Table>
-          </div>
+              </Table>
+            </div>
+            <RodapePaginacao
+              total={filtradas.length}
+              pagina={paginaAtual}
+              tamanhoPagina={tamanho}
+              tela="pedido_saldo"
+              onPagina={setPagina}
+              onTamanhoPagina={(n) => setTamanho(n as PageSizeOption)}
+            />
+          </>
         </TabelaFetely>
       </div>
     </TooltipProvider>
