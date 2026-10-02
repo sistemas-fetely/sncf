@@ -222,7 +222,7 @@ export function ClienteAbaPosicao({ parceiroId }: { parceiroId: string }) {
               {cobertura.data.sinal_analise_credito && (
                 <span className="block pt-2">
                   <Selo estado="warning">sinal para análise de crédito</Selo>
-                </div>
+                </span>
               )}
             </Indicador>
             <div className="rounded-lg border border-border/60 bg-card p-3">
