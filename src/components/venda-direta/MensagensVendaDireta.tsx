@@ -124,7 +124,7 @@ export function abrirWhatsApp(telefone: string | null | undefined, texto: string
   window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
 }
 
-export function AvisarClienteButton({ linha, chave, label = "Avisar cliente" }: { linha: LinhaAviso; chave?: ChaveMsg; label?: string }) {
+export function AvisarClienteButton({ linha, chave, label = "Avisar cliente", icone = false }: { linha: LinhaAviso; chave?: ChaveMsg; label?: string; icone?: boolean }) {
   const qp = useParametrosVD();
   const [enviando, setEnviando] = useState(false);
   const k = chave ?? chaveDaLinha(linha);
@@ -151,6 +151,20 @@ export function AvisarClienteButton({ linha, chave, label = "Avisar cliente" }: 
     }
   };
 
+  if (icone) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span tabIndex={semRastreio ? 0 : -1}>
+            <Button size="icon" variant="ghost" className="h-8 w-8" aria-label={label} disabled={semRastreio || enviando} onClick={clicar}>
+              {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{semRastreio ? "Sem código de rastreio ainda" : label}</TooltipContent>
+      </Tooltip>
+    );
+  }
   const botao = (
     <Button size="sm" variant="outline" disabled={semRastreio || enviando} onClick={clicar}>
       {enviando ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="mr-1 h-3.5 w-3.5" />}
