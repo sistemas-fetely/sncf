@@ -128,6 +128,7 @@ interface LinhaPosicao {
 interface EvolucaoLinha {
   competencia: string;
   rotulo: string;
+  fonte?: LinhaPosicao["fonte"];
   sku: string;
   produto: string | null;
   grupo: string | null;
@@ -650,7 +651,7 @@ export default function FechamentoContabil() {
           ref.custo_aterrissagem_unitario == null ? null : num(ref.custo_aterrissagem_unitario),
           ref.icms_aliq == null ? null : num(ref.icms_aliq) * 100,
           ref.ipi_aliq == null ? null : num(ref.ipi_aliq) * 100,
-          ref.competencia === ultima.competencia && (competencias.data ?? []).find((c) => c.competencia === ultima.competencia)?.status === "pre_fechado" ? "Sim" : "Não",
+          ref.fonte === "presumido" ? "Sim" : "Não",
         ];
         comps.forEach(({ competencia }) => {
           const l = porCompSku.get(chave(competencia, sku));
@@ -860,6 +861,12 @@ export default function FechamentoContabil() {
                     <Lock className="mr-1.5 h-4 w-4" aria-hidden="true" />
                     Fechar competência
                   </Button>
+                  {comp.gates_bloqueantes > 0 && presuncoesElegiveis && (
+                    <Button size="sm" variant="outline" onClick={() => setDialogPre(true)}>
+                      <Clock3 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                      Pré-fechar
+                    </Button>
+                  )}
                   {comp.gates_bloqueantes > 0 && (
                     <button
                       type="button"
@@ -869,6 +876,27 @@ export default function FechamentoContabil() {
                       Fechar mesmo assim
                     </button>
                   )}
+                </>
+              )}
+              {comp.status === "pre_fechado" && (
+                <>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={comp.gates_bloqueantes > 0 ? 0 : undefined}>
+                          <Button size="sm" disabled={comp.gates_bloqueantes > 0 || fechar.isPending} onClick={() => setDialogFechar("normal")}>
+                            <Lock className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                            Fechar competência
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      {comp.gates_bloqueantes > 0 && <TooltipContent>Aguardando: {presuncoesAtivas.map((p) => p.nf).join(", ") || "NFs presumidas"}</TooltipContent>}
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button size="sm" variant="ghost" onClick={() => setDialogPre(true)}>
+                    <Clock3 className="mr-1.5 h-4 w-4" aria-hidden="true" />
+                    Refazer pré-fechamento
+                  </Button>
                 </>
               )}
               {comp.status === "fechado" && (
@@ -881,6 +909,17 @@ export default function FechamentoContabil() {
           )
         }
       />
+
+      {isPre && comp && (
+        <Alert className="border-warning/40 bg-warning/10">
+          <AlertTitle>PRÉ-FECHAMENTO — não definitivo</AlertTitle>
+          <AlertDescription>
+            <p>Inclui {fmtDinheiro(comp.valor_presumido)} presumidos:</p>
+            {presuncoesAtivas.map((p) => <p key={p.nf_id}>{p.nf} {p.fornecedor} (chegada {fmtChegada(p.data_chegada)}, {p.motivo})</p>)}
+            <p>Pré-fechado em {fmtDataHora(comp.fechado_em)}</p>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* ZONA 2 — faixa de competências */}
       {competencias.isLoading ? (
@@ -916,6 +955,7 @@ export default function FechamentoContabil() {
                 <p className="text-[11px] tabular-nums text-muted-foreground">
                   {fmtUn(c.unidades)} un · {fmtUn(c.skus)} SKUs
                 </p>
+                {c.status === "pre_fechado" && <p className="text-[11px] tabular-nums text-warning">inclui {fmtDinheiro(c.valor_presumido)} presumido</p>}
                 {c.gates_bloqueantes > 0 && (
                   <div className="mt-1.5">
                     <Selo estado="warning">{c.gates_bloqueantes} pendências</Selo>
@@ -966,6 +1006,37 @@ export default function FechamentoContabil() {
         </section>
       )}
 
+      {comp?.status === "fechado" && comp.pre_fechamento && (
+        <section className="space-y-3 rounded-md border p-4">
+          <h2 className="text-sm font-medium">Pré × definitivo</h2>
+          <p className="text-sm tabular-nums">Pré-fechado em {fmtDataHora(comp.pre_fechamento.fechado_em)}: {fmtDinheiro(comp.pre_fechamento.valor_custo)} · Definitivo: {fmtDinheiro(comp.valor_custo)} · Δ {fmtDinheiro(num(comp.valor_custo) - num(comp.pre_fechamento.valor_custo))}</p>
+          {deltaPre.isLoading ? <div className="h-24 animate-pulse rounded-md bg-muted" /> : deltaPre.error ? (
+            <p className="text-sm text-destructive">{rawMessage(deltaPre.error)}</p>
+          ) : linhasDelta.length === 0 ? <p className="text-sm text-muted-foreground">Termo bateu 100% com a NF</p> : (
+            <div className="overflow-x-auto rounded-md border">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/40"><tr>
+                  <th className="px-3 py-2 text-left font-medium">NF</th><th className="px-3 py-2 text-left font-medium">SKU</th>
+                  <th className="px-3 py-2 text-right font-medium">Presumido</th><th className="px-3 py-2 text-right font-medium">Real</th>
+                  <th className="px-3 py-2 text-right font-medium">Δ qtd</th><th className="px-3 py-2 text-right font-medium">Δ R$</th>
+                </tr></thead>
+                <tbody className="divide-y">{linhasDelta.map((l, i) => <tr key={`${l.nf_id}-${l.sku}-${i}`}>
+                  <td className="px-3 py-2">{l.nf}</td><td className="px-3 py-2">{l.sku}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_presumida)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_real)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.delta_qtd)}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(l.delta_valor)}</td>
+                </tr>)}</tbody>
+                <tfoot className="border-t bg-background"><tr><td colSpan={4} className="px-3 py-2 font-medium">Total</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtUn(linhasDelta.reduce((s, l) => s + num(l.delta_qtd), 0))}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(linhasDelta.reduce((s, l) => s + num(l.delta_valor), 0))}</td>
+                </tr></tfoot>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
+
       {/* ZONA 4 — duas bases de valorização */}
       {comp && (
         <section className="space-y-3">
@@ -1000,7 +1071,7 @@ export default function FechamentoContabil() {
             <h2 className="text-sm font-medium">Posição por SKU</h2>
             {fonte && (
               <Selo estado={fonte === "snapshot" ? "success" : "info"}>
-                {fonte === "snapshot" ? "Snapshot congelado" : "Cálculo ao vivo"}
+                {isPre ? "Snapshot de pré-fechamento" : fonte === "snapshot" || fonte === "presumido" ? "Snapshot congelado" : "Cálculo ao vivo"}
               </Selo>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -1085,6 +1156,7 @@ export default function FechamentoContabil() {
                           <td className="whitespace-nowrap px-3 py-2 font-medium">
                             <span className="inline-flex items-center gap-1.5">
                               {l.sku}
+                              {l.fonte === "presumido" && <Selo estado="warning">Presumido</Selo>}
                               {semNf && <Selo estado="warning">Sem custo NF</Selo>}
                             </span>
                           </td>
@@ -1133,7 +1205,7 @@ export default function FechamentoContabil() {
                   <tbody className="divide-y">
                     {visiveis.map((l, i) => (
                       <tr key={`${l.sku}-${l.centro}-${i}`} className="hover:bg-muted/30">
-                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku}</td>
+                        <td className="whitespace-nowrap px-3 py-2 font-medium">{l.sku} {l.fonte === "presumido" && <Selo estado="warning">Presumido</Selo>}</td>
                         <td className="max-w-[420px] truncate px-3 py-2 text-muted-foreground">{l.produto ?? "—"}</td>
                         <td className="whitespace-nowrap px-3 py-2 text-muted-foreground">{l.centro ?? "—"}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.quantidade)}</td>
@@ -1189,6 +1261,34 @@ export default function FechamentoContabil() {
       )}
 
       {/* Dialog — fechar */}
+      <Dialog open={dialogPre} onOpenChange={(o) => { if (!o && !preFechar.isPending) { setDialogPre(false); setMotivoPre(""); } }}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>Pré-fechar {comp?.rotulo ?? "competência"}</DialogTitle>
+            <DialogDescription>O snapshot vai considerar estas NFs 100% corretas pela quantidade da nota, ao custo de aterrissagem. Nada entra no estoque. Quando o termo chegar, o fechamento definitivo substitui este e mostra a diferença.</DialogDescription>
+          </DialogHeader>
+          {presuncoes.isLoading ? <div className="h-32 animate-pulse bg-muted" /> : presuncoes.error ? (
+            <p className="text-sm text-destructive">{rawMessage(presuncoes.error)}</p>
+          ) : <div className="max-h-[50vh] overflow-auto rounded-md border"><table className="w-full text-sm">
+            <thead className="sticky top-0 bg-background"><tr>{["NF", "Fornecedor", "Chegada", "Centro", "Unidades", "Valor da NF", "Motivo"].map((h) => <th key={h} className="px-3 py-2 text-left font-medium">{h}</th>)}</tr></thead>
+            <tbody className="divide-y">{(presuncoes.data ?? []).map((p) => <tr key={p.nf_id} className={cn(!p.presumivel && "bg-destructive/10 text-destructive")}>
+              <td className="px-3 py-2">{p.nf}</td><td className="px-3 py-2">{p.fornecedor}</td><td className="px-3 py-2">{fmtChegada(p.data_chegada)}</td>
+              <td className="px-3 py-2">{p.centro ?? "—"}</td><td className="px-3 py-2 text-right tabular-nums">{fmtUn(p.unidades)}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{fmtDinheiro(p.valor_nf)}</td><td className="px-3 py-2">{p.motivo}{!p.presumivel && <p className="text-xs">{p.porque}</p>}</td>
+            </tr>)}</tbody>
+          </table></div>}
+          <div className="space-y-1.5"><Label htmlFor="motivo-pre">Motivo do pré-fechamento (mínimo 20 caracteres)</Label>
+            <Textarea id="motivo-pre" value={motivoPre} onChange={(e) => setMotivoPre(e.target.value)} rows={3} />
+            <p className="text-[11px] tabular-nums text-muted-foreground">{motivoPre.trim().length} / 20</p>
+          </div>
+          <DialogFooter><Button variant="ghost" disabled={preFechar.isPending} onClick={() => { setDialogPre(false); setMotivoPre(""); }}>Cancelar</Button>
+            <Button disabled={preFechar.isPending || presuncoes.isLoading || !!presuncoes.error || !presuncoesElegiveis || presuncoesImpedidas || motivoPre.trim().length < 20} onClick={() => preFechar.mutate(motivoPre.trim())}>
+              {preFechar.isPending ? "Pré-fechando…" : "Pré-fechar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogFechar !== null} onOpenChange={(o) => { if (!o) { setDialogFechar(null); setObs(""); } }}>
         <DialogContent>
           <DialogHeader>
