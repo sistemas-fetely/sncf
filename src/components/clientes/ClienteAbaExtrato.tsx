@@ -373,6 +373,54 @@ export function ClienteAbaExtrato({
         </div>
       </div>
 
+      {saldoQ.isError && (
+        <p className="text-xs text-destructive">
+          {(saldoQ.error as any)?.message ?? "Falha ao carregar o saldo."}
+        </p>
+      )}
+      {estornosQ.isError && (
+        <p className="text-xs text-destructive">
+          {(estornosQ.error as any)?.message ?? "Falha ao carregar os estornos."}
+        </p>
+      )}
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground">Saldo atual</p>
+          <p className={cn("text-sm font-medium", saldoAtual > 0 ? "text-success" : "")}>
+            {saldoQ.isLoading ? "—" : formatBRL(saldoAtual)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
+            Saldo futuro
+            <InfoMetrica rotulo="Saldo futuro">
+              <p>Como a conta fecha quando os títulos a vencer forem pagos.</p>
+            </InfoMetrica>
+          </p>
+          <p className="text-sm font-medium">
+            {saldoQ.isLoading ? "—" : formatBRL(saldoFuturo)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground">Vencido em aberto</p>
+          <p className={cn("text-sm font-medium", vencidoAberto > 0 ? "text-destructive" : "")}>
+            {saldoQ.isLoading ? "—" : formatBRL(vencidoAberto)}
+          </p>
+        </div>
+        <div className="rounded-md border border-border/60 bg-card p-2.5">
+          <p className="text-[11px] text-muted-foreground flex items-center gap-1 group">
+            Crédito futuro (boleto)
+            <InfoMetrica rotulo="Crédito futuro (boleto)">
+              <p>Boletos registrados no banco — dinheiro a caminho.</p>
+            </InfoMetrica>
+          </p>
+          <p className="text-sm font-medium">
+            {saldoQ.isLoading ? "—" : formatBRL(creditoFuturo)}
+          </p>
+        </div>
+      </div>
+
       {lancamentos.isLoading && (
         <p className="text-xs text-muted-foreground flex items-center gap-2">
           <Loader2 className="h-3 w-3 animate-spin" /> carregando
@@ -403,6 +451,7 @@ export function ClienteAbaExtrato({
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Meio · Banco</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="text-right">Saldo</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -426,8 +475,22 @@ export function ClienteAbaExtrato({
                         ))}
                     </TableCell>
                     <TableCell className="text-xs">{dataBR(l.data)}</TableCell>
-                    <TableCell className="text-xs">{l.tipo}</TableCell>
-                    <TableCell className="text-xs">{l.ref ?? "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {l.tipo === "estorno_conta" ? (
+                        <Selo estado="destructive">estorno</Selo>
+                      ) : (
+                        l.tipo
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {estornoOrigem.get(i) ? (
+                        <span className="text-destructive">
+                          estorna lançamento de {dataBR(estornoOrigem.get(i)!)}
+                        </span>
+                      ) : (
+                        (l.ref ?? "—")
+                      )}
+                    </TableCell>
                     <TableCell className="text-xs">{l.pedido_ref ?? "—"}</TableCell>
                     <TableCell className="text-xs">
                       {dataBR(l.vencimento)}
