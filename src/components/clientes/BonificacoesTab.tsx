@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CardIndicador } from "@/components/ui/card-indicador";
+import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Selo } from "@/components/ui/selo";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -90,20 +92,22 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Total bonificado · 12 meses</p>
-          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : formatBRL(totalBonif)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
-            Custo real · 12 meses <InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>
-          </p>
-          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : formatBRL(totalCusto)}</p>
-        </div>
-        <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Concessões · 12 meses</p>
-          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : ultimos12.length}</p>
-        </div>
+        <CardIndicador
+          compacto
+          rotulo="Total bonificado · 12 meses"
+          valor={q.isLoading ? <Skeleton className="h-6 w-24" /> : q.isError ? "—" : formatBRL(totalBonif)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Custo real · 12 meses"
+          adorno={<InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>}
+          valor={q.isLoading ? <Skeleton className="h-6 w-24" /> : q.isError ? "—" : formatBRL(totalCusto)}
+        />
+        <CardIndicador
+          compacto
+          rotulo="Concessões · 12 meses"
+          valor={q.isLoading ? <Skeleton className="h-6 w-10" /> : q.isError ? "—" : ultimos12.length}
+        />
       </div>
 
       {q.isLoading ? (
@@ -111,10 +115,15 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
           {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
         </div>
       ) : q.isError ? null : lista.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 rounded-md border border-border/60 py-10 text-sm text-muted-foreground">
-          <Gift className="h-5 w-5" />
-          Nenhuma bonificação concedida a este cliente.
-        </div>
+        <EstadoVazio
+          icone={Gift}
+          mensagem="Nenhuma bonificação concedida a este cliente."
+          acao={
+            <Button size="sm" variant="ghost" onClick={() => setAberto(true)}>
+              <Plus className="h-4 w-4" /> Conceder bonificação
+            </Button>
+          }
+        />
       ) : (
         <div className="rounded-md border border-border/60 overflow-x-auto">
           <Table>
