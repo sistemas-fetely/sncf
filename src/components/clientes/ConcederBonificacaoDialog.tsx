@@ -21,11 +21,24 @@ import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { QK_CONTA_CLIENTE_COBERTURA } from "@/hooks/financeiro/useContaCliente";
-import { QK_BONIFICACOES_SEM_REGISTRO, type BonificacaoSemRegistro } from "./BonificacoesPendentesTab";
 
 export const QK_BONIFICACOES_CLIENTE = "bonificacoes-cliente";
 const ESTAGIOS_VIVOS = ["recebido", "em_analise", "cobranca", "aguardando_pagamento"];
 const OUTRA_PESSOA = "__outra__";
+const QK_BONIFICACOES_SEM_REGISTRO = "bonificacoes-sem-registro";
+
+interface BonificacaoSemRegistro {
+  pedido_id: string;
+  id_externo: string | null;
+  parceiro_id: string;
+  cliente: string | null;
+  data_pedido: string | null;
+  estagio: string | null;
+  estagio_rotulo: string | null;
+  valor_bruto: number | null;
+  itens: number | null;
+  quantidade: number | null;
+}
 
 interface ItemBonif {
   chave: number;

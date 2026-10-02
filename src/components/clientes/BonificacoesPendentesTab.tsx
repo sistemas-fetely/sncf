@@ -35,10 +35,11 @@ export interface BonificacaoSemRegistro {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-export function useBonificacoesSemRegistro(parceiroId?: string) {
+export function useBonificacoesSemRegistro(parceiroId?: string, enabled = true) {
   return useQuery({
     queryKey: [QK_BONIFICACOES_SEM_REGISTRO, parceiroId ?? "todas"],
     staleTime: 0,
+    enabled,
     queryFn: async (): Promise<BonificacaoSemRegistro[]> => {
       let q = sb
         .from("vw_bonificacao_sem_registro")

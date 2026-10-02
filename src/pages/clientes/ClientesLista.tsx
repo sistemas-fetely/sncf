@@ -29,7 +29,7 @@ export default function ClientesLista() {
 
   const podeRecebiveis = usePodeVerAba(ABA_RECEBIVEIS);
   const podeBonificacoes = usePodeVerAba(ABA_BONIFICACOES);
-  const bonificacoesQ = useBonificacoesSemRegistro(podeBonificacoes.podeVer ? undefined : "__sem_acesso__");
+  const bonificacoesQ = useBonificacoesSemRegistro(undefined, podeBonificacoes.podeVer);
 
   const visiveis = useMemo(() => {
     const abas = [{ value: "contas", label: "Contas de clientes" }];
