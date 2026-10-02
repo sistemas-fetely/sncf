@@ -68,7 +68,7 @@ interface NfSemEntrada {
   nf_serie: string | null;
   data_emissao: string | null;
   fornecedor: string | null;
-  valor: number | null;
+  valor_total: number | null;
   centro_sugerido: string | null;
   centro_pela_nf: boolean | null;
   embarque_ref: string | null;
@@ -96,6 +96,9 @@ function NfsSemEntrada({
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const q = useQuery({
     queryKey: ["vw_compras_nf_sem_entrada"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_compras_nf_sem_entrada")
@@ -176,9 +179,9 @@ function NfsSemEntrada({
                 <TableCell className="whitespace-nowrap tabular-nums">{fmtD(r.data_emissao)}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{r.fornecedor ?? "—"}</TableCell>
                 <TableCell className="text-right tabular-nums whitespace-nowrap">
-                  {r.valor == null
+                  {r.valor_total == null
                     ? "—"
-                    : Number(r.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                    : Number(r.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                 </TableCell>
                 <TableCell>
                   <div>{r.centro_sugerido ?? "—"}</div>
@@ -255,6 +258,9 @@ export default function PendenciasTab() {
 
   const pendenciasQ = useQuery({
     queryKey: ["compras-pendencias"],
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_compras_pendencias" as never)
