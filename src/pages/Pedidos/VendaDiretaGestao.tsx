@@ -359,8 +359,7 @@ export default function VendaDiretaGestao() {
                     <TableHead className="text-right">Frete</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Situação</TableHead>
-                    <TableHead>Na fase há</TableHead>
-                    <TableHead>NF · Bling</TableHead>
+                    <TableHead className="whitespace-nowrap">Na fase há</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -432,7 +431,6 @@ export default function VendaDiretaGestao() {
                           </div>
                         </TableCell>
                         <TableCell className="tabular-nums text-muted-foreground">{tempoDesde(l.entrou_na_fase_em)}</TableCell>
-                        <TableCell className="tabular-nums">{l.nf_numero ?? "—"} · {l.bling_pedido_numero ?? "—"}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-0.5">
                             {aviso}
