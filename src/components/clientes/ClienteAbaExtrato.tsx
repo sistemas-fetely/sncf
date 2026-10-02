@@ -509,11 +509,14 @@ export function ClienteAbaExtrato({
                       {credito ? "+" : "−"}
                       {formatBRL(Math.abs(Number(l.valor ?? 0)))}
                     </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {formatBRL(saldoCorrido.get(i) ?? 0)}
+                    </TableCell>
                   </TableRow>,
                   expansivel && aberto ? (
                     <TableRow key={`${chave}-detalhe`} className="hover:bg-transparent">
                       <TableCell />
-                      <TableCell colSpan={8} className="bg-muted/30 py-2">
+                      <TableCell colSpan={9} className="bg-muted/30 py-2">
                         <AlocacoesDetalhe l={l} />
                       </TableCell>
                     </TableRow>
