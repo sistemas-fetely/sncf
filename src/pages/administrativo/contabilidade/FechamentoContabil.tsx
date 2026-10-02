@@ -528,6 +528,14 @@ export default function FechamentoContabil() {
         .sort((a, b) => a[0].localeCompare(b[0]))
         .map(([competencia, rotulo]) => ({ competencia, rotulo }));
       const ultima = comps[comps.length - 1];
+      // A evolução não devolve fonte: buscar a posição apenas dos meses pré-fechados.
+      const skusPresumidos = new Map<string, Set<string>>();
+      for (const c of comps) {
+        if ((competencias.data ?? []).find((item) => item.competencia === c.competencia)?.status !== "pre_fechado") continue;
+        const { data: pos, error: erroPos } = await supabase.rpc("fn_contabil_posicao", { p_competencia: c.competencia });
+        if (erroPos) throw erroPos;
+        skusPresumidos.set(c.competencia, new Set((pos ?? []).filter((l) => l.fonte === "presumido").map((l) => l.sku)));
+      }
 
       const chave = (competencia: string, sku: string) => `${competencia}|${sku}`;
       const porCompSku = new Map<string, EvolucaoLinha>();
@@ -633,17 +641,17 @@ export default function FechamentoContabil() {
       /* ── Aba 3 — Evolução por SKU ── */
       const skus = [...new Set(dados.map((l) => l.sku))].sort((a, b) => a.localeCompare(b, "pt-BR"));
       const ID_COLS = 9;
-      // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 6 colunas.
+      // Faixa de cabeçalho: um rótulo de mês mesclado acima de cada bloco de 7 colunas.
       const faixa: (string | null)[] = Array(ID_COLS).fill(null);
       comps.forEach(({ rotulo }) => {
-        faixa.push(rotulo, null, null, null, null, null);
+        faixa.push(rotulo, null, null, null, null, null, null);
       });
       const cabSku: (string | number | null)[] = [
         "SKU", "Produto", "Grupo", "NCM", "NF de entrada",
         "Custo NF unit.", "Custo Aterr. unit.", "ICMS %", "IPI %",
       ];
       comps.forEach(() =>
-        cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)"),
+        cabSku.push("Entrada", "Saída", "CMV (R$)", "Estoque", "Valor NF (R$)", "Valor Aterr. (R$)", "Presumido"),
       );
       const linhasSku = skus.map((sku) => {
         const ref = porCompSku.get(chave(ultima.competencia, sku)) ?? dados.find((l) => l.sku === sku)!;
@@ -663,24 +671,25 @@ export default function FechamentoContabil() {
           linha.push(
             num(l?.entrada), num(l?.saida), num(l?.cmv),
             num(l?.estoque), num(l?.valor_nf), num(l?.valor_aterrissagem),
+            skusPresumidos.get(competencia)?.has(sku) ? "Sim" : "Não",
           );
         });
         return linha;
       });
       const totalSku: (string | number | null)[] = ["TOTAL", null, null, null, null, null, null, null, null];
       for (let c = ID_COLS; c < cabSku.length; c++) {
-        totalSku.push(linhasSku.reduce((a, l) => a + num(l[c]), 0));
+        totalSku.push((c - ID_COLS) % 7 === 6 ? null : linhasSku.reduce((a, l) => a + num(l[c]), 0));
       }
       const aoaSku = [faixa, cabSku, ...linhasSku, totalSku];
       const wsSku = XLSX.utils.aoa_to_sheet(aoaSku);
       wsSku["!cols"] = [
         { wch: 18 }, { wch: 46 }, { wch: 24 }, { wch: 12 }, { wch: 16 },
         { wch: 16 }, { wch: 18 }, { wch: 9 }, { wch: 9 },
-        ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }]),
+        ...comps.flatMap(() => [{ wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 11 }, { wch: 16 }, { wch: 18 }, { wch: 12 }]),
       ];
       wsSku["!merges"] = comps.map((_, i) => ({
-        s: { r: 0, c: ID_COLS + i * 6 },
-        e: { r: 0, c: ID_COLS + i * 6 + 5 },
+        s: { r: 0, c: ID_COLS + i * 7 },
+        e: { r: 0, c: ID_COLS + i * 7 + 6 },
       }));
       wsSku["!freeze"] = { xSplit: 3, ySplit: 2 };
       wsSku["!autofilter"] = {
@@ -694,7 +703,7 @@ export default function FechamentoContabil() {
       negritarLinha(wsSku, aoaSku.length - 1, cabSku.length);
       const fmtSku: Record<number, string> = { 5: Z_UNIT, 6: Z_UNIT, 7: Z_PCT, 8: Z_PCT };
       comps.forEach((_, i) => {
-        const b = ID_COLS + i * 6;
+        const b = ID_COLS + i * 7;
         fmtSku[b] = Z_UN;
         fmtSku[b + 1] = Z_UN;
         fmtSku[b + 2] = Z_RS;
