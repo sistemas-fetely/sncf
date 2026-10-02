@@ -1,23 +1,43 @@
 /**
  * BONIFICAÇÕES — o que o cliente já recebeu sem pagar.
  *
- * Aba da ficha do cliente. Fonte: vw_conta_cliente_cortesias (pedidos bonificados e
- * créditos de cortesia). Total somado no topo: bonificação também é dinheiro.
+ * Aba da ficha do cliente. Fonte: concessao_ocorrencia (registro por concessão).
+ * Concessão nova pela RPC conceder_bonificacao (ConcederBonificacaoDialog).
  */
-import { AlertTriangle, Gift } from "lucide-react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AlertTriangle, Gift, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Selo } from "@/components/ui/selo";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatBRL } from "@/lib/format-currency";
-import { useCortesiasCliente } from "@/hooks/financeiro/useContaCliente";
+import { formatError } from "@/lib/format-error";
+import { ConcederBonificacaoDialog, QK_BONIFICACOES_CLIENTE } from "./ConcederBonificacaoDialog";
+
+interface Concessao {
+  id: string;
+  criado_em: string;
+  instrumento: string | null;
+  sku: string | null;
+  quantidade: number | null;
+  custo_total: number | null;
+  valor_bonificado: number | null;
+  autorizado_por_nome: string | null;
+  motivo: { nome: string } | null;
+  instr: { rotulo: string } | null;
+  pedido: { id_externo: string | null; estagio: string | null } | null;
+  haver: { saldo: number | null; status: string | null } | null;
+}
+
+const ESTADO_INSTR: Record<string, "info" | "success" | "warning" | "muted"> = {
+  pedido_bonificado: "info",
+  produto_bonificado: "warning",
+  credito_conta: "success",
+};
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -26,112 +46,129 @@ function dataBR(iso: string | null | undefined) {
 }
 
 export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
-  const { data: linhas, isLoading, isError, error } = useCortesiasCliente(parceiroId);
+  const [aberto, setAberto] = useState(false);
+  const q = useQuery({
+    queryKey: [QK_BONIFICACOES_CLIENTE, parceiroId],
+    queryFn: async (): Promise<Concessao[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("concessao_ocorrencia")
+        .select(
+          "id, criado_em, instrumento, sku, quantidade, custo_total, valor_bonificado, autorizado_por_nome, motivo:motivos_concessao(nome), instr:bonificacao_instrumento_dim(rotulo), pedido:pedidos!concessao_ocorrencia_pedido_id_fkey(id_externo, estagio), haver:haver_cliente(saldo, status)",
+        )
+        .eq("parceiro_id", parceiroId)
+        .order("criado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
 
-  const lista = linhas ?? [];
-  const total = lista.reduce((s, l) => s + Number(l.valor ?? 0), 0);
-  const pedidos = lista.filter((l) => l.tipo === "pedido");
-  const creditos = lista.filter((l) => l.tipo === "credito");
+  const lista = q.data ?? [];
+  const corte = new Date();
+  corte.setFullYear(corte.getFullYear() - 1);
+  const ultimos12 = lista.filter((l) => new Date(l.criado_em) >= corte);
+  const totalBonif = ultimos12.reduce((s, l) => s + Number(l.valor_bonificado ?? 0), 0);
+  const totalCusto = ultimos12.reduce((s, l) => s + Number(l.custo_total ?? 0), 0);
 
   return (
     <div className="space-y-4">
-      <p className="text-xs text-muted-foreground">
-        Tudo que saiu para este cliente sem cobrança: pedidos bonificados e créditos de
-        cortesia. Serve para saber quanto já foi dado antes de dar mais.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <p className="text-xs text-muted-foreground max-w-xl">
+          Tudo que saiu para este cliente sem cobrança. Serve para saber quanto já foi dado antes de dar mais.
+        </p>
+        <Button size="sm" onClick={() => setAberto(true)}>
+          <Plus className="h-4 w-4" /> Conceder bonificação
+        </Button>
+      </div>
 
-      {isError && (
+      {q.isError && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Não foi possível carregar as bonificações</AlertTitle>
-          <AlertDescription>
-            {(error as Error)?.message ?? "Erro desconhecido."}
-          </AlertDescription>
+          <AlertDescription>{formatError(q.error)}</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Total bonificado</p>
-          <p className="text-sm font-medium">{isError ? "—" : formatBRL(total)}</p>
+          <p className="text-[11px] text-muted-foreground">Total bonificado · 12 meses</p>
+          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : formatBRL(totalBonif)}</p>
         </div>
         <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Pedidos bonificados</p>
-          <p className="text-sm font-medium">
-            {isError ? "—" : `${pedidos.length} · ${formatBRL(
-              pedidos.reduce((s, l) => s + Number(l.valor ?? 0), 0),
-            )}`}
+          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+            Custo real · 12 meses <InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>
           </p>
+          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : formatBRL(totalCusto)}</p>
         </div>
         <div className="rounded-md border border-border/60 p-2.5">
-          <p className="text-[11px] text-muted-foreground">Créditos de cortesia</p>
-          <p className="text-sm font-medium">
-            {isError ? "—" : `${creditos.length} · ${formatBRL(
-              creditos.reduce((s, l) => s + Number(l.valor ?? 0), 0),
-            )}`}
-          </p>
+          <p className="text-[11px] text-muted-foreground">Concessões · 12 meses</p>
+          <p className="text-sm font-medium">{q.isError || q.isLoading ? "—" : ultimos12.length}</p>
         </div>
       </div>
 
-      {isLoading ? (
+      {q.isLoading ? (
         <div className="space-y-2">
-          {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-9 w-full" />
-          ))}
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-9 w-full" />)}
         </div>
-      ) : isError ? null : lista.length === 0 ? (
+      ) : q.isError ? null : lista.length === 0 ? (
         <div className="flex flex-col items-center gap-2 rounded-md border border-border/60 py-10 text-sm text-muted-foreground">
           <Gift className="h-5 w-5" />
-          Este cliente não recebeu bonificação.
+          Nenhuma bonificação concedida a este cliente.
         </div>
       ) : (
-        <div className="rounded-md border border-border/60">
+        <div className="rounded-md border border-border/60 overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-24">Data</TableHead>
-                <TableHead className="w-24">Tipo</TableHead>
-                <TableHead className="w-28">Referência</TableHead>
-                <TableHead>Itens</TableHead>
-                <TableHead className="w-40">Natureza</TableHead>
-                <TableHead className="w-28 text-right">Valor</TableHead>
+                <TableHead>Instrumento</TableHead>
+                <TableHead>Motivo</TableHead>
+                <TableHead>Referência</TableHead>
+                <TableHead>SKU · qtd</TableHead>
+                <TableHead className="text-right">Valor bonificado</TableHead>
+                <TableHead className="text-right">
+                  <span className="inline-flex items-center gap-1">
+                    Custo real <InfoMetrica rotulo="Custo real">Custo de aterrissagem — a perda de verdade.</InfoMetrica>
+                  </span>
+                </TableHead>
+                <TableHead>Autorizado por</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {lista.map((l) => (
-                <TableRow key={`${l.tipo}-${l.origem_id}`}>
-                  <TableCell className="align-top text-sm">{dataBR(l.data)}</TableCell>
-                  <TableCell className="align-top">
-                    <Selo estado={l.tipo === "pedido" ? "info" : "muted"}>
-                      {l.tipo === "pedido" ? "Pedido" : "Crédito"}
+                <TableRow key={l.id}>
+                  <TableCell className="text-sm">{dataBR(l.criado_em)}</TableCell>
+                  <TableCell>
+                    <Selo estado={ESTADO_INSTR[l.instrumento ?? ""] ?? "muted"}>
+                      {l.instr?.rotulo ?? l.instrumento ?? "—"}
                     </Selo>
                   </TableCell>
-                  <TableCell className="align-top text-sm">{l.referencia ?? "—"}</TableCell>
-                  <TableCell className="align-top text-sm">
-                    {l.qtd_itens > 0 && l.itens ? (
-                      <>
-                        <span className="leading-snug">{l.itens}</span>
-                        <span className="ml-1 text-[11px] text-muted-foreground">
-                          ({l.qtd_itens} item{l.qtd_itens > 1 ? "s" : ""})
-                        </span>
-                      </>
-                    ) : (
-                      "—"
-                    )}
+                  <TableCell className="text-sm">{l.motivo?.nome ?? "—"}</TableCell>
+                  <TableCell className="text-sm">
+                    {l.pedido
+                      ? `${l.pedido.id_externo ?? "pedido"}${l.pedido.estagio ? ` · ${l.pedido.estagio}` : ""}`
+                      : l.haver
+                        ? `haver: saldo ${formatBRL(Number(l.haver.saldo ?? 0))} · ${l.haver.status ?? "—"}`
+                        : "—"}
                   </TableCell>
-                  <TableCell className="align-top text-sm text-muted-foreground">
-                    {l.natureza ?? "—"}
-                    {l.situacao ? ` · ${l.situacao}` : ""}
+                  <TableCell className="text-sm">
+                    {l.sku ? <><span className="font-mono">{l.sku}</span>{l.quantidade != null ? ` · ${Number(l.quantidade)}` : ""}</> : "—"}
                   </TableCell>
-                  <TableCell className="align-top text-right text-sm font-medium">
-                    {formatBRL(Number(l.valor ?? 0))}
+                  <TableCell className="text-right text-sm font-medium tabular-nums">
+                    {l.valor_bonificado != null ? formatBRL(Number(l.valor_bonificado)) : "—"}
                   </TableCell>
+                  <TableCell className="text-right text-sm tabular-nums">
+                    {l.custo_total != null ? formatBRL(Number(l.custo_total)) : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{l.autorizado_por_nome ?? "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
       )}
+
+      <ConcederBonificacaoDialog parceiroId={parceiroId} open={aberto} onOpenChange={setAberto} />
     </div>
   );
 }
