@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
-import { fmtBRL, fmtCompetencia, fmtData } from "./fmt";
+import { fmtBRL, fmtCompetencia, fmtData, fmtJanelaRecebimento } from "./fmt";
 import { ExtratosFechados, FecharCompetenciaBotao } from "./AcoesPagamento";
 
 interface Extrato {
@@ -95,7 +95,7 @@ async function baixarCsv(competencia: string) {
     }
     if (linhas.length === 0) {
       toast.error(
-        "Nenhuma parcela encontrada para esta competência — nenhum arquivo foi exportado.",
+        "Nenhuma parcela encontrada para este mês de pagamento — nenhum arquivo foi exportado.",
       );
       return;
     }
@@ -103,7 +103,7 @@ async function baixarCsv(competencia: string) {
     const cab = [
       "Representante",
       "E-mail",
-      "Competência",
+      "Pagamento (mês)",
       "Status apuração",
       "NF",
       "Emissão NF",
@@ -126,7 +126,7 @@ async function baixarCsv(competencia: string) {
       "Comissão da parcela",
       "Valor liberado",
       "Data liquidação",
-      "Competência pagamento",
+      "Pagamento (mês)",
     ];
     const corpo = linhas.map((l) => [
       l.representante ?? "",
@@ -241,10 +241,11 @@ export function AbaExtrato() {
             <CardHeader className="flex flex-row items-start justify-between gap-3">
               <div className="space-y-1">
                 <CardTitle className="text-base">
-                  Competência {fmtCompetencia(competencia)}
+                  Pagamento de {fmtCompetencia(competencia)}
                 </CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Total a pagar {fmtBRL(total)} · pagar até {fmtData(linhas[0]?.pagar_ate)}
+                  Recebimentos de {fmtJanelaRecebimento(competencia)} · Total a pagar{" "}
+                  {fmtBRL(total)} · pagar até {fmtData(linhas[0]?.pagar_ate)}
                 </p>
               </div>
               <div className="flex gap-2">

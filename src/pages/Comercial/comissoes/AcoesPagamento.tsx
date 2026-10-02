@@ -13,7 +13,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { fmtBRL, fmtCompetencia, fmtData } from "./fmt";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  fmtBRL, fmtCompetencia, fmtData, fmtJanelaRecebimento, fmtMesRecebimento,
+  liberaFechamentoEm, podeFecharCompetencia,
+} from "./fmt";
 
 type Res = Record<string, any>;
 
@@ -28,6 +32,7 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [rodando, setRodando] = useState(false);
+  const podeFechar = podeFecharCompetencia(competencia);
 
   async function executar() {
     setRodando(true);
@@ -35,7 +40,7 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
       const r = await rpc("fn_comissao_extrato_fechar", { p_competencia: competencia });
       if (r.ok === false) throw new Error(r.erro ?? JSON.stringify(r));
       toast.success(
-        `Competência ${fmtCompetencia(competencia)} fechada: ${Number(r.extratos_fechados ?? 0)} extrato(s), ${fmtBRL(r.valor_total)}`,
+        `Extrato de pagamento ${fmtCompetencia(competencia)} fechado: ${Number(r.extratos_fechados ?? 0)} extrato(s), ${fmtBRL(r.valor_total)}`,
         { description: `${Number(r.ja_fechados_ignorados ?? 0)} já fechado(s) ignorado(s)` },
       );
       await Promise.all([
@@ -44,7 +49,7 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
       ]);
       setAberto(false);
     } catch (e) {
-      toast.error(`Falha ao fechar competência: ${formatError(e)}`);
+      toast.error(`Falha ao fechar extrato de pagamento: ${formatError(e)}`);
     } finally {
       setRodando(false);
     }
@@ -52,19 +57,37 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
 
   return (
     <>
-      <Button variant="outline" onClick={() => setAberto(true)}><Lock className="h-4 w-4" />Fechar competência</Button>
+      {podeFechar ? (
+        <Button variant="outline" onClick={() => setAberto(true)}>
+          <Lock className="h-4 w-4" />Fechar extrato
+        </Button>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="inline-block">
+              <Button variant="outline" disabled>
+                <Lock className="h-4 w-4" />Fechar extrato
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>
+            Os recebimentos de {fmtMesRecebimento(competencia)} ainda estão correndo. Libera em{" "}
+            {liberaFechamentoEm(competencia)}.
+          </TooltipContent>
+        </Tooltip>
+      )}
       <Dialog open={aberto} onOpenChange={(o) => !rodando && setAberto(o)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Fechar competência {fmtCompetencia(competencia)}?</DialogTitle>
+            <DialogTitle>Fechar extrato de pagamento {fmtCompetencia(competencia)}?</DialogTitle>
             <DialogDescription>
-              Fechar congela o extrato desta competência. Valores já liberados viram um extrato imutável por representante.
+              Congela o extrato com tudo que os clientes pagaram de {fmtJanelaRecebimento(competencia)}. Valores já liberados viram um extrato imutável por representante.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAberto(false)} disabled={rodando}>Cancelar</Button>
             <Button onClick={executar} disabled={rodando}>
-              {rodando && <Loader2 className="h-4 w-4 animate-spin" />}Fechar competência
+              {rodando && <Loader2 className="h-4 w-4 animate-spin" />}Fechar extrato
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -121,7 +144,7 @@ export function ExtratosFechados() {
         ) : (
           <Table>
             <TableHeader><TableRow>
-              <TableHead>Representante</TableHead><TableHead>Competência</TableHead>
+              <TableHead>Representante</TableHead><TableHead>Pagamento</TableHead>
               <TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Liberações</TableHead>
               <TableHead className="text-right">Notas</TableHead><TableHead>Pagar até</TableHead><TableHead>Título a pagar</TableHead><TableHead>E-mail</TableHead>
             </TableRow></TableHeader>
@@ -131,7 +154,14 @@ export function ExtratosFechados() {
                   <TableCell className="font-medium">
                     <Link className="hover:underline" to={`/comercial/representantes/${l.vendedor_id}`}>{l.representante}</Link>
                   </TableCell>
-                  <TableCell>{fmtCompetencia(l.competencia)}</TableCell>
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      <div>{fmtCompetencia(l.competencia)}</div>
+                      <div className="text-xs text-muted-foreground">
+                        receb. {fmtJanelaRecebimento(l.competencia).replace(/\/\d{4}$/, "")}
+                      </div>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right font-medium">{fmtBRL(l.valor_total)}</TableCell>
                   <TableCell className="text-right">{Number(l.liberacoes ?? 0)}</TableCell>
                   <TableCell className="text-right">{Number(l.notas ?? 0)}</TableCell>
