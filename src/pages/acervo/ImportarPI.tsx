@@ -22,6 +22,11 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
+import {
+  DEFAULT_PAGE_SIZE,
+  RodapePaginacao,
+  type PageSizeOption,
+} from "@/components/tabela/RodapePaginacao";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 
@@ -134,6 +139,13 @@ function textoCelula(v: unknown): string {
   return v === null || v === undefined ? "" : String(v);
 }
 
+function paginaDe<T>(itens: T[], pagina: number, tamanho: number): T[] {
+  if (itens.length <= 50) return itens;
+  const totalPaginas = Math.max(1, Math.ceil(itens.length / tamanho));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  return itens.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+}
+
 
 export default function ImportarPI() {
   const queryClient = useQueryClient();
@@ -173,6 +185,13 @@ export default function ImportarPI() {
   const [registroResultado, setRegistroResultado] = useState<Record<string, unknown>[] | null>(null);
   const [registrando, setRegistrando] = useState(false);
   const [erro401, setErro401] = useState(false);
+
+  const [paginaConferencia, setPaginaConferencia] = useState(1);
+  const [tamanhoConferencia, setTamanhoConferencia] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+  const [paginaEfetivacao, setPaginaEfetivacao] = useState(1);
+  const [tamanhoEfetivacao, setTamanhoEfetivacao] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+  const [paginaFop, setPaginaFop] = useState(1);
+  const [tamanhoFop, setTamanhoFop] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   // passo 7
   const [baixando, setBaixando] = useState(false);
@@ -396,6 +415,7 @@ export default function ImportarPI() {
 
 
   const linhasStage = stageQuery.data ?? [];
+  const linhasConferencia = paginaDe(linhasStage, paginaConferencia, tamanhoConferencia);
   // a alocação de código deixou de ser chamada pela tela: fn_pi_efetivar_lote aloca.
   // paraFop foi removido: o conjunto que nasce no FOP agora vem de fn_pi_efetivar_lote.
   const comCodigo = linhasStage.filter((l) => l.cod_cadastro || l.ean || l.dun);
@@ -738,9 +758,9 @@ export default function ImportarPI() {
               </div>
             </div>
 
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
+            <div className="overflow-auto max-h-[50vh] rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
                     <TableHead>Coluna na planilha</TableHead>
                     <TableHead className="w-56">Campo destino</TableHead>
@@ -789,11 +809,11 @@ export default function ImportarPI() {
                   Nenhuma coluna mapeada ainda.
                 </p>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
+                <div className="overflow-auto max-h-[60vh] rounded-md border">
+                  <Table containerClassName="overflow-visible">
+                    <TableHeader className="sticky top-0 z-10 bg-background">
                       <TableRow>
-                        <TableHead className="w-20">Linha</TableHead>
+                        <TableHead className="sticky left-0 z-[5] w-20 bg-background">Linha</TableHead>
                         {camposUsados.map((c) => (
                           <TableHead key={c}>{c}</TableHead>
                         ))}
@@ -802,7 +822,7 @@ export default function ImportarPI() {
                     <TableBody>
                       {linhas.slice(0, 5).map((l) => (
                         <TableRow key={l.linhaNum}>
-                          <TableCell className="text-muted-foreground">{l.linhaNum}</TableCell>
+                          <TableCell className="sticky left-0 z-[5] bg-background text-muted-foreground">{l.linhaNum}</TableCell>
                           {camposUsados.map((c) => (
                             <TableCell key={c} className="font-mono text-xs">
                               {l.campos[c] === null || l.campos[c] === undefined
@@ -902,44 +922,56 @@ export default function ImportarPI() {
             {contagens && stageQuery.isPending && <Skeleton className="h-40 w-full" />}
 
             {contagens && !stageQuery.isPending && !stageQuery.isError && (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-20">Linha</TableHead>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>cod_cadastro</TableHead>
-                      <TableHead>EAN</TableHead>
-                      <TableHead>DUN</TableHead>
-                      <TableHead>Inner</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Motivo</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {linhasStage.map((l) => (
-                      <TableRow key={l.linha_num}>
-                        <TableCell className="text-muted-foreground">{l.linha_num}</TableCell>
-                        <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
-                        <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
-                        <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
-                        <TableCell className="font-mono text-xs">{l.dun ?? "—"}</TableCell>
-                        <TableCell>{l.inner_qtd ?? "—"}</TableCell>
-                        <TableCell>
-                          <Badge variant={badgeEstado(l.estado)}>{l.estado ?? "—"}</Badge>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{l.motivo ?? ""}</TableCell>
-                      </TableRow>
-                    ))}
-                    {linhasStage.length === 0 && (
+              <div>
+                <div className="overflow-auto max-h-[60vh] rounded-md border">
+                  <Table containerClassName="overflow-visible">
+                    <TableHeader className="sticky top-0 z-10 bg-background">
                       <TableRow>
-                        <TableCell colSpan={8} className="text-muted-foreground">
-                          Nenhuma linha no estágio deste lote.
-                        </TableCell>
+                        <TableHead className="w-20">Linha</TableHead>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>cod_cadastro</TableHead>
+                        <TableHead>EAN</TableHead>
+                        <TableHead>DUN</TableHead>
+                        <TableHead>Inner</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Motivo</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {linhasConferencia.map((l) => (
+                        <TableRow key={l.linha_num}>
+                          <TableCell className="text-muted-foreground">{l.linha_num}</TableCell>
+                          <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{l.cod_cadastro ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{l.ean ?? "—"}</TableCell>
+                          <TableCell className="font-mono text-xs">{l.dun ?? "—"}</TableCell>
+                          <TableCell>{l.inner_qtd ?? "—"}</TableCell>
+                          <TableCell>
+                            <Badge variant={badgeEstado(l.estado)}>{l.estado ?? "—"}</Badge>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{l.motivo ?? ""}</TableCell>
+                        </TableRow>
+                      ))}
+                      {linhasStage.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-muted-foreground">
+                            Nenhuma linha no estágio deste lote.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+                {linhasStage.length > 50 && (
+                  <RodapePaginacao
+                    total={linhasStage.length}
+                    pagina={paginaConferencia}
+                    tamanhoPagina={tamanhoConferencia}
+                    tela="importar_pi_conferencia"
+                    onPagina={setPaginaConferencia}
+                    onTamanhoPagina={(n) => setTamanhoConferencia(n as PageSizeOption)}
+                  />
+                )}
               </div>
             )}
 
@@ -1018,6 +1050,8 @@ export default function ImportarPI() {
             {(efetivado ?? (previa?.ok ? previa : null)) && (() => {
               const r = (efetivado ?? previa)!;
               const livres = r.livres_depois ?? null;
+              const produtos = r.produtos ?? [];
+              const produtosExibidos = paginaDe(produtos, paginaEfetivacao, tamanhoEfetivacao);
               return (
                 <div className="space-y-3">
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -1056,40 +1090,52 @@ export default function ImportarPI() {
                     </Alert>
                   )}
 
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-20">Linha</TableHead>
-                          <TableHead>cod_cadastro</TableHead>
-                          <TableHead>EAN</TableHead>
-                          <TableHead>DUN</TableHead>
-                          <TableHead>Inner</TableHead>
-                          <TableHead>Código novo</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {(r.produtos ?? []).map((p, i) => (
-                          <TableRow key={`${p.cod_cadastro ?? i}`}>
-                            <TableCell className="text-muted-foreground">{p.linha ?? "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{p.cod_cadastro ?? "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{p.ean ?? "—"}</TableCell>
-                            <TableCell className="font-mono text-xs">{p.dun ?? "—"}</TableCell>
-                            <TableCell>{p.inner_qtd ?? "—"}</TableCell>
-                            <TableCell>
-                              {p.alocar_novo ? <Badge variant="default">novo</Badge> : <span className="text-muted-foreground">—</span>}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                        {(r.produtos ?? []).length === 0 && (
+                  <div>
+                    <div className="overflow-auto max-h-[60vh] rounded-md border">
+                      <Table containerClassName="overflow-visible">
+                        <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
-                            <TableCell colSpan={6} className="text-muted-foreground">
-                              Nenhum produto no de-para.
-                            </TableCell>
+                            <TableHead className="w-20">Linha</TableHead>
+                            <TableHead>cod_cadastro</TableHead>
+                            <TableHead>EAN</TableHead>
+                            <TableHead>DUN</TableHead>
+                            <TableHead>Inner</TableHead>
+                            <TableHead>Código novo</TableHead>
                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {produtosExibidos.map((p, i) => (
+                            <TableRow key={`${p.cod_cadastro ?? i}`}>
+                              <TableCell className="text-muted-foreground">{p.linha ?? "—"}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.cod_cadastro ?? "—"}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.ean ?? "—"}</TableCell>
+                              <TableCell className="font-mono text-xs">{p.dun ?? "—"}</TableCell>
+                              <TableCell>{p.inner_qtd ?? "—"}</TableCell>
+                              <TableCell>
+                                {p.alocar_novo ? <Badge variant="default">novo</Badge> : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {produtos.length === 0 && (
+                            <TableRow>
+                              <TableCell colSpan={6} className="text-muted-foreground">
+                                Nenhum produto no de-para.
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {produtos.length > 50 && (
+                      <RodapePaginacao
+                        total={produtos.length}
+                        pagina={paginaEfetivacao}
+                        tamanhoPagina={tamanhoEfetivacao}
+                        tela="importar_pi_efetivacao"
+                        onPagina={setPaginaEfetivacao}
+                        onTamanhoPagina={(n) => setTamanhoEfetivacao(n as PageSizeOption)}
+                      />
+                    )}
                   </div>
                 </div>
               );
@@ -1135,9 +1181,10 @@ export default function ImportarPI() {
             )}
 
             {registroResultado && (
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
+              <div>
+                <div className="overflow-auto max-h-[60vh] rounded-md border">
+                  <Table containerClassName="overflow-visible">
+                    <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
                       <TableHead>cod_cadastro</TableHead>
                       <TableHead>EAN</TableHead>
@@ -1145,9 +1192,9 @@ export default function ImportarPI() {
                       <TableHead>Status</TableHead>
                       <TableHead>Motivo</TableHead>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {registroResultado.map((it, i) => {
+                    </TableHeader>
+                    <TableBody>
+                    {paginaDe(registroResultado, paginaFop, tamanhoFop).map((it, i) => {
                       const status = textoCelula(it.status);
                       return (
                         <TableRow key={i}>
@@ -1181,8 +1228,19 @@ export default function ImportarPI() {
                         </TableCell>
                       </TableRow>
                     )}
-                  </TableBody>
-                </Table>
+                    </TableBody>
+                  </Table>
+                </div>
+                {registroResultado.length > 50 && (
+                  <RodapePaginacao
+                    total={registroResultado.length}
+                    pagina={paginaFop}
+                    tamanhoPagina={tamanhoFop}
+                    tela="importar_pi_fop"
+                    onPagina={setPaginaFop}
+                    onTamanhoPagina={(n) => setTamanhoFop(n as PageSizeOption)}
+                  />
+                )}
               </div>
             )}
           </CardContent>
