@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
@@ -123,8 +122,8 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
   const l = linha;
   return (
     <Sheet open={!!l} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-[480px]">
-        <SheetHeader className="border-b p-4">
+      <SheetContent side="right" className="flex w-full flex-col gap-0 bg-card p-0 text-card-foreground sm:max-w-[480px]">
+        <SheetHeader className="border-b bg-muted p-4">
           <SheetTitle>{l?.id_externo}</SheetTitle>
           <SheetDescription>{l?.cliente_nome ?? "—"} · <span className="tabular-nums">{formatBRL(l?.valor_liquido ?? null)}</span></SheetDescription>
         </SheetHeader>
@@ -134,7 +133,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
               {itensQ.isLoading ? <Skeleton className="h-16 w-full" /> : itensQ.isError ? <Erro e={itensQ.error} /> : (itensQ.data ?? []).length === 0 ? (
                 <p className="text-muted-foreground">Nenhum item.</p>
               ) : (
-                <div className="divide-y rounded-md border">
+                <div className="divide-y rounded-md border bg-card">
                   {prodQ.isError && <Erro e={prodQ.error} />}
                   {saldoQ.isError && <Erro e={saldoQ.error} />}
                   {itensQ.data!.map((i) => {
@@ -148,11 +147,11 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
                             <div className="font-medium">{p?.cod_cadastro ?? i.sku}</div>
                             <div className="text-xs text-muted-foreground">{p?.nome_comercial ?? i.descricao ?? "—"}</div>
                           </div>
-                          {falta && <Badge variant="destructive" className="shrink-0">Sem saldo no Site SP</Badge>}
+                          {falta && <span className="shrink-0 text-xs text-destructive-strong">Sem saldo no Site SP</span>}
                         </div>
-                        <div className="flex justify-between text-xs tabular-nums text-muted-foreground">
-                          <span>{Number(i.quantidade)} × {formatBRL(i.valor_unitario)}</span>
-                          <span className="text-foreground">{formatBRL(i.subtotal)}</span>
+                        <div className="grid grid-cols-[1fr_auto] gap-3 text-xs tabular-nums text-muted-foreground">
+                          <span className="text-right">{Number(i.quantidade)} × {formatBRL(i.valor_unitario)}</span>
+                          <span className="min-w-24 text-right text-foreground">{formatBRL(i.subtotal)}</span>
                         </div>
                       </div>
                     );
