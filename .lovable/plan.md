@@ -1,30 +1,18 @@
-# Remover Conferência e ampliar sinais da régua
+# Saldo do pedido focado em quantidades
 
-## Escopo
+## Objetivo
+Ajustar somente a sub-aba **Saldo** para responder o que falta chegar e quem deve agir, preservando integralmente os cards de resumo do topo e sem qualquer mudança no banco.
 
-- Remover da tela de detalhe do pedido a sub-aba **Conferência**, incluindo os blocos “Pedido × NF”, “Pedido × Invoice” e seus avisos e ações internas.
-- Excluir somente consultas, tipos, cálculos, mutation e imports que ficarem exclusivos dessa sub-aba.
-- Preservar `nfIds`, pois a conferência de usos mostrou que ele também alimenta o status de recebimento das NFs na sub-aba **Documentos**.
-- Manter intacta a aba **Rateio de NF** e não criar alterações no banco.
+## Implementação
+- Em `SaldoPedidoTab.tsx`, enriquecer as linhas com `cod_cadastro` vindo de `sncf_produtos` e alinhar a identidade visual do produto à sub-aba Linhas.
+- Remover da consulta, do tipo e da tabela todos os campos e colunas de custo que deixarem de ser usados, após confirmar seus usos no arquivo.
+- Ampliar a busca para código de cadastro, SKU e produto, com o novo texto solicitado.
+- Substituir os filtros dinâmicos por cinco opções fixas: **Todos** e os quatro estados de `ROTULO_QUEM_DEVE`, sempre com contagem, ordem definida, explicação em `title` e estado desabilitado/muted quando a contagem for zero.
+- Aplicar cabeçalho congelado e fundo opaco, mantendo o destaque visual de **A faturar** e **A confirmar** sem transparência durante a rolagem.
+- Adicionar paginação com `RodapePaginacao`, tamanho inicial `DEFAULT_PAGE_SIZE`, tela `pedido_saldo`, resetando para a primeira página quando busca, filtro ou tamanho mudarem; renderizar apenas a página atual e manter a contagem da moldura baseada em todo o recorte filtrado.
+- Em `ChegadaMercadoriaDetalhe.tsx`, trocar somente o texto de `ParaQueServe` da sub-aba Saldo.
 
-## Navegação
-
-- Restringir as sub-abas válidas a `linhas`, `documentos`, `saldo` e `historico`.
-- Ao receber `?sub=conferencia`, abrir **Linhas** e remover `sub` da URL automaticamente, preservando os demais parâmetros.
-
-## Régua do pedido
-
-- Acrescentar `skus_fora_pedido` e `nf_linhas_rateio_incompleto` ao contrato e à consulta de `vw_importacao_pedido_regua`.
-- Na etapa **Tradução**, compor o texto pendente apenas com contagens não zeradas, mantendo os três sinais atuais e adicionando:
-  - “N SKU fora do pedido”;
-  - “N rateio incompleto”.
-- Determinar o primeiro motivo na ordem definida: sem SKU, sem custo, ficha XPM, SKU fora do pedido, rateio incompleto.
-- Manter os três motivos antigos direcionando para **Pendências**.
-- Direcionar os dois motivos novos para `/vendas/produto/chegada-mercadoria?aba=rateio-nf`.
-
-## Verificação
-
-- Executar o typecheck.
-- Abrir o detalhe de um pedido no navegador e confirmar que a Conferência não aparece e que `?sub=conferencia` é limpo para Linhas.
-- Exercitar a etapa Tradução com os novos sinais para confirmar texto e destino do clique.
+## Validação
+- Rodar o typecheck do aplicativo.
+- Conferir no navegador a identidade do produto, filtros com contagens, paginação, cabeçalho congelado e ausência das colunas de custo.
 - Não publicar.
