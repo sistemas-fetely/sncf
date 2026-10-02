@@ -421,11 +421,12 @@ export default function PendenciasTab() {
           exibidos={itensXpm.length}
           rotulo="itens"
         >
-          <div className="overflow-x-auto rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
+          <>
+            <div className="overflow-auto max-h-[calc(100vh-18rem)] rounded-md border">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Código</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead>Pedido</TableHead>
                   <TableHead>NCM</TableHead>
@@ -435,7 +436,7 @@ export default function PendenciasTab() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {itensXpm.map((i, idx) => (
+                {naPaginaXpm.map((i, idx) => (
                   <TableRow key={`${i.codigo_material}-${i.numero_pedido}-${idx}`}>
                     <TableCell className="font-medium">{i.codigo_material ?? "—"}</TableCell>
                     <TableCell className="max-w-[280px] truncate">{i.descricao ?? "—"}</TableCell>
