@@ -227,7 +227,14 @@ export function PortalMeusExtratos({ sessao, extratoDestacado }: { sessao: strin
               >
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <div>
-                    <p className="text-sm font-medium">Mês de referência {fmtCompetencia(e.competencia)}</p>
+                    <p className="text-sm font-medium">
+                      Mês de referência {fmtCompetencia(e.competencia)}
+                      {Number(e.sequencia ?? 1) > 1 && (
+                        <span className="ml-2 text-xs font-normal text-muted-foreground">
+                          complementar nº {e.sequencia}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Nota até {fmtData(e.prazo_documento)} · pagamento {fmtData(e.pagar_ate)}
                     </p>
