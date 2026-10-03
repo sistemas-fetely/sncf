@@ -20,12 +20,13 @@ export interface DevolucaoVD {
   motivo_solicitacao: string; solicitado_por: string | null; solicitado_em: string; decidido_por: string | null;
   decidido_em: string | null; motivo_decisao: string | null; charge_id: string | null; prova_tipo: string | null;
   prova_ref: string | null; erro: string | null; haver_id: string | null; concluido_em: string | null;
-  pedido?: { id_externo: string | null; cliente_nome_snapshot: string | null } | null;
+  pedido?: { id_externo: string | null; cliente_nome_snapshot: string | null; parceiros_comerciais?: { razao_social: string | null } | null } | null;
   solicitante?: string | null; decisor?: string | null; prova_pagamento?: string | null;
   bling_status?: string | null; bling_erro?: string | null; comprovante_token?: string | null;
 }
 
 export const DEVOLUCAO_ATIVA = new Set<StatusDevolucao>(["solicitada", "aprovada", "estorno_enviado", "falhou"]);
+export const nomeCliente = (pedido: DevolucaoVD["pedido"]) => pedido?.parceiros_comerciais?.razao_social?.trim() || pedido?.cliente_nome_snapshot?.trim() || null;
 export const ROTULO_DEVOLUCAO: Record<StatusDevolucao, string> = {
   solicitada: "Solicitada", recusada: "Recusada", aprovada: "Aprovada", estorno_enviado: "Reembolso em curso", concluida: "Concluída", falhou: "Falhou",
 };
@@ -42,7 +43,7 @@ export function useDevolucoesVD() {
       const pids = [...new Set(rows.map((r) => r.pedido_id))];
       const uids = [...new Set(rows.flatMap((r) => [r.solicitado_por, r.decidido_por]).filter((v): v is string => !!v))];
       const [pedR, profR, provR, filaR] = await Promise.all([
-        pids.length ? supabase.from("pedidos" as never).select("id,id_externo,cliente_nome_snapshot").in("id", pids) : Promise.resolve({ data: [], error: null }),
+        pids.length ? supabase.from("pedidos" as never).select("id,id_externo,cliente_nome_snapshot,parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social)").in("id", pids) : Promise.resolve({ data: [], error: null }),
         uids.length ? supabase.from("profiles").select("user_id,full_name").in("user_id", uids) : Promise.resolve({ data: [], error: null }),
         pids.length ? supabase.from("provisao_recebimento" as never).select("pedido_id,prova_ref,pago_em").in("pedido_id", pids).not("pago_em", "is", null) : Promise.resolve({ data: [], error: null }),
         pids.length ? supabase.from("bling_situacao_fila" as never).select("pedido_id,status,ultimo_erro,criado_em").in("pedido_id", pids).order("criado_em", { ascending: false }) : Promise.resolve({ data: [], error: null }),
