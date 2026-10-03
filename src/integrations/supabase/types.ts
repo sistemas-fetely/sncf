@@ -22114,6 +22114,7 @@ export type Database = {
           recebido_em: string | null
           recebido_por: string | null
           reversa_origem: string | null
+          sem_retorno_fisico: boolean
           shopify_pedido_id: string | null
           snapshot_id: string | null
           status: string
@@ -22146,6 +22147,7 @@ export type Database = {
           recebido_em?: string | null
           recebido_por?: string | null
           reversa_origem?: string | null
+          sem_retorno_fisico?: boolean
           shopify_pedido_id?: string | null
           snapshot_id?: string | null
           status?: string
@@ -22178,6 +22180,7 @@ export type Database = {
           recebido_em?: string | null
           recebido_por?: string | null
           reversa_origem?: string | null
+          sem_retorno_fisico?: boolean
           shopify_pedido_id?: string | null
           snapshot_id?: string | null
           status?: string
@@ -72630,6 +72633,7 @@ export type Database = {
           concluido_em: string | null
           decidido_em: string | null
           decidido_por: string | null
+          devolucao_id: string | null
           erro: string | null
           fila_bling_status_anterior: string | null
           gateway_resposta: Json | null
@@ -72653,6 +72657,7 @@ export type Database = {
           concluido_em?: string | null
           decidido_em?: string | null
           decidido_por?: string | null
+          devolucao_id?: string | null
           erro?: string | null
           fila_bling_status_anterior?: string | null
           gateway_resposta?: Json | null
@@ -72676,6 +72681,7 @@ export type Database = {
           concluido_em?: string | null
           decidido_em?: string | null
           decidido_por?: string | null
+          devolucao_id?: string | null
           erro?: string | null
           fila_bling_status_anterior?: string | null
           gateway_resposta?: Json | null
@@ -72693,6 +72699,34 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "vd_devolucao_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vd_devolucao_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vd_devolucao_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vd_devolucao_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
           {
             foreignKeyName: "vd_devolucao_pedido_id_fkey"
             columns: ["pedido_id"]
@@ -84959,12 +84993,16 @@ export type Database = {
         Row: {
           competencia_pagamento: string | null
           email_contato: string | null
+          extratos_fechados: number | null
+          liberacoes_em_aberto: number | null
           nfs: string | null
           notas: number | null
           pagar_ate: string | null
           representante: string | null
+          situacao_extrato: string | null
           tudo_lancado_cpr: boolean | null
           valor_a_pagar: number | null
+          valor_em_aberto: number | null
           vendedor_id: string | null
         }
         Relationships: [
@@ -89450,6 +89488,7 @@ export type Database = {
           refund_ok: boolean | null
           refund_valor: number | null
           reversa_origem: string | null
+          sem_retorno_fisico: boolean | null
           skus: number | null
           snapshot_id: string | null
           status: string | null
@@ -103236,14 +103275,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -117546,14 +117585,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
