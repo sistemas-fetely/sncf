@@ -128192,7 +128192,20 @@ export type Database = {
       validar_email_corporativo: { Args: { _email: string }; Returns: Json }
       validar_nf_pj: { Args: { _nota_id: string }; Returns: Json }
       validar_prontidao_sistema: { Args: never; Returns: Json }
+      vd_concluir_devolucao: {
+        Args: {
+          p_devolucao_id: string
+          p_obs?: string
+          p_prova_ref: string
+          p_prova_tipo: string
+        }
+        Returns: Json
+      }
       vd_cotar_frete: { Args: { p_cep: string; p_itens: Json }; Returns: Json }
+      vd_decidir_devolucao: {
+        Args: { p_aprovar: boolean; p_devolucao_id: string; p_motivo?: string }
+        Returns: Json
+      }
       vd_registrar_entrega: {
         Args: {
           p_observacao?: string
@@ -128217,6 +128230,10 @@ export type Database = {
           p_retirada_endereco: string
           p_retirada_horario: string
         }
+        Returns: Json
+      }
+      vd_solicitar_devolucao: {
+        Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
       vd_trocar_meio_pagamento: {

@@ -7,6 +7,7 @@ import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { TrilhaDevolucao, type DevolucaoVD } from "./DevolucaoVendaDireta";
 
 export interface LinhaGaveta {
   id: string;
@@ -70,11 +71,12 @@ export function useProdutosPorSku(skus: string[]) {
   });
 }
 
-export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
+export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }: {
   linha: LinhaGaveta | null;
   modalLabel: (m: string | null) => string;
   onClose: () => void;
   acoes?: ReactNode;
+  devolucao?: DevolucaoVD | null;
 }) {
   const id = linha?.id;
   const itensQ = useQuery({
@@ -223,6 +225,8 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
               <Par k="NF" v={<span className="tabular-nums">{l.nf_numero ?? "—"}</span>} />
               <Par k="Nº Bling" v={<span className="tabular-nums">{l.bling_pedido_numero ?? "—"}</span>} />
             </Secao>
+
+            {devolucao && <Secao titulo="Devolução"><TrilhaDevolucao devolucao={devolucao} /></Secao>}
 
             <Secao titulo="Histórico">
               {evQ.isLoading ? <Skeleton className="h-16 w-full" /> : evQ.isError ? <Erro e={evQ.error} /> : (evQ.data ?? []).length === 0 ? (
