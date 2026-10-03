@@ -4675,6 +4675,7 @@ export type Database = {
           exige_etiqueta_correios: boolean
           id: string
           nome: string
+          sem_despacho: boolean
           tem_rastreio_automatico: boolean
         }
         Insert: {
@@ -4684,6 +4685,7 @@ export type Database = {
           exige_etiqueta_correios?: boolean
           id?: string
           nome: string
+          sem_despacho?: boolean
           tem_rastreio_automatico?: boolean
         }
         Update: {
@@ -4693,6 +4695,7 @@ export type Database = {
           exige_etiqueta_correios?: boolean
           id?: string
           nome?: string
+          sem_despacho?: boolean
           tem_rastreio_automatico?: boolean
         }
         Relationships: []
@@ -73284,6 +73287,24 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      vd_modo_modal: {
+        Row: {
+          atualizado_em: string
+          modal_codigo: string
+          modo: string
+        }
+        Insert: {
+          atualizado_em?: string
+          modal_codigo: string
+          modo: string
+        }
+        Update: {
+          atualizado_em?: string
+          modal_codigo?: string
+          modo?: string
+        }
+        Relationships: []
       }
       venda_direta_parametro: {
         Row: {
