@@ -37,6 +37,8 @@ import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
+import { BlocoFiscalSiteSp } from "@/components/devolucao/FiscalSiteSp";
+import { useSearchParams } from "react-router-dom";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
@@ -47,6 +49,7 @@ type Funil = {
   destino_codigo: string | null; reversa_origem: string | null; rastreio_efetivo: string | null; rastreio_status: string | null;
   frete_reverso_por_conta: string | null;
   exige_transferencia_cd: boolean | null;
+  sem_retorno_fisico: boolean | null;
   destino_retorno: string | null;
   pendencias_encerramento: string[] | null;
   transferencia_pedido_id: string | null; transferencia_numero: string | null; transferencia_ok: boolean | null;
@@ -100,15 +103,17 @@ function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
         const campo = ETAPA_CAMPO[e.ordem];
         const feito = campo ? Boolean(d[campo]) : false;
         const sugerida = e.ordem === 5 && !feito && !!d.nf_retorno_sugerida;
+        const naoAplica = !!d.sem_retorno_fisico && e.ordem >= 2 && e.ordem <= 4;
         return (
           <Tooltip key={e.codigo}>
             <TooltipTrigger asChild>
               <span className={cn("h-3 w-3 rounded-full border",
-                feito ? "bg-primary border-primary" : sugerida ? "bg-warning border-warning" : "bg-muted border-border")} />
+                naoAplica ? "border-dashed bg-background border-muted-foreground/40" : feito ? "bg-primary border-primary" : sugerida ? "bg-warning border-warning" : "bg-muted border-border")} />
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
               <div className="font-medium">{e.ordem}. {e.rotulo}</div>
-              {e.descricao && <div className="text-xs">{e.descricao}</div>}
+              {naoAplica && <div className="text-xs">Não se aplica — sem retorno físico (o produto não saiu do Site SP).</div>}
+              {!naoAplica && e.descricao && <div className="text-xs">{e.descricao}</div>}
               {sugerida && <div className="text-xs mt-1">NF de retorno {d.nf_retorno_sugerida} capturada — confirme o vínculo na mesa fiscal</div>}
             </TooltipContent>
           </Tooltip>
@@ -166,8 +171,9 @@ export default function RetornoDevolucao() {
   const etapas = etapasQ.data ?? [];
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
-  const [busca, setBusca] = useState("");
-  const [canal, setCanal] = useState<"todos" | "b2b" | "b2c">("todos");
+  const [searchParams] = useSearchParams();
+  const [busca, setBusca] = useState(() => searchParams.get("q") ?? "");
+  const [canal, setCanal] = useState<"todos" | "b2b" | "b2c" | "site_sp">("todos");
   const [soAbertas, setSoAbertas] = useState(true);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [conferirId, setConferirId] = useState<string | null>(null);
@@ -239,7 +245,7 @@ export default function RetornoDevolucao() {
     const dias = maisAntigo == null ? 0 : Math.max(0, Math.floor((agoraBrasilia - maisAntigo) / 86_400_000));
     return { unidades, skus, dias };
   }, [quarentenaQ.data]);
-  const reembolsosPendentes = (reembolsosQ.data ?? []).filter((d) => DEVOLUCAO_ATIVA.has(d.status)).length;
+  const reembolsosPendentes = (reembolsosQ.data ?? []).filter((d) => !d.devolucao_id && DEVOLUCAO_ATIVA.has(d.status)).length;
 
   const invalidar = async () => {
     await Promise.all([
@@ -294,6 +300,7 @@ export default function RetornoDevolucao() {
             <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
             <ToggleGroupItem value="b2b">B2B</ToggleGroupItem>
             <ToggleGroupItem value="b2c">B2C</ToggleGroupItem>
+            <ToggleGroupItem value="site_sp">Site SP</ToggleGroupItem>
           </ToggleGroup>
           <label className="flex items-center gap-2 text-sm"><Switch checked={soAbertas} onCheckedChange={setSoAbertas} />Só abertas</label>
           <span className="text-xs text-muted-foreground ml-auto">{filtrados.length} {filtrados.length === 1 ? "devolução" : "devoluções"}</span>
@@ -379,6 +386,7 @@ export default function RetornoDevolucao() {
                         <div className="flex flex-wrap items-center gap-1.5">
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
+                          {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
@@ -432,7 +440,9 @@ export default function RetornoDevolucao() {
                             </div>
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Financeiro</div>
-                              {d.canal === "b2c" ? (
+                              {d.canal === "site_sp" ? (
+                                <div className="text-muted-foreground">Ressarcimento abaixo · {rotuloStatus(d)}</div>
+                              ) : d.canal === "b2c" ? (
                                 d.refund_ok
                                   ? <Badge variant="outline" className="bg-success/10 text-success border-success/20 font-normal">Reembolsado {formatBRL(d.refund_valor ?? 0)} na loja</Badge>
                                   : <Badge variant="outline" className="bg-muted text-muted-foreground font-normal">Sem reembolso na loja</Badge>
@@ -487,6 +497,18 @@ export default function RetornoDevolucao() {
                               )}
                             </div>
                           </div>
+                          {d.canal === "site_sp" && (
+                            <div className="mx-2 mb-2 grid gap-3 md:grid-cols-2">
+                              <div className="space-y-2 rounded-md border bg-card p-3">
+                                <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
+                                <BlocoFiscalSiteSp devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} />
+                              </div>
+                              <div className="space-y-2 rounded-md border bg-card p-3">
+                                <div className="text-xs font-medium text-muted-foreground">Ressarcimento</div>
+                                <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />
+                              </div>
+                            </div>
+                          )}
                           {ehAberta(d) && (
                             <div className="mx-2 mb-2 flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
                               <span className="text-xs font-medium text-muted-foreground">Para encerrar</span>
