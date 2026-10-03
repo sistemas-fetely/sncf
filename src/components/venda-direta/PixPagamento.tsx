@@ -36,7 +36,9 @@ export function PixPagamento({ payload, link, whatsappUrl }: PixPagamentoProps) 
   };
 
   return (
-    <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+    <div className="space-y-3">
+      <p className="text-sm font-medium">PIX por QR Code</p>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
       <div className="flex shrink-0 flex-col items-center gap-2">
         {payload ? (
           <>
@@ -59,10 +61,10 @@ export function PixPagamento({ payload, link, whatsappUrl }: PixPagamentoProps) 
 
       <div className="min-w-0 flex-1 space-y-4">
         <div className="space-y-1">
-          <Label>Link de pagamento</Label>
+          <Label>Página do PIX (QR na chave da Fetely)</Label>
           <div className="flex gap-2">
             <Input readOnly value={link ?? "—"} />
-            <Button variant="outline" size="icon" disabled={!link} onClick={() => link && copiar(link, "Link")} aria-label="Copiar link">
+            <Button variant="outline" size="icon" disabled={!link} onClick={() => link && copiar(link, "Página do PIX")} aria-label="Copiar página do PIX">
               <Copy className="h-4 w-4" />
             </Button>
           </div>
@@ -83,6 +85,7 @@ export function PixPagamento({ payload, link, whatsappUrl }: PixPagamentoProps) 
             </Button>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
