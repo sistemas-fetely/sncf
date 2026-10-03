@@ -1,4 +1,4 @@
-import { Fragment, startTransition, useEffect, useMemo, useState } from "react";
+import { Fragment, startTransition, useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -74,7 +74,7 @@ export function AbaGerencial() {
     setSearchParams(proximos, { replace: true });
   };
 
-  const navegarSemSuspender = (destino: string) => (evento: React.MouseEvent<HTMLAnchorElement>) => {
+  const navegarSemSuspender = (destino: string) => (evento: MouseEvent<HTMLAnchorElement>) => {
     if (evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
     evento.preventDefault();
     startTransition(() => navigate(destino));
