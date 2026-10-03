@@ -27,6 +27,11 @@ export function proximoMes(competencia: string): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/** "2026-09" → "2026-10" (mês de pagamento ao representante). */
+export function mesSeguinte(competencia: string): string {
+  return proximoMes(competencia).slice(0, 7);
+}
+
 /** Janela de 6 competências terminando na selecionada (inclusive). */
 function inicioJanela(competencia: string): string {
   const [ano, mes] = competencia.split("-").map(Number);

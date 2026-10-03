@@ -215,6 +215,7 @@ const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
 const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
+const ExtratosLoteImpressao = lazy(() => import("@/pages/Comercial/representantes/ExtratosLoteImpressao"));
 const RepresentanteExtratoImpressao = lazy(() => import("@/pages/Comercial/representantes/RepresentanteExtratoImpressao"));
 const GerencialImpressao = lazy(() => import("@/pages/Comercial/representantes/gerencial/GerencialImpressao"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
@@ -381,6 +382,10 @@ const App = () => (
 
             {/* Documento autenticado, sem a casca visual do sistema. A rota herda
                 temporariamente a porta comercial até nascer no banco com slug próprio. */}
+            <Route
+              path="/comercial/representantes/extratos-impressao"
+              element={<ProtectedRoute><RotaGate><ExtratosLoteImpressao /></RotaGate></ProtectedRoute>}
+            />
             <Route
               path="/comercial/representantes/:vendedorId/extrato-impressao"
               element={<ProtectedRoute><RotaGate><RepresentanteExtratoImpressao /></RotaGate></ProtectedRoute>}
