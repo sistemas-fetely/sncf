@@ -237,7 +237,8 @@ export default function VendaDiretaGestao() {
   const bate = (l: Linha, f: Filtro) => {
     const p = PROCESSO.find((x) => x.f === f);
     if (p) return p.s.includes(l.situacao);
-    if (f === "travado" || f === "pausado") return l.situacao === f;
+    if (f === "pausado") return l.situacao === "pausado" && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
+    if (f === "travado") return l.situacao === f;
     if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
     if (f === "pagamento_desatualizado") return !!l.pagamento_desatualizado;
     if (f === "reembolso") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
@@ -301,6 +302,14 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "pronto_retirada") a.push({ k: "ret", label: "Registrar retirada", icon: PackageCheck, onClick: () => setRetirada(l) });
     if (l.situacao === "em_transporte" && l.modal === "frete_fetely") a.push({ k: "ent", label: "Registrar entrega", icon: Truck, onClick: () => setEntrega(l) });
     return a;
+  };
+  // Fase do processo, ignorando a pausa (que, com reembolso, é consequência dele).
+  const faseDoProcesso = (l: Linha) => {
+    if (l.situacao !== "pausado") return LABEL[l.situacao] ?? l.situacao;
+    if (!l.pagamento_confirmado_em) return LABEL.aguardando_pagamento;
+    if (l.nf_numero) return LABEL.separacao;
+    if (l.bling_pedido_numero) return LABEL.aguardando_nf;
+    return LABEL.descendo_bling;
   };
   const podeCancelar = (l: Linha) => podeEditar && l.situacao !== "entregue" && l.situacao !== "cancelado";
   const avisoDe = (l: Linha, icone: boolean) =>
@@ -418,7 +427,7 @@ export default function VendaDiretaGestao() {
                             : l.situacao === "entregue"
                               ? "success"
                               : l.situacao === "aguardando_pagamento"
-                                ? "warning"
+                                ? "muted"
                                 : "info";
                     return (
                       <TableRow
@@ -489,7 +498,7 @@ export default function VendaDiretaGestao() {
                           <Selo estado={situacaoEstado}>
                             {situacaoRotulo}
                           </Selo>
-                          {reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {LABEL[l.situacao] ?? l.situacao}</div>}
+                          {reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
                             {l.alerta_sem_pagamento && (
                               <div className="text-warning-strong">
