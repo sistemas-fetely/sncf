@@ -59713,6 +59713,7 @@ export type Database = {
           merchant_id_prod: string | null
           parcela_min_centavos: number
           pix_ativo: boolean
+          pix_no_link: boolean
           segredo_token_hml: string
           segredo_token_prod: string
           url_api_hml: string
@@ -59734,6 +59735,7 @@ export type Database = {
           merchant_id_prod?: string | null
           parcela_min_centavos?: number
           pix_ativo?: boolean
+          pix_no_link?: boolean
           segredo_token_hml?: string
           segredo_token_prod?: string
           url_api_hml?: string
@@ -59755,6 +59757,7 @@ export type Database = {
           merchant_id_prod?: string | null
           parcela_min_centavos?: number
           pix_ativo?: boolean
+          pix_no_link?: boolean
           segredo_token_hml?: string
           segredo_token_prod?: string
           url_api_hml?: string
