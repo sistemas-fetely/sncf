@@ -14,12 +14,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Checkbox } from "@/components/ui/checkbox";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
 import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { BeneficioCard, BENEFICIO_VAZIO, calcularBeneficio, payloadBeneficio, type BeneficioEstado } from "@/components/venda-direta/BeneficioVD";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
@@ -107,8 +107,7 @@ export default function VendaDiretaNovo() {
   const [itens, setItens] = useState<Item[]>([]);
   const [modo, setModo] = useState<ModalVd>("retirada");
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
-  const [absorve, setAbsorve] = useState(false);
-  const [motivo, setMotivo] = useState("");
+  const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
   const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
@@ -193,14 +192,14 @@ export default function VendaDiretaNovo() {
   const pecas = itens.reduce((s, i) => s + i.quantidade, 0);
   const frete = useFreteVendaDireta(soDigitos(endereco.cep), itens);
   const opcaoSel = frete.opcoes.find((o) => o.modal === modo);
-  const podeAbsorver = modo !== "retirada" && !!opcaoSel?.disponivel && !opcaoSel.gratis && (opcaoSel.cobrado ?? 0) > 0;
-  const absorvendo = absorve && podeAbsorver;
-  const freteCobrado = modo === "retirada" || absorvendo ? 0 : (opcaoSel?.cobrado ?? 0);
+  const freteCotado = modo === "retirada" ? 0 : (opcaoSel?.cobrado ?? 0);
+  const ben = calcularBeneficio(beneficio, valorItens, freteCotado, modo !== "retirada");
+  const freteCobrado = ben.freteCobrado;
   // Opção escolhida ficou indisponível (CEP/itens mudaram) → volta para retirada.
   useEffect(() => {
     if (modo !== "retirada" && opcaoSel && !opcaoSel.disponivel && !frete.cotando) setModo("retirada");
   }, [modo, opcaoSel, frete.cotando]);
-  const total = valorItens + freteCobrado;
+  const total = Math.max(valorItens - ben.desconto, 0) + freteCobrado;
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
   const [parcelasManual, setParcelasManual] = useState<number | null>(null);
@@ -222,10 +221,10 @@ export default function VendaDiretaNovo() {
         return "Complete o endereço de entrega.";
       if (frete.cotando) return "Aguarde a cotação do frete.";
       if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
-      if (absorvendo && !motivo.trim()) return "Informe o motivo do frete absorvido.";
     }
+    if (ben.ativo && beneficio.motivo.trim().length < 3) return "Informe o motivo do benefício.";
     return null;
-  }, [cliente, novo, itens, modo, endereco, absorvendo, motivo, frete.cotando, opcaoSel]);
+  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -246,14 +245,14 @@ export default function VendaDiretaNovo() {
         }
         if (modo === "pac" && !cotacao_id) throw new Error("PAC indisponível sem cotação dos Correios.");
       }
+      const beneficioPayload = payloadBeneficio(beneficio, modo !== "retirada");
       const p_entrega =
         modo === "retirada"
-          ? { modo: "retirada" }
+          ? { modo: "retirada", beneficio: beneficioPayload }
           : {
               modo, cotacao_id,
-              frete_pago_por: absorvendo ? "fetely" : "cliente",
-              motivo_absorcao: absorvendo ? motivo.trim() : null,
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
+              beneficio: beneficioPayload,
             };
       const { data, error } = await (supabase as any).rpc("criar_pedido_venda_direta", {
         p_cliente,
@@ -275,7 +274,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setAbsorve(false); setMotivo(""); setPagamento("pix"); setObservacao("");
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao("");
     setResultado(null);
   };
 
@@ -486,24 +485,12 @@ export default function VendaDiretaNovo() {
           {frete.aguardandoDados && soDigitos(endereco.cep).length !== 8 && (
             <p className="text-xs text-muted-foreground">Informe o CEP de entrega para cotar SEDEX, PAC e Frete Fetely.</p>
           )}
-          <CartoesEntrega opcoes={frete.opcoes} valor={modo} onChange={(m) => { setModo(m); setAbsorve(false); }} cotando={frete.cotando} />
+          <CartoesEntrega opcoes={frete.opcoes} valor={modo} onChange={(m) => setModo(m)} cotando={frete.cotando} />
           <AvisosFrete correiosErro={frete.correiosErro} tabelaErro={frete.tabelaErro} paramErro={frete.paramErro} pesoIncompleto={frete.pesoIncompleto} />
-          {podeAbsorver && (
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={absorve} onCheckedChange={(v) => setAbsorve(v === true)} /> Fetely absorve o frete
-              </label>
-              {absorve && (
-                <div className="space-y-1">
-                  <Label>Motivo*</Label>
-                  <Input value={motivo} onChange={(e) => setMotivo(e.target.value)} />
-                  <p className="text-xs text-muted-foreground">Frete absorvido reduz a margem e fica registrado no pedido.</p>
-                </div>
-              )}
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />
 
       {/* 4. Pagamento */}
       <Card>
@@ -559,11 +546,22 @@ export default function VendaDiretaNovo() {
               <Separator />
               <div className="space-y-1.5 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Itens ({pecas})</span><span className="tabular-nums">{formatBRL(valorItens)}</span></div>
+                {ben.desconto > 0 && (
+                  <div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Desconto</span><span className="tabular-nums">−{formatBRL(ben.desconto)}</span></div>
+                    {beneficio.motivo.trim() && <p className="text-xs text-muted-foreground">{beneficio.motivo.trim()}</p>}
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Frete</span>
                   <span className="tabular-nums">
                     <span className="text-muted-foreground">{ROTULO_MODAL[modo]} · </span>
-                    {modo === "retirada" || opcaoSel?.gratis ? "Grátis" : absorvendo ? "Pago pela Fetely" : formatBRL(freteCobrado)}
+                    {modo === "retirada" ? "Grátis" : (
+                      <>
+                        {ben.freteTipo !== "nenhum" && <span className="mr-1 text-muted-foreground line-through">{formatBRL(freteCotado)}</span>}
+                        {freteCobrado === 0 ? "Grátis" : formatBRL(freteCobrado)}
+                      </>
+                    )}
                   </span>
                 </div>
               </div>
