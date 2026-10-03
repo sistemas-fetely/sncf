@@ -20,6 +20,7 @@ export interface FreteComparativoResult {
   ok?: boolean;
   erro?: string;
   cep_destino?: string;
+  cep_fonte?: string | null;
   peso_usado?: number;
   peso_fonte?: "bruto" | "cubado" | "informado";
   peso_bruto?: number;
