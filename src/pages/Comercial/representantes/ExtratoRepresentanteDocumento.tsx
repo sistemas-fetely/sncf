@@ -23,6 +23,23 @@ function proximoMes(competencia: string) {
   return `${proximo.getUTCFullYear()}-${String(proximo.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/** Mês anterior ao mês de pagamento — o período medido pelo extrato. */
+function mesAnterior(competencia: string) {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function primeiroDia(competencia: string) {
+  return `${competencia}-01`;
+}
+
+function ultimoDia(competencia: string) {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes, 0));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
 function rotuloCompetencia(competencia: string) {
   return fmtCompetencia(`${competencia}-01`);
 }
