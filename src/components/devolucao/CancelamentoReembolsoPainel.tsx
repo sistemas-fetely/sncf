@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   QK_VD_DEVOLUCOES,
   BotoesComprovante,
@@ -86,7 +87,9 @@ function CardEtapa({ rotulo, total, ativo, destaque, aoClicar }: {
   );
 }
 
-export function CancelamentoReembolsoPainel() {
+export function CancelamentoReembolsoPainel({ devolucaoId, aguardandoConferencia = false }: { devolucaoId?: string; aguardandoConferencia?: boolean } = {}) {
+  const embutido = !!devolucaoId;
+  const [antecipar, setAntecipar] = useState(false);
   const qc = useQueryClient();
   const [params] = useSearchParams();
   const pedidoParam = params.get("pedido");
@@ -109,17 +112,22 @@ export function CancelamentoReembolsoPainel() {
     if (alvo) setExpandido(alvo.id);
   }, [pedidoParam, q.data]);
 
+  const base = useMemo(() => (q.data ?? []).filter((d) => embutido ? d.devolucao_id === devolucaoId : !d.devolucao_id), [q.data, embutido, devolucaoId]);
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    return (q.data ?? []).filter((d) => {
+    return base.filter((d) => {
+      if (embutido) return d.devolucao_id === devolucaoId;
       if (pedidoParam && d.pedido_id !== pedidoParam) return false;
       if (filtro && d.status !== filtro) return false;
       if (!termo) return true;
       return d.pedido?.id_externo?.toLowerCase().includes(termo) || nomeCliente(d.pedido)?.toLowerCase().includes(termo) || d.motivo_solicitacao.toLowerCase().includes(termo);
     });
-  }, [busca, filtro, pedidoParam, q.data]);
+  }, [busca, filtro, pedidoParam, base, embutido, devolucaoId]);
 
-  const atualizar = () => qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES });
+  const atualizar = () => Promise.all([
+    qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }),
+    qc.invalidateQueries({ queryKey: ["vw_devolucao_funil"] }),
+  ]);
   const estornar = async (id: string) => {
     const { data, error } = await supabase.functions.invoke("safrapay-estorno", { body: { devolucao_id: id } });
     if (error) throw new Error((data as { erro?: string } | null)?.erro ?? error.message);
@@ -183,17 +191,7 @@ export function CancelamentoReembolsoPainel() {
   });
   const abrirAcao = (d: DevolucaoVD, tipo: "aprovar" | "recusar" | "pix") => { setMotivo(""); setE2e(""); setObs(""); setAnexo(null); setAcao({ d, tipo }); };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-2 xl:flex-row">
-        <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-5">
-          {ETAPAS.slice(0, 5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
-        </div>
-        <div className="grid grid-cols-2 gap-2 xl:w-1/3">
-          {ETAPAS.slice(5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
-        </div>
-      </div>
-      <TabelaFetely busca={{ valor: busca, aoMudar: setBusca, placeholder: "Pedido, cliente ou motivo" }} carregando={q.isLoading} erro={q.isError ? rawMessage(q.error) : null} aoTentarNovamente={() => q.refetch()} vazio={{ mensagem: "Nenhum cancelamento sem NF." }} semResultado="Nenhum cancelamento para esse filtro." total={(q.data ?? []).length} exibidos={linhas.length} rotulo="cancelamentos sem NF">
+  const tabela = (
         <div className="overflow-hidden rounded-md border bg-card">
           <Table>
             <TableHeader className="bg-muted"><TableRow><TableHead className="w-8" /><TableHead>Pedido</TableHead><TableHead>Cliente</TableHead><TableHead>Meio</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Motivo</TableHead><TableHead>Solicitado por/em</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
@@ -207,15 +205,47 @@ export function CancelamentoReembolsoPainel() {
                   <TableCell className="text-right tabular-nums">{formatBRL(d.valor)}</TableCell><TableCell className="max-w-48 whitespace-normal">{d.motivo_solicitacao}</TableCell>
                   <TableCell><div>{d.solicitante ?? "—"}</div><div className="text-xs text-muted-foreground">{dataHora(d.solicitado_em)}</div></TableCell>
                   <TableCell><Badge variant={d.status === "falhou" ? "destructive" : "outline"}>{d.status === "estorno_enviado" ? "Reembolso em curso" : ROTULO_DEVOLUCAO[d.status]}</Badge>{d.erro && <div className="mt-1 max-w-56 text-xs text-destructive">{d.erro}</div>}{d.status === "estorno_enviado" && <div className="mt-1 text-xs text-muted-foreground">Aguardando confirmação do Safra</div>}</TableCell>
-                  <TableCell><div className="flex justify-end gap-1">{permitido && d.status === "solicitada" && <><Button size="sm" onClick={() => abrirAcao(d, "aprovar")}><Check className="mr-1 h-4 w-4" />Aprovar</Button><Button size="sm" variant="outline" onClick={() => abrirAcao(d, "recusar")}><X className="mr-1 h-4 w-4" />Recusar</Button></>}{permitido && d.status === "aguardando_devolucao" && <Button size="sm" onClick={() => abrirAcao(d, "pix")}>Registrar devolução</Button>}{d.status === "concluida" && <span className="text-xs font-medium text-primary">Próximo: enviar comprovante ao cliente</span>}{permitido && d.status === "falhou" && d.meio === "cartao" && <Button size="sm" variant="outline" onClick={() => tentar.mutate(d)}><RotateCcw className="mr-1 h-4 w-4" />Tentar estorno de novo</Button>}{permitido && d.status === "estorno_enviado" && <Button size="sm" variant="outline" onClick={() => verificar.mutate(d)}><RefreshCw className="mr-1 h-4 w-4" />Verificar agora</Button>}</div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1">{permitido && d.status === "solicitada" && <><Button size="sm" disabled={aguardandoConferencia && !antecipar} title={aguardandoConferencia && !antecipar ? "Aguardando recebimento e conferência do produto" : undefined} onClick={() => abrirAcao(d, "aprovar")}><Check className="mr-1 h-4 w-4" />Aprovar</Button><Button size="sm" variant="outline" onClick={() => abrirAcao(d, "recusar")}><X className="mr-1 h-4 w-4" />Recusar</Button></>}{permitido && d.status === "aguardando_devolucao" && <Button size="sm" onClick={() => abrirAcao(d, "pix")}>Registrar devolução</Button>}{d.status === "concluida" && <span className="text-xs font-medium text-primary">Próximo: enviar comprovante ao cliente</span>}{permitido && d.status === "falhou" && d.meio === "cartao" && <Button size="sm" variant="outline" onClick={() => tentar.mutate(d)}><RotateCcw className="mr-1 h-4 w-4" />Tentar estorno de novo</Button>}{permitido && d.status === "estorno_enviado" && <Button size="sm" variant="outline" onClick={() => verificar.mutate(d)}><RefreshCw className="mr-1 h-4 w-4" />Verificar agora</Button>}</div></TableCell>
                 </TableRow>
                 {aberto && <TableRow className="bg-muted/30 hover:bg-muted/30"><TableCell colSpan={9}><div className="space-y-3 p-2">{d.status === "aguardando_devolucao" && <DadosDevolucaoPix d={d} />}{d.status === "concluida" && <div className="rounded-md border border-primary/40 bg-card p-3"><div className="text-sm font-medium">Próximo passo: enviar comprovante ao cliente</div><BotoesComprovante devolucao={d} /></div>}<TrilhaDevolucao devolucao={d} mostrarLinkEsteira={false} /></div></TableCell></TableRow>}
               </Fragment>;
             })}</TableBody>
           </Table>
         </div>
+  );
+  const dialogo = (
+<Dialog open={!!acao} onOpenChange={(v) => !v && setAcao(null)}><DialogContent><DialogHeader><DialogTitle>{acao?.tipo === "pix" ? "Registrar devolução PIX" : acao?.tipo === "recusar" ? "Recusar cancelamento sem NF" : "Aprovar cancelamento sem NF"}</DialogTitle><DialogDescription>{acao?.d.pedido?.id_externo} · {formatBRL(acao?.d.valor)}{acao?.tipo === "pix" ? ` · E2E original: ${acao.d.prova_pagamento ?? "—"}` : ""}</DialogDescription></DialogHeader>{acao?.tipo === "pix" ? <div className="space-y-3"><div className="space-y-1"><Label>Comprovante da devolução (PDF/imagem) *</Label><Input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={lendo} onChange={(e) => void enviarAnexo(e.target.files?.[0])} />{lendo && <p className="flex items-center text-xs text-muted-foreground"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Lendo comprovante…</p>}{anexo && <p className="text-xs text-muted-foreground">Anexado · valor lido {anexo.valor != null ? formatBRL(anexo.valor) : "—"}</p>}{valorDiverge && <p className="text-xs text-warning">Valor lido ({formatBRL(anexo?.valor)}) diferente da devolução ({formatBRL(acao?.d.valor)}). Explique na observação.</p>}</div><div className="space-y-1"><Label>E2E / ID da devolução *</Label><Input value={e2e} onChange={(e) => setE2e(e.target.value)} /></div><div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div></div> : <div className="space-y-1"><Label>{acao?.tipo === "recusar" ? "Motivo da recusa *" : "Observação"}</Label><Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>}<DialogFooter><Button variant="outline" onClick={() => setAcao(null)}>Voltar</Button><Button variant={acao?.tipo === "recusar" ? "destructive" : "default"} disabled={(acao?.tipo === "recusar" && motivo.trim().length < 5) || (acao?.tipo === "pix" && (!e2e.trim() || !anexo || lendo || (valorDiverge && obs.trim().length < 5))) || decidir.isPending || concluirPix.isPending} onClick={() => acao?.tipo === "pix" ? concluirPix.mutate() : decidir.mutate()}>{(decidir.isPending || concluirPix.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button></DialogFooter></DialogContent></Dialog>
+  );
+
+  if (embutido) {
+    return (
+      <div className="space-y-2">
+        {q.isError ? <div className="text-sm text-destructive">{rawMessage(q.error)}</div> : q.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : linhas.length === 0 ? <div className="text-sm text-muted-foreground">Sem ressarcimento registrado.</div> : tabela}
+        {aguardandoConferencia && linhas.some((d) => d.status === "solicitada") && (
+          <div className="space-y-1 text-xs">
+            {!antecipar && <div className="text-muted-foreground">Aguardando recebimento e conferência do produto</div>}
+            <label className="flex items-center gap-2"><Checkbox checked={antecipar} onCheckedChange={(v) => setAntecipar(v === true)} />Antecipar reembolso (exceção)</label>
+          </div>
+        )}
+        {dialogo}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 xl:flex-row">
+        <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-5">
+          {ETAPAS.slice(0, 5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={base.filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
+        </div>
+        <div className="grid grid-cols-2 gap-2 xl:w-1/3">
+          {ETAPAS.slice(5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={base.filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
+        </div>
+      </div>
+      <TabelaFetely busca={{ valor: busca, aoMudar: setBusca, placeholder: "Pedido, cliente ou motivo" }} carregando={q.isLoading} erro={q.isError ? rawMessage(q.error) : null} aoTentarNovamente={() => q.refetch()} vazio={{ mensagem: "Nenhum cancelamento sem NF." }} semResultado="Nenhum cancelamento para esse filtro." total={base.length} exibidos={linhas.length} rotulo="cancelamentos sem NF">
+        {tabela}
       </TabelaFetely>
-      <Dialog open={!!acao} onOpenChange={(v) => !v && setAcao(null)}><DialogContent><DialogHeader><DialogTitle>{acao?.tipo === "pix" ? "Registrar devolução PIX" : acao?.tipo === "recusar" ? "Recusar cancelamento sem NF" : "Aprovar cancelamento sem NF"}</DialogTitle><DialogDescription>{acao?.d.pedido?.id_externo} · {formatBRL(acao?.d.valor)}{acao?.tipo === "pix" ? ` · E2E original: ${acao.d.prova_pagamento ?? "—"}` : ""}</DialogDescription></DialogHeader>{acao?.tipo === "pix" ? <div className="space-y-3"><div className="space-y-1"><Label>Comprovante da devolução (PDF/imagem) *</Label><Input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={lendo} onChange={(e) => void enviarAnexo(e.target.files?.[0])} />{lendo && <p className="flex items-center text-xs text-muted-foreground"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Lendo comprovante…</p>}{anexo && <p className="text-xs text-muted-foreground">Anexado · valor lido {anexo.valor != null ? formatBRL(anexo.valor) : "—"}</p>}{valorDiverge && <p className="text-xs text-warning">Valor lido ({formatBRL(anexo?.valor)}) diferente da devolução ({formatBRL(acao?.d.valor)}). Explique na observação.</p>}</div><div className="space-y-1"><Label>E2E / ID da devolução *</Label><Input value={e2e} onChange={(e) => setE2e(e.target.value)} /></div><div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div></div> : <div className="space-y-1"><Label>{acao?.tipo === "recusar" ? "Motivo da recusa *" : "Observação"}</Label><Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>}<DialogFooter><Button variant="outline" onClick={() => setAcao(null)}>Voltar</Button><Button variant={acao?.tipo === "recusar" ? "destructive" : "default"} disabled={(acao?.tipo === "recusar" && motivo.trim().length < 5) || (acao?.tipo === "pix" && (!e2e.trim() || !anexo || lendo || (valorDiverge && obs.trim().length < 5))) || decidir.isPending || concluirPix.isPending} onClick={() => acao?.tipo === "pix" ? concluirPix.mutate() : decidir.mutate()}>{(decidir.isPending || concluirPix.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button></DialogFooter></DialogContent></Dialog>
+      {dialogo}
     </div>
   );
 }
