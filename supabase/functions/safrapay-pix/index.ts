@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
   const { data: cfg, error: eCfg } = await sb.from("safrapay_config").select("*").eq("id", 1).maybeSingle();
   if (eCfg) return json({ ok: false, erro: `Ler configuração Safrapay: ${eCfg.message}` }, 500);
   if (!cfg) return json({ ok: false, erro: "Configuração Safrapay ausente." }, 500);
+  if (cfg.pix_ativo !== true) return json({ ok: false, desligado: true, erro: "PIX via Safrapay desligado — usar o PIX local." }, 409);
   if (!cfg.ativo) return json({ ok: false, erro: "Integração Safrapay aguardando ativação (MerchantToken)." }, 409);
   const amb = cfg.ambiente === "prod" ? "prod" : "hml";
   const apiBase = String(cfg[`url_api_${amb}`] ?? "").replace(/\/+$/, "");
