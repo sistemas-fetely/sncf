@@ -3,11 +3,11 @@ import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/Link
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
-  RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
+  Pencil, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
 import { toast } from "sonner";
@@ -192,6 +192,7 @@ export default function VendaDiretaGestao() {
   const [devolver, setDevolver] = useState<Linha | null>(null);
   const [gavetaId, setGavetaId] = useState<string | null>(null);
   const [confirmaPausado, setConfirmaPausado] = useState<Linha | null>(null);
+  const navigate = useNavigate();
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -291,6 +292,8 @@ export default function VendaDiretaGestao() {
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l), disabled: !l.provisao_id });
     }
+    if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida"))
+      a.push({ k: "editar", label: "Editar pedido", icon: Pencil, onClick: () => navigate(`/pedidos/venda-direta/${l.id}/editar`) });
     if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em) a.push({ k: "trocar", label: "Trocar meio de pagamento", icon: ArrowLeftRight, onClick: () => setTrocarMeio(l) });
     if (l.pagamento_desatualizado) a.push({ k: "remontar", label: "Remontar pagamento", icon: RefreshCw, onClick: () => setRemontar(l) });
     if (l.situacao === "travado" && l.fila_id) {

@@ -126514,6 +126514,10 @@ export type Database = {
           tipo_vinculo: string
         }[]
       }
+      fn_vd_calcular: {
+        Args: { p_cliente: Json; p_entrega: Json; p_itens: Json }
+        Returns: Json
+      }
       fn_vencimento_efetivo: { Args: { p_venc: string }; Returns: string }
       fn_venda_anular: {
         Args: {
@@ -128269,6 +128273,16 @@ export type Database = {
       vd_cotar_frete: { Args: { p_cep: string; p_itens: Json }; Returns: Json }
       vd_decidir_devolucao: {
         Args: { p_aprovar: boolean; p_devolucao_id: string; p_motivo?: string }
+        Returns: Json
+      }
+      vd_editar_pedido: {
+        Args: {
+          p_entrega: Json
+          p_itens: Json
+          p_motivo: string
+          p_observacao: string
+          p_pedido_id: string
+        }
         Returns: Json
       }
       vd_registrar_entrega: {

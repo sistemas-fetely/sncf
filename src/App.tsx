@@ -434,6 +434,7 @@ const App = () => (
                 <Route path="/pedidos/transferencias" element={<TransferenciasInternas />} />
                 {/* Venda Direta (B2C por telefone/WhatsApp) — nó sops.venda_direta_novo, slug tela.venda_direta_novo. */}
                 <Route path="/pedidos/venda-direta/novo" element={<VendaDiretaNovo />} />
+                <Route path="/pedidos/venda-direta/:id/editar" element={<VendaDiretaNovo />} />
                 {/* Venda Direta · Gestão — nó sops.venda_direta_gestao, slug tela.venda_direta_gestao. */}
                 <Route path="/pedidos/venda-direta" element={<VendaDiretaGestao />} />
                 {/* /cliente = lista (porta); /cliente/:id = detalhe */}
