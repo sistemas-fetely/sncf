@@ -36,6 +36,9 @@ import {
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
+import { DEVOLUCAO_ATIVA, FilaDevolucoes, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Situacao =
   | "aguardando_pagamento" | "descendo_bling" | "aguardando_nf" | "separacao"
@@ -68,7 +71,7 @@ interface Linha extends LinhaVD {
 
 type Filtro =
   | "pagamento" | "faturamento" | "separacao" | "retirada_envio" | "entregue"
-  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp";
+  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "devolucao";
 
 const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
@@ -156,6 +159,9 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
 export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
+  const podeAprovarDevolucao = usePermissaoAcaoOuSuperAdmin("acao.vd_devolucao_aprovar").permitido;
+  const devolucoesQ = useDevolucoesVD();
+  const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   const [filtro, setFiltro] = useState<Filtro | null>(null);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [config, setConfig] = useState(false);
@@ -174,6 +180,7 @@ export default function VendaDiretaGestao() {
   const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
   const [pixNovo, setPixNovo] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState<Linha | null>(null);
+  const [devolver, setDevolver] = useState<Linha | null>(null);
   const [gavetaId, setGavetaId] = useState<string | null>(null);
   const [confirmaPausado, setConfirmaPausado] = useState<Linha | null>(null);
 
@@ -221,6 +228,7 @@ export default function VendaDiretaGestao() {
     if (f === "travado" || f === "pausado") return l.situacao === f;
     if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
     if (f === "pagamento_desatualizado") return !!l.pagamento_desatualizado;
+    if (f === "devolucao") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
     return temFalta(l);
   };
   const contar = (f: Filtro) => ativos.filter((l) => bate(l, f)).length;
@@ -237,7 +245,7 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, busca, mostrarCancelados]);
+  }, [visiveis, ativos, filtro, busca, mostrarCancelados, devolucaoPorPedido]);
 
   useEffect(() => { setPagina(1); }, [filtro, busca, mostrarCancelados]);
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
@@ -252,7 +260,7 @@ export default function VendaDiretaGestao() {
 
   const tentarCancelar = (l: Linha) => {
     if (l.pagamento_confirmado_em) {
-      toast.error("Este pedido tem pagamento confirmado — precisa de estorno antes de cancelar.");
+      setDevolver(l);
       return;
     }
     setCancelar(l);
@@ -321,19 +329,23 @@ export default function VendaDiretaGestao() {
             })}
           </div>
           <div className="pt-2 text-xs text-muted-foreground">Atenção</div>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
             {([
               { f: "travado", label: "Travado", tom: "destructive" },
               { f: "pausado", label: "Pausado", tom: "warning" },
               { f: "sem_pagamento", label: `Sem pagamento +${qp.data?.alerta_sem_pagamento_horas ?? "?"}h`, tom: "warning" },
               { f: "pagamento_desatualizado", label: "Pagamento desatualizado", tom: "warning" },
               { f: "falta_site_sp", label: "Falta no Site SP", tom: "destructive" },
+              { f: "devolucao", label: "Devolução", tom: "warning" },
             ] as { f: Filtro; label: string; tom: "warning" | "destructive" }[]).map((c) => (
               <CardEtapa key={c.f} pequeno label={c.label} n={contar(c.f)} tom={c.tom} ativo={filtro === c.f} onClick={() => setFiltro(filtro === c.f ? null : c.f)} />
             ))}
           </div>
         </div>
 
+        <Tabs defaultValue="pedidos" className="space-y-3">
+          <TabsList><TabsTrigger value="pedidos">Pedidos</TabsTrigger>{podeAprovarDevolucao && <TabsTrigger value="devolucoes">Devoluções</TabsTrigger>}</TabsList>
+          <TabsContent value="pedidos">
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
           filtros={
@@ -447,6 +459,9 @@ export default function VendaDiretaGestao() {
                                 </TooltipContent>
                               </Tooltip>
                             )}
+                            {devolucaoPorPedido.get(l.id) && (
+                              <span className="block text-warning-strong">Devolução · {ROTULO_DEVOLUCAO[devolucaoPorPedido.get(l.id)!.status]}</span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="tabular-nums text-muted-foreground">{tempoDesde(l.entrou_na_fase_em)}</TableCell>
@@ -483,6 +498,9 @@ export default function VendaDiretaGestao() {
             />
           </div>
         </TabelaFetely>
+          </TabsContent>
+          {podeAprovarDevolucao && <TabsContent value="devolucoes"><FilaDevolucoes linhas={devolucoesQ.data ?? []} /></TabsContent>}
+        </Tabs>
 
         <GavetaPedidoVD
           linha={gaveta}
@@ -504,6 +522,7 @@ export default function VendaDiretaGestao() {
               <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>
             </>
           )}
+          devolucao={gaveta ? devolucaoPorPedido.get(gaveta.id) ?? null : null}
         />
       </TooltipProvider>
 
@@ -535,6 +554,7 @@ export default function VendaDiretaGestao() {
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
       <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
       <CancelarVendaDiretaDialog linha={cancelar} onClose={fechar(setCancelar)} />
+      <SolicitarDevolucaoDialog linha={devolver} onClose={() => { setDevolver(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); qc.invalidateQueries({ queryKey: QK_VD_GESTAO }); }} />
     </PageShell>
   );
 }
