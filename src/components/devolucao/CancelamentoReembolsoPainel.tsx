@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Check, ChevronDown, ChevronRight, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Check, ChevronDown, ChevronRight, Copy, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
@@ -19,6 +19,7 @@ import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { Textarea } from "@/components/ui/textarea";
 import {
   QK_VD_DEVOLUCOES,
+  BotoesComprovante,
   ROTULO_DEVOLUCAO,
   TrilhaDevolucao,
   nomeCliente,
@@ -32,6 +33,7 @@ type Filtro = StatusDevolucao | null;
 const ETAPAS: { status: StatusDevolucao; rotulo: string; destaque?: "warning" | "destructive" }[] = [
   { status: "solicitada", rotulo: "Solicitada" },
   { status: "aprovada", rotulo: "Aprovada" },
+  { status: "aguardando_devolucao", rotulo: "Aguardando devolução (PIX)", destaque: "warning" },
   { status: "estorno_enviado", rotulo: "Reembolso em curso", destaque: "warning" },
   { status: "concluida", rotulo: "Concluída" },
   { status: "recusada", rotulo: "Recusada" },
@@ -39,6 +41,36 @@ const ETAPAS: { status: StatusDevolucao; rotulo: string; destaque?: "warning" | 
 ];
 
 const dataHora = (v: string | null) => v ? new Date(v).toLocaleString("pt-BR") : "—";
+
+function LinhaCopiar({ rotulo, valor }: { rotulo: string; valor: string | null | undefined }) {
+  return <div className="flex items-center justify-between gap-2 border-b py-1 last:border-0"><div className="min-w-0"><div className="text-xs text-muted-foreground">{rotulo}</div><div className="break-all tabular-nums">{valor || "—"}</div></div>{valor && <Button size="icon" variant="ghost" aria-label={`Copiar ${rotulo}`} onClick={async () => { try { await navigator.clipboard.writeText(valor); toast.success(`${rotulo} copiado`); } catch (e) { toast.error(rawMessage(e)); } }}><Copy className="h-4 w-4" /></Button>}</div>;
+}
+
+function DadosDevolucaoPix({ d }: { d: DevolucaoVD }) {
+  const q = useQuery({
+    queryKey: ["vd-devolucao-dados-pix", d.pedido_id],
+    queryFn: async () => {
+      const [prov, comp] = await Promise.all([
+        supabase.from("provisao_recebimento" as never).select("prova_ref,pago_em").eq("pedido_id", d.pedido_id).not("pago_em", "is", null).order("pago_em", { ascending: false }).limit(1),
+        supabase.from("comprovante_pagamento" as never).select("pagador_lido,payload_ia,data_lida").eq("pedido_id", d.pedido_id).limit(1),
+      ]);
+      if (prov.error) throw prov.error;
+      if (comp.error) throw comp.error;
+      const p = ((prov.data ?? []) as any[])[0]; const c = ((comp.data ?? []) as any[])[0];
+      return { e2e: p?.prova_ref as string | null, pagoEm: (p?.pago_em ?? c?.data_lida) as string | null, pagador: c?.pagador_lido as string | null, documento: c?.payload_ia?.pagador_documento as string | null, instituicao: c?.payload_ia?.instituicao as string | null };
+    },
+  });
+  useEffect(() => { if (q.error) toast.error(rawMessage(q.error)); }, [q.error]);
+  const v = q.data;
+  return <div className="rounded-md border border-warning/50 bg-card p-3 text-sm"><div className="font-medium">Dados para a devolução</div><p className="mb-2 text-xs text-muted-foreground">Devolver pelo app do banco: PIX recebidos → este pagamento → Devolver.</p>{q.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : q.isError ? <div className="text-destructive">{rawMessage(q.error)}</div> : <>
+    <LinhaCopiar rotulo="Valor" valor={Number(d.valor).toFixed(2).replace(".", ",")} />
+    <LinhaCopiar rotulo="E2E do pagamento original" valor={v?.e2e} />
+    <LinhaCopiar rotulo="Pagador" valor={v?.pagador} />
+    <LinhaCopiar rotulo="Documento do pagador" valor={v?.documento} />
+    <LinhaCopiar rotulo="Instituição" valor={v?.instituicao} />
+    <LinhaCopiar rotulo="Data do pagamento" valor={v?.pagoEm ? dataHora(v.pagoEm) : null} />
+  </>}</div>;
+}
 
 function CardEtapa({ rotulo, total, ativo, destaque, aoClicar }: {
   rotulo: string; total: number; ativo: boolean; destaque?: "warning" | "destructive"; aoClicar: () => void;
@@ -103,10 +135,9 @@ export function CancelamentoReembolsoPainel() {
     },
     onSuccess: async (resultado) => {
       const atual = acao;
-      toast.success(atual?.tipo === "recusar" ? "Cancelamento com reembolso recusado" : resultado?.status === "concluida" ? "Reembolso concluído" : resultado?.status === "estorno_enviado" ? "Reembolso enviado; aguardando confirmação do Safra" : "Cancelamento com reembolso aprovado");
+      toast.success(atual?.tipo === "recusar" ? "Cancelamento com reembolso recusado" : atual?.d.meio === "pix" ? "Aprovado — aguardando a devolução PIX pelo financeiro" : resultado?.status === "concluida" ? "Reembolso concluído" : resultado?.status === "estorno_enviado" ? "Reembolso enviado; aguardando confirmação do Safra" : "Cancelamento com reembolso aprovado");
       await atualizar();
-      if (atual?.tipo === "aprovar" && atual.d.meio === "pix") setAcao({ d: { ...atual.d, status: "aprovada" }, tipo: "pix" });
-      else setAcao(null);
+      setAcao(null);
     },
     onError: async (e) => { toast.error(rawMessage(e)); await atualizar(); },
   });
@@ -155,11 +186,11 @@ export function CancelamentoReembolsoPainel() {
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 xl:flex-row">
-        <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-4">
-          {ETAPAS.slice(0, 4).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
+        <div className="grid flex-1 grid-cols-2 gap-2 lg:grid-cols-5">
+          {ETAPAS.slice(0, 5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
         </div>
         <div className="grid grid-cols-2 gap-2 xl:w-1/3">
-          {ETAPAS.slice(4).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
+          {ETAPAS.slice(5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
         </div>
       </div>
       <TabelaFetely busca={{ valor: busca, aoMudar: setBusca, placeholder: "Pedido, cliente ou motivo" }} carregando={q.isLoading} erro={q.isError ? rawMessage(q.error) : null} aoTentarNovamente={() => q.refetch()} vazio={{ mensagem: "Nenhum cancelamento com reembolso." }} semResultado="Nenhum cancelamento para esse filtro." total={(q.data ?? []).length} exibidos={linhas.length} rotulo="cancelamentos com reembolso">
@@ -176,9 +207,9 @@ export function CancelamentoReembolsoPainel() {
                   <TableCell className="text-right tabular-nums">{formatBRL(d.valor)}</TableCell><TableCell className="max-w-48 whitespace-normal">{d.motivo_solicitacao}</TableCell>
                   <TableCell><div>{d.solicitante ?? "—"}</div><div className="text-xs text-muted-foreground">{dataHora(d.solicitado_em)}</div></TableCell>
                   <TableCell><Badge variant={d.status === "falhou" ? "destructive" : "outline"}>{d.status === "estorno_enviado" ? "Reembolso em curso" : ROTULO_DEVOLUCAO[d.status]}</Badge>{d.erro && <div className="mt-1 max-w-56 text-xs text-destructive">{d.erro}</div>}{d.status === "estorno_enviado" && <div className="mt-1 text-xs text-muted-foreground">Aguardando confirmação do Safra</div>}</TableCell>
-                  <TableCell><div className="flex justify-end gap-1">{permitido && d.status === "solicitada" && <><Button size="sm" onClick={() => abrirAcao(d, "aprovar")}><Check className="mr-1 h-4 w-4" />Aprovar</Button><Button size="sm" variant="outline" onClick={() => abrirAcao(d, "recusar")}><X className="mr-1 h-4 w-4" />Recusar</Button></>}{permitido && d.status === "aprovada" && d.meio === "pix" && <Button size="sm" onClick={() => abrirAcao(d, "pix")}>Registrar devolução PIX</Button>}{permitido && d.status === "falhou" && d.meio === "cartao" && <Button size="sm" variant="outline" onClick={() => tentar.mutate(d)}><RotateCcw className="mr-1 h-4 w-4" />Tentar estorno de novo</Button>}{permitido && d.status === "estorno_enviado" && <Button size="sm" variant="outline" onClick={() => verificar.mutate(d)}><RefreshCw className="mr-1 h-4 w-4" />Verificar agora</Button>}</div></TableCell>
+                  <TableCell><div className="flex justify-end gap-1">{permitido && d.status === "solicitada" && <><Button size="sm" onClick={() => abrirAcao(d, "aprovar")}><Check className="mr-1 h-4 w-4" />Aprovar</Button><Button size="sm" variant="outline" onClick={() => abrirAcao(d, "recusar")}><X className="mr-1 h-4 w-4" />Recusar</Button></>}{permitido && d.status === "aguardando_devolucao" && <Button size="sm" onClick={() => abrirAcao(d, "pix")}>Registrar devolução</Button>}{d.status === "concluida" && <span className="text-xs font-medium text-primary">Próximo: enviar comprovante ao cliente</span>}{permitido && d.status === "falhou" && d.meio === "cartao" && <Button size="sm" variant="outline" onClick={() => tentar.mutate(d)}><RotateCcw className="mr-1 h-4 w-4" />Tentar estorno de novo</Button>}{permitido && d.status === "estorno_enviado" && <Button size="sm" variant="outline" onClick={() => verificar.mutate(d)}><RefreshCw className="mr-1 h-4 w-4" />Verificar agora</Button>}</div></TableCell>
                 </TableRow>
-                {aberto && <TableRow className="bg-muted/30 hover:bg-muted/30"><TableCell colSpan={9}><div className="p-2"><TrilhaDevolucao devolucao={d} mostrarLinkEsteira={false} /></div></TableCell></TableRow>}
+                {aberto && <TableRow className="bg-muted/30 hover:bg-muted/30"><TableCell colSpan={9}><div className="space-y-3 p-2">{d.status === "aguardando_devolucao" && <DadosDevolucaoPix d={d} />}{d.status === "concluida" && <div className="rounded-md border border-primary/40 bg-card p-3"><div className="text-sm font-medium">Próximo passo: enviar comprovante ao cliente</div><BotoesComprovante devolucao={d} /></div>}<TrilhaDevolucao devolucao={d} mostrarLinkEsteira={false} /></div></TableCell></TableRow>}
               </Fragment>;
             })}</TableBody>
           </Table>

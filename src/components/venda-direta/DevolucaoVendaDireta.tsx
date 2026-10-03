@@ -14,7 +14,7 @@ import type { LinhaVD } from "./AcoesVendaDireta";
 import { invalidarVendaDireta } from "./queryKeys";
 
 export const QK_VD_DEVOLUCOES = ["vd-devolucoes"] as const;
-export type StatusDevolucao = "solicitada" | "recusada" | "aprovada" | "estorno_enviado" | "concluida" | "falhou";
+export type StatusDevolucao = "solicitada" | "recusada" | "aprovada" | "aguardando_devolucao" | "estorno_enviado" | "concluida" | "falhou";
 export interface DevolucaoVD {
   id: string; pedido_id: string; meio: "pix" | "cartao"; valor: number; status: StatusDevolucao;
   motivo_solicitacao: string; solicitado_por: string | null; solicitado_em: string; decidido_por: string | null;
@@ -25,10 +25,10 @@ export interface DevolucaoVD {
   bling_status?: string | null; bling_erro?: string | null; comprovante_token?: string | null;
 }
 
-export const DEVOLUCAO_ATIVA = new Set<StatusDevolucao>(["solicitada", "aprovada", "estorno_enviado", "falhou"]);
+export const DEVOLUCAO_ATIVA = new Set<StatusDevolucao>(["solicitada", "aprovada", "aguardando_devolucao", "estorno_enviado", "falhou"]);
 export const nomeCliente = (pedido: DevolucaoVD["pedido"]) => pedido?.parceiros_comerciais?.razao_social?.trim() || pedido?.cliente_nome_snapshot?.trim() || null;
 export const ROTULO_DEVOLUCAO: Record<StatusDevolucao, string> = {
-  solicitada: "Solicitada", recusada: "Recusada", aprovada: "Aprovada", estorno_enviado: "Reembolso em curso", concluida: "Concluída", falhou: "Falhou",
+  solicitada: "Solicitada", recusada: "Recusada", aprovada: "Aprovada", aguardando_devolucao: "Aguardando devolução", estorno_enviado: "Reembolso em curso", concluida: "Concluída", falhou: "Falhou",
 };
 const dataHora = (v: string | null) => v ? new Date(v).toLocaleString("pt-BR") : "—";
 
@@ -69,7 +69,7 @@ export function SolicitarDevolucaoDialog({ linha, onClose }: { linha: LinhaVD | 
   return <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}><DialogContent><DialogHeader><DialogTitle>Solicitar cancelamento com reembolso · {linha?.id_externo}</DialogTitle><DialogDescription>O cliente pagou {formatBRL(linha?.valor_liquido)} por {linha?.pagamento === "pix" ? "PIX" : "cartão"}. A equipe de SOPs executa o reembolso; depois o pedido é cancelado aqui e no Bling.</DialogDescription></DialogHeader><div className="space-y-1"><Label>Motivo *</Label><Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Mínimo de 5 caracteres" /></div><DialogFooter><Button variant="outline" onClick={onClose}>Voltar</Button><Button onClick={() => m.mutate()} disabled={motivo.trim().length < 5 || m.isPending}>{m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar cancelamento com reembolso</Button></DialogFooter></DialogContent></Dialog>;
 }
 
-function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
+export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
   if (devolucao.status !== "concluida") return null;
   if (!devolucao.comprovante_token) return <div className="text-xs text-muted-foreground">Comprovante ainda não disponível.</div>;
   const url = `https://sncf.lovable.app/reembolso/${devolucao.comprovante_token}`;

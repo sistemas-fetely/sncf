@@ -405,7 +405,7 @@ export default function VendaDiretaGestao() {
                     const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
                     const reembolsoConcluido = devolucao?.status === "concluida";
                     const situacaoRotulo = reembolsoAtivo
-                      ? `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`
+                      ? (reembolsoAtivo.status === "aguardando_devolucao" ? "Aguardando devolução" : `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`)
                       : LABEL[l.situacao] ?? l.situacao;
                     const situacaoEstado: EstadoSelo = reembolsoAtivo?.status === "falhou"
                       ? "destructive"
