@@ -149,7 +149,7 @@ export function CancelamentoReembolsoPainel() {
     onSuccess: async () => { toast.success("Situação verificada"); await atualizar(); },
     onError: (e) => toast.error(rawMessage(e)),
   });
-  const abrirAcao = (d: DevolucaoVD, tipo: "aprovar" | "recusar" | "pix") => { setMotivo(""); setE2e(""); setObs(""); setAcao({ d, tipo }); };
+  const abrirAcao = (d: DevolucaoVD, tipo: "aprovar" | "recusar" | "pix") => { setMotivo(""); setE2e(""); setObs(""); setAnexo(null); setAcao({ d, tipo }); };
 
   return (
     <div className="space-y-4">
