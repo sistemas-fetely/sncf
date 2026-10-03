@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Loader2, Printer } from "lucide-react";
 import { formatError } from "@/lib/format-error";
-import { fmtBRL, fmtCompetencia, fmtData } from "../fmt";
+import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { competenciaPadrao, num, primeiroDia, useGerencial } from "./dados";

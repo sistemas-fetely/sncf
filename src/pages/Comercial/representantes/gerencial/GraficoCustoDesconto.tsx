@@ -1,6 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
-import { fmtCompetencia } from "../fmt";
+import { fmtCompetencia } from "../../comissoes/fmt";
 import { num } from "./dados";
 
 /** Linha dupla: custo da comissão % × desconto médio %. Sem legenda solta, sem animação (imprime). */

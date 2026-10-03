@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
-import { fmtBRL, fmtCompetencia, fmtData } from "../fmt";
+import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import {
   competenciaPadrao,
