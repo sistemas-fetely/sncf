@@ -278,6 +278,7 @@ Deno.serve(async (req) => {
 
     const tent = await criarLink(tipos);
     if (recusado(tent)) return await falhar(`Criar link: ${msgApi(tent.c, tent.r.status)}`);
+    const { linkId, rel } = tent;
 
     // FAIL-LOUD: conferir os meios efetivos do link criado — o Safra pode trocar silenciosamente (VD-0011).
     const meioPedido = ehPix ? "Pix" : "Credit";
