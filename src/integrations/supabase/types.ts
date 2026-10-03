@@ -128498,6 +128498,7 @@ export type Database = {
         Args: {
           p_entrega: Json
           p_itens: Json
+          p_meio?: string
           p_motivo: string
           p_observacao: string
           p_pedido_id: string
