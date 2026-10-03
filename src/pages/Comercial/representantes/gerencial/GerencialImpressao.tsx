@@ -272,7 +272,7 @@ function PaginaDetalhe({
                 <th className="px-1 py-1.5 text-right font-medium">% efetivo</th>
                 <th className="px-1 py-1.5 text-right font-medium">Comissão apurada</th>
                 <th className="px-1 py-1.5 text-right font-medium">Comissão liberada</th>
-                <th className="py-1.5 pl-1 text-right font-medium">A pagar</th>
+                <th className="py-1.5 pl-1 text-right font-medium">Comissão a pagar</th>
               </tr>
             </thead>
             <tbody>
