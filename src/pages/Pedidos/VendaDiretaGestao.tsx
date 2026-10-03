@@ -1,4 +1,4 @@
-import { LinkCartaoDialog } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoDialog, rotuloFormaPagamento, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
@@ -159,6 +159,7 @@ export default function VendaDiretaGestao() {
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [config, setConfig] = useState(false);
   const qp = useParametrosVD();
+  const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const [busca, setBusca] = useState("");
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -399,7 +400,7 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell>
                           <div className="whitespace-nowrap text-xs text-muted-foreground">{modalLabel(l.modal)}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">{l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"}</div>
+                          <div className="mt-1 text-xs text-muted-foreground">{rotuloFormaPagamento(l.pagamento, cfgPixNoLink)}</div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {l.frete ? (

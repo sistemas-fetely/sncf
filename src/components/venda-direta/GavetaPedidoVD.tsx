@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SeloConfirmacaoAutomatica, usePixSafrapay } from "@/components/venda-direta/PixSafrapay";
+import { rotuloFormaPagamento, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -109,6 +110,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
     },
   });
   const pixSafraQ = usePixSafrapay(linha?.pagamento === "pix" ? id : null);
+  const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const evQ = useQuery({
     queryKey: ["vd-gaveta-eventos", id],
     enabled: !!id,
@@ -192,7 +194,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
             </Secao>
 
             <Secao titulo="Pagamento">
-              <Par k="Forma" v={l.pagamento === "pix" ? "PIX" : l.pagamento === "cartao" ? "Cartão" : "—"} />
+              <Par k="Forma" v={rotuloFormaPagamento(l.pagamento, cfgPixNoLink)} />
               <Par k="Status" v={l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
               {l.pagamento === "cartao" && (
                 linkQ.isLoading ? <Skeleton className="h-10 w-full" /> : linkQ.isError ? <Erro e={linkQ.error} /> : !linkQ.data ? (
