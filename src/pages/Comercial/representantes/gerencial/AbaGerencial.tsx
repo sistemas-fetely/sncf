@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -45,13 +45,25 @@ function Numerao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: 
 }
 
 export function AbaGerencial() {
-  const [competencia, setCompetencia] = useState(competenciaPadrao());
+  const [searchParams, setSearchParams] = useSearchParams();
+  const mesUrl = searchParams.get("mes");
+  const [competencia, setCompetencia] = useState(
+    mesUrl && /^\d{4}-(0[1-9]|1[0-2])$/.test(mesUrl) ? mesUrl : competenciaPadrao(),
+  );
   const opcoes = useMemo(opcoesCompetencia, []);
   const g = useGerencial(competencia);
   const cc = useContaCorrente(competencia);
   const rotulo = fmtCompetencia(primeiroDia(competencia));
   const mesPagamento = mesSeguinte(competencia);
   const rotuloPagamento = fmtCompetencia(primeiroDia(mesPagamento));
+
+  const alterarCompetencia = (novaCompetencia: string) => {
+    setCompetencia(novaCompetencia);
+    const proximos = new URLSearchParams(searchParams);
+    proximos.set("aba", "gerencial");
+    proximos.set("mes", novaCompetencia);
+    setSearchParams(proximos, { replace: true });
+  };
 
   const totais = useMemo(
     () =>
@@ -72,7 +84,7 @@ export function AbaGerencial() {
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <Select value={competencia} onValueChange={setCompetencia}>
+        <Select value={competencia} onValueChange={alterarCompetencia}>
           <SelectTrigger className="w-[180px]">
             <SelectValue />
           </SelectTrigger>
@@ -94,10 +106,10 @@ export function AbaGerencial() {
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
-          <a href={`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`} target="_blank" rel="noopener noreferrer">
+          <Link to={`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`}>
             <FileText className="mr-1 h-4 w-4" />
             Extratos dos representantes (PDF)
-          </a>
+          </Link>
         </Button>
       </div>
 
@@ -247,11 +259,10 @@ export function AbaGerencial() {
                               <Tooltip>
                                 <TooltipTrigger asChild>
                                   <Button asChild size="icon" variant="ghost" className="h-7 w-7">
-                                    <a
-                                      href={`/comercial/representantes/${r.vendedorId}/extrato-impressao?competencia=${mesPagamento}`}
-                                      target="_blank" rel="noopener noreferrer"
+                                    <Link
+                                      to={`/comercial/representantes/${r.vendedorId}/extrato-impressao?competencia=${mesPagamento}`}
                                       aria-label={`Extrato de ${r.representante} (pagamento ${rotuloPagamento})`}
-                                    ><FileText className="h-4 w-4" /></a>
+                                    ><FileText className="h-4 w-4" /></Link>
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>Extrato do representante (pagamento {rotuloPagamento})</TooltipContent>

@@ -1,8 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Printer } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { formatError } from "@/lib/format-error";
 import { fmtCompetencia } from "../comissoes/fmt";
 import { EstilosExtrato, ExtratoRepresentanteDocumento } from "./ExtratoRepresentanteDocumento";
@@ -48,12 +47,10 @@ export default function ExtratosLoteImpressao() {
   return (
     <main className="documento-extrato">
       <EstilosExtrato />
-      <div className="tela-apenas sticky top-0 z-10 mx-auto mb-4 flex w-[210mm] max-w-full items-center justify-between gap-2 rounded-md border border-border bg-card p-2 shadow-sm">
-        <span className="text-sm font-medium">
-          Extratos de pagamento {fmtCompetencia(dia)} · {lista.length} {lista.length === 1 ? "representante" : "representantes"}
-        </span>
-        <Button size="sm" onClick={() => window.print()}><Printer className="mr-1 h-4 w-4" />Imprimir / salvar PDF</Button>
-      </div>
+      <BarraImpressao />
+      <p className="tela-apenas mx-auto mb-4 w-[210mm] max-w-full text-sm font-medium">
+        Extratos de pagamento {fmtCompetencia(dia)} · {lista.length} {lista.length === 1 ? "representante" : "representantes"}
+      </p>
       {lista.length === 0 ? (
         <p className="text-center text-muted-foreground">Nenhum extrato neste mês.</p>
       ) : lista.map((r, i) => (
