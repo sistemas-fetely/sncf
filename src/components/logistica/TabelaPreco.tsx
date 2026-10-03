@@ -13,18 +13,21 @@ interface Props {
 export function TabelaPreco({ transportadoraId }: Props) {
   const [cep, setCep] = useState("");
   const [peso, setPeso] = useState("");
-  const [trigger, setTrigger] = useState<{ cep: string; peso: number } | null>(null);
+  const [valorNf, setValorNf] = useState("");
+  const [trigger, setTrigger] = useState<{ cep: string; peso: number; valor: number | null } | null>(null);
 
   const { data: estimado, isFetching } = useFreteEstimado(
     transportadoraId,
     trigger?.cep ?? null,
-    trigger?.peso ?? null
+    trigger?.peso ?? null,
+    trigger?.valor ?? null
   );
 
   function calcular() {
     const p = parseFloat(peso.replace(",", "."));
     if (!cep || !p || isNaN(p)) return;
-    setTrigger({ cep: cep.replace(/\D/g, ""), peso: p });
+    const v = parseFloat(valorNf.replace(",", "."));
+    setTrigger({ cep: cep.replace(/\D/g, ""), peso: p, valor: v > 0 ? v : null });
   }
 
   return (
@@ -34,7 +37,7 @@ export function TabelaPreco({ transportadoraId }: Props) {
           <Calculator className="h-4 w-4 text-muted-foreground" />
           <h3 className="font-medium">Calculadora de frete</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
           <div>
             <label className="text-xs text-muted-foreground">CEP destino</label>
             <Input value={cep} onChange={(e) => setCep(e.target.value)} placeholder="00000-000" />
@@ -42,6 +45,10 @@ export function TabelaPreco({ transportadoraId }: Props) {
           <div>
             <label className="text-xs text-muted-foreground">Peso (kg)</label>
             <Input value={peso} onChange={(e) => setPeso(e.target.value)} placeholder="0,00" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Valor da NF (R$)</label>
+            <Input value={valorNf} onChange={(e) => setValorNf(e.target.value)} placeholder="opcional" />
           </div>
           <Button onClick={calcular} disabled={!cep || !peso}>
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Calcular"}

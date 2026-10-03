@@ -1406,7 +1406,8 @@ export default function PedidoDetalhe() {
   const freteEst = useFreteEstimado(
     isApi ? null : (transportadoraId || null),
     cepEstimativa,
-    pesoCobradoEst > 0 ? pesoCobradoEst : null
+    pesoCobradoEst > 0 ? pesoCobradoEst : null,
+    Number(data?.pedido?.valor_liquido ?? data?.pedido?.valor_bruto) || null
   );
 
   useEffect(() => {
@@ -2390,7 +2391,7 @@ export default function PedidoDetalhe() {
                         {pedido.valor_bruto > 0 && (<span className="text-xs text-muted-foreground">({((freteEst.data.valor_estimado / pedido.valor_bruto) * 100).toFixed(2)}% do bruto)</span>)}
                       </div>
                       <p className="text-xs text-muted-foreground">{emb?.peso_taxado_previsto != null && <>Peso taxado {fmtNum(emb.peso_taxado_previsto, 1)} kg · </>}Prazo {freteEst.data.prazo_dias}d · {freteEst.data.tarifa_code}</p>
-                      <p className="text-[11px] text-muted-foreground">Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)}</p>
+                      <p className="text-[11px] text-muted-foreground">Base: R$ {freteEst.data.breakdown.base.toFixed(2)} · GRIS: R$ {freteEst.data.breakdown.gris.toFixed(2)} · Pedágio: R$ {freteEst.data.breakdown.pedagio.toFixed(2)} · TAS: R$ {freteEst.data.breakdown.tas.toFixed(2)} · Ad valorem: R$ {(freteEst.data.breakdown.adv ?? 0).toFixed(2)} · ICMS: R$ {(freteEst.data.breakdown.icms ?? 0).toFixed(2)}</p>
                     </div>
                   )}
 

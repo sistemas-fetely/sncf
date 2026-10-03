@@ -35,6 +35,10 @@ type Linha = {
   valor_lancado: number | null;
   diferenca: number | null;
   status_conciliacao: string | null;
+  auditoria_status?: "ok" | "acima_referencia" | "justificar" | "sem_referencia" | null;
+  auditoria_referencia?: number | null;
+  auditoria_diferenca?: number | null;
+  auditoria_motivo?: string | null;
 };
 
 function useFaturas(transportadoraId: string) {
@@ -76,7 +80,7 @@ function useLinhasConciliacao(transportadoraId: string) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
         .from("vw_conciliacao_faturas_frete")
-        .select("fatura_id, destinatario, nf_numero, doc_ref, valor_frete, valor_lancado, diferenca, status_conciliacao")
+        .select("fatura_id, destinatario, nf_numero, doc_ref, valor_frete, valor_lancado, diferenca, status_conciliacao, auditoria_status, auditoria_referencia, auditoria_diferenca, auditoria_motivo")
         .eq("transportadora_id", transportadoraId);
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -224,14 +228,15 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
 
   const resumoFatura = (faturaId: string) => {
     const arr = linhasPorFatura.get(faturaId) ?? [];
-    let ok = 0, div = 0, sem = 0, aj = 0;
+    let ok = 0, div = 0, sem = 0, aj = 0, contestar = 0;
     for (const l of arr) {
+      if (l.auditoria_status === "acima_referencia" || l.auditoria_status === "justificar") contestar++;
       if (l.status_conciliacao === "ok") ok++;
       else if (l.status_conciliacao === "divergente") div++;
       else if (l.status_conciliacao === "fatura_sem_lancado") sem++;
       else if (l.status_conciliacao === "ajuste") aj++;
     }
-    return { total: arr.length, ok, div, sem, aj };
+    return { total: arr.length, ok, div, sem, aj, contestar };
   };
 
   const kpis = useMemo(() => {
@@ -295,6 +300,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
               : partes.length === 1 && r.ok === r.total
                 ? `${r.ok}/${r.total} conciliados`
                 : partes.join(" · ");
+            const contestarTxt = r.contestar > 0 ? `${r.contestar} p/ contestar` : null;
             return (
               <Collapsible key={f.id} open={aberta} onOpenChange={(o) => setExpandida(o ? f.id : null)}>
                 <div className={cn("flex items-center", aberta && "bg-muted/30")}>
@@ -395,7 +401,20 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                                   {l.diferenca == null ? "—" : formatBRL(l.diferenca)}
                                 </td>
                                 <td className="px-3 py-1.5">
-                                  <BadgeStatus status={l.status_conciliacao} />
+                                  <div className="flex items-center gap-1.5">
+                                    <BadgeStatus status={l.status_conciliacao} />
+                                    {(l.auditoria_status === "acima_referencia" || l.auditoria_status === "justificar") && (
+                                      <Badge
+                                        variant="outline"
+                                        className="border-warning/40 bg-warning/10 text-warning font-normal"
+                                        title={l.auditoria_status === "acima_referencia"
+                                          ? `${l.auditoria_motivo ?? ""} · referência ${formatBRL(l.auditoria_referencia)} · excedente ${formatBRL(l.auditoria_diferenca)}`
+                                          : (l.auditoria_motivo ?? "")}
+                                      >
+                                        {l.auditoria_status === "acima_referencia" ? "Acima da tabela" : "Pedir justificativa"}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}
