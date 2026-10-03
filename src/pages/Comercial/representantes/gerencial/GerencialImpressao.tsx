@@ -392,6 +392,7 @@ export default function GerencialImpressao() {
         <BarraImpressao />
       <PaginaResumo mes={g.mes} historico={g.historico} rotulo={rotulo} />
       <PaginaDetalhe
+        competencia={competencia}
         rotulo={rotulo}
         representantes={g.representantes}
         travada={g.travadaInadimplencia}
