@@ -7,6 +7,7 @@ import type { Linha } from "@/pages/Comercial/representantes/dados";
 import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
+import { colunasCC, LEGENDA_CC, useContaCorrente, type ValoresCC } from "./contaCorrente";
 import {
   competenciaPadrao,
   num,
@@ -68,7 +69,7 @@ function Numerao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: 
   );
 }
 
-function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico: Linha[]; rotulo: string }) {
+function PaginaResumo({ mes, historico, rotulo, hcc }: { mes: Linha | null; historico: Linha[]; rotulo: string; hcc: Map<string, ValoresCC> }) {
   return (
     <section className="pagina-a4 relative bg-card text-card-foreground">
       <Cabecalho rotulo={rotulo} />
@@ -102,8 +103,8 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
         <h2 className="text-[10.5pt] font-medium">Comparativo com os meses anteriores</h2>
         <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
           <colgroup>
-            <col className="w-[10%]" /><col className="w-[9%]" /><col className="w-[9%]" /><col className="w-[6%]" /><col className="w-[14%]" />
-            <col className="w-[14%]" /><col className="w-[9%]" /><col className="w-[13%]" /><col className="w-[16%]" />
+            <col className="w-[8%]" /><col className="w-[6%]" /><col className="w-[7%]" /><col className="w-[5%]" /><col className="w-[11%]" />
+            <col className="w-[11%]" /><col className="w-[7%]" /><col className="w-[9%]" /><col className="w-[12%]" /><col className="w-[12%]" /><col className="w-[12%]" />
           </colgroup>
           <thead>
             <tr className="border-y border-border text-muted-foreground">
@@ -115,7 +116,9 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
               <th className="px-1 py-1.5 text-right font-medium">Comissão apurada</th>
               <th className="px-1 py-1.5 text-right font-medium">Custo %</th>
               <th className="px-1 py-1.5 text-right font-medium">Desconto médio %</th>
-              <th className="py-1.5 pl-1 text-right font-medium">Comissão a pagar</th>
+              <th className="px-1 py-1.5 text-right font-medium">Comissão a pagar</th>
+              <th className="px-1 py-1.5 text-right font-medium">Saldo a liberar</th>
+              <th className="py-1.5 pl-1 text-right font-medium">Saldo devido</th>
             </tr>
           </thead>
           <tbody>
@@ -129,7 +132,9 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.comissao_apurada))}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{pct(l.custo_comissao_pct)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{pct(l.desconto_medio_pct)}</td>
-                <td className="py-1.5 pl-1 text-right tabular-nums">{fmtBRL(num(l.total_a_pagar))}</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.total_a_pagar))}</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(hcc.get(String(l.competencia).slice(0, 10))?.a_liberar_final ?? 0)}</td>
+                <td className="py-1.5 pl-1 text-right tabular-nums">{fmtBRL(hcc.get(String(l.competencia).slice(0, 10))?.a_pagar_final ?? 0)}</td>
               </tr>
             ))}
           </tbody>
@@ -326,10 +331,58 @@ function PaginaDetalhe({
   );
 }
 
+function BlocoContaCorrentePdf({ competencia, rotulo }: { competencia: string; rotulo: string }) {
+  const cc = useContaCorrente(competencia);
+  const { liberar, pagar } = colunasCC(cc.temEstornoLiberar, cc.temEstornoPagar);
+  const evitar = { breakInside: "avoid", pageBreakInside: "avoid" } as const;
+  const cel = (v: number, c: string, k: string, primeira: boolean) => (
+    <td key={k} className={`px-1 py-1.5 text-right tabular-nums ${primeira ? "border-l border-border/70" : ""} ${c === "a_liberar_vencido" && v > 0 ? "text-destructive" : ""}`}>{fmtBRL(v)}</td>
+  );
+  return (
+    <section className="mt-5">
+      <h2 className="text-[10.5pt] font-medium">Conta corrente de comissões em {rotulo}</h2>
+      {cc.carregando ? (
+        <p className="mt-2 text-[8pt] text-muted-foreground">Carregando…</p>
+      ) : cc.erro ? (
+        <p className="mt-2 text-[8pt] text-destructive-strong">Falha ao carregar: {formatError(cc.erro)}</p>
+      ) : cc.linhas.length === 0 ? (
+        <p className="mt-2 text-[8pt] text-muted-foreground">Sem saldo de comissões neste mês.</p>
+      ) : (
+        <table className="mt-2 w-full border-collapse text-[6.6pt]">
+          <thead style={{ display: "table-header-group" }}>
+            <tr className="border-t border-border text-muted-foreground">
+              <th rowSpan={2} className="py-1 text-left align-bottom font-medium">Representante</th>
+              <th colSpan={liberar.length} className="border-l border-border/70 px-1 py-1 text-center font-medium">A liberar (esperando o cliente)</th>
+              <th colSpan={pagar.length} className="border-l border-border/70 px-1 py-1 text-center font-medium">A pagar ao representante</th>
+            </tr>
+            <tr className="border-b border-border text-muted-foreground">
+              {[...liberar, ...pagar].map((c, i) => <th key={i} className={`px-1 py-1 text-right font-medium ${i === 0 || i === liberar.length ? "border-l border-border/70" : ""}`}>{c.r}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {cc.linhas.map((l) => (
+              <tr key={l.vendedor_id ?? l.representante} className="border-b border-border/70" style={evitar}>
+                <td className="py-1.5">{l.representante}</td>
+                {[...liberar, ...pagar].map((c, i) => cel(l[c.c], c.c, String(i), i === 0 || i === liberar.length))}
+              </tr>
+            ))}
+            <tr className="border-t border-foreground/40 font-medium" style={evitar}>
+              <td className="py-1.5">Total</td>
+              {[...liberar, ...pagar].map((c, i) => cel(cc.total[c.c], c.c, String(i), i === 0 || i === liberar.length))}
+            </tr>
+          </tbody>
+        </table>
+      )}
+      <p className="mt-1.5 text-[6.5pt] leading-relaxed text-muted-foreground">{LEGENDA_CC}</p>
+    </section>
+  );
+}
+
 function PaginaPagamento({ competencia, rotulo, pagina, total }: { competencia: string; rotulo: string; pagina: 2 | 3; total: 2 | 3 }) {
   return (
     <section className="pagina-fluida quebra-pagina relative bg-card text-card-foreground">
       <Cabecalho rotulo={rotulo} />
+      <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />
       <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />
       <Rodape pagina={pagina} total={total} fluido />
     </section>
@@ -357,6 +410,7 @@ export default function GerencialImpressao() {
   const valida = RE_COMPETENCIA.test(competencia);
   const g = useGerencial(valida ? competencia : competenciaPadrao());
   const pagamento = usePagamentoMes(valida ? competencia : competenciaPadrao());
+  const cc = useContaCorrente(valida ? competencia : competenciaPadrao());
   const rotulo = useMemo(() => fmtCompetencia(primeiroDia(valida ? competencia : competenciaPadrao())), [competencia, valida]);
 
   const pronto = valida && !g.carregando && !g.erro;
@@ -394,6 +448,7 @@ export default function GerencialImpressao() {
           <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
             Nenhuma comissão apurada em {rotulo}.
           </div>
+          {!pagamentoEmPaginaPropria && <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />}
           {!pagamentoEmPaginaPropria && <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />}
           <Rodape pagina={1} total={pagamentoEmPaginaPropria ? 2 : 1} />
         </section>
@@ -406,7 +461,7 @@ export default function GerencialImpressao() {
     <main className="documento-gerencial">
       <style>{ESTILOS_IMPRESSAO}</style>
         <BarraImpressao />
-      <PaginaResumo mes={g.mes} historico={g.historico} rotulo={rotulo} />
+      <PaginaResumo mes={g.mes} historico={g.historico} rotulo={rotulo} hcc={cc.historico} />
       <PaginaDetalhe
         competencia={competencia}
         rotulo={rotulo}

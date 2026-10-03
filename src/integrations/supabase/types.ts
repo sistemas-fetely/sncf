@@ -84662,6 +84662,25 @@ export type Database = {
           },
         ]
       }
+      vw_comissao_conta_corrente_mensal: {
+        Row: {
+          a_liberar_a_vencer: number | null
+          a_liberar_final: number | null
+          a_liberar_inicial: number | null
+          a_liberar_vencido: number | null
+          a_pagar_final: number | null
+          a_pagar_inicial: number | null
+          apurado: number | null
+          estornado_a_liberar: number | null
+          estornado_liberado: number | null
+          liberado: number | null
+          mes: string | null
+          pago: number | null
+          representante: string | null
+          vendedor_id: string | null
+        }
+        Relationships: []
+      }
       vw_comissao_detalhe: {
         Row: {
           ajuste_pp: number | null
@@ -106023,14 +106042,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
