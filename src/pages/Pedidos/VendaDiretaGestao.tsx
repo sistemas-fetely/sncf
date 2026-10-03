@@ -37,7 +37,7 @@ import {
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
 import { DEVOLUCAO_ATIVA, FilaDevolucoes, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Situacao =
@@ -159,9 +159,10 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
 export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
-  const podeAprovarDevolucao = usePermissaoAcaoOuSuperAdmin("acao.vd_devolucao_aprovar").permitido;
+  const podeAprovarDevolucao = usePermissaoAcao("acao.vd_devolucao_aprovar").permitido;
   const devolucoesQ = useDevolucoesVD();
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
+  useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   const [filtro, setFiltro] = useState<Filtro | null>(null);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [config, setConfig] = useState(false);
@@ -471,7 +472,7 @@ export default function VendaDiretaGestao() {
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
                             {(aviso || etapa.length > 0) && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
                             <BotaoIcone a={{ k: "itens", label: "Ver itens", icon: List, onClick: () => setGavetaId(l.id) }} />
-                            {podeCancelar(l) && <BotaoIcone a={{ k: "cancel", label: "Cancelar", icon: Ban, onClick: () => tentarCancelar(l), destrutiva: true }} />}
+                            {podeCancelar(l) && <BotaoIcone a={{ k: "cancel", label: l.pagamento_confirmado_em ? "Solicitar devolução" : "Cancelar", icon: l.pagamento_confirmado_em ? RotateCcw : Ban, onClick: () => tentarCancelar(l), destrutiva: true }} />}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" asChild>
@@ -516,7 +517,7 @@ export default function VendaDiretaGestao() {
               ))}
               {podeCancelar(gaveta) && (
                 <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => tentarCancelar(gaveta)}>
-                  <Ban className="mr-1 h-3.5 w-3.5" />Cancelar
+                  {gaveta.pagamento_confirmado_em ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ban className="mr-1 h-3.5 w-3.5" />}{gaveta.pagamento_confirmado_em ? "Solicitar devolução" : "Cancelar"}
                 </Button>
               )}
               <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>

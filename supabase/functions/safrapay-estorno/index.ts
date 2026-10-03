@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ ok: false, erro: "devolucao_id inválido." }, 400);
   const { data: d, error: eD } = await sb.from("vd_devolucao").select("*").eq("id", id).maybeSingle();
   if (eD || !d) return json({ ok: false, erro: `Ler devolução: ${eD?.message ?? "não encontrada"}` }, eD ? 500 : 404);
-  if (d.status !== "aprovada" || d.meio !== "cartao" || !d.charge_id) return json({ ok: false, erro: "Devolução precisa estar aprovada, ser de cartão e ter charge_id." }, 409);
+  if (!["aprovada", "falhou"].includes(String(d.status)) || d.meio !== "cartao" || !d.charge_id) return json({ ok: false, erro: "Devolução precisa estar aprovada, ser de cartão e ter charge_id." }, 409);
 
   const { data: cfg, error: eCfg } = await sb.from("safrapay_config").select("*").eq("id", 1).maybeSingle();
   if (eCfg || !cfg) return json({ ok: false, erro: `Ler configuração Safrapay: ${eCfg?.message ?? "ausente"}` }, 500);
