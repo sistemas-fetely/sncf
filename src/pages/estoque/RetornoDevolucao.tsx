@@ -36,6 +36,8 @@ import { RodapePaginacao, lerTamanhoPaginaSalvo, type PageSizeOption } from "@/c
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
+import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
+import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
   id: string; numero: string | null; canal: string | null; status: string | null; status_efetivo: string | null;
@@ -152,6 +154,7 @@ export default function RetornoDevolucao() {
     },
   });
   const quarentenaQ = useQuery({ queryKey: QK_QUARENTENA, queryFn: buscarQuarentenaFila });
+  const reembolsosQ = useDevolucoesVD();
   const statusMap = useMemo(() => new Map((statusQ.data ?? []).map((s) => [s.codigo, s])), [statusQ.data]);
   // Aberta = status com eh_final=false na dimensão (inclui retorno_concluido).
   const ehAberta = (d: Funil) => statusMap.get(statusDe(d))?.eh_final !== true;
@@ -236,6 +239,7 @@ export default function RetornoDevolucao() {
     const dias = maisAntigo == null ? 0 : Math.max(0, Math.floor((agoraBrasilia - maisAntigo) / 86_400_000));
     return { unidades, skus, dias };
   }, [quarentenaQ.data]);
+  const reembolsosPendentes = (reembolsosQ.data ?? []).filter((d) => DEVOLUCAO_ATIVA.has(d.status)).length;
 
   const invalidar = async () => {
     await Promise.all([
@@ -266,6 +270,7 @@ export default function RetornoDevolucao() {
           <TabsList>
             <TabsTrigger value="funil">Funil</TabsTrigger>
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
+            <TabsTrigger value="reembolso">Cancelamento com reembolso{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
           </TabsList>
           <TabsContent value="funil" className="mt-4">
         <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 lg:grid-cols-5">
@@ -511,6 +516,9 @@ export default function RetornoDevolucao() {
 
           <TabsContent value="quarentena" className="mt-4">
             <QuarentenaEstoquePainel />
+          </TabsContent>
+          <TabsContent value="reembolso" className="mt-4">
+            <CancelamentoReembolsoPainel />
           </TabsContent>
         </Tabs>
       </div>

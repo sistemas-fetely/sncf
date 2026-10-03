@@ -36,9 +36,7 @@ import {
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
-import { DEVOLUCAO_ATIVA, FilaDevolucoes, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
-import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Situacao =
   | "aguardando_pagamento" | "descendo_bling" | "aguardando_nf" | "separacao"
@@ -71,7 +69,7 @@ interface Linha extends LinhaVD {
 
 type Filtro =
   | "pagamento" | "faturamento" | "separacao" | "retirada_envio" | "entregue"
-  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "devolucao";
+  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "reembolso";
 
 const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
@@ -159,7 +157,6 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
 export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
-  const podeAprovarDevolucao = usePermissaoAcao("acao.vd_devolucao_aprovar").permitido;
   const devolucoesQ = useDevolucoesVD();
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
@@ -229,7 +226,7 @@ export default function VendaDiretaGestao() {
     if (f === "travado" || f === "pausado") return l.situacao === f;
     if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
     if (f === "pagamento_desatualizado") return !!l.pagamento_desatualizado;
-    if (f === "devolucao") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
+    if (f === "reembolso") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
     return temFalta(l);
   };
   const contar = (f: Filtro) => ativos.filter((l) => bate(l, f)).length;
@@ -337,16 +334,13 @@ export default function VendaDiretaGestao() {
               { f: "sem_pagamento", label: `Sem pagamento +${qp.data?.alerta_sem_pagamento_horas ?? "?"}h`, tom: "warning" },
               { f: "pagamento_desatualizado", label: "Pagamento desatualizado", tom: "warning" },
               { f: "falta_site_sp", label: "Falta no Site SP", tom: "destructive" },
-              { f: "devolucao", label: "Devolução", tom: "warning" },
+              { f: "reembolso", label: "Reembolso", tom: "warning" },
             ] as { f: Filtro; label: string; tom: "warning" | "destructive" }[]).map((c) => (
               <CardEtapa key={c.f} pequeno label={c.label} n={contar(c.f)} tom={c.tom} ativo={filtro === c.f} onClick={() => setFiltro(filtro === c.f ? null : c.f)} />
             ))}
           </div>
         </div>
 
-        <Tabs defaultValue="pedidos" className="space-y-3">
-          <TabsList><TabsTrigger value="pedidos">Pedidos</TabsTrigger>{podeAprovarDevolucao && <TabsTrigger value="devolucoes">Devoluções</TabsTrigger>}</TabsList>
-          <TabsContent value="pedidos">
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
           filtros={
@@ -461,7 +455,7 @@ export default function VendaDiretaGestao() {
                               </Tooltip>
                             )}
                             {devolucaoPorPedido.get(l.id) && (
-                              <span className="block text-warning-strong">Devolução · {ROTULO_DEVOLUCAO[devolucaoPorPedido.get(l.id)!.status]}</span>
+                              <span className="block text-warning-strong">Reembolso · {ROTULO_DEVOLUCAO[devolucaoPorPedido.get(l.id)!.status]}</span>
                             )}
                           </div>
                         </TableCell>
@@ -499,9 +493,6 @@ export default function VendaDiretaGestao() {
             />
           </div>
         </TabelaFetely>
-          </TabsContent>
-          {podeAprovarDevolucao && <TabsContent value="devolucoes"><FilaDevolucoes linhas={devolucoesQ.data ?? []} /></TabsContent>}
-        </Tabs>
 
         <GavetaPedidoVD
           linha={gaveta}
