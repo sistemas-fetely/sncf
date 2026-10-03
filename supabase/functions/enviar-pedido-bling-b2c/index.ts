@@ -812,14 +812,15 @@ Deno.serve(async (req) => {
             }
           }
 
-          // Valores: preço do pedido SNCF; frete = frete COBRADO (CIF_ABSORVIDO → 0).
+          // Valores: itens a preço de varejo; desconto do pedido à parte; frete = frete COBRADO.
           const totalProdutosVd = arred2(itensVd.reduce((s, it) => s + it.unitario * it.qtd, 0));
           const freteVd = arred2(Math.max(0, Number(ped.valor_frete ?? 0)));
-          const totalVd = arred2(totalProdutosVd + freteVd);
+          const descontoVd = arred2(Math.max(0, Number((ped.endereco_entrega as any)?.desconto?.valor ?? 0)));
+          const totalVd = arred2(totalProdutosVd - descontoVd + freteVd);
           const liquidoVd = arred2(Number(ped.valor_liquido ?? 0));
-          if (Math.abs(totalVd - liquidoVd) > 0.05) {
+          if (Math.abs(totalVd - liquidoVd) > 0.01) {
             await falharVd(
-              `Total do pedido ${idExterno} não fecha: itens R$ ${totalProdutosVd} + frete R$ ${freteVd} = R$ ${totalVd}, ` +
+              `Total do pedido ${idExterno} não fecha: itens R$ ${totalProdutosVd} − desconto R$ ${descontoVd} + frete R$ ${freteVd} = R$ ${totalVd}, ` +
                 `mas valor_liquido = R$ ${liquidoVd}. Nada enviado ao Bling.`,
             );
             continue;

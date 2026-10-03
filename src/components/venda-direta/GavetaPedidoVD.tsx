@@ -173,6 +173,22 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
               {l.modal !== "retirada" && <Par k="Endereço" v={endereco(l.endereco_entrega)} />}
               <Par k="Frete cobrado" v={<span className="tabular-nums">{l.frete ? (l.frete.gratis || Number(l.frete.cobrado ?? 0) === 0 ? "Grátis" : formatBRL(l.frete.cobrado)) : "—"}</span>} />
               <Par k="Custo do frete" v={<span className="tabular-nums">{l.frete?.custo != null ? formatBRL(l.frete.custo) : "—"}</span>} />
+              {(() => {
+                const ee = (l.endereco_entrega ?? {}) as any;
+                const bf = ee?.frete?.beneficio;
+                const dp = ee?.desconto;
+                const txtBen = (b: any) => b.tipo === "gratis" ? "Grátis" : b.tipo === "pct" ? `${b.valor_informado ?? b.valor}%` : formatBRL(b.valor_informado ?? b.valor);
+                return (
+                  <>
+                    {bf && bf.tipo && bf.tipo !== "nenhum" && (
+                      <Par k="Benefício no frete" v={<span><span className="tabular-nums">{txtBen(bf)}</span>{bf.motivo && <span className="block text-xs text-muted-foreground">{bf.motivo}</span>}</span>} />
+                    )}
+                    {dp && Number(dp.valor ?? 0) > 0 && (
+                      <Par k="Desconto do pedido" v={<span><span className="tabular-nums">−{formatBRL(dp.valor)}{dp.tipo === "pct" ? ` (${dp.valor_informado}%)` : ""}</span>{dp.motivo && <span className="block text-xs text-muted-foreground">{dp.motivo}</span>}</span>} />
+                    )}
+                  </>
+                );
+              })()}
             </Secao>
 
             <Secao titulo="Pagamento">
