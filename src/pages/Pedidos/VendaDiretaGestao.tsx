@@ -261,7 +261,7 @@ export default function VendaDiretaGestao() {
     if (!podeEditar) return [];
     const a: Acao[] = [];
     if (l.situacao === "aguardando_pagamento") {
-      if (l.pagamento === "cartao") a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
+      if (l.pagamento === "cartao" || (l.pagamento === "pix" && cfgPixNoLink)) a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setPixManual(l), disabled: !l.provisao_id });

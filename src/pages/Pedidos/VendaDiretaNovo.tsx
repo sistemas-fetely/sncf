@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link2, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -18,7 +18,7 @@ import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
-import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, rotuloFormaPagamento, rotulosOpcaoPagamento, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, rotulosOpcaoPagamento, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { BeneficioCard, BENEFICIO_VAZIO, calcularBeneficio, payloadBeneficio, type BeneficioEstado } from "@/components/venda-direta/BeneficioVD";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
@@ -108,7 +108,7 @@ export default function VendaDiretaNovo() {
   const [modo, setModo] = useState<ModalVd>("retirada");
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
-  const [pagamento, setPagamento] = useState<"pix" | "cartao">("cartao");
+  const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
@@ -276,7 +276,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("cartao"); setObservacao("");
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao("");
     setResultado(null);
   };
 
@@ -311,7 +311,17 @@ export default function VendaDiretaNovo() {
                 {r.frete.motivo && <> · {r.frete.motivo}</>}
               </p>
             )}
-            {r.pagamento === "pix" ? (
+            {r.pagamento === "pix" && cfgPixNoLink ? (
+              <LinkCartaoPainel
+                meio="pix"
+                pedidoId={r.pedido_id}
+                idExterno={r.id_externo}
+                total={r.valor_total}
+                clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
+                telefone={telefoneCliente}
+                pixLocal={{ payload: r.pix_copia_cola, link: r.link_pagamento }}
+              />
+            ) : r.pagamento === "pix" ? (
               <PixSafrapayPainel
                 auto
                 pedidoId={r.pedido_id}
@@ -330,6 +340,7 @@ export default function VendaDiretaNovo() {
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
                 maxParcelas={parcelasLink}
+                meio="cartao"
               />
             )}
             {r.avisos && r.avisos.length > 0 && (
@@ -500,17 +511,17 @@ export default function VendaDiretaNovo() {
         <CardContent className="space-y-2">
           <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
-              <RadioGroupItem value="cartao" className="mt-0.5" />
-              <span>
-                <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" />{rotPag.cartao}</span>
-                <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>
-              </span>
-            </label>
-            <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
                 <span className="flex items-center gap-1"><QrCode className="h-3.5 w-3.5" />{rotPag.pix}</span>
                 <span className="block text-xs text-muted-foreground">{rotPag.pixLegenda}</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="cartao" className="mt-0.5" />
+              <span>
+                <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />{rotPag.cartao}</span>
+                <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>
               </span>
             </label>
           </RadioGroup>
@@ -522,13 +533,6 @@ export default function VendaDiretaNovo() {
                 ? <span className="text-sm text-destructive">Regras de parcelamento: {rawMessage(cfgParcelasQ.error)}</span>
                 : <span className="text-sm text-muted-foreground">{textoPadraoParcelas(cfgParcelasQ.data)}</span>}
             </div>
-          )}
-          {pagamento === "cartao" && (
-            <p className="text-xs text-muted-foreground">
-              {cfgPixNoLink
-                ? "O sistema gera o link e confirma o pagamento sozinho (cartão ou PIX)."
-                : "O sistema gera o link e confirma o pagamento sozinho."}
-            </p>
           )}
         </CardContent>
       </Card>
@@ -589,8 +593,8 @@ export default function VendaDiretaNovo() {
                 <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-                {pagamento === "pix" ? rotuloFormaPagamento("pix", cfgPixNoLink) : `${rotuloFormaPagamento("cartao", cfgPixNoLink)} · até ${parcelasLink}x${cfgPixNoLink ? " · cartão ou PIX" : ""}`}
+                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : `Cartão · até ${parcelasLink}x`}
               </p>
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>

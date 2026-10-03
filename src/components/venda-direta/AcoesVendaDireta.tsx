@@ -30,6 +30,7 @@ export interface LinhaVD {
   cliente_telefone?: string | null;
   provisao_id?: string | null;
   link_pagamento?: string | null;
+  pagamento?: "pix" | "cartao" | string | null;
 }
 
 const PROVAS_PIX = [

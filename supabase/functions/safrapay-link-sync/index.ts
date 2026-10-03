@@ -57,7 +57,7 @@ function lerCharge(c: any) {
   const casaPix = (v: unknown) => v != null && /pix/i.test(String(v));
   const txPix = txs.find((t) => casaPix(t?.paymentType) || t?.qrCode || t?.qrCodeBase64);
   const ehPix = !!txPix || casaPix(c?.paymentType);
-  const pixRef = primeiro(txPix?.transactionId, txPix?.endToEndId, tx?.transactionId, tx?.endToEndId);
+  const pixRef = primeiro(txPix?.endToEndId, tx?.endToEndId, txPix?.transactionId, tx?.transactionId);
   return {
     status, id: id != null ? String(id) : null, nsu: nsu != null ? String(nsu) : null,
     valorCentavos: amountRaw != null && Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : null,
@@ -161,10 +161,14 @@ Deno.serve(async (req) => {
   // 1) Pedido cancelado não pode ter link pagável — roda antes de procurar pagamentos.
   const pedidoIds = [...new Set((links ?? []).map((l: any) => l.pedido_id))];
   const cancelados = new Set<string>();
+  const formaPedido = new Map<string, string>();
   if (pedidoIds.length) {
-    const { data: peds, error: ePd } = await sb.from("pedidos").select("id, cancelado_em, estagio").in("id", pedidoIds);
+    const { data: peds, error: ePd } = await sb.from("pedidos").select("id, cancelado_em, estagio, forma_solicitada").in("id", pedidoIds);
     if (ePd) return json({ ok: false, erro: `Ler pedidos: ${ePd.message}` }, 500);
-    for (const p of peds ?? []) if (p.cancelado_em || p.estagio === "cancelado") cancelados.add(p.id);
+    for (const p of peds ?? []) {
+      formaPedido.set(p.id, String(p.forma_solicitada ?? ""));
+      if (p.cancelado_em || p.estagio === "cancelado") cancelados.add(p.id);
+    }
   }
   for (const l of (links ?? []).filter((x: any) => cancelados.has(x.pedido_id))) {
     resumo.verificados++;
@@ -299,7 +303,34 @@ Deno.serve(async (req) => {
       const paga = charges.find((ch: any) => ch.status === 1);
       const pre = charges.find((ch: any) => ch.status === 2);
 
-      if (paga && paga.ehPix) {
+      const pedidoPix = formaPedido.get(l.pedido_id) === "pix";
+      if (paga && pedidoPix) {
+        // Pedido PIX → link só com Pix: confirma a linha de portão com a prova PIX.
+        const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
+        if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
+        if (!l.provisao_id) throw new Error("Link PIX sem provisão de portão — confirmar manualmente.");
+        const ref = paga.pixRef ?? paga.nsu;
+        if (!ref) throw new Error("PIX pago no link sem endToEndId/transactionId — confirmar manualmente.");
+        const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
+        const { error: eRpc } = await sb.rpc("confirmar_pagamento_linha", {
+          p_provisao_id: l.provisao_id,
+          p_prova_tipo: "pix_txid",
+          p_prova_ref: ref,
+          p_data_pagamento: paga.data,
+          p_observacao: `PIX via link Safrapay · link ${l.gateway_link_id} · charge ${paga.id ?? "—"}`,
+        });
+        if (eRpc) {
+          const erro = `PIX pago no link Safrapay, mas a confirmação falhou: ${eRpc.message}`;
+          await sb.from("pagamento_link").update({ ...base, erro, charge_id: paga.id, nsu: ref, valor_pago: valorPago, pago_em: paga.data }).eq("id", l.id);
+          resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+          continue;
+        }
+        const { error: eUp } = await sb.from("pagamento_link").update({
+          ...base, status: "pago", erro: null, charge_id: paga.id, nsu: ref, valor_pago: valorPago, pago_em: paga.data,
+        }).eq("id", l.id);
+        if (eUp) throw new Error(`Gravar pagamento: ${eUp.message}`);
+        resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX pago (link)" });
+      } else if (paga && paga.ehPix) {
         const erro = "Pago via PIX no link — confirmar manualmente (fase de medição)";
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { error: eUp } = await sb.from("pagamento_link").update({

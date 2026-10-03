@@ -79,13 +79,6 @@ function temCredito(corpo: any): boolean {
   return temTipo(corpo, "credit");
 }
 
-/** A recusa do Safrapay menciona PIX/adquirente? (usa a mensagem da API; corpo inteiro só quando não há mensagem) */
-function recusaPixOuAdquirente(corpo: any, status: number): boolean {
-  const m = msgApi(corpo, status);
-  const alvo = m.includes(": ") ? m : JSON.stringify(corpo ?? "");
-  return /pix/i.test(alvo) || /adquirente|acquirer/i.test(alvo);
-}
-
 /** DELETE no Safra falhou só porque o link já não é pagável (expirado/cancelado/pago)? */
 function deleteToleravel(status: number, corpo: any): boolean {
   if (status === 404 || status === 410) return true;
@@ -114,7 +107,7 @@ Deno.serve(async (req) => {
     if (error) return json({ ok: false, erro: `Falha ao avaliar permissão ${slug}: ${error.message}` }, 500);
     if (data === true) { permitido = true; break; }
   }
-  if (!permitido) return json({ ok: false, erro: "Sem permissão para gerar link de cartão da Venda Direta." }, 403);
+  if (!permitido) return json({ ok: false, erro: "Sem permissão para gerar link de pagamento da Venda Direta." }, 403);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "Corpo JSON inválido." }, 400); }
@@ -146,7 +139,11 @@ Deno.serve(async (req) => {
   if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
   if (!pedido) return json({ ok: false, erro: "Pedido não encontrado." }, 404);
   if (pedido.origem !== "venda_direta") return json({ ok: false, erro: "Pedido não é da Venda Direta." }, 409);
-  if (!["cartao", "cartao_credito"].includes(String(pedido.forma_solicitada))) return json({ ok: false, erro: "Pedido não é de cartão de crédito." }, 409);
+  const forma = String(pedido.forma_solicitada);
+  if (!["pix", "cartao", "cartao_credito"].includes(forma)) return json({ ok: false, erro: `Forma do pedido não aceita link (${forma}).` }, 409);
+  const ehPix = forma === "pix";
+  if (ehPix && (cfg as any).pix_no_link !== true) return json({ ok: false, desligado: true, erro: "PIX por link desligado" }, 409);
+  if (ehPix) parcelasEscolhidas = null; // PIX: sempre 1x, ignora max_parcelas do body
   if (pedido.cancelado_em) return json({ ok: false, erro: "Pedido cancelado." }, 409);
   if (pedido.estagio !== "aguardando_pagamento") return json({ ok: false, erro: `Pedido não está aguardando pagamento (estágio ${pedido.estagio}).` }, 409);
   const valor = Number(pedido.valor_liquido ?? 0);
@@ -208,10 +205,10 @@ Deno.serve(async (req) => {
     const rT = await fetch(`${apiBase}/v2/paymentlink/paymentTypes`, { headers: h });
     const cT = await lerCorpo(rT);
     if (!rT.ok) return await falhar(`Consultar tipos de pagamento: ${msgApi(cT, rT.status)}`);
-    if (!temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
-    // paymentTypes nunca devolve Pix (medido em produção e homologação), então o PIX no link
-    // vem da configuração, não da lista. Credit continua obrigatório (verificação acima).
-    const tipos = (cfg as any).pix_no_link === true ? ["Credit", "Pix"] : ["Credit"];
+    // paymentTypes nunca devolve Pix (medido em produção e homologação): para PIX não se exige a lista.
+    if (!ehPix && !temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
+    // O link nunca mistura meios: o meio pago é sempre o meio do pedido.
+    const tipos = ehPix ? ["Pix"] : ["Credit"];
 
     // Cancelar no Safra o(s) link(s) anterior(es) antes de criar o novo — nunca dois links pagáveis.
     if (cancelarNoSafra.length) {
@@ -241,7 +238,8 @@ Deno.serve(async (req) => {
     let parcelasPadrao = amount < minParcelar ? 1 : cfgMax;
     if (parcelaMin > 0) parcelasPadrao = Math.min(parcelasPadrao, Math.floor(amount / parcelaMin));
     parcelasPadrao = Math.max(1, parcelasPadrao);
-    const maxParcelas = parcelasEscolhidas ?? parcelasPadrao;
+    if (ehPix) parcelasPadrao = 1;
+    const maxParcelas = ehPix ? 1 : (parcelasEscolhidas ?? parcelasPadrao);
 
     const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
       criado_por: userId, pedido_id: pedidoId, provisao_id: prov.id, gateway: "safrapay", ambiente: amb,
@@ -278,19 +276,8 @@ Deno.serve(async (req) => {
     };
     const recusado = (t: any) => !t.r.ok || t.c?.success === false || !t.linkId || !t.rel;
 
-    let tent = await criarLink(tipos);
-    let meiosAceitos = tipos;
-    let recusa: any = null;
-    // PIX recusado pelo Safrapay (adquirente sem PIX) → refaz UMA vez só com cartão.
-    if (recusado(tent) && tipos.includes("Pix") && recusaPixOuAdquirente(tent.c, tent.r.status)) {
-      recusa = {
-        paymentSupportedTypes: tipos, http_status: tent.r.status,
-        mensagem: msgApi(tent.c, tent.r.status), resposta: tent.c,
-      };
-      tent = await criarLink(["Credit"]);
-      meiosAceitos = ["Credit"];
-      if (!recusado(tent)) avisos.push("PIX não habilitado no Safrapay — link só com cartão");
-    }
+    const tent = await criarLink(tipos);
+    const meiosAceitos = tipos;
     if (recusado(tent)) return await falhar(`Criar link: ${msgApi(tent.c, tent.r.status)}`);
 
     const { linkId, rel } = tent;
@@ -302,12 +289,12 @@ Deno.serve(async (req) => {
       max_parcelas: maxParcelas, erro: null,
       resposta_criacao: {
         id: linkId, smartCheckoutUrl: rel, expiration: tent.d?.expiration ?? null, status: tent.d?.status ?? null,
-        paymentSupportedTypes: meiosAceitos, avisos, ...(recusa ? { tentativa_recusada: recusa } : {}),
+        paymentSupportedTypes: meiosAceitos, avisos,
       },
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
-    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, parcelas_padrao: parcelasPadrao, pagamento_link_id: linha!.id, avisos });
+    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, parcelas_padrao: parcelasPadrao, meio: ehPix ? "pix" : "cartao", pagamento_link_id: linha!.id, avisos });
   } catch (e) {
     return await falhar(e instanceof Error ? e.message : String(e));
   }

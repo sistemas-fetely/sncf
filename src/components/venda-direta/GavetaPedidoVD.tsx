@@ -100,7 +100,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
   });
   const linkQ = useQuery({
     queryKey: ["vd-gaveta-link", id],
-    enabled: !!id && linha?.pagamento === "cartao",
+    enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from("pagamento_link" as never)
         .select("status, url, max_parcelas, expira_em, nsu, pago_em, erro").eq("pedido_id", id as string)
@@ -196,7 +196,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
             <Secao titulo="Pagamento">
               <Par k="Forma" v={rotuloFormaPagamento(l.pagamento, cfgPixNoLink)} />
               <Par k="Status" v={l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
-              {l.pagamento === "cartao" && (
+              {(l.pagamento === "cartao" || linkQ.data) && (
                 linkQ.isLoading ? <Skeleton className="h-10 w-full" /> : linkQ.isError ? <Erro e={linkQ.error} /> : !linkQ.data ? (
                   <Par k="Link" v="Nenhum link gerado" />
                 ) : (
@@ -204,14 +204,15 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
                     {linkQ.data.erro?.startsWith("Pago via PIX no link") && (
                       <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-strong">{linkQ.data.erro}</p>
                     )}
-                    <Par k="Link" v={linkQ.data.status === "pago" ? (linkQ.data.erro?.startsWith("Pago via PIX no link") ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
-                    <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />
+                    <Par k="Link" v={linkQ.data.status === "pago" ? (l.pagamento === "pix" || linkQ.data.erro?.startsWith("Pago via PIX no link") ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
+                    {linkQ.data.url && <Par k="URL" v={<a className="break-all text-primary underline-offset-2 hover:underline" href={linkQ.data.url} target="_blank" rel="noreferrer">abrir link</a>} />}
+                    {l.pagamento === "cartao" && <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />}
                     <Par k="Validade" v={linkQ.data.expira_em ? `vale até ${dataHora(linkQ.data.expira_em)}` : "—"} />
                     <Par k="NSU" v={<span className="tabular-nums">{linkQ.data.nsu ?? "—"}</span>} />
                   </>
                 )
               )}
-              {l.pagamento === "pix" && (pixSafraQ.data ? (
+              {l.pagamento === "pix" && !linkQ.data && (pixSafraQ.data ? (
                 <Par k="PIX" v={<SeloConfirmacaoAutomatica />} />
               ) : (
                 <Par k="PIX" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir link</a> : "—"} />
