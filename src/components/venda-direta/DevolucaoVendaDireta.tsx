@@ -80,6 +80,17 @@ function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
   </div>;
 }
 
+function AnexoDevolucao({ devolucao }: { devolucao: DevolucaoVD }) {
+  const m = JSON.stringify(devolucao).match(/anexo: (devolucao\/[^\s"·\\]+)/);
+  if (!m) return null;
+  const abrir = async () => {
+    const { data, error } = await supabase.storage.from("comprovantes-pagamento").createSignedUrl(m[1], 600);
+    if (error || !data) { toast.error(error?.message ?? "Não foi possível abrir o anexo"); return; }
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
+  return <Button variant="link" className="h-auto p-0" onClick={() => void abrir()}>Ver comprovante da devolução (anexo)</Button>;
+}
+
 export function TrilhaDevolucao({ devolucao, mostrarLinkEsteira = true }: { devolucao: DevolucaoVD; mostrarLinkEsteira?: boolean }) {
-  return <div className="space-y-2 rounded-md border bg-card p-3 text-sm"><div className="flex items-center justify-between"><span className="font-medium">{ROTULO_DEVOLUCAO[devolucao.status]}</span><span className="tabular-nums">{formatBRL(devolucao.valor)}</span></div><div><span className="text-muted-foreground">Solicitada:</span> {dataHora(devolucao.solicitado_em)} · {devolucao.solicitante ?? "—"}</div><div className="text-muted-foreground">{devolucao.motivo_solicitacao}</div>{devolucao.decidido_em && <div><span className="text-muted-foreground">Decidida:</span> {dataHora(devolucao.decidido_em)} · {devolucao.decisor ?? "—"}{devolucao.motivo_decisao ? ` · ${devolucao.motivo_decisao}` : ""}</div>}{devolucao.concluido_em && <div><span className="text-muted-foreground">Concluída:</span> {dataHora(devolucao.concluido_em)} · prova {devolucao.prova_tipo ?? "—"} · {devolucao.prova_ref ?? "—"}</div>}{devolucao.erro && <div className="text-destructive">{devolucao.erro}</div>}<div><span className="text-muted-foreground">Bling:</span> {devolucao.bling_status ?? "sem envio"}{devolucao.bling_erro ? ` · ${devolucao.bling_erro}` : ""}</div><BotoesComprovante devolucao={devolucao} />{mostrarLinkEsteira && <Button asChild variant="link" className="h-auto p-0"><Link to={`/devolucoes?aba=reembolso&pedido=${devolucao.pedido_id}`}>Abrir na esteira de Devoluções</Link></Button>}</div>;
+  return <div className="space-y-2 rounded-md border bg-card p-3 text-sm"><div className="flex items-center justify-between"><span className="font-medium">{ROTULO_DEVOLUCAO[devolucao.status]}</span><span className="tabular-nums">{formatBRL(devolucao.valor)}</span></div><div><span className="text-muted-foreground">Solicitada:</span> {dataHora(devolucao.solicitado_em)} · {devolucao.solicitante ?? "—"}</div><div className="text-muted-foreground">{devolucao.motivo_solicitacao}</div>{devolucao.decidido_em && <div><span className="text-muted-foreground">Decidida:</span> {dataHora(devolucao.decidido_em)} · {devolucao.decisor ?? "—"}{devolucao.motivo_decisao ? ` · ${devolucao.motivo_decisao}` : ""}</div>}{devolucao.concluido_em && <div><span className="text-muted-foreground">Concluída:</span> {dataHora(devolucao.concluido_em)} · prova {devolucao.prova_tipo ?? "—"} · {devolucao.prova_ref ?? "—"}</div>}{devolucao.erro && <div className="text-destructive">{devolucao.erro}</div>}<div><span className="text-muted-foreground">Bling:</span> {devolucao.bling_status ?? "sem envio"}{devolucao.bling_erro ? ` · ${devolucao.bling_erro}` : ""}</div><AnexoDevolucao devolucao={devolucao} /><BotoesComprovante devolucao={devolucao} />{mostrarLinkEsteira && <Button asChild variant="link" className="h-auto p-0"><Link to={`/devolucoes?aba=reembolso&pedido=${devolucao.pedido_id}`}>Abrir na esteira de Devoluções</Link></Button>}</div>;
 }

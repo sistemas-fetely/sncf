@@ -66,6 +66,8 @@ export function CancelamentoReembolsoPainel() {
   const [motivo, setMotivo] = useState("");
   const [e2e, setE2e] = useState("");
   const [obs, setObs] = useState("");
+  const [anexo, setAnexo] = useState<{ path: string; valor: number | null } | null>(null);
+  const [lendo, setLendo] = useState(false);
 
   useEffect(() => { if (q.error) toast.error(rawMessage(q.error)); }, [q.error]);
   useEffect(() => {
@@ -107,10 +109,27 @@ export function CancelamentoReembolsoPainel() {
     },
     onError: async (e) => { toast.error(rawMessage(e)); await atualizar(); },
   });
+  const enviarAnexo = async (file: File | undefined) => {
+    if (!file || !acao) return;
+    setLendo(true);
+    try {
+      const ext = (file.name.split(".").pop() || "bin").toLowerCase();
+      const path = `devolucao/${acao.d.pedido_id}/${Date.now()}.${ext}`;
+      const { error: up } = await supabase.storage.from("comprovantes-pagamento").upload(path, file, { contentType: file.type || undefined, upsert: true });
+      if (up) throw up;
+      const { data: lido, error: fe } = await supabase.functions.invoke("ler-comprovante-pagamento", { body: { storage_path: path } });
+      const l = lido as { chave?: string; valor?: number; error?: string } | null;
+      if (fe || l?.error) throw new Error(l?.error ?? fe?.message ?? "Falha ao ler o comprovante");
+      setAnexo({ path, valor: typeof l?.valor === "number" ? l.valor : null });
+      if (l?.chave) setE2e(l.chave);
+      toast.success("Comprovante lido pela IA — revise o identificador.");
+    } catch (e) { setAnexo(null); toast.error(rawMessage(e)); } finally { setLendo(false); }
+  };
+  const valorDiverge = !!anexo && anexo.valor != null && !!acao && Math.abs(anexo.valor - Number(acao.d.valor)) > 0.009;
   const concluirPix = useMutation({
     mutationFn: async () => {
       if (!acao) return;
-      const { error } = await supabase.rpc("vd_concluir_devolucao" as never, { p_devolucao_id: acao.d.id, p_prova_tipo: "pix_devolucao", p_prova_ref: e2e.trim(), p_obs: obs.trim() || null } as never);
+      const { error } = await supabase.rpc("vd_concluir_devolucao" as never, { p_devolucao_id: acao.d.id, p_prova_tipo: "pix_devolucao", p_prova_ref: e2e.trim(), p_obs: [obs.trim(), anexo ? `anexo: ${anexo.path}` : ""].filter(Boolean).join(" · ") || null } as never);
       if (error) throw error;
     },
     onSuccess: async () => { toast.success("Devolução PIX registrada"); setAcao(null); await atualizar(); },
@@ -130,7 +149,7 @@ export function CancelamentoReembolsoPainel() {
     onSuccess: async () => { toast.success("Situação verificada"); await atualizar(); },
     onError: (e) => toast.error(rawMessage(e)),
   });
-  const abrirAcao = (d: DevolucaoVD, tipo: "aprovar" | "recusar" | "pix") => { setMotivo(""); setE2e(""); setObs(""); setAcao({ d, tipo }); };
+  const abrirAcao = (d: DevolucaoVD, tipo: "aprovar" | "recusar" | "pix") => { setMotivo(""); setE2e(""); setObs(""); setAnexo(null); setAcao({ d, tipo }); };
 
   return (
     <div className="space-y-4">
@@ -164,7 +183,7 @@ export function CancelamentoReembolsoPainel() {
           </Table>
         </div>
       </TabelaFetely>
-      <Dialog open={!!acao} onOpenChange={(v) => !v && setAcao(null)}><DialogContent><DialogHeader><DialogTitle>{acao?.tipo === "pix" ? "Registrar devolução PIX" : acao?.tipo === "recusar" ? "Recusar cancelamento com reembolso" : "Aprovar cancelamento com reembolso"}</DialogTitle><DialogDescription>{acao?.d.pedido?.id_externo} · {formatBRL(acao?.d.valor)}{acao?.tipo === "pix" ? ` · E2E original: ${acao.d.prova_pagamento ?? "—"}` : ""}</DialogDescription></DialogHeader>{acao?.tipo === "pix" ? <div className="space-y-3"><div className="space-y-1"><Label>E2E da devolução *</Label><Input value={e2e} onChange={(e) => setE2e(e.target.value)} /></div><div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div></div> : <div className="space-y-1"><Label>{acao?.tipo === "recusar" ? "Motivo da recusa *" : "Observação"}</Label><Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>}<DialogFooter><Button variant="outline" onClick={() => setAcao(null)}>Voltar</Button><Button variant={acao?.tipo === "recusar" ? "destructive" : "default"} disabled={(acao?.tipo === "recusar" && motivo.trim().length < 5) || (acao?.tipo === "pix" && !e2e.trim()) || decidir.isPending || concluirPix.isPending} onClick={() => acao?.tipo === "pix" ? concluirPix.mutate() : decidir.mutate()}>{(decidir.isPending || concluirPix.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button></DialogFooter></DialogContent></Dialog>
+      <Dialog open={!!acao} onOpenChange={(v) => !v && setAcao(null)}><DialogContent><DialogHeader><DialogTitle>{acao?.tipo === "pix" ? "Registrar devolução PIX" : acao?.tipo === "recusar" ? "Recusar cancelamento com reembolso" : "Aprovar cancelamento com reembolso"}</DialogTitle><DialogDescription>{acao?.d.pedido?.id_externo} · {formatBRL(acao?.d.valor)}{acao?.tipo === "pix" ? ` · E2E original: ${acao.d.prova_pagamento ?? "—"}` : ""}</DialogDescription></DialogHeader>{acao?.tipo === "pix" ? <div className="space-y-3"><div className="space-y-1"><Label>Comprovante da devolução (PDF/imagem) *</Label><Input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" disabled={lendo} onChange={(e) => void enviarAnexo(e.target.files?.[0])} />{lendo && <p className="flex items-center text-xs text-muted-foreground"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Lendo comprovante…</p>}{anexo && <p className="text-xs text-muted-foreground">Anexado · valor lido {anexo.valor != null ? formatBRL(anexo.valor) : "—"}</p>}{valorDiverge && <p className="text-xs text-warning">Valor lido ({formatBRL(anexo?.valor)}) diferente da devolução ({formatBRL(acao?.d.valor)}). Explique na observação.</p>}</div><div className="space-y-1"><Label>E2E / ID da devolução *</Label><Input value={e2e} onChange={(e) => setE2e(e.target.value)} /></div><div className="space-y-1"><Label>Observação</Label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div></div> : <div className="space-y-1"><Label>{acao?.tipo === "recusar" ? "Motivo da recusa *" : "Observação"}</Label><Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>}<DialogFooter><Button variant="outline" onClick={() => setAcao(null)}>Voltar</Button><Button variant={acao?.tipo === "recusar" ? "destructive" : "default"} disabled={(acao?.tipo === "recusar" && motivo.trim().length < 5) || (acao?.tipo === "pix" && (!e2e.trim() || !anexo || lendo || (valorDiverge && obs.trim().length < 5))) || decidir.isPending || concluirPix.isPending} onClick={() => acao?.tipo === "pix" ? concluirPix.mutate() : decidir.mutate()}>{(decidir.isPending || concluirPix.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button></DialogFooter></DialogContent></Dialog>
     </div>
   );
 }

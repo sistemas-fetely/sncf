@@ -1,3 +1,4 @@
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
@@ -33,7 +34,7 @@ import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import {
-  ConfirmarCartaoDialog, ConfirmarPixManualDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, type LinhaVD,
+  RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
@@ -179,11 +180,10 @@ export default function VendaDiretaGestao() {
   const [filtroPagamento, setFiltroPagamento] = useState<FiltroPagamento>("todos");
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
-  const [cartao, setCartao] = useState<Linha | null>(null);
+  const [confManual, setConfManual] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
   const [entrega, setEntrega] = useState<Linha | null>(null);
   const [pix, setPix] = useState<Linha | null>(null);
-  const [pixManual, setPixManual] = useState<Linha | null>(null);
   const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
   const [remontar, setRemontar] = useState<Linha | null>(null);
   const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
@@ -287,8 +287,8 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "aguardando_pagamento") {
       if (l.pagamento === "cartao" || (l.pagamento === "pix" && cfgPixNoLink)) a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
-      if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setCartao(l) });
-      if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setPixManual(l), disabled: !l.provisao_id });
+      if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l) });
+      if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l), disabled: !l.provisao_id });
     }
     if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em) a.push({ k: "trocar", label: "Trocar meio de pagamento", icon: ArrowLeftRight, onClick: () => setTrocarMeio(l) });
     if (l.pagamento_desatualizado) a.push({ k: "remontar", label: "Remontar pagamento", icon: RefreshCw, onClick: () => setRemontar(l) });
@@ -579,7 +579,6 @@ export default function VendaDiretaGestao() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ConfirmarCartaoDialog linha={cartao} onClose={fechar(setCartao)} />
       <RegistrarRetiradaDialog linha={retirada} onClose={fechar(setRetirada)} />
       <RegistrarEntregaDialog linha={entrega} onClose={fechar(setEntrega)} />
       <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); void invalidarVendaDireta(qc); }} />
@@ -589,7 +588,15 @@ export default function VendaDiretaGestao() {
         onPix={(l, payload) => { setPixNovo(payload); setPix(l); }}
         onCartao={(l) => setLinkCartao(l)}
       />
-      <ConfirmarPixManualDialog linha={pixManual} onClose={fechar(setPixManual)} />
+      {confManual && (
+        <ConfirmarPagamentoDialog
+          pedidoId={confManual.id}
+          provisaoId={confManual.provisao_id ?? undefined}
+          aberto={!!confManual}
+          modo="sops"
+          aoFechar={() => { setConfManual(null); void invalidarVendaDireta(qc); }}
+        />
+      )}
       <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
       <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
