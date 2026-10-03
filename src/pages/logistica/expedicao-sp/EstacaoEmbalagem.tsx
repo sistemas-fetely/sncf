@@ -10,7 +10,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  cepDoEndereco, modalSugerido,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  cepDoEndereco, modalSugerido, rotuloEntregaVendaDireta,
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 
@@ -27,7 +31,11 @@ import {
  * gravado, não estado de tela: o operador sai, volta e encontra o que marcou.
  */
 interface Props {
+  pedidoId: string;
   enderecoEntrega: unknown;
+  /** Preenchido somente para venda direta; nos demais pedidos vale a regra de CEP. */
+  modoVendaDireta: string | null;
+  modalVendaDireta: string | null;
   itens: ItemPedidoMesa[];
   modais: ModalEntrega[];
   regras: ModalRegra[];
@@ -47,13 +55,14 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  enderecoEntrega, itens, modais, regras, checklist,
+  pedidoId, enderecoEntrega, modoVendaDireta, modalVendaDireta, itens, modais, regras, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
   caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
+  const [modalPendente, setModalPendente] = useState<string | null>(null);
   const [caixa, setCaixa] = useState<string | null>(null);
 
   const marcadosSet = useMemo(() => new Set(marcados), [marcados]);
@@ -68,7 +77,7 @@ export function EstacaoEmbalagem({
   }, [sugeridaCodigo, caixa]);
 
   const cep = cepDoEndereco(enderecoEntrega);
-  const sugerido = modalSugerido(cep, regras);
+  const sugerido = modoVendaDireta ? modalVendaDireta : modalSugerido(cep, regras);
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
   const caixaDiferenteDaSugerida =
@@ -77,10 +86,17 @@ export function EstacaoEmbalagem({
   // A sugestão preenche uma vez, quando as dimensões chegam. Depois disso quem
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
   useEffect(() => {
-    if (modal !== "" || !sugerido) return;
-    if (!modais.some((m) => m.codigo === sugerido)) return;
-    setModal(sugerido);
-  }, [sugerido, modais, modal]);
+    setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
+    setModalPendente(null);
+  }, [pedidoId, sugerido, modais]);
+
+  function escolherModal(proximo: string) {
+    if (modoVendaDireta && sugerido && proximo !== sugerido) {
+      setModalPendente(proximo);
+      return;
+    }
+    setModal(proximo);
+  }
 
   const itensDoModal = useMemo(
     () => checklist.filter((i) => i.modal_codigo === modal),
@@ -219,7 +235,7 @@ export function EstacaoEmbalagem({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={setModal}>
+            <Select value={modal} onValueChange={escolherModal}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>
@@ -235,7 +251,9 @@ export function EstacaoEmbalagem({
         </div>
 
         <p className="text-xs text-muted-foreground">
-          {cep
+          {modoVendaDireta
+            ? `Venda feita com ${rotuloEntregaVendaDireta(modoVendaDireta)}${sugerido ? ` · modal sugerido ${sugerido}` : " · sem modal mapeado"}`
+            : cep
             ? `CEP de entrega ${cep}${sugerido ? ` · regra sugere ${sugerido}` : " · sem regra aplicável"}`
             : "Pedido sem CEP legível no endereço de entrega — a sugestão caiu na regra default."}
         </p>
@@ -297,6 +315,27 @@ export function EstacaoEmbalagem({
           )}
         </div>
       </CardContent>
+      <AlertDialog open={modalPendente !== null} onOpenChange={(aberto) => !aberto && setModalPendente(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar o modal da venda?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A venda foi feita com {rotuloEntregaVendaDireta(modoVendaDireta)}. Trocar mesmo?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Manter modal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (modalPendente) setModal(modalPendente);
+                setModalPendente(null);
+              }}
+            >
+              Trocar modal
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -88,6 +88,14 @@ export interface ModalEntrega {
   nome: string;
   tem_rastreio_automatico: boolean;
   exige_etiqueta_correios: boolean;
+  /** Modal encerrado fora da Mesa (ex.: retirada registrada em Pedidos Site SP). */
+  sem_despacho: boolean;
+}
+
+/** Mapeamento mantido no banco entre a entrega vendida e o modal da bancada. */
+export interface VdModoModal {
+  modo: string;
+  modal_codigo: string;
 }
 
 /**
@@ -136,6 +144,30 @@ export function embalagemDoPedido(eventos: EventoMesa[]): EmbalagemRegistrada | 
     volumes: numero(meta.volumes),
     criado_em: embalado.criado_em,
   };
+}
+
+/** Pedido de venda direta do Site SP, identificado pelo número canônico VD-. */
+export function pedidoEhVendaDireta(idExterno: string): boolean {
+  return idExterno.toUpperCase().startsWith("VD-");
+}
+
+/** Modo escolhido na venda, gravado em `endereco_entrega.modal`. */
+export function modoEntregaVendaDireta(endereco: unknown): string | null {
+  if (!endereco || typeof endereco !== "object") return null;
+  const valor = (endereco as Record<string, unknown>).modal;
+  return typeof valor === "string" && valor.trim() !== "" ? valor.trim().toLowerCase() : null;
+}
+
+const ROTULO_ENTREGA_VD: Record<string, string> = {
+  retirada: "Retirada",
+  sedex: "SEDEX",
+  pac: "PAC",
+  frete_fetely: "Frete Fetely",
+};
+
+export function rotuloEntregaVendaDireta(modo: string | null): string {
+  if (!modo) return "Entrega não informada";
+  return ROTULO_ENTREGA_VD[modo] ?? modo;
 }
 
 export interface ModalRegra {
