@@ -142,9 +142,13 @@ function PaginaResumo({ representante, serie, competencia, pagarAte }: { represe
             {representante.regiao && (
               <p className="text-[8.5pt] text-muted-foreground">Região: {representante.regiao}</p>
             )}
+            {representante.primeira_venda && (
+              <p className="text-[7.5pt] text-muted-foreground">Representante desde {fmtData(representante.primeira_venda)}</p>
+            )}
         </div>
         <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-[7.5pt]">
-          <dt className="text-muted-foreground">Relacionamento</dt><dd className="text-right tabular-nums">{periodo}</dd>
+          <dt className="text-muted-foreground">Competência</dt><dd className="text-right tabular-nums">{periodo}</dd>
+          <dt className="text-muted-foreground">Pagamento até</dt><dd className="text-right tabular-nums">{fmtData(pagamentoAte)}</dd>
           <dt className="text-muted-foreground">Emissão</dt><dd className="text-right tabular-nums">{fmtData(hojeISO())}</dd>
         </dl>
       </section>
