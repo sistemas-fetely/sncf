@@ -380,6 +380,7 @@ export default function GerencialImpressao() {
           <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
             Nenhuma comissão apurada em {rotulo}.
           </div>
+          <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />
           <Rodape pagina={1} total={1} />
         </section>
       </main>

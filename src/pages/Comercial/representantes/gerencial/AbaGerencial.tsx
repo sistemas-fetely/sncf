@@ -261,12 +261,13 @@ export function AbaGerencial() {
                 )}
               </CardContent>
             </Card>
-          <BlocoPagamentoMes competencia={competencia} rotulo={rotulo} />
           <p className="text-xs text-muted-foreground">
             Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
           </p>
         </>
       )}
+
+      {!g.carregando && !g.erro && <BlocoPagamentoMes competencia={competencia} rotulo={rotulo} />}
     </div>
   );
 }
