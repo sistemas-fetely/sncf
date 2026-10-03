@@ -72626,6 +72626,7 @@ export type Database = {
         Row: {
           atualizado_em: string
           charge_id: string | null
+          comprovante_token: string | null
           concluido_em: string | null
           decidido_em: string | null
           decidido_por: string | null
@@ -72648,6 +72649,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           charge_id?: string | null
+          comprovante_token?: string | null
           concluido_em?: string | null
           decidido_em?: string | null
           decidido_por?: string | null
@@ -72670,6 +72672,7 @@ export type Database = {
         Update: {
           atualizado_em?: string
           charge_id?: string | null
+          comprovante_token?: string | null
           concluido_em?: string | null
           decidido_em?: string | null
           decidido_por?: string | null
@@ -127045,6 +127048,10 @@ export type Database = {
           _user_id: string
         }
         Returns: string
+      }
+      obter_comprovante_reembolso_publico: {
+        Args: { p_token: string }
+        Returns: Json
       }
       obter_destinatario_pagamento: {
         Args: { p_cpr_id: string }
