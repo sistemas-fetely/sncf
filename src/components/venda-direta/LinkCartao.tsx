@@ -13,6 +13,10 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { SeloConfirmacaoAutomatica } from "@/components/venda-direta/PixSafrapay";
+import { PixPagamento } from "@/components/venda-direta/PixPagamento";
+
+export type MeioLink = "pix" | "cartao";
 
 export interface LinkCartaoOk { ok: true; url: string; expira_em: string; max_parcelas: number; parcelas_padrao?: number; pagamento_link_id: string }
 
@@ -53,20 +57,20 @@ export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}
 
 /** Rótulo curto da forma de pagamento (coluna/selo da Gestão e resumo do pedido). */
 export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined, _pixNoLink?: boolean) {
-  if (forma === "pix") return "PIX QR Code";
-  if (forma === "cartao") return "Link de pagamento";
+  if (forma === "pix") return "PIX";
+  if (forma === "cartao") return "Cartão";
   return "—";
 }
 
 /** Rótulo e legenda das opções de pagamento da tela Novo pedido. */
 export function rotulosOpcaoPagamento(pixNoLink: boolean, parcelas = 3) {
   return {
-    cartao: pixNoLink ? "Link de pagamento · cartão ou PIX" : "Link de pagamento",
-    cartaoLegenda: pixNoLink
-      ? `O cliente escolhe cartão (até ${parcelas}x) ou PIX na página do Safrapay · vale 30 dias · confirma sozinho`
-      : `Cartão de crédito (até ${parcelas}x) · vale 30 dias · confirma sozinho`,
-    pix: "Só QR Code PIX",
-    pixLegenda: "QR na chave da Fetely, sem prazo · sem confirmação automática (confirma pelo extrato)",
+    cartao: "Cartão de crédito",
+    cartaoLegenda: `Link Safrapay · até ${parcelas}x · vale 30 dias · confirma sozinho`,
+    pix: "PIX",
+    pixLegenda: pixNoLink
+      ? "Link Safrapay com QR PIX · vale 30 dias · confirma sozinho"
+      : "QR na chave da Fetely · confirma pelo extrato",
   };
 }
 
@@ -114,20 +118,22 @@ export async function chamarEdge<T>(nome: string, body: unknown): Promise<T> {
 const fmtDataHora = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
-function whatsappUrl(telefone: string | null | undefined, nome: string | null | undefined, vd: string | null, total: number | null, n: number, url: string, pixNoLink = false) {
+function whatsappUrl(telefone: string | null | undefined, nome: string | null | undefined, vd: string | null, total: number | null, n: number, url: string, meio: MeioLink = "cartao") {
   const t = (telefone ?? "").replace(/\D/g, "");
   if (t.length < 10) return null;
   const tel = t.length <= 11 ? `55${t}` : t;
   const primeiro = (nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. ${pixNoLink ? `Pague com cartão ${n <= 1 ? "à vista" : `em até ${n}x`} ou PIX` : `Pague com cartão ${textoParcelas(n)}`} neste link: ${url}`;
+  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. ${meio === "pix" ? "Pague com PIX" : `Pague com cartão ${textoParcelas(n)}`} neste link: ${url}`;
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
 
-function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null }) {
-  const pixNoLink = useCfgParcelas().data?.pix_no_link === true;
+function LinkBloco({ url, maxParcelas, expiraEm, wa, meio }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null; meio: MeioLink }) {
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{pixNoLink ? "Link de pagamento (cartão ou PIX)" : "Link de pagamento"} ({textoParcelas(maxParcelas)})</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm font-medium">{meio === "pix" ? "Link de pagamento · PIX" : `Link de pagamento · cartão (${textoParcelas(maxParcelas)})`}</p>
+        <SeloConfirmacaoAutomatica />
+      </div>
       <div className="flex gap-2">
         <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
         <Button
@@ -149,20 +155,22 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcela
   );
 }
 
-export const AVISO_409 = "Link de cartão indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
+export const AVISO_409 = "Link de pagamento indisponível — integração Safrapay aguardando ativação. O Financeiro confirma o pagamento manualmente.";
 
 /** Painel da tela Novo pedido: gera o link automaticamente. */
-export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas }: {
+export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas, meio = "cartao", pixLocal }: {
   pedidoId: string; idExterno: string | null; total: number | null; clienteNome: string | null; telefone: string | null; maxParcelas?: number;
+  meio?: MeioLink;
+  /** PIX: QR local (chave da Fetely) — recolhido quando o link sai; aberto como fallback se falhar. */
+  pixLocal?: { payload: string | null; link: string | null };
 }) {
-  const cfgPix = useCfgParcelas().data?.pix_no_link === true;
   const [estado, setEstado] = useState<{ fase: "carregando" } | { fase: "ok"; r: LinkCartaoOk } | { fase: "off" } | { fase: "erro"; msg: string }>({ fase: "carregando" });
   const pedidoRef = useRef<string | null>(null);
 
   const gerar = async () => {
     setEstado({ fase: "carregando" });
     try {
-      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: pedidoId, ...(maxParcelas ? { max_parcelas: maxParcelas } : {}) });
+      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: pedidoId, ...(meio === "cartao" && maxParcelas ? { max_parcelas: maxParcelas } : {}) });
       setEstado({ fase: "ok", r });
     } catch (e) {
       if (e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message)) setEstado({ fase: "off" });
@@ -178,7 +186,24 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
   }, [pedidoId]);
 
   if (estado.fase === "carregando")
-    return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando link do cartão…</p>;
+    return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando link de pagamento…</p>;
+  const nome = (clienteNome ?? "").trim().split(/\s+/)[0] ?? "";
+  const tel = (telefone ?? "").replace(/\D/g, "");
+  const waLocal = pixLocal?.link && tel.length >= 10
+    ? `https://wa.me/${tel.length <= 11 ? `55${tel}` : tel}?text=${encodeURIComponent(`Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${pixLocal.link}`)}`
+    : null;
+  if (meio === "pix" && pixLocal && estado.fase !== "ok") {
+    const msg = estado.fase === "off" ? "integração aguardando ativação" : estado.msg;
+    return (
+      <div className="space-y-3">
+        <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning-strong">
+          Link PIX indisponível ({msg}) — usando QR na conta; confirmação pelo extrato.
+        </div>
+        <Button variant="outline" size="sm" onClick={gerar}><RefreshCw className="h-4 w-4" /> Tentar o link de novo</Button>
+        <PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} />
+      </div>
+    );
+  }
   if (estado.fase === "off") return <p className="text-sm text-warning">{AVISO_409}</p>;
   if (estado.fase === "erro")
     return (
@@ -188,7 +213,17 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
       </div>
     );
   const r = estado.r;
-  return <LinkBloco url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, cfgPix)} />;
+  const bloco = <LinkBloco meio={meio} url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, meio)} />;
+  if (meio !== "pix" || !pixLocal) return bloco;
+  return (
+    <div className="space-y-4">
+      {bloco}
+      <details className="rounded-md border bg-card p-3">
+        <summary className="cursor-pointer text-sm text-muted-foreground">QR direto na conta da Fetely (sem confirmação automática)</summary>
+        <div className="pt-3"><PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} /></div>
+      </details>
+    </div>
+  );
 }
 
 interface PagamentoLink {
@@ -207,7 +242,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const [resultado, setResultado] = useState<string | null>(null);
   const [parcelas, setParcelas] = useState<number | null>(null);
   const cfgQ = useCfgParcelas();
-  const cfgDlgPix = cfgQ.data?.pix_no_link === true;
+  const meioDlg: MeioLink = linha?.pagamento === "pix" ? "pix" : "cartao";
 
   useEffect(() => { setResultado(null); setParcelas(null); }, [linha?.id]);
 
@@ -235,8 +270,8 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     if (!linha) return;
     setOcupado("gerar"); setResultado(null);
     try {
-      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, max_parcelas: parcelasEfetivas });
-      toast.success(`Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
+      const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, ...(meioDlg === "cartao" ? { max_parcelas: parcelasEfetivas } : {}) });
+      toast.success(meioDlg === "pix" ? "Novo link PIX gerado" : `Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
       setParcelas(null);
       qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
     } catch (e) {
@@ -274,7 +309,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{cfgDlgPix ? "Link de pagamento (cartão ou PIX)" : "Link de pagamento"} · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "PIX" : "cartão"} · {linha?.id_externo}</DialogTitle>
           <DialogDescription>{linha?.cliente_nome} · {formatBRL(linha?.valor_liquido ?? null)}</DialogDescription>
         </DialogHeader>
         {q.isLoading ? (
@@ -293,10 +328,11 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
             {l.erro && <p className="text-sm text-destructive">{l.erro}</p>}
             {vigente ? (
               <LinkBloco
+                meio={meioDlg}
                 url={l.url!}
                 maxParcelas={l.max_parcelas ?? 1}
                 expiraEm={l.expira_em}
-                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!, cfgDlgPix)}
+                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!, meioDlg)}
               />
             ) : l.url ? (
               <p className="break-all text-sm text-muted-foreground">{l.url} · vale até {fmtDataHora(l.expira_em)}</p>
@@ -309,10 +345,12 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
           <Button variant="outline" disabled={!!ocupado} onClick={verificar}>
             {ocupado === "verificar" && <Loader2 className="h-4 w-4 animate-spin" />} Verificar pagamento agora
           </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Parcelas no link</span>
-            <SelectParcelas value={parcelasEfetivas} onChange={setParcelas} disabled={!!ocupado} />
-          </div>
+          {meioDlg === "cartao" && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Parcelas no link</span>
+              <SelectParcelas value={parcelasEfetivas} onChange={setParcelas} disabled={!!ocupado} />
+            </div>
+          )}
           <Button variant="outline" disabled={!!ocupado} onClick={gerarNovo}>
             {ocupado === "gerar" && <Loader2 className="h-4 w-4 animate-spin" />} Gerar novo link
           </Button>
