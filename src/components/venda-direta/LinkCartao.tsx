@@ -136,6 +136,7 @@ export const AVISO_409 = "Link de cartão indisponível — integração Safrapa
 export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, telefone, maxParcelas }: {
   pedidoId: string; idExterno: string | null; total: number | null; clienteNome: string | null; telefone: string | null; maxParcelas?: number;
 }) {
+  const cfgPix = useCfgParcelas().data?.pix_no_link === true;
   const [estado, setEstado] = useState<{ fase: "carregando" } | { fase: "ok"; r: LinkCartaoOk } | { fase: "off" } | { fase: "erro"; msg: string }>({ fase: "carregando" });
   const pedidoRef = useRef<string | null>(null);
 
@@ -187,6 +188,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const [resultado, setResultado] = useState<string | null>(null);
   const [parcelas, setParcelas] = useState<number | null>(null);
   const cfgQ = useCfgParcelas();
+  const cfgDlgPix = cfgQ.data?.pix_no_link === true;
 
   useEffect(() => { setResultado(null); setParcelas(null); }, [linha?.id]);
 
