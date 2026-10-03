@@ -258,7 +258,7 @@ export default function RetornoDevolucao() {
         <CasaPageHeader
           breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções" }]}
           title="Devoluções"
-          subtitle="Funil completo: da abertura ao encerramento. Retorno parcial é normal."
+          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <Button variant="outline" size="sm" onClick={() => { void funilQ.refetch(); void pendQ.refetch(); }} disabled={isFetching} className="gap-2">
               <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />Atualizar
@@ -268,9 +268,9 @@ export default function RetornoDevolucao() {
 
         <Tabs value={aba} onValueChange={setAba}>
           <TabsList>
-            <TabsTrigger value="funil">Funil</TabsTrigger>
+            <TabsTrigger value="funil">Cancelamento com NF</TabsTrigger>
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
-            <TabsTrigger value="reembolso">Cancelamento com reembolso{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
+            <TabsTrigger value="reembolso">Cancelamento sem NF{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
           </TabsList>
           <TabsContent value="funil" className="mt-4">
         <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 lg:grid-cols-5">
