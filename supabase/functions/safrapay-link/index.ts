@@ -67,13 +67,16 @@ function montarCustomer(parceiro: any, pedido: any, avisos: string[]) {
 }
 
 /** Lê supportedPaymentTypes (strings, ou objetos por compatibilidade) e diz se "Credit" está disponível. */
-function temCredito(corpo: any): boolean {
+function temTipo(corpo: any, nome: string): boolean {
   const lista: any[] = corpo?.supportedPaymentTypes ?? corpo?.data?.supportedPaymentTypes ?? corpo?.paymentTypes ?? (Array.isArray(corpo) ? corpo : []);
   if (!Array.isArray(lista)) return false;
   return lista.some((t) => {
     const v = typeof t === "string" ? t : (t?.name ?? t?.type ?? t?.value ?? t?.code ?? "");
-    return String(v).trim().toLowerCase() === "credit";
+    return String(v).trim().toLowerCase() === nome;
   });
+}
+function temCredito(corpo: any): boolean {
+  return temTipo(corpo, "credit");
 }
 
 /** DELETE no Safra falhou só porque o link já não é pagável (expirado/cancelado/pago)? */
@@ -200,6 +203,10 @@ Deno.serve(async (req) => {
     if (!rT.ok) return await falhar(`Consultar tipos de pagamento: ${msgApi(cT, rT.status)}`);
     if (!temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
     const tipos = ["Credit"];
+    if ((cfg as any).pix_no_link === true) {
+      if (temTipo(cT, "pix")) tipos.push("Pix");
+      else avisos.push("PIX não habilitado no Safrapay — link só com cartão");
+    }
 
     // Cancelar no Safra o(s) link(s) anterior(es) antes de criar o novo — nunca dois links pagáveis.
     if (cancelarNoSafra.length) {

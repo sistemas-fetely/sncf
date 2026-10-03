@@ -202,6 +202,7 @@ export default function VendaDiretaNovo() {
   const total = Math.max(valorItens - ben.desconto, 0) + freteCobrado;
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
+  const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
   const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
 
@@ -572,7 +573,7 @@ export default function VendaDiretaNovo() {
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? "PIX" : `Cartão · até ${parcelasLink}x`}
+                {pagamento === "pix" ? "PIX" : `Cartão · até ${parcelasLink}x${cfgPixNoLink ? " ou PIX" : ""}`}
               </p>
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>

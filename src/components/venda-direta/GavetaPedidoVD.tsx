@@ -27,7 +27,7 @@ export interface LinhaGaveta {
 interface Item { id: string; sku: string; descricao: string | null; quantidade: number; valor_unitario: number | null; subtotal: number | null }
 interface Prod { sku: string; cod_cadastro: string | null; nome_comercial: string | null }
 interface Evento { id: string; criado_em: string; tipo_evento: string; descricao: string | null }
-interface Link { status: string; url: string | null; max_parcelas: number | null; expira_em: string | null; nsu: string | null; pago_em: string | null }
+interface Link { status: string; url: string | null; max_parcelas: number | null; expira_em: string | null; nsu: string | null; pago_em: string | null; erro: string | null }
 
 const dataHora = (s: string | null | undefined) =>
   s ? new Date(s).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—";
@@ -102,7 +102,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
     enabled: !!id && linha?.pagamento === "cartao",
     queryFn: async () => {
       const { data, error } = await supabase.from("pagamento_link" as never)
-        .select("status, url, max_parcelas, expira_em, nsu, pago_em").eq("pedido_id", id as string)
+        .select("status, url, max_parcelas, expira_em, nsu, pago_em, erro").eq("pedido_id", id as string)
         .order("criado_em", { ascending: false }).limit(1).maybeSingle();
       if (error) throw error;
       return (data ?? null) as unknown as Link | null;
@@ -199,6 +199,9 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
                   <Par k="Link" v="Nenhum link gerado" />
                 ) : (
                   <>
+                    {linkQ.data.erro?.startsWith("Pago via PIX no link") && (
+                      <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-strong">{linkQ.data.erro}</p>
+                    )}
                     <Par k="Link" v={linkQ.data.status} />
                     <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />
                     <Par k="Validade" v={linkQ.data.expira_em ? `vale até ${dataHora(linkQ.data.expira_em)}` : "—"} />
