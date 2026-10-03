@@ -137,44 +137,43 @@ function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean })
   );
 }
 
+function periodoCompetencia(comp: unknown) {
+  const m = /^(\d{4})-(\d{2})/.exec(String(comp ?? ""));
+  if (!m) return null;
+  const ini = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 2, 1));
+  const fim = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, 0));
+  const p2 = (n: number) => String(n).padStart(2, "0");
+  return `Competência 01/${p2(ini.getUTCMonth() + 1)} a ${p2(fim.getUTCDate())}/${p2(fim.getUTCMonth() + 1)}/${fim.getUTCFullYear()}`;
+}
+
 function SituacaoFinanceira({ k }: { k: Linha }) {
-  const destaque = (l: string, val: unknown) => (
-    <div><div className="text-xs text-muted-foreground">{l}</div>
-      <div className={cn("mt-1 text-lg font-medium tabular-nums", Number(val ?? 0) === 0 && "text-muted-foreground/50")}>{fmtBRL(Number(val ?? 0))}</div></div>
+  const n = (x: unknown) => Number(x ?? 0);
+  const linha = (rotulo: string, val: unknown, opts: { nota?: ReactNode; sub?: boolean; destaque?: boolean; destructive?: boolean } = {}) => (
+    <div className={cn("grid grid-cols-[1fr_auto_minmax(0,1.3fr)] items-baseline gap-x-4 py-1", opts.sub && "pl-4")}>
+      <span className={cn(opts.sub ? "text-sm text-muted-foreground" : "text-sm", opts.destaque && "text-base font-medium")}>{rotulo}</span>
+      <span className={cn("text-right tabular-nums", opts.destaque ? "text-base font-medium" : "text-sm",
+        opts.destructive ? "text-destructive" : n(val) === 0 && "text-muted-foreground/50")}>{fmtBRL(n(val))}</span>
+      <span className="text-xs text-muted-foreground">{opts.nota}</span>
+    </div>
   );
-  const estorno = Number(k.estorno_a_compensar ?? 0);
+  const vencido = n(k.comissao_travada_inadimplencia);
+  const aVencer = n(k.a_receber_depende_do_cliente) - vencido;
+  const competencia = periodoCompetencia(k.proximo_recebimento_competencia);
+  const notaProx = [k.proximo_recebimento_data ? fmtData(k.proximo_recebimento_data) : null, competencia].filter(Boolean).join(" · ");
   return (
     <Card className="break-inside-avoid">
       <CardHeader className="pb-2"><CardTitle className="text-sm">Situação financeira</CardTitle></CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-4 text-sm">
-        {destaque("Recebida", k.comissao_recebida)}
-        <div><div className="text-xs text-muted-foreground">Último pagamento</div>
-          <div className="mt-1">{k.ultimo_pagamento ? new Date(k.ultimo_pagamento).toLocaleDateString("pt-BR") : "Nunca recebeu"}</div></div>
-        <div>
-          {destaque("A receber", k.comissao_a_receber)}
-          <div className="mt-1 pl-3 text-xs text-muted-foreground space-y-0.5">
-            <div className="flex justify-between gap-2"><span>Direito adquirido — cliente já pagou</span>
-              <span className="tabular-nums">{fmtBRL(Number(k.a_receber_direito_adquirido ?? 0))}</span></div>
-            <div className="flex justify-between gap-2"><span>Depende do cliente pagar</span>
-              <span className="tabular-nums">{fmtBRL(Number(k.a_receber_depende_do_cliente ?? 0))}</span></div>
-          </div>
-        </div>
-        <div>
-          {destaque("Próximo recebimento", k.proximo_recebimento)}
-          <div className="text-xs text-muted-foreground">
-            {k.proximo_recebimento_data && <div>{fmtData(k.proximo_recebimento_data)}</div>}
-            {k.proximo_recebimento_competencia && <div>Competência {fmtCompetencia(String(k.proximo_recebimento_competencia))}</div>}
-          </div>
-        </div>
-        <div><div className="text-xs text-muted-foreground">Cliente pagou, aguardando liberação</div>
-          <div className="tabular-nums">{fmtBRL(Number(k.a_liberar_cliente_ja_pagou ?? 0))}</div></div>
-        {estorno > 0 && (
-          <div><div className="text-xs text-muted-foreground">Estorno a compensar</div>
-            <div className="tabular-nums text-destructive">{fmtBRL(estorno)}</div></div>
-        )}
-        {k.bloqueio_pagamento === true && (
-          <p className="sm:col-span-4 text-xs text-warning">{String(k.bloqueio_motivo ?? "")}</p>
-        )}
+      <CardContent className="max-w-2xl divide-y-0">
+        {linha("Recebida", k.comissao_recebida, {
+          nota: k.ultimo_pagamento ? `Último pagamento ${new Date(k.ultimo_pagamento).toLocaleDateString("pt-BR")}` : "Nunca recebeu" })}
+        {linha("A receber", k.comissao_a_receber, { destaque: true })}
+        {linha("Cliente pagou", k.a_receber_direito_adquirido, {
+          sub: true, nota: k.proximo_recebimento_data ? `pagar até ${fmtData(k.proximo_recebimento_data)}` : undefined })}
+        {linha("A vencer", aVencer, { sub: true })}
+        {vencido > 0 && linha("Vencido (cliente atrasou)", vencido, { sub: true, destructive: true })}
+        {linha("Próximo recebimento", k.proximo_recebimento, { nota: notaProx })}
+        {n(k.estorno_a_compensar) > 0 && linha("Estorno a compensar", k.estorno_a_compensar, { destructive: true })}
+        {n(k.a_liberar_cliente_ja_pagou) > 0 && linha("Cliente pagou, aguardando liberação", k.a_liberar_cliente_ja_pagou)}
       </CardContent>
     </Card>
   );
