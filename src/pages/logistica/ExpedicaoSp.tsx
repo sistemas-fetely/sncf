@@ -19,13 +19,13 @@ import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
   ESTACOES, ESTAGIO_FILA, ROTULO_ESTACAO,
-  embalagemDoPedido, estacaoBase,
+  embalagemDoPedido, estacaoBase, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
   useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
-  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal,
+  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
@@ -53,6 +53,7 @@ export default function ExpedicaoSp() {
   const identidadesQ = useIdentidadesMesaSp(pedidos.map((p) => p.id));
   const modaisQ = useModaisEntrega();
   const regrasQ = useRegrasModal();
+  const vdModosQ = useVdModosModal();
 
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   /**
@@ -87,7 +88,16 @@ export default function ExpedicaoSp() {
     const estacao = estacaoDe.get(p.id);
     return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem";
   });
-  const aguardandoColeta = pedidos.filter((p) => estacaoDe.get(p.id) === "despacho");
+  const modalPorCodigo = useMemo(
+    () => new Map((modaisQ.data ?? []).map((modal) => [modal.codigo, modal])),
+    [modaisQ.data],
+  );
+  const prontos = pedidos.filter((p) => estacaoDe.get(p.id) === "despacho");
+  const aguardandoRetirada = prontos.filter((p) => {
+    const codigo = embalagemDoPedido(eventosPorPedido.get(p.id) ?? [])?.modal;
+    return codigo ? modalPorCodigo.get(codigo)?.sem_despacho === true : false;
+  });
+  const prontosDespacho = prontos.filter((p) => !aguardandoRetirada.some((r) => r.id === p.id));
 
   /** Pedidos da mesa agrupados por estação, na ordem da bancada. */
   const gruposMesa = useMemo(
@@ -102,13 +112,21 @@ export default function ExpedicaoSp() {
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
-    setSelecionadoId(naMesa[0]?.id ?? aguardandoColeta[0]?.id ?? fila[0]?.id ?? null);
-  }, [pedidos, naMesa, aguardandoColeta, fila, selecionadoId]);
+    setSelecionadoId(naMesa[0]?.id ?? aguardandoRetirada[0]?.id ?? prontosDespacho[0]?.id ?? fila[0]?.id ?? null);
+  }, [pedidos, naMesa, aguardandoRetirada, prontosDespacho, fila, selecionadoId]);
 
   const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
   const identidadesSelecionado = selecionado ? identidadesQ.data?.get(selecionado.id) : undefined;
   const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
+  const selecionadoEhVD = selecionado ? pedidoEhVendaDireta(selecionado.id_externo) : false;
+  const modoEntregaSelecionado = selecionadoEhVD ? modoEntregaVendaDireta(selecionado?.endereco_entrega) : null;
+  const modalVdSelecionado = modoEntregaSelecionado
+    ? vdModosQ.data?.find((item) => item.modo.toLowerCase() === modoEntregaSelecionado)?.modal_codigo ?? null
+    : null;
+  const selecionadoAguardandoRetirada = selecionado
+    ? aguardandoRetirada.some((pedido) => pedido.id === selecionado.id)
+    : false;
 
   const itensQ = useItensPedidoMesa(selecionado?.id ?? null);
   // Fotos de conferência visual por SKU — se a leitura falhar, a mesa segue sem fotos.
@@ -138,7 +156,7 @@ export default function ExpedicaoSp() {
    */
   const gruposColeta = useMemo<GrupoColeta[]>(() => {
     const porModal = new Map<string, GrupoColeta>();
-    for (const p of aguardandoColeta) {
+    for (const p of prontosDespacho) {
       const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
       if (!emb) continue;
       const codigo = emb.modal ?? "SEM_MODAL";
@@ -147,6 +165,7 @@ export default function ExpedicaoSp() {
         modalCodigo: codigo,
         modalNome: dim?.nome ?? (emb.modal ?? "Modal não registrado"),
         temRastreioAutomatico: dim?.tem_rastreio_automatico ?? false,
+        semDespacho: dim?.sem_despacho ?? false,
         caixas: [],
       };
       grupo.caixas.push({
@@ -163,7 +182,7 @@ export default function ExpedicaoSp() {
     const grupos = [...porModal.values()];
     for (const g of grupos) g.caixas.sort((a, b) => a.embaladoEm.localeCompare(b.embaladoEm));
     return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
-  }, [aguardandoColeta, eventosPorPedido, modaisQ.data]);
+  }, [prontosDespacho, eventosPorPedido, modaisQ.data]);
 
   /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
   const contadores = useMemo(() => {
@@ -194,7 +213,7 @@ export default function ExpedicaoSp() {
     );
   }
 
-  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error;
+  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? vdModosQ.error;
 
   return (
     <PageShell variant="dados">
@@ -204,17 +223,23 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${aguardandoColeta.length} aguardando coleta`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada`
         }
       />
 
       {/* Contadores por estação: o operador vê a bancada inteira de um olhar. */}
       <div className="flex flex-wrap gap-2">
-        {ESTACOES.map((e) => (
+        {ESTACOES.filter((e) => e !== "despacho").map((e) => (
           <Selo key={e} estado={contadores[e] > 0 ? "info" : "muted"}>
             {ROTULO_ESTACAO[e]} · {contadores[e]}
           </Selo>
         ))}
+        <Selo estado={prontosDespacho.length > 0 ? "info" : "muted"}>
+          Prontos p/ despacho · {prontosDespacho.length}
+        </Selo>
+        <Selo estado={aguardandoRetirada.length > 0 ? "info" : "muted"}>
+          Aguardando retirada · {aguardandoRetirada.length}
+        </Selo>
       </div>
 
       {erro && (
@@ -296,14 +321,27 @@ export default function ExpedicaoSp() {
             </CardContent>
           </Card>
 
+          {aguardandoRetirada.length > 0 && <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm font-medium">Aguardando retirada · {aguardandoRetirada.length}</p>
+              <ul className="space-y-2">
+                {aguardandoRetirada.map((p) => (
+                  <li key={p.id}>
+                    <LinhaPedido pedido={p} ativo={p.id === selecionadoId} rotulo="balcão" onSelecionar={() => setSelecionadoId(p.id)} />
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>}
+
           <Card>
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-medium">
-                Aguardando coleta · {aguardandoColeta.length}
+                Prontos p/ despacho · {prontosDespacho.length}
               </p>
-              {aguardandoColeta.length === 0 ? (
+              {prontosDespacho.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma caixa aguardando coleta.
+                  Nenhuma caixa pronta para despacho.
                 </p>
               ) : (
                 <div className="space-y-3">
@@ -353,7 +391,7 @@ export default function ExpedicaoSp() {
             <>
               <Card>
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
-                  <div className="min-w-0">
+                    <div className="min-w-0 space-y-1">
                     <p className="truncate text-sm font-medium">
                        {selecionado.cliente_nome_snapshot ?? "cliente sem nome"}
                     </p>
@@ -363,6 +401,14 @@ export default function ExpedicaoSp() {
                        nf={identidadesSelecionado?.nf_refs}
                        loja={identidadesSelecionado?.order_name}
                      />
+                     {selecionadoEhVD && (
+                       <div className="flex flex-wrap items-center gap-2">
+                         <Selo estado="info">Site SP · venda direta</Selo>
+                         <span className="text-xs text-muted-foreground">
+                           Entrega: {rotuloEntregaVendaDireta(modoEntregaSelecionado)}
+                         </span>
+                       </div>
+                     )}
                     <p className="text-xs text-muted-foreground">
                       {formatBRL(selecionado.valor_liquido)} · recebido {fmtDataHora(selecionado.recebido_em)}
                     </p>
@@ -413,7 +459,10 @@ export default function ExpedicaoSp() {
 
               {estacaoSelecionada === "embalagem" && (
                 <EstacaoEmbalagem
+                  pedidoId={selecionado.id}
                   enderecoEntrega={selecionado.endereco_entrega}
+                  modoVendaDireta={modoEntregaSelecionado}
+                  modalVendaDireta={modalVdSelecionado}
                   itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
@@ -446,6 +495,7 @@ export default function ExpedicaoSp() {
 
               {estacaoSelecionada === "despacho" && (
                 <EstacaoDespacho
+                  pedidoIdExterno={selecionado.id_externo}
                   modais={modaisQ.data ?? []}
                   modalEmbalado={modalDoEmbalado(eventosSelecionado)}
                   despachando={despachar.isPending}
@@ -456,7 +506,7 @@ export default function ExpedicaoSp() {
                       p_referencia: referencia,
                     })
                   }
-                  gruposColeta={gruposColeta}
+                  gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}
                   despachandoLote={despacharLote.isPending}
                   onDespacharLote={(modalCodigo, pedidoIds) =>
                     despacharLote.mutate({ p_modal: modalCodigo, p_pedido_ids: pedidoIds })
@@ -535,11 +585,19 @@ function LinhaPedido({
         ativo && "border-primary bg-accent",
       )}
     >
-      <span className="block truncate text-sm">{pedido.id_externo}</span>
+      <span className="flex flex-wrap items-center gap-1.5 text-sm">
+        <span className="truncate">{pedido.id_externo}</span>
+        {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
+      </span>
       <span className="block truncate text-xs text-muted-foreground">
         {pedido.cliente_nome_snapshot ?? "cliente sem nome"}
         {rotulo ? ` · ${rotulo}` : ""}
       </span>
+      {pedidoEhVendaDireta(pedido.id_externo) && (
+        <span className="block truncate text-xs text-muted-foreground">
+          Entrega: {rotuloEntregaVendaDireta(modoEntregaVendaDireta(pedido.endereco_entrega))}
+        </span>
+      )}
     </button>
   );
 }
