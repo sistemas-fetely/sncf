@@ -8,6 +8,8 @@ export interface PedidoFreteReal {
   estimativa_origem: string | null;
   estimativa_comparavel: boolean | null;
   custo_real: number | null;
+  custo_normal: number | null;
+  custo_eventos: number | null;
   custo_fonte: string | null;
   custo_docs: number | null;
   margem_frete: number | null;

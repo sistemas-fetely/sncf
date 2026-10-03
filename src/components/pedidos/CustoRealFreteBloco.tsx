@@ -37,9 +37,11 @@ export function CustoRealFreteBloco({ pedidoId }: { pedidoId: string | undefined
   const margem = data?.margem_frete;
   const desvio = data?.desvio_estimativa;
   const custo = temCusto ? Number(data!.custo_real) : null;
+  const normal = Number(data?.custo_normal ?? 0);
+  const eventos = Number(data?.custo_eventos ?? 0);
   const mostrarDesvio =
-    data?.estimativa_comparavel === true && data.frete_estimado != null && custo != null && custo > 0;
-  const pctDesvio = mostrarDesvio ? (desvio! / custo!) * 100 : null;
+    data?.estimativa_comparavel === true && data.frete_estimado != null && normal > 0;
+  const pctDesvio = mostrarDesvio ? (desvio! / normal) * 100 : null;
 
   return (
     <div className="border-t border-border/40 pt-3 space-y-1.5">
@@ -60,6 +62,12 @@ export function CustoRealFreteBloco({ pedidoId }: { pedidoId: string | undefined
               </span>
             </span>
           </div>
+          {eventos > 0 && (
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-xs text-warning">Reentrega/complementar</span>
+              <span className="text-xs tabular-nums text-warning">{brl(eventos)}</span>
+            </div>
+          )}
           <div className="flex items-baseline justify-between gap-2">
             <span className="text-xs text-muted-foreground">Cobrado do cliente</span>
             <span className="text-sm tabular-nums">

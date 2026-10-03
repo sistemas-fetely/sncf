@@ -12,6 +12,8 @@ interface FreteEstimado {
     gris: number;
     pedagio: number;
     tas: number;
+    adv?: number;
+    icms?: number;
   };
   erro?: string;
 }
@@ -19,10 +21,11 @@ interface FreteEstimado {
 export function useFreteEstimado(
   transportadoraId: string | null,
   cepDestino: string | null,
-  pesoCobrado: number | null
+  pesoCobrado: number | null,
+  valorMercantil: number | null = null
 ) {
   return useQuery({
-    queryKey: ["frete-estimado", transportadoraId, cepDestino, pesoCobrado],
+    queryKey: ["frete-estimado", transportadoraId, cepDestino, pesoCobrado, valorMercantil],
     queryFn: async () => {
       if (!transportadoraId || !cepDestino || !pesoCobrado) return null;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,6 +33,7 @@ export function useFreteEstimado(
         p_transportadora_id: transportadoraId,
         p_cep_destino: cepDestino,
         p_peso_cobrado: pesoCobrado,
+        p_valor_mercantil: valorMercantil ?? 0,
       });
       if (error) throw error;
       return data as FreteEstimado;
