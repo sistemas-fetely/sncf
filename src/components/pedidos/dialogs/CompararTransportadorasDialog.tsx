@@ -106,6 +106,9 @@ export function CompararTransportadorasDialog({
               <p>
                 CEP destino <span className="font-medium text-foreground">{data.cep_destino ?? "—"}</span>
                 {data.opcoes[0]?.uf_destino && <> · {data.opcoes[0].uf_destino}</>}
+                {data.cep_fonte === "cadastro_cliente" && (
+                  <span className="ml-2 text-warning">· CEP do cadastro do cliente — pedido sem endereço de entrega. Confirme o destino antes de escolher.</span>
+                )}
               </p>
               <p>
                 Peso considerado: <span className="font-medium text-foreground">{data.peso_usado} kg</span>
