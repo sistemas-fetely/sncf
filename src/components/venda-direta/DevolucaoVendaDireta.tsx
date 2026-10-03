@@ -26,7 +26,7 @@ export interface DevolucaoVD {
 
 export const DEVOLUCAO_ATIVA = new Set<StatusDevolucao>(["solicitada", "aprovada", "estorno_enviado", "falhou"]);
 export const ROTULO_DEVOLUCAO: Record<StatusDevolucao, string> = {
-  solicitada: "Solicitada", recusada: "Recusada", aprovada: "Aprovada", estorno_enviado: "Estorno enviado", concluida: "Concluída", falhou: "Falhou",
+  solicitada: "Solicitada", recusada: "Recusada", aprovada: "Aprovada", estorno_enviado: "Reembolso em curso", concluida: "Concluída", falhou: "Falhou",
 };
 const dataHora = (v: string | null) => v ? new Date(v).toLocaleString("pt-BR") : "—";
 
