@@ -228,8 +228,10 @@ export function useGerencial(competencia: string): Gerencial {
 
   const carregando = gerencialQ.isLoading || repFinQ.isLoading || detalheQ.isLoading || extratoQ.isLoading || clientesNovosQ.isLoading;
   const erro = gerencialQ.error || repFinQ.error || detalheQ.error || extratoQ.error || clientesNovosQ.error;
-  const semMovimento =
-    !carregando && !erro && (!mes || (num(mes.notas) === 0 && num(mes.comissao_apurada) === 0)) && representantes.length === 0;
+  const semNF = !mes || (num(mes.notas) === 0 && num(mes.comissao_apurada) === 0);
+  // Sem movimento só quando não há NF apurada E nada a pagar no mês —
+  // um mês pode não ter NF e ainda ter comissão a pagar (pagamentos do mês anterior).
+  const semMovimento = !carregando && !erro && semNF && num(mes?.total_a_pagar) === 0 && representantes.length === 0;
 
   return {
     carregando,
