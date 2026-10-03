@@ -60,7 +60,7 @@ export function BlocoFiscalSiteSp({ devolucaoId, nfResolvida }: { devolucaoId: s
     );
   }
   if (f.fiscal_acao === "nf_devolucao") {
-    return <div className="text-sm"><span className="font-medium">Eva:</span> emitir NF de devolução (entrada) no Bling referenciando a NF nº {nf}</div>;
+    return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} />;
   }
   return <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
 }
