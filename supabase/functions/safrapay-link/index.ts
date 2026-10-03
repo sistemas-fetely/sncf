@@ -314,7 +314,6 @@ Deno.serve(async (req) => {
       return await falhar(`Safrapay não habilitou ${meioPedido} neste link (aceitou: ${meiosEfetivos.join(", ")})${notaCancel}`);
     }
 
-    const { linkId, rel } = tent;
     const urlFinal = /^https?:\/\//.test(String(rel)) ? String(rel) : `${portal}${String(rel).startsWith("/") ? "" : "/"}${rel}`;
     const expiraFinal = tent.d?.expiration ? new Date(tent.d.expiration).toISOString() : expira.toISOString();
 
