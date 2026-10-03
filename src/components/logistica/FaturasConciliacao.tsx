@@ -339,7 +339,7 @@ function FaturasB2B({ transportadoraId }: { transportadoraId: string }) {
                         </div>
                       </div>
                       <div className="col-span-3 text-xs text-right text-muted-foreground">
-                        {resumoTxt}
+                        {resumoTxt}{contestarTxt && <span className="text-warning">{r.total === 0 ? "" : " · "}{contestarTxt}</span>}
                       </div>
                     </div>
                   </button>
