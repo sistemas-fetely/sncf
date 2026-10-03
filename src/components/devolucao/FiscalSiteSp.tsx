@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 
 type FiscalSP = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | null; pedido_ref: string | null;
