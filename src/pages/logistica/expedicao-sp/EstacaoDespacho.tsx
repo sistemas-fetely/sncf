@@ -194,7 +194,7 @@ export function EstacaoDespacho({
                     <SelectValue placeholder="Escolher modal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {modais.map((m) => (
+                    {modais.filter((m) => !m.sem_despacho).map((m) => (
                       <SelectItem key={m.codigo} value={m.codigo}>
                         {m.nome}
                       </SelectItem>

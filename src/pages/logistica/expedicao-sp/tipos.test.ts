@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   EVENTO_CONFERENCIA_DIVERGENCIA, EVENTO_CONFERENCIA_OK, EVENTO_DESPACHADO,
   EVENTO_EMBALADO, EVENTO_SEPARACAO_INICIADA,
-  cepDoEndereco, estacaoBase, modalSugerido,
+  cepDoEndereco, estacaoBase, modalSugerido, modoEntregaVendaDireta,
+  pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type EventoMesa, type ModalRegra,
 } from "./tipos";
 
@@ -80,5 +81,18 @@ describe("modalSugerido", () => {
 
   it("sem nenhuma regra não chuta modal", () => {
     expect(modalSugerido("01310100", [])).toBeNull();
+  });
+});
+
+describe("venda direta na Mesa SP", () => {
+  it("identifica somente o prefixo canônico VD-", () => {
+    expect(pedidoEhVendaDireta("VD-0009")).toBe(true);
+    expect(pedidoEhVendaDireta("SHOP-0009")).toBe(false);
+  });
+
+  it("lê e rotula a entrega escolhida na venda", () => {
+    expect(modoEntregaVendaDireta({ modal: "frete_fetely" })).toBe("frete_fetely");
+    expect(rotuloEntregaVendaDireta("frete_fetely")).toBe("Frete Fetely");
+    expect(rotuloEntregaVendaDireta("retirada")).toBe("Retirada");
   });
 });

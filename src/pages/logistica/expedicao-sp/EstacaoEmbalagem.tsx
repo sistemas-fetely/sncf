@@ -86,6 +86,9 @@ export function EstacaoEmbalagem({
   // A sugestão preenche uma vez, quando as dimensões chegam. Depois disso quem
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
   useEffect(() => {
+    setPeso("");
+    setVolumes("1");
+    setCaixa(null);
     setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
     setModalPendente(null);
   }, [pedidoId, sugerido, modais]);
