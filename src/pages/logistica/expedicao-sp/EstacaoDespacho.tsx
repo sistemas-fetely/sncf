@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
-import { Loader2, Truck } from "lucide-react";
+import { Loader2, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,10 +40,12 @@ export interface GrupoColeta {
   modalCodigo: string;
   modalNome: string;
   temRastreioAutomatico: boolean;
+  semDespacho: boolean;
   caixas: CaixaAguardandoColeta[];
 }
 
 interface Props {
+  pedidoId: string;
   modais: ModalEntrega[];
   /** Modal registrado na embalagem — `metadata->>'modal'` do evento mesa_embalado. */
   modalEmbalado: string | null;
@@ -71,7 +74,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 }
 
 export function EstacaoDespacho({
-  modais, modalEmbalado, despachando, onDespachar,
+  pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote,
 }: Props) {
   const [modal, setModal] = useState<string>(modalEmbalado ?? "");
@@ -89,6 +92,28 @@ export function EstacaoDespacho({
   const podeDespachar =
     modal !== "" && (!exigeReferencia || referencia.trim() !== "");
   const temRastreioAutomatico = escolhido?.tem_rastreio_automatico === true;
+  const semDespacho = escolhido?.sem_despacho === true;
+
+  if (semDespacho) {
+    return (
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <div className="flex items-center gap-2">
+            <Store className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <p className="text-sm font-medium">Aguardando retirada no balcão</p>
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Entregar ao cliente e registrar em Pedidos Site SP.
+          </p>
+          <Button asChild variant="outline">
+            <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
+              Abrir pedido em Pedidos Site SP
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (gruposColeta.length === 0 && temRastreioAutomatico) return null;
 
@@ -169,7 +194,7 @@ export function EstacaoDespacho({
                     <SelectValue placeholder="Escolher modal" />
                   </SelectTrigger>
                   <SelectContent>
-                    {modais.map((m) => (
+                    {modais.filter((m) => !m.sem_despacho).map((m) => (
                       <SelectItem key={m.codigo} value={m.codigo}>
                         {m.nome}
                       </SelectItem>

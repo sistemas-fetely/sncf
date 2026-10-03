@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import {
   ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
   type CaixaSugerida, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
-  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa,
+  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
 
 /**
@@ -204,11 +204,26 @@ export function useModaisEntrega() {
     queryFn: async (): Promise<ModalEntrega[]> => {
       const { data, error } = await supabaseMesa
         .from("b2c_modal_entrega")
-        .select("codigo, nome, tem_rastreio_automatico, exige_etiqueta_correios")
+        .select("codigo, nome, tem_rastreio_automatico, exige_etiqueta_correios, sem_despacho")
         .eq("ativo", true)
         .order("nome", { ascending: true });
       if (error) throw new Error(`ler modais de entrega: ${mensagemErro(error)}`);
       return (data ?? []) as ModalEntrega[];
+    },
+  });
+}
+
+/** Entrega escolhida na venda direta → modal operacional da Mesa SP. */
+export function useVdModosModal() {
+  return useQuery({
+    queryKey: ["mesa-sp", "vd-modos-modal"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<VdModoModal[]> => {
+      const { data, error } = await supabaseMesa
+        .from("vd_modo_modal")
+        .select("modo, modal_codigo");
+      if (error) throw new Error(`ler modais da venda direta: ${mensagemErro(error)}`);
+      return (data ?? []) as VdModoModal[];
     },
   });
 }
