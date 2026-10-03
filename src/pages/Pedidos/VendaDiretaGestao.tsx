@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, Ban, Link2, ChevronRight, CreditCard, ExternalLink, List, PackageCheck, Plus, QrCode,
+  AlertTriangle, Ban, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
   RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";

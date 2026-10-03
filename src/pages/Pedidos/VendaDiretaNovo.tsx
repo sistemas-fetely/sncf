@@ -203,9 +203,9 @@ export default function VendaDiretaNovo() {
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
   const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
-  const rotPag = rotulosOpcaoPagamento(cfgPixNoLink);
-  const [parcelasManual, setParcelasManual] = useState<number | null>(null);
+    const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
+  const rotPag = rotulosOpcaoPagamento(cfgPixNoLink, parcelasLink);
 
   const pendencia = useMemo((): string | null => {
     if (!cliente && !novo) return "Selecione ou cadastre o cliente.";
@@ -501,9 +501,9 @@ export default function VendaDiretaNovo() {
           <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="cartao" className="mt-0.5" />
-              <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" />{rotPag.cartao}</span>
               <span>
-                {rotPag.cartaoLegenda && <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>}
+                <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" />{rotPag.cartao}</span>
+                <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm">
