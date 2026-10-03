@@ -18,7 +18,7 @@ import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
-import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, rotuloFormaPagamento, rotulosOpcaoPagamento, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { BeneficioCard, BENEFICIO_VAZIO, calcularBeneficio, payloadBeneficio, type BeneficioEstado } from "@/components/venda-direta/BeneficioVD";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
@@ -203,6 +203,7 @@ export default function VendaDiretaNovo() {
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
   const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
+  const rotPag = rotulosOpcaoPagamento(cfgPixNoLink);
   const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
 
@@ -497,9 +498,21 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="pix" /> PIX</label>
-            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="cartao" /> Cartão</label>
+          <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="pix" className="mt-0.5" />
+              <span>
+                {rotPag.pix}
+                <span className="block text-xs text-muted-foreground">{rotPag.pixLegenda}</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="cartao" className="mt-0.5" />
+              <span>
+                {rotPag.cartao}
+                {rotPag.cartaoLegenda && <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>}
+              </span>
+            </label>
           </RadioGroup>
           {pagamento === "cartao" && (
             <div className="flex flex-wrap items-center gap-3 pt-2">
@@ -573,7 +586,7 @@ export default function VendaDiretaNovo() {
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
                 {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? "PIX" : `Cartão · até ${parcelasLink}x${cfgPixNoLink ? " ou PIX" : ""}`}
+                {pagamento === "pix" ? rotuloFormaPagamento("pix", cfgPixNoLink) : `${rotuloFormaPagamento("cartao", cfgPixNoLink)} · até ${parcelasLink}x`}
               </p>
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
