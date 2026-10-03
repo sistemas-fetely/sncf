@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 
 type FiscalSP = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | null; pedido_ref: string | null;
@@ -60,7 +61,7 @@ export function BlocoFiscalSiteSp({ devolucaoId, nfResolvida }: { devolucaoId: s
     );
   }
   if (f.fiscal_acao === "nf_devolucao") {
-    return <div className="text-sm"><span className="font-medium">Eva:</span> emitir NF de devolução (entrada) no Bling referenciando a NF nº {nf}</div>;
+    return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} />;
   }
   return <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
 }

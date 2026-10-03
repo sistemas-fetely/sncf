@@ -22106,6 +22106,11 @@ export type Database = {
           motivo_categoria: string | null
           motivo_codigo: string | null
           motivo_texto: string
+          nf_dev_atualizado_em: string | null
+          nf_dev_bling_id: number | null
+          nf_dev_erro: string | null
+          nf_dev_numero: string | null
+          nf_dev_status: string | null
           nf_devolucao: string | null
           nf_original_id: string | null
           numero: string
@@ -22141,6 +22146,11 @@ export type Database = {
           motivo_categoria?: string | null
           motivo_codigo?: string | null
           motivo_texto: string
+          nf_dev_atualizado_em?: string | null
+          nf_dev_bling_id?: number | null
+          nf_dev_erro?: string | null
+          nf_dev_numero?: string | null
+          nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
           numero: string
@@ -22176,6 +22186,11 @@ export type Database = {
           motivo_categoria?: string | null
           motivo_codigo?: string | null
           motivo_texto?: string
+          nf_dev_atualizado_em?: string | null
+          nf_dev_bling_id?: number | null
+          nf_dev_erro?: string | null
+          nf_dev_numero?: string | null
+          nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
           numero?: string
@@ -23281,6 +23296,7 @@ export type Database = {
           codigo: string
           descricao: string | null
           exige_lastro_financeiro: boolean
+          natureza_devolucao_bling_id: number | null
           ordem: number
           prefixo_numero: string
           rotulo: string
@@ -23291,6 +23307,7 @@ export type Database = {
           codigo: string
           descricao?: string | null
           exige_lastro_financeiro?: boolean
+          natureza_devolucao_bling_id?: number | null
           ordem?: number
           prefixo_numero?: string
           rotulo: string
@@ -23301,6 +23318,7 @@ export type Database = {
           codigo?: string
           descricao?: string | null
           exige_lastro_financeiro?: boolean
+          natureza_devolucao_bling_id?: number | null
           ordem?: number
           prefixo_numero?: string
           rotulo?: string
@@ -125203,6 +125221,7 @@ export type Database = {
         Args: { p_grau?: string; p_motivo?: string; p_vinculo_id: string }
         Returns: Json
       }
+      fn_devolucao_dados_nf: { Args: { p_devolucao_id: string }; Returns: Json }
       fn_devolucao_descartar_vinculo: {
         Args: { p_motivo: string; p_vinculo_id: string }
         Returns: Json
@@ -125210,6 +125229,17 @@ export type Database = {
       fn_devolucao_gerar_numero: {
         Args: { p_canal: string; p_pedido_id: string; p_shopify_id?: string }
         Returns: string
+      }
+      fn_devolucao_nf_registrar: {
+        Args: {
+          p_bling_id?: number
+          p_chave?: string
+          p_devolucao_id: string
+          p_erro?: string
+          p_numero?: string
+          p_status: string
+        }
+        Returns: Json
       }
       fn_devolucao_resolver_por_nf: {
         Args: { p_nf_saida_id: string }
