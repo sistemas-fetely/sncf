@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { QK_VD_GESTAO, type LinhaVD } from "./AcoesVendaDireta";
+import type { LinhaVD } from "./AcoesVendaDireta";
+import { invalidarVendaDireta } from "./queryKeys";
 
 export const QK_VD_DEVOLUCOES = ["vd-devolucoes"] as const;
 export type StatusDevolucao = "solicitada" | "recusada" | "aprovada" | "estorno_enviado" | "concluida" | "falhou";
@@ -61,7 +62,7 @@ export function SolicitarDevolucaoDialog({ linha, onClose }: { linha: LinhaVD | 
   useEffect(() => { if (linha) setMotivo(""); }, [linha]);
   const m = useMutation({
     mutationFn: async () => { const { error } = await supabase.rpc("vd_solicitar_devolucao" as never, { p_pedido_id: linha?.id, p_motivo: motivo.trim() } as never); if (error) throw error; },
-    onSuccess: async () => { toast.success("Cancelamento com reembolso solicitado à equipe de SOPs"); await Promise.all([qc.invalidateQueries({ queryKey: QK_VD_GESTAO }), qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES })]); onClose(); },
+    onSuccess: async () => { toast.success("Cancelamento com reembolso solicitado à equipe de SOPs"); await Promise.all([invalidarVendaDireta(qc), qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES })]); onClose(); },
     onError: (e) => toast.error(rawMessage(e)),
   });
   return <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}><DialogContent><DialogHeader><DialogTitle>Solicitar cancelamento com reembolso · {linha?.id_externo}</DialogTitle><DialogDescription>O cliente pagou {formatBRL(linha?.valor_liquido)} por {linha?.pagamento === "pix" ? "PIX" : "cartão"}. A equipe de SOPs executa o reembolso; depois o pedido é cancelado aqui e no Bling.</DialogDescription></DialogHeader><div className="space-y-1"><Label>Motivo *</Label><Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Mínimo de 5 caracteres" /></div><DialogFooter><Button variant="outline" onClick={onClose}>Voltar</Button><Button onClick={() => m.mutate()} disabled={motivo.trim().length < 5 || m.isPending}>{m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar cancelamento com reembolso</Button></DialogFooter></DialogContent></Dialog>;

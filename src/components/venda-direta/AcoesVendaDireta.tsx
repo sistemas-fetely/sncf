@@ -19,8 +19,9 @@ import {
 } from "@/components/ui/select";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
+export { QK_VD_GESTAO } from "@/components/venda-direta/queryKeys";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
-export const QK_VD_GESTAO = ["venda-direta-gestao"] as const;
 
 export interface LinhaVD {
   id: string;
@@ -119,7 +120,7 @@ export function ConfirmarPixManualDialog({ linha, onClose }: { linha: LinhaVD | 
         data_pagamento: data,
         observacao,
       });
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      void invalidarVendaDireta(qc);
       onClose();
     } catch {
       // FAIL-LOUD: o hook já exibiu a mensagem real e mantém o diálogo aberto.
@@ -193,7 +194,7 @@ export function ConfirmarCartaoDialog({ linha, onClose }: { linha: LinhaVD | nul
     },
     onSuccess: () => {
       toast.success(`Cartão confirmado em ${linha?.id_externo ?? ""}`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      void invalidarVendaDireta(qc);
       onClose();
     },
     onError: (e) => toast.error(rawMessage(e)),
@@ -256,7 +257,7 @@ export function RegistrarRetiradaDialog({ linha, onClose }: { linha: LinhaVD | n
     },
     onSuccess: () => {
       toast.success(`Retirada registrada em ${linha?.id_externo ?? ""}`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      void invalidarVendaDireta(qc);
       onClose();
     },
     onError: (e) => toast.error(rawMessage(e)),
@@ -301,7 +302,7 @@ export function RegistrarEntregaDialog({ linha, onClose }: { linha: LinhaVD | nu
     },
     onSuccess: () => {
       toast.success(`Entrega registrada em ${linha?.id_externo ?? ""}`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      void invalidarVendaDireta(qc);
       onClose();
     },
     onError: (e) => toast.error(rawMessage(e)),

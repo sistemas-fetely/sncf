@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas, type MeioLink } from "@/components/venda-direta/LinkCartao";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
@@ -56,7 +57,7 @@ export function TrocarMeioPagamentoDialog({ linha, onClose }: { linha: LinhaVD |
       const r = data as TrocaResultado;
       if (r?.ok === false) throw new Error(r.erro ?? "Falha ao trocar o meio de pagamento.");
       toast.success(`${linha.id_externo ?? "Pedido"}: pagamento trocado para ${ROTULO[meio]}`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      await invalidarVendaDireta(qc);
       setRes({ ...r, meio });
     } catch (e) {
       toast.error(rawMessage(e));

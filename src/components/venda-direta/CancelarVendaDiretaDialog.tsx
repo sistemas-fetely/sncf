@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
 /** Cancelamento direto da gestão Site SP — mesmo RPC cancelar_pedido, sem o passo de substituto. */
 export function CancelarVendaDiretaDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
@@ -21,7 +22,7 @@ export function CancelarVendaDiretaDialog({ linha, onClose }: { linha: LinhaVD |
     try {
       await m.mutateAsync({ pedido_id: linha.id, motivo: motivo.trim() });
       toast.success(`Pedido ${linha.id_externo ?? ""} cancelado`);
-      await qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      await invalidarVendaDireta(qc);
       onClose();
     } catch {
       // FAIL-LOUD: o hook já mostrou a mensagem real do banco; o diálogo fica aberto.

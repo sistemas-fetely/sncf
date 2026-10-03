@@ -7,6 +7,7 @@ import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Button } from "@/components/ui/button";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
 export const QK_VD_PIX_SAFRA = "venda-direta-pix-safrapay";
 
@@ -84,7 +85,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
     onSuccess: async (_d, forcar) => {
       setFalhou(null);
       await qc.resetQueries({ queryKey: [QK_VD_PIX_SAFRA, pedidoId] });
-      qc.invalidateQueries({ queryKey: ["venda-direta-gestao"] });
+      await invalidarVendaDireta(qc);
       if (forcar) toast.success("Novo PIX gerado.");
     },
     onError: (e, forcar) => {

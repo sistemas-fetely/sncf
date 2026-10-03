@@ -9,7 +9,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { AVISO_409, ErroEdge, chamarEdge, type LinkCartaoOk } from "@/components/venda-direta/LinkCartao";
 
 export interface RemontarResultado {
@@ -41,13 +42,14 @@ export function RemontarPagamentoDialog<T extends LinhaVD>({ linha, onClose, onP
       const r = data as RemontarResultado;
       if (!r?.ok) throw new Error((data as { erro?: string })?.erro ?? "Falha ao remontar pagamento.");
       toast.success(`Pagamento de ${r.id_externo ?? linha.id_externo} remontado · ${formatBRL(r.valor)}`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      await invalidarVendaDireta(qc);
       const atualizada = { ...linha, valor_liquido: r.valor ?? linha.valor_liquido, link_pagamento: r.link_pagamento ?? linha.link_pagamento } as T;
       onClose();
       if (r.precisa_novo_link_cartao || r.forma !== "pix") {
         if (r.precisa_novo_link_cartao) {
           try {
             await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true });
+            await invalidarVendaDireta(qc);
             toast.success("Novo link do cartão gerado");
           } catch (e) {
             toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));

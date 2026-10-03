@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { SeloConfirmacaoAutomatica } from "@/components/venda-direta/PixSafrapay";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
@@ -164,6 +165,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
   /** PIX: QR local (chave da Fetely) — recolhido quando o link sai; aberto como fallback se falhar. */
   pixLocal?: { payload: string | null; link: string | null };
 }) {
+  const qc = useQueryClient();
   const [estado, setEstado] = useState<{ fase: "carregando" } | { fase: "ok"; r: LinkCartaoOk } | { fase: "off" } | { fase: "erro"; msg: string }>({ fase: "carregando" });
   const pedidoRef = useRef<string | null>(null);
 
@@ -171,6 +173,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
     setEstado({ fase: "carregando" });
     try {
       const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: pedidoId, ...(meio === "cartao" && maxParcelas ? { max_parcelas: maxParcelas } : {}) });
+      await invalidarVendaDireta(qc);
       setEstado({ fase: "ok", r });
     } catch (e) {
       if (e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message)) setEstado({ fase: "off" });
@@ -273,7 +276,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
       const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, ...(meioDlg === "cartao" ? { max_parcelas: parcelasEfetivas } : {}) });
       toast.success(meioDlg === "pix" ? "Novo link PIX gerado" : `Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
       setParcelas(null);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+       await invalidarVendaDireta(qc);
     } catch (e) {
       toast.error(e instanceof ErroEdge && e.status === 409 && /aguardando ativa/i.test(e.message) ? AVISO_409 : rawMessage(e));
     } finally {
@@ -293,7 +296,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
       const txt = r.verificados === 0 ? "Nenhum link aberto para verificar." : d?.erro ? `Erro: ${d.erro}` : `Resultado: ${d?.resultado ?? "—"}`;
       setResultado(txt);
       if (d?.erro) toast.error(d.erro); else toast.success(txt);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+       await invalidarVendaDireta(qc);
     } catch (e) {
       toast.error(rawMessage(e));
       setResultado(`Erro: ${rawMessage(e)}`);
