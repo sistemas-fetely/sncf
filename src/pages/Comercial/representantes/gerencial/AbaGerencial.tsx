@@ -12,6 +12,7 @@ import { fmtInt } from "@/pages/Comercial/representantes/dados";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { Badge } from "@/components/ui/badge";
 import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
+import { colunasCC, LEGENDA_CC, useContaCorrente } from "./contaCorrente";
 import { competenciaPadrao, num, primeiroDia, useGerencial } from "./dados";
 
 function pct(v: unknown, casas = 2): string {
@@ -46,6 +47,7 @@ export function AbaGerencial() {
   const [competencia, setCompetencia] = useState(competenciaPadrao());
   const opcoes = useMemo(opcoesCompetencia, []);
   const g = useGerencial(competencia);
+  const cc = useContaCorrente(competencia);
   const rotulo = fmtCompetencia(primeiroDia(competencia));
 
   const totais = useMemo(
@@ -159,6 +161,8 @@ export function AbaGerencial() {
                     <TableHead className="text-right">Custo %</TableHead>
                     <TableHead className="text-right">Desconto médio %</TableHead>
                     <TableHead className="text-right">Comissão a pagar</TableHead>
+                    <TableHead className="text-right">Saldo a liberar</TableHead>
+                    <TableHead className="text-right">Saldo devido</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -173,6 +177,8 @@ export function AbaGerencial() {
                       <TableCell className="text-right tabular-nums">{pct(l.custo_comissao_pct)}</TableCell>
                       <TableCell className="text-right tabular-nums">{pct(l.desconto_medio_pct)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.total_a_pagar))}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtBRL(cc.historico.get(String(l.competencia).slice(0, 10))?.a_liberar_final ?? 0)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtBRL(cc.historico.get(String(l.competencia).slice(0, 10))?.a_pagar_final ?? 0)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -186,6 +192,8 @@ export function AbaGerencial() {
               </p>
             </CardContent>
           </Card>
+
+          <BlocoContaCorrente cc={cc} rotulo={rotulo} />
 
           <Card>
             <CardHeader>
@@ -338,6 +346,58 @@ function BlocoPagamentoMes({ competencia, rotulo }: { competencia: string; rotul
             </TableBody>
           </Table>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function BlocoContaCorrente({ cc, rotulo }: { cc: ReturnType<typeof useContaCorrente>; rotulo: string }) {
+  const { liberar, pagar } = colunasCC(cc.temEstornoLiberar, cc.temEstornoPagar);
+  const cel = (v: number, c: string) => (
+    <TableCell className={`text-right tabular-nums ${c === "a_liberar_vencido" && v > 0 ? "text-destructive" : ""} ${c === "a_liberar_final" || c === "a_pagar_final" ? "font-medium" : ""}`}>{fmtBRL(v)}</TableCell>
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Conta corrente de comissões em {rotulo}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {cc.carregando ? (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        ) : cc.erro ? (
+          <p className="text-sm text-destructive">Falha ao carregar: {formatError(cc.erro)}</p>
+        ) : cc.linhas.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sem saldo de comissões neste mês.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead rowSpan={2} className="align-bottom">Representante</TableHead>
+                <TableHead colSpan={liberar.length} className="border-l text-center">A liberar (esperando o cliente)</TableHead>
+                <TableHead colSpan={pagar.length} className="border-l text-center">A pagar ao representante</TableHead>
+              </TableRow>
+              <TableRow>
+                {liberar.map((c, i) => <TableHead key={"l" + c.c} className={`text-right ${i === 0 ? "border-l" : ""}`}>{c.r}</TableHead>)}
+                {pagar.map((c, i) => <TableHead key={"p" + c.c} className={`text-right ${i === 0 ? "border-l" : ""}`}>{c.r}</TableHead>)}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {cc.linhas.map((l) => (
+                <TableRow key={l.vendedor_id ?? l.representante}>
+                  <TableCell>{l.representante}</TableCell>
+                  {liberar.map((c) => <Fragment key={"l" + c.c}>{cel(l[c.c], c.c)}</Fragment>)}
+                  {pagar.map((c) => <Fragment key={"p" + c.c}>{cel(l[c.c], c.c)}</Fragment>)}
+                </TableRow>
+              ))}
+              <TableRow className="font-medium">
+                <TableCell>Total</TableCell>
+                {liberar.map((c) => <Fragment key={"l" + c.c}>{cel(cc.total[c.c], c.c)}</Fragment>)}
+                {pagar.map((c) => <Fragment key={"p" + c.c}>{cel(cc.total[c.c], c.c)}</Fragment>)}
+              </TableRow>
+            </TableBody>
+          </Table>
+        )}
+        <p className="text-xs text-muted-foreground">{LEGENDA_CC}</p>
       </CardContent>
     </Card>
   );
