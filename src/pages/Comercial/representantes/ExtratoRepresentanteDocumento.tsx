@@ -521,7 +521,7 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <PaginaResumo representante={representante} serie={serieQ.data ?? []} />
+      <PaginaResumo representante={representante} serie={serieQ.data ?? []} competencia={competencia} pagarAte={extrato?.pagar_ate ?? null} />
       {extrato ? (
         <PaginaExtratoCongelado
           competencia={competencia}
