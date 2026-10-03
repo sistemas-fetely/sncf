@@ -41227,9 +41227,11 @@ export type Database = {
           gateway_link_id: string | null
           id: string
           max_parcelas: number | null
+          meio: string
           nsu: string | null
           pago_em: string | null
           pedido_id: string
+          pix_copia_cola: string | null
           provisao_id: string | null
           resposta_criacao: Json | null
           resposta_ultimo_sync: Json | null
@@ -41251,9 +41253,11 @@ export type Database = {
           gateway_link_id?: string | null
           id?: string
           max_parcelas?: number | null
+          meio?: string
           nsu?: string | null
           pago_em?: string | null
           pedido_id: string
+          pix_copia_cola?: string | null
           provisao_id?: string | null
           resposta_criacao?: Json | null
           resposta_ultimo_sync?: Json | null
@@ -41275,9 +41279,11 @@ export type Database = {
           gateway_link_id?: string | null
           id?: string
           max_parcelas?: number | null
+          meio?: string
           nsu?: string | null
           pago_em?: string | null
           pedido_id?: string
+          pix_copia_cola?: string | null
           provisao_id?: string | null
           resposta_criacao?: Json | null
           resposta_ultimo_sync?: Json | null
