@@ -51,6 +51,23 @@ export function parcelasPadrao(cfg: CfgParcelas, total: number) {
 
 export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}x`);
 
+/** Rótulo curto da forma de pagamento (coluna/selo da Gestão e resumo do pedido). */
+export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined, pixNoLink: boolean) {
+  if (forma === "pix") return "PIX direto";
+  if (forma === "cartao") return pixNoLink ? "Link Safrapay" : "Cartão";
+  return "—";
+}
+
+/** Rótulo e legenda das opções de pagamento da tela Novo pedido. */
+export function rotulosOpcaoPagamento(pixNoLink: boolean) {
+  return {
+    cartao: pixNoLink ? "Link Safrapay (cartão ou PIX)" : "Cartão (link)",
+    cartaoLegenda: pixNoLink ? "Confirmação automática" : null,
+    pix: "PIX direto (QR)",
+    pixLegenda: "Confirmado pelo extrato bancário",
+  };
+}
+
 export function textoPadraoParcelas(cfg: CfgParcelas | undefined) {
   if (!cfg) return null;
   return `Padrão: até ${cfg.max_parcelas}x a partir de ${formatBRL(cfg.valor_minimo_parcelar_centavos / 100)}`;
