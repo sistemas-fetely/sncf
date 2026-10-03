@@ -274,7 +274,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setAbsorve(false); setMotivo(""); setPagamento("pix"); setObservacao("");
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao("");
     setResultado(null);
   };
 
