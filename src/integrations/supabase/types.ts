@@ -25542,6 +25542,13 @@ export type Database = {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
             columns: ["frete_vinculado_id"]
             isOneToOne: false
+            referencedRelation: "vw_cte_auditoria_tabela"
+            referencedColumns: ["transp_frete_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
             referencedRelation: "vw_frete_pedido"
             referencedColumns: ["frete_id"]
           },
@@ -27392,6 +27399,30 @@ export type Database = {
           saldo?: number | null
           status?: string | null
           tipo_pagamento?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      frete_auditoria_parametro: {
+        Row: {
+          ativo: boolean
+          atualizado_em: string
+          chave: string
+          descricao: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          atualizado_em?: string
+          chave: string
+          descricao: string
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          atualizado_em?: string
+          chave?: string
+          descricao?: string
           valor?: number
         }
         Relationships: []
@@ -85141,6 +85172,10 @@ export type Database = {
       }
       vw_conciliacao_faturas_frete: {
         Row: {
+          auditoria_diferenca: number | null
+          auditoria_motivo: string | null
+          auditoria_referencia: number | null
+          auditoria_status: string | null
           canal: string | null
           cte_numero: string | null
           data_vencimento: string | null
@@ -85188,6 +85223,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_conciliacao_faturas_frete"
             referencedColumns: ["frete_sugerido_id"]
+          },
+          {
+            foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
+            columns: ["frete_vinculado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cte_auditoria_tabela"
+            referencedColumns: ["transp_frete_id"]
           },
           {
             foreignKeyName: "fatura_frete_lancamentos_frete_vinculado_id_fkey"
@@ -87039,6 +87081,120 @@ export type Database = {
           ultimo_status: number | null
         }
         Relationships: []
+      }
+      vw_cte_auditoria_tabela: {
+        Row: {
+          auditoria_motivo: string | null
+          auditoria_status: string | null
+          classe: string | null
+          cte_emissao: string | null
+          cte_numero: string | null
+          destinatario: string | null
+          diferenca: number | null
+          frete_peso: number | null
+          frete_total: number | null
+          nf_numero: string | null
+          peso_taxado: number | null
+          razao: number | null
+          referencia_tipo: string | null
+          tipo_frete: string | null
+          transp_frete_id: string | null
+          transportadora_id: string | null
+          valor_referencia: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_fretes_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
       }
       vw_curva_abc: {
         Row: {
@@ -102153,14 +102309,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -104959,14 +105115,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -105974,7 +106130,9 @@ export type Database = {
         Row: {
           canal: string | null
           custo_docs: number | null
+          custo_eventos: number | null
           custo_fonte: string | null
+          custo_normal: number | null
           custo_real: number | null
           desvio_estimativa: number | null
           estimativa_comparavel: boolean | null
@@ -116461,14 +116619,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
