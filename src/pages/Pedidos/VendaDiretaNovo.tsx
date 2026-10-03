@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { ArrowLeftRight, CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -24,6 +24,8 @@ import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
+import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
 
@@ -66,7 +68,22 @@ interface Item { sku: string; nome: string | null; preco: number; quantidade: nu
 interface Resultado {
   pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
+  pagamento_refeito?: boolean | null; valor_anterior?: number | null;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
+}
+const MODAIS: ModalVd[] = ["retirada", "sedex", "pac", "frete_fetely"];
+const ATIVAS_DEVOLUCAO = ["solicitada", "aprovada", "aguardando_devolucao", "estorno_enviado", "falhou"];
+const numTexto = (n: unknown) => (n == null || n === "" ? "" : String(n).replace(".", ","));
+/** Remove da observação o sufixo automático de benefício (fn_vd_calcular.obs_beneficio). */
+function observacaoSemBeneficio(obs: string | null): string {
+  return (obs ?? "").split(" · ")
+    .filter((p) => !p.startsWith("Beneficio no frete (") && !p.startsWith("Desconto no pedido R$ "))
+    .join(" · ").trim();
+}
+interface PedidoEdicao {
+  linha: LinhaVD & { pagamento_confirmado_em: string | null };
+  estagio: string; cancelado_em: string | null; reembolsoAtivo: boolean;
+  cliente: ClienteBusca | null; itens: Item[]; modo: ModalVd; endereco: Endereco; beneficio: BeneficioEstado; observacao: string;
 }
 const ROTULO_MODAL: Record<ModalVd, string> = { retirada: "Retirada no Site SP", sedex: "Correios SEDEX", pac: "Correios PAC", frete_fetely: "Frete Fetely" };
 
@@ -100,6 +117,10 @@ function CamposEndereco({ v, onChange, cepObrigatorio }: { v: Endereco; onChange
 export default function VendaDiretaNovo() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { id: editId } = useParams<{ id: string }>();
+  const edicao = !!editId;
+  const [motivo, setMotivo] = useState("");
+  const [trocarMeio, setTrocarMeio] = useState<LinhaVD | null>(null);
   // Cliente
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -113,6 +134,92 @@ export default function VendaDiretaNovo() {
   const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
+
+  const edQ = useQuery({
+    queryKey: ["venda-direta-edicao", editId],
+    enabled: edicao,
+    staleTime: 0,
+    queryFn: async (): Promise<PedidoEdicao> => {
+      const { data: p, error } = await (supabase as any)
+        .from("pedidos")
+        .select("id, id_externo, estagio, cancelado_em, parceiro_id, forma_solicitada, valor_liquido, endereco_entrega, observacao_pedido, itens_json")
+        .eq("id", editId).maybeSingle();
+      if (error) throw error;
+      if (!p) throw new Error("Pedido não encontrado.");
+      const [gQ, cQ, dQ] = await Promise.all([
+        supabase.from("vw_venda_direta_gestao" as never).select("*").eq("id", editId as string).maybeSingle(),
+        p.parceiro_id
+          ? supabase.from("parceiros_comerciais")
+              .select("id, razao_social, cpf, telefone, email, cep, logradouro, numero, endereco_complemento, bairro, cidade, uf")
+              .eq("id", p.parceiro_id).maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+        (supabase as any).from("vd_devolucao").select("status").eq("pedido_id", editId).in("status", ATIVAS_DEVOLUCAO),
+      ]);
+      if (gQ.error) throw gQ.error;
+      if (cQ.error) throw cQ.error;
+      if (dQ.error) throw dQ.error;
+      const g = (gQ.data ?? {}) as any;
+      const brutos: { sku: string; quantidade: number; descricao?: string | null; valor_unitario?: number | null }[] = Array.isArray(p.itens_json) ? p.itens_json : [];
+      const skus = brutos.map((i) => i.sku);
+      const precos = new Map<string, { nome: string | null; preco: number }>();
+      if (skus.length) {
+        const { data: prods, error: e2 } = await (supabase as any).from("sncf_produtos").select("sku, nome_completo, preco_varejo").in("sku", skus);
+        if (e2) throw e2;
+        for (const r of prods ?? []) precos.set(r.sku, { nome: r.nome_completo, preco: Number(r.preco_varejo ?? 0) });
+      }
+      const ee = (p.endereco_entrega ?? {}) as any;
+      const modo: ModalVd = MODAIS.includes(ee.modal) ? ee.modal : "retirada";
+      const bf = ee.frete?.beneficio ?? null;
+      const ds = ee.desconto ?? null;
+      const beneficio: BeneficioEstado = {
+        freteTipo: bf?.tipo && bf.tipo !== "nenhum" ? bf.tipo : "nenhum",
+        freteValor: bf?.tipo === "pct" || bf?.tipo === "valor" ? numTexto(bf.valor) : "",
+        pedidoTipo: ds?.tipo === "pct" || ds?.tipo === "valor" ? ds.tipo : "nenhum",
+        pedidoValor: ds?.tipo === "pct" || ds?.tipo === "valor" ? numTexto(ds.valor_informado ?? ds.valor) : "",
+        motivo: bf?.motivo ?? ds?.motivo ?? "",
+      };
+      const c = (cQ.data ?? null) as ClienteBusca | null;
+      return {
+        linha: {
+          id: p.id, id_externo: p.id_externo, valor_liquido: Number(p.valor_liquido ?? 0),
+          cliente_nome: c?.razao_social ?? g.cliente_nome ?? null, cliente_telefone: c?.telefone ?? g.cliente_telefone ?? null,
+          provisao_id: g.provisao_id ?? null, link_pagamento: g.link_pagamento ?? null,
+          pagamento: g.pagamento ?? (p.forma_solicitada === "pix" ? "pix" : "cartao"),
+          pagamento_confirmado_em: g.pagamento_confirmado_em ?? null,
+        },
+        estagio: p.estagio, cancelado_em: p.cancelado_em, reembolsoAtivo: (dQ.data ?? []).length > 0,
+        cliente: c,
+        itens: brutos.map((i) => ({
+          sku: i.sku, quantidade: Number(i.quantidade ?? 1),
+          nome: precos.get(i.sku)?.nome ?? i.descricao ?? null,
+          preco: precos.get(i.sku)?.preco ?? Number(i.valor_unitario ?? 0),
+        })),
+        modo,
+        endereco: {
+          cep: soDigitos(ee.cep), logradouro: ee.logradouro ?? "", numero: ee.numero ?? "", complemento: ee.complemento ?? "",
+          bairro: ee.bairro ?? "", cidade: ee.cidade ?? "", uf: ee.uf ?? "",
+        },
+        beneficio,
+        observacao: observacaoSemBeneficio(p.observacao_pedido),
+      };
+    },
+  });
+  const inicializado = useRef(false);
+  useEffect(() => {
+    const d = edQ.data;
+    if (!d) return;
+    setPagamento(d.linha.pagamento === "pix" ? "pix" : "cartao");
+    if (inicializado.current) return;
+    inicializado.current = true;
+    setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setEndereco(d.endereco);
+    setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
+  }, [edQ.data]);
+  const bloqueioEdicao: string | null = !edQ.data ? null
+    : edQ.data.cancelado_em ? "Pedido cancelado — não pode ser editado."
+    : edQ.data.linha.pagamento_confirmado_em ? "Pedido já tem pagamento registrado — não pode ser editado."
+    : edQ.data.estagio !== "aguardando_pagamento" ? "Pedido só pode ser editado enquanto aguarda pagamento."
+    : edQ.data.reembolsoAtivo ? "Pedido tem reembolso em andamento — não pode ser editado."
+    : null;
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(termo.trim()), 300);
@@ -227,8 +334,9 @@ export default function VendaDiretaNovo() {
       if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
     }
     if (ben.ativo && beneficio.motivo.trim().length < 3) return "Informe o motivo do benefício.";
+    if (edicao && motivo.trim().length < 3) return "Informe o motivo da alteração.";
     return null;
-  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo]);
+  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -258,9 +366,18 @@ export default function VendaDiretaNovo() {
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
               beneficio: beneficioPayload,
             };
+      const p_itens = itens.map((i) => ({ sku: i.sku, quantidade: i.quantidade }));
+      if (edicao) {
+        const { data, error } = await (supabase as any).rpc("vd_editar_pedido", {
+          p_pedido_id: editId, p_itens, p_entrega, p_observacao: observacao.trim() || null, p_motivo: motivo.trim(),
+        });
+        if (error) throw error;
+        if (!data) throw new Error("A edição do pedido não devolveu resultado.");
+        return { pagamento, ...(data as Resultado) };
+      }
       const { data, error } = await (supabase as any).rpc("criar_pedido_venda_direta", {
         p_cliente,
-        p_itens: itens.map((i) => ({ sku: i.sku, quantidade: i.quantidade })),
+        p_itens,
         p_entrega,
         p_pagamento: pagamento,
         p_observacao: observacao.trim() || null,
@@ -271,6 +388,17 @@ export default function VendaDiretaNovo() {
     },
     onSuccess: async (r) => {
       await invalidarVendaDireta(queryClient);
+      if (edicao) {
+        await queryClient.invalidateQueries({ queryKey: ["venda-direta-edicao", editId] });
+        if (!r.pagamento_refeito) {
+          toast.success("Pedido atualizado (pagamento inalterado)");
+          navigate("/pedidos/venda-direta");
+          return;
+        }
+        setResultado(r);
+        toast.success(`${r.id_externo} atualizado — novo pagamento gerado.`);
+        return;
+      }
       setResultado(r);
       toast.success(`${r.id_externo} criado.`);
     },
@@ -286,22 +414,46 @@ export default function VendaDiretaNovo() {
   const telefoneCliente = soDigitos(cliente?.telefone ?? novo?.telefone ?? "");
   const primeiroNome = (cliente?.razao_social ?? novo?.nome ?? "").trim().split(/\s+/)[0] ?? "";
 
+  const tituloTela = edicao ? `Pedidos Site SP · Editar ${edQ.data?.linha.id_externo ?? ""}`.trim() : "Pedidos Site SP · Novo pedido";
+  const cabecalho = (
+    <PageHeader
+      titulo={tituloTela}
+      breadcrumb={[{ label: "Operação" }, { label: tituloTela }]}
+      icone={ShoppingBag}
+      estado={edicao ? "Edição antes do pagamento — o cliente não muda." : "Pedido B2C por telefone ou WhatsApp, fora do Shopify."}
+    />
+  );
+
+  if (edicao && (edQ.isLoading || edQ.isError || bloqueioEdicao)) {
+    return (
+      <PageShell>
+        {cabecalho}
+        <Card><CardContent className="space-y-3 py-6">
+          {edQ.isLoading ? <Loader2 className="h-5 w-5 animate-spin" />
+            : edQ.isError ? <p className="text-sm text-destructive">{rawMessage(edQ.error)}</p>
+            : <p className="text-sm text-warning">{bloqueioEdicao}</p>}
+          <Button variant="outline" asChild><Link to="/pedidos/venda-direta">Voltar para a Gestão</Link></Button>
+        </CardContent></Card>
+      </PageShell>
+    );
+  }
+
   if (resultado) {
     const r = resultado;
     const msg = `Olá ${primeiroNome}! Seu pedido ${r.id_externo} na Fetely ficou em ${formatBRL(r.valor_total)}. Pague pelo PIX neste link: ${r.link_pagamento ?? ""}`;
     const tel = telefoneCliente.length <= 11 ? `55${telefoneCliente}` : telefoneCliente;
     return (
       <PageShell>
-        <PageHeader
-          titulo="Pedidos Site SP · Novo pedido"
-          breadcrumb={[{ label: "Operação" }, { label: "Pedidos Site SP · Novo pedido" }]}
-          icone={ShoppingBag}
-          estado="Pedido B2C por telefone ou WhatsApp, fora do Shopify."
-        />
+        {cabecalho}
         <Card>
           <CardHeader>
-            <CardTitle>{r.id_externo} criado — aguardando pagamento</CardTitle>
+            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — aguardando pagamento</CardTitle>
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
+            {edicao && (
+              <p className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm font-medium">
+                O valor mudou de {formatBRL(r.valor_anterior ?? null)} para {formatBRL(r.valor_total)} — envie o novo pagamento ao cliente
+              </p>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             {r.frete && (
@@ -352,7 +504,9 @@ export default function VendaDiretaNovo() {
               </p>
             )}
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={limparTudo}><Plus className="h-4 w-4" /> Novo pedido</Button>
+              {edicao
+                ? <Button variant="outline" onClick={() => navigate("/pedidos/venda-direta")}>Voltar para a Gestão</Button>
+                : <Button variant="outline" onClick={limparTudo}><Plus className="h-4 w-4" /> Novo pedido</Button>}
               <Button variant="outline" onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}>Fechar</Button>
             </div>
           </CardContent>
@@ -363,12 +517,7 @@ export default function VendaDiretaNovo() {
 
   return (
     <PageShell>
-      <PageHeader
-        titulo="Pedidos Site SP · Novo pedido"
-        breadcrumb={[{ label: "Operação" }, { label: "Pedidos Site SP · Novo pedido" }]}
-        icone={ShoppingBag}
-        estado="Pedido B2C por telefone ou WhatsApp, fora do Shopify."
-      />
+      {cabecalho}
 
       {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
       <div className="grid gap-4 lg:grid-cols-3">
@@ -377,9 +526,10 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Cliente</CardTitle>
-          {!novo && <Button variant="outline" size="sm" onClick={abrirNovo}><UserPlus className="h-4 w-4" /> Novo cliente</Button>}
+          {!novo && !edicao && <Button variant="outline" size="sm" onClick={abrirNovo}><UserPlus className="h-4 w-4" /> Novo cliente</Button>}
         </CardHeader>
         <CardContent className="space-y-3">
+          {edicao && <p className="text-xs text-muted-foreground">Cliente não pode ser trocado — para outro cliente, cancele e crie um novo pedido</p>}
           {cliente ? (
             <div className="flex items-start justify-between rounded-md border p-3">
               <div className="text-sm">
@@ -387,8 +537,10 @@ export default function VendaDiretaNovo() {
                 <p className="text-muted-foreground">{cpfOculto(cliente.cpf)} · {cliente.telefone ?? "sem telefone"}{cliente.email ? ` · ${cliente.email}` : ""}</p>
                 {soDigitos(cliente.cpf).length !== 11 && <p className="mt-1 text-destructive">CPF obrigatório para a NF</p>}
               </div>
-              <Button variant="ghost" size="icon" aria-label="Trocar cliente" onClick={() => setCliente(null)}><X className="h-4 w-4" /></Button>
+              {!edicao && <Button variant="ghost" size="icon" aria-label="Trocar cliente" onClick={() => setCliente(null)}><X className="h-4 w-4" /></Button>}
             </div>
+          ) : edicao ? (
+            <p className="text-sm text-destructive">Pedido sem cliente vinculado.</p>
           ) : novo ? (
             <div className="space-y-3">
               <div className="grid grid-cols-6 gap-3">
@@ -512,7 +664,15 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
+          {edicao && edQ.data && (
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-muted-foreground">Meio atual do pedido (troca só pelo diálogo)</span>
+              <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTrocarMeio({ ...edQ.data!.linha })}>
+                <ArrowLeftRight className="h-3.5 w-3.5" /> Trocar meio
+              </Button>
+            </div>
+          )}
+          <RadioGroup disabled={edicao} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
@@ -599,9 +759,15 @@ export default function VendaDiretaNovo() {
                 {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                 {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : `Cartão · até ${parcelasLink}x`}
               </p>
+              {edicao && (
+                <div className="space-y-1">
+                  <Label htmlFor="motivo-edicao">Motivo da alteração*</Label>
+                  <Textarea id="motivo-edicao" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: cliente trocou um item" />
+                </div>
+              )}
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
-                {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Criar pedido
+                {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {edicao ? "Salvar alterações" : "Criar pedido"}
               </Button>
             </CardContent>
           </Card>
@@ -615,9 +781,10 @@ export default function VendaDiretaNovo() {
           <p className="text-2xl font-semibold tabular-nums">{formatBRL(total)}</p>
         </div>
         <Button size="lg" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
-          {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} Criar pedido
+          {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {edicao ? "Salvar alterações" : "Criar pedido"}
         </Button>
       </div>
+      <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={() => { setTrocarMeio(null); void edQ.refetch(); }} />
     </PageShell>
   );
 }
