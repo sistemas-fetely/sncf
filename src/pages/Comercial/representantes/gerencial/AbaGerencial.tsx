@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Fragment, startTransition, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,7 @@ function Numerao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: 
 }
 
 export function AbaGerencial() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const mesUrl = searchParams.get("mes");
   const [competencia, setCompetencia] = useState(
@@ -71,6 +72,12 @@ export function AbaGerencial() {
     proximos.set("aba", "gerencial");
     proximos.set("mes", novaCompetencia);
     setSearchParams(proximos, { replace: true });
+  };
+
+  const navegarSemSuspender = (destino: string) => (evento: React.MouseEvent<HTMLAnchorElement>) => {
+    if (evento.button !== 0 || evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.altKey) return;
+    evento.preventDefault();
+    startTransition(() => navigate(destino));
   };
 
   const totais = useMemo(
@@ -114,7 +121,10 @@ export function AbaGerencial() {
           </Link>
         </Button>
         <Button asChild size="sm" variant="outline">
-          <Link to={`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`}>
+          <Link
+            to={`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`}
+            onClick={navegarSemSuspender(`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`)}
+          >
             <FileText className="mr-1 h-4 w-4" />
             Extratos dos representantes (PDF)
           </Link>
@@ -269,6 +279,7 @@ export function AbaGerencial() {
                                   <Button asChild size="icon" variant="ghost" className="h-7 w-7">
                                     <Link
                                       to={`/comercial/representantes/${r.vendedorId}/extrato-impressao?competencia=${mesPagamento}`}
+                                      onClick={navegarSemSuspender(`/comercial/representantes/${r.vendedorId}/extrato-impressao?competencia=${mesPagamento}`)}
                                       aria-label={`Extrato de ${r.representante} (pagamento ${rotuloPagamento})`}
                                     ><FileText className="h-4 w-4" /></Link>
                                   </Button>
