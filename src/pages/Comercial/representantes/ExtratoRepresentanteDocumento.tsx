@@ -23,6 +23,23 @@ function proximoMes(competencia: string) {
   return `${proximo.getUTCFullYear()}-${String(proximo.getUTCMonth() + 1).padStart(2, "0")}-01`;
 }
 
+/** Mês anterior ao mês de pagamento — o período medido pelo extrato. */
+function mesAnterior(competencia: string) {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes - 2, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function primeiroDia(competencia: string) {
+  return `${competencia}-01`;
+}
+
+function ultimoDia(competencia: string) {
+  const [ano, mes] = competencia.split("-").map(Number);
+  const d = new Date(Date.UTC(ano, mes, 0));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+}
+
 function rotuloCompetencia(competencia: string) {
   return fmtCompetencia(`${competencia}-01`);
 }
@@ -103,10 +120,12 @@ function TabelaHistorico({ serie }: { serie: Linha[] }) {
   );
 }
 
-function PaginaResumo({ representante, serie }: { representante: Linha; serie: Linha[] }) {
+function PaginaResumo({ representante, serie, competencia, pagarAte }: { representante: Linha; serie: Linha[]; competencia: string; pagarAte: string | null }) {
   const travada = numero(representante.comissao_travada_inadimplencia);
   const proximaData = representante.proximo_recebimento_data ? fmtData(representante.proximo_recebimento_data) : "Sem previsão";
-  const periodo = `${fmtData(representante.primeira_venda)} → ${fmtData(representante.ultima_venda)}`;
+  const mesMedido = mesAnterior(competencia);
+  const periodo = `${fmtData(primeiroDia(mesMedido))} → ${fmtData(ultimoDia(mesMedido))}`;
+  const pagamentoAte = pagarAte ?? `${competencia}-15`;
   return (
     <section className="pagina-a4 relative bg-card text-card-foreground">
       <header className="border-b border-border pb-4">
@@ -123,9 +142,13 @@ function PaginaResumo({ representante, serie }: { representante: Linha; serie: L
             {representante.regiao && (
               <p className="text-[8.5pt] text-muted-foreground">Região: {representante.regiao}</p>
             )}
+            {representante.primeira_venda && (
+              <p className="text-[7.5pt] text-muted-foreground">Representante desde {fmtData(representante.primeira_venda)}</p>
+            )}
         </div>
         <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-[7.5pt]">
-          <dt className="text-muted-foreground">Relacionamento</dt><dd className="text-right tabular-nums">{periodo}</dd>
+          <dt className="text-muted-foreground">Competência</dt><dd className="text-right tabular-nums">{periodo}</dd>
+          <dt className="text-muted-foreground">Pagamento até</dt><dd className="text-right tabular-nums">{fmtData(pagamentoAte)}</dd>
           <dt className="text-muted-foreground">Emissão</dt><dd className="text-right tabular-nums">{fmtData(hojeISO())}</dd>
         </dl>
       </section>
@@ -498,7 +521,7 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <PaginaResumo representante={representante} serie={serieQ.data ?? []} />
+      <PaginaResumo representante={representante} serie={serieQ.data ?? []} competencia={competencia} pagarAte={extrato?.pagar_ate ?? null} />
       {extrato ? (
         <PaginaExtratoCongelado
           competencia={competencia}
