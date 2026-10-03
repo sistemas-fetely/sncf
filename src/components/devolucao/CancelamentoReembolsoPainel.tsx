@@ -135,7 +135,7 @@ export function CancelamentoReembolsoPainel() {
     },
     onSuccess: async (resultado) => {
       const atual = acao;
-      toast.success(atual?.tipo === "recusar" ? "Cancelamento com reembolso recusado" : atual?.d.meio === "pix" ? "Aprovado — aguardando a devolução PIX pelo financeiro" : resultado?.status === "concluida" ? "Reembolso concluído" : resultado?.status === "estorno_enviado" ? "Reembolso enviado; aguardando confirmação do Safra" : "Cancelamento com reembolso aprovado");
+      toast.success(atual?.tipo === "recusar" ? "Cancelamento sem NF recusado" : atual?.d.meio === "pix" ? "Aprovado — aguardando a devolução PIX pelo financeiro" : resultado?.status === "concluida" ? "Reembolso concluído" : resultado?.status === "estorno_enviado" ? "Reembolso enviado; aguardando confirmação do Safra" : "Cancelamento sem NF aprovado");
       await atualizar();
       setAcao(null);
     },
@@ -193,7 +193,7 @@ export function CancelamentoReembolsoPainel() {
           {ETAPAS.slice(5).map((e) => <CardEtapa key={e.status} rotulo={e.rotulo} total={(q.data ?? []).filter((d) => d.status === e.status).length} ativo={filtro === e.status} destaque={e.destaque} aoClicar={() => setFiltro(filtro === e.status ? null : e.status)} />)}
         </div>
       </div>
-      <TabelaFetely busca={{ valor: busca, aoMudar: setBusca, placeholder: "Pedido, cliente ou motivo" }} carregando={q.isLoading} erro={q.isError ? rawMessage(q.error) : null} aoTentarNovamente={() => q.refetch()} vazio={{ mensagem: "Nenhum cancelamento com reembolso." }} semResultado="Nenhum cancelamento para esse filtro." total={(q.data ?? []).length} exibidos={linhas.length} rotulo="cancelamentos com reembolso">
+      <TabelaFetely busca={{ valor: busca, aoMudar: setBusca, placeholder: "Pedido, cliente ou motivo" }} carregando={q.isLoading} erro={q.isError ? rawMessage(q.error) : null} aoTentarNovamente={() => q.refetch()} vazio={{ mensagem: "Nenhum cancelamento sem NF." }} semResultado="Nenhum cancelamento para esse filtro." total={(q.data ?? []).length} exibidos={linhas.length} rotulo="cancelamentos sem NF">
         <div className="overflow-hidden rounded-md border bg-card">
           <Table>
             <TableHeader className="bg-muted"><TableRow><TableHead className="w-8" /><TableHead>Pedido</TableHead><TableHead>Cliente</TableHead><TableHead>Meio</TableHead><TableHead className="text-right">Valor</TableHead><TableHead>Motivo</TableHead><TableHead>Solicitado por/em</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Ações</TableHead></TableRow></TableHeader>
