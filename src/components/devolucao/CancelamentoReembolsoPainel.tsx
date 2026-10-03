@@ -21,6 +21,7 @@ import {
   QK_VD_DEVOLUCOES,
   ROTULO_DEVOLUCAO,
   TrilhaDevolucao,
+  nomeCliente,
   type DevolucaoVD,
   type StatusDevolucao,
   useDevolucoesVD,
@@ -82,7 +83,7 @@ export function CancelamentoReembolsoPainel() {
       if (pedidoParam && d.pedido_id !== pedidoParam) return false;
       if (filtro && d.status !== filtro) return false;
       if (!termo) return true;
-      return d.pedido?.id_externo?.toLowerCase().includes(termo) || d.pedido?.cliente_nome_snapshot?.toLowerCase().includes(termo) || d.motivo_solicitacao.toLowerCase().includes(termo);
+      return d.pedido?.id_externo?.toLowerCase().includes(termo) || nomeCliente(d.pedido)?.toLowerCase().includes(termo) || d.motivo_solicitacao.toLowerCase().includes(termo);
     });
   }, [busca, filtro, pedidoParam, q.data]);
 
@@ -171,7 +172,7 @@ export function CancelamentoReembolsoPainel() {
                 <TableRow className="cursor-pointer" onClick={(e) => { if ((e.target as HTMLElement).closest("button,a,input")) return; setExpandido(aberto ? null : d.id); }}>
                   <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
                   <TableCell><div className="font-medium">{d.pedido?.id_externo ?? "—"}</div><div className="text-xs text-muted-foreground">Site SP</div></TableCell>
-                  <TableCell>{d.pedido?.cliente_nome_snapshot ?? "—"}</TableCell><TableCell>{d.meio === "pix" ? "PIX" : "Cartão"}</TableCell>
+                  <TableCell>{nomeCliente(d.pedido) ?? "—"}</TableCell><TableCell>{d.meio === "pix" ? "PIX" : "Cartão"}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(d.valor)}</TableCell><TableCell className="max-w-48 whitespace-normal">{d.motivo_solicitacao}</TableCell>
                   <TableCell><div>{d.solicitante ?? "—"}</div><div className="text-xs text-muted-foreground">{dataHora(d.solicitado_em)}</div></TableCell>
                   <TableCell><Badge variant={d.status === "falhou" ? "destructive" : "outline"}>{d.status === "estorno_enviado" ? "Reembolso em curso" : ROTULO_DEVOLUCAO[d.status]}</Badge>{d.erro && <div className="mt-1 max-w-56 text-xs text-destructive">{d.erro}</div>}{d.status === "estorno_enviado" && <div className="mt-1 text-xs text-muted-foreground">Aguardando confirmação do Safra</div>}</TableCell>
