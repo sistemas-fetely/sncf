@@ -14,6 +14,7 @@ export interface ProdutoVarejo {
   sku: string;
   nome_completo: string | null;
   preco_varejo: number;
+  cod_cadastro: string | null;
 }
 
 /** Mesmo combobox da tela de Transferências, restrito a produtos ativos com preço de varejo. */
@@ -41,10 +42,10 @@ export function ProdutoVarejoCombobox({
       const t = debounced.replace(/[,()%*]/g, " ").trim();
       const { data, error } = await (supabase as any)
         .from("sncf_produtos")
-        .select("sku, nome_completo, preco_varejo")
+        .select("sku, nome_completo, preco_varejo, cod_cadastro")
         .eq("ativo", true)
         .gt("preco_varejo", 0)
-        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%`)
+        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%,cod_cadastro.ilike.%${t}%`)
         .order("sku")
         .limit(20);
       if (error) throw error;
@@ -64,13 +65,13 @@ export function ProdutoVarejoCombobox({
           aria-expanded={aberto}
           className={cn("w-full justify-between font-normal", !value && "text-muted-foreground")}
         >
-          <span className="truncate">{value || "Buscar SKU ou nome…"}</span>
+          <span className="truncate">{value || "Buscar SKU, código ou nome…"}</span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[460px] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Digite SKU ou nome…" value={termo} onValueChange={setTermo} />
+          <CommandInput placeholder="Digite SKU, código ou nome…" value={termo} onValueChange={setTermo} />
           <CommandList>
             {debounced.length < 2 ? (
               <CommandEmpty>Digite ao menos 2 caracteres.</CommandEmpty>
@@ -98,7 +99,7 @@ export function ProdutoVarejoCombobox({
                       <ProdutoMiniatura img={imgsQ.data?.get(p.sku)} tamanho={32} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{p.nome_completo ?? p.sku}</span>
-                        <span className="block text-xs tabular-nums text-muted-foreground">{p.sku}</span>
+                        <span className="block text-xs tabular-nums text-muted-foreground">{p.sku}{p.cod_cadastro ? ` · cód. ${p.cod_cadastro}` : ""}</span>
                       </span>
                       <span className="text-sm font-medium tabular-nums">{formatBRL(p.preco_varejo)}</span>
                     </CommandItem>
