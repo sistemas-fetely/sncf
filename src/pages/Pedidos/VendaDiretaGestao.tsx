@@ -594,7 +594,7 @@ export default function VendaDiretaGestao() {
           provisaoId={confManual.provisao_id ?? undefined}
           aberto={!!confManual}
           modo="sops"
-          aoFechar={() => { setConfManual(null); void invalidarVendaDireta(queryClient); }}
+          aoFechar={() => { setConfManual(null); void invalidarVendaDireta(qc); }}
         />
       )}
       <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
