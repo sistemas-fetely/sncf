@@ -79,6 +79,13 @@ function temCredito(corpo: any): boolean {
   return temTipo(corpo, "credit");
 }
 
+/** A recusa do Safrapay menciona PIX/adquirente? (usa a mensagem da API; corpo inteiro só quando não há mensagem) */
+function recusaPixOuAdquirente(corpo: any, status: number): boolean {
+  const m = msgApi(corpo, status);
+  const alvo = m.includes(": ") ? m : JSON.stringify(corpo ?? "");
+  return /pix/i.test(alvo) || /adquirente|acquirer/i.test(alvo);
+}
+
 /** DELETE no Safra falhou só porque o link já não é pagável (expirado/cancelado/pago)? */
 function deleteToleravel(status: number, corpo: any): boolean {
   if (status === 404 || status === 410) return true;
@@ -202,11 +209,9 @@ Deno.serve(async (req) => {
     const cT = await lerCorpo(rT);
     if (!rT.ok) return await falhar(`Consultar tipos de pagamento: ${msgApi(cT, rT.status)}`);
     if (!temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
-    const tipos = ["Credit"];
-    if ((cfg as any).pix_no_link === true) {
-      if (temTipo(cT, "pix")) tipos.push("Pix");
-      else avisos.push("PIX não habilitado no Safrapay — link só com cartão");
-    }
+    // paymentTypes nunca devolve Pix (medido em produção e homologação), então o PIX no link
+    // vem da configuração, não da lista. Credit continua obrigatório (verificação acima).
+    const tipos = (cfg as any).pix_no_link === true ? ["Credit", "Pix"] : ["Credit"];
 
     // Cancelar no Safra o(s) link(s) anterior(es) antes de criar o novo — nunca dois links pagáveis.
     if (cancelarNoSafra.length) {
@@ -255,28 +260,50 @@ Deno.serve(async (req) => {
     }
     const customer = montarCustomer(parceiro, pedido, avisos);
 
-    const payload: any = {
+    const payloadBase: any = {
       amount,
       description: `Fetely · ${pedido.id_externo}`,
       orderCode: pedido.id_externo,
       expiration: expira.toISOString(),
       maxInstallmentNumber: maxParcelas,
       ...(customer ? { customer } : {}),
-      paymentSupportedTypes: tipos,
     };
-    const rL = await fetch(`${apiBase}/v2/paymentlink`, { method: "POST", headers: h, body: JSON.stringify(payload) });
-    const cL = await lerCorpo(rL);
-    const d = cL?.data ?? cL;
-    const linkId = d?.id ?? d?.paymentLinkId;
-    const rel = d?.smartCheckoutUrl;
-    if (!rL.ok || !linkId || !rel) return await falhar(`Criar link: ${msgApi(cL, rL.status)}`);
+    const criarLink = async (meios: string[]) => {
+      const r = await fetch(`${apiBase}/v2/paymentlink`, {
+        method: "POST", headers: h, body: JSON.stringify({ ...payloadBase, paymentSupportedTypes: meios }),
+      });
+      const c = await lerCorpo(r);
+      const d = c?.data ?? c;
+      return { r, c, d, linkId: d?.id ?? d?.paymentLinkId, rel: d?.smartCheckoutUrl };
+    };
+    const recusado = (t: any) => !t.r.ok || t.c?.success === false || !t.linkId || !t.rel;
+
+    let tent = await criarLink(tipos);
+    let meiosAceitos = tipos;
+    let recusa: any = null;
+    // PIX recusado pelo Safrapay (adquirente sem PIX) → refaz UMA vez só com cartão.
+    if (recusado(tent) && tipos.includes("Pix") && recusaPixOuAdquirente(tent.c, tent.r.status)) {
+      recusa = {
+        paymentSupportedTypes: tipos, http_status: tent.r.status,
+        mensagem: msgApi(tent.c, tent.r.status), resposta: tent.c,
+      };
+      tent = await criarLink(["Credit"]);
+      meiosAceitos = ["Credit"];
+      if (!recusado(tent)) avisos.push("PIX não habilitado no Safrapay — link só com cartão");
+    }
+    if (recusado(tent)) return await falhar(`Criar link: ${msgApi(tent.c, tent.r.status)}`);
+
+    const { linkId, rel } = tent;
     const urlFinal = /^https?:\/\//.test(String(rel)) ? String(rel) : `${portal}${String(rel).startsWith("/") ? "" : "/"}${rel}`;
-    const expiraFinal = d?.expiration ? new Date(d.expiration).toISOString() : expira.toISOString();
+    const expiraFinal = tent.d?.expiration ? new Date(tent.d.expiration).toISOString() : expira.toISOString();
 
     const { error: eUp } = await sb.from("pagamento_link").update({
       status: "aberto", gateway_link_id: String(linkId), url: urlFinal, expira_em: expiraFinal,
       max_parcelas: maxParcelas, erro: null,
-      resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, paymentSupportedTypes: tipos, avisos },
+      resposta_criacao: {
+        id: linkId, smartCheckoutUrl: rel, expiration: tent.d?.expiration ?? null, status: tent.d?.status ?? null,
+        paymentSupportedTypes: meiosAceitos, avisos, ...(recusa ? { tentativa_recusada: recusa } : {}),
+      },
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
