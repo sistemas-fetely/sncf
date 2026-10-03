@@ -32,7 +32,7 @@ import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
 import { reprocessarFilaB2c } from "@/hooks/vendas/useB2c";
 import {
-  ConfirmarCartaoDialog, ConfirmarPixManualDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, QK_VD_GESTAO, type LinhaVD,
+  ConfirmarCartaoDialog, ConfirmarPixManualDialog, RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, QK_VD_GESTAO, invalidarVendaDireta, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
@@ -184,6 +184,9 @@ export default function VendaDiretaGestao() {
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
     refetchInterval: 30_000,
     queryFn: async (): Promise<Linha[]> => {
       const { data, error } = await supabase
@@ -199,7 +202,7 @@ export default function VendaDiretaGestao() {
     mutationFn: (l: Linha) => reprocessarFilaB2c([l.fila_id!], "bling", "Reprocessado na gestão VD"),
     onSuccess: (_r, l) => {
       toast.success(`Descida de ${l.id_externo} reenviada para a fila`);
-      qc.invalidateQueries({ queryKey: QK_VD_GESTAO });
+      void invalidarVendaDireta(qc);
     },
     onError: (e) => toast.error(rawMessage(e)),
   });
@@ -292,7 +295,7 @@ export default function VendaDiretaGestao() {
       ? <AvisarClienteButton linha={l} chave="cobrar_pagamento" label="Cobrar no WhatsApp" icone={icone} />
       : <AvisarClienteButton linha={l} icone={icone} />);
 
-  const fechar = (fn: (v: null) => void) => () => { fn(null); qc.invalidateQueries({ queryKey: QK_VD_GESTAO }); };
+  const fechar = (fn: (v: null) => void) => () => { fn(null); void invalidarVendaDireta(qc); };
 
   return (
     <PageShell>
@@ -534,7 +537,7 @@ export default function VendaDiretaGestao() {
       <ConfirmarCartaoDialog linha={cartao} onClose={fechar(setCartao)} />
       <RegistrarRetiradaDialog linha={retirada} onClose={fechar(setRetirada)} />
       <RegistrarEntregaDialog linha={entrega} onClose={fechar(setEntrega)} />
-      <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); qc.invalidateQueries({ queryKey: QK_VD_GESTAO }); }} />
+      <VerPixDialog linha={pix} payloadNovo={pixNovo} onClose={() => { setPix(null); setPixNovo(null); void invalidarVendaDireta(qc); }} />
       <RemontarPagamentoDialog
         linha={remontar}
         onClose={fechar(setRemontar)}
@@ -546,7 +549,7 @@ export default function VendaDiretaGestao() {
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
       <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
       <CancelarVendaDiretaDialog linha={cancelar} onClose={fechar(setCancelar)} />
-      <SolicitarDevolucaoDialog linha={devolver} onClose={() => { setDevolver(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); qc.invalidateQueries({ queryKey: QK_VD_GESTAO }); }} />
+      <SolicitarDevolucaoDialog linha={devolver} onClose={() => { setDevolver(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); }} />
     </PageShell>
   );
 }

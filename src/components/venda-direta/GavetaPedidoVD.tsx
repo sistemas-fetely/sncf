@@ -8,6 +8,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TrilhaDevolucao, type DevolucaoVD } from "./DevolucaoVendaDireta";
+import { QK_VD_GAVETA } from "./AcoesVendaDireta";
 
 export interface LinhaGaveta {
   id: string;
@@ -80,7 +81,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
 }) {
   const id = linha?.id;
   const itensQ = useQuery({
-    queryKey: ["vd-gaveta-itens", id],
+    queryKey: [...QK_VD_GAVETA, "itens", id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from("pedido_itens" as never)
@@ -92,7 +93,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
   const skus = Array.from(new Set((itensQ.data ?? []).map((i) => i.sku)));
   const prodQ = useProdutosPorSku(skus);
   const saldoQ = useQuery({
-    queryKey: ["vd-gaveta-saldo", skus.join(",")],
+    queryKey: [...QK_VD_GAVETA, "saldo", skus.join(",")],
     enabled: skus.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase.from("vw_estoque_centro" as never).select("sku, disponivel").eq("centro", "SITE-SP").in("sku", skus);
@@ -101,7 +102,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
     },
   });
   const linkQ = useQuery({
-    queryKey: ["vd-gaveta-link", id],
+    queryKey: [...QK_VD_GAVETA, "link", id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from("pagamento_link" as never)
@@ -114,7 +115,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
   const pixSafraQ = usePixSafrapay(linha?.pagamento === "pix" ? id : null);
   const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const evQ = useQuery({
-    queryKey: ["vd-gaveta-eventos", id],
+    queryKey: [...QK_VD_GAVETA, "eventos", id],
     enabled: !!id,
     queryFn: async () => {
       const { data, error } = await supabase.from("pedido_eventos" as never)
