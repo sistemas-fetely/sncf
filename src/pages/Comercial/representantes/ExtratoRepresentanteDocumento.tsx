@@ -120,10 +120,12 @@ function TabelaHistorico({ serie }: { serie: Linha[] }) {
   );
 }
 
-function PaginaResumo({ representante, serie }: { representante: Linha; serie: Linha[] }) {
+function PaginaResumo({ representante, serie, competencia, pagarAte }: { representante: Linha; serie: Linha[]; competencia: string; pagarAte: string | null }) {
   const travada = numero(representante.comissao_travada_inadimplencia);
   const proximaData = representante.proximo_recebimento_data ? fmtData(representante.proximo_recebimento_data) : "Sem previsão";
-  const periodo = `${fmtData(representante.primeira_venda)} → ${fmtData(representante.ultima_venda)}`;
+  const mesMedido = mesAnterior(competencia);
+  const periodo = `${fmtData(primeiroDia(mesMedido))} → ${fmtData(ultimoDia(mesMedido))}`;
+  const pagamentoAte = pagarAte ?? `${competencia}-15`;
   return (
     <section className="pagina-a4 relative bg-card text-card-foreground">
       <header className="border-b border-border pb-4">
