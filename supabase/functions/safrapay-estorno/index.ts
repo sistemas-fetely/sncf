@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
   }
   if (cancelado) {
     const trace = c?.traceKey ?? c?.data?.traceKey ?? "sem traceKey";
+    const { error: eResposta } = await sb.from("vd_devolucao").update({ gateway_resposta: c, erro: null }).eq("id", id);
+    if (eResposta) return json({ ok: false, erro: `Estorno aceito, mas gravar resposta falhou: ${eResposta.message}` }, 500);
     const { error } = await sb.rpc("vd_concluir_devolucao", { p_devolucao_id: id, p_prova_tipo: "safrapay_estorno", p_prova_ref: d.charge_id, p_obs: `Safrapay ${trace}` });
     if (error) return json({ ok: false, erro: `Estorno aceito, mas concluir devolução falhou: ${error.message}` }, 500);
     return json({ ok: true, status: "concluida", gateway_resposta: c });

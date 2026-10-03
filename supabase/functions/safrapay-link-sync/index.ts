@@ -176,6 +176,8 @@ Deno.serve(async (req) => {
       const cancelado = ch?.isCanceled === true || ch?.canceled === true || /cancelled|canceled/.test(s);
       if (cancelado) {
         const trace = primeiro(c?.traceKey, c?.data?.traceKey, ch?.traceKey) ?? "sem traceKey";
+        const { error: eResposta } = await sb.from("vd_devolucao").update({ gateway_resposta: c, erro: null }).eq("id", d.id);
+        if (eResposta) throw new Error(`Gravar confirmação do estorno: ${eResposta.message}`);
         const { error } = await sb.rpc("vd_concluir_devolucao", { p_devolucao_id: d.id, p_prova_tipo: "safrapay_estorno", p_prova_ref: d.charge_id, p_obs: `Safrapay ${trace}` });
         if (error) throw new Error(`Concluir devolução: ${error.message}`);
         resumo.estornos_concluidos++; resumo.detalhes.push({ pedido_id: d.pedido_id, resultado: "estorno concluído" });
