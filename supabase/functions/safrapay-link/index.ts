@@ -277,10 +277,43 @@ Deno.serve(async (req) => {
     const recusado = (t: any) => !t.r.ok || t.c?.success === false || !t.linkId || !t.rel;
 
     const tent = await criarLink(tipos);
-    const meiosAceitos = tipos;
     if (recusado(tent)) return await falhar(`Criar link: ${msgApi(tent.c, tent.r.status)}`);
-
     const { linkId, rel } = tent;
+
+    // FAIL-LOUD: conferir os meios efetivos do link criado — o Safra pode trocar silenciosamente (VD-0011).
+    const meioPedido = ehPix ? "Pix" : "Credit";
+    const lerMeios = (sc: any): string[] | null => {
+      const lista: any[] = Array.isArray(sc?.paymentSupportedTypes) ? sc.paymentSupportedTypes : [];
+      if (!lista.length) return null;
+      const nomes = lista
+        .map((t: any) => String(typeof t === "string" ? t : (t?.name ?? t?.type ?? t?.value ?? t?.code ?? "")).trim())
+        .filter(Boolean);
+      return nomes.length ? nomes : null;
+    };
+    let meiosEfetivos = lerMeios(tent.d);
+    if (!meiosEfetivos) {
+      const rDet = await fetch(`${apiBase}/v2/smartcheckout/${encodeURIComponent(String(linkId))}/detail`, { headers: h });
+      const cDet = await lerCorpo(rDet);
+      const sc = cDet?.smartCheckout ?? cDet?.data?.smartCheckout ?? cDet?.data ?? cDet;
+      meiosEfetivos = lerMeios(sc);
+      if (!meiosEfetivos) return await falhar(`Conferir meios do link: ${msgApi(cDet, rDet.status)}`);
+    }
+    if (!meiosEfetivos.some((n) => n.toLowerCase() === meioPedido.toLowerCase())) {
+      let notaCancel = "";
+      if (merchantId) {
+        const rC = await fetch(`${apiBase}/v2/smartcheckout/${encodeURIComponent(String(linkId))}`, {
+          method: "DELETE", headers: { Authorization: `Bearer ${accessToken}`, MerchantId: merchantId },
+        });
+        if (!rC.ok) {
+          const cC = await lerCorpo(rC);
+          if (!deleteToleravel(rC.status, cC)) notaCancel = ` · falha ao cancelar o link no Safra: ${msgApi(cC, rC.status)}`;
+        }
+      } else {
+        notaCancel = " · merchant_id ausente — o link não pôde ser cancelado no Safra";
+      }
+      return await falhar(`Safrapay não habilitou ${meioPedido} neste link (aceitou: ${meiosEfetivos.join(", ")})${notaCancel}`);
+    }
+
     const urlFinal = /^https?:\/\//.test(String(rel)) ? String(rel) : `${portal}${String(rel).startsWith("/") ? "" : "/"}${rel}`;
     const expiraFinal = tent.d?.expiration ? new Date(tent.d.expiration).toISOString() : expira.toISOString();
 
@@ -289,7 +322,7 @@ Deno.serve(async (req) => {
       max_parcelas: maxParcelas, erro: null,
       resposta_criacao: {
         id: linkId, smartCheckoutUrl: rel, expiration: tent.d?.expiration ?? null, status: tent.d?.status ?? null,
-        paymentSupportedTypes: meiosAceitos, avisos,
+        paymentSupportedTypes: meiosEfetivos, meio_pedido: ehPix ? "pix" : "cartao", avisos,
       },
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
