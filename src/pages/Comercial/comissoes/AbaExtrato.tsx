@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
 import { fmtBRL, fmtCompetencia, fmtData, fmtJanelaRecebimento } from "./fmt";
@@ -20,7 +21,18 @@ interface Extrato {
   valor_a_pagar: number | null;
   nfs: string | null;
   tudo_lancado_cpr: boolean | null;
+  liberacoes_em_aberto: number | null;
+  valor_em_aberto: number | string | null;
+  extratos_fechados: number | null;
+  situacao_extrato: "aberto" | "fechado" | "titulo_gerado" | "pago" | null;
 }
+
+const SITUACAO_EXTRATO: Record<string, { rotulo: string; cls: string }> = {
+  aberto: { rotulo: "Aberto", cls: "bg-warning/15 text-warning border-warning/30" },
+  fechado: { rotulo: "Extrato fechado", cls: "bg-info/15 text-info border-info/30" },
+  titulo_gerado: { rotulo: "Título gerado", cls: "bg-primary/10 text-primary border-primary/30" },
+  pago: { rotulo: "Pago", cls: "bg-success/15 text-success border-success/30" },
+};
 
 interface DetalheComissao {
   representante: string | null;
@@ -236,6 +248,9 @@ export function AbaExtrato() {
         const atraso = linhas.some(
           (l) => l.pagar_ate && l.pagar_ate < hoje && l.tudo_lancado_cpr === false,
         );
+        const emAberto = linhas.some((l) => Number(l.liberacoes_em_aberto ?? 0) > 0);
+        const jaFechou = linhas.some((l) => Number(l.extratos_fechados ?? 0) > 0);
+        const modo = !emAberto ? "fechado" : jaFechou ? "complementar" : "normal";
         return (
           <Card key={competencia}>
             <CardHeader className="flex flex-row items-start justify-between gap-3">
@@ -246,10 +261,11 @@ export function AbaExtrato() {
                 <p className="text-xs text-muted-foreground">
                   Recebimentos de {fmtJanelaRecebimento(competencia)} · Total a pagar{" "}
                   {fmtBRL(total)} · pagar até {fmtData(linhas[0]?.pagar_ate)}
+                  {modo === "fechado" && " · fechado"}
                 </p>
               </div>
               <div className="flex gap-2">
-                {competencia !== "—" && <FecharCompetenciaBotao competencia={competencia} />}
+                {competencia !== "—" && <FecharCompetenciaBotao competencia={competencia} modo={modo} />}
                 <Button variant="outline" onClick={() => baixarCsv(competencia)}>
                   <Download className="h-4 w-4" />
                   Exportar CSV
@@ -274,7 +290,7 @@ export function AbaExtrato() {
                     <TableHead>NFs incluídas</TableHead>
                     <TableHead>Pagar até</TableHead>
                     <TableHead className="text-right">Valor a pagar</TableHead>
-                    <TableHead>CPR</TableHead>
+                    <TableHead>Situação</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -289,13 +305,21 @@ export function AbaExtrato() {
                       <TableCell>{fmtData(l.pagar_ate)}</TableCell>
                       <TableCell className="text-right font-medium">
                         {fmtBRL(l.valor_a_pagar)}
+                        {modo === "complementar" && Number(l.liberacoes_em_aberto ?? 0) > 0 && (
+                          <div className="text-xs font-normal text-muted-foreground">
+                            ({fmtBRL(Number(l.valor_em_aberto ?? 0))} em aberto)
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {l.tudo_lancado_cpr ? (
-                          "Lançado"
-                        ) : (
-                          <span className="text-destructive">Pendente</span>
-                        )}
+                        {(() => {
+                          const sit = SITUACAO_EXTRATO[l.situacao_extrato ?? ""];
+                          return sit ? (
+                            <Badge variant="outline" className={sit.cls}>{sit.rotulo}</Badge>
+                          ) : (
+                            "—"
+                          );
+                        })()}
                       </TableCell>
                     </TableRow>
                   ))}

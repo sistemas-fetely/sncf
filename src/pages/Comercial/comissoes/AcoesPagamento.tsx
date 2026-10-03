@@ -28,7 +28,14 @@ async function rpc(nome: string, args: Record<string, unknown>): Promise<Res> {
 }
 
 /* ---------------- Fechar competência ---------------- */
-export function FecharCompetenciaBotao({ competencia }: { competencia: string }) {
+export function FecharCompetenciaBotao({
+  competencia,
+  modo = "normal",
+}: {
+  competencia: string;
+  /** fechado = nada em aberto; complementar = já há extrato e ainda há liberação em aberto */
+  modo?: "normal" | "fechado" | "complementar";
+}) {
   const qc = useQueryClient();
   const [aberto, setAberto] = useState(false);
   const [rodando, setRodando] = useState(false);
@@ -58,18 +65,37 @@ export function FecharCompetenciaBotao({ competencia }: { competencia: string })
     }
   }
 
+  const rotulo = modo === "complementar" ? "Fechar complementar" : "Fechar extrato";
+
+  if (modo === "fechado") {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-block">
+            <Button variant="outline" disabled>
+              <Lock className="h-4 w-4" />Extrato fechado
+            </Button>
+          </span>
+        </TooltipTrigger>
+        <TooltipContent className="max-w-xs">
+          Todas as liberações deste mês já estão em extrato fechado. Próximo passo: gerar título e enviar em Representantes → Ciclo mensal.
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
+
   return (
     <>
       {podeFechar ? (
         <Button variant="outline" onClick={() => setAberto(true)}>
-          <Lock className="h-4 w-4" />Fechar extrato
+          <Lock className="h-4 w-4" />{rotulo}
         </Button>
       ) : (
         <Tooltip>
           <TooltipTrigger asChild>
             <span className="inline-block">
               <Button variant="outline" disabled>
-                <Lock className="h-4 w-4" />Fechar extrato
+                <Lock className="h-4 w-4" />{rotulo}
               </Button>
             </span>
           </TooltipTrigger>
