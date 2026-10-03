@@ -1,11 +1,11 @@
-import { LinkCartaoDialog, rotuloFormaPagamento, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, ArrowLeftRight, Ban, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
+  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
   RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -71,6 +72,7 @@ interface Linha extends LinhaVD {
 type Filtro =
   | "pagamento" | "faturamento" | "separacao" | "retirada_envio" | "entregue"
   | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "reembolso";
+type FiltroPagamento = "todos" | "pagos" | "nao_pagos";
 
 const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
@@ -92,6 +94,7 @@ const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
 };
 const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
+const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "cartao" ? "Cartão" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
 const soDigitos = (s: string) => s.replace(/\D/g, "");
@@ -104,6 +107,10 @@ function tempoDesde(iso: string | null): string {
   const h = Math.floor(min / 60);
   if (h < 24) return `${h} h`;
   return `${Math.floor(h / 24)} d`;
+}
+
+function dataPagamento(iso: string): string {
+  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 interface Acao { k: string; label: string; icon: LucideIcon; onClick: () => void; disabled?: boolean; destrutiva?: boolean }
@@ -167,6 +174,7 @@ export default function VendaDiretaGestao() {
   const qp = useParametrosVD();
   const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const [busca, setBusca] = useState("");
+  const [filtroPagamento, setFiltroPagamento] = useState<FiltroPagamento>("todos");
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [cartao, setCartao] = useState<Linha | null>(null);
@@ -241,15 +249,17 @@ export default function VendaDiretaGestao() {
     const base = mostrarCancelados ? visiveis : ativos;
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
+      if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em) return false;
+      if (filtroPagamento === "nao_pagos" && l.pagamento_confirmado_em) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
         (l.cliente_nome ?? "").toLowerCase().includes(t) ||
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, busca, mostrarCancelados, devolucaoPorPedido]);
+  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, devolucaoPorPedido]);
 
-  useEffect(() => { setPagina(1); }, [filtro, busca, mostrarCancelados]);
+  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados]);
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   const skusFalta = useMemo(
@@ -348,9 +358,16 @@ export default function VendaDiretaGestao() {
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
           filtros={
-            <div className="flex items-center gap-2">
-              <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
-              <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
+            <div className="flex flex-wrap items-center gap-3">
+              <ToggleGroup type="single" size="sm" variant="outline" value={filtroPagamento} onValueChange={(v) => v && setFiltroPagamento(v as FiltroPagamento)}>
+                <ToggleGroupItem value="todos">Todos</ToggleGroupItem>
+                <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
+                <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
+              </ToggleGroup>
+              <div className="flex items-center gap-2">
+                <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
+                <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
+              </div>
             </div>
           }
           carregando={q.isLoading}
@@ -369,7 +386,8 @@ export default function VendaDiretaGestao() {
                   <TableRow>
                     <TableHead>Nº</TableHead>
                     <TableHead>Cliente</TableHead>
-                    <TableHead>Entrega · Pagto</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead>Entrega</TableHead>
                     <TableHead className="text-right">Frete</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Situação</TableHead>
@@ -381,6 +399,15 @@ export default function VendaDiretaGestao() {
                   {pag.map((l) => {
                     const etapa = acoesEtapa(l, false);
                     const aviso = avisoDe(l, true);
+                    const devolucao = devolucaoPorPedido.get(l.id);
+                    const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
+                    const reembolsoConcluido = devolucao?.status === "concluida";
+                    const situacaoRotulo = reembolsoAtivo
+                      ? `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`
+                      : LABEL[l.situacao] ?? l.situacao;
+                    const situacaoVariant = reembolsoAtivo?.status === "falhou" || (!reembolsoAtivo && l.situacao === "travado")
+                      ? "destructive"
+                      : reembolsoAtivo ? "outline" : l.situacao === "cancelado" || l.situacao === "pausado" ? "outline" : "secondary";
                     return (
                       <TableRow
                         key={l.id}
@@ -413,8 +440,25 @@ export default function VendaDiretaGestao() {
                           <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
                         </TableCell>
                         <TableCell>
+                          {reembolsoConcluido ? (
+                            <div>
+                              <div className="text-muted-foreground">Devolvido</div>
+                              <div className="text-xs tabular-nums text-muted-foreground">{formatBRL(devolucao.valor)}</div>
+                            </div>
+                          ) : l.pagamento_confirmado_em ? (
+                            <div>
+                              <div className="flex items-center gap-1 font-medium text-foreground"><CheckCircle2 className="h-4 w-4 text-success" />Pago</div>
+                              <div className="text-xs tabular-nums text-muted-foreground">{pagamentoLabel(l.pagamento)} · {dataPagamento(l.pagamento_confirmado_em)}</div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="text-muted-foreground">Aguardando</div>
+                              <div className="text-xs text-muted-foreground">{pagamentoLabel(l.pagamento)} · há {tempoDesde(l.recebido_em)}</div>
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <div className="whitespace-nowrap text-xs text-muted-foreground">{modalLabel(l.modal)}</div>
-                          <div className="mt-1 text-xs text-muted-foreground">{rotuloFormaPagamento(l.pagamento, cfgPixNoLink)}</div>
                         </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {l.frete ? (
@@ -430,10 +474,11 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                         <TableCell>
-                          <Badge variant={l.situacao === "travado" ? "destructive" : l.situacao === "cancelado" || l.situacao === "pausado" ? "outline" : "secondary"}
-                            className={cn(l.situacao === "pausado" && "text-muted-foreground")}>
-                            {LABEL[l.situacao] ?? l.situacao}
+                          <Badge variant={situacaoVariant}
+                            className={cn(reembolsoAtivo && reembolsoAtivo.status !== "falhou" && "border-warning bg-warning/10 text-warning", !reembolsoAtivo && l.situacao === "pausado" && "text-muted-foreground")}>
+                            {situacaoRotulo}
                           </Badge>
+                          {reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {LABEL[l.situacao] ?? l.situacao}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
                             {l.alerta_sem_pagamento && (
                               <div className="text-warning-strong">
@@ -457,9 +502,6 @@ export default function VendaDiretaGestao() {
                                   })}
                                 </TooltipContent>
                               </Tooltip>
-                            )}
-                            {devolucaoPorPedido.get(l.id) && (
-                              <span className="block text-warning-strong">Reembolso · {ROTULO_DEVOLUCAO[devolucaoPorPedido.get(l.id)!.status]}</span>
                             )}
                           </div>
                         </TableCell>
