@@ -6,6 +6,7 @@ import { formatError } from "@/lib/format-error";
 
 export interface LinhaPagamentoMes {
   mes_pagamento: string;
+  mes_recebimento: string;
   tipo_linha: "comissao" | "estorno";
   liberacao_id: string | null;
   vendedor_id: string | null;
@@ -35,24 +36,17 @@ export function rotuloSituacao(l: LinhaPagamentoMes): string {
   }
 }
 
-/** "2026-10" → "09/2026" */
-export function mesAnterior(competencia: string): string {
-  const [a, m] = competencia.split("-").map(Number);
-  const d = new Date(Date.UTC(a, m - 2, 1));
-  return `${String(d.getUTCMonth() + 1).padStart(2, "0")}/${d.getUTCFullYear()}`;
-}
-
 export interface GrupoRep { representante: string; linhas: LinhaPagamentoMes[]; subtotal: number }
 
 export function usePagamentoMes(competencia: string) {
   const mes = `${competencia}-01`;
   const q = useQuery({
-    queryKey: ["vw_comissao_pagamento_mes", mes],
+    queryKey: ["vw_comissao_pagamento_mes", "mes_recebimento", mes],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("vw_comissao_pagamento_mes" as never)
         .select("*")
-        .eq("mes_pagamento", mes)
+        .eq("mes_recebimento", mes)
         .order("representante", { ascending: true })
         .order("cliente_pagou_em", { ascending: true });
       if (error) throw error;

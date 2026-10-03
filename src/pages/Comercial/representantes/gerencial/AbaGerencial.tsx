@@ -11,7 +11,7 @@ import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { Badge } from "@/components/ui/badge";
-import { mesAnterior, rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
+import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { competenciaPadrao, num, primeiroDia, useGerencial } from "./dados";
 
 function pct(v: unknown, casas = 2): string {
@@ -127,9 +127,13 @@ export function AbaGerencial() {
               destaque
             />
             <Numerao
-              titulo="Total a pagar no mês"
+              titulo="Comissão a pagar"
               valor={fmtBRL(num(g.mes?.total_a_pagar))}
-              detalhe={g.mes?.pagar_ate ? `Pagar até ${fmtData(g.mes.pagar_ate)}` : "Nada a pagar neste mês"}
+              detalhe={
+                num(g.mes?.total_a_pagar) > 0 && g.mes?.pagar_ate
+                  ? `Das NFs pagas em ${rotulo} · pagar até ${fmtData(g.mes.pagar_ate)}`
+                  : "Nenhuma NF paga neste mês"
+              }
             />
             <Numerao
               titulo="Clientes novos abertos"
@@ -154,7 +158,7 @@ export function AbaGerencial() {
                     <TableHead className="text-right">Comissão apurada</TableHead>
                     <TableHead className="text-right">Custo %</TableHead>
                     <TableHead className="text-right">Desconto médio %</TableHead>
-                    <TableHead className="text-right">Total a pagar</TableHead>
+                    <TableHead className="text-right">Comissão a pagar</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -174,7 +178,7 @@ export function AbaGerencial() {
                 </TableBody>
               </Table>
               <p className="text-xs text-muted-foreground">
-                Base, comissão, custo e desconto: pelo mês da NF. Total a pagar: comissão paga ao representante naquele mês (das NFs que os clientes pagaram no mês anterior).
+                Cada mês mostra o que aconteceu nele: NFs faturadas, comissão apurada e NFs pagas pelos clientes. A comissão das NFs pagas é paga ao representante até o dia 15 do mês seguinte.
               </p>
               <GraficoCustoDesconto historico={g.historico} altura={240} />
               <p className="text-xs text-muted-foreground">
@@ -277,10 +281,9 @@ function BlocoPagamentoMes({ competencia, rotulo }: { competencia: string; rotul
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">Comissões pagas em {rotulo}</CardTitle>
+        <CardTitle className="text-base">NFs pagas pelos clientes em {rotulo}</CardTitle>
         <p className="text-xs text-muted-foreground">
-          Comissão das NFs que os clientes pagaram em {mesAnterior(competencia)}
-          {p.pagarAte ? ` · pagar até ${fmtData(p.pagarAte)}` : ""}
+          {p.pagarAte ? `Comissão a pagar ao representante até ${fmtData(p.pagarAte)}` : "Comissão a pagar ao representante"}
         </p>
       </CardHeader>
       <CardContent>
@@ -289,7 +292,7 @@ function BlocoPagamentoMes({ competencia, rotulo }: { competencia: string; rotul
         ) : p.erro ? (
           <p className="py-6 text-center text-sm text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
         ) : p.linhas.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma comissão a pagar neste mês.</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma NF paga pelos clientes neste mês.</p>
         ) : (
           <Table>
             <TableHeader>
