@@ -16,7 +16,7 @@ import { QK_VD_GESTAO, type LinhaVD } from "@/components/venda-direta/AcoesVenda
 
 export interface LinkCartaoOk { ok: true; url: string; expira_em: string; max_parcelas: number; parcelas_padrao?: number; pagamento_link_id: string }
 
-export interface CfgParcelas { max_parcelas: number; valor_minimo_parcelar_centavos: number; parcela_min_centavos: number }
+export interface CfgParcelas { max_parcelas: number; valor_minimo_parcelar_centavos: number; parcela_min_centavos: number; pix_no_link: boolean }
 
 /** Regras de parcelamento lidas de safrapay_config. */
 export function useCfgParcelas() {
@@ -25,15 +25,17 @@ export function useCfgParcelas() {
     queryFn: async (): Promise<CfgParcelas> => {
       const { data, error } = await supabase
         .from("safrapay_config" as never)
-        .select("max_parcelas, valor_minimo_parcelar_centavos, parcela_min_centavos")
+        .select("max_parcelas, valor_minimo_parcelar_centavos, parcela_min_centavos, pix_no_link")
         .eq("id", 1).maybeSingle();
       if (error) throw error;
       if (!data) throw new Error("Configuração Safrapay ausente.");
       const d = data as unknown as Record<string, number | null>;
+      const pixNoLink = (data as unknown as { pix_no_link?: boolean | null }).pix_no_link === true;
       return {
         max_parcelas: Number(d.max_parcelas ?? 1),
         valor_minimo_parcelar_centavos: Number(d.valor_minimo_parcelar_centavos ?? 0),
         parcela_min_centavos: Number(d.parcela_min_centavos ?? 0),
+        pix_no_link: pixNoLink,
       };
     },
   });
@@ -93,19 +95,20 @@ export async function chamarEdge<T>(nome: string, body: unknown): Promise<T> {
 const fmtDataHora = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";
 
-function whatsappUrl(telefone: string | null | undefined, nome: string | null | undefined, vd: string | null, total: number | null, n: number, url: string) {
+function whatsappUrl(telefone: string | null | undefined, nome: string | null | undefined, vd: string | null, total: number | null, n: number, url: string, pixNoLink = false) {
   const t = (telefone ?? "").replace(/\D/g, "");
   if (t.length < 10) return null;
   const tel = t.length <= 11 ? `55${t}` : t;
   const primeiro = (nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague com cartão ${textoParcelas(n)} neste link: ${url}`;
+  const msg = `Olá ${primeiro}! Seu pedido ${vd ?? ""} na Fetely ficou em ${formatBRL(total)}. ${pixNoLink ? `Pague com cartão ${n <= 1 ? "à vista" : `em até ${n}x`} ou PIX` : `Pague com cartão ${textoParcelas(n)}`} neste link: ${url}`;
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
 
 function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null }) {
+  const pixNoLink = useCfgParcelas().data?.pix_no_link === true;
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Link do cartão ({textoParcelas(maxParcelas)})</p>
+      <p className="text-sm font-medium">{pixNoLink ? "Link de pagamento (cartão ou PIX)" : "Link do cartão"} ({textoParcelas(maxParcelas)})</p>
       <div className="flex gap-2">
         <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
         <Button
@@ -165,7 +168,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
       </div>
     );
   const r = estado.r;
-  return <LinkBloco url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url)} />;
+  return <LinkBloco url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, cfgPix)} />;
 }
 
 interface PagamentoLink {
@@ -250,7 +253,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Link do cartão · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>{cfgDlgPix ? "Link de pagamento (cartão ou PIX)" : "Link do cartão"} · {linha?.id_externo}</DialogTitle>
           <DialogDescription>{linha?.cliente_nome} · {formatBRL(linha?.valor_liquido ?? null)}</DialogDescription>
         </DialogHeader>
         {q.isLoading ? (
@@ -272,7 +275,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
                 url={l.url!}
                 maxParcelas={l.max_parcelas ?? 1}
                 expiraEm={l.expira_em}
-                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!)}
+                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!, cfgDlgPix)}
               />
             ) : l.url ? (
               <p className="break-all text-sm text-muted-foreground">{l.url} · vale até {fmtDataHora(l.expira_em)}</p>
