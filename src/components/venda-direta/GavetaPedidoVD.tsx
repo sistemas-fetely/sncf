@@ -204,7 +204,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
                     {linkQ.data.erro?.startsWith("Pago via PIX no link") && (
                       <p className="rounded-md border border-warning/40 bg-warning/10 px-2 py-1.5 text-xs text-warning-strong">{linkQ.data.erro}</p>
                     )}
-                    <Par k="Link" v={linkQ.data.status} />
+                    <Par k="Link" v={linkQ.data.status === "pago" ? (linkQ.data.erro?.startsWith("Pago via PIX no link") ? "pago com PIX" : "pago com cartão") : linkQ.data.status} />
                     <Par k="Parcelas" v={linkQ.data.max_parcelas && linkQ.data.max_parcelas > 1 ? `em até ${linkQ.data.max_parcelas}x` : "à vista"} />
                     <Par k="Validade" v={linkQ.data.expira_em ? `vale até ${dataHora(linkQ.data.expira_em)}` : "—"} />
                     <Par k="NSU" v={<span className="tabular-nums">{linkQ.data.nsu ?? "—"}</span>} />

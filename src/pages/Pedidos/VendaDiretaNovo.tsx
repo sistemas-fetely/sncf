@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { Link2, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -108,7 +108,7 @@ export default function VendaDiretaNovo() {
   const [modo, setModo] = useState<ModalVd>("retirada");
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
-  const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
+  const [pagamento, setPagamento] = useState<"pix" | "cartao">("cartao");
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
@@ -276,7 +276,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao("");
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("cartao"); setObservacao("");
     setResultado(null);
   };
 
@@ -500,17 +500,17 @@ export default function VendaDiretaNovo() {
         <CardContent className="space-y-2">
           <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
-              <RadioGroupItem value="pix" className="mt-0.5" />
+              <RadioGroupItem value="cartao" className="mt-0.5" />
+              <span className="flex items-center gap-1"><Link2 className="h-3.5 w-3.5" />{rotPag.cartao}</span>
               <span>
-                {rotPag.pix}
-                <span className="block text-xs text-muted-foreground">{rotPag.pixLegenda}</span>
+                {rotPag.cartaoLegenda && <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>}
               </span>
             </label>
             <label className="flex items-start gap-2 text-sm">
-              <RadioGroupItem value="cartao" className="mt-0.5" />
+              <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
-                {rotPag.cartao}
-                {rotPag.cartaoLegenda && <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>}
+                <span className="flex items-center gap-1"><QrCode className="h-3.5 w-3.5" />{rotPag.pix}</span>
+                <span className="block text-xs text-muted-foreground">{rotPag.pixLegenda}</span>
               </span>
             </label>
           </RadioGroup>
@@ -585,8 +585,8 @@ export default function VendaDiretaNovo() {
                 <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? rotuloFormaPagamento("pix", cfgPixNoLink) : `${rotuloFormaPagamento("cartao", cfgPixNoLink)} · até ${parcelasLink}x`}
+                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+                {pagamento === "pix" ? rotuloFormaPagamento("pix", cfgPixNoLink) : `${rotuloFormaPagamento("cartao", cfgPixNoLink)} · até ${parcelasLink}x${cfgPixNoLink ? " · cartão ou PIX" : ""}`}
               </p>
               {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
               <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
