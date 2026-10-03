@@ -61,12 +61,12 @@ export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined,
 /** Rótulo e legenda das opções de pagamento da tela Novo pedido. */
 export function rotulosOpcaoPagamento(pixNoLink: boolean, parcelas = 3) {
   return {
-    cartao: "Link de pagamento",
+    cartao: pixNoLink ? "Link de pagamento · cartão ou PIX" : "Link de pagamento",
     cartaoLegenda: pixNoLink
       ? `O cliente escolhe cartão (até ${parcelas}x) ou PIX na página do Safrapay · vale 30 dias · confirma sozinho`
       : `Cartão de crédito (até ${parcelas}x) · vale 30 dias · confirma sozinho`,
-    pix: "PIX por QR Code",
-    pixLegenda: "QR na chave da Fetely, sem prazo · confirma quando o extrato bancário entrar",
+    pix: "Só QR Code PIX",
+    pixLegenda: "QR na chave da Fetely, sem prazo · sem confirmação automática (confirma pelo extrato)",
   };
 }
 

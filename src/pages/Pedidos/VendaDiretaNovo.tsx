@@ -524,7 +524,11 @@ export default function VendaDiretaNovo() {
             </div>
           )}
           {pagamento === "cartao" && (
-            <p className="text-xs text-muted-foreground">O link do cartão é enviado à parte; o Financeiro libera o pedido ao confirmar o pagamento.</p>
+            <p className="text-xs text-muted-foreground">
+              {cfgPixNoLink
+                ? "O sistema gera o link e confirma o pagamento sozinho (cartão ou PIX)."
+                : "O sistema gera o link e confirma o pagamento sozinho."}
+            </p>
           )}
         </CardContent>
       </Card>
