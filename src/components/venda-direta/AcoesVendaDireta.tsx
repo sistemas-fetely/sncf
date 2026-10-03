@@ -18,6 +18,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
+import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
 
 export const QK_VD_GESTAO = ["venda-direta-gestao"] as const;
 
@@ -75,9 +76,17 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : pixQ.isError ? (
           <p className="text-sm text-destructive">{rawMessage(pixQ.error)}</p>
-        ) : (
-          <PixPagamento payload={pixQ.data?.link_pagamento ?? null} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} />
-        )}
+        ) : linha ? (
+          <PixSafrapayPainel
+            pedidoId={linha.id}
+            idExterno={linha.id_externo}
+            total={linha.valor_liquido}
+            clienteNome={linha.cliente_nome}
+            telefone={linha.cliente_telefone ?? null}
+            fallbackPayload={pixQ.data?.link_pagamento ?? null}
+            fallbackLink={linha.link_pagamento ?? null}
+          />
+        ) : null}
         <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>
       </DialogContent>
     </Dialog>

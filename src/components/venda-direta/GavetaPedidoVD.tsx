@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { SeloConfirmacaoAutomatica, usePixSafrapay } from "@/components/venda-direta/PixSafrapay";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -107,6 +108,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
       return (data ?? null) as unknown as Link | null;
     },
   });
+  const pixSafraQ = usePixSafrapay(linha?.pagamento === "pix" ? id : null);
   const evQ = useQuery({
     queryKey: ["vd-gaveta-eventos", id],
     enabled: !!id,
@@ -188,7 +190,11 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes }: {
                   </>
                 )
               )}
-              {l.pagamento === "pix" && <Par k="PIX" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir link</a> : "—"} />}
+              {l.pagamento === "pix" && (pixSafraQ.data ? (
+                <Par k="PIX" v={<SeloConfirmacaoAutomatica />} />
+              ) : (
+                <Par k="PIX" v={l.link_pagamento ? <a className="text-primary underline-offset-2 hover:underline" href={l.link_pagamento} target="_blank" rel="noreferrer">abrir link</a> : "—"} />
+              ))}
             </Secao>
 
             <Secao titulo="Fiscal">
