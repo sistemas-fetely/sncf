@@ -78,7 +78,9 @@ const FIN: { k: string; label: string; dica?: string }[] = [
 ];
 
 function dicaAReceber(r: Linha) {
-  return `Tudo que ainda falta o representante receber pelos pedidos já vendidos. Direito adquirido (cliente já pagou): ${fmtBRL(Number(r.a_receber_direito_adquirido ?? 0))} · Depende do cliente pagar: ${fmtBRL(Number(r.a_receber_depende_do_cliente ?? 0))}`;
+  const venc = Number(r.comissao_travada_inadimplencia ?? 0);
+  const aVencer = Number(r.a_receber_depende_do_cliente ?? 0) - venc;
+  return `Tudo que ainda falta o representante receber pelos pedidos já vendidos. Cliente pagou: ${fmtBRL(Number(r.a_receber_direito_adquirido ?? 0))} · A vencer: ${fmtBRL(aVencer)}${venc > 0 ? ` · Vencido: ${fmtBRL(venc)}` : ""}`;
 }
 
 function dicaInadimplencia(r: Linha) {
