@@ -4,7 +4,7 @@ import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, Ban, ChevronRight, CreditCard, ExternalLink, List, PackageCheck, Plus, QrCode,
+  AlertTriangle, Ban, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
   RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
@@ -261,7 +261,7 @@ export default function VendaDiretaGestao() {
     if (!podeEditar) return [];
     const a: Acao[] = [];
     if (l.situacao === "aguardando_pagamento") {
-      if (l.pagamento === "cartao") a.push({ k: "link", label: "Link do cartão", icon: CreditCard, onClick: () => setLinkCartao(l) });
+      if (l.pagamento === "cartao") a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setPixManual(l), disabled: !l.provisao_id });

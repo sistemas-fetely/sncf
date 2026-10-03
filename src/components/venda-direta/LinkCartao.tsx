@@ -52,19 +52,21 @@ export function parcelasPadrao(cfg: CfgParcelas, total: number) {
 export const textoParcelas = (n: number) => (n <= 1 ? "à vista" : `em até ${n}x`);
 
 /** Rótulo curto da forma de pagamento (coluna/selo da Gestão e resumo do pedido). */
-export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined, pixNoLink: boolean) {
-  if (forma === "pix") return "PIX direto";
-  if (forma === "cartao") return pixNoLink ? "Link Safrapay" : "Cartão";
+export function rotuloFormaPagamento(forma: "pix" | "cartao" | null | undefined, _pixNoLink?: boolean) {
+  if (forma === "pix") return "PIX QR Code";
+  if (forma === "cartao") return "Link de pagamento";
   return "—";
 }
 
 /** Rótulo e legenda das opções de pagamento da tela Novo pedido. */
-export function rotulosOpcaoPagamento(pixNoLink: boolean) {
+export function rotulosOpcaoPagamento(pixNoLink: boolean, parcelas = 3) {
   return {
-    cartao: pixNoLink ? "Link Safrapay (cartão ou PIX)" : "Cartão (link)",
-    cartaoLegenda: pixNoLink ? "Confirmação automática" : null,
-    pix: "PIX direto (QR)",
-    pixLegenda: "Confirmado pelo extrato bancário",
+    cartao: "Link de pagamento",
+    cartaoLegenda: pixNoLink
+      ? `O cliente escolhe cartão (até ${parcelas}x) ou PIX na página do Safrapay · vale 30 dias · confirma sozinho`
+      : `Cartão de crédito (até ${parcelas}x) · vale 30 dias · confirma sozinho`,
+    pix: "PIX por QR Code",
+    pixLegenda: "QR na chave da Fetely, sem prazo · confirma quando o extrato bancário entrar",
   };
 }
 
@@ -125,7 +127,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa }: { url: string; maxParcela
   const pixNoLink = useCfgParcelas().data?.pix_no_link === true;
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">{pixNoLink ? "Link de pagamento (cartão ou PIX)" : "Link do cartão"} ({textoParcelas(maxParcelas)})</p>
+      <p className="text-sm font-medium">{pixNoLink ? "Link de pagamento (cartão ou PIX)" : "Link de pagamento"} ({textoParcelas(maxParcelas)})</p>
       <div className="flex gap-2">
         <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} />
         <Button
@@ -272,7 +274,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     <Dialog open={!!linha} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{cfgDlgPix ? "Link de pagamento (cartão ou PIX)" : "Link do cartão"} · {linha?.id_externo}</DialogTitle>
+          <DialogTitle>{cfgDlgPix ? "Link de pagamento (cartão ou PIX)" : "Link de pagamento"} · {linha?.id_externo}</DialogTitle>
           <DialogDescription>{linha?.cliente_nome} · {formatBRL(linha?.valor_liquido ?? null)}</DialogDescription>
         </DialogHeader>
         {q.isLoading ? (
