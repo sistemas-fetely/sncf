@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -7,9 +7,11 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Loader2, Printer } from "lucide-react";
 import { formatError } from "@/lib/format-error";
-import { fmtBRL, fmtCompetencia, fmtData } from "../fmt";
+import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
+import { Badge } from "@/components/ui/badge";
+import { mesAnterior, rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { competenciaPadrao, num, primeiroDia, useGerencial } from "./dados";
 
 function pct(v: unknown, casas = 2): string {
@@ -80,7 +82,7 @@ export function AbaGerencial() {
         <div className="flex-1" />
         <Button asChild size="sm" variant="outline">
           <Link
-            to={`/comercial/comissoes/gerencial-impressao?competencia=${competencia}`}
+            to={`/comercial/representantes/gerencial-impressao?competencia=${competencia}`}
           >
             <Printer className="mr-1 h-4 w-4" />
             Baixar PDF
@@ -127,7 +129,7 @@ export function AbaGerencial() {
             <Numerao
               titulo="Total a pagar no mês"
               valor={fmtBRL(num(g.mes?.total_a_pagar))}
-              detalhe={g.mes?.pagar_ate ? `Pagar até ${fmtData(g.mes.pagar_ate)}` : "Sem data limite definida"}
+              detalhe={g.mes?.pagar_ate ? `Pagar até ${fmtData(g.mes.pagar_ate)}` : "Nada a pagar neste mês"}
             />
             <Numerao
               titulo="Clientes novos abertos"
@@ -144,7 +146,7 @@ export function AbaGerencial() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Competência</TableHead>
+                    <TableHead>Mês</TableHead>
                     <TableHead className="text-right">Representantes ativos</TableHead>
                     <TableHead className="text-right">Clientes novos</TableHead>
                     <TableHead className="text-right">Notas</TableHead>
@@ -171,6 +173,9 @@ export function AbaGerencial() {
                   ))}
                 </TableBody>
               </Table>
+              <p className="text-xs text-muted-foreground">
+                Base, comissão, custo e desconto: pelo mês da NF. Total a pagar: comissão paga ao representante naquele mês (das NFs que os clientes pagaram no mês anterior).
+              </p>
               <GraficoCustoDesconto historico={g.historico} altura={240} />
               <p className="text-xs text-muted-foreground">
                 Quando o desconto médio sobe, o custo da comissão cai pela régua. A margem é o que fica entre as duas linhas.
@@ -261,6 +266,76 @@ export function AbaGerencial() {
           </p>
         </>
       )}
+
+      {!g.carregando && !g.erro && <BlocoPagamentoMes competencia={competencia} rotulo={rotulo} />}
     </div>
+  );
+}
+
+function BlocoPagamentoMes({ competencia, rotulo }: { competencia: string; rotulo: string }) {
+  const p = usePagamentoMes(competencia);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Comissões pagas em {rotulo}</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Comissão das NFs que os clientes pagaram em {mesAnterior(competencia)}
+          {p.pagarAte ? ` · pagar até ${fmtData(p.pagarAte)}` : ""}
+        </p>
+      </CardHeader>
+      <CardContent>
+        {p.carregando ? (
+          <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
+        ) : p.erro ? (
+          <p className="py-6 text-center text-sm text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
+        ) : p.linhas.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma comissão a pagar neste mês.</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Representante</TableHead>
+                <TableHead>NF</TableHead>
+                <TableHead>Pedido</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Cliente pagou em</TableHead>
+                <TableHead className="text-right">Comissão</TableHead>
+                <TableHead>Situação</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {p.grupos.map((g) => (
+                <Fragment key={g.representante}>
+                  {g.linhas.map((l, i) => {
+                    const estorno = l.tipo_linha === "estorno";
+                    return (
+                      <TableRow key={`${g.representante}-${l.liberacao_id ?? i}-${i}`}>
+                        <TableCell>{l.representante ?? "—"}</TableCell>
+                        <TableCell className="tabular-nums">{estorno ? "—" : l.nf_numero ?? "—"}</TableCell>
+                        <TableCell>{estorno ? "—" : l.pedido ?? "—"}</TableCell>
+                        <TableCell>{l.cliente ?? "—"}</TableCell>
+                        <TableCell className="tabular-nums">{l.cliente_pagou_em ? fmtData(l.cliente_pagou_em) : "—"}</TableCell>
+                        <TableCell className={`text-right tabular-nums ${estorno ? "text-destructive" : ""}`}>{fmtBRL(Number(l.valor ?? 0))}</TableCell>
+                        <TableCell><Badge variant="outline">{rotuloSituacao(l)}</Badge></TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow key={`sub-${g.representante}`} className="bg-muted/40">
+                    <TableCell colSpan={5} className="text-xs text-muted-foreground">Subtotal · {g.representante}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(g.subtotal)}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </Fragment>
+              ))}
+              <TableRow className="border-t-2 border-foreground/30 font-medium">
+                <TableCell colSpan={5}>Total geral</TableCell>
+                <TableCell className="text-right tabular-nums">{fmtBRL(p.total)}</TableCell>
+                <TableCell />
+              </TableRow>
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
   );
 }

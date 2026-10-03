@@ -215,7 +215,7 @@ const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
 const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
 const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
 const RepresentanteExtratoImpressao = lazy(() => import("@/pages/Comercial/representantes/RepresentanteExtratoImpressao"));
-const GerencialImpressao = lazy(() => import("@/pages/Comercial/comissoes/gerencial/GerencialImpressao"));
+const GerencialImpressao = lazy(() => import("@/pages/Comercial/representantes/gerencial/GerencialImpressao"));
 const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesIndex"));
 
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
@@ -283,6 +283,11 @@ const queryClient = new QueryClient({
 });
 
 // Redirect dinâmico: /ti/documentacao/:slug → /documentacao/:slug
+function RedirectGerencialImpressao() {
+  const { search } = useLocation();
+  return <Navigate to={`/comercial/representantes/gerencial-impressao${search}`} replace />;
+}
+
 function TiDocSlugRedirect() {
   const { slug } = useParams();
   return <Navigate to={`/documentacao/${slug}`} replace />;
@@ -379,9 +384,10 @@ const App = () => (
               element={<ProtectedRoute><RotaGate><RepresentanteExtratoImpressao /></RotaGate></ProtectedRoute>}
             />
             <Route
-              path="/comercial/comissoes/gerencial-impressao"
+              path="/comercial/representantes/gerencial-impressao"
               element={<ProtectedRoute><RotaGate><GerencialImpressao /></RotaGate></ProtectedRoute>}
             />
+            <Route path="/comercial/comissoes/gerencial-impressao" element={<RedirectGerencialImpressao />} />
 
             {/* ═══════════════════════════════════════════════
                 Casa Fetély — wrapper de auth + visual global

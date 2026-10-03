@@ -84152,6 +84152,29 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_comissao_pagamento_mes: {
+        Row: {
+          cliente: string | null
+          cliente_pagou_em: string | null
+          cpr_id: string | null
+          cpr_status: string | null
+          extrato_id: string | null
+          extrato_sequencia: number | null
+          liberacao_id: string | null
+          mes_pagamento: string | null
+          nf_id: string | null
+          nf_numero: string | null
+          pagar_ate: string | null
+          pedido: string | null
+          pedido_id: string | null
+          representante: string | null
+          situacao: string | null
+          tipo_linha: string | null
+          valor: number | null
+          vendedor_id: string | null
+        }
+        Relationships: []
+      }
       vw_comissao_posicao: {
         Row: {
           ajuste_pp: number | null

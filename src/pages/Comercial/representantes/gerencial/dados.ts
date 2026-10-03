@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { lerTudo, type Linha } from "@/pages/Comercial/representantes/dados";
-import { fmtBRL } from "../fmt";
+import { fmtBRL } from "../../comissoes/fmt";
 
 export const RE_COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
