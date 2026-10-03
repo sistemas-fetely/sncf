@@ -202,6 +202,7 @@ export default function VendaDiretaNovo() {
   const total = Math.max(valorItens - ben.desconto, 0) + freteCobrado;
   // Parcelas do link do cartão: padrão pelo total até o usuário mexer.
   const cfgParcelasQ = useCfgParcelas();
+  const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
   const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
 
