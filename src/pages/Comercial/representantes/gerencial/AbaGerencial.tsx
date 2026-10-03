@@ -5,7 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertTriangle, Loader2, Printer } from "lucide-react";
+import { AlertTriangle, FileText, Loader2, Printer } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
@@ -13,7 +14,7 @@ import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { Badge } from "@/components/ui/badge";
 import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { colunasCC, LEGENDA_CC, useContaCorrente } from "./contaCorrente";
-import { competenciaPadrao, num, primeiroDia, useGerencial } from "./dados";
+import { competenciaPadrao, mesSeguinte, num, primeiroDia, useGerencial } from "./dados";
 
 function pct(v: unknown, casas = 2): string {
   if (v == null) return "—";
@@ -49,6 +50,8 @@ export function AbaGerencial() {
   const g = useGerencial(competencia);
   const cc = useContaCorrente(competencia);
   const rotulo = fmtCompetencia(primeiroDia(competencia));
+  const mesPagamento = mesSeguinte(competencia);
+  const rotuloPagamento = fmtCompetencia(primeiroDia(mesPagamento));
 
   const totais = useMemo(
     () =>
@@ -89,6 +92,12 @@ export function AbaGerencial() {
             <Printer className="mr-1 h-4 w-4" />
             Baixar PDF
           </Link>
+        </Button>
+        <Button asChild size="sm" variant="outline">
+          <a href={`/comercial/representantes/extratos-impressao?competencia=${mesPagamento}`} target="_blank" rel="noopener noreferrer">
+            <FileText className="mr-1 h-4 w-4" />
+            Extratos dos representantes (PDF)
+          </a>
         </Button>
       </div>
 
@@ -217,6 +226,7 @@ export function AbaGerencial() {
                       <TableHead className="text-right">Comissão apurada</TableHead>
                       <TableHead className="text-right">Comissão liberada</TableHead>
                       <TableHead className="text-right">Comissão a pagar</TableHead>
+                      <TableHead className="w-10" />
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -231,6 +241,24 @@ export function AbaGerencial() {
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.comissaoApurada)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.comissaoLiberada)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.aPagar)}</TableCell>
+                        <TableCell className="w-10 p-1">
+                          {r.aPagar !== 0 && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button asChild size="icon" variant="ghost" className="h-7 w-7">
+                                    <a
+                                      href={`/comercial/representantes/${r.vendedorId}/extrato-impressao?competencia=${mesPagamento}`}
+                                      target="_blank" rel="noopener noreferrer"
+                                      aria-label={`Extrato de ${r.representante} (pagamento ${rotuloPagamento})`}
+                                    ><FileText className="h-4 w-4" /></a>
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Extrato do representante (pagamento {rotuloPagamento})</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="border-t-2 border-foreground/30 font-medium">
@@ -243,6 +271,7 @@ export function AbaGerencial() {
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.apurada)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.liberada)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(totais.aPagar)}</TableCell>
+                      <TableCell />
                     </TableRow>
                   </TableBody>
                 </Table>
