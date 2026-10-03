@@ -172,6 +172,31 @@ Deno.serve(async (req) => {
         continue;
       }
       const { api, bearer } = await token(amb);
+      if (l.meio === "pix") {
+        const rP = await fetch(`${api}/v2/charge/${encodeURIComponent(l.gateway_link_id)}`, {
+          headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+        });
+        const cP = await lerCorpo(rP);
+        if (!rP.ok) throw new Error(`Consultar PIX antes de cancelar: ${msgApi(cP, rP.status)}`);
+        if (lerPix(cP).pago) {
+          const erro = "Pedido cancelado com pagamento aprovado — estornar";
+          const { error } = await sb.from("pagamento_link").update({ ...base, erro, resposta_ultimo_sync: cP }).eq("id", l.id);
+          if (error) throw new Error(`Gravar alerta: ${error.message}`);
+          resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+          continue;
+        }
+        const mId = String(cfg[`merchant_id_${amb}`] ?? "").trim();
+        if (!mId) throw new Error(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o PIX.`);
+        const rDp = await fetch(`${api}/v2/charge/${encodeURIComponent(l.gateway_link_id)}`, {
+          method: "DELETE", headers: { Authorization: `Bearer ${bearer}`, MerchantId: mId },
+        });
+        const cDp = await lerCorpo(rDp);
+        if (!rDp.ok && !deleteToleravel(rDp.status, cDp)) throw new Error(`Cancelar PIX no Safra: ${msgApi(cDp, rDp.status)}`);
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — PIX cancelado no Safra", resposta_ultimo_sync: cP }).eq("id", l.id);
+        if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
+        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX cancelado (pedido cancelado)" });
+        continue;
+      }
       // Já tem cobrança aprovada? Então não cancela — vai para estorno manual.
       const rC = await fetch(`${api}/v2/smartcheckout/${encodeURIComponent(l.gateway_link_id)}/detail`, {
         headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
@@ -213,6 +238,49 @@ Deno.serve(async (req) => {
     try {
       if (!l.gateway_link_id) throw new Error("Link sem gateway_link_id.");
       const { api, bearer } = await token(l.ambiente === "prod" ? "prod" : "hml");
+      if (l.meio === "pix") {
+        const rP = await fetch(`${api}/v2/charge/${encodeURIComponent(l.gateway_link_id)}`, {
+          headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
+        });
+        const cP = await lerCorpo(rP);
+        base.resposta_ultimo_sync = cP;
+        if (!rP.ok) throw new Error(`Consultar PIX: ${msgApi(cP, rP.status)}`);
+        const p = lerPix(cP);
+        if (p.pago) {
+          const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
+          if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
+          const ref = p.prova ?? p.transactionId;
+          if (!ref) throw new Error("PIX pago sem transactionId/endToEndId — confirmar manualmente.");
+          if (!l.provisao_id) throw new Error("Registro PIX sem provisão — confirmar manualmente.");
+          const valorPago = p.valorCentavos != null ? p.valorCentavos / 100 : Number(l.valor);
+          const { error: eRpc } = await sb.rpc("confirmar_pagamento_linha", {
+            p_provisao_id: l.provisao_id,
+            p_prova_tipo: "pix_txid",
+            p_prova_ref: ref,
+            p_data_pagamento: p.data,
+            p_observacao: `PIX Safrapay · charge ${p.id ?? l.gateway_link_id} · nsu ${p.nsu ?? "—"}`,
+          });
+          if (eRpc) {
+            const erro = `PIX pago na Safrapay, mas a confirmação falhou: ${eRpc.message}`;
+            await sb.from("pagamento_link").update({ ...base, erro, charge_id: p.id ?? l.gateway_link_id, nsu: p.nsu, valor_pago: valorPago, pago_em: p.data }).eq("id", l.id);
+            resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+            continue;
+          }
+          const { error: eUp } = await sb.from("pagamento_link").update({
+            ...base, status: "pago", erro: null, charge_id: p.id ?? l.gateway_link_id, nsu: p.nsu, valor_pago: valorPago, pago_em: p.data,
+          }).eq("id", l.id);
+          if (eUp) throw new Error(`Gravar pagamento: ${eUp.message}`);
+          resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX pago" });
+        } else if (p.cancelado) {
+          await sb.from("pagamento_link").update({ ...base, status: "cancelado" }).eq("id", l.id);
+          resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX cancelado/expirado" });
+        } else {
+          const { error } = await sb.from("pagamento_link").update(base).eq("id", l.id);
+          if (error) throw new Error(`Gravar sync: ${error.message}`);
+          resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX aguardando pagamento" });
+        }
+        continue;
+      }
       const r = await fetch(`${api}/v2/smartcheckout/${encodeURIComponent(l.gateway_link_id)}/detail`, {
         headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" },
       });
