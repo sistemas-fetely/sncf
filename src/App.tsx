@@ -69,6 +69,7 @@ const PagamentosPJ = lazy(() => import("@/pages/PagamentosPJ"));
 const PagamentoPJRelatorio = lazy(() => import("@/pages/PagamentoPJRelatorio"));
 
 const PagarPix = lazy(() => import("@/pages/publico/PagarPix"));
+const ComprovanteReembolso = lazy(() => import("@/pages/publico/ComprovanteReembolso"));
 const Unsubscribe = lazy(() => import("@/pages/Unsubscribe"));
 const PortalRepresentante = lazy(() => import("@/pages/publico/PortalRepresentante"));
 const ConfigurarPerfis = lazy(() => import("@/pages/ConfigurarPerfis"));
@@ -369,6 +370,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<AguardandoAprovacao />} />
               
               <Route path="/pagar/:token" element={<PagarPix />} />
+              <Route path="/reembolso/:token" element={<ComprovanteReembolso />} />
               <Route path="/unsubscribe" element={<Unsubscribe />} />
               {/* Portal do Representante — público, fora da Casa (sem sidebar/menu) */}
               <Route path="/portal" element={<PortalRepresentante />} />
