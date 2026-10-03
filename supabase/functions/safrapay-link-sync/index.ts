@@ -54,6 +54,10 @@ function lerCharge(c: any) {
   const nsu = primeiro(tx?.transactionId, tx?.nsu, c?.nsu);
   const amountRaw = primeiro(tx?.amount, c?.amount, c?.totalAmount);
   const data = dataSafra(tx?.captureDateTime, false) ?? dataSafra(c?.addedAtUtc, true);
+  const casaPix = (v: unknown) => v != null && /pix/i.test(String(v));
+  const txPix = txs.find((t) => casaPix(t?.paymentType) || t?.qrCode || t?.qrCodeBase64);
+  const ehPix = !!txPix || casaPix(c?.paymentType);
+  const pixRef = primeiro(txPix?.transactionId, txPix?.endToEndId, tx?.transactionId, tx?.endToEndId);
   return {
     status, id: id != null ? String(id) : null, nsu: nsu != null ? String(nsu) : null,
     valorCentavos: amountRaw != null && Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : null,
@@ -62,6 +66,8 @@ function lerCharge(c: any) {
     bandeira: tx?.card?.brandName ?? null,
     final: tx?.card?.lastFourDigits ?? null,
     parcelas: tx?.installmentNumber ?? null,
+    ehPix,
+    pixRef: pixRef != null ? String(pixRef) : null,
   };
 }
 
@@ -293,7 +299,15 @@ Deno.serve(async (req) => {
       const paga = charges.find((ch: any) => ch.status === 1);
       const pre = charges.find((ch: any) => ch.status === 2);
 
-      if (paga) {
+      if (paga && paga.ehPix) {
+        const erro = "Pago via PIX no link — confirmar manualmente (fase de medição)";
+        const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
+        const { error: eUp } = await sb.from("pagamento_link").update({
+          ...base, erro, charge_id: paga.id, nsu: paga.pixRef, valor_pago: valorPago, pago_em: paga.data,
+        }).eq("id", l.id);
+        if (eUp) throw new Error(`Gravar PIX no link: ${eUp.message}`);
+        resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
+      } else if (paga) {
         if (!paga.nsu) throw new Error("Pagamento aprovado sem transactionId (NSU) — confirmar manualmente.");
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
