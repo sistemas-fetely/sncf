@@ -1,10 +1,11 @@
 import { LinkCartaoDialog, rotuloFormaPagamento, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
+import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  AlertTriangle, Ban, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
+  AlertTriangle, ArrowLeftRight, Ban, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
   RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
@@ -170,6 +171,7 @@ export default function VendaDiretaGestao() {
   const [pixManual, setPixManual] = useState<Linha | null>(null);
   const [linkCartao, setLinkCartao] = useState<Linha | null>(null);
   const [remontar, setRemontar] = useState<Linha | null>(null);
+  const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
   const [pixNovo, setPixNovo] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState<Linha | null>(null);
   const [gavetaId, setGavetaId] = useState<string | null>(null);
@@ -266,6 +268,7 @@ export default function VendaDiretaGestao() {
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setPixManual(l), disabled: !l.provisao_id });
     }
+    if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em) a.push({ k: "trocar", label: "Trocar meio de pagamento", icon: ArrowLeftRight, onClick: () => setTrocarMeio(l) });
     if (l.pagamento_desatualizado) a.push({ k: "remontar", label: "Remontar pagamento", icon: RefreshCw, onClick: () => setRemontar(l) });
     if (l.situacao === "travado" && l.fila_id) {
       a.push({ k: "repro", label: "Reprocessar descida", icon: RotateCcw, onClick: () => reprocessar.mutate(l), disabled: reprocessar.isPending });
@@ -530,6 +533,7 @@ export default function VendaDiretaGestao() {
       <ConfirmarPixManualDialog linha={pixManual} onClose={fechar(setPixManual)} />
       <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
+      <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
       <CancelarVendaDiretaDialog linha={cancelar} onClose={fechar(setCancelar)} />
     </PageShell>
   );

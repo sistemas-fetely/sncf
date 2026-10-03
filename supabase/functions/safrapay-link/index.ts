@@ -163,18 +163,19 @@ Deno.serve(async (req) => {
     .eq("pedido_id", pedidoId).in("status", ["criando", "aberto"]);
   if (eV) return json({ ok: false, erro: `Ler links: ${eV.message}` }, 500);
   const agora = Date.now();
-  const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string }[] = [];
+  const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string }[] = [];
   for (const l of vig ?? []) {
+    const mesmoPortao = l.provisao_id != null && l.provisao_id === prov.id;
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
-    if (valido && !forcarNovo) {
+    if (valido && !forcarNovo && mesmoPortao) {
       return json({ ok: true, url: l.url, expira_em: l.expira_em, max_parcelas: l.max_parcelas, pagamento_link_id: l.id, reaproveitado: true });
     }
-    if (l.status === "criando" && !forcarNovo && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
+    if (l.status === "criando" && !forcarNovo && mesmoPortao && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
       return json({ ok: false, erro: "Já há um link sendo criado para este pedido. Tente em instantes." }, 409);
     }
-    const novoStatus = valido || l.status === "criando" ? "cancelado" : "expirado";
+    const novoStatus = valido || l.status === "criando" || !mesmoPortao ? "cancelado" : "expirado";
     if (l.status === "aberto" && l.gateway_link_id) {
-      cancelarNoSafra.push({ id: l.id, gateway_link_id: String(l.gateway_link_id), novoStatus });
+      cancelarNoSafra.push({ id: l.id, gateway_link_id: String(l.gateway_link_id), novoStatus, meio: String(l.meio ?? "cartao_link") });
       continue;
     }
     const { error } = await sb.from("pagamento_link").update({ status: novoStatus }).eq("id", l.id);
@@ -214,7 +215,8 @@ Deno.serve(async (req) => {
     if (cancelarNoSafra.length) {
       if (!merchantId) return await falhar(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o link anterior.`, 500);
       for (const ant of cancelarNoSafra) {
-        const rD = await fetch(`${apiBase}/v2/smartcheckout/${encodeURIComponent(ant.gateway_link_id)}`, {
+        const rotaAnt = ant.meio === "pix" ? "charge" : "smartcheckout";
+        const rD = await fetch(`${apiBase}/v2/${rotaAnt}/${encodeURIComponent(ant.gateway_link_id)}`, {
           method: "DELETE", headers: { Authorization: `Bearer ${accessToken}`, MerchantId: merchantId },
         });
         const cD = await lerCorpo(rD);

@@ -127345,6 +127345,10 @@ export type Database = {
         }
         Returns: Json
       }
+      vd_trocar_meio_pagamento: {
+        Args: { p_meio: string; p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
       verificar_user_orfao: { Args: { _user_id: string }; Returns: boolean }
       vincular_conciliacao: {
         Args: {
