@@ -850,6 +850,7 @@ Deno.serve(async (req) => {
             parcelas: [],
             totalProdutos: totalProdutosVd,
             total: totalVd,
+            ...(descontoVd > 0 ? { desconto: { valor: descontoVd, unidade: "REAL" } } : {}),
             transporte: retirada
               ? { fretePorConta: fretePorContaVd }
               : freteFetely
@@ -921,6 +922,15 @@ Deno.serve(async (req) => {
               const n = (det?.data ?? det ?? {})?.numero;
               if (n != null && String(n).trim() !== "") blingNumeroVd = String(n).trim();
               else console.error("[b2c-descida][vd] pedido criado mas Bling não devolveu `numero`", { fila_id: item.id, bling_pedido_id: blingIdVd });
+              const totalBling = Number((det?.data ?? det ?? {})?.total);
+              if (Number.isFinite(totalBling) && Math.abs(arred2(totalBling) - liquidoVd) > 0.01) {
+                await falharVd(
+                  `Pedido ${idExterno} criado no Bling (id ${blingIdVd}) com total R$ ${arred2(totalBling)}, ` +
+                    `mas valor_liquido = R$ ${liquidoVd}. Corrija no Bling antes de faturar.`,
+                  det,
+                );
+                continue;
+              }
             } catch (eN) {
               console.error("[b2c-descida][vd] falha ao buscar número curto — descida segue", {
                 fila_id: item.id,
