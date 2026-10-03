@@ -43,7 +43,7 @@ export function useDevolucoesVD() {
       const pids = [...new Set(rows.map((r) => r.pedido_id))];
       const uids = [...new Set(rows.flatMap((r) => [r.solicitado_por, r.decidido_por]).filter((v): v is string => !!v))];
       const [pedR, profR, provR, filaR] = await Promise.all([
-        pids.length ? supabase.from("pedidos" as never).select("id,id_externo,cliente_nome_snapshot,parceiros_comerciais(razao_social)").in("id", pids) : Promise.resolve({ data: [], error: null }),
+        pids.length ? supabase.from("pedidos" as never).select("id,id_externo,cliente_nome_snapshot,parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social)").in("id", pids) : Promise.resolve({ data: [], error: null }),
         uids.length ? supabase.from("profiles").select("user_id,full_name").in("user_id", uids) : Promise.resolve({ data: [], error: null }),
         pids.length ? supabase.from("provisao_recebimento" as never).select("pedido_id,prova_ref,pago_em").in("pedido_id", pids).not("pago_em", "is", null) : Promise.resolve({ data: [], error: null }),
         pids.length ? supabase.from("bling_situacao_fila" as never).select("pedido_id,status,ultimo_erro,criado_em").in("pedido_id", pids).order("criado_em", { ascending: false }) : Promise.resolve({ data: [], error: null }),
