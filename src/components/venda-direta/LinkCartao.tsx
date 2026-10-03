@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { invalidarVendaDireta, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { SeloConfirmacaoAutomatica } from "@/components/venda-direta/PixSafrapay";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 

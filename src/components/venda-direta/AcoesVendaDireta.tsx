@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,16 +19,9 @@ import {
 } from "@/components/ui/select";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
+export { QK_VD_GESTAO } from "@/components/venda-direta/queryKeys";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
-export const QK_VD_GESTAO = ["venda-direta-gestao"] as const;
-export const QK_VD_GAVETA = ["venda-direta-gaveta"] as const;
-
-export async function invalidarVendaDireta(qc: QueryClient) {
-  await Promise.all([
-    qc.invalidateQueries({ queryKey: QK_VD_GESTAO }),
-    qc.invalidateQueries({ queryKey: QK_VD_GAVETA }),
-  ]);
-}
 
 export interface LinhaVD {
   id: string;

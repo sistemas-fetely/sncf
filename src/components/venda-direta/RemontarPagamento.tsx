@@ -9,7 +9,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { invalidarVendaDireta, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { AVISO_409, ErroEdge, chamarEdge, type LinkCartaoOk } from "@/components/venda-direta/LinkCartao";
 
 export interface RemontarResultado {

@@ -8,7 +8,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TrilhaDevolucao, type DevolucaoVD } from "./DevolucaoVendaDireta";
-import { QK_VD_GAVETA } from "./AcoesVendaDireta";
+import { QK_VD_GAVETA } from "./queryKeys";
 
 export interface LinhaGaveta {
   id: string;

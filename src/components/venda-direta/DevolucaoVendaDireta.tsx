@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { invalidarVendaDireta, type LinhaVD } from "./AcoesVendaDireta";
+import type { LinhaVD } from "./AcoesVendaDireta";
+import { invalidarVendaDireta } from "./queryKeys";
 
 export const QK_VD_DEVOLUCOES = ["vd-devolucoes"] as const;
 export type StatusDevolucao = "solicitada" | "recusada" | "aprovada" | "estorno_enviado" | "concluida" | "falhou";

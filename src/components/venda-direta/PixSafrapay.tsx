@@ -7,7 +7,7 @@ import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { Button } from "@/components/ui/button";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
-import { invalidarVendaDireta } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
 export const QK_VD_PIX_SAFRA = "venda-direta-pix-safrapay";
 

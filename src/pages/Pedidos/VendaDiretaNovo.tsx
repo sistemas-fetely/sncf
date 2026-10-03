@@ -23,7 +23,7 @@ import { BeneficioCard, BENEFICIO_VAZIO, calcularBeneficio, payloadBeneficio, ty
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
-import { invalidarVendaDireta } from "@/components/venda-direta/AcoesVendaDireta";
+import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 
 const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
 
