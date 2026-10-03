@@ -28,6 +28,19 @@ export function usePixSafrapay(pedidoId: string | null | undefined) {
   });
 }
 
+/** safrapay_config.pix_ativo — false = PIX local é o oficial. */
+export function usePixSafrapayAtivo() {
+  return useQuery({
+    queryKey: ["safrapay-config-pix-ativo"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("safrapay_config" as never).select("pix_ativo").eq("id", 1).maybeSingle();
+      if (error) throw error;
+      return (data as unknown as { pix_ativo: boolean | null } | null)?.pix_ativo === true;
+    },
+  });
+}
+
 export function SeloConfirmacaoAutomatica() {
   return (
     <span className="inline-flex items-center rounded-full border border-success/40 bg-success/10 px-2 py-0.5 text-xs font-medium text-success">
@@ -52,6 +65,8 @@ interface Props {
 export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, telefone, fallbackPayload, fallbackLink, auto }: Props) {
   const qc = useQueryClient();
   const pixQ = usePixSafrapay(pedidoId);
+  const ativoQ = usePixSafrapayAtivo();
+  const pixAtivo = ativoQ.data === true;
   const [falhou, setFalhou] = useState<string | null>(null);
   const tentou = useRef(false);
 
@@ -80,18 +95,25 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
   });
 
   useEffect(() => {
-    if (!auto || tentou.current || pixQ.isLoading || pixQ.isError || pixQ.data) return;
+    if (!pixAtivo || !auto || tentou.current || pixQ.isLoading || pixQ.isError || pixQ.data) return;
     tentou.current = true;
     gerar.mutate(false);
-  }, [auto, pixQ.isLoading, pixQ.isError, pixQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pixAtivo, auto, pixQ.isLoading, pixQ.isError, pixQ.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const safra = pixQ.data?.pix_copia_cola ?? null;
   const tel = (telefone ?? "").replace(/\D/g, "");
   const telWa = tel.length <= 11 ? `55${tel}` : tel;
   const nome = (clienteNome ?? "").trim().split(/\s+/)[0] ?? "";
 
-  if (pixQ.isLoading || (gerar.isPending && !safra)) {
+  if (ativoQ.isLoading || pixQ.isLoading || (gerar.isPending && !safra)) {
     return <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando PIX…</div>;
+  }
+
+  const tel0 = tel;
+  if (!pixAtivo && !safra) {
+    const m = `Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${fallbackLink ?? ""}`;
+    const w = fallbackLink && tel0.length >= 10 ? `https://wa.me/${telWa}?text=${encodeURIComponent(m)}` : null;
+    return <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={w} />;
   }
 
   const botaoNovo = (
