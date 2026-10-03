@@ -140,7 +140,7 @@ Deno.serve(async (req) => {
   const { data: links, error: eL } = await q;
   if (eL) return json({ ok: false, erro: `Ler links: ${eL.message}` }, 500);
 
-  const resumo = { verificados: 0, pagos: 0, expirados: 0, cancelados: 0, erros: 0, detalhes: [] as unknown[] };
+  const resumo = { verificados: 0, pagos: 0, expirados: 0, cancelados: 0, estornos_concluidos: 0, erros: 0, detalhes: [] as unknown[] };
   const tokens = new Map<string, string>();
 
   async function token(amb: string): Promise<{ api: string; bearer: string }> {
@@ -156,6 +156,38 @@ Deno.serve(async (req) => {
     if (!r.ok || !at) throw new Error(`Autenticação: ${msgApi(c, r.status)}`);
     tokens.set(amb, at);
     return { api, bearer: at };
+  }
+
+  // Estornos já enviados: apenas consulta; nunca reenvia o cancelamento.
+  let qEst = sb.from("vd_devolucao").select("id,pedido_id,charge_id").eq("status", "estorno_enviado").order("atualizado_em").limit(50);
+  if (pedidoId) qEst = qEst.eq("pedido_id", pedidoId);
+  const { data: estornos, error: eEst } = await qEst;
+  if (eEst) return json({ ok: false, erro: `Ler estornos pendentes: ${eEst.message}` }, 500);
+  for (const d of estornos ?? []) {
+    try {
+      if (!d.charge_id) throw new Error("Devolução sem charge_id.");
+      const amb = cfg.ambiente === "prod" ? "prod" : "hml";
+      const { api, bearer } = await token(amb);
+      const r = await fetch(`${api}/v2/charge/${encodeURIComponent(d.charge_id)}`, { headers: { Authorization: `Bearer ${bearer}`, "Content-Type": "application/json" } });
+      const c = await lerCorpo(r);
+      if (!r.ok) throw new Error(`Consultar estorno: ${msgApi(c, r.status)}`);
+      const ch = c?.charge ?? c?.data?.charge ?? c?.data ?? c;
+      const s = String(primeiro(ch?.transactionStatus, ch?.chargeStatus, ch?.status) ?? "").toLowerCase();
+      const cancelado = ch?.isCanceled === true || ch?.canceled === true || /cancelled|canceled/.test(s);
+      if (cancelado) {
+        const trace = primeiro(c?.traceKey, c?.data?.traceKey, ch?.traceKey) ?? "sem traceKey";
+        const { error } = await sb.rpc("vd_concluir_devolucao", { p_devolucao_id: d.id, p_prova_tipo: "safrapay_estorno", p_prova_ref: d.charge_id, p_obs: `Safrapay ${trace}` });
+        if (error) throw new Error(`Concluir devolução: ${error.message}`);
+        resumo.estornos_concluidos++; resumo.detalhes.push({ pedido_id: d.pedido_id, resultado: "estorno concluído" });
+      } else {
+        const { error } = await sb.from("vd_devolucao").update({ gateway_resposta: c }).eq("id", d.id);
+        if (error) throw new Error(`Gravar consulta do estorno: ${error.message}`);
+      }
+    } catch (e) {
+      const erro = e instanceof Error ? e.message : String(e);
+      await sb.from("vd_devolucao").update({ erro }).eq("id", d.id);
+      resumo.erros++; resumo.detalhes.push({ pedido_id: d.pedido_id, erro });
+    }
   }
 
   // 1) Pedido cancelado não pode ter link pagável — roda antes de procurar pagamentos.
