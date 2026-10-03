@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Selo, type EstadoSelo } from "@/components/ui/selo";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -407,9 +407,19 @@ export default function VendaDiretaGestao() {
                     const situacaoRotulo = reembolsoAtivo
                       ? `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`
                       : LABEL[l.situacao] ?? l.situacao;
-                    const situacaoVariant = reembolsoAtivo?.status === "falhou" || (!reembolsoAtivo && l.situacao === "travado")
+                    const situacaoEstado: EstadoSelo = reembolsoAtivo?.status === "falhou"
                       ? "destructive"
-                      : reembolsoAtivo ? "outline" : l.situacao === "cancelado" || l.situacao === "pausado" ? "outline" : "secondary";
+                      : reembolsoAtivo
+                        ? "warning"
+                        : l.situacao === "travado" || l.situacao === "cancelado"
+                          ? "destructive"
+                          : l.situacao === "pausado"
+                            ? "muted"
+                            : l.situacao === "entregue"
+                              ? "success"
+                              : l.situacao === "aguardando_pagamento"
+                                ? "warning"
+                                : "info";
                     return (
                       <TableRow
                         key={l.id}
@@ -476,10 +486,9 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                         <TableCell>
-                          <Badge variant={situacaoVariant}
-                            className={cn(reembolsoAtivo && reembolsoAtivo.status !== "falhou" && "border-warning bg-warning/10 text-warning", !reembolsoAtivo && l.situacao === "pausado" && "text-muted-foreground")}>
+                          <Selo estado={situacaoEstado}>
                             {situacaoRotulo}
-                          </Badge>
+                          </Selo>
                           {reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {LABEL[l.situacao] ?? l.situacao}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
                             {l.alerta_sem_pagamento && (
