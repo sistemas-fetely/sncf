@@ -367,10 +367,24 @@ export default function VendaDiretaGestao() {
                     const etapa = acoesEtapa(l, false);
                     const aviso = avisoDe(l, true);
                     return (
-                      <TableRow key={l.id}>
+                      <TableRow
+                        key={l.id}
+                        className="cursor-pointer"
+                        onClick={(e) => {
+                          const el = e.target as HTMLElement;
+                          if (el.closest("button, a, input, label")) return;
+                          setGavetaId(l.id);
+                        }}
+                      >
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-1">
-                            <Link className="text-primary underline-offset-2 hover:underline" to={`/pedidos/${l.id}`}>{l.id_externo}</Link>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="cursor-pointer text-primary underline-offset-2 hover:underline" onClick={() => setGavetaId(l.id)}>{l.id_externo}</button>
+                              </TooltipTrigger>
+                              <TooltipContent>Ver detalhes</TooltipContent>
+                            </Tooltip>
+
                             {l.fila_erro && (
                               <Tooltip>
                                 <TooltipTrigger asChild><AlertTriangle className="h-4 w-4 text-destructive" aria-label="Erro na fila" /></TooltipTrigger>
