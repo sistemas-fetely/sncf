@@ -65,6 +65,34 @@ function lerCharge(c: any) {
   };
 }
 
+/** Leitura defensiva da cobrança PIX (GET /v2/charge/{id}). */
+function lerPix(c: any) {
+  const ch = c?.charge ?? c?.data?.charge ?? c?.data ?? c;
+  const txs: any[] = Array.isArray(ch?.transactions) ? ch.transactions : [];
+  const pagoTx = (t: any) => {
+    const s = String(t?.transactionStatus ?? "").trim().toLowerCase();
+    return ["paid", "authorized", "captured", "approved", "pago"].includes(s) || Number(t?.transactionStatus) === 2;
+  };
+  const sCh = String(ch?.chargeStatus ?? ch?.status ?? "").trim().toLowerCase();
+  const chPago = sCh === "authorized" || sCh === "paid" || sCh === "captured" || Number(ch?.chargeStatus) === 1;
+  const tx = txs.find(pagoTx) ?? (chPago ? txs[0] ?? null : null);
+  const pago = !!tx || chPago;
+  const cancelado = /cancel|expir/.test(sCh) || Number(ch?.chargeStatus) === 3;
+  const id = primeiro(ch?.id, ch?.chargeId);
+  const prova = primeiro(tx?.endToEndId, tx?.e2eId, tx?.endToEnd, tx?.transactionId);
+  const amountRaw = primeiro(tx?.amount, ch?.amount, ch?.totalAmount);
+  const data = dataSafra(primeiro(tx?.paymentDate, tx?.paidAt, tx?.captureDateTime, tx?.transactionDateTime), false)
+    ?? dataSafra(primeiro(tx?.addedAtUtc, ch?.addedAtUtc), true);
+  return {
+    pago, cancelado, id: id != null ? String(id) : null,
+    nsu: primeiro(ch?.nsu, tx?.nsu) != null ? String(primeiro(ch?.nsu, tx?.nsu)) : null,
+    transactionId: tx?.transactionId != null ? String(tx.transactionId) : null,
+    prova: prova != null ? String(prova) : null,
+    valorCentavos: amountRaw != null && Number.isFinite(Number(amountRaw)) ? Number(amountRaw) : null,
+    data: data ?? new Date().toISOString(),
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return json({ ok: false, erro: "Método não permitido." }, 405);
