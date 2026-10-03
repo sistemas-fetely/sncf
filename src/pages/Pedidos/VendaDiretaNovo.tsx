@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftRight, CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -24,7 +24,6 @@ import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
-import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
@@ -120,7 +119,11 @@ export default function VendaDiretaNovo() {
   const { id: editId } = useParams<{ id: string }>();
   const edicao = !!editId;
   const [motivo, setMotivo] = useState("");
-  const [trocarMeio, setTrocarMeio] = useState<LinhaVD | null>(null);
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  const motivoRef = useRef<HTMLTextAreaElement>(null);
+  const itensRef = useRef<HTMLDivElement>(null);
+  const entregaRef = useRef<HTMLDivElement>(null);
+  const beneficioRef = useRef<HTMLDivElement>(null);
   // Cliente
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -369,11 +372,11 @@ export default function VendaDiretaNovo() {
       const p_itens = itens.map((i) => ({ sku: i.sku, quantidade: i.quantidade }));
       if (edicao) {
         const { data, error } = await (supabase as any).rpc("vd_editar_pedido", {
-          p_pedido_id: editId, p_itens, p_entrega, p_observacao: observacao.trim() || null, p_motivo: motivo.trim(),
+          p_pedido_id: editId, p_itens, p_entrega, p_observacao: observacao.trim() || null, p_motivo: motivo.trim(), p_meio: pagamento,
         });
         if (error) throw error;
         if (!data) throw new Error("A edição do pedido não devolveu resultado.");
-        return { pagamento, ...(data as Resultado) };
+        return data as Resultado;
       }
       const { data, error } = await (supabase as any).rpc("criar_pedido_venda_direta", {
         p_cliente,
@@ -413,6 +416,29 @@ export default function VendaDiretaNovo() {
 
   const telefoneCliente = soDigitos(cliente?.telefone ?? novo?.telefone ?? "");
   const primeiroNome = (cliente?.razao_social ?? novo?.nome ?? "").trim().split(/\s+/)[0] ?? "";
+  const pagamentoOriginal = edQ.data?.linha.pagamento === "pix" ? "pix" : "cartao";
+  const pagamentoMudou = edicao && pagamento !== pagamentoOriginal;
+  const totalMudou = edicao && Math.abs(total - Number(edQ.data?.linha.valor_liquido ?? 0)) > 0.009;
+
+  const tentarSalvar = () => {
+    if (criar.isPending) return;
+    if (!pendencia) {
+      setTentouSalvar(false);
+      criar.mutate();
+      return;
+    }
+    setTentouSalvar(true);
+    let alvo: HTMLElement | null = null;
+    if (edicao && motivo.trim().length < 3) alvo = motivoRef.current;
+    else if (itens.length === 0 || itens.some((i) => !Number.isInteger(i.quantidade) || i.quantidade < 1)) alvo = itensRef.current;
+    else if (modo !== "retirada") alvo = entregaRef.current;
+    else if (ben.ativo && beneficio.motivo.trim().length < 3) alvo = beneficioRef.current;
+    alvo?.scrollIntoView({ behavior: "smooth", block: "center" });
+    window.setTimeout(() => {
+      if (alvo instanceof HTMLInputElement || alvo instanceof HTMLTextAreaElement || alvo instanceof HTMLButtonElement) alvo.focus();
+      else alvo?.querySelector<HTMLElement>("input, textarea, button")?.focus();
+    }, 350);
+  };
 
   const tituloTela = edicao ? `Pedidos Site SP · Editar ${edQ.data?.linha.id_externo ?? ""}`.trim() : "Pedidos Site SP · Novo pedido";
   const cabecalho = (
@@ -523,7 +549,7 @@ export default function VendaDiretaNovo() {
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
       {/* 1. Cliente */}
-      <Card>
+      <Card ref={itensRef}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="text-base">Cliente</CardTitle>
           {!novo && !edicao && <Button variant="outline" size="sm" onClick={abrirNovo}><UserPlus className="h-4 w-4" /> Novo cliente</Button>}
@@ -586,7 +612,7 @@ export default function VendaDiretaNovo() {
       </Card>
 
       {/* 2. Itens — linha estilo PDV */}
-      <Card>
+      <Card ref={entregaRef}>
         <CardHeader><CardTitle className="text-base">Itens</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <ProdutoVarejoCombobox value="" onSelect={addItem} ariaLabel="Adicionar produto" />
@@ -658,21 +684,15 @@ export default function VendaDiretaNovo() {
         </CardContent>
       </Card>
 
-      <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />
+      <div ref={beneficioRef}>
+        <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />
+      </div>
 
       {/* 4. Pagamento */}
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          {edicao && edQ.data && (
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className="text-muted-foreground">Meio atual do pedido (troca só pelo diálogo)</span>
-              <Button variant="link" size="sm" className="h-auto p-0" onClick={() => setTrocarMeio({ ...edQ.data!.linha })}>
-                <ArrowLeftRight className="h-3.5 w-3.5" /> Trocar meio
-              </Button>
-            </div>
-          )}
-          <RadioGroup disabled={edicao} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
+          <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
@@ -759,14 +779,29 @@ export default function VendaDiretaNovo() {
                 {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                 {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : `Cartão · até ${parcelasLink}x`}
               </p>
+              {edicao && (pagamentoMudou || totalMudou) && (
+                <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">
+                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {pagamento === "pix" ? "PIX" : "Cartão"}
+                </p>
+              )}
               {edicao && (
                 <div className="space-y-1">
                   <Label htmlFor="motivo-edicao">Motivo da alteração*</Label>
-                  <Textarea id="motivo-edicao" rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: cliente trocou um item" />
+                  <Textarea
+                    ref={motivoRef}
+                    id="motivo-edicao"
+                    rows={2}
+                    value={motivo}
+                    onChange={(e) => setMotivo(e.target.value)}
+                    placeholder="Ex.: cliente trocou um item"
+                    aria-invalid={tentouSalvar && motivo.trim().length < 3}
+                    className={tentouSalvar && motivo.trim().length < 3 ? "border-destructive focus-visible:ring-destructive" : undefined}
+                  />
+                  {tentouSalvar && motivo.trim().length < 3 && <p className="text-sm text-destructive">Informe o motivo da alteração</p>}
                 </div>
               )}
-              {pendencia && <p className="text-sm text-warning">{pendencia}</p>}
-              <Button size="lg" className="w-full" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
+              {pendencia && (!edicao || tentouSalvar) && !(edicao && motivo.trim().length < 3) && <p className="text-sm text-destructive">{pendencia}</p>}
+              <Button size="lg" className="w-full" disabled={criar.isPending || (!edicao && !!pendencia)} onClick={tentarSalvar}>
                 {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {edicao ? "Salvar alterações" : "Criar pedido"}
               </Button>
             </CardContent>
@@ -780,11 +815,10 @@ export default function VendaDiretaNovo() {
           <p className="text-xs text-muted-foreground">Total</p>
           <p className="text-2xl font-semibold tabular-nums">{formatBRL(total)}</p>
         </div>
-        <Button size="lg" disabled={!!pendencia || criar.isPending} onClick={() => criar.mutate()}>
+        <Button size="lg" disabled={criar.isPending || (!edicao && !!pendencia)} onClick={tentarSalvar}>
           {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {edicao ? "Salvar alterações" : "Criar pedido"}
         </Button>
       </div>
-      <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={() => { setTrocarMeio(null); void edQ.refetch(); }} />
     </PageShell>
   );
 }
