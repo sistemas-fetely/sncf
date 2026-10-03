@@ -67,7 +67,7 @@ interface Item { sku: string; nome: string | null; preco: number; quantidade: nu
 interface Resultado {
   pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
-  pagamento_refeito?: boolean | null; valor_anterior?: number | null;
+  pagamento_refeito?: boolean | null; meio_trocado?: boolean | null; valor_anterior?: number | null;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
 const MODAIS: ModalVd[] = ["retirada", "sedex", "pac", "frete_fetely"];
@@ -211,9 +211,9 @@ export default function VendaDiretaNovo() {
   useEffect(() => {
     const d = edQ.data;
     if (!d) return;
-    setPagamento(d.linha.pagamento === "pix" ? "pix" : "cartao");
     if (inicializado.current) return;
     inicializado.current = true;
+    setPagamento(d.linha.pagamento === "pix" ? "pix" : "cartao");
     setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setEndereco(d.endereco);
     setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
   }, [edQ.data]);
@@ -477,7 +477,9 @@ export default function VendaDiretaNovo() {
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
             {edicao && (
               <p className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm font-medium">
-                O valor mudou de {formatBRL(r.valor_anterior ?? null)} para {formatBRL(r.valor_total)} — envie o novo pagamento ao cliente
+                {Math.abs(Number(r.valor_anterior ?? 0) - Number(r.valor_total ?? 0)) > 0.009
+                  ? `O valor mudou de ${formatBRL(r.valor_anterior ?? null)} para ${formatBRL(r.valor_total)}`
+                  : `O meio mudou para ${r.pagamento === "pix" ? "PIX" : "Cartão"}`} — envie o novo pagamento ao cliente
               </p>
             )}
           </CardHeader>
