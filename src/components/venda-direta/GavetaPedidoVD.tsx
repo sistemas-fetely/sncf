@@ -8,6 +8,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { TrilhaDevolucao, type DevolucaoVD } from "./DevolucaoVendaDireta";
+import { SecaoCancelamentoNf, type CancelamentoNfSP } from "./CancelamentoComNfVD";
 import { QK_VD_GAVETA } from "./queryKeys";
 
 export interface LinhaGaveta {
@@ -78,6 +79,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
   onClose: () => void;
   acoes?: ReactNode;
   devolucao?: DevolucaoVD | null;
+  cancelamentoNf?: CancelamentoNfSP | null;
 }) {
   const id = linha?.id;
   const itensQ = useQuery({
@@ -227,6 +229,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
               <Par k="Nº Bling" v={<span className="tabular-nums">{l.bling_pedido_numero ?? "—"}</span>} />
             </Secao>
 
+            {cancelamentoNf && <Secao titulo="Cancelamento com NF"><SecaoCancelamentoNf c={cancelamentoNf} idExterno={l.id_externo} /></Secao>}
             {devolucao && <Secao titulo="Reembolso"><TrilhaDevolucao devolucao={devolucao} /></Secao>}
 
             <Secao titulo="Histórico">

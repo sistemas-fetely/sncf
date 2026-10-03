@@ -38,6 +38,7 @@ import {
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
+import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
 import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
@@ -169,6 +170,8 @@ export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
   const devolucoesQ = useDevolucoesVD();
+  const cancelNfQ = useCancelamentosComNfSP();
+  const cancelNfPorPedido = cancelNfQ.data;
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   const [filtro, setFiltro] = useState<Filtro | null>(null);
@@ -190,6 +193,7 @@ export default function VendaDiretaGestao() {
   const [pixNovo, setPixNovo] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState<Linha | null>(null);
   const [devolver, setDevolver] = useState<Linha | null>(null);
+  const [cancelarNf, setCancelarNf] = useState<Linha | null>(null);
   const [gavetaId, setGavetaId] = useState<string | null>(null);
   const [confirmaPausado, setConfirmaPausado] = useState<Linha | null>(null);
   const navigate = useNavigate();
@@ -275,6 +279,7 @@ export default function VendaDiretaGestao() {
   const gaveta = gavetaId ? (q.data ?? []).find((l) => l.id === gavetaId) ?? null : null;
 
   const tentarCancelar = (l: Linha) => {
+    if (l.nf_numero) { setCancelarNf(l); return; }
     if (l.pagamento_confirmado_em) {
       setDevolver(l);
       return;
@@ -314,7 +319,8 @@ export default function VendaDiretaGestao() {
     if (l.bling_pedido_numero) return LABEL.aguardando_nf;
     return LABEL.descendo_bling;
   };
-  const podeCancelar = (l: Linha) => podeEditar && l.situacao !== "entregue" && l.situacao !== "cancelado";
+  const podeCancelar = (l: Linha) => podeEditar && l.situacao !== "cancelado" && !cancelNfPorPedido?.get(l.id)?.aberta && (l.situacao !== "entregue" || !!l.nf_numero);
+  const rotuloCancelar = (l: Linha) => l.nf_numero ? "Solicitar cancelamento com NF" : l.pagamento_confirmado_em ? "Solicitar cancelamento com reembolso" : "Cancelar";
   const avisoDe = (l: Linha, icone: boolean) =>
     podeEditar && (l.alerta_sem_pagamento || l.situacao === "aguardando_pagamento"
       ? <AvisarClienteButton linha={l} chave="cobrar_pagamento" label="Cobrar no WhatsApp" icone={icone} />
@@ -416,10 +422,16 @@ export default function VendaDiretaGestao() {
                     const devolucao = devolucaoPorPedido.get(l.id);
                     const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
                     const reembolsoConcluido = devolucao?.status === "concluida";
-                    const situacaoRotulo = reembolsoAtivo
+                    const cancelNf = cancelNfPorPedido?.get(l.id);
+                    const cancelNfAberto = cancelNf?.aberta ? cancelNf : null;
+                    const situacaoRotulo = cancelNfAberto
+                      ? "Cancelamento com NF"
+                      : reembolsoAtivo
                       ? (reembolsoAtivo.status === "aguardando_devolucao" ? "Aguardando devolução" : `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`)
                       : LABEL[l.situacao] ?? l.situacao;
-                    const situacaoEstado: EstadoSelo = reembolsoAtivo?.status === "falhou"
+                    const situacaoEstado: EstadoSelo = cancelNfAberto
+                      ? "warning"
+                      : reembolsoAtivo?.status === "falhou"
                       ? "destructive"
                       : reembolsoAtivo
                         ? "warning"
@@ -501,7 +513,8 @@ export default function VendaDiretaGestao() {
                           <Selo estado={situacaoEstado}>
                             {situacaoRotulo}
                           </Selo>
-                          {reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
+                          {cancelNfAberto && <div className="mt-1 text-xs text-muted-foreground">{cancelNfAberto.etapa}</div>}
+                          {!cancelNfAberto && reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
                             {l.alerta_sem_pagamento && (
                               <div className="text-warning-strong">
@@ -535,7 +548,7 @@ export default function VendaDiretaGestao() {
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
                             {(aviso || etapa.length > 0) && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
                             <BotaoIcone a={{ k: "itens", label: "Ver itens", icon: List, onClick: () => setGavetaId(l.id) }} />
-                            {podeCancelar(l) && <BotaoIcone a={{ k: "cancel", label: l.pagamento_confirmado_em ? "Solicitar cancelamento com reembolso" : "Cancelar", icon: l.pagamento_confirmado_em ? RotateCcw : Ban, onClick: () => tentarCancelar(l), destrutiva: true }} />}
+                            {podeCancelar(l) && <BotaoIcone a={{ k: "cancel", label: rotuloCancelar(l), icon: l.pagamento_confirmado_em || l.nf_numero ? RotateCcw : Ban, onClick: () => tentarCancelar(l), destrutiva: true }} />}
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" asChild>
@@ -577,13 +590,14 @@ export default function VendaDiretaGestao() {
               ))}
               {podeCancelar(gaveta) && (
                 <Button size="sm" variant="outline" className="text-destructive hover:text-destructive" onClick={() => tentarCancelar(gaveta)}>
-                  {gaveta.pagamento_confirmado_em ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ban className="mr-1 h-3.5 w-3.5" />}{gaveta.pagamento_confirmado_em ? "Solicitar cancelamento com reembolso" : "Cancelar"}
+                  {gaveta.pagamento_confirmado_em || gaveta.nf_numero ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ban className="mr-1 h-3.5 w-3.5" />}{rotuloCancelar(gaveta)}
                 </Button>
               )}
               <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>
             </>
           )}
           devolucao={gaveta ? devolucaoPorPedido.get(gaveta.id) ?? null : null}
+          cancelamentoNf={gaveta ? cancelNfPorPedido?.get(gaveta.id) ?? null : null}
         />
       </TooltipProvider>
 
@@ -622,6 +636,7 @@ export default function VendaDiretaGestao() {
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
       <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
       <CancelarVendaDiretaDialog linha={cancelar} onClose={fechar(setCancelar)} />
+      <SolicitarCancelamentoComNfDialog linha={cancelarNf} produtoSaiuPadrao={cancelarNf?.situacao === "em_transporte" || cancelarNf?.situacao === "entregue"} onClose={() => setCancelarNf(null)} />
       <SolicitarDevolucaoDialog linha={devolver} onClose={() => { setDevolver(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); }} />
     </PageShell>
   );
