@@ -226,7 +226,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }:
               <Par k="Nº Bling" v={<span className="tabular-nums">{l.bling_pedido_numero ?? "—"}</span>} />
             </Secao>
 
-            {devolucao && <Secao titulo="Devolução"><TrilhaDevolucao devolucao={devolucao} /></Secao>}
+            {devolucao && <Secao titulo="Reembolso"><TrilhaDevolucao devolucao={devolucao} /></Secao>}
 
             <Secao titulo="Histórico">
               {evQ.isLoading ? <Skeleton className="h-16 w-full" /> : evQ.isError ? <Erro e={evQ.error} /> : (evQ.data ?? []).length === 0 ? (
