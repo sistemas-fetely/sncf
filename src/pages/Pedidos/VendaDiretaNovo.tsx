@@ -18,7 +18,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
-import { PixPagamento } from "@/components/venda-direta/PixPagamento";
+import { PixSafrapayPainel } from "@/components/venda-direta/PixSafrapay";
 import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
@@ -311,13 +311,16 @@ export default function VendaDiretaNovo() {
               </p>
             )}
             {r.pagamento === "pix" ? (
-              <>
-                <PixPagamento
-                  payload={r.pix_copia_cola}
-                  link={r.link_pagamento}
-                  whatsappUrl={r.link_pagamento && telefoneCliente.length >= 10 ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}` : null}
-                />
-              </>
+              <PixSafrapayPainel
+                auto
+                pedidoId={r.pedido_id}
+                idExterno={r.id_externo}
+                total={r.valor_total}
+                clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
+                telefone={telefoneCliente}
+                fallbackPayload={r.pix_copia_cola}
+                fallbackLink={r.link_pagamento}
+              />
             ) : (
               <LinkCartaoPainel
                 pedidoId={r.pedido_id}
