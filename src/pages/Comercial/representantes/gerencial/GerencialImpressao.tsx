@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { Fragment, useMemo } from "react";
 import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { useSearchParams } from "react-router-dom";
 import { hojeISO } from "@/lib/data";
@@ -6,6 +6,7 @@ import { formatError } from "@/lib/format-error";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
 import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
+import { mesAnterior, rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import {
   competenciaPadrao,
   num,
@@ -84,7 +85,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
         <Numerao
           titulo="Total a pagar no mês"
           valor={fmtBRL(num(mes?.total_a_pagar))}
-          detalhe={mes?.pagar_ate ? `Pagar até ${fmtData(mes.pagar_ate)}` : "Sem data limite definida"}
+          detalhe={mes?.pagar_ate ? `Pagar até ${fmtData(mes.pagar_ate)}` : "Nada a pagar neste mês"}
         />
         <Numerao
           titulo="Clientes novos abertos"
@@ -102,7 +103,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
           </colgroup>
           <thead>
             <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1.5 text-left font-medium">Competência</th>
+              <th className="py-1.5 text-left font-medium">Mês</th>
               <th className="px-1 py-1.5 text-right font-medium">Repres.</th>
               <th className="px-1 py-1.5 text-right font-medium">Clientes novos</th>
               <th className="px-1 py-1.5 text-right font-medium">Notas</th>
@@ -129,6 +130,9 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
             ))}
           </tbody>
         </table>
+        <p className="mt-1.5 text-[6.5pt] leading-relaxed text-muted-foreground">
+          Base, comissão, custo e desconto: pelo mês da NF. Total a pagar: comissão paga ao representante naquele mês (das NFs que os clientes pagaram no mês anterior).
+        </p>
       </section>
 
       <section className="mt-5">
@@ -143,12 +147,82 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
   );
 }
 
+function BlocoPagamentoMesPdf({ competencia, rotulo }: { competencia: string; rotulo: string }) {
+  const p = usePagamentoMes(competencia);
+  return (
+    <section className="mt-5">
+      <h2 className="text-[10.5pt] font-medium">Comissões pagas em {rotulo}</h2>
+      <p className="text-[7pt] text-muted-foreground">
+        Comissão das NFs que os clientes pagaram em {mesAnterior(competencia)}
+        {p.pagarAte ? ` · pagar até ${fmtData(p.pagarAte)}` : ""}
+      </p>
+      {p.carregando ? (
+        <p className="mt-2 text-[8pt] text-muted-foreground">Carregando…</p>
+      ) : p.erro ? (
+        <p className="mt-2 text-[8pt] text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
+      ) : p.linhas.length === 0 ? (
+        <p className="mt-2 text-[8pt] text-muted-foreground">Nenhuma comissão a pagar neste mês.</p>
+      ) : (
+        <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
+          <colgroup>
+            <col className="w-[18%]" /><col className="w-[8%]" /><col className="w-[10%]" /><col className="w-[24%]" />
+            <col className="w-[10%]" /><col className="w-[11%]" /><col className="w-[19%]" />
+          </colgroup>
+          <thead>
+            <tr className="border-y border-border text-muted-foreground">
+              <th className="py-1.5 text-left font-medium">Representante</th>
+              <th className="px-1 py-1.5 text-left font-medium">NF</th>
+              <th className="px-1 py-1.5 text-left font-medium">Pedido</th>
+              <th className="px-1 py-1.5 text-left font-medium">Cliente</th>
+              <th className="px-1 py-1.5 text-left font-medium">Cliente pagou em</th>
+              <th className="px-1 py-1.5 text-right font-medium">Comissão</th>
+              <th className="py-1.5 pl-1 text-left font-medium">Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            {p.grupos.map((g) => (
+              <Fragment key={g.representante}>
+                {g.linhas.map((l, i) => {
+                  const estorno = l.tipo_linha === "estorno";
+                  return (
+                    <tr key={i} className="border-b border-border/70">
+                      <td className="truncate py-1.5" title={l.representante ?? ""}>{l.representante ?? "—"}</td>
+                      <td className="px-1 py-1.5 tabular-nums">{estorno ? "—" : l.nf_numero ?? "—"}</td>
+                      <td className="truncate px-1 py-1.5">{estorno ? "—" : l.pedido ?? "—"}</td>
+                      <td className="truncate px-1 py-1.5" title={l.cliente ?? ""}>{l.cliente ?? "—"}</td>
+                      <td className="px-1 py-1.5 tabular-nums">{l.cliente_pagou_em ? fmtData(l.cliente_pagou_em) : "—"}</td>
+                      <td className={`px-1 py-1.5 text-right tabular-nums ${estorno ? "text-destructive" : ""}`}>{fmtBRL(Number(l.valor ?? 0))}</td>
+                      <td className="truncate py-1.5 pl-1">{rotuloSituacao(l)}</td>
+                    </tr>
+                  );
+                })}
+                <tr className="border-b border-border">
+                  <td colSpan={5} className="py-1.5 text-muted-foreground">Subtotal · {g.representante}</td>
+                  <td className="px-1 py-1.5 text-right font-medium tabular-nums">{fmtBRL(g.subtotal)}</td>
+                  <td />
+                </tr>
+              </Fragment>
+            ))}
+            <tr className="border-t border-foreground/40 font-medium">
+              <td colSpan={5} className="py-1.5">Total geral</td>
+              <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(p.total)}</td>
+              <td />
+            </tr>
+          </tbody>
+        </table>
+      )}
+    </section>
+  );
+}
+
 function PaginaDetalhe({
+  competencia,
   rotulo,
   representantes,
   travada,
   vencida,
 }: {
+  competencia: string;
   rotulo: string;
   representantes: LinhaRepresentante[];
   travada: number;
@@ -240,6 +314,8 @@ function PaginaDetalhe({
         )}
       </section>
 
+      <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />
+
       <p className="mt-4 text-[6.5pt] leading-relaxed text-muted-foreground">
         Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
       </p>
@@ -276,7 +352,7 @@ export default function GerencialImpressao() {
   if (!valida) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background p-8 text-destructive-strong">
-        Competência inválida. Use o formato AAAA-MM.
+        Mês inválido. Use o formato AAAA-MM.
       </div>
     );
   }
