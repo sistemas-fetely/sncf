@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -56,6 +56,14 @@ export function AbaGerencial() {
   const rotulo = fmtCompetencia(primeiroDia(competencia));
   const mesPagamento = mesSeguinte(competencia);
   const rotuloPagamento = fmtCompetencia(primeiroDia(mesPagamento));
+
+  useEffect(() => {
+    if (searchParams.get("mes")) return;
+    const proximos = new URLSearchParams(searchParams);
+    proximos.set("aba", "gerencial");
+    proximos.set("mes", competencia);
+    setSearchParams(proximos, { replace: true });
+  }, [competencia, searchParams, setSearchParams]);
 
   const alterarCompetencia = (novaCompetencia: string) => {
     setCompetencia(novaCompetencia);
