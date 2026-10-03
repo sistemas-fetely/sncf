@@ -91,12 +91,10 @@ export function useGerencial(competencia: string): Gerencial {
     enabled: valida,
   });
 
-  const extratoQ = useQuery({
-    queryKey: ["comissao-gerencial-extrato", competencia],
+  const pagamentoQ = useQuery({
+    queryKey: ["comissao-gerencial-pagamento-mes", competencia],
     queryFn: () =>
-      lerTudo("vw_comissao_extrato_mensal", (q) =>
-        q.gte("competencia_pagamento", inicio).lt("competencia_pagamento", fim),
-      ),
+      lerTudo("vw_comissao_pagamento_mes", (q) => q.eq("mes_recebimento", `${competencia}-01`)),
     enabled: valida,
   });
 
@@ -120,9 +118,12 @@ export function useGerencial(competencia: string): Gerencial {
       if (id) clientesNovosPorVendedor.set(id, (clientesNovosPorVendedor.get(id) ?? 0) + 1);
     }
     const aPagarPorVendedor = new Map<string, number>();
-    for (const l of extratoQ.data ?? []) {
+    const nomePagamento = new Map<string, string>();
+    for (const l of pagamentoQ.data ?? []) {
       const id = String(l.vendedor_id ?? "");
-      aPagarPorVendedor.set(id, (aPagarPorVendedor.get(id) ?? 0) + num(l.valor_a_pagar));
+      if (!id) continue;
+      aPagarPorVendedor.set(id, (aPagarPorVendedor.get(id) ?? 0) + num(l.valor));
+      if (l.representante) nomePagamento.set(id, String(l.representante));
     }
 
     interface Acc {
@@ -161,6 +162,19 @@ export function useGerencial(competencia: string): Gerencial {
       mapa.set(id, acc);
     }
 
+    // Quem só teve recebimento no mês (sem NF apurada) também entra.
+    for (const id of aPagarPorVendedor.keys()) {
+      if (mapa.has(id)) continue;
+      mapa.set(id, {
+        representante: nomePagamento.get(id) ?? "Sem nome",
+        notas: new Set<string>(),
+        base: 0,
+        descontoPonderado: 0,
+        comissaoApurada: 0,
+        comissaoLiberada: 0,
+      });
+    }
+
     return [...mapa.entries()]
       .map(([vendedorId, acc]) => ({
         vendedorId,
@@ -175,7 +189,7 @@ export function useGerencial(competencia: string): Gerencial {
         clientesNovos: clientesNovosPorVendedor.get(vendedorId) ?? 0,
       }))
       .sort((a, b) => b.comissaoApurada - a.comissaoApurada);
-  }, [clientesNovosQ.data, detalheQ.data, extratoQ.data]);
+  }, [clientesNovosQ.data, detalheQ.data, pagamentoQ.data]);
 
   const reps = repFinQ.data ?? [];
   const semContraparte = reps.filter((r) => r.bloqueio_pagamento === true && num(r.comissao_a_receber) > 0);
@@ -226,8 +240,8 @@ export function useGerencial(competencia: string): Gerencial {
     return itens;
   }, [mes, semContraparte.length, valorSemContraparte]);
 
-  const carregando = gerencialQ.isLoading || repFinQ.isLoading || detalheQ.isLoading || extratoQ.isLoading || clientesNovosQ.isLoading;
-  const erro = gerencialQ.error || repFinQ.error || detalheQ.error || extratoQ.error || clientesNovosQ.error;
+  const carregando = gerencialQ.isLoading || repFinQ.isLoading || detalheQ.isLoading || pagamentoQ.isLoading || clientesNovosQ.isLoading;
+  const erro = gerencialQ.error || repFinQ.error || detalheQ.error || pagamentoQ.error || clientesNovosQ.error;
   const semNF = !mes || (num(mes.notas) === 0 && num(mes.comissao_apurada) === 0);
   // Sem movimento só quando não há NF apurada E nada a pagar no mês —
   // um mês pode não ter NF e ainda ter comissão a pagar (pagamentos do mês anterior).

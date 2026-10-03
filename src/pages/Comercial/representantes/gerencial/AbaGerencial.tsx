@@ -216,7 +216,7 @@ export function AbaGerencial() {
                       <TableHead className="text-right">% efetivo</TableHead>
                       <TableHead className="text-right">Comissão apurada</TableHead>
                       <TableHead className="text-right">Comissão liberada</TableHead>
-                      <TableHead className="text-right">A pagar neste ciclo</TableHead>
+                      <TableHead className="text-right">Comissão a pagar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
