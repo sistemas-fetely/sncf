@@ -73,7 +73,7 @@ export function useProdutosPorSku(skus: string[]) {
   });
 }
 
-export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao }: {
+export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, cancelamentoNf }: {
   linha: LinhaGaveta | null;
   modalLabel: (m: string | null) => string;
   onClose: () => void;
