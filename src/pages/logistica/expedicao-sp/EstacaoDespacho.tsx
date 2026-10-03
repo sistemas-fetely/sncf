@@ -45,7 +45,7 @@ export interface GrupoColeta {
 }
 
 interface Props {
-  pedidoIdExterno: string;
+  pedidoId: string;
   modais: ModalEntrega[];
   /** Modal registrado na embalagem — `metadata->>'modal'` do evento mesa_embalado. */
   modalEmbalado: string | null;
@@ -74,7 +74,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 }
 
 export function EstacaoDespacho({
-  pedidoIdExterno, modais, modalEmbalado, despachando, onDespachar,
+  pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote,
 }: Props) {
   const [modal, setModal] = useState<string>(modalEmbalado ?? "");
@@ -106,7 +106,7 @@ export function EstacaoDespacho({
             Entregar ao cliente e registrar em Pedidos Site SP.
           </p>
           <Button asChild variant="outline">
-            <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoIdExterno)}`}>
+            <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
               Abrir pedido em Pedidos Site SP
             </Link>
           </Button>

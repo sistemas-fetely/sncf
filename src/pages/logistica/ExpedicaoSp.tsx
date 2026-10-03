@@ -495,7 +495,7 @@ export default function ExpedicaoSp() {
 
               {estacaoSelecionada === "despacho" && (
                 <EstacaoDespacho
-                  pedidoIdExterno={selecionado.id_externo}
+                  pedidoId={selecionado.id}
                   modais={modaisQ.data ?? []}
                   modalEmbalado={modalDoEmbalado(eventosSelecionado)}
                   despachando={despachar.isPending}
