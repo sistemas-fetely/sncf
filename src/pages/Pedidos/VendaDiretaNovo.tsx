@@ -198,10 +198,16 @@ export default function VendaDiretaNovo() {
           preco: precos.get(i.sku)?.preco ?? Number(i.valor_unitario ?? 0),
         })),
         modo,
-        endereco: {
-          cep: soDigitos(ee.cep), logradouro: ee.logradouro ?? "", numero: ee.numero ?? "", complemento: ee.complemento ?? "",
-          bairro: ee.bairro ?? "", cidade: ee.cidade ?? "", uf: ee.uf ?? "",
-        },
+        // Pedido com CEP → endereço do pedido; retirada → endereço do cadastro do cliente.
+        endereco: soDigitos(ee.cep).length > 0
+          ? {
+            cep: soDigitos(ee.cep), logradouro: ee.logradouro ?? "", numero: ee.numero ?? "", complemento: ee.complemento ?? "",
+            bairro: ee.bairro ?? "", cidade: ee.cidade ?? "", uf: ee.uf ?? "",
+          }
+          : {
+            cep: soDigitos(c?.cep), logradouro: c?.logradouro ?? "", numero: c?.numero ?? "", complemento: c?.endereco_complemento ?? "",
+            bairro: c?.bairro ?? "", cidade: c?.cidade ?? "", uf: c?.uf ?? "",
+          },
         beneficio,
         observacao: observacaoSemBeneficio(p.observacao_pedido),
       };
