@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
 import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
-import { mesAnterior, rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
+import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import {
   competenciaPadrao,
   num,
@@ -83,9 +83,13 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
           destaque
         />
         <Numerao
-          titulo="Total a pagar no mês"
+          titulo="Comissão a pagar"
           valor={fmtBRL(num(mes?.total_a_pagar))}
-          detalhe={mes?.pagar_ate ? `Pagar até ${fmtData(mes.pagar_ate)}` : "Nada a pagar neste mês"}
+          detalhe={
+            num(mes?.total_a_pagar) > 0 && mes?.pagar_ate
+              ? `Das NFs pagas em ${rotulo} · pagar até ${fmtData(mes.pagar_ate)}`
+              : "Nenhuma NF paga neste mês"
+          }
         />
         <Numerao
           titulo="Clientes novos abertos"
@@ -111,7 +115,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
               <th className="px-1 py-1.5 text-right font-medium">Comissão apurada</th>
               <th className="px-1 py-1.5 text-right font-medium">Custo %</th>
               <th className="px-1 py-1.5 text-right font-medium">Desconto médio %</th>
-              <th className="py-1.5 pl-1 text-right font-medium">Total a pagar</th>
+              <th className="py-1.5 pl-1 text-right font-medium">Comissão a pagar</th>
             </tr>
           </thead>
           <tbody>
@@ -131,7 +135,7 @@ function PaginaResumo({ mes, historico, rotulo }: { mes: Linha | null; historico
           </tbody>
         </table>
         <p className="mt-1.5 text-[6.5pt] leading-relaxed text-muted-foreground">
-          Base, comissão, custo e desconto: pelo mês da NF. Total a pagar: comissão paga ao representante naquele mês (das NFs que os clientes pagaram no mês anterior).
+          Cada mês mostra o que aconteceu nele: NFs faturadas, comissão apurada e NFs pagas pelos clientes. A comissão das NFs pagas é paga ao representante até o dia 15 do mês seguinte.
         </p>
       </section>
 
@@ -151,17 +155,16 @@ function BlocoPagamentoMesPdf({ competencia, rotulo }: { competencia: string; ro
   const p = usePagamentoMes(competencia);
   return (
     <section className="mt-5">
-      <h2 className="text-[10.5pt] font-medium">Comissões pagas em {rotulo}</h2>
+      <h2 className="text-[10.5pt] font-medium">NFs pagas pelos clientes em {rotulo}</h2>
       <p className="text-[7pt] text-muted-foreground">
-        Comissão das NFs que os clientes pagaram em {mesAnterior(competencia)}
-        {p.pagarAte ? ` · pagar até ${fmtData(p.pagarAte)}` : ""}
+        {p.pagarAte ? `Comissão a pagar ao representante até ${fmtData(p.pagarAte)}` : "Comissão a pagar ao representante"}
       </p>
       {p.carregando ? (
         <p className="mt-2 text-[8pt] text-muted-foreground">Carregando…</p>
       ) : p.erro ? (
         <p className="mt-2 text-[8pt] text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
       ) : p.linhas.length === 0 ? (
-        <p className="mt-2 text-[8pt] text-muted-foreground">Nenhuma comissão a pagar neste mês.</p>
+        <p className="mt-2 text-[8pt] text-muted-foreground">Nenhuma NF paga pelos clientes neste mês.</p>
       ) : (
         <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
           <colgroup>
