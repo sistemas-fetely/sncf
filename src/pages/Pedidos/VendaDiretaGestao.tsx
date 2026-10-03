@@ -110,7 +110,9 @@ function tempoDesde(iso: string | null): string {
 }
 
 function dataPagamento(iso: string): string {
-  return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const partes = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(iso));
+  const valor = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((p) => p.type === tipo)?.value ?? "";
+  return `${valor("day")}/${valor("month")} ${valor("hour")}:${valor("minute")}`;
 }
 
 interface Acao { k: string; label: string; icon: LucideIcon; onClick: () => void; disabled?: boolean; destrutiva?: boolean }
