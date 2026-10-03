@@ -170,15 +170,33 @@ Deno.serve(async (req) => {
       if (p.cancelado_em || p.estagio === "cancelado") cancelados.add(p.id);
     }
   }
-  for (const l of (links ?? []).filter((x: any) => cancelados.has(x.pedido_id))) {
+  // 1b) Portão substituído (troca de meio / remontar): link aberto sem provisão ou com provisão cancelada.
+  const obsoletos = new Set<string>();
+  const provIds = [...new Set((links ?? []).filter((l: any) => l.status === "aberto" && l.provisao_id).map((l: any) => l.provisao_id))];
+  const provCancelada = new Set<string>();
+  if (provIds.length) {
+    const { data: pvs, error: ePv } = await sb.from("provisao_recebimento").select("id, status").in("id", provIds);
+    if (ePv) return json({ ok: false, erro: `Ler provisões: ${ePv.message}` }, 500);
+    for (const p of pvs ?? []) if (["cancelada", "cancelado"].includes(String(p.status))) provCancelada.add(p.id);
+  }
+  for (const l of links ?? []) {
+    if (cancelados.has(l.pedido_id) || l.status !== "aberto") continue;
+    if (!l.provisao_id || provCancelada.has(l.provisao_id)) obsoletos.add(l.id);
+  }
+  for (const l of (links ?? []).filter((x: any) => cancelados.has(x.pedido_id) || obsoletos.has(x.id))) {
+    const subst = !cancelados.has(l.pedido_id);
+    const msgAprov = subst ? "Portão substituído com pagamento aprovado — estornar" : "Pedido cancelado com pagamento aprovado — estornar";
+    const msgLink = subst ? "Portão substituído — link cancelado no Safra" : "Pedido cancelado — link cancelado no Safra";
+    const msgPix = subst ? "Portão substituído — link cancelado no Safra" : "Pedido cancelado — PIX cancelado no Safra";
+    const motivo = subst ? "portão substituído" : "pedido cancelado";
     resumo.verificados++;
     const base: any = { ultimo_sync_em: new Date().toISOString(), tentativas_sync: (l.tentativas_sync ?? 0) + 1 };
     try {
       const amb = l.ambiente === "prod" ? "prod" : "hml";
       if (!l.gateway_link_id) {
-        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — link cancelado no Safra" }).eq("id", l.id);
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgLink }).eq("id", l.id);
         if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
-        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado (pedido cancelado)" });
+        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `cancelado (${motivo})` });
         continue;
       }
       const { api, bearer } = await token(amb);
@@ -189,7 +207,7 @@ Deno.serve(async (req) => {
         const cP = await lerCorpo(rP);
         if (!rP.ok) throw new Error(`Consultar PIX antes de cancelar: ${msgApi(cP, rP.status)}`);
         if (lerPix(cP).pago) {
-          const erro = "Pedido cancelado com pagamento aprovado — estornar";
+          const erro = msgAprov;
           const { error } = await sb.from("pagamento_link").update({ ...base, erro, resposta_ultimo_sync: cP }).eq("id", l.id);
           if (error) throw new Error(`Gravar alerta: ${error.message}`);
           resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
@@ -202,9 +220,9 @@ Deno.serve(async (req) => {
         });
         const cDp = await lerCorpo(rDp);
         if (!rDp.ok && !deleteToleravel(rDp.status, cDp)) throw new Error(`Cancelar PIX no Safra: ${msgApi(cDp, rDp.status)}`);
-        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — PIX cancelado no Safra", resposta_ultimo_sync: cP }).eq("id", l.id);
+        const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgPix, resposta_ultimo_sync: cP }).eq("id", l.id);
         if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
-        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "PIX cancelado (pedido cancelado)" });
+        resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `PIX cancelado (${motivo})` });
         continue;
       }
       // Já tem cobrança aprovada? Então não cancela — vai para estorno manual.
@@ -217,7 +235,7 @@ Deno.serve(async (req) => {
       const chs = Array.isArray(scC?.charges) ? scC.charges : [];
       const aprovado = Number(scC?.status) === 100 || chs.some((c: any) => Number(primeiro(c?.chargeStatus, c?.status)) === 1);
       if (aprovado) {
-        const erro = "Pedido cancelado com pagamento aprovado — estornar";
+        const erro = msgAprov;
         const { error } = await sb.from("pagamento_link").update({ ...base, erro, resposta_ultimo_sync: cC }).eq("id", l.id);
         if (error) throw new Error(`Gravar alerta: ${error.message}`);
         resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, erro });
@@ -230,9 +248,9 @@ Deno.serve(async (req) => {
       });
       const cD = await lerCorpo(rD);
       if (!rD.ok && !deleteToleravel(rD.status, cD)) throw new Error(`Cancelar link no Safra: ${msgApi(cD, rD.status)}`);
-      const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: "Pedido cancelado — link cancelado no Safra" }).eq("id", l.id);
+      const { error } = await sb.from("pagamento_link").update({ ...base, status: "cancelado", erro: msgLink }).eq("id", l.id);
       if (error) throw new Error(`Gravar cancelamento: ${error.message}`);
-      resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "cancelado (pedido cancelado)" });
+      resumo.cancelados++; resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: `cancelado (${motivo})` });
     } catch (e) {
       const erro = e instanceof Error ? e.message : String(e);
       await sb.from("pagamento_link").update({ ...base, erro }).eq("id", l.id);
@@ -242,7 +260,7 @@ Deno.serve(async (req) => {
   }
 
   // 2) Procurar pagamentos nos demais.
-  for (const l of (links ?? []).filter((x: any) => !cancelados.has(x.pedido_id))) {
+  for (const l of (links ?? []).filter((x: any) => !cancelados.has(x.pedido_id) && !obsoletos.has(x.id))) {
     resumo.verificados++;
     const base: any = { ultimo_sync_em: new Date().toISOString(), tentativas_sync: (l.tentativas_sync ?? 0) + 1 };
     try {
