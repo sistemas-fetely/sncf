@@ -38,7 +38,7 @@ interface PreviaInvoice {
   divergencia?: number;
   linhas_sem_sku?: number;
   linhas_fora_dos_pedidos?: number;
-  por_pedido?: Array<{ numero_pedido?: string | null; pedido_id?: number; linhas?: number }> | Record<string, number> | null;
+  por_pedido?: Array<{ numero_pedido?: string | null; pedido_id?: number; linhas?: number; linhas_da_invoice?: number }> | Record<string, number> | null;
   itens?: Array<{
     item_seq: number;
     codigo_fornecedor: string;
@@ -184,7 +184,7 @@ function normalizarPorPedido(p: PreviaInvoice["por_pedido"]): Array<{ rotulo: st
   if (Array.isArray(p)) {
     return p.map((x) => ({
       rotulo: x.numero_pedido ?? (x.pedido_id != null ? `#${x.pedido_id}` : "—"),
-      linhas: Number(x.linhas ?? 0),
+      linhas: Number(x.linhas_da_invoice ?? x.linhas ?? 0),
     }));
   }
   return Object.entries(p).map(([k, v]) => ({ rotulo: k, linhas: Number(v ?? 0) }));
