@@ -54607,6 +54607,33 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_exigencia_dim: {
+        Row: {
+          ativo: boolean
+          criado_em: string
+          descricao: string | null
+          nome: string
+          ordem: number
+          slug: string
+        }
+        Insert: {
+          ativo?: boolean
+          criado_em?: string
+          descricao?: string | null
+          nome: string
+          ordem?: number
+          slug: string
+        }
+        Update: {
+          ativo?: boolean
+          criado_em?: string
+          descricao?: string | null
+          nome?: string
+          ordem?: number
+          slug?: string
+        }
+        Relationships: []
+      }
       produto_fase_dim: {
         Row: {
           cobra_ficha_na_fila: boolean
@@ -54680,6 +54707,7 @@ export type Database = {
           dim_coluna: string | null
           dim_tabela: string | null
           dono: string
+          exigido_para: string | null
           fase_exigida: string | null
           importavel_planilha: boolean
           obrigatorio: boolean
@@ -54699,6 +54727,7 @@ export type Database = {
           dim_coluna?: string | null
           dim_tabela?: string | null
           dono: string
+          exigido_para?: string | null
           fase_exigida?: string | null
           importavel_planilha?: boolean
           obrigatorio?: boolean
@@ -54718,6 +54747,7 @@ export type Database = {
           dim_coluna?: string | null
           dim_tabela?: string | null
           dono?: string
+          exigido_para?: string | null
           fase_exigida?: string | null
           importavel_planilha?: boolean
           obrigatorio?: boolean
@@ -54729,6 +54759,13 @@ export type Database = {
           rotulo_separado?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "produto_ficha_nascimento_exigido_para_fkey"
+            columns: ["exigido_para"]
+            isOneToOne: false
+            referencedRelation: "produto_exigencia_dim"
+            referencedColumns: ["slug"]
+          },
           {
             foreignKeyName: "produto_ficha_nascimento_fase_exigida_fkey"
             columns: ["fase_exigida"]
