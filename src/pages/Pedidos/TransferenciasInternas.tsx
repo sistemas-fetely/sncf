@@ -223,7 +223,7 @@ export default function TransferenciasInternas() {
               onClick={() => semBaixaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
               className="rounded-md border bg-card px-4 py-2 text-left text-sm hover:bg-muted/50"
             >
-              Notas sem baixa <span className="font-semibold tabular-nums">({nSemBaixa})</span>
+              Notas sem baixa <span className="font-medium tabular-nums">({nSemBaixa})</span>
             </button>
           )}
           {nAReceber > 0 && (
@@ -232,7 +232,7 @@ export default function TransferenciasInternas() {
               onClick={() => navigate("/vendas/produto/estoque/recebimento-centro")}
               className="rounded-md border bg-card px-4 py-2 text-left text-sm hover:bg-muted/50"
             >
-              A receber no destino <span className="font-semibold tabular-nums">({nAReceber})</span>
+              A receber no destino <span className="font-medium tabular-nums">({nAReceber})</span>
             </button>
           )}
           {nOrfaos > 0 && (
@@ -245,7 +245,7 @@ export default function TransferenciasInternas() {
                 soOrfaos ? "border-primary bg-primary/10" : "bg-card",
               )}
             >
-              Sem origem/destino <span className="font-semibold tabular-nums">({nOrfaos})</span>
+              Sem origem/destino <span className="font-medium tabular-nums">({nOrfaos})</span>
               {soOrfaos && <span className="ml-1 text-xs text-muted-foreground">· filtrando</span>}
             </button>
           )}
