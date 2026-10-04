@@ -912,7 +912,6 @@ export default function PainelLista() {
 
   const statusPorId = useMemo(() => new Map(status.map((s) => [s.id, s])), [status]);
   const portoPorId = useMemo(() => new Map(portos.map((p) => [p.id, p])), [portos]);
-  const fabricaPorId = useMemo(() => new Map(fabricas.map((f) => [f.id, f])), [fabricas]);
 
   const embarques = useMemo<EmbarqueRow[]>(() => embarquesQ.data ?? [], [embarquesQ.data]);
 
@@ -945,9 +944,6 @@ export default function PainelLista() {
       .filter((v): v is number => typeof v === "number");
     return vals.length === 0 ? null : vals.reduce((a, b) => a + b, 0);
   };
-
-  const contDoEmbarque = (e: EmbarqueRow): number =>
-    e.conteineres.reduce((a, c) => a + (c.quantidade ?? 0), 0);
 
   // ── filtro ──
   const filtrados = useMemo(() => {

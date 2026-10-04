@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
 
@@ -59,9 +59,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 
 import { Selo } from "@/components/ui/selo";
-import {
-  type TipoPendencia,
-} from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
 
 
@@ -291,7 +288,6 @@ export type VistaCompras = "novo";
 
 export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: VistaCompras }) {
   const qc = useQueryClient();
-  const [, setParams] = useSearchParams();
 
 
   // ---------------- Dimensões ----------------
