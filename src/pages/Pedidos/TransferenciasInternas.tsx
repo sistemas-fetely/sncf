@@ -1073,7 +1073,8 @@ export default function TransferenciasInternas() {
               Nenhuma transferência interna registrada ainda.
             </p>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
@@ -1178,6 +1179,12 @@ export default function TransferenciasInternas() {
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDateBR(t.data_pedido)}
                       </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.data_entrega_prevista ? formatDateBR(t.data_entrega_prevista) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.entregue_em ? formatDateBR(t.entregue_em) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         {(() => {
                           const rec = recebMap.get(t.id);
@@ -1222,7 +1229,8 @@ export default function TransferenciasInternas() {
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
