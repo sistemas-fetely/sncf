@@ -93,34 +93,16 @@ function detectarCancelamento(d: any): { cancelada: boolean; raw: any } {
 
 const REVALIDACAO_MAX = 40; // orcamento de 90s da funcao — teto de reconsultas por execucao
 
-export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let criados = 0, atualizados = 0, erros = 0; let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
-let revalidados = 0, errosDetalhe = 0, canceladasDetectadas = 0;
-const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
-// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
-// devolucao de venda ficava sem combustivel. Varredura isolada, ANTES do laco de saidas:
-// entradas sao raras (2 em 90 dias) e baratas, entao pegam o orcamento primeiro. Se
-// rodassem depois, morreriam de inanicao — o laco de saidas sai justamente quando o
-// tempo acaba e timeUp() ja estaria true. Try/catch proprio: nada aqui pode derrubar
-// o sync de saida que ja funciona. Teto de 3 paginas dentro de syncNfeEntradas.
-let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
-try {
-  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
-  entradasEncontradas = r.encontradas;
-  entradasGravadas = r.gravadas;
-  entradasComReferencia = r.comReferencia;
-  entradasComErro = r.comErro;
-} catch (e) {
-  entradasComErro++;
-  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
+export type EstadoNfe = { criados: number; atualizados: number; erros: number; ultimoErro: string;
+  revalidados: number; errosDetalhe: number; canceladasDetectadas: number; limite90d: string };
+function novoEstadoNfe(limite90d?: string): EstadoNfe {
+  return { criados: 0, atualizados: 0, erros: 0, ultimoErro: "", revalidados: 0, errosDetalhe: 0, canceladasDetectadas: 0,
+    limite90d: limite90d ?? new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) };
 }
 
-while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
-// Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
-const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
-
-for (const nf of items) {
+// Porta unica: processa UMA NF (item da listagem ou detalhe) com a mesma regra da varredura.
+async function processarNfItem(supabase: any, client: BlingClient, nf: any, st: EstadoNfe) {
 
   try {
     const blingId = String(nf.id);
@@ -149,8 +131,8 @@ for (const nf of items) {
     // Nota completa e autorizada dos ultimos 90 dias pode ter sido cancelada DEPOIS
     // do sync — sem reconsulta o cancelamento fica invisivel para sempre.
     const revalidarCancelamento = !!existing && existing.situacao === "autorizada" &&
-      !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= limite90d &&
-      revalidados < REVALIDACAO_MAX;
+      !!existing.data_emissao && String(existing.data_emissao).slice(0, 10) >= st.limite90d &&
+      st.revalidados < REVALIDACAO_MAX;
 
     // Busca detalhe apenas quando falta valor, frete, pedido, transporte, série,
     // arquivo (pdf_url/xml_url) ou duplicata — evita rate limit do Bling.
@@ -163,7 +145,7 @@ for (const nf of items) {
 
     if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || semDuplicatas || revalidarCancelamento) {
 
-      if (revalidarCancelamento) revalidados++;
+      if (revalidarCancelamento) st.revalidados++;
 
       try {
         await sleep(120); // respeita rate limit do Bling (~3 req/s)
@@ -250,7 +232,7 @@ for (const nf of items) {
         }
       } catch (e) {
         // FAIL-LOUD por NF: loga e conta, mas nao aborta o sync inteiro
-        errosDetalhe++;
+        st.errosDetalhe++;
         console.error(`detalhe /nfe/${nf.id} falhou: ${(e as Error).message}`);
       }
 
@@ -323,7 +305,7 @@ for (const nf of items) {
     if (existing) {
       const { error: updErr } = await supabase.from("nfs_emitidas").update(registro).eq("id", existing.id);
       if (updErr) throw new Error("UPDATE nfs_emitidas: " + updErr.message);
-      atualizados++;
+      st.atualizados++;
 
       // NF virou cancelada. O estorno automatico do estoque, titulos e estagio do pedido
       // agora eh feito pelo trigger trg_nf_cancelada_propaga (via fn_nf_cancelada_propagar).
@@ -331,7 +313,7 @@ for (const nf of items) {
       // propaga — grava evento e devolve bloqueado. Portanto o achado aqui soh nasce quando
       // existem movimentos originais de baixa E nao existe a contrapartida de estorno.
       if (existing.situacao === "autorizada" && registro.situacao === "cancelada") {
-        canceladasDetectadas++;
+        st.canceladasDetectadas++;
         const numeroNf = registro.numero ?? existing.numero ?? null;
         try {
           const { data: movsOriginais } = await supabase
@@ -372,17 +354,59 @@ for (const nf of items) {
     } else {
       const { error: insErr } = await supabase.from("nfs_emitidas").insert(registro);
       if (insErr) throw new Error("INSERT nfs_emitidas [bling_id=" + blingId + "]: " + insErr.message);
-      criados++;
+      st.criados++;
     }
 
   } catch (e) {
-    erros++;
-    ultimoErro = `item ${nf?.id}: ${(e as Error).message}`;
+    st.erros++;
+    st.ultimoErro = `item ${nf?.id}: ${(e as Error).message}`;
   }
 }
 
+/** Sync dirigido: GET /nfe/{id} e aplica exatamente a regra da varredura. */
+export async function sincronizarNfePorId(supabase: any, client: BlingClient, blingId: string) {
+  const det = await client.get(`/nfe/${encodeURIComponent(blingId)}`);
+  const nf = det?.data;
+  if (!nf?.id) throw new Error(`Bling nao devolveu a NF ${blingId}`);
+  const st = novoEstadoNfe();
+  await processarNfItem(supabase, client, nf, st);
+  if (st.erros > 0) throw new Error(st.ultimoErro || `falha ao gravar NF ${blingId}`);
+  return { criada: st.criados > 0, atualizada: st.atualizados > 0, erroDetalhe: st.errosDetalhe > 0 };
+}
+
+export async function syncNfe( supabase: any, client: BlingClient, timeUp: () => boolean, cursor: { ultima_pagina: number; ultima_data_corte: string | null }, ) { let pagina = Math.max(cursor.ultima_pagina + 1, 1); let ultimoErro = "";
+const limite90d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const st = novoEstadoNfe(limite90d);
+
+// ENTRADA-VIVE-NO-STAGE (29/08/2026): nfs_emitidas eh livro de SAIDA e continua assim.
+// NFs de entrada emitidas pela propria Fetely (tipo=0) nao entravam em lugar nenhum —
+// devolucao de venda ficava sem combustivel. Varredura isolada, ANTES do laco de saidas:
+// entradas sao raras (2 em 90 dias) e baratas, entao pegam o orcamento primeiro. Se
+// rodassem depois, morreriam de inanicao — o laco de saidas sai justamente quando o
+// tempo acaba e timeUp() ja estaria true. Try/catch proprio: nada aqui pode derrubar
+// o sync de saida que ja funciona. Teto de 3 paginas dentro de syncNfeEntradas.
+let entradasEncontradas = 0, entradasGravadas = 0, entradasComReferencia = 0, entradasComErro = 0;
+try {
+  const r = await syncNfeEntradas(supabase, client, timeUp, limite90d);
+  entradasEncontradas = r.encontradas;
+  entradasGravadas = r.gravadas;
+  entradasComReferencia = r.comReferencia;
+  entradasComErro = r.comErro;
+} catch (e) {
+  entradasComErro++;
+  console.error(`varredura de NFs de entrada falhou por completo: ${(e as Error).message}`);
+}
+
+while (!timeUp()) { let data: any; try { data = await client.get(`/nfe?limite=100&pagina=${pagina}`); } catch (e) { ultimoErro = `pagina ${pagina}: ${(e as Error).message}`; break; } const itemsRaw = data?.data || []; if (itemsRaw.length === 0) { pagina = 0; break; }
+// Prioriza data_emissao mais recente para gastar o orcamento de revalidacao no que importa
+const items = [...itemsRaw].sort((a: any, b: any) => String(b?.dataEmissao ?? "").localeCompare(String(a?.dataEmissao ?? "")));
+
+for (const nf of items) {
+  await processarNfItem(supabase, client, nf, st);
+}
+
 await supabase.from("integracoes_sync_cursor")
-  .update({ ultima_pagina: pagina, total_processado: criados + atualizados, updated_at: new Date().toISOString() })
+  .update({ ultima_pagina: pagina, total_processado: st.criados + st.atualizados, updated_at: new Date().toISOString() })
   .eq("sistema", "bling").eq("entidade", "nfe");
 
 pagina++;
@@ -391,9 +415,9 @@ await sleep(300);
 
 }
 
-console.log(`sync nfe: revalidacoes de cancelamento=${revalidados}, canceladas detectadas=${canceladasDetectadas}, erros de detalhe=${errosDetalhe}`);
+console.log(`sync nfe: revalidacoes de cancelamento=${st.revalidados}, canceladas detectadas=${st.canceladasDetectadas}, erros de detalhe=${st.errosDetalhe}`);
 
-return { criados, atualizados, erros, ultimoErro, proximaPagina: pagina, revalidados, canceladasDetectadas, errosDetalhe,
+return { criados: st.criados, atualizados: st.atualizados, erros: st.erros, ultimoErro: st.ultimoErro || ultimoErro, proximaPagina: pagina, revalidados: st.revalidados, canceladasDetectadas: st.canceladasDetectadas, errosDetalhe: st.errosDetalhe,
   entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
 
 // O endpoint /nfe/{id} NAO expoe nota referenciada nem a finalidade no JSON: refNFe,
