@@ -153,3 +153,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
 [functions.devolucao-gerar-rascunho-nf]
     verify_jwt = false
+
+[functions.vd-nf-sync]
+    verify_jwt = false
