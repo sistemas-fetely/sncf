@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import { parsearNumero, VERDE } from "@/lib/compras/lancamento-utils";
+import { VERDE } from "@/lib/compras/lancamento-utils";
 
 interface PreviaInvoice {
   invoice_existe?: boolean;
@@ -122,27 +122,33 @@ function parsearLinhasInvoice(texto: string): LinhaInv[] {
         codigo_fornecedor: p[0],
         sku: p[1] || null,
         descricao: p[2] || null,
-        quantidade: parsearNumero(p[3]),
-        valor_unit: parsearNumero(p[4]),
+        quantidade: lerNumero(p[3], true),
+        valor_unit: lerNumero(p[4]),
       };
     });
 }
 
+/** Parser único: com vírgula = pt-BR; sem vírgula o ponto é decimal
+ *  (exceto quantidade inteira com exatamente 3 dígitos após o único ponto = milhar). */
+const lerNumero = (s: string, inteiro = false): number => {
+  const t = s.trim().replace(/\s/g, "");
+  if (!t) return NaN;
+  if (t.includes(",")) return Number(t.replace(/\./g, "").replace(",", "."));
+  if (inteiro && /^-?\d{1,3}\.\d{3}$/.test(t)) return Number(t.replace(".", ""));
+  return Number(t);
+};
+
 const num = (s: string): number | null => {
   if (!s.trim()) return null;
-  const n = parsearNumero(s);
+  const n = lerNumero(s);
   return isNaN(n) ? null : n;
 };
 
 /** Converte número vindo do PDF (ponto decimal) para texto editável. */
-const paraTexto = (v: unknown) => (v === null || v === undefined ? "" : String(v));
+const paraTexto = (v: unknown) =>
+  v === null || v === undefined ? "" : typeof v === "number" ? String(v).replace(".", ",") : String(v);
 /** Lê célula editada: aceita ponto ou vírgula decimal. */
-const lerCelula = (s: string): number => {
-  const t = s.trim();
-  if (!t) return NaN;
-  if (/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
-  return parsearNumero(t);
-};
+const lerCelula = (s: string, inteiro = false): number => lerNumero(s, inteiro);
 
 function eanValido(ean: string): boolean {
   const d = ean.replace(/\D/g, "");
@@ -154,7 +160,7 @@ function eanValido(ean: string): boolean {
 
 function falhasLinha(l: LinhaPdf): string[] {
   const out: string[] = [];
-  const q = lerCelula(l.quantidade);
+  const q = lerCelula(l.quantidade, true);
   const u = lerCelula(l.valor_unit);
   const s = l.setup.trim() ? lerCelula(l.setup) : 0;
   const t = lerCelula(l.valor_total);
@@ -226,7 +232,7 @@ export default function LancarInvoiceDialog({
     if (!linhasPdf) return null;
     const falhas = linhasPdf.map(falhasLinha);
     const somaValor = linhasPdf.reduce((a, l) => a + (lerCelula(l.valor_total) || 0), 0);
-    const somaQtd = linhasPdf.reduce((a, l) => a + (lerCelula(l.quantidade) || 0), 0);
+    const somaQtd = linhasPdf.reduce((a, l) => a + (lerCelula(l.quantidade, true) || 0), 0);
     const valorTotal = num(form.valor_total);
     const valorOk = valorTotal !== null && Math.abs(somaValor - valorTotal) <= 0.05;
     const qtdOk = totalQtdPdf === null || Math.abs(somaQtd - totalQtdPdf) < 0.0001;
@@ -282,7 +288,7 @@ export default function LancarInvoiceDialog({
         moeda: (c.moeda || moedaPadrao || "USD").toUpperCase(),
         incoterm: c.incoterm ?? "",
         valor_total: paraTexto(c.total_valor),
-        container: (c.conteineres ?? []).join(", "),
+        container: (c.conteineres ?? []).map((x) => String(x).trim().toUpperCase()).filter((x) => /^[A-Z]{4}\d{7}$/.test(x)).join(", "),
       });
       setTotalQtdPdf(Number.isFinite(c.total_quantidade) && c.total_quantidade > 0 ? c.total_quantidade : null);
       setLinhasPdf(
@@ -316,7 +322,7 @@ export default function LancarInvoiceDialog({
         item_seq: Number(lerCelula(l.item_seq)) || null,
         codigo_fornecedor: l.marca.trim(),
         descricao: l.descricao.trim() || null,
-        quantidade: lerCelula(l.quantidade),
+        quantidade: lerCelula(l.quantidade, true),
         valor_unit: lerCelula(l.valor_unit),
         valor_total: lerCelula(l.valor_total),
       }));
