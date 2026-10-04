@@ -17,6 +17,7 @@ export interface ProdutoExport {
   fase_atual: string | null;
   proxima_fase: string | null;
   pendencias: string[];
+  pendencias_medicao?: string[];
 }
 export interface RespostaExport {
   ok: boolean; erro?: string;
@@ -89,7 +90,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const proximas = [...new Set(r.produtos.map((p) => p.proxima_fase).filter(Boolean))] as string[];
   const tituloFalta = proximas.length === 1 ? `Falta para ${legivel(proximas[0])}` : "Falta para a próxima fase";
   const nCampos = ficha.length;
-  const colFase = nCampos + 1, colFalta = nCampos + 2;
+  const colFase = nCampos + 1, colFalta = nCampos + 2, colMedir = nCampos + 3;
 
   // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3 = rótulo · dono.
   const r1 = ws.getRow(1), r2 = ws.getRow(2), r3 = ws.getRow(3);
@@ -110,7 +111,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   });
   r1.getCell(colFase).value = "_fase_atual";
   r1.getCell(colFalta).value = "_pendencias_proxima";
-  for (const [c, t] of [[colFase, "Fase atual"], [colFalta, tituloFalta]] as const) {
+  r1.getCell(colMedir).value = "_pendencias_medicao";
+  for (const [c, t] of [[colFase, "Fase atual"], [colFalta, tituloFalta], [colMedir, "Falta medir"]] as const) {
     const c2 = r2.getCell(c);
     c2.value = "Situação (FOP)";
     c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC00000" } };
@@ -122,6 +124,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   }
   ws.getColumn(colFase).width = 14;
   ws.getColumn(colFalta).width = 50;
+  ws.getColumn(colMedir).width = 40;
   r1.hidden = true;
   r3.height = 32;
 
@@ -144,6 +147,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     row.getCell(colFalta).value = p.proxima_fase
       ? (p.pendencias.length ? p.pendencias.map((x) => rotuloCampo.get(x) ?? x).join(", ") : "nada — pronto")
       : "—";
+    const med = p.pendencias_medicao ?? [];
+    row.getCell(colMedir).value = med.length ? med.map((x) => rotuloCampo.get(x) ?? legivel(x)).join(", ") : "—";
   });
 
   // Travas + listas: campo importável fica destravado em todas as linhas de dado.
@@ -162,10 +167,11 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     });
     row.getCell(colFase).protection = { locked: true };
     row.getCell(colFalta).protection = { locked: true };
+    row.getCell(colMedir).protection = { locked: true };
   }
 
   ws.views = [{ state: "frozen", ySplit: 3, xSplit: 0 }];
-  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colFalta } };
+  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colMedir } };
   await ws.protect("", {
     selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true,
     autoFilter: true, sort: true,
