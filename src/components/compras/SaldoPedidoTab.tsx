@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -126,14 +127,16 @@ function ValorRecebido({ valor, centros }: { valor: number | null | undefined; c
       <TooltipTrigger asChild>
         <span className="cursor-help underline decoration-dotted underline-offset-2">{texto}</span>
       </TooltipTrigger>
-      <TooltipContent className="space-y-2">
-        {centros.map((centro) => (
-          <div key={centro.centro_codigo}>
-            <div>{centro.centro_codigo} · {fmtQtd(centro.qtd)}</div>
-            <div className="text-xs text-muted-foreground">{centro.centro_nome}</div>
-          </div>
-        ))}
-      </TooltipContent>
+      <TooltipPrimitive.Portal>
+        <TooltipContent className="space-y-2">
+          {centros.map((centro) => (
+            <div key={centro.centro_codigo}>
+              <div>{centro.centro_codigo} · {fmtQtd(centro.qtd)}</div>
+              <div className="text-xs text-muted-foreground">{centro.centro_nome}</div>
+            </div>
+          ))}
+        </TooltipContent>
+      </TooltipPrimitive.Portal>
     </Tooltip>
   );
 }
