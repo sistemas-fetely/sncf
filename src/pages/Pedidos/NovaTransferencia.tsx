@@ -506,7 +506,7 @@ export default function NovaTransferencia() {
         titulo="Nova transferência"
         breadcrumb={[
           { label: "Operação" },
-          { label: "Transferências Internas", href: "/pedidos/transferencias" },
+          { label: "Transferências Internas", to: "/pedidos/transferencias" },
           { label: "Nova transferência" },
         ]}
         icone={Plus}
