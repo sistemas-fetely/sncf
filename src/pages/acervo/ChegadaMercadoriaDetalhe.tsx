@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
@@ -12,7 +12,9 @@ import {
   FileText,
   Receipt,
   Pencil,
+  Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
@@ -35,6 +37,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { CHAVE_EMBARQUE_PAINEL } from "@/lib/compras/embarque-painel";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { PageHeader } from "@/components/layout/PageHeader";
 import LancarNfDialog from "@/components/compras/LancarNfDialog";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
@@ -59,6 +72,15 @@ import {
 // ============================================================================
 // Types
 // ============================================================================
+
+interface PreviaExclusao {
+  pedido_id: number;
+  numero_pedido: string | null;
+  pode_excluir: boolean;
+  bloqueios: string[] | null;
+  linhas_que_serao_apagadas: number | null;
+  excluido: boolean | null;
+}
 
 interface PedidoDetalhe {
   id: number;
@@ -256,6 +278,7 @@ export default function ChegadaMercadoriaDetalhe() {
   const [invAberta, setInvAberta] = useState<number | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [vincNfDialog, setVincNfDialog] = useState(false);
+  const navigate = useNavigate();
   const [receberNf, setReceberNf] = useState<NfRow | null>(null);
 
 
@@ -491,6 +514,69 @@ export default function ChegadaMercadoriaDetalhe() {
   });
 
   const qc = useQueryClient();
+
+  // ---------------- Exclusão de pedido (restaurada do commit 7c5824ec) ----------------
+  const [excluirAberto, setExcluirAberto] = useState(false);
+  const permExcluir = usePermissaoAcaoOuSuperAdmin("acao.excluir_pedido_importacao");
+  const semPermExcluir = permExcluir.carregando || !permExcluir.permitido;
+  const tituloPermExcluir = !permExcluir.permitido && !permExcluir.carregando ? "Sem permissão: acao.excluir_pedido_importacao" : undefined;
+  const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusao | null>(null);
+  const [checandoExclusao, setChecandoExclusao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const abrirExclusao = async () => {
+    setExcluirAberto(true);
+    setPreviaExclusao(null);
+    setChecandoExclusao(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
+        p_pedido_id: pedidoId,
+        p_confirmar: false,
+      });
+      if (error) throw error;
+      const raw = Array.isArray(data) ? data[0] : data;
+      setPreviaExclusao((raw as unknown as PreviaExclusao | null) ?? null);
+    } catch (e) {
+      toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
+      setExcluirAberto(false);
+    } finally {
+      setChecandoExclusao(false);
+    }
+  };
+
+  const confirmarExclusao = async () => {
+    setExcluindo(true);
+    try {
+      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
+        p_pedido_id: pedidoId,
+        p_confirmar: true,
+      });
+      if (error) throw error;
+      const linha = (Array.isArray(data) ? data[0] : data) as unknown as PreviaExclusao | null;
+      if (linha && linha.excluido === false) {
+        toast.error(
+          linha.bloqueios?.length
+            ? `Exclusão barrada: ${linha.bloqueios.join(" · ")}`
+            : "O banco não confirmou a exclusão.",
+        );
+        setPreviaExclusao(linha);
+        return;
+      }
+      toast.success(`Pedido ${pedidoQ.data?.numero_pedido ?? ""} excluído.`);
+      setExcluirAberto(false);
+      setPreviaExclusao(null);
+      invalidarCompras(qc);
+      void qc.invalidateQueries({ queryKey: ["importacao-pedidos-painel"] });
+      void qc.invalidateQueries({ queryKey: ["importacao-embarques"] });
+      void qc.invalidateQueries({ queryKey: CHAVE_EMBARQUE_PAINEL });
+      navigate("/vendas/produto/chegada-mercadoria?aba=painel");
+    } catch (e) {
+      toast.error(`Falha ao excluir: ${formatError(e)}`);
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
   const CHAVE_LINHA_CUSTOS = (pedidoId: number) =>
     ["vw_importacao_linha_custos", pedidoId] as const;
   const invalidarReguaELinhaCustos = () => {
@@ -554,6 +640,19 @@ export default function ChegadaMercadoriaDetalhe() {
                   >
                     <Pencil className="h-4 w-4 mr-1" /> Editar pedido
                   </Button>
+                  <BotaoGuardado
+                    slug="acao.excluir_pedido_importacao"
+                    rotuloAcao="Excluir pedido de importação"
+                    contexto={{ pedido_id: pedido.id }}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive"
+                    title="Excluir pedido"
+                    aria-label={`Excluir pedido ${pedido.numero_pedido}`}
+                    onClick={() => void abrirExclusao()}
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </BotaoGuardado>
                 </>
               )}
             />
@@ -1182,6 +1281,72 @@ export default function ChegadaMercadoriaDetalhe() {
               invalidarReguaELinhaCustos();
             }}
           />
+
+          <Dialog
+            open={excluirAberto}
+            onOpenChange={(v) => {
+              if (!v && !excluindo) {
+                setExcluirAberto(false);
+                setPreviaExclusao(null);
+              }
+            }}
+          >
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Excluir pedido {pedido.numero_pedido}</DialogTitle>
+                <DialogDescription>
+                  Nada foi apagado ainda. O banco checa primeiro se o pedido pode sair.
+                </DialogDescription>
+              </DialogHeader>
+
+              {checandoExclusao ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Checando o pedido...
+                </div>
+              ) : previaExclusao ? (
+                previaExclusao.pode_excluir ? (
+                  <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
+                    {Number(previaExclusao.linhas_que_serao_apagadas ?? 0)} linha(s) serão apagadas
+                    junto com o pedido. Isso não volta atrás.
+                  </div>
+                ) : (
+                  <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div>Este pedido não pode ser excluído:</div>
+                    <ul className="list-disc pl-5">
+                      {(previaExclusao.bloqueios ?? []).map((b, i) => (
+                        <li key={i}>{b}</li>
+                      ))}
+                      {(previaExclusao.bloqueios ?? []).length === 0 && (
+                        <li>O banco recusou a exclusão sem detalhar o motivo.</li>
+                      )}
+                    </ul>
+                  </div>
+                )
+              ) : null}
+
+              <DialogFooter>
+                <Button
+                  variant="ghost"
+                  disabled={excluindo}
+                  onClick={() => {
+                    setExcluirAberto(false);
+                    setPreviaExclusao(null);
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao || semPermExcluir}
+                  title={tituloPermExcluir}
+                  onClick={() => void confirmarExclusao()}
+                >
+                  {excluindo && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Excluir mesmo assim
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {receberNf && (
             <ReceberForaXpmDialog
