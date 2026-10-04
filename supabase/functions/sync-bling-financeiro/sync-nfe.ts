@@ -5,7 +5,7 @@ import {
   normalizarChaveNfe,
   alertarDevolucaoSemReferencia,
 } from "../_shared/nf-referenciada.ts";
-import { sleep, parseBlingDate, novoEstadoNfe, type EstadoNfe } from "../_shared/bling/nfe-item.ts";
+import { sleep, parseBlingDate, novoEstadoNfe, processarNfItem, type EstadoNfe } from "../_shared/bling/nfe-item.ts";
 export { sincronizarNfePorId, type EstadoNfe } from "../_shared/bling/nfe-item.ts";
 
 
