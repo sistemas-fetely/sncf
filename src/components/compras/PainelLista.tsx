@@ -1125,6 +1125,7 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
           }}
           pedidoId={pedidoIds[0]}
           pedidoIds={pedidoIds}
+          pedidoRotulos={pedidos.map((p) => p.numero_pedido ?? String(p.id))}
           fornecedorId={fornecedorId}
         />
       )}
