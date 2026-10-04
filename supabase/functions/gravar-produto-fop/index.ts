@@ -292,6 +292,37 @@ serve(async (req) => {
         console.error("[gravar-produto-fop] falha na trilha", errTrilha);
         return json({ ok: false, erro: `FOP aceitou, mas a trilha (produto_campo_alteracao) falhou: ${errTrilha.message}`, gravados: pedidos }, 500);
       }
+
+      // 7c) Sugestões abertas (produto_sugestao_espelho) dos campos gravados → resolvidas.
+      const { data: sugs, error: eSug } = await (supabase as any)
+        .from("produto_sugestao_espelho")
+        .select("*")
+        .eq("cod_cadastro", codCadastro)
+        .eq("resolvida", false)
+        .in("campo", pedidos);
+      if (eSug) {
+        return json({ ok: false, erro: `FOP e trilha gravados, mas a resolução da sugestão falhou: ${eSug.message}`, gravados: pedidos }, 500);
+      }
+      const norm = (v: unknown) => {
+        const s = String(v ?? "").trim();
+        const n = s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s;
+        return /^-?\d+(\.\d+)?$/.test(n) ? String(Number(n)) : s.toLowerCase();
+      };
+      for (const s of sugs ?? []) {
+        const para = (campos as Record<string, unknown>)[s.campo];
+        const { error: eUp } = await (supabase as any)
+          .from("produto_sugestao_espelho")
+          .update({
+            resolvida: true,
+            resolvida_em: new Date().toISOString(),
+            resolvida_por: userData.user.id,
+            resolucao: norm(para) === norm(s.valor) ? "confirmada" : "corrigida",
+          })
+          .eq("cod_cadastro", codCadastro).eq("campo", s.campo).eq("resolvida", false);
+        if (eUp) {
+          return json({ ok: false, erro: `FOP e trilha gravados, mas a resolução da sugestão (${s.campo}) falhou: ${eUp.message}`, gravados: pedidos }, 500);
+        }
+      }
     }
 
     // 8) Espelho local — o sync reconcilia, mas a falha nao pode ficar muda

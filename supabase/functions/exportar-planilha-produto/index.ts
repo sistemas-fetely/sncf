@@ -104,9 +104,23 @@ Deno.serve(async (req) => {
       for (const r of cc ?? []) if (r.sku && r.inner_qtd != null) inner.set(String(r.sku), r.inner_qtd);
     }
 
+    // Sugestões "a confirmar": SÓ de produto_sugestao_espelho (abertas).
+    const codsExp = [...new Set(fopProdutos.map((p) => p.cod_cadastro).filter((c) => !vazio(c)).map((c) => String(c).trim()))];
+    const sugAbertas = new Map<string, Record<string, unknown>>();
+    for (let i = 0; i < codsExp.length; i += 300) {
+      const { data: sg, error: sgErr } = await sb.from("produto_sugestao_espelho")
+        .select("cod_cadastro,campo,valor").eq("resolvida", false).in("cod_cadastro", codsExp.slice(i, i + 300));
+      if (sgErr) throw new Error(`Falha ao ler produto_sugestao_espelho: ${msg(sgErr)}`);
+      for (const r of sg ?? []) {
+        const k = String(r.cod_cadastro).trim();
+        (sugAbertas.get(k) ?? sugAbertas.set(k, {}).get(k)!)[r.campo] = r.valor;
+      }
+    }
+
     const produtos = fopProdutos.map((p) => {
       const sku = vazio(p.sku) ? "" : String(p.sku);
       const esp = espelho.get(sku) ?? {};
+      const sugCod = sugAbertas.get(vazio(p.cod_cadastro) ? "" : String(p.cod_cadastro).trim()) ?? {};
       const valores: Record<string, unknown> = {};
       const sugestoes: Record<string, unknown> = {};
       for (const f of ficha) {
@@ -115,8 +129,7 @@ Deno.serve(async (req) => {
         // Campos que ainda não existem no FOP: espelho é a fonte (não é sugestão).
         if (f.campo === "nome_operacional" && !vazio(esp.nome_operacional)) { valores[f.campo] = esp.nome_operacional; continue; }
         if (f.campo === "inner_qtd" && inner.has(sku)) { valores[f.campo] = inner.get(sku); continue; }
-        const vEsp = esp[f.campo];
-        if (!vazio(vEsp)) sugestoes[f.campo] = vEsp;
+        if (!vazio(sugCod[f.campo])) sugestoes[f.campo] = sugCod[f.campo];
       }
       return {
         sku,

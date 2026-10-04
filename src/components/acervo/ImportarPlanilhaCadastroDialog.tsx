@@ -109,7 +109,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 <div className="font-medium">{i.cod} <span className="font-mono text-xs text-muted-foreground">{i.sku}</span>
                   {i.liberar && <span className="ml-2 rounded bg-success/15 px-1.5 py-0.5 text-xs text-success">Liberar → {legivel(i.fase_destino)}</span>}</div>
                 {i.mudancas.map((m) => (
-                  <div key={m.campo} className="text-xs"><span className="text-muted-foreground">{m.rotulo}:</span> {fmt(m.de)} → <strong>{fmt(m.para)}</strong></div>
+                  <div key={m.campo} className="text-xs"><span className="text-muted-foreground">{m.rotulo}:</span> {fmt(m.de)} → <strong>{fmt(m.para)}</strong>{m.confirmando_sugestao && <span className="ml-1 text-warning">(confirmando sugestão)</span>}</div>
                 ))}
               </div>
             ))}

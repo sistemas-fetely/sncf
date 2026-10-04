@@ -9,7 +9,7 @@ export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"])
 
 export interface LinhaPlanilha { linha: number; cod: string | null; celulas: Record<string, unknown>; liberar: boolean }
 
-export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown }
+export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown; confirmando_sugestao?: boolean }
 export interface ItemPrevia {
   linha: number; cod: string; sku: string;
   mudancas: Mudanca[]; liberar: boolean; fase_destino: string | null;
@@ -133,7 +133,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
       if (ops?.length && !ops.includes(String(cel).trim())) { erros.push(`${rotulo}: "${String(cel)}" fora da lista válida`); continue; }
       const n = normalizar(cel, atual);
       if (n.erro) { erros.push(`${rotulo}: ${n.erro}`); continue; }
-      mudancas.push({ campo, rotulo, de: atual ?? null, para: n.valor });
+      mudancas.push({ campo, rotulo, de: atual ?? null, para: n.valor, confirmando_sugestao: vazio(atual) && !vazio(p.sugestoes?.[campo]) });
     }
     if (l.liberar && !p.proxima_fase) erros.push("marcado para liberar, mas o produto não tem próxima fase");
     itens.push({
