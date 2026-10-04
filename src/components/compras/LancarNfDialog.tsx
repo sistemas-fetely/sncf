@@ -55,6 +55,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pedidoId: number;
+  /** Pedidos do embarque; quando ausente, usa só pedidoId. */
+  pedidoIds?: number[];
+  /** Rótulos dos pedidos (exibição). */
+  pedidoRotulos?: string[];
   fornecedorId: string | null;
 }
 
@@ -116,7 +120,8 @@ const num = (s: string): number | null => {
   return isNaN(n) ? null : n;
 };
 
-export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedorId }: Props) {
+export default function LancarNfDialog({ open, onOpenChange, pedidoId, pedidoIds, pedidoRotulos, fornecedorId }: Props) {
+  const pedidosEfetivos = pedidoIds && pedidoIds.length > 0 ? pedidoIds : [pedidoId];
   const qc = useQueryClient();
   const [form, setForm] = useState({ ...EMPTY });
   const [texto, setTexto] = useState("");
@@ -169,7 +174,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
       const { data, error } = await (supabase as any).rpc("lancar_nf_importacao", {
         p_nf,
         p_linhas,
-        p_pedido_ids: [pedidoId],
+        p_pedido_ids: pedidosEfetivos,
         p_confirmar: false,
       });
       if (error) throw error;
@@ -188,7 +193,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
       const { data, error } = await (supabase as any).rpc("lancar_nf_importacao", {
         p_nf,
         p_linhas,
-        p_pedido_ids: [pedidoId],
+        p_pedido_ids: pedidosEfetivos,
         p_confirmar: true,
       });
       if (error) throw error;
@@ -200,6 +205,10 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
         `NF ${form.numero} ${acao} — ${d.linhas_gravadas ?? d.linhas ?? 0} linha(s), ${d.linhas_sem_depara ?? 0} sem de-para.`,
       );
       invalidarCompras(qc);
+      for (const pid of pedidosEfetivos) {
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pid] });
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pid] });
+      }
       setForm({ ...EMPTY });
       setTexto("");
       setPrevia(null);
@@ -217,6 +226,12 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
           <DialogTitle>Lançar NF</DialogTitle>
           <DialogDescription>
             Idempotente por número + série. Confira antes de gravar.
+            {pedidosEfetivos.length > 1 && (
+              <span className="mt-1 block">
+                Vale para os {pedidosEfetivos.length} pedidos do embarque
+                {pedidoRotulos && pedidoRotulos.length > 0 ? `: ${pedidoRotulos.join(" · ")}` : ""}.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -230,6 +245,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
           <TabsContent value="xml" className="space-y-4 pt-2">
             <LancarNfXmlTab
               pedidoId={pedidoId}
+              pedidoIds={pedidosEfetivos}
               fornecedorId={fornecedorId}
               onGravado={() => onOpenChange(false)}
             />
@@ -238,6 +254,7 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, fornecedo
           <TabsContent value="arquivo" className="space-y-4 pt-2">
             <LancarNfArquivoTab
               pedidoId={pedidoId}
+              pedidoIds={pedidosEfetivos}
               fornecedorId={fornecedorId}
               onGravado={() => onOpenChange(false)}
             />

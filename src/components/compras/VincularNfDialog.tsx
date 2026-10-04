@@ -28,6 +28,8 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   pedidoId: number;
+  /** Pedidos do embarque; quando ausente, usa só pedidoId. */
+  pedidoIds?: number[];
   fornecedorId: string | null;
 }
 
@@ -69,7 +71,11 @@ function fmtData(v: string | null): string {
   return d.toLocaleDateString("pt-BR", { timeZone: "UTC" });
 }
 
-export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornecedorId }: Props) {
+export default function VincularNfDialog({ open, onOpenChange, pedidoId, pedidoIds, fornecedorId }: Props) {
+  const pedidosEfetivos = useMemo(
+    () => (pedidoIds && pedidoIds.length > 0 ? pedidoIds : [pedidoId]),
+    [pedidoIds, pedidoId],
+  );
   const qc = useQueryClient();
   const [nfSelecionada, setNfSelecionada] = useState<number | null>(null);
   const [desvincular, setDesvincular] = useState(true);
@@ -82,8 +88,8 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
   }, [open]);
 
   const candidatasQ = useQuery({
-    queryKey: ["vincular-nf-candidatas", pedidoId, fornecedorId],
-    enabled: open && Number.isFinite(pedidoId) && !!fornecedorId,
+    queryKey: ["vincular-nf-candidatas", pedidosEfetivos, fornecedorId],
+    enabled: open && pedidosEfetivos.every((p) => Number.isFinite(p)) && !!fornecedorId,
     queryFn: async () => {
       const { data: nfs, error } = await (supabase as any)
         .from("importacao_nf")
@@ -128,7 +134,9 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
               numero_pedido: nomes.get(v.importacao_pedido_id) ?? null,
             })),
         }))
-        .filter((nf) => !nf.vinculos.some((v) => v.pedido_id === pedidoId)) as NfCandidata[];
+        .filter(
+          (nf) => !pedidosEfetivos.every((p) => nf.vinculos.some((v) => v.pedido_id === p)),
+        ) as NfCandidata[];
     },
   });
 
@@ -137,15 +145,22 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
     [candidatasQ.data, nfSelecionada],
   );
 
-  const origem = nfAtual?.vinculos[0] ?? null;
+  // Origem = vínculo atual fora da lista de destino (é dele que a NF pode ser movida).
+  const origem = nfAtual?.vinculos.find((v) => !pedidosEfetivos.includes(v.pedido_id)) ?? null;
+  // Pedidos da lista que ainda não têm a NF.
+  const alvos = useMemo(
+    () => pedidosEfetivos.filter((p) => !(nfAtual?.vinculos ?? []).some((v) => v.pedido_id === p)),
+    [pedidosEfetivos, nfAtual],
+  );
+  const alvoPrevia = alvos[0] ?? pedidoId;
 
   const previaQ = useQuery({
-    queryKey: ["vincular-nf-previa", pedidoId, nfSelecionada, desvincular && origem?.pedido_id],
+    queryKey: ["vincular-nf-previa", alvoPrevia, nfSelecionada, desvincular && origem?.pedido_id],
     enabled: open && !!nfSelecionada,
     queryFn: async () => {
       const { data, error } = await (supabase as any).rpc("vincular_nf_pedido", {
         p_nf_id: nfSelecionada,
-        p_pedido_id: pedidoId,
+        p_pedido_id: alvoPrevia,
         p_desvincular_de: desvincular && origem ? origem.pedido_id : null,
         p_confirmar: false,
       });
@@ -156,18 +171,30 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
 
   const confirmar = useMutation({
     mutationFn: async () => {
-      const { data, error } = await (supabase as any).rpc("vincular_nf_pedido", {
-        p_nf_id: nfSelecionada,
-        p_pedido_id: pedidoId,
-        p_desvincular_de: desvincular && origem ? origem.pedido_id : null,
-        p_confirmar: true,
-      });
-      if (error) throw error;
-      return (Array.isArray(data) ? data[0] : data) as Previa;
+      if (alvos.length === 0) throw new Error("A NF já está em todos os pedidos.");
+      let ultimo: Previa | null = null;
+      let feitos = 0;
+      for (let i = 0; i < alvos.length; i++) {
+        const { data, error } = await (supabase as any).rpc("vincular_nf_pedido", {
+          p_nf_id: nfSelecionada,
+          p_pedido_id: alvos[i],
+          // desvincula da origem só na primeira chamada
+          p_desvincular_de: i === 0 && desvincular && origem ? origem.pedido_id : null,
+          p_confirmar: true,
+        });
+        if (error) {
+          throw new Error(
+            `Falhou no pedido ${i + 1} de ${alvos.length} (${feitos} já vinculado(s)): ${formatError(error)}`,
+          );
+        }
+        ultimo = (Array.isArray(data) ? data[0] : data) as Previa;
+        feitos++;
+      }
+      return { r: ultimo, feitos };
     },
-    onSuccess: (r) => {
+    onSuccess: ({ r, feitos }) => {
       toast.success(
-        `NF ${r?.nf_numero ?? ""} vinculada — ${fmtMoeda(r?.valor_total_alocado ?? 0, "BRL")} de ${fmtMoeda(
+        `NF ${r?.nf_numero ?? ""} vinculada a ${feitos} pedido(s) — ${fmtMoeda(r?.valor_total_alocado ?? 0, "BRL")} de ${fmtMoeda(
           r?.valor_total_nf ?? 0,
           "BRL",
         )} alocado.`,
@@ -182,7 +209,10 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
       qc.invalidateQueries({ queryKey: ["pedido-mercadoria-diag-alocacao"] });
       onOpenChange(false);
     },
-    onError: (e) => toast.error(formatError(e)),
+    onError: (e) => {
+      invalidarCompras(qc);
+      toast.error(formatError(e));
+    },
   });
 
   const previa = previaQ.data;
@@ -195,7 +225,9 @@ export default function VincularNfDialog({ open, onOpenChange, pedidoId, fornece
             <Link2 className="h-4 w-4" /> Vincular NF existente
           </DialogTitle>
           <DialogDescription>
-            NFs deste fornecedor que ainda não estão neste pedido. Entrega parcial: um pedido pode
+            {pedidosEfetivos.length > 1
+              ? `A NF será vinculada aos ${pedidosEfetivos.length} pedidos do embarque.`
+              : "NFs deste fornecedor que ainda não estão neste pedido."} Entrega parcial: um pedido pode
             receber várias notas.
           </DialogDescription>
         </DialogHeader>
