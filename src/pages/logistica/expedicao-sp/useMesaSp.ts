@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
-  ESTAGIO_FILA, ESTAGIO_NA_MESA, EVENTO_ROTEADO,
+  CENTRO_SITE_SP, ESTAGIO_FATURADO, ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, EVENTO_ROTEADO,
   type CaixaSugerida, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
@@ -60,7 +60,7 @@ export function usePedidosMesaSp() {
       if (error) throw new Error(`ler pedidos da mesa: ${mensagemErro(error)}`);
 
       const linhas = (pedidos ?? []) as PedidoMesa[];
-      if (linhas.length === 0) return [];
+      if (linhas.length === 0) return lerB2bSiteSp();
 
       const { data: roteados, error: eRot } = await supabaseMesa
         .from("pedido_eventos")
@@ -70,9 +70,37 @@ export function usePedidosMesaSp() {
       if (eRot) throw new Error(`ler roteamento da mesa: ${mensagemErro(eRot)}`);
 
       const naMesa = new Set((roteados ?? []).map((r: { pedido_id: string }) => r.pedido_id));
-      return linhas.filter((p) => naMesa.has(p.id));
+      const b2c = linhas.filter((p) => naMesa.has(p.id));
+      return [...b2c, ...(await lerB2bSiteSp())].sort((a, b) => a.recebido_em.localeCompare(b.recebido_em));
     },
   });
+}
+
+/**
+ * B2B que escolheu o CD SITE-SP (`b2b_escolher_cd_expedicao` grava
+ * `pedidos.origem_centro_id`). Não passa por `roteado_mesa_sp`: o CD é o roteamento.
+ * Inclui `pre_faturamento`/`faturado` porque no B2B a mesa embala ANTES da NF.
+ */
+async function lerB2bSiteSp(): Promise<PedidoMesa[]> {
+  const { data: centro, error: eCentro } = await supabaseMesa
+    .from("centro_distribuicao")
+    .select("id")
+    .eq("codigo", CENTRO_SITE_SP)
+    .maybeSingle();
+  if (eCentro) throw new Error(`ler CD ${CENTRO_SITE_SP}: ${mensagemErro(eCentro)}`);
+  if (!centro) return [];
+
+  const { data, error } = await supabaseMesa
+    .from("pedidos")
+    .select(
+      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega",
+    )
+    .eq("canal", "B2B")
+    .eq("origem_centro_id", (centro as { id: string }).id)
+    .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, ESTAGIO_FATURADO])
+    .order("recebido_em", { ascending: true });
+  if (error) throw new Error(`ler pedidos B2B do Site SP: ${mensagemErro(error)}`);
+  return (data ?? []) as PedidoMesa[];
 }
 
 /** Eventos `mesa_*` (+ o roteamento) dos pedidos listados — alimenta trilha e sub-estação. */

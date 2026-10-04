@@ -7,7 +7,9 @@
 // segunda fonte de verdade para manter em dia.
 
 /** Estações da bancada, na ordem em que o pedido as atravessa. */
-export const ESTACOES = ["fila", "separacao", "conferencia", "embalagem", "despacho"] as const;
+export const ESTACOES = [
+  "fila", "separacao", "conferencia", "embalagem", "despacho", "aguardando_nf", "nf_emitida",
+] as const;
 export type Estacao = (typeof ESTACOES)[number];
 
 export const ROTULO_ESTACAO: Record<Estacao, string> = {
@@ -16,7 +18,12 @@ export const ROTULO_ESTACAO: Record<Estacao, string> = {
   conferencia: "Conferência",
   embalagem: "Embalagem",
   despacho: "Despacho",
+  aguardando_nf: "Aguardando NF",
+  nf_emitida: "NF emitida — despacho em breve",
 };
+
+/** Estações pós-embalagem do B2B: a separação vem ANTES da NF (matriz SP emite). */
+export const ESTACOES_B2B_POS_EMBALAGEM = ["aguardando_nf", "nf_emitida"] as const;
 
 /** Eventos que a Mesa SP escreve. Fonte: corpo das RPCs `fn_mesa_sp_*`. */
 export const EVENTO_ROTEADO = "roteado_mesa_sp";
@@ -29,6 +36,12 @@ export const EVENTO_DESPACHADO = "mesa_despachado";
 /** Estágios macro que a mesa opera. Fora destes, o pedido não é dela. */
 export const ESTAGIO_FILA = "pre_separacao";
 export const ESTAGIO_NA_MESA = "em_separacao";
+/** B2B embalado na mesa espera a NF da matriz SP. */
+export const ESTAGIO_PRE_FATURAMENTO = "pre_faturamento";
+/** B2B com NF emitida — despacho é a fatia F4. */
+export const ESTAGIO_FATURADO = "faturado";
+/** Código do CD que habilita B2B na Mesa SP (`centro_distribuicao.codigo`). */
+export const CENTRO_SITE_SP = "SITE-SP";
 
 export interface PedidoMesa {
   id: string;
@@ -146,6 +159,11 @@ export function embalagemDoPedido(eventos: EventoMesa[]): EmbalagemRegistrada | 
   };
 }
 
+/** Pedido B2B (canal gravado em `pedidos.canal`). */
+export function pedidoEhB2B(canal: string | null | undefined): boolean {
+  return (canal ?? "").toUpperCase() === "B2B";
+}
+
 /** Pedido de venda direta do Site SP, identificado pelo número canônico VD-. */
 export function pedidoEhVendaDireta(idExterno: string): boolean {
   return idExterno.toUpperCase().startsWith("VD-");
@@ -213,6 +231,8 @@ export interface CaixaSugerida {
  */
 export function estacaoBase(estagio: string, eventos: EventoMesa[]): Estacao | "despachado" {
   if (estagio === ESTAGIO_FILA) return "fila";
+  if (estagio === ESTAGIO_PRE_FATURAMENTO) return "aguardando_nf";
+  if (estagio === ESTAGIO_FATURADO) return "nf_emitida";
   if (estagio !== ESTAGIO_NA_MESA) return "despachado";
 
   const ultimo = [...eventos]
