@@ -57,6 +57,8 @@ interface Props {
   pedidoId: number;
   /** Pedidos do embarque; quando ausente, usa só pedidoId. */
   pedidoIds?: number[];
+  /** Rótulos dos pedidos (exibição). */
+  pedidoRotulos?: string[];
   fornecedorId: string | null;
 }
 
@@ -118,7 +120,7 @@ const num = (s: string): number | null => {
   return isNaN(n) ? null : n;
 };
 
-export default function LancarNfDialog({ open, onOpenChange, pedidoId, pedidoIds, fornecedorId }: Props) {
+export default function LancarNfDialog({ open, onOpenChange, pedidoId, pedidoIds, pedidoRotulos, fornecedorId }: Props) {
   const pedidosEfetivos = pedidoIds && pedidoIds.length > 0 ? pedidoIds : [pedidoId];
   const qc = useQueryClient();
   const [form, setForm] = useState({ ...EMPTY });
@@ -224,6 +226,12 @@ export default function LancarNfDialog({ open, onOpenChange, pedidoId, pedidoIds
           <DialogTitle>Lançar NF</DialogTitle>
           <DialogDescription>
             Idempotente por número + série. Confira antes de gravar.
+            {pedidosEfetivos.length > 1 && (
+              <span className="mt-1 block">
+                Vale para os {pedidosEfetivos.length} pedidos do embarque
+                {pedidoRotulos && pedidoRotulos.length > 0 ? `: ${pedidoRotulos.join(" · ")}` : ""}.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
