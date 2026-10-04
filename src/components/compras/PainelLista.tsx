@@ -680,6 +680,8 @@ function PainelEdicao({ embarque, tipos, portos, status, aoFechar }: PainelProps
         </Button>
       </div>
 
+      <DocumentosRemessa embarque={embarque} />
+
       {/* ── contêineres ── */}
       <div className="space-y-3 border-t pt-4">
         <div className="flex items-center justify-between">
