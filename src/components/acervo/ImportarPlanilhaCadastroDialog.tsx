@@ -4,6 +4,7 @@ import { Loader2, Upload } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -85,7 +86,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   }
 
   const comErro = (previa?.itens ?? []).filter((i) => i.erros.length);
-  const semMudanca = (previa?.itens ?? []).filter((i) => !i.erros.length && !i.mudancas.length && !i.liberar);
+  const semMudanca = semErro.filter((i) => !efetivas(i).length && !i.liberar);
 
   return (
     <Dialog open={open} onOpenChange={fechar}>
@@ -107,13 +108,26 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
             <p className="text-muted-foreground">
-              {validos.length} produto(s) a processar · {semMudanca.length} sem mudança · {comErro.length} com erro · {previa.novos.length} produto(s) novo(s) ignorado(s){(() => { const n = previa.itens.reduce((a, i) => a + i.sugestoes_ignoradas, 0); return n ? ` · ${n} sugestão(ões) amarela(s) não alterada(s) — não gravadas` : ""; })()}
+              {validos.length} produto(s) a processar · {semMudanca.length} sem mudança · {comErro.length} com erro · {previa.novos.length} produto(s) novo(s) ignorado(s)
             </p>
+            {mantidas.length > 0 && (
+              <div className="rounded-md border border-warning/50 bg-warning/5 p-2 text-xs">
+                <div className="mb-1 font-medium">{mantidas.length} sugestão(ões) mantida(s) sem alteração</div>
+                {mantidas.map((m) => (
+                  <div key={`${m.cod}-${m.campo}`}>{m.cod} <span className="font-mono text-muted-foreground">{m.sku}</span> · {m.rotulo}: <strong>{fmt(m.para)}</strong></div>
+                ))}
+                <label className="mt-2 flex items-center gap-2 font-medium">
+                  <Checkbox checked={confirmarSug} onCheckedChange={(v) => setConfirmarSug(v === true)} disabled={!!progresso} />
+                  Confirmar estas sugestões
+                </label>
+                <p className="mt-1 text-muted-foreground">{confirmarSug ? "Serão gravadas no FOP e marcadas como confirmadas." : "Não serão gravadas; as sugestões seguem abertas."}</p>
+              </div>
+            )}
             {validos.map((i) => (
               <div key={i.cod} className="rounded-md border p-2">
                 <div className="font-medium">{i.cod} <span className="font-mono text-xs text-muted-foreground">{i.sku}</span>
                   {i.liberar && <span className="ml-2 rounded bg-success/15 px-1.5 py-0.5 text-xs text-success">Liberar → {legivel(i.fase_destino)}</span>}</div>
-                {i.mudancas.map((m) => (
+                {efetivas(i).map((m) => (
                   <div key={m.campo} className="text-xs"><span className="text-muted-foreground">{m.rotulo}:</span> {fmt(m.de)} → <strong>{fmt(m.para)}</strong>{m.confirmando_sugestao && <span className="ml-1 text-warning">(confirmando sugestão)</span>}</div>
                 ))}
               </div>
