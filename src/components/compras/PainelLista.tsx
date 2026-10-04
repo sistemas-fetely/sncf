@@ -1181,7 +1181,9 @@ export default function PainelLista() {
                   {semEmbarqueAberto ? (
                     <TableRow className="bg-muted/30 hover:bg-muted/30">
                       <TableCell colSpan={11} className="p-4">
-                        <PedidosTabela linhas={semEmbarque} vazio="Nenhum pedido sem embarque." />
+                        <div className="w-0 min-w-full">
+                          <PedidosTabela linhas={semEmbarque} vazio="Nenhum pedido sem embarque." />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : null}
@@ -1284,7 +1286,8 @@ export default function PainelLista() {
                     </TableRow>
                     {aberto ? (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
-                        <TableCell colSpan={11} className="space-y-4 p-4">
+                        <TableCell colSpan={11} className="p-4">
+                  <div className="w-0 min-w-full space-y-4">
                   <PedidosTabela
                     linhas={e.vinculos
                       .map((v) => ({ v, p: v.pedido ? pedidoPorId.get(v.pedido.id) : undefined }))
@@ -1401,6 +1404,7 @@ export default function PainelLista() {
                         {v.pedido?.numero_pedido ?? "pedido"}: {v.observacao}
                       </p>
                     ))}
+                  </div>
                         </TableCell>
                       </TableRow>
                     ) : null}
