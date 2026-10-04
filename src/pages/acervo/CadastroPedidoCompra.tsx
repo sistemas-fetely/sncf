@@ -869,7 +869,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             busca={{
               valor: buscaPedido,
               aoMudar: setBuscaPedido,
-              placeholder: "Buscar por número, proforma, invoice, PL, processo ou categoria…",
+              placeholder: "Buscar por número, proforma, invoice, PL, processo, categoria ou referência do embarque…",
             }}
             semResultado="Nenhum pedido com esse número, referência ou categoria."
             total={pedidosQ.data?.length ?? 0}
@@ -929,11 +929,25 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       className="cursor-pointer"
                       onClick={() => navigate(`/vendas/produto/chegada-mercadoria/${p.id}`)}
                     >
+                      <TableCell className="sticky left-0 bg-background whitespace-nowrap">
+                        {p.modalidade === "nacional" ? (
+                          <span className="text-muted-foreground">Nacional</span>
+                        ) : p.rocabella_ref ? (
+                          <span className="font-mono text-sm font-medium">{p.rocabella_ref}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
-                        <CelulaIdentidade
-                          identidade={identidade.porPedido.get(Number(p.id))}
-                          numeroCru={p.numero_pedido}
-                        />
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <CelulaIdentidade
+                            identidade={identidade.porPedido.get(Number(p.id))}
+                            numeroCru={p.numero_pedido}
+                          />
+                          {p.fabrica ? (
+                            <span className="text-xs text-muted-foreground">{p.fabrica}</span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <CelulaReferencias identidade={identidade.porPedido.get(Number(p.id))} />
