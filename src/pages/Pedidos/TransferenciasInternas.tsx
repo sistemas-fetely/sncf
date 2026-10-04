@@ -528,6 +528,7 @@ export default function TransferenciasInternas() {
       return (data ?? []) as TransferenciaRow[];
     },
   });
+  const nOrfaos = (listaQ.data ?? []).filter((t) => t.orfao === true).length;
 
   const idsLista = (listaQ.data ?? []).map((t) => t.id);
   const recebQ = useQuery({
