@@ -55054,6 +55054,45 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_sugestao_espelho: {
+        Row: {
+          campo: string
+          cod_cadastro: string
+          criado_em: string
+          id: number
+          origem: string
+          resolucao: string | null
+          resolvida: boolean
+          resolvida_em: string | null
+          resolvida_por: string | null
+          valor: string
+        }
+        Insert: {
+          campo: string
+          cod_cadastro: string
+          criado_em?: string
+          id?: number
+          origem?: string
+          resolucao?: string | null
+          resolvida?: boolean
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          valor: string
+        }
+        Update: {
+          campo?: string
+          cod_cadastro?: string
+          criado_em?: string
+          id?: number
+          origem?: string
+          resolucao?: string | null
+          resolvida?: boolean
+          resolvida_em?: string | null
+          resolvida_por?: string | null
+          valor?: string
+        }
+        Relationships: []
+      }
       produto_tipo_dim: {
         Row: {
           ativo: boolean
