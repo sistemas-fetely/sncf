@@ -16,3 +16,4 @@
 - [ ] Criar promoção de fase em lote com progresso e falhas nomeadas.
 - [ ] Encadear sucessos promovidos a Ativo com o fluxo existente do Bling.
 - [ ] Validar seleção, atalhos, permissões, typecheck e build.
+- [ ] Mover observações da venda direta para observações internas no envio ao Bling e validar com Deno.
