@@ -53,7 +53,7 @@ async function chamar(skus: string[], dry_run: boolean, ativar_card: boolean, on
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, sugerirCard = false }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean; sugerirCard?: boolean }) {
+export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, sugerirCard = false, rotuloBotao }: { produtos: ProdutoBling[]; onFeito: () => void; sempreVisivel?: boolean; sugerirCard?: boolean; rotuloBotao?: string }) {
   const perm = usePermissaoAcaoOuSuperAdmin("acao.produto_corrigir_externo");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.produto_corrigir_externo" : undefined;
@@ -137,7 +137,7 @@ export function CorrigirBlingLote({ produtos, onFeito, sempreVisivel = false, su
 
   return <>
     <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao="Corrigir no Bling" contexto={{ skus: produtos.map((p) => p.sku) }} variant="outline" size="sm" onClick={() => void abrir()} disabled={produtos.length === 0} title={produtos.length === 0 ? "Nenhum produto selecionado com pendência no Bling" : undefined}>
-      <RefreshCw className="mr-2 h-4 w-4" />Corrigir no Bling ({produtos.length})
+      <RefreshCw className="mr-2 h-4 w-4" />{rotuloBotao ?? `Corrigir no Bling (${produtos.length})`}
     </BotaoGuardado>
     <Dialog open={aberto} onOpenChange={o => { if (carregando || aplicando) return; if (!o) { setAberto(false); zerar(); } }}>
       <DialogContent className="max-w-2xl">
