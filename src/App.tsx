@@ -232,7 +232,6 @@ const ConciliacaoFila = lazy(() => import("@/pages/acervo/ConciliacaoFila"));
 const ConciliacaoEstoque = lazy(() => import("@/pages/acervo/ConciliacaoEstoque"));
 const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
-const ImportarPI = lazy(() => import("@/pages/acervo/ImportarPI"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ChamadosLayout = lazy(() => import("@/layouts/ChamadosLayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
@@ -483,11 +482,6 @@ const App = () => (
                 <Route path="/vendas/produto/cartorio" element={
                   <ProtectedRoute>
                     <CartorioCodigos />
-                  </ProtectedRoute>
-                } />
-                <Route path="/vendas/produto/importar-pi" element={
-                  <ProtectedRoute>
-                    <ImportarPI />
                   </ProtectedRoute>
                 } />
                 <Route element={<ProdutoEstoqueLayout />}>
@@ -1005,6 +999,8 @@ const App = () => (
             <Route path="/gerenciar-usuarios/perfis" element={<Navigate to="/admin/usuarios/perfis" replace />} />
             <Route path="/compras/de-para-fornecedor" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=de-para" replace />} />
             <Route path="/compras/cadastro-pedido" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=pedidos" replace />} />
+            {/* IMPORTAR-PI-MORA-NA-CHEGADA (04/10/2026): cadastro de produto por PI é aba da Chegada de Mercadoria */}
+            <Route path="/vendas/produto/importar-pi" element={<Navigate to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi" replace />} />
             <Route path="/compras/mercadoria" element={<ChegadaMercadoriaRedirect />} />
             <Route path="/compras/mercadoria/:id" element={<ChegadaMercadoriaIdRedirect />} />
             <Route path="/ti/documentacao" element={<Navigate to="/documentacao" replace />} />
