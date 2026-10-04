@@ -2,25 +2,18 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
-import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   CheckCircle2,
   Link2,
   ExternalLink,
-  Pencil,
   Download,
   FileSpreadsheet,
-  Trash2,
-  Info,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
@@ -30,7 +23,6 @@ import {
   type CabecalhoPlanilha,
 } from "@/lib/compras/templatePedidoMercadoria";
 import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
-import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,36 +56,13 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 
-import { Selo, type EstadoSelo } from "@/components/ui/selo";
+import { Selo } from "@/components/ui/selo";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  SELECT_PENDENCIAS,
-  TIPOS_PENDENCIA,
-  totalPendencia,
-  type PendenciaPedido,
   type TipoPendencia,
 } from "@/lib/compras/pendencias";
 import { cn } from "@/lib/utils";
-import {
-  CelulaIdentidade,
-  CelulaReferencias,
-  useIdentidadePedidos,
-} from "@/components/compras/IdentidadePedidoCelula";
 
 
 
@@ -128,41 +97,8 @@ interface Parceiro {
   razao_social: string | null;
 }
 
-interface PedidoListaRow {
-  id: number;
-  numero_pedido: string;
-  rocabella_ref: string | null;
-  modalidade: string | null;
-  moeda: string | null;
-  fabrica: string | null;
-  data_pedido: string | null;
-  prazo_entrega_acordado: string | null;
-  etd: string | null;
-  eta: string | null;
-  fornecedor: string | null;
-  apelido: string | null;
-  centro: string | null;
-  status: string | null;
-  linhas: number | null;
-  kits: number | null;
-  custo_total: number | null;
-}
 
-interface PreviaExclusao {
-  pedido_id: number;
-  numero_pedido: string | null;
-  pode_excluir: boolean;
-  bloqueios: string[] | null;
-  linhas_que_serao_apagadas: number | null;
-  excluido: boolean | null;
-}
 
-interface SaldoPedidoLinha {
-  pedido_id: number;
-  data_prevista: string | null;
-  data_realizada: string | null;
-  dias_atraso: number | null;
-}
 
 
 interface ResolucaoRow {
@@ -233,19 +169,6 @@ const EMPTY_HEADER: HeaderForm = {
 const fmtBRL = (v: number, moeda = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: moeda || "BRL" }).format(v || 0);
 
-/** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
-interface TresCamadasPedidoLinha {
-  pedido_id: number;
-  a_faturar: number | null;
-  a_confirmar: number | null;
-  qtd_faturada: number | null;
-  valor_faturado_brl: number | null;
-  pct_faturado_sobre_iv: number | null;
-  ciclo_estado: string | null;
-  tem_divergencia: boolean | null;
-  divergencia_total: number | null;
-  pct_conferido_sobre_iv: number | null;
-}
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
 function normalizarDataPlanilha(v: string): string {
@@ -368,16 +291,8 @@ export type VistaCompras = "novo";
 
 export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: VistaCompras }) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const [, setParams] = useSearchParams();
 
-  const irParaPendencia = (tipo: TipoPendencia, pedidoId: number) => {
-    const next = new URLSearchParams();
-    next.set("aba", "pendencias");
-    next.set("tipo", tipo);
-    next.set("pedido", String(pedidoId));
-    setParams(next, { replace: false });
-  };
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -446,7 +361,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
   const [conferencia, setConferencia] = useState<ConferenciaResult | null>(null);
   const [destinoServico, setDestinoServico] = useState<Record<string, string>>({}); // codigo -> sku destino
   const [importOpen, setImportOpen] = useState(false);
-  const [editarId, setEditarId] = useState<number | null>(null);
 
   const baixarTemplate = async () => {
     try {
@@ -960,14 +874,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
       />
 
 
-      <EditarPedidoMercadoriaDialog
-        open={editarId != null}
-        onOpenChange={(v) => !v && setEditarId(null)}
-        pedidoId={editarId}
-        onSaved={() => {
-          invalidarCompras(qc);
-        }}
-      />
     </PageShell>
 
   );
