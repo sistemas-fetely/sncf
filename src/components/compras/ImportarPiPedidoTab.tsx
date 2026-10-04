@@ -657,7 +657,7 @@ export default function ImportarPiPedidoTab() {
         Sobe a proforma (PI) do fornecedor e cria as linhas de um pedido já existente — lê o
         arquivo, você confirma as colunas e confere antes de gravar. Não cria produto: produto novo
         nasce na{" "}
-        <Link to="/vendas/produto/importar-pi" className="underline">
+        <Link to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi" className="underline">
           Importação de PI do cadastro de produto
         </Link>
         .
@@ -1053,8 +1053,8 @@ export default function ImportarPiPedidoTab() {
                   {b.bloqueio === "produto_nao_cadastrado" && (
                     <div>
                       Produto novo nasce em{" "}
-                      <Link className="underline" to="/vendas/produto/importar-pi">
-                        /vendas/produto/importar-pi
+                      <Link className="underline" to="/vendas/produto/chegada-mercadoria?aba=cadastro-pi">
+                        /vendas/produto/chegada-mercadoria?aba=cadastro-pi
                       </Link>
                       .
                     </div>
