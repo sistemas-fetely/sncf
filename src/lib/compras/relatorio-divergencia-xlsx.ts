@@ -50,66 +50,84 @@ function aplicarFormatos(ws: XLSX.WorkSheet, colsQtd: number[], colsR: number[],
   ws["!cols"] = larguras.map((wch) => ({ wch }));
 }
 
-export function baixarRelatorioDivergencia(linhas: LinhaDivergencia[]) {
-  if (!linhas.length) throw new Error("Sem linhas de conferência para este pedido.");
-  const numeroPedido = linhas[0].numero_pedido ?? "pedido";
-  const fornecedor = linhas[0].fornecedor ?? "";
+export interface LinhaLiquida {
+  numero_pedido: string | null; fornecedor: string | null; sku: string | null; cod_cadastro: string | null;
+  nome_comercial: string | null; nfs: string | null; qtd_nf: number | null; qtd_recebida: number | null;
+  qtd_recebida_sem_nf: number | null; qtd_nao_conforme: number | null; falta_liquida: number | null;
+  excesso_liquido: number | null; preco_unit_nf: number | null; valor_falta_liquida: number | null;
+  valor_nao_conforme: number | null; ocorrencias_abertas: number | null; situacao: string | null;
+}
+
+export function temDivergenciaLiquida(l: LinhaLiquida): boolean {
+  return n(l.falta_liquida) > 0 || n(l.excesso_liquido) > 0 || n(l.qtd_nao_conforme) > 0;
+}
+
+export function baixarRelatorioDivergencia(liquidas: LinhaLiquida[], linhas: LinhaDivergencia[]) {
+  if (!liquidas.length) throw new Error("Sem linhas de recebimento líquido para este pedido.");
+  const numeroPedido = liquidas[0].numero_pedido ?? linhas[0]?.numero_pedido ?? "pedido";
+  const fornecedor = liquidas[0].fornecedor ?? linhas[0]?.fornecedor ?? "";
   const hoje = new Date();
   const iso = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
-
-  // Resumo: uma linha por NF (+ termo)
-  const grupos = new Map<string, LinhaDivergencia[]>();
-  for (const l of linhas) {
-    const k = `${l.nf_numero ?? ""}|${l.termos ?? ""}|${l.data_termo ?? ""}`;
-    grupos.set(k, [...(grupos.get(k) ?? []), l]);
-  }
+  const somaL = (ls: LinhaLiquida[], f: keyof LinhaLiquida) => ls.reduce((a, l) => a + n(l[f]), 0);
   const soma = (ls: LinhaDivergencia[], f: keyof LinhaDivergencia) => ls.reduce((a, l) => a + n(l[f]), 0);
+
+  // Resumo: cabeçalho + totais da visão líquida
   const resumo: (string | number)[][] = [
     ["Fornecedor", fornecedor],
     ["Pedido", numeroPedido],
     ["Gerado em", dataBr(iso)],
     [],
-    ["NF", "Emissão", "Termo", "Data do termo", "Qtd NF (kits)", "Recebido (kits)", "Falta (kits)", "Excesso (kits)", "Valor da falta (R$)"],
+    ["NF (kits)", somaL(liquidas, "qtd_nf")],
+    ["Recebido (kits)", somaL(liquidas, "qtd_recebida")],
+    ["Recebido sem NF (kits)", somaL(liquidas, "qtd_recebida_sem_nf")],
+    ["Falta líquida (kits)", somaL(liquidas, "falta_liquida")],
+    ["Excesso líquido (kits)", somaL(liquidas, "excesso_liquido")],
+    ["Não conforme (kits)", somaL(liquidas, "qtd_nao_conforme")],
+    ["Valor da falta líquida (R$)", somaL(liquidas, "valor_falta_liquida")],
   ];
-  const inicioTabela = resumo.length;
-  for (const ls of grupos.values()) {
-    const p = ls[0];
-    resumo.push([
-      p.nf_numero ?? "", dataBr(p.nf_data_emissao), p.termos ?? "", dataBr(p.data_termo),
-      soma(ls, "qtd_nf"), soma(ls, "qtd_recebida"), soma(ls, "qtd_falta"), soma(ls, "qtd_excesso"), soma(ls, "valor_falta"),
-    ]);
-  }
-  resumo.push([
-    "TOTAL", "", "", "",
-    soma(linhas, "qtd_nf"), soma(linhas, "qtd_recebida"), soma(linhas, "qtd_falta"), soma(linhas, "qtd_excesso"), soma(linhas, "valor_falta"),
-  ]);
   const wsResumo = XLSX.utils.aoa_to_sheet(resumo);
-  aplicarFormatos(wsResumo, [4, 5, 6, 7], [8], [34, 12, 18, 14, 14, 16, 12, 14, 20]);
-  void inicioTabela;
+  for (let r = 4; r <= 9; r++) { const c = wsResumo[XLSX.utils.encode_cell({ r, c: 1 })]; if (c) c.z = FMT_Q; }
+  const cv = wsResumo[XLSX.utils.encode_cell({ r: 10, c: 1 })]; if (cv) cv.z = FMT_R;
+  wsResumo["!cols"] = [{ wch: 30 }, { wch: 34 }];
 
+  // Divergências: visão líquida por SKU
+  const cabL = [
+    "Cód. cadastro", "SKU", "Produto", "NFs", "Qtd NF (kits)", "Recebido (kits)", "Recebido sem NF (kits)",
+    "Falta líquida (kits)", "Excesso líquido (kits)", "Não conforme (kits)", "Preço unit. NF (R$)", "Valor falta líquida (R$)", "Situação",
+  ];
+  const divL = liquidas.filter(temDivergenciaLiquida);
+  const wsDiv = XLSX.utils.aoa_to_sheet([
+    cabL,
+    ...divL.map((l) => [
+      l.cod_cadastro ?? "", l.sku ?? "", l.nome_comercial ?? "", l.nfs ?? "",
+      n(l.qtd_nf), n(l.qtd_recebida), n(l.qtd_recebida_sem_nf), n(l.falta_liquida), n(l.excesso_liquido),
+      n(l.qtd_nao_conforme), n(l.preco_unit_nf), n(l.valor_falta_liquida), l.situacao ?? "",
+    ]),
+    ["TOTAL", "", "", "", somaL(divL, "qtd_nf"), somaL(divL, "qtd_recebida"), somaL(divL, "qtd_recebida_sem_nf"),
+      somaL(divL, "falta_liquida"), somaL(divL, "excesso_liquido"), somaL(divL, "qtd_nao_conforme"), "", somaL(divL, "valor_falta_liquida"), ""],
+  ]);
+  aplicarFormatos(wsDiv, [4, 5, 6, 7, 8, 9], [10, 11], [16, 20, 40, 24, 14, 16, 20, 18, 20, 18, 18, 22, 24]);
+
+  // Conferência completa: visão por NF (auditoria), sem mudança
   const cab = [
     "NF", "Cód. cadastro", "SKU", "Produto", "Qtd NF (kits)", "Recebido (kits)", "Falta (kits)", "Excesso (kits)",
     "Não conforme (kits)", "Preço unit. NF (R$)", "Valor falta (R$)", "Classificação",
   ];
-  const linhaDe = (l: LinhaDivergencia) => [
-    l.nf_numero ?? "", l.cod_cadastro ?? "", l.sku ?? "", l.nome_comercial ?? "",
-    n(l.qtd_nf), n(l.qtd_recebida), n(l.qtd_falta), n(l.qtd_excesso), n(l.qtd_nao_conforme),
-    n(l.preco_unit_nf), n(l.valor_falta), l.classificacao ?? "",
-  ];
-  const totalDe = (ls: LinhaDivergencia[]) => [
-    "TOTAL", "", "", "", soma(ls, "qtd_nf"), soma(ls, "qtd_recebida"), soma(ls, "qtd_falta"), soma(ls, "qtd_excesso"),
-    soma(ls, "qtd_nao_conforme"), "", soma(ls, "valor_falta"), "",
-  ];
-  const montar = (ls: LinhaDivergencia[]) => {
-    const ws = XLSX.utils.aoa_to_sheet([cab, ...ls.map(linhaDe), totalDe(ls)]);
-    aplicarFormatos(ws, [4, 5, 6, 7, 8], [9, 10], [14, 16, 20, 40, 14, 16, 12, 14, 18, 18, 16, 28]);
-    return ws;
-  };
-  const div = linhas.filter(temDivergencia);
+  const wsConf = XLSX.utils.aoa_to_sheet([
+    cab,
+    ...linhas.map((l) => [
+      l.nf_numero ?? "", l.cod_cadastro ?? "", l.sku ?? "", l.nome_comercial ?? "",
+      n(l.qtd_nf), n(l.qtd_recebida), n(l.qtd_falta), n(l.qtd_excesso), n(l.qtd_nao_conforme),
+      n(l.preco_unit_nf), n(l.valor_falta), l.classificacao ?? "",
+    ]),
+    ["TOTAL", "", "", "", soma(linhas, "qtd_nf"), soma(linhas, "qtd_recebida"), soma(linhas, "qtd_falta"), soma(linhas, "qtd_excesso"),
+      soma(linhas, "qtd_nao_conforme"), "", soma(linhas, "valor_falta"), ""],
+  ]);
+  aplicarFormatos(wsConf, [4, 5, 6, 7, 8], [9, 10], [14, 16, 20, 40, 14, 16, 12, 14, 18, 18, 16, 28]);
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, wsResumo, "Resumo");
-  XLSX.utils.book_append_sheet(wb, montar(div), "Divergências");
-  XLSX.utils.book_append_sheet(wb, montar(linhas), "Conferência completa");
+  XLSX.utils.book_append_sheet(wb, wsDiv, "Divergências");
+  XLSX.utils.book_append_sheet(wb, wsConf, "Conferência completa");
   XLSX.writeFile(wb, `Divergencia_${numeroPedido}_${iso}.xlsx`);
 }

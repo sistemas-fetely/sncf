@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
-import { baixarRelatorioDivergencia, temDivergencia, type LinhaDivergencia } from "@/lib/compras/relatorio-divergencia-xlsx";
+import { baixarRelatorioDivergencia, temDivergenciaLiquida, type LinhaDivergencia, type LinhaLiquida } from "@/lib/compras/relatorio-divergencia-xlsx";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
@@ -206,6 +206,22 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
     },
   });
 
+  const liquidoQ = useQuery({
+    queryKey: ["recebimento-liquido-sku", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_recebimento_liquido_sku")
+        .select(
+          "numero_pedido, fornecedor, sku, cod_cadastro, nome_comercial, nfs, qtd_nf, qtd_recebida, qtd_recebida_sem_nf, qtd_nao_conforme, falta_liquida, excesso_liquido, preco_unit_nf, valor_falta_liquida, valor_nao_conforme, ocorrencias_abertas, situacao",
+        )
+        .eq("pedido_id", pedidoId)
+        .order("sku");
+      if (error) throw error;
+      return (data ?? []) as LinhaLiquida[];
+    },
+  });
+
   const baixarDivergencia = async () => {
     try {
       const linhas = divergenciaQ.data ?? [];
@@ -220,6 +236,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         for (const p of data ?? []) prods.set(p.sku, { nome_comercial: p.nome_comercial, cod_cadastro: p.cod_cadastro });
       }
       baixarRelatorioDivergencia(
+        liquidoQ.data ?? [],
         linhas.map((l) => ({
           ...l,
           nome_comercial: l.sku ? prods.get(l.sku)?.nome_comercial ?? null : null,
@@ -230,7 +247,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       toast.error(`Não foi possível gerar o relatório: ${formatError(e)}`);
     }
   };
-  const haDivergencia = (divergenciaQ.data ?? []).some(temDivergencia);
+  const haDivergencia = (liquidoQ.data ?? []).some(temDivergenciaLiquida);
 
   const skusQ = useQuery({
     queryKey: ["compra-tres-camadas-sku", pedidoId],
