@@ -9,6 +9,7 @@ import { Loader2, FileSpreadsheet, Info, Download } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,7 +148,7 @@ function paginaDe<T>(itens: T[], pagina: number, tamanho: number): T[] {
 }
 
 
-export default function ImportarPI() {
+export default function ImportarPI({ embutido = false }: { embutido?: boolean }) {
   const queryClient = useQueryClient();
   const termosQuery = useTermosRestritos();
   const termos = termosQuery.data ?? [];
@@ -604,16 +605,8 @@ export default function ImportarPI() {
 
 
 
-  return (
-    <PageShell>
-      <PageHeader
-        titulo="Importação de PI"
-        estado="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
-        breadcrumb={[
-          { label: "Produto", to: "/vendas/produto" },
-          { label: "Importação de PI" },
-        ]}
-      />
+  const corpo = (
+    <>
 
       {sinonimosQuery.isError && (
         <Alert variant="destructive">
@@ -1333,8 +1326,33 @@ export default function ImportarPI() {
           </CardContent>
         </Card>
       )}
-    </PageShell>
+    </>
+  );
 
+  if (embutido) {
+    return (
+      <div className="space-y-4">
+        <ParaQueServe>
+          Faz nascer produto novo a partir da PI: lê o arquivo, confere com o cartório, efetiva e
+          registra no FOP.
+        </ParaQueServe>
+        {corpo}
+      </div>
+    );
+  }
+
+  return (
+    <PageShell>
+      <PageHeader
+        titulo="Importação de PI"
+        estado="Lê a proforma da fábrica no navegador, o humano confirma o mapeamento e o lote nasce em estágio."
+        breadcrumb={[
+          { label: "Produto", to: "/vendas/produto" },
+          { label: "Importação de PI" },
+        ]}
+      />
+      {corpo}
+    </PageShell>
   );
 }
 
