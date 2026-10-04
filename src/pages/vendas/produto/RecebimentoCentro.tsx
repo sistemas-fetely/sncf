@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2, PackageCheck } from "lucide-react";
+import { PageShell } from "@/components/layout/PageShell";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +34,7 @@ interface Recebida {
   id_externo: string | null;
 }
 
-export default function RecebimentoCentroTab() {
+export default function RecebimentoCentro() {
   const qc = useQueryClient();
   const [receber, setReceber] = useState<Linha | null>(null);
 
@@ -61,15 +64,15 @@ export default function RecebimentoCentroTab() {
       const jaRec = new Set(((rec ?? []) as { pedido_id: string }[]).map((r) => r.pedido_id));
       const abertos = lista.filter((p) => !jaRec.has(p.id));
       if (!abertos.length) return [];
-      // Só centros ativos que controlam estoque (fora do XPM-SC, contado pelo próprio XPM).
+      // Inclusão: centros ativos de chegada física Fetely (armazém/showroom), fora do XPM-SC (contado pelo próprio XPM).
       const centroIds = [...new Set(abertos.map((p) => p.destino_centro_id).filter(Boolean))];
       const codigos = new Map<string, string>();
       if (centroIds.length) {
         const { data: cs, error: eC } = await (supabase as any)
-          .from("centro_distribuicao").select("id, codigo, ativo").in("id", centroIds);
+          .from("centro_distribuicao").select("id, codigo, ativo, tipo").in("id", centroIds);
         if (eC) throw eC;
-        ((cs ?? []) as { id: string; codigo: string; ativo: boolean }[]).forEach((c) => {
-          if (c.ativo && c.codigo !== "XPM-SC") codigos.set(c.id, c.codigo);
+        ((cs ?? []) as { id: string; codigo: string; ativo: boolean; tipo: string | null }[]).forEach((c) => {
+          if (c.ativo === true && (c.tipo === "armazem" || c.tipo === "showroom") && c.codigo !== "XPM-SC") codigos.set(c.id, c.codigo);
         });
       }
       const alvo = abertos.filter((p) => p.destino_centro_id && codigos.has(p.destino_centro_id));
@@ -126,6 +129,13 @@ export default function RecebimentoCentroTab() {
   const recebidas = recebidasQ.data ?? [];
 
   return (
+    <PageShell>
+      <PageHeader
+        titulo="Recebimento no Centro"
+        breadcrumb={[{ label: "Produto" }, { label: "Recebimento no Centro" }]}
+        icone={PackageCheck}
+        estado="Chegada física de transferência em centro sem sistema próprio"
+      />
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         Chegada física em centro sem sistema próprio (ex.: Site SP). Transferências vindas de SC e contagem da prateleira. Fornecedor entregando direto: use 'Receber fora do XPM' na NF do pedido (aba Embarques/Acompanhamento).
@@ -163,7 +173,7 @@ export default function RecebimentoCentroTab() {
                     <TableCell className="text-right tabular-nums">{p.pecas}</TableCell>
                     <TableCell>{p.destinoCodigo ?? "—"}</TableCell>
                     <TableCell className="text-right">
-                      <Button size="sm" onClick={() => setReceber(p)}>Receber</Button>
+                      <BotaoGuardado slug="acao.trs_receber_destino" rotuloAcao="Receber transferência no centro de destino" size="sm" onClick={() => setReceber(p)}>Receber</BotaoGuardado>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -232,5 +242,6 @@ export default function RecebimentoCentroTab() {
         />
       )}
     </div>
+    </PageShell>
   );
 }

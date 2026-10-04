@@ -53,7 +53,6 @@ import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
-import RecebimentoCentroTab from "@/components/compras/RecebimentoCentroTab";
 
 interface CentroDestino {
   codigo: string;
@@ -312,13 +311,12 @@ export default function TransferenciasInternas() {
   const navigate = useNavigate();
   const permRetorno = usePermissoesTela("tela.regularizacao_estoque");
   const [abaUrl, setAba] = useAbaUrl("transferencias");
-  // Aba válida: "receber" sempre; "retorno" só com permissão; qualquer outra → "transferencias".
-  const aba =
-    abaUrl === "receber"
-      ? "receber"
-      : abaUrl === "retorno" && permRetorno.podeVer
-        ? "retorno"
-        : "transferencias";
+  // Aba válida: "retorno" só com permissão; qualquer outra → "transferencias".
+  const aba = abaUrl === "retorno" && permRetorno.podeVer ? "retorno" : "transferencias";
+  // Compatibilidade: link salvo com ?aba=receber vai para a tela própria.
+  useEffect(() => {
+    if (abaUrl === "receber") navigate("/vendas/produto/estoque/recebimento-centro", { replace: true });
+  }, [abaUrl, navigate]);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -592,7 +590,6 @@ export default function TransferenciasInternas() {
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
           <TabsTrigger value="transferencias">Transferências</TabsTrigger>
-          <TabsTrigger value="receber">Receber no destino</TabsTrigger>
           {permRetorno.podeVer && (
             <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
           )}
@@ -602,9 +599,6 @@ export default function TransferenciasInternas() {
             <ListaLotesRetorno />
           </TabsContent>
         )}
-        <TabsContent value="receber">
-          <RecebimentoCentroTab />
-        </TabsContent>
         <TabsContent value="transferencias" className="space-y-6">
 
       <Card>
@@ -1145,9 +1139,9 @@ export default function TransferenciasInternas() {
                             return (
                               <button
                                 type="button"
-                                onClick={() => {
-                                  setAba("receber");
-                                  window.scrollTo({ top: 0 });
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate("/vendas/produto/estoque/recebimento-centro");
                                 }}
                                 className="text-xs text-primary underline-offset-2 hover:underline"
                               >
