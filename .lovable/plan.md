@@ -25,6 +25,9 @@ A Mesa do Produto permitirá selecionar qualquer quantidade de produtos filtrado
 - A seleção pelo cabeçalho abrange busca, situação, fase, coleção, grupo, sistemas e indicador ativos.
 - Nenhuma edge, regra de banco ou tela fora da Mesa do Produto será alterada.
 
+## Correção incorporada: observações da Venda Direta
+Antes da implementação da Mesa, ajustar somente o ramo da venda direta em `enviar-pedido-bling-b2c`: manter `numeroLoja`, retirar `observacoes` e enviar o mesmo texto em `observacoesInternas`. O ramo Shopify permanece intocado. Validar essa função com `deno check`.
+
 ## Validação
 - Rodar typecheck e confirmar build sem erros.
 - Conferir no navegador seleção individual, seleção de todos os filtrados e limpeza ao trocar filtros.
