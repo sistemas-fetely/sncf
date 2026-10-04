@@ -296,6 +296,30 @@ export default function ChegadaMercadoriaDetalhe() {
     },
   });
 
+  // Doutrina #167: documento de remessa entra pelo embarque.
+  const embarquesPedidoQ = useQuery({
+    queryKey: ["pedido-mercadoria-embarques", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data: vincs, error } = await (supabase as any)
+        .from("importacao_embarque_pedido")
+        .select("embarque_id")
+        .eq("importacao_pedido_id", pedidoId);
+      if (error) throw error;
+      const ids = Array.from(new Set(((vincs ?? []) as Array<{ embarque_id: number }>).map((v) => Number(v.embarque_id))));
+      if (ids.length === 0) return [] as Array<{ id: number; ref_rocabella: string | null }>;
+      const { data: embs, error: e2 } = await (supabase as any)
+        .from("importacao_embarque")
+        .select("id, ref_rocabella")
+        .in("id", ids);
+      if (e2) throw e2;
+      return (embs ?? []) as Array<{ id: number; ref_rocabella: string | null }>;
+    },
+  });
+  const embarquesDoPedido = embarquesPedidoQ.data ?? [];
+  // Só libera as portas do pedido quando sabemos que ele não tem embarque.
+  const portaPeloPedido = embarquesPedidoQ.isSuccess && embarquesDoPedido.length === 0;
+
   const pedido = pedidoQ.data;
   const moeda = pedido?.moeda ?? "BRL";
   const reguaQ = usePedidoRegua(pedidoId);
@@ -964,14 +988,42 @@ export default function ChegadaMercadoriaDetalhe() {
             {/* ---------------- DOCUMENTOS ---------------- */}
             <TabsContent value="documentos" className="mt-4 space-y-6">
               <ParaQueServe>
-                NFs e invoices deste pedido. Lance a NF quando a mercadoria for faturada; vincule se ela já existe no sistema.
+                NFs e invoices deste pedido. Em pedido de importação, eles entram pelo embarque; em pedido nacional, lance aqui.
               </ParaQueServe>
+              {embarquesPedidoQ.isError ? (
+                <ErroBloco
+                  titulo="Falha ao verificar o embarque do pedido"
+                  erro={embarquesPedidoQ.error}
+                />
+              ) : embarquesDoPedido.length > 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-info/40 bg-info/10 p-3 text-sm">
+                  <span>
+                    Documentos da remessa (NF e invoice) entram pelo embarque{" "}
+                    <span className="font-mono">
+                      {embarquesDoPedido.map((e) => e.ref_rocabella ?? e.id).join(", ")}
+                    </span>
+                    . Eles valem para todos os pedidos que vieram juntos.
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {embarquesDoPedido.map((e) => (
+                      <Button key={e.id} size="sm" variant="outline" asChild>
+                        <Link
+                          to={`/vendas/produto/chegada-mercadoria?aba=painel&embarque=${e.id}&secao=documentos`}
+                        >
+                          Abrir embarque {e.ref_rocabella ?? e.id}
+                        </Link>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {/* NFs */}
               <Card>
                 <CardHeader className="flex-row items-center justify-between space-y-0">
                   <CardTitle className="text-base flex items-center gap-2">
                     <FileText className="h-4 w-4" /> Notas fiscais
                   </CardTitle>
+                  {portaPeloPedido && (
                   <div className="flex items-center gap-2">
                     <Button
                       size="sm"
@@ -985,6 +1037,7 @@ export default function ChegadaMercadoriaDetalhe() {
                       Vincular NF existente
                     </Button>
                   </div>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {nfsQ.isLoading ? (
@@ -1112,6 +1165,7 @@ export default function ChegadaMercadoriaDetalhe() {
                   <CardTitle className="text-base flex items-center gap-2">
                     <Receipt className="h-4 w-4" /> Invoices
                   </CardTitle>
+                  {portaPeloPedido && (
                   <Button
                     size="sm"
                     style={{ backgroundColor: VERDE }}
@@ -1120,6 +1174,7 @@ export default function ChegadaMercadoriaDetalhe() {
                   >
                     Lançar Invoice
                   </Button>
+                  )}
                 </CardHeader>
                 <CardContent>
                   {invoicesQ.isLoading ? (
