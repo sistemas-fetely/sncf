@@ -223,6 +223,7 @@ const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesI
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoque"));
+const RecebimentoCentro = lazy(() => import("@/pages/vendas/produto/RecebimentoCentro"));
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 const RegularizacaoLoteDetalhe = lazy(() => import("@/pages/Estoque/RegularizacaoLoteDetalhe"));
 
@@ -492,6 +493,7 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
+                  <Route path="/vendas/produto/estoque/recebimento-centro" element={<RecebimentoCentro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
                     <ProtectedRoute>
                       <NomesBling />
