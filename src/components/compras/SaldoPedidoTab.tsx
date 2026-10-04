@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Selo } from "@/components/ui/selo";
 import { CardIndicador } from "@/components/ui/card-indicador";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DEFAULT_PAGE_SIZE,
   RodapePaginacao,
@@ -28,7 +29,7 @@ import {
 
 /**
  * Léxico único de Compras de Mercadoria — três camadas, dois saldos:
- *   Pedido → Declarado (NF) → Confirmado (XPM)
+ *   Pedido → Declarado (NF) → Recebido
  *   A faturar  = Pedido − Declarado    → fornecedor deve NF
  *   A confirmar = Declarado − Confirmado → XPM deve conferência
  * As palavras "A entregar", "A receber" e "Furo" não existem mais neste módulo.
@@ -63,6 +64,8 @@ interface TresCamadasPedido {
   pedida: number | null;
   declarada_nf: number | null;
   confirmada_xpm: number | null;
+  qtd_conferida?: number | null;
+  recebido_por_centro?: CentroRecebimento[];
   a_faturar: number | null;
   a_confirmar: number | null;
   aguarda_recebimento: number | null;
@@ -84,6 +87,8 @@ interface TresCamadasSku {
   pedida: number | null;
   declarada_nf: number | null;
   confirmada_xpm: number | null;
+  qtd_conferida?: number | null;
+  recebido_por_centro?: CentroRecebimento[];
   a_faturar: number | null;
   a_confirmar: number | null;
   aguarda_recebimento: number | null;
@@ -107,6 +112,34 @@ function temEstado(l: TresCamadasSku, chave: string): boolean {
 
 const NUM = new Intl.NumberFormat("pt-BR");
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+
+interface CentroRecebimento {
+  centro_codigo: string;
+  centro_nome: string;
+  qtd: number;
+}
+
+function ValorRecebido({ valor, centros }: { valor: number | null | undefined; centros?: CentroRecebimento[] }) {
+  const texto = fmtQtd(valor);
+  if (!centros?.length) return <>{texto}</>;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="cursor-help underline decoration-dotted underline-offset-2">{texto}</span>
+      </TooltipTrigger>
+      <TooltipPrimitive.Portal>
+        <TooltipContent className="space-y-2">
+          {centros.map((centro) => (
+            <div key={centro.centro_codigo}>
+              <div>{centro.centro_codigo} · {fmtQtd(centro.qtd)}</div>
+              <div className="text-xs text-muted-foreground">{centro.centro_nome}</div>
+            </div>
+          ))}
+        </TooltipContent>
+      </TooltipPrimitive.Portal>
+    </Tooltip>
+  );
+}
 
 function fmtQtd(v: number | null | undefined): string {
   if (v == null) return "—";
@@ -143,7 +176,14 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         .eq("pedido_id", pedidoId)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as TresCamadasPedido | null;
+      if (!data) return null;
+      const { data: saldo, error: erroSaldo } = await (supabase as any)
+        .from("vw_importacao_saldo_pedido")
+        .select("qtd_conferida, recebido_por_centro")
+        .eq("pedido_id", pedidoId)
+        .maybeSingle();
+      if (erroSaldo) throw erroSaldo;
+      return { ...data, qtd_conferida: saldo?.qtd_conferida, recebido_por_centro: saldo?.recebido_por_centro ?? [] } as TresCamadasPedido;
     },
   });
 
@@ -159,6 +199,18 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
         .eq("pedido_id", pedidoId);
       if (error) throw error;
       const linhas = (data ?? []) as TresCamadasSku[];
+
+      const { data: saldos, error: erroSaldos } = await (supabase as any)
+        .from("vw_importacao_saldo_sku")
+        .select("sku, qtd_conferida, recebido_por_centro")
+        .eq("pedido_id", pedidoId);
+      if (erroSaldos) throw erroSaldos;
+      const saldoPorSku = new Map<string, { qtd_conferida: number | null; recebido_por_centro: CentroRecebimento[] }>(
+        ((saldos ?? []) as Array<{ sku: string; qtd_conferida: number | null; recebido_por_centro: CentroRecebimento[] | null }>).map((s) => [s.sku, {
+          qtd_conferida: s.qtd_conferida,
+          recebido_por_centro: s.recebido_por_centro ?? [],
+        }]),
+      );
 
       // A view não traz nome do produto — vem de sncf_produtos, como nas outras telas.
       const skus = Array.from(new Set(linhas.map((l) => l.sku).filter(Boolean))) as string[];
@@ -182,6 +234,8 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       }
       return linhas.map((l) => ({
         ...l,
+        qtd_conferida: l.sku ? saldoPorSku.get(l.sku)?.qtd_conferida : null,
+        recebido_por_centro: l.sku ? saldoPorSku.get(l.sku)?.recebido_por_centro ?? [] : [],
         nome_comercial: l.sku ? produtos.get(l.sku)?.nome_comercial ?? null : null,
         cod_cadastro: l.sku ? produtos.get(l.sku)?.cod_cadastro ?? null : null,
       }));
@@ -294,12 +348,12 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   />
                   <CardIndicador
                     compacto
-                    rotulo="Confirmado (XPM)"
-                    valor={fmtQtd(resumo.confirmada_xpm)}
+                    rotulo="Recebido"
+                    valor={<ValorRecebido valor={resumo.qtd_conferida ?? resumo.confirmada_xpm} centros={resumo.recebido_por_centro} />}
                     nota={
                       resumo.pct_confirmado == null
                         ? null
-                        : `${NUM.format(Number(resumo.pct_confirmado))}% confirmado`
+                        : `${NUM.format(Number(resumo.pct_confirmado))}% recebido`
                     }
                   />
                   <CardIndicador
@@ -378,7 +432,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Pedido</TableHead>
                   <TableHead className="text-right">Declarado (NF)</TableHead>
-                  <TableHead className="text-right">Confirmado (XPM)</TableHead>
+                  <TableHead className="text-right">Recebido</TableHead>
                   <TableHead className="bg-muted text-right">A faturar</TableHead>
                   <TableHead className="bg-muted text-right">Aguarda recebimento</TableHead>
                   <TableHead className="text-right">Falta</TableHead>
@@ -414,7 +468,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                         {fmtQtd(l.declarada_nf)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {fmtQtd(l.confirmada_xpm)}
+                        <ValorRecebido valor={l.qtd_conferida ?? l.confirmada_xpm} centros={l.recebido_por_centro} />
                       </TableCell>
                       <TableCell
                         className={cn(

@@ -99695,6 +99695,7 @@ export type Database = {
           qtd_falta: number | null
           qtd_nf: number | null
           qtd_pedida: number | null
+          recebido_por_centro: Json | null
           rocabella_ref: string | null
           saldo_a_faturar: number | null
           saldo_a_receber: number | null
@@ -99736,6 +99737,7 @@ export type Database = {
           qtd_nf: number | null
           qtd_pedida: number | null
           qtd_pedida_pecas: number | null
+          recebido_por_centro: Json | null
           saldo_a_faturar: number | null
           saldo_a_receber: number | null
           situacao: string | null
@@ -103523,14 +103525,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
