@@ -1041,7 +1041,14 @@ export default function TransferenciasInternas() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Transferências</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            Transferências
+            {nOrfaos > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">
+                {nOrfaos} {nOrfaos === 1 ? "sem origem/destino declarado" : "sem origem/destino declarados"}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {listaQ.isLoading ? (
@@ -1062,6 +1069,7 @@ export default function TransferenciasInternas() {
                 <TableRow>
                   <TableHead>Número</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Origem</TableHead>
                   <TableHead>Destino</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead className="text-right">Qtd. itens</TableHead>
