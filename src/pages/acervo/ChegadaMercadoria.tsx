@@ -38,7 +38,7 @@ const ferramenta = ABAS.filter((a) => a.grupo === "ferramenta");
 export default function ChegadaMercadoria() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
-  // Compatibilidade com links antigos: embarques/acompanhamento viraram visões
+  // Compatibilidade com links antigos: embarques/acompanhamento viraram a lista única
   // do Painel; recebimento-loja mora agora em Transferências Internas.
   useEffect(() => {
     const v = params.get("aba");
@@ -49,7 +49,6 @@ export default function ChegadaMercadoria() {
     if (v !== "embarques" && v !== "acompanhamento") return;
     const next = new URLSearchParams(params);
     next.set("aba", "painel");
-    next.set("visao", v === "embarques" ? "embarque" : "pedido");
     setParams(next, { replace: true });
   }, [params, setParams, navigate]);
   const abaAtual = useMemo(() => {

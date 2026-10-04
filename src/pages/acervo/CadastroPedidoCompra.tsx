@@ -1,26 +1,19 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageShell } from "@/components/layout/PageShell";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
-import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   CheckCircle2,
   Link2,
   ExternalLink,
-  Pencil,
   Download,
   FileSpreadsheet,
-  Trash2,
-  Info,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro, nomeCanonico, nomeExibicao } from "@/lib/parceiros/nome";
 import { formatError } from "@/lib/format-error";
@@ -30,7 +23,6 @@ import {
   type CabecalhoPlanilha,
 } from "@/lib/compras/templatePedidoMercadoria";
 import ImportarLinhasMercadoriaDialog from "@/components/compras/ImportarLinhasMercadoriaDialog";
-import EditarPedidoMercadoriaDialog from "@/components/compras/EditarPedidoMercadoriaDialog";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,36 +56,10 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 
-import { Selo, type EstadoSelo } from "@/components/ui/selo";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  SELECT_PENDENCIAS,
-  TIPOS_PENDENCIA,
-  totalPendencia,
-  type PendenciaPedido,
-  type TipoPendencia,
-} from "@/lib/compras/pendencias";
+import { Selo } from "@/components/ui/selo";
 import { cn } from "@/lib/utils";
-import {
-  CelulaIdentidade,
-  CelulaReferencias,
-  useIdentidadePedidos,
-} from "@/components/compras/IdentidadePedidoCelula";
 
 
 
@@ -128,41 +94,8 @@ interface Parceiro {
   razao_social: string | null;
 }
 
-interface PedidoListaRow {
-  id: number;
-  numero_pedido: string;
-  rocabella_ref: string | null;
-  modalidade: string | null;
-  moeda: string | null;
-  fabrica: string | null;
-  data_pedido: string | null;
-  prazo_entrega_acordado: string | null;
-  etd: string | null;
-  eta: string | null;
-  fornecedor: string | null;
-  apelido: string | null;
-  centro: string | null;
-  status: string | null;
-  linhas: number | null;
-  kits: number | null;
-  custo_total: number | null;
-}
 
-interface PreviaExclusao {
-  pedido_id: number;
-  numero_pedido: string | null;
-  pode_excluir: boolean;
-  bloqueios: string[] | null;
-  linhas_que_serao_apagadas: number | null;
-  excluido: boolean | null;
-}
 
-interface SaldoPedidoLinha {
-  pedido_id: number;
-  data_prevista: string | null;
-  data_realizada: string | null;
-  dias_atraso: number | null;
-}
 
 
 interface ResolucaoRow {
@@ -233,48 +166,6 @@ const EMPTY_HEADER: HeaderForm = {
 const fmtBRL = (v: number, moeda = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: moeda || "BRL" }).format(v || 0);
 
-const fmtInt = (v: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(v || 0);
-const fmtPct = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(v || 0) + "%";
-
-const fmtDate = (d?: string | null) =>
-  d ? format(parseISO(d), "dd/MM/yyyy") : "—";
-
-/** Atraso vem pronto de vw_importacao_saldo_pedido — nada é calculado aqui. */
-function rotuloAtraso(diasAtraso?: number | null) {
-  if (diasAtraso == null) return <span className="text-muted-foreground">—</span>;
-  const dias = Number(diasAtraso);
-  if (dias <= 0) return <span className="text-muted-foreground">0</span>;
-  return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
-}
-
-const ROTULO_CICLO_ESTADO: Record<string, { rotulo: string; estado: EstadoSelo; icone?: boolean }> = {
-  aguardando_nf: { rotulo: "Aguardando NF", estado: "muted" },
-  faturando: { rotulo: "Faturando", estado: "warning" },
-  aguardando_conferencia: { rotulo: "Aguardando conferência", estado: "warning" },
-  divergencia: { rotulo: "Divergência", estado: "destructive" },
-  completo: { rotulo: "Completo", estado: "success", icone: true },
-};
-
-function corBarraProgresso(estado: string | null | undefined): string {
-  if (estado === "completo") return "bg-success";
-  if (estado === "divergencia") return "bg-destructive";
-  return "bg-warning";
-}
-
-/** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
-interface TresCamadasPedidoLinha {
-  pedido_id: number;
-  a_faturar: number | null;
-  a_confirmar: number | null;
-  qtd_faturada: number | null;
-  valor_faturado_brl: number | null;
-  pct_faturado_sobre_iv: number | null;
-  ciclo_estado: string | null;
-  tem_divergencia: boolean | null;
-  divergencia_total: number | null;
-  pct_conferido_sobre_iv: number | null;
-}
 
 /** dd/mm/aaaa ou aaaa-mm-dd vindos da planilha viram aaaa-mm-dd para o input date. */
 function normalizarDataPlanilha(v: string): string {
@@ -393,20 +284,11 @@ function FornecedorCombobox({
 // Página
 // ============================================================================
 
-export type VistaCompras = "acompanhamento" | "novo";
+export type VistaCompras = "novo";
 
-export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vista?: VistaCompras }) {
+export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: VistaCompras }) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
-  const [, setParams] = useSearchParams();
 
-  const irParaPendencia = (tipo: TipoPendencia, pedidoId: number) => {
-    const next = new URLSearchParams();
-    next.set("aba", "pendencias");
-    next.set("tipo", tipo);
-    next.set("pedido", String(pedidoId));
-    setParams(next, { replace: false });
-  };
 
   // ---------------- Dimensões ----------------
   const modalidadesQ = useQuery({
@@ -469,156 +351,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     },
   });
 
-  // ---------------- Lista de pedidos existentes ----------------
-  const [buscaPedido, setBuscaPedido] = useState("");
-
-  // Identidade humana do pedido (view pronta: rótulo, competência, referências, busca).
-  const identidade = useIdentidadePedidos();
-
-  const pedidosQ = useQuery({
-    queryKey: ["importacao-pedido-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_pedido_detalhe")
-        .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, fabrica, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
-        );
-      if (error) throw error;
-      return (data ?? []) as PedidoListaRow[];
-    },
-  });
-
-
-  // Saldo por pedido (view pronta — nada e calculado aqui)
-  const saldoQ = useQuery({
-    queryKey: ["importacao-saldo-pedido-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_saldo_pedido")
-        .select(
-          "pedido_id, data_prevista, data_realizada, dias_atraso",
-        );
-      if (error) throw error;
-      return (data ?? []) as SaldoPedidoLinha[];
-    },
-  });
-
-  const saldoPorPedido = useMemo(() => {
-    const m = new Map<number, SaldoPedidoLinha>();
-    (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
-    return m;
-  }, [saldoQ.data]);
-
-  // Três camadas por pedido: A faturar (fornecedor deve NF) e A confirmar (XPM deve conferência)
-  const tresCamadasQ = useQuery({
-    queryKey: ["compra-tres-camadas-pedido-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_compra_tres_camadas_pedido")
-        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv, ciclo_estado, tem_divergencia, divergencia_total, pct_conferido_sobre_iv");
-      if (error) throw error;
-      return (data ?? []) as TresCamadasPedidoLinha[];
-    },
-  });
-
-  const tresCamadasPorPedido = useMemo(() => {
-    const m = new Map<number, TresCamadasPedidoLinha>();
-    (tresCamadasQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
-    return m;
-  }, [tresCamadasQ.data]);
-
-  // Pendências por pedido (view pronta — nada e calculado aqui)
-  const pendenciasQ = useQuery({
-    queryKey: ["compras-pendencias"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_compras_pendencias" as never)
-        .select(SELECT_PENDENCIAS);
-      if (error) throw error;
-      return (data ?? []) as unknown as PendenciaPedido[];
-    },
-  });
-
-  const pendenciaPorPedido = useMemo(() => {
-    const m = new Map<number, PendenciaPedido>();
-    (pendenciasQ.data ?? []).forEach((r) => m.set(Number(r.pedido_id), r));
-    return m;
-  }, [pendenciasQ.data]);
-
-  // ---------------- Exclusão de pedido ----------------
-  const [excluirAlvo, setExcluirAlvo] = useState<PedidoListaRow | null>(null);
-  const permExcluir = usePermissaoAcaoOuSuperAdmin("acao.excluir_pedido_importacao");
-  const semPermExcluir = permExcluir.carregando || !permExcluir.permitido;
-  const tituloPermExcluir = !permExcluir.permitido && !permExcluir.carregando ? "Sem permissão: acao.excluir_pedido_importacao" : undefined;
-  const [previaExclusao, setPreviaExclusao] = useState<PreviaExclusao | null>(null);
-  const [checandoExclusao, setChecandoExclusao] = useState(false);
-  const [excluindo, setExcluindo] = useState(false);
-
-  const abrirExclusao = async (p: PedidoListaRow) => {
-    setExcluirAlvo(p);
-    setPreviaExclusao(null);
-    setChecandoExclusao(true);
-    try {
-      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
-        p_pedido_id: p.id,
-        p_confirmar: false,
-      });
-      if (error) throw error;
-      const raw = Array.isArray(data) ? data[0] : data;
-      setPreviaExclusao((raw as unknown as PreviaExclusao | null) ?? null);
-
-
-    } catch (e) {
-      toast.error(`Não foi possível checar a exclusão: ${formatError(e)}`);
-      setExcluirAlvo(null);
-    } finally {
-      setChecandoExclusao(false);
-    }
-  };
-
-  const confirmarExclusao = async () => {
-    if (!excluirAlvo) return;
-    setExcluindo(true);
-    try {
-      const { data, error } = await supabase.rpc("excluir_pedido_importacao", {
-        p_pedido_id: excluirAlvo.id,
-        p_confirmar: true,
-      });
-      if (error) throw error;
-      const linha = (Array.isArray(data) ? data[0] : data) as unknown as PreviaExclusao | null;
-
-
-      if (linha && linha.excluido === false) {
-        toast.error(
-          linha.bloqueios?.length
-            ? `Exclusão barrada: ${linha.bloqueios.join(" · ")}`
-            : "O banco não confirmou a exclusão.",
-        );
-        setPreviaExclusao(linha);
-        return;
-      }
-      toast.success(`Pedido ${excluirAlvo.numero_pedido} excluído.`);
-      setExcluirAlvo(null);
-      setPreviaExclusao(null);
-      invalidarCompras(qc);
-    } catch (e) {
-      toast.error(`Falha ao excluir: ${formatError(e)}`);
-    } finally {
-      setExcluindo(false);
-    }
-  };
-
-
-
-
-
   // ---------------- Estado do formulário ----------------
   const [header, setHeader] = useState<HeaderForm>(EMPTY_HEADER);
   const [textoLinhas, setTextoLinhas] = useState("");
   const [conferencia, setConferencia] = useState<ConferenciaResult | null>(null);
   const [destinoServico, setDestinoServico] = useState<Record<string, string>>({}); // codigo -> sku destino
   const [importOpen, setImportOpen] = useState(false);
-  const [editarId, setEditarId] = useState<number | null>(null);
 
   const baixarTemplate = async () => {
     try {
@@ -804,375 +542,12 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
-  // ORDENACAO-POR-EMBARQUE: ETA crescente (nulos no fim); dentro do mesmo embarque,
-  // por referência e depois por número do pedido.
-  // A busca varre o campo `busca` da view de identidade + a referência do embarque (rocabella_ref).
-  const pedidosOrdenados = useMemo(() => {
-    const termo = buscaPedido.trim().toLowerCase();
-    let lista = [...(pedidosQ.data ?? [])];
-    if (termo) {
-      lista = lista.filter((p) => {
-        const id = identidade.porPedido.get(Number(p.id));
-        const alvo = [(id?.busca ?? p.numero_pedido ?? ""), p.rocabella_ref ?? ""]
-          .join(" ")
-          .toLowerCase();
-        return alvo.includes(termo);
-      });
-    }
-    lista.sort((a, b) => {
-      if ((a.eta ?? "") !== (b.eta ?? "")) {
-        if (!a.eta) return 1;
-        if (!b.eta) return -1;
-        return a.eta.localeCompare(b.eta);
-      }
-      const ra = a.rocabella_ref ?? "";
-      const rb = b.rocabella_ref ?? "";
-      if (ra !== rb) return ra.localeCompare(rb, "pt-BR");
-      return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
-    });
-    return lista;
-  }, [pedidosQ.data, identidade.porPedido, buscaPedido]);
 
 
   // ============================ RENDER ============================
   return (
     <PageShell>
 
-
-
-      {/* ============================ LISTA ============================ */}
-      {vista === "acompanhamento" && (
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Pedidos existentes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <TabelaFetely
-            carregando={pedidosQ.isLoading}
-            erro={pedidosQ.isError ? formatError(pedidosQ.error) : null}
-            aoTentarNovamente={() => void pedidosQ.refetch()}
-            vazio={{
-              mensagem:
-                "Nenhum pedido de mercadoria cadastrado. Comece pela aba “Novo pedido” — ou baixe o template e importe a planilha do fornecedor.",
-              acao: (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    const next = new URLSearchParams();
-                    next.set("aba", "novo");
-                    setParams(next, { replace: false });
-                  }}
-                >
-                  Abrir “Novo pedido”
-                </Button>
-              ),
-            }}
-            busca={{
-              valor: buscaPedido,
-              aoMudar: setBuscaPedido,
-              placeholder: "Buscar por número, proforma, invoice, PL, processo, categoria ou referência do embarque…",
-            }}
-            semResultado="Nenhum pedido com esse número, referência ou categoria."
-            total={pedidosQ.data?.length ?? 0}
-            exibidos={pedidosOrdenados.length}
-            rotulo="pedidos"
-
-          >
-              <div className="overflow-auto max-h-[calc(100vh-18rem)]">
-              <Table containerClassName="overflow-visible">
-                <TableHeader className="sticky top-0 z-10 bg-background">
-                  <TableRow>
-                    <TableHead className="sticky left-0 top-0 z-20 bg-background">
-                      Embarque
-                    </TableHead>
-                    <TableHead>Pedido</TableHead>
-                    <TableHead>Referências</TableHead>
-
-                    <TableHead>Modalidade</TableHead>
-                    <TableHead>Fornecedor</TableHead>
-                    <TableHead>Centro</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Previsto</TableHead>
-                    <TableHead>Realizado</TableHead>
-                    <TableHead className="text-right">Linhas</TableHead>
-                    <TableHead className="text-right">Custo FOB</TableHead>
-                    <TableHead className="text-right">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="inline-flex items-center gap-1 cursor-help">
-                              Faturado <Info className="h-3.5 w-3.5 text-muted-foreground" />
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs">
-                            Quantidade e valor já cobertos por nota fiscal. Valor sempre em BRL — a NF do
-                            fornecedor é em reais, ainda que o pedido seja em outra moeda.
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </TableHead>
-                    <TableHead>Andamento</TableHead>
-                    <TableHead className="text-right">A faturar</TableHead>
-                    <TableHead className="text-right">A confirmar</TableHead>
-                    <TableHead className="text-right">Atraso</TableHead>
-                    <TableHead className="text-right">Pendências</TableHead>
-
-                    <TableHead className="w-20" />
-
-                  </TableRow>
-
-                </TableHeader>
-                <TableBody>
-                  {pedidosOrdenados.map((p) => (
-                    <TableRow
-                      key={p.id}
-                      className="cursor-pointer"
-                      onClick={() => navigate(`/vendas/produto/chegada-mercadoria/${p.id}`)}
-                    >
-                      <TableCell className="sticky left-0 bg-background whitespace-nowrap">
-                        {p.modalidade === "nacional" ? (
-                          <span className="text-muted-foreground">Nacional</span>
-                        ) : p.rocabella_ref ? (
-                          <span className="font-mono text-sm font-medium">{p.rocabella_ref}</span>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5 whitespace-nowrap">
-                          <CelulaIdentidade
-                            identidade={identidade.porPedido.get(Number(p.id))}
-                            numeroCru={p.numero_pedido}
-                          />
-                          {p.fabrica ? (
-                            <span className="text-xs text-muted-foreground">{p.fabrica}</span>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <CelulaReferencias identidade={identidade.porPedido.get(Number(p.id))} />
-                      </TableCell>
-
-                      <TableCell>{p.modalidade ?? "—"}</TableCell>
-                      <TableCell>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span
-                                className="block max-w-[160px] truncate"
-                                title={p.fornecedor ?? undefined}
-                              >
-                                {p.apelido?.trim()
-                                  ? p.apelido.trim()
-                                  : (p.fornecedor ?? "—")}
-                              </span>
-                            </TooltipTrigger>
-                            {p.fornecedor && (
-                              <TooltipContent side="top">
-                                <p className="max-w-xs">{p.fornecedor}</p>
-                              </TooltipContent>
-                            )}
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell>{p.centro ?? "—"}</TableCell>
-                      <TableCell>{p.status ?? "—"}</TableCell>
-                      <TableCell className="tabular-nums">{fmtDate(p.data_pedido)}</TableCell>
-                      <TableCell className="tabular-nums">
-                        {fmtDate(saldoPorPedido.get(Number(p.id))?.data_prevista)}
-                      </TableCell>
-                      <TableCell className="tabular-nums">
-                        {fmtDate(saldoPorPedido.get(Number(p.id))?.data_realizada)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{p.linhas ?? 0}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {fmtBRL(Number(p.custo_total ?? 0), p.moeda ?? "BRL")}
-                      </TableCell>
-                      {(() => {
-                        const tcFat = tresCamadasPorPedido.get(Number(p.id));
-                        const qtdFaturada = Number(tcFat?.qtd_faturada ?? 0);
-                        const valorFaturado = Number(tcFat?.valor_faturado_brl ?? 0);
-                        const pctFaturado = Number(tcFat?.pct_faturado_sobre_iv ?? 0);
-                        return (
-                          <TableCell className="text-right">
-                            {qtdFaturada > 0 ? (
-                              <div className="flex flex-col items-end gap-0.5">
-                                <div className="tabular-nums">{fmtBRL(valorFaturado, "BRL")}</div>
-                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                  <span className="tabular-nums">{fmtInt(qtdFaturada)}</span>
-                                  {pctFaturado < 100 && (
-                                    <Selo estado="warning">{fmtPct(pctFaturado)}</Selo>
-                                  )}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col items-end gap-0.5 text-muted-foreground">
-                                <span>—</span>
-                                <span className="text-xs">—</span>
-                              </div>
-                            )}
-                          </TableCell>
-                        );
-                      })()}
-                      {(() => {
-                        const tc = tresCamadasPorPedido.get(Number(p.id));
-                        const aFaturar = Number(tc?.a_faturar ?? 0);
-                        const aConfirmar = Number(tc?.a_confirmar ?? 0);
-                        const ciclo = tc?.ciclo_estado;
-                        const cfg = ciclo ? ROTULO_CICLO_ESTADO[ciclo] : undefined;
-                        const pctFat = Math.min(Number(tc?.pct_faturado_sobre_iv ?? 0), 100);
-                        const pctConf = Math.min(Number(tc?.pct_conferido_sobre_iv ?? 0), 100);
-                        const fillClass = corBarraProgresso(ciclo);
-                        const NUM_BR = new Intl.NumberFormat("pt-BR");
-                        return (
-                          <>
-                            <TableCell>
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  {cfg ? (
-                                    <Selo
-                                      estado={cfg.estado}
-                                      className={cfg.estado === "success" ? "font-medium" : undefined}
-                                    >
-                                      {cfg.icone && (
-                                        <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                                      )}
-                                      {cfg.rotulo}
-                                    </Selo>
-                                  ) : (
-                                    <span className="text-muted-foreground">—</span>
-                                  )}
-                                  {tc?.tem_divergencia && (
-                                    <TooltipProvider>
-                                      <Tooltip>
-                                        <TooltipTrigger asChild>
-                                          <Selo estado="destructive">
-                                            {fmtInt(Number(tc.divergencia_total ?? 0))} un
-                                          </Selo>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Falta, excesso ou não conforme apurados na conferência
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    </TooltipProvider>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-0.5 h-1.5">
-                                  <div className="w-1/2 h-full bg-muted rounded-sm overflow-hidden">
-                                    <div
-                                      className={cn("h-full rounded-sm", fillClass)}
-                                      style={{ width: `${pctFat}%` }}
-                                    />
-                                  </div>
-                                  <div className="w-1/2 h-full bg-muted rounded-sm overflow-hidden">
-                                    <div
-                                      className={cn("h-full rounded-sm", fillClass)}
-                                      style={{ width: `${pctConf}%` }}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell
-                              className={
-                                aFaturar > 0
-                                  ? "text-right tabular-nums text-warning"
-                                  : "text-right tabular-nums text-muted-foreground"
-                              }
-                            >
-                              {aFaturar > 0 ? NUM_BR.format(aFaturar) : "0"}
-                            </TableCell>
-                            <TableCell
-                              className={
-                                aConfirmar > 0
-                                  ? "text-right tabular-nums text-warning"
-                                  : "text-right tabular-nums text-muted-foreground"
-                              }
-                            >
-                              {aConfirmar > 0 ? NUM_BR.format(aConfirmar) : "0"}
-                            </TableCell>
-                          </>
-                        );
-                      })()}
-
-                      <TableCell className="text-right tabular-nums">
-                        {rotuloAtraso(saldoPorPedido.get(Number(p.id))?.dias_atraso)}
-                      </TableCell>
-
-                      <TableCell className="text-right tabular-nums">
-                        <div className="flex flex-wrap items-center justify-end gap-1">
-                          {TIPOS_PENDENCIA.map((t) => {
-                            const pend = pendenciaPorPedido.get(Number(p.id));
-                            const n = pend ? totalPendencia(pend, t.tipo) : 0;
-                            return (
-                              <button
-                                key={t.tipo}
-                                type="button"
-                                title={`${t.rotulo} — ${t.descricao}`}
-                                aria-label={`${t.rotulo}: ${n} no pedido ${p.numero_pedido}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  irParaPendencia(t.tipo, p.id);
-                                }}
-                                className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              >
-                                <Selo estado={n > 0 ? "warning" : "muted"}>
-                                  {t.rotuloCurto} {n}
-                                </Selo>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            title="Editar pedido"
-                            aria-label={`Editar pedido ${p.numero_pedido}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditarId(p.id);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" aria-hidden="true" />
-                          </Button>
-                          <BotaoGuardado
-                            slug="acao.excluir_pedido_importacao"
-                            rotuloAcao="Excluir pedido de importação"
-                            contexto={{ pedido_id: p.id }}
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-destructive"
-                            title="Excluir pedido"
-                            aria-label={`Excluir pedido ${p.numero_pedido}`}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void abrirExclusao(p);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" aria-hidden="true" />
-                          </BotaoGuardado>
-                        </div>
-                      </TableCell>
-
-                    </TableRow>
-                  ))}
-
-                </TableBody>
-              </Table>
-              </div>
-          </TabelaFetely>
-
-        </CardContent>
-      </Card>
-
-      )}
 
 
       {/* ============================ FORMULÁRIO ============================ */}
@@ -1494,80 +869,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
         }}
       />
 
-      <Dialog
-        open={excluirAlvo !== null}
-        onOpenChange={(v) => {
-          if (!v && !excluindo) {
-            setExcluirAlvo(null);
-            setPreviaExclusao(null);
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir pedido {excluirAlvo?.numero_pedido}</DialogTitle>
-            <DialogDescription>
-              Nada foi apagado ainda. O banco checa primeiro se o pedido pode sair.
-            </DialogDescription>
-          </DialogHeader>
 
-          {checandoExclusao ? (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Checando o pedido...
-            </div>
-          ) : previaExclusao ? (
-            previaExclusao.pode_excluir ? (
-              <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
-                {Number(previaExclusao.linhas_que_serao_apagadas ?? 0)} linha(s) serão apagadas
-                junto com o pedido. Isso não volta atrás.
-              </div>
-            ) : (
-              <div className="space-y-2 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
-                <div>Este pedido não pode ser excluído:</div>
-                <ul className="list-disc pl-5">
-                  {(previaExclusao.bloqueios ?? []).map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                  {(previaExclusao.bloqueios ?? []).length === 0 && (
-                    <li>O banco recusou a exclusão sem detalhar o motivo.</li>
-                  )}
-                </ul>
-              </div>
-            )
-          ) : null}
-
-          <DialogFooter>
-            <Button
-              variant="ghost"
-              disabled={excluindo}
-              onClick={() => {
-                setExcluirAlvo(null);
-                setPreviaExclusao(null);
-              }}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              disabled={!previaExclusao?.pode_excluir || excluindo || checandoExclusao || semPermExcluir}
-              title={tituloPermExcluir}
-              onClick={() => void confirmarExclusao()}
-            >
-              {excluindo && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Excluir mesmo assim
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <EditarPedidoMercadoriaDialog
-        open={editarId != null}
-        onOpenChange={(v) => !v && setEditarId(null)}
-        pedidoId={editarId}
-        onSaved={() => {
-          invalidarCompras(qc);
-        }}
-      />
     </PageShell>
 
   );
