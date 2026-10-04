@@ -20,6 +20,7 @@ import { DeclararCancelamentoXpmDialog } from "@/components/pedidos/dialogs/Decl
 import { CancelarExpedicaoXpmDialog } from "@/components/pedidos/dialogs/CancelarExpedicaoXpmDialog";
 import { PREFIXO_PRE_VOO } from "@/lib/pedidos/xpm";
 import { useLiberaRefaturamento } from "@/hooks/pedidos/useProblemasPedido";
+import { ExpedirPorB2B, useCdExpedicaoB2B } from "@/components/pedidos/ExpedirPorB2B";
 
 
 interface Props {
@@ -107,6 +108,8 @@ export function AcoesRemessa({
   // estagios de separacao (problema aberto de tipo que libera refaturamento).
   const { data: refat, isError: refatErro, error: refatErroObj } = useLiberaRefaturamento(pedido_id);
   const liberaRefaturamento = refat?.libera === true;
+  // F1 (04/10/2026): CD de expedição do pedido B2B. SITE-SP não vai pra XPM.
+  const { data: cdExp } = useCdExpedicaoB2B(pedido_id);
 
   if (isLoading || estagio === "cancelado") return null;
 
@@ -127,7 +130,9 @@ export function AcoesRemessa({
   // derivar /NN dali colidiria com id_externo de pedidos-filho (split) reais.
   // Ver `decisao-remessa-e-tentativa-envio`.
   const jaEmpurrado = !!pedidoXpm?.xpm_expedicao_codigo;
-  const podeEmpurrarXpm = estagioDeEnvio && !jaEmpurrado;
+  const siteSp = cdExp?.codigo === "SITE-SP";
+  const podeEmpurrarXpm = estagioDeEnvio && !jaEmpurrado && !siteSp;
+  const mostrarExpedirPor = !!cdExp?.ehB2B && estagio === "pre_separacao" && !jaEmpurrado;
   const ocupado = enviar.isPending || empurrarXpm.isPending;
 
   // ESTOQUE-BLOQUEIA (01/09/2026): falta de estoque é bloqueio; forçar tem nome
@@ -171,12 +176,14 @@ export function AcoesRemessa({
     isSuperAdmin && !!bling_id_destino && temTentativaVigente
     && (estagio === "pre_separacao" || estagio === "em_separacao" || liberaRefaturamento);
 
-  if (!mostrarAlerta && elegiveis.length === 0 && !podeReenviar
+  if (!mostrarExpedirPor && !mostrarAlerta && elegiveis.length === 0 && !podeReenviar
       && !podeEmpurrarXpm && !jaEmpurrado && !pedidoXpm?.xpm_envio_erro) return null;
 
 
   return (
     <div className="space-y-2">
+      {mostrarExpedirPor && <ExpedirPorB2B pedido_id={pedido_id} />}
+
       {mostrarAlerta && (
         <Alert variant="default" className="bg-warning/10 border-warning/40">
           <AlertTriangle className="h-4 w-4 text-warning" />
