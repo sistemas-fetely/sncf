@@ -79598,16 +79598,21 @@ export type Database = {
       }
       v_transferencias_internas: {
         Row: {
+          canal: string | null
           cancelado_em: string | null
           cancelado_motivo: string | null
           data_pedido: string | null
           destino_centro_id: string | null
+          destino_codigo: string | null
           destino_interno: string | null
           estagio: string | null
           id: string | null
           id_externo: string | null
           natureza_codigo: string | null
           observacao_pedido: string | null
+          orfao: boolean | null
+          origem_centro_id: string | null
+          origem_codigo: string | null
           qtd_itens: number | null
           qtd_total_pecas: number | null
           recebido_em: string | null
@@ -79639,6 +79644,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
           },
         ]
       }
