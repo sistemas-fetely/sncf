@@ -134,6 +134,7 @@ interface PedidoListaRow {
   rocabella_ref: string | null;
   modalidade: string | null;
   moeda: string | null;
+  fabrica: string | null;
   data_pedido: string | null;
   prazo_entrega_acordado: string | null;
   etd: string | null;
@@ -480,7 +481,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, fabrica, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
@@ -803,28 +804,28 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
-  // ORDENACAO-POR-COMPETENCIA: competência (aaaa_mm) desc, desempate por número do pedido.
-  // A busca varre o campo `busca` da view de identidade (números + categoria, minúsculo).
+  // ORDENACAO-POR-EMBARQUE: ETA crescente (nulos no fim); dentro do mesmo embarque,
+  // por referência e depois por número do pedido.
+  // A busca varre o campo `busca` da view de identidade + a referência do embarque (rocabella_ref).
   const pedidosOrdenados = useMemo(() => {
     const termo = buscaPedido.trim().toLowerCase();
     let lista = [...(pedidosQ.data ?? [])];
     if (termo) {
       lista = lista.filter((p) => {
         const id = identidade.porPedido.get(Number(p.id));
-        const alvo = (id?.busca ?? p.numero_pedido ?? "").toLowerCase();
+        const alvo = [(id?.busca ?? p.numero_pedido ?? ""), p.rocabella_ref ?? ""]
+          .join(" ")
+          .toLowerCase();
         return alvo.includes(termo);
       });
     }
     lista.sort((a, b) => {
-      const ia = identidade.porPedido.get(Number(a.id));
-      const ib = identidade.porPedido.get(Number(b.id));
-      const ca = ia?.competencia ?? "";
-      const cb = ib?.competencia ?? "";
-      if (ca !== cb) {
-        if (!ca) return 1;
-        if (!cb) return -1;
-        return cb.localeCompare(ca);
-      }
+      if (a.eta && b.eta && a.eta !== b.eta) return a.eta.localeCompare(b.eta);
+      if (a.eta) return -1;
+      if (b.eta) return 1;
+      const ra = a.rocabella_ref ?? "";
+      const rb = b.rocabella_ref ?? "";
+      if (ra !== rb) return ra.localeCompare(rb, "pt-BR");
       return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
     });
     return lista;
@@ -868,7 +869,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             busca={{
               valor: buscaPedido,
               aoMudar: setBuscaPedido,
-              placeholder: "Buscar por número, proforma, invoice, PL, processo ou categoria…",
+              placeholder: "Buscar por número, proforma, invoice, PL, processo, categoria ou referência do embarque…",
             }}
             semResultado="Nenhum pedido com esse número, referência ou categoria."
             total={pedidosQ.data?.length ?? 0}
@@ -876,11 +877,14 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             rotulo="pedidos"
 
           >
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+              <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
-                    <TableHead>Número</TableHead>
+                    <TableHead className="sticky left-0 top-0 z-20 bg-background">
+                      Embarque
+                    </TableHead>
+                    <TableHead>Pedido</TableHead>
                     <TableHead>Referências</TableHead>
 
                     <TableHead>Modalidade</TableHead>
@@ -925,11 +929,25 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
                       className="cursor-pointer"
                       onClick={() => navigate(`/vendas/produto/chegada-mercadoria/${p.id}`)}
                     >
+                      <TableCell className="sticky left-0 bg-background whitespace-nowrap">
+                        {p.modalidade === "nacional" ? (
+                          <span className="text-muted-foreground">Nacional</span>
+                        ) : p.rocabella_ref ? (
+                          <span className="font-mono text-sm font-medium">{p.rocabella_ref}</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                       <TableCell>
-                        <CelulaIdentidade
-                          identidade={identidade.porPedido.get(Number(p.id))}
-                          numeroCru={p.numero_pedido}
-                        />
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <CelulaIdentidade
+                            identidade={identidade.porPedido.get(Number(p.id))}
+                            numeroCru={p.numero_pedido}
+                          />
+                          {p.fabrica ? (
+                            <span className="text-xs text-muted-foreground">{p.fabrica}</span>
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <CelulaReferencias identidade={identidade.porPedido.get(Number(p.id))} />

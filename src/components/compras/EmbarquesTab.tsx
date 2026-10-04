@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -1002,20 +1002,32 @@ export default function EmbarquesTab() {
                                 const fab = v.pedido?.fabrica_id
                                   ? fabricaPorId.get(v.pedido.fabrica_id)
                                   : undefined;
+                                if (!v.pedido) {
+                                  return (
+                                    <span
+                                      key={v.id}
+                                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
+                                    >
+                                      pedido removido
+                                    </span>
+                                  );
+                                }
                                 return (
-                                  <span
+                                  <Link
                                     key={v.id}
+                                    to={`/vendas/produto/chegada-mercadoria/${v.pedido.id}`}
+                                    onClick={(ev) => ev.stopPropagation()}
                                     className={cn(
-                                      "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px]",
+                                      "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors hover:border-foreground/40 hover:underline",
                                       v.parcial && "border-warning/50",
                                     )}
                                   >
-                                    {v.pedido?.numero_pedido ?? "pedido removido"}
+                                    {v.pedido.numero_pedido ?? "pedido removido"}
                                     {fab ? (
                                       <span className="text-muted-foreground">{fab.codigo}</span>
                                     ) : null}
                                     {v.parcial ? <span className="text-warning">parcial</span> : null}
-                                  </span>
+                                  </Link>
                                 );
                               })}
                         </div>
