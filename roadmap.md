@@ -13,8 +13,8 @@
 - [x] Paginar Conferência, Efetivação e Nascer no FOP acima de 50 linhas.
 - [x] Executar o typecheck sem publicar.
 - [x] Adicionar seleção de produtos filtrados na Mesa do Produto.
-- [ ] Criar promoção de fase em lote com progresso e falhas nomeadas.
-- [ ] Encadear sucessos promovidos a Ativo com o fluxo existente do Bling.
-- [ ] Validar seleção, atalhos, permissões, typecheck e build.
+- [x] Criar promoção de fase em lote com progresso e falhas nomeadas.
+- [x] Encadear sucessos promovidos a Ativo com o fluxo existente do Bling.
+- [x] Validar seleção, atalhos, permissões, typecheck e build.
 - [x] Mover observações da venda direta para observações internas no envio ao Bling e validar com Deno.
 - [x] Corrigir no Bling o nome do contato da venda direta encontrado pelo CPF, com bloqueio em falha.
