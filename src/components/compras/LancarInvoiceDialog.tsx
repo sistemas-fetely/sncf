@@ -400,7 +400,7 @@ export default function LancarInvoiceDialog({
       invalidarCompras(qc);
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["importacao-embarques"] }),
-        qc.invalidateQueries({ queryKey: ["importacao-embarque-painel"] }),
+        qc.invalidateQueries({ queryKey: ["vw_importacao_embarque_painel"] }),
         qc.invalidateQueries({ queryKey: ["importacao-pedidos-painel"] }),
         qc.invalidateQueries({ queryKey: ["embarque-documentos"] }),
       ]);

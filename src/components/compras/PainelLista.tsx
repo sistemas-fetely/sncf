@@ -93,6 +93,8 @@ interface PedidoVinculado {
   id: number;
   numero_pedido: string | null;
   fabrica_id: number | null;
+  fornecedor_id: string | null;
+  moeda: string | null;
   valor_fob_total: number | null;
   cbm_total: number | null;
 }
@@ -366,7 +368,7 @@ const SELECT_EMBARQUE = `
   ),
   vinculos:importacao_embarque_pedido (
     id, parcial, observacao,
-    pedido:importacao_pedido ( id, numero_pedido, fabrica_id, valor_fob_total, cbm_total )
+    pedido:importacao_pedido ( id, numero_pedido, fabrica_id, fornecedor_id, moeda, valor_fob_total, cbm_total )
   )
 `;
 
