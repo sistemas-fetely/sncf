@@ -19,4 +19,4 @@
 - [x] Mover observações da venda direta para observações internas no envio ao Bling e validar com Deno.
 - [x] Corrigir no Bling o nome do contato da venda direta encontrado pelo CPF, com bloqueio em falha.
 - [ ] F1 exportar planilha de cadastro (bloqueado: FOP sem função de leitura de produtos).
-- [ ] Reprocessar produtos: contar "linhas sem destino" (sem SKU + SKU fora dos pedidos do embarque).
+- [x] Reprocessar produtos: contar "linhas sem destino" (sem SKU + SKU fora dos pedidos do embarque).
