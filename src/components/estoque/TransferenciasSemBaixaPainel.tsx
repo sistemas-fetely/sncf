@@ -112,6 +112,9 @@ export function TransferenciasSemBaixaPainel({ onLancado }: { onLancado?: () => 
     }
   }
 
+  // G6: só aparece quando há fila (nada enquanto carrega). Erro continua visível.
+  if (!q.isError && (q.isLoading || (q.data ?? []).length === 0)) return null;
+
   return (
     <Card>
       <CardHeader>
