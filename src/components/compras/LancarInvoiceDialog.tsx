@@ -427,7 +427,7 @@ export default function LancarInvoiceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Lançar Invoice</DialogTitle>
           <DialogDescription>
@@ -436,6 +436,7 @@ export default function LancarInvoiceDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <div className="min-h-0 overflow-y-auto">
         <div className="flex items-center gap-2">
           <input
             ref={inputRef}
@@ -695,9 +696,9 @@ export default function LancarInvoiceDialog({
             )}
 
             {(previa.itens?.length ?? 0) > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
+              <div className="overflow-auto max-h-[45vh]">
+                <Table containerClassName="overflow-visible">
+                  <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
                       <TableHead>#</TableHead>
                       <TableHead>Código fornecedor</TableHead>
@@ -740,8 +741,9 @@ export default function LancarInvoiceDialog({
             )}
           </div>
         )}
+        </div>
 
-        <DialogFooter className="gap-2">
+        <DialogFooter className="gap-2 shrink-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
