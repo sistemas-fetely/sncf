@@ -1,3 +1,4 @@
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -81,6 +82,7 @@ interface PreviaNf {
 
 interface Props {
   pedidoId: number;
+  pedidoIds?: number[];
   fornecedorId: string | null;
   onGravado: () => void;
 }
@@ -96,7 +98,8 @@ const fmtCnpj = (s: string | null | undefined) => {
 const fmtData = (d: string | null) =>
   d ? new Date(`${d}`.slice(0, 10) + "T00:00:00").toLocaleDateString("pt-BR") : "—";
 
-export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }: Props) {
+export default function LancarNfArquivoTab({ pedidoId, pedidoIds, fornecedorId, onGravado }: Props) {
+  const pedidosEfetivos = pedidoIds && pedidoIds.length > 0 ? pedidoIds : [pedidoId];
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
   const [arquivo, setArquivo] = useState<File | null>(null);
@@ -199,7 +202,7 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
     const { data, error } = await (supabase as any).rpc("lancar_nf_importacao", {
       p_nf,
       p_linhas,
-      p_pedido_ids: [pedidoId],
+      p_pedido_ids: pedidosEfetivos,
       p_confirmar: confirmar,
     });
     if (error) throw error;
@@ -239,8 +242,11 @@ export default function LancarNfArquivoTab({ pedidoId, fornecedorId, onGravado }
           `Origem da NF mantida${origemInfo.origem ? ` como "${origemInfo.origem}"` : ""}: ${origemInfo.motivo ?? "procedência mais forte já registrada."}`,
         );
       }
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pedidoId] });
+      for (const pid of pedidosEfetivos) {
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pid] });
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pid] });
+      }
+      invalidarCompras(qc);
       qc.invalidateQueries({ queryKey: ["pedido-mercadoria-conferencia-nf"] });
       qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
       qc.invalidateQueries({ queryKey: ["nfs-stage-mercadoria-pendente"] });

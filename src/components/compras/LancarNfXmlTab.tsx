@@ -1,3 +1,4 @@
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -83,11 +84,13 @@ const fmtData = (d: string | null) =>
 
 interface Props {
   pedidoId: number;
+  pedidoIds?: number[];
   fornecedorId: string | null;
   onGravado: () => void;
 }
 
-export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Props) {
+export default function LancarNfXmlTab({ pedidoId, pedidoIds, fornecedorId, onGravado }: Props) {
+  const pedidosEfetivos = pedidoIds && pedidoIds.length > 0 ? pedidoIds : [pedidoId];
   const qc = useQueryClient();
   const [selecionada, setSelecionada] = useState<StageRow | null>(null);
   const [previa, setPrevia] = useState<PreviaXml | null>(null);
@@ -111,7 +114,7 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
     if (!selecionada) throw new Error("Selecione uma NF capturada por XML.");
     const { data, error } = await (supabase as any).rpc("importar_nf_de_stage", {
       p_stage_id: selecionada.nfs_stage_id,
-      p_pedido_ids: [pedidoId],
+      p_pedido_ids: pedidosEfetivos,
       p_confirmar: confirmar,
     });
     if (error) throw error;
@@ -146,8 +149,11 @@ export default function LancarNfXmlTab({ pedidoId, fornecedorId, onGravado }: Pr
       toast.success(
         `NF ${selecionada?.nf_numero ?? ""} ${acao} — ${d.linhas_gravadas ?? d.linhas ?? 0} linha(s), ${d.linhas_sem_depara ?? 0} sem de-para.`,
       );
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pedidoId] });
-      qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pedidoId] });
+      for (const pid of pedidosEfetivos) {
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-detalhe", pid] });
+        qc.invalidateQueries({ queryKey: ["pedido-mercadoria-nfs", pid] });
+      }
+      invalidarCompras(qc);
       qc.invalidateQueries({ queryKey: ["pedido-mercadoria-conferencia-nf"] });
       qc.invalidateQueries({ queryKey: ["importacao-pedido-lista"] });
       qc.invalidateQueries({ queryKey: ["nfs-stage-mercadoria-pendente"] });
