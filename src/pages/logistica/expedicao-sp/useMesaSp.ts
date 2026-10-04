@@ -60,7 +60,7 @@ export function usePedidosMesaSp() {
       if (error) throw new Error(`ler pedidos da mesa: ${mensagemErro(error)}`);
 
       const linhas = (pedidos ?? []) as PedidoMesa[];
-      if (linhas.length === 0) return [];
+      if (linhas.length === 0) return lerB2bSiteSp();
 
       const { data: roteados, error: eRot } = await supabaseMesa
         .from("pedido_eventos")
@@ -101,15 +101,6 @@ async function lerB2bSiteSp(): Promise<PedidoMesa[]> {
     .order("recebido_em", { ascending: true });
   if (error) throw new Error(`ler pedidos B2B do Site SP: ${mensagemErro(error)}`);
   return (data ?? []) as PedidoMesa[];
-}
-
-function _fimLeituraB2b() {
-  return useQuery({
-    queryKey: ["mesa-sp", "nao-usado"],
-    enabled: false,
-    queryFn: async () => {
-    },
-  });
 }
 
 /** Eventos `mesa_*` (+ o roteamento) dos pedidos listados — alimenta trilha e sub-estação. */

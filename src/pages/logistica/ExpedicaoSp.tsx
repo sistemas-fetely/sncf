@@ -18,7 +18,7 @@ import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
-  ESTACOES, ESTAGIO_FILA, ROTULO_ESTACAO,
+  ESTACOES, ESTACOES_B2B_POS_EMBALAGEM, ESTAGIO_FILA, ROTULO_ESTACAO, pedidoEhB2B,
   embalagemDoPedido, estacaoBase, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
@@ -93,6 +93,8 @@ export default function ExpedicaoSp() {
     [modaisQ.data],
   );
   const prontos = pedidos.filter((p) => estacaoDe.get(p.id) === "despacho");
+  const aguardandoNf = pedidos.filter((p) => estacaoDe.get(p.id) === "aguardando_nf");
+  const nfEmitida = pedidos.filter((p) => estacaoDe.get(p.id) === "nf_emitida");
   const aguardandoRetirada = prontos.filter((p) => {
     const codigo = embalagemDoPedido(eventosPorPedido.get(p.id) ?? [])?.modal;
     return codigo ? modalPorCodigo.get(codigo)?.sem_despacho === true : false;
@@ -103,7 +105,7 @@ export default function ExpedicaoSp() {
   const gruposMesa = useMemo(
     () =>
       ESTACOES
-        .filter((estacao) => estacao !== "despacho")
+        .filter((estacao) => estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem")
         .map((estacao) => ({ estacao, doGrupo: naMesa.filter((p) => estacaoDe.get(p.id) === estacao) }))
         .filter(({ doGrupo }) => doGrupo.length > 0),
     [naMesa, estacaoDe],
@@ -112,13 +114,14 @@ export default function ExpedicaoSp() {
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
   useEffect(() => {
     if (selecionadoId && pedidos.some((p) => p.id === selecionadoId)) return;
-    setSelecionadoId(naMesa[0]?.id ?? aguardandoRetirada[0]?.id ?? prontosDespacho[0]?.id ?? fila[0]?.id ?? null);
-  }, [pedidos, naMesa, aguardandoRetirada, prontosDespacho, fila, selecionadoId]);
+    setSelecionadoId(naMesa[0]?.id ?? aguardandoRetirada[0]?.id ?? prontosDespacho[0]?.id ?? fila[0]?.id ?? aguardandoNf[0]?.id ?? nfEmitida[0]?.id ?? null);
+  }, [pedidos, naMesa, aguardandoRetirada, prontosDespacho, fila, aguardandoNf, nfEmitida, selecionadoId]);
 
   const selecionado = pedidos.find((p) => p.id === selecionadoId) ?? null;
   const identidadesSelecionado = selecionado ? identidadesQ.data?.get(selecionado.id) : undefined;
   const eventosSelecionado = selecionado ? eventosPorPedido.get(selecionado.id) ?? [] : [];
   const estacaoSelecionada = selecionado ? estacaoDe.get(selecionado.id) ?? "fila" : "fila";
+  const selecionadoEhB2B = selecionado ? pedidoEhB2B(selecionado.canal) : false;
   const selecionadoEhVD = selecionado ? pedidoEhVendaDireta(selecionado.id_externo) : false;
   const modoEntregaSelecionado = selecionadoEhVD ? modoEntregaVendaDireta(selecionado?.endereco_entrega) : null;
   const modalVdSelecionado = modoEntregaSelecionado
@@ -187,7 +190,7 @@ export default function ExpedicaoSp() {
   /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
   const contadores = useMemo(() => {
     const base: Record<Estacao, number> = {
-      fila: 0, separacao: 0, conferencia: 0, embalagem: 0, despacho: 0,
+      fila: 0, separacao: 0, conferencia: 0, embalagem: 0, despacho: 0, aguardando_nf: 0, nf_emitida: 0,
     };
     for (const estacao of estacaoDe.values()) base[estacao] += 1;
     return base;
@@ -223,13 +226,13 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF`
         }
       />
 
       {/* Contadores por estação: o operador vê a bancada inteira de um olhar. */}
       <div className="flex flex-wrap gap-2">
-        {ESTACOES.filter((e) => e !== "despacho").map((e) => (
+        {ESTACOES.filter((e) => e !== "despacho" && e !== "nf_emitida").map((e) => (
           <Selo key={e} estado={contadores[e] > 0 ? "info" : "muted"}>
             {ROTULO_ESTACAO[e]} · {contadores[e]}
           </Selo>
@@ -334,6 +337,37 @@ export default function ExpedicaoSp() {
             </CardContent>
           </Card>}
 
+          {ESTACOES_B2B_POS_EMBALAGEM.map((estacao) => {
+            const lista = estacao === "aguardando_nf" ? aguardandoNf : nfEmitida;
+            if (estacao === "nf_emitida" && lista.length === 0) return null;
+            return (
+              <Card key={estacao}>
+                <CardContent className="space-y-3 p-4">
+                  <p className="text-sm font-medium">{ROTULO_ESTACAO[estacao]} · {lista.length}</p>
+                  {lista.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum B2B embalado aguardando NF.</p>
+                  ) : (
+                    <ul className="space-y-2">
+                      {lista.map((p) => {
+                        const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
+                        return (
+                          <li key={p.id}>
+                            <LinhaPedido
+                              pedido={p}
+                              ativo={p.id === selecionadoId}
+                              rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
+                              onSelecionar={() => setSelecionadoId(p.id)}
+                            />
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+
           <Card>
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-medium">
@@ -401,6 +435,14 @@ export default function ExpedicaoSp() {
                        nf={identidadesSelecionado?.nf_refs}
                        loja={identidadesSelecionado?.order_name}
                      />
+                     {selecionadoEhB2B && (
+                       <div className="flex flex-wrap items-center gap-2">
+                         <Selo estado="info">B2B</Selo>
+                         <span className="text-xs text-muted-foreground">
+                           {selecionado.cliente_nome_snapshot ?? "razão social não informada"}
+                         </span>
+                       </div>
+                     )}
                      {selecionadoEhVD && (
                        <div className="flex flex-wrap items-center gap-2">
                          <Selo estado="info">Site SP · venda direta</Selo>
@@ -416,6 +458,22 @@ export default function ExpedicaoSp() {
                   <Selo estado="info">{ROTULO_ESTACAO[estacaoSelecionada]}</Selo>
                 </CardContent>
               </Card>
+
+              {(estacaoSelecionada === "aguardando_nf" || estacaoSelecionada === "nf_emitida") && (
+                <Card>
+                  <CardContent className="space-y-2 p-4">
+                    {(() => {
+                      const emb = embalagemDoPedido(eventosSelecionado);
+                      const medidas = `Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`;
+                      return estacaoSelecionada === "aguardando_nf" ? (
+                        <p className="text-sm">{medidas} — aguardando a Eva emitir a NF (matriz SP).</p>
+                      ) : (
+                        <p className="text-sm">{medidas} — NF emitida, despacho em breve.</p>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              )}
 
               {estacaoSelecionada === "fila" && (
                 <Card>
@@ -463,6 +521,7 @@ export default function ExpedicaoSp() {
                   enderecoEntrega={selecionado.endereco_entrega}
                   modoVendaDireta={modoEntregaSelecionado}
                   modalVendaDireta={modalVdSelecionado}
+                  modalPreferido={selecionadoEhB2B ? "TRANSPORTADORA" : null}
                   itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}
@@ -588,6 +647,7 @@ function LinhaPedido({
       <span className="flex flex-wrap items-center gap-1.5 text-sm">
         <span className="truncate">{pedido.id_externo}</span>
         {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
+        {pedidoEhB2B(pedido.canal) && <Selo estado="info">B2B</Selo>}
       </span>
       <span className="block truncate text-xs text-muted-foreground">
         {pedido.cliente_nome_snapshot ?? "cliente sem nome"}

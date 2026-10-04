@@ -36,6 +36,8 @@ interface Props {
   /** Preenchido somente para venda direta; nos demais pedidos vale a regra de CEP. */
   modoVendaDireta: string | null;
   modalVendaDireta: string | null;
+  /** Modal pré-selecionado fora da venda direta (ex.: B2B → TRANSPORTADORA). Operador pode trocar. */
+  modalPreferido?: string | null;
   itens: ItemPedidoMesa[];
   modais: ModalEntrega[];
   regras: ModalRegra[];
@@ -55,7 +57,7 @@ interface Props {
 
 
 export function EstacaoEmbalagem({
-  pedidoId, enderecoEntrega, modoVendaDireta, modalVendaDireta, itens, modais, regras, checklist,
+  pedidoId, enderecoEntrega, modoVendaDireta, modalVendaDireta, modalPreferido = null, itens, modais, regras, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
   caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
 }: Props) {
@@ -77,7 +79,7 @@ export function EstacaoEmbalagem({
   }, [sugeridaCodigo, caixa]);
 
   const cep = cepDoEndereco(enderecoEntrega);
-  const sugerido = modoVendaDireta ? modalVendaDireta : modalSugerido(cep, regras);
+  const sugerido = modoVendaDireta ? modalVendaDireta : modalPreferido ?? modalSugerido(cep, regras);
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
   const caixaDiferenteDaSugerida =
