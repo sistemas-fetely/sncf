@@ -6,6 +6,7 @@ import {
   AlertTriangle, ArrowDown, ArrowDownCircle, ArrowUp, ArrowUpCircle, ArrowUpDown, Ban, Check,
   ChevronDown, Columns3, Download, GripVertical,
   ImageOff, Loader2, PackageX, RefreshCw, Search, X,
+  Upload,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -167,6 +168,7 @@ function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:strin
 export default function MesaProduto() {
   const [busca,setBusca]=useState(""); const [situacoes,setSituacoes]=useState<string[]>([]); const [fasesSel,setFasesSel]=useState<string[]>([]);
   const [exportCad,setExportCad]=useState(false);
+  const [importCad,setImportCad]=useState(false);
   const [exportSoMedicao,setExportSoMedicao]=useState(false);
   const aguardandoMedicao=useQuery({queryKey:["mesa-aguardando-medicao"],staleTime:5*60_000,queryFn:async()=>{
     const {data,error}=await supabase.functions.invoke("exportar-planilha-produto",{body:{so_contagem:true}});
