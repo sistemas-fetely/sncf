@@ -282,6 +282,14 @@ interface TransferenciaRow {
   origem_codigo: string | null;
   destino_codigo: string | null;
   orfao: boolean | null;
+  sem_origem: boolean | null;
+  sem_destino: boolean | null;
+  nf_numero: string | null;
+  nf_serie: string | null;
+  nf_situacao: string | null;
+  nf_data_emissao: string | null;
+  data_entrega_prevista: string | null;
+  entregue_em: string | null;
   canal: string | null;
 }
 
@@ -521,7 +529,7 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, canal"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
@@ -1116,12 +1124,16 @@ export default function TransferenciasInternas() {
                       <TableCell onKeyDown={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <SeloTipo t={t} />
-                          {t.orfao === true && (
+                          {(t.sem_origem || t.sem_destino) && (
                             <Badge
                               variant="outline"
                               title="Transferência nascida fora do fluxo TRS — origem e/ou destino não foram declarados."
                             >
-                              Sem origem/destino
+                              {t.sem_origem && t.sem_destino
+                                ? "Sem origem nem destino"
+                                : t.sem_origem
+                                  ? "Sem origem"
+                                  : "Sem destino"}
                             </Badge>
                           )}
                         </div>
@@ -1165,7 +1177,7 @@ export default function TransferenciasInternas() {
                               </div>
                             );
                           }
-                          if (t.orfao === true) {
+                          if (t.sem_destino === true) {
                             return (
                               <span className="text-xs text-muted-foreground">
                                 Declare o destino primeiro
