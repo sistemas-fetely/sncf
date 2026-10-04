@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, Upload } from "lucide-react";
 
@@ -19,7 +18,6 @@ const fmt = (v: unknown) => (v === null || v === undefined || v === "" ? "—" :
 const legivel = (s: string | null) => (s ? s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : "");
 
 export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido }: Props) {
-  const qc = useQueryClient();
   const [lendo, setLendo] = useState(false);
   const [previa, setPrevia] = useState<Previa | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -77,7 +75,6 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     }
     setResultado(res);
     onConcluido();
-    void qc.invalidateQueries();
     if (res.recusas.length) toast.error(`${res.recusas.length} recusa(s) na importação — veja a lista.`);
     else toast.success(`Importação concluída: ${res.gravados.length} gravados, ${res.promovidos.length} liberados.`);
   }
