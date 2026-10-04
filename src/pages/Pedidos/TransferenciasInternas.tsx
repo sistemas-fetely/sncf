@@ -282,6 +282,14 @@ interface TransferenciaRow {
   origem_codigo: string | null;
   destino_codigo: string | null;
   orfao: boolean | null;
+  sem_origem: boolean | null;
+  sem_destino: boolean | null;
+  nf_numero: string | null;
+  nf_serie: string | null;
+  nf_situacao: string | null;
+  nf_data_emissao: string | null;
+  data_entrega_prevista: string | null;
+  entregue_em: string | null;
   canal: string | null;
 }
 
@@ -521,7 +529,7 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, canal"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
@@ -1065,7 +1073,8 @@ export default function TransferenciasInternas() {
               Nenhuma transferência interna registrada ainda.
             </p>
           ) : (
-            <Table>
+            <div className="overflow-x-auto">
+              <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
@@ -1073,10 +1082,13 @@ export default function TransferenciasInternas() {
                   <TableHead>Origem</TableHead>
                   <TableHead>Destino</TableHead>
                   <TableHead>Estágio</TableHead>
+                  <TableHead>NF</TableHead>
                   <TableHead className="text-right">Qtd. itens</TableHead>
                   <TableHead className="text-right">Qtd. peças</TableHead>
                   <TableHead className="text-right">Valor (a custo)</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Previsão</TableHead>
+                  <TableHead>Entrega</TableHead>
                   <TableHead>Recebimento</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1116,12 +1128,16 @@ export default function TransferenciasInternas() {
                       <TableCell onKeyDown={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <SeloTipo t={t} />
-                          {t.orfao === true && (
+                          {(t.sem_origem || t.sem_destino) && (
                             <Badge
                               variant="outline"
                               title="Transferência nascida fora do fluxo TRS — origem e/ou destino não foram declarados."
                             >
-                              Sem origem/destino
+                              {t.sem_origem && t.sem_destino
+                                ? "Sem origem nem destino"
+                                : t.sem_origem
+                                  ? "Sem origem"
+                                  : "Sem destino"}
                             </Badge>
                           )}
                         </div>
@@ -1137,6 +1153,20 @@ export default function TransferenciasInternas() {
                       <TableCell>
                         <SeloEstagio estagio={t.estagio} />
                       </TableCell>
+                      <TableCell>
+                        {(() => {
+                          if (!t.nf_numero) return <span className="text-muted-foreground">—</span>;
+                          const alerta = t.nf_situacao && t.nf_situacao !== "autorizada";
+                          return (
+                            <span
+                              className={cn("tabular-nums", alerta && "text-warning")}
+                              title={`NF ${t.nf_numero}/${t.nf_serie} · emitida em ${formatDateBR(t.nf_data_emissao)} · ${t.nf_situacao}`}
+                            >
+                              {t.nf_numero}
+                            </span>
+                          );
+                        })()}
+                      </TableCell>
                       <TableCell className="text-right tabular-nums text-sm">
                         {t.qtd_itens ?? "—"}
                       </TableCell>
@@ -1148,6 +1178,12 @@ export default function TransferenciasInternas() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {formatDateBR(t.data_pedido)}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.data_entrega_prevista ? formatDateBR(t.data_entrega_prevista) : <span className="text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {t.entregue_em ? formatDateBR(t.entregue_em) : <span className="text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         {(() => {
@@ -1165,7 +1201,7 @@ export default function TransferenciasInternas() {
                               </div>
                             );
                           }
-                          if (t.orfao === true) {
+                          if (t.sem_destino === true) {
                             return (
                               <span className="text-xs text-muted-foreground">
                                 Declare o destino primeiro
@@ -1193,7 +1229,8 @@ export default function TransferenciasInternas() {
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
