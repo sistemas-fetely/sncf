@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const { data: u, error: uErr } = await sb.auth.getUser(auth.replace("Bearer ", ""));
     if (uErr || !u?.user) return json({ ok: false, erro: "Sessão inválida" }, 401);
 
-    let body: { colecoes?: unknown; so_aguardando_medicao?: unknown; so_contagem?: unknown } = {};
+    let body: { colecoes?: unknown; cods?: unknown; so_aguardando_medicao?: unknown; so_contagem?: unknown } = {};
     try { body = await req.json(); } catch { body = {}; }
     let colecoes: string[] | null = null;
     if (body.colecoes !== undefined && body.colecoes !== null) {
@@ -42,6 +42,13 @@ Deno.serve(async (req) => {
         return json({ ok: false, erro: "colecoes deve ser uma lista de textos" }, 400);
       }
       colecoes = (body.colecoes as string[]).length ? (body.colecoes as string[]) : null;
+    }
+    let cods: Set<string> | null = null;
+    if (body.cods !== undefined && body.cods !== null) {
+      if (!Array.isArray(body.cods) || body.cods.length > 5000 || body.cods.some((c) => typeof c !== "string" || c.length > 50)) {
+        return json({ ok: false, erro: "cods deve ser uma lista de códigos" }, 400);
+      }
+      cods = new Set((body.cods as string[]).map((c) => c.trim()));
     }
     for (const k of ["so_aguardando_medicao", "so_contagem"] as const) {
       if (body[k] !== undefined && body[k] !== null && typeof body[k] !== "boolean") {
@@ -66,7 +73,8 @@ Deno.serve(async (req) => {
       Array.isArray(p._pendencias_medicao) ? (p._pendencias_medicao as string[]) : [];
     const aguardando = (fopRaw as Record<string, unknown>[]).filter((p) => pendMed(p).length > 0);
     if (soContagem) return json({ ok: true, aguardando_medicao: aguardando.length });
-    const fopProdutos = soMedicao ? aguardando : (fopRaw as Record<string, unknown>[]);
+    let fopProdutos = soMedicao ? aguardando : (fopRaw as Record<string, unknown>[]);
+    if (cods) fopProdutos = fopProdutos.filter((p) => !vazio(p.cod_cadastro) && cods!.has(String(p.cod_cadastro).trim()));
 
     const { data: fichaRaw, error: fiErr } = await sb
       .from("produto_ficha_nascimento")
@@ -112,6 +120,7 @@ Deno.serve(async (req) => {
       }
       return {
         sku,
+        cod_cadastro: vazio(p.cod_cadastro) ? null : String(p.cod_cadastro),
         valores,
         sugestoes,
         fase_atual: p._fase_atual ?? null,

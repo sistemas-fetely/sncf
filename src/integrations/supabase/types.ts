@@ -113055,6 +113055,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_recebimento_liquido_sku: {
+        Row: {
+          cod_cadastro: string | null
+          data_ultimo_recebimento: string | null
+          excesso_liquido: number | null
+          falta_liquida: number | null
+          fornecedor: string | null
+          nfs: string | null
+          nome_comercial: string | null
+          numero_pedido: string | null
+          ocorrencias_abertas: number | null
+          pedido_id: number | null
+          preco_unit_nf: number | null
+          qtd_nao_conforme: number | null
+          qtd_nf: number | null
+          qtd_recebida: number | null
+          qtd_recebida_sem_nf: number | null
+          situacao: string | null
+          sku: string | null
+          valor_falta_liquida: number | null
+          valor_nao_conforme: number | null
+        }
+        Relationships: []
+      }
       vw_recebimento_pedido_nivel: {
         Row: {
           boleto_status: string | null
