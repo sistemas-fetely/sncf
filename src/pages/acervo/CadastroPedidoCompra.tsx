@@ -804,28 +804,28 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
-  // ORDENACAO-POR-COMPETENCIA: competência (aaaa_mm) desc, desempate por número do pedido.
-  // A busca varre o campo `busca` da view de identidade (números + categoria, minúsculo).
+  // ORDENACAO-POR-EMBARQUE: ETA crescente (nulos no fim); dentro do mesmo embarque,
+  // por referência e depois por número do pedido.
+  // A busca varre o campo `busca` da view de identidade + a referência do embarque (rocabella_ref).
   const pedidosOrdenados = useMemo(() => {
     const termo = buscaPedido.trim().toLowerCase();
     let lista = [...(pedidosQ.data ?? [])];
     if (termo) {
       lista = lista.filter((p) => {
         const id = identidade.porPedido.get(Number(p.id));
-        const alvo = (id?.busca ?? p.numero_pedido ?? "").toLowerCase();
+        const alvo = [(id?.busca ?? p.numero_pedido ?? ""), p.rocabella_ref ?? ""]
+          .join(" ")
+          .toLowerCase();
         return alvo.includes(termo);
       });
     }
     lista.sort((a, b) => {
-      const ia = identidade.porPedido.get(Number(a.id));
-      const ib = identidade.porPedido.get(Number(b.id));
-      const ca = ia?.competencia ?? "";
-      const cb = ib?.competencia ?? "";
-      if (ca !== cb) {
-        if (!ca) return 1;
-        if (!cb) return -1;
-        return cb.localeCompare(ca);
-      }
+      if (a.eta && b.eta && a.eta !== b.eta) return a.eta.localeCompare(b.eta);
+      if (a.eta) return -1;
+      if (b.eta) return 1;
+      const ra = a.rocabella_ref ?? "";
+      const rb = b.rocabella_ref ?? "";
+      if (ra !== rb) return ra.localeCompare(rb, "pt-BR");
       return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
     });
     return lista;
@@ -877,11 +877,14 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
             rotulo="pedidos"
 
           >
-              <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+              <div className="overflow-auto max-h-[calc(100vh-18rem)]">
+              <Table containerClassName="overflow-visible">
+                <TableHeader className="sticky top-0 z-10 bg-background">
                   <TableRow>
-                    <TableHead>Número</TableHead>
+                    <TableHead className="sticky left-0 top-0 z-20 bg-background">
+                      Embarque
+                    </TableHead>
+                    <TableHead>Pedido</TableHead>
                     <TableHead>Referências</TableHead>
 
                     <TableHead>Modalidade</TableHead>
