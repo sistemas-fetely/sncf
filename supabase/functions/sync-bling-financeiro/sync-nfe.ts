@@ -417,7 +417,7 @@ await sleep(300);
 
 console.log(`sync nfe: revalidacoes de cancelamento=${st.revalidados}, canceladas detectadas=${st.canceladasDetectadas}, erros de detalhe=${st.errosDetalhe}`);
 
-return { criados: st.criados, atualizados: st.atualizados, erros: st.erros, ultimoErro: st.ultimoErro || ultimoErro, proximaPagina: pagina, revalidados: st.revalidados, canceladasDetectadas: st.canceladasDetectadas, errosDetalhe: st.errosDetalhe,
+return { criados: st.criados, atualizados: st.atualizados, erros: st.erros, ultimoErro: ultimoErro || st.ultimoErro, proximaPagina: pagina, revalidados: st.revalidados, canceladasDetectadas: st.canceladasDetectadas, errosDetalhe: st.errosDetalhe,
   entradasEncontradas, entradasGravadas, entradasComReferencia, entradasComErro }; }
 
 // O endpoint /nfe/{id} NAO expoe nota referenciada nem a finalidade no JSON: refNFe,
