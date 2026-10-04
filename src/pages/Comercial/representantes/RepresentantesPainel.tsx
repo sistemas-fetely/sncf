@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
-import { fmtBRL, fmtData } from "../comissoes/fmt";
+import { fmtBRL, fmtData, fmtPct } from "../comissoes/fmt";
 import { lerTudo, fmtInt, TOOLTIP_SEM_CONTRAPARTE, type Linha } from "./dados";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 
@@ -222,10 +222,6 @@ export default function RepresentantesPainel() {
     if (meses < 3) t += " Atenção: menos de 3 meses de operação — a média ainda não é representativa.";
     return t;
   };
-  const fmtPct = (v: unknown) =>
-    `${Number(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-
-
   const cards = [
     ["Vendido no total", tot.vendido], ["Recebida", tot.recebida], ["A receber", tot.aReceber],
     ["Próximo recebimento", tot.proxima], ["Carteira vencida", tot.vencida],
@@ -365,7 +361,7 @@ export default function RepresentantesPainel() {
                   <TableCell className="whitespace-nowrap text-right tabular-nums" onClick={(e) => e.stopPropagation()}>
                     {r.desconto_medio_pct == null ? <span className="text-muted-foreground/50">—</span> : (
                       <Dica texto={DICA_DESCONTO}>
-                        <span className="underline decoration-dotted">{fmtPct(r.desconto_medio_pct)}</span>
+                        <span className="underline decoration-dotted">{fmtPct(r.desconto_medio_pct, "%", 2)}</span>
                       </Dica>
                     )}
                   </TableCell>

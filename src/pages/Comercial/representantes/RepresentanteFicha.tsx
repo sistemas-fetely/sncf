@@ -16,9 +16,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 
-import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
-import { lerTudo, fmtPct2, fmtInt, SITUACAO, type Linha } from "./dados";
+import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../comissoes/fmt";
+import { lerTudo, fmtInt, SITUACAO, type Linha } from "./dados";
 import { BadgeApto, Dica, prontidao } from "./RepresentantesPainel";
 import {
   dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
@@ -34,12 +35,39 @@ function Vazio({ children }: { children: ReactNode }) {
   return <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">{children}</div>;
 }
 
-function Kpi({ l, v }: { l: string; v: string }) {
+function Kpi({ l, v, dica }: { l: string; v: string; dica?: ReactNode }) {
   return (
     <Card><CardContent className="p-4">
-      <div className="text-xs text-muted-foreground">{l}</div>
+      <div className="group inline-flex items-center gap-1 text-xs text-muted-foreground">
+        {l}
+        {dica && <InfoMetrica rotulo="Do vendido à base faturada">{dica}</InfoMetrica>}
+      </div>
       <div className="mt-1 text-lg font-medium tabular-nums">{v}</div>
     </CardContent></Card>
+  );
+}
+
+function PonteVendidoBase({ dados }: { dados: Linha }) {
+  const n = (valor: unknown) => Number(valor ?? 0);
+  const descontos = n(dados.desconto_e_cortes);
+  const linha = (rotulo: string, valor: number, sinal = "") => (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 py-0.5">
+      <span>{rotulo}</span>
+      <span className="text-right tabular-nums">{sinal}{fmtBRL(Math.abs(valor))}</span>
+    </div>
+  );
+  return (
+    <div className="min-w-[18rem]">
+      {linha("Vendido (pedidos, antes do desconto)", n(dados.vendido_bruto))}
+      {n(dados.vendido_sem_nf) !== 0 && linha(`− Pedidos sem NF apurada (${fmtInt(dados.pedidos_sem_nf)})`, n(dados.vendido_sem_nf))}
+      {descontos !== 0 && linha(descontos < 0 ? "+ Descontos e ajustes" : "− Descontos e ajustes", descontos, descontos < 0 ? "+ " : "")}
+      {linha("= Valor das NFs", n(dados.valor_nf))}
+      {n(dados.frete) !== 0 && linha("− Frete (não comissiona)", n(dados.frete))}
+      {n(dados.outros_ajustes_base) !== 0 && linha("− Outros ajustes de base", n(dados.outros_ajustes_base))}
+      <div className="mt-1 border-t border-border pt-1 font-medium">
+        {linha("= Base faturada", n(dados.base_faturada))}
+      </div>
+    </div>
   );
 }
 
@@ -104,7 +132,7 @@ function CardCadastro({ v, k, print }: { v?: Linha; k: Linha; print?: boolean })
         {item("Região", v?.regiao || "—")}
         {item("% do FOP", v?.fop_comissao_percent != null && v?.fop_comissao_percent !== ""
           ? <Dica texto="Percentual individual cadastrado no FOP, fora da régua da cartilha">
-              <span className="underline decoration-dotted">{fmtPct2(v.fop_comissao_percent)}</span>
+              <span className="underline decoration-dotted">{fmtPct(v.fop_comissao_percent, "%", 2)}</span>
             </Dica>
           : "—")}
         {item("Documento", doc || <span className="text-warning">não informado</span>)}
@@ -179,21 +207,22 @@ function SituacaoFinanceira({ k }: { k: Linha }) {
   );
 }
 
-function Resumo({ k, v, serie, print }: { k: Linha; v?: Linha; serie: Linha[]; print?: boolean }) {
+function Resumo({ k, v, serie, ponte, print }: { k: Linha; v?: Linha; serie: Linha[]; ponte?: Linha; print?: boolean }) {
+  const dicaPonte = ponte ? <PonteVendidoBase dados={ponte} /> : undefined;
   return (
     <div className="space-y-4">
       <CardCadastro v={v} k={k} print={print} />
       <SituacaoFinanceira k={k} />
       <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} />
+        <Kpi l="Vendido" v={fmtBRL(k.valor_vendido_bruto)} dica={dicaPonte} />
         <Kpi l="Notas faturadas" v={fmtInt(k.notas_faturadas)} />
-        <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} />
+        <Kpi l="Base faturada" v={fmtBRL(k.base_faturada)} dica={dicaPonte} />
         <Kpi l="Comissão apurada" v={fmtBRL(k.comissao_apurada)} />
         <Kpi l="Liberada" v={fmtBRL(k.comissao_liberada)} />
         <Kpi l="Pendente" v={fmtBRL(k.comissao_pendente)} />
         <Kpi l="Ticket médio" v={fmtBRL(k.ticket_medio)} />
-        <Kpi l="Desconto médio %" v={fmtPct2(k.desconto_medio_pct)} />
-        <Kpi l="% efetivo médio" v={fmtPct2(k.pct_efetivo_medio)} />
+        <Kpi l="Desconto médio %" v={fmtPct(k.desconto_medio_pct, "%", 2)} />
+        <Kpi l="% efetivo médio" v={fmtPct(k.pct_efetivo_medio, "%", 2)} />
         <Kpi l="Clientes atendidos" v={fmtInt(k.clientes_distintos)} />
         <Kpi l="Clientes abertos por você" v={fmtInt(k.clientes_novos_total)} />
         <Kpi l="Clientes novos nos últimos 90 dias" v={fmtInt(k.clientes_novos_90d)} />
@@ -254,8 +283,8 @@ function Extrato({ det }: { det: Linha[] }) {
                 <TableCell>{i === 0 ? r.pedido : ""}</TableCell>
                 <TableCell className="max-w-[180px] truncate" title={r.cliente}>{i === 0 ? r.cliente : ""}</TableCell>
                 <TableCell className="tabular-nums">{i === 0 ? fmtBRL(r.base_comissionavel) : ""}</TableCell>
-                <TableCell className="tabular-nums">{i === 0 ? fmtPct2(r.desconto_pct) : ""}</TableCell>
-                <TableCell className="tabular-nums">{i === 0 ? fmtPct2(r.pct_efetivo) : ""}</TableCell>
+                <TableCell className="tabular-nums">{i === 0 ? fmtPct(r.desconto_pct, "%", 2) : ""}</TableCell>
+                <TableCell className="tabular-nums">{i === 0 ? fmtPct(r.pct_efetivo, "%", 2) : ""}</TableCell>
                 <TableCell className="tabular-nums">{i === 0 ? fmtBRL(r.comissao_da_nota) : ""}</TableCell>
                 <TableCell>{r.numero_parcela ? `${r.numero_parcela}/${r.total_parcelas ?? "?"}` : "—"}</TableCell>
                 <TableCell className="tabular-nums">{fmtBRL(r.valor_parcela)}</TableCell>
@@ -333,12 +362,17 @@ export default function RepresentanteFicha() {
     queryKey: ["representante-extratos-fechados", vendedorId],
     queryFn: () => lerExtratosDoRepresentante(vendedorId),
   });
+  const bq = useQuery({
+    queryKey: ["representante-vendido-base", vendedorId],
+    queryFn: () => lerTudo("vw_representante_vendido_base", (x) => x.eq("vendedor_id", vendedorId)),
+  });
   useFailLoud(eq.error, "competências do extrato");
   useFailLoud(vq.error, "cadastro do representante");
   useFailLoud(kq.error, "indicadores do representante");
   useFailLoud(sq.error, "série mensal");
   useFailLoud(dq.error, "extrato de comissão");
   useFailLoud(pq.error, "pagamentos");
+  useFailLoud(bq.error, "composição do vendido e da base faturada");
 
   const k = kq.data?.[0];
   const serie = sq.data ?? [], det = dq.data ?? [], pags = pq.data ?? [];
@@ -401,7 +435,7 @@ export default function RepresentanteFicha() {
           <TabsTrigger value="extrato">Extrato</TabsTrigger>
           <TabsTrigger value="pagamentos">Pagamentos</TabsTrigger>
         </TabsList>
-        <TabsContent value="resumo" className="mt-4"><Resumo k={k} v={vq.data?.[0]} serie={serie} /></TabsContent>
+        <TabsContent value="resumo" className="mt-4"><Resumo k={k} v={vq.data?.[0]} serie={serie} ponte={bq.data?.[0]} /></TabsContent>
         <TabsContent value="extrato" className="mt-4">{dq.isLoading ? "Carregando…" : <Extrato det={det} />}</TabsContent>
         <TabsContent value="pagamentos" className="mt-4">{pq.isLoading ? "Carregando…" : <Pagamentos pags={pags} />}</TabsContent>
       </Tabs>

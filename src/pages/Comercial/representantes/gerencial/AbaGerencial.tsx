@@ -8,20 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertTriangle, FileText, Loader2, Printer } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatError } from "@/lib/format-error";
-import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
+import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { Badge } from "@/components/ui/badge";
 import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { colunasCC, LEGENDA_CC, useContaCorrente } from "./contaCorrente";
 import { competenciaPadrao, mesSeguinte, num, primeiroDia, useGerencial } from "./dados";
-
-function pct(v: unknown, casas = 2): string {
-  if (v == null) return "—";
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "—";
-  return `${n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}%`;
-}
 
 /** Últimos 24 meses como opções de competência. */
 function opcoesCompetencia(): string[] {
@@ -163,7 +156,7 @@ export function AbaGerencial() {
             <Numerao titulo="Comissão apurada" valor={fmtBRL(num(g.mes?.comissao_apurada))} />
             <Numerao
               titulo="Custo da comissão"
-              valor={pct(g.mes?.custo_comissao_pct)}
+              valor={fmtPct(g.mes?.custo_comissao_pct, "%", 2)}
               detalhe="Comissão apurada sobre a base faturada"
               destaque
             />
@@ -213,8 +206,8 @@ export function AbaGerencial() {
                       <TableCell className="text-right tabular-nums">{fmtInt(l.notas)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.base_faturada))}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.comissao_apurada))}</TableCell>
-                      <TableCell className="text-right tabular-nums">{pct(l.custo_comissao_pct)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{pct(l.desconto_medio_pct)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(l.custo_comissao_pct, "%", 2)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmtPct(l.desconto_medio_pct, "%", 2)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(num(l.total_a_pagar))}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(cc.historico.get(String(l.competencia).slice(0, 10))?.a_liberar_final ?? 0)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(cc.historico.get(String(l.competencia).slice(0, 10))?.a_pagar_final ?? 0)}</TableCell>
@@ -266,8 +259,8 @@ export function AbaGerencial() {
                         <TableCell className="text-right tabular-nums">{fmtInt(r.clientesNovos)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtInt(r.notas)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.baseFaturada)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(r.descontoMedioPct)}</TableCell>
-                        <TableCell className="text-right tabular-nums">{pct(r.pctEfetivo)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtPct(r.descontoMedioPct, "%", 2)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtPct(r.pctEfetivo, "%", 2)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.comissaoApurada)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.comissaoLiberada)}</TableCell>
                         <TableCell className="text-right tabular-nums">{fmtBRL(r.aPagar)}</TableCell>

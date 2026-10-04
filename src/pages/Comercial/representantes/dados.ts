@@ -24,12 +24,6 @@ export async function lerTudo(
   return out;
 }
 
-export function fmtPct2(v: unknown): string {
-  const n = Number(v ?? 0);
-  if (!Number.isFinite(n)) return "—";
-  return `${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-}
-
 export function fmtInt(v: unknown): string {
   return Number(v ?? 0).toLocaleString("pt-BR");
 }
