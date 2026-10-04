@@ -1114,7 +1114,24 @@ export default function TransferenciasInternas() {
                         </span>
                       </TableCell>
                       <TableCell onKeyDown={(e) => e.stopPropagation()}>
-                        <SeloTipo t={t} />
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <SeloTipo t={t} />
+                          {t.orfao === true && (
+                            <Badge
+                              variant="outline"
+                              title="Transferência nascida fora do fluxo TRS — origem e/ou destino não foram declarados."
+                            >
+                              Sem origem/destino
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {t.origem_codigo ? (
+                          t.origem_codigo
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
