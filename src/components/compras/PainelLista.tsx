@@ -1030,8 +1030,8 @@ export default function PainelLista() {
 
   const embarqueEmEdicao = embarques.find((e) => e.id === editando) ?? null;
 
-  if (embarquesQ.isError || dimQ.isError) {
-    const err = embarquesQ.error ?? dimQ.error;
+  if (embarquesQ.isError || dimQ.isError || pedidosQ.isError) {
+    const err = embarquesQ.error ?? dimQ.error ?? pedidosQ.error;
     return (
       <Card>
         <CardContent className="space-y-3 pt-6">
@@ -1043,6 +1043,7 @@ export default function PainelLista() {
             onClick={() => {
               void embarquesQ.refetch();
               void dimQ.refetch();
+                void pedidosQ.refetch();
             }}
           >
             Tentar de novo
@@ -1052,7 +1053,7 @@ export default function PainelLista() {
     );
   }
 
-  if (embarquesQ.isLoading || dimQ.isLoading) {
+  if (embarquesQ.isLoading || dimQ.isLoading || pedidosQ.isLoading) {
     return (
       <div className="space-y-3">
         <Skeleton className="h-20 w-full" />
@@ -1069,7 +1070,7 @@ export default function PainelLista() {
         <FilterInput
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          placeholder="REF, contêiner, lacre ou pedido"
+          placeholder="REF, contêiner, lacre, pedido ou fornecedor"
           className="w-64"
         />
         <Select value={portoSel} onValueChange={setPortoSel}>
