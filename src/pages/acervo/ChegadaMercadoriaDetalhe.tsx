@@ -994,6 +994,7 @@ export default function ChegadaMercadoriaDetalhe() {
                 <ErroBloco
                   titulo="Falha ao verificar o embarque do pedido"
                   erro={embarquesPedidoQ.error}
+                  onRetry={() => void embarquesPedidoQ.refetch()}
                 />
               ) : embarquesDoPedido.length > 0 ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-info/40 bg-info/10 p-3 text-sm">
