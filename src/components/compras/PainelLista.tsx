@@ -1,10 +1,12 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle, ChevronDown, FileText } from "lucide-react";
 import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
+import LancarNfDialog from "@/components/compras/LancarNfDialog";
+import VincularNfDialog from "@/components/compras/VincularNfDialog";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
@@ -894,6 +896,8 @@ interface NfRemessa {
 function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
   const qc = useQueryClient();
   const [dialogAberto, setDialogAberto] = useState(false);
+  const [nfAberto, setNfAberto] = useState(false);
+  const [vincularAberto, setVincularAberto] = useState(false);
   const pedidos = embarque.vinculos
     .map((v) => v.pedido)
     .filter((p): p is PedidoVinculado => !!p);
@@ -986,19 +990,26 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
     onError: (err) => toast.error(mensagemErro(err)),
   });
 
+  const atualizarDocs = () => {
+    void qc.invalidateQueries({ queryKey: ["embarque-documentos"] });
+    void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_PAINEL });
+    void qc.invalidateQueries({ queryKey: CHAVE_EMBARQUE_PAINEL });
+  };
+
   const fmtData = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
   const fmtValor = (v: number | null) =>
     v == null ? "—" : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
-    <div className="space-y-3 border-t pt-4">
-      <div className="flex items-center justify-between gap-2">
+    <div id="documentos-remessa" className="space-y-3 border-t pt-4 scroll-mt-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="text-sm font-medium">Documentos da remessa</p>
           <p className="text-xs text-muted-foreground">
             Invoice e NF entram pelo embarque e valem para os pedidos dele.
           </p>
         </div>
+        <div className="flex flex-wrap gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -1007,6 +1018,23 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
         >
           <FileText className="mr-1 h-4 w-4" /> Lançar invoice
         </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pedidoIds.length === 0 || fornecedoresDiferentes}
+          onClick={() => setNfAberto(true)}
+        >
+          <FileText className="mr-1 h-4 w-4" /> Lançar NF
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pedidoIds.length === 0 || fornecedoresDiferentes}
+          onClick={() => setVincularAberto(true)}
+        >
+          Vincular NF existente
+        </Button>
+        </div>
       </div>
       {fornecedoresDiferentes && (
         <p className="text-xs text-warning">pedidos com fornecedores diferentes</p>
@@ -1088,6 +1116,30 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
           moedaPadrao={moeda}
         />
       )}
+      {nfAberto && pedidoIds.length > 0 && (
+        <LancarNfDialog
+          open={nfAberto}
+          onOpenChange={(o) => {
+            setNfAberto(o);
+            if (!o) atualizarDocs();
+          }}
+          pedidoId={pedidoIds[0]}
+          pedidoIds={pedidoIds}
+          fornecedorId={fornecedorId}
+        />
+      )}
+      {vincularAberto && pedidoIds.length > 0 && (
+        <VincularNfDialog
+          open={vincularAberto}
+          onOpenChange={(o) => {
+            setVincularAberto(o);
+            if (!o) atualizarDocs();
+          }}
+          pedidoId={pedidoIds[0]}
+          pedidoIds={pedidoIds}
+          fornecedorId={fornecedorId}
+        />
+      )}
     </div>
   );
 }
@@ -1127,6 +1179,30 @@ export default function PainelLista() {
     else next.delete("furada");
     setParams(next, { replace: true });
   };
+  // Abertura direta pela URL: ?embarque=<id>[&secao=documentos]
+  const [rolarParaDocs, setRolarParaDocs] = useState(false);
+  useEffect(() => {
+    const alvo = Number(params.get("embarque"));
+    if (!alvo || !embarquesQ.data) return;
+    if (embarquesQ.data.some((e) => e.id === alvo)) {
+      setEditando(alvo);
+      setRolarParaDocs(params.get("secao") === "documentos");
+    } else {
+      toast.error(`Embarque ${alvo} não encontrado.`);
+    }
+    const next = new URLSearchParams(params);
+    next.delete("embarque");
+    next.delete("secao");
+    setParams(next, { replace: true });
+  }, [params, embarquesQ.data, setParams]);
+  useEffect(() => {
+    if (!rolarParaDocs || editando == null) return;
+    const t = setTimeout(() => {
+      document.getElementById("documentos-remessa")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setRolarParaDocs(false);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [rolarParaDocs, editando]);
   const painelQ = useEmbarquePainel();
   const alertaPorId = useMemo(
     () => new Map((painelQ.data ?? []).map((r) => [r.embarque_id, r.alerta_data])),
