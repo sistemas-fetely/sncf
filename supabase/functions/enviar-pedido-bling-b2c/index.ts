@@ -911,7 +911,8 @@ Deno.serve(async (req) => {
                   nomePais: "",
                 },
               },
-            observacoes: obsVd,
+            // Só no pedido do Bling: `observacoes` vira "Informações complementares" da NF.
+            observacoesInternas: obsVd,
           };
 
           if (dry) {
