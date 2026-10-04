@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Download, Loader2 } from "lucide-react";
-import { fmtBRL, fmtCompetencia, fmtData, fmtJanelaRecebimento } from "./fmt";
+import { fmtBRL, fmtCompetencia, fmtData, fmtJanelaRecebimento, fmtPct } from "./fmt";
 import { ExtratosFechados, FecharCompetenciaBotao } from "./AcoesPagamento";
 
 interface Extrato {
@@ -77,11 +77,10 @@ function moedaCsv(v: number | string | null | undefined): string {
   return Number.isFinite(n) ? n.toFixed(2).replace(".", ",") : "";
 }
 
-/** Percentuais no CSV: até 4 casas com vírgula decimal, sem sufixo. */
+/** Percentuais no CSV: até 2 casas com vírgula decimal, sem sufixo. */
 function pctCsv(v: number | string | null | undefined): string {
-  const n = Number(v ?? 0);
-  if (!Number.isFinite(n)) return "";
-  return n.toLocaleString("pt-BR", { maximumFractionDigits: 4 });
+  const formatado = fmtPct(v, "");
+  return formatado === "—" ? "" : formatado;
 }
 
 /** Data no CSV: dd/MM/yyyy; vazio quando nulo (nada de "—" no arquivo). */

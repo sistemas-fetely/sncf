@@ -7,13 +7,17 @@ export function fmtBRL(v: number | string | null | undefined): string {
   );
 }
 
-/** Percentual: 0 casas quando inteiro, até 4 casas quando houver decimal relevante. */
-export function fmtPct(v: number | string | null | undefined, sufixo = "%"): string {
+/** Percentual compartilhado: nunca exibe mais de 2 casas decimais. */
+export function fmtPct(
+  v: number | string | null | undefined,
+  sufixo = "%",
+  minimumFractionDigits: 0 | 1 | 2 = 0,
+): string {
   const n = Number(v ?? 0);
   if (!Number.isFinite(n)) return "—";
   const txt = new Intl.NumberFormat("pt-BR", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 4,
+    minimumFractionDigits,
+    maximumFractionDigits: 2,
   }).format(n);
   return `${txt}${sufixo}`;
 }

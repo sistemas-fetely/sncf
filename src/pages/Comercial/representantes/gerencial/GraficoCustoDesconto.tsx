@@ -1,6 +1,6 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
-import { fmtCompetencia } from "../../comissoes/fmt";
+import { fmtCompetencia, fmtPct } from "../../comissoes/fmt";
 import { num } from "./dados";
 
 /** Linha dupla: custo da comissão % × desconto médio %. Sem legenda solta, sem animação (imprime). */
@@ -12,8 +12,6 @@ export function GraficoCustoDesconto({ historico, altura = 200 }: { historico: L
   }));
 
   if (dados.length === 0) return null;
-
-  const fmt = (v: number) => `${v.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`;
 
   return (
     <div>
@@ -36,14 +34,14 @@ export function GraficoCustoDesconto({ historico, altura = 200 }: { historico: L
               tickLine={false}
             />
             <YAxis
-              tickFormatter={fmt}
+              tickFormatter={(v) => fmtPct(Number(v))}
               width={48}
               tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
               axisLine={false}
               tickLine={false}
             />
             <Tooltip
-              formatter={(v: number | string, nome) => [fmt(Number(v)), nome === "custo" ? "Custo da comissão" : "Desconto médio"]}
+              formatter={(v: number | string, nome) => [fmtPct(Number(v)), nome === "custo" ? "Custo da comissão" : "Desconto médio"]}
               contentStyle={{
                 background: "hsl(var(--card))",
                 border: "1px solid hsl(var(--border))",

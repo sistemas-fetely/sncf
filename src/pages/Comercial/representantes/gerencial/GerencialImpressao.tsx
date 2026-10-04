@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
-import { fmtBRL, fmtCompetencia, fmtData } from "../../comissoes/fmt";
+import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../../comissoes/fmt";
 import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
 import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { colunasCC, LEGENDA_CC, useContaCorrente, type ValoresCC } from "./contaCorrente";
@@ -18,13 +18,6 @@ import {
 } from "./dados";
 
 const EMPRESA = "Fetély Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48 · Documento interno";
-
-function pct(v: unknown, casas = 2): string {
-  if (v == null) return "—";
-  const n = Number(v);
-  if (!Number.isFinite(n)) return "—";
-  return `${n.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas })}%`;
-}
 
 function inteiro(v: unknown) {
   return num(v).toLocaleString("pt-BR");
@@ -79,7 +72,7 @@ function PaginaResumo({ mes, historico, rotulo, hcc }: { mes: Linha | null; hist
         <Numerao titulo="Comissão apurada" valor={fmtBRL(num(mes?.comissao_apurada))} />
         <Numerao
           titulo="Custo da comissão"
-          valor={pct(mes?.custo_comissao_pct)}
+          valor={fmtPct(mes?.custo_comissao_pct, "%", 2)}
           detalhe="Comissão apurada sobre a base faturada"
           destaque
         />
@@ -130,8 +123,8 @@ function PaginaResumo({ mes, historico, rotulo, hcc }: { mes: Linha | null; hist
                 <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(l.notas)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.base_faturada))}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.comissao_apurada))}</td>
-                <td className="px-1 py-1.5 text-right tabular-nums">{pct(l.custo_comissao_pct)}</td>
-                <td className="px-1 py-1.5 text-right tabular-nums">{pct(l.desconto_medio_pct)}</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{fmtPct(l.custo_comissao_pct, "%", 2)}</td>
+                <td className="px-1 py-1.5 text-right tabular-nums">{fmtPct(l.desconto_medio_pct, "%", 2)}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(num(l.total_a_pagar))}</td>
                 <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(hcc.get(String(l.competencia).slice(0, 10))?.a_liberar_final ?? 0)}</td>
                 <td className="py-1.5 pl-1 text-right tabular-nums">{fmtBRL(hcc.get(String(l.competencia).slice(0, 10))?.a_pagar_final ?? 0)}</td>
@@ -282,8 +275,8 @@ function PaginaDetalhe({
                   <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(r.clientesNovos)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{inteiro(r.notas)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(r.baseFaturada)}</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums">{pct(r.descontoMedioPct)}</td>
-                  <td className="px-1 py-1.5 text-right tabular-nums">{pct(r.pctEfetivo)}</td>
+                  <td className="px-1 py-1.5 text-right tabular-nums">{fmtPct(r.descontoMedioPct, "%", 2)}</td>
+                  <td className="px-1 py-1.5 text-right tabular-nums">{fmtPct(r.pctEfetivo, "%", 2)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(r.comissaoApurada)}</td>
                   <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(r.comissaoLiberada)}</td>
                   <td className="py-1.5 pl-1 text-right tabular-nums">{fmtBRL(r.aPagar)}</td>
