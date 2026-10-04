@@ -24,8 +24,9 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const [motivo, setMotivo] = useState("Importação de planilha de cadastro");
   const [progresso, setProgresso] = useState<{ feito: number; total: number } | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [confirmarSug, setConfirmarSug] = useState(false);
 
-  const reset = () => { setPrevia(null); setErro(null); setProgresso(null); setResultado(null); };
+  const reset = () => { setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
   const fechar = (v: boolean) => { if (progresso && !resultado) return; if (!v) reset(); onOpenChange(v); };
 
   async function carregar(arquivo: File) {
@@ -46,7 +47,10 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     } finally { setLendo(false); }
   }
 
-  const validos: ItemPrevia[] = (previa?.itens ?? []).filter((i) => !i.erros.length && (i.mudancas.length || i.liberar));
+  const semErro = (previa?.itens ?? []).filter((i) => !i.erros.length);
+  const mantidas = semErro.flatMap((i) => i.sugestoes_mantidas.map((m) => ({ ...m, cod: i.cod, sku: i.sku })));
+  const efetivas = (i: ItemPrevia) => (confirmarSug ? [...i.mudancas, ...i.sugestoes_mantidas] : i.mudancas);
+  const validos: ItemPrevia[] = semErro.filter((i) => efetivas(i).length || i.liberar);
 
   async function confirmar() {
     if (!motivo.trim()) { toast.error("Informe o motivo."); return; }
@@ -56,11 +60,12 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     for (let i = 0; i < validos.length; i++) {
       const it = validos[i];
       let gravouOk = true;
-      if (it.mudancas.length) {
+      const muds = efetivas(it);
+      if (muds.length) {
         try {
           await chamarFuncao("gravar-produto-fop", {
             cod_cadastro: it.cod, motivo: motivo.trim(), origem: "planilha", lote_id: loteId,
-            campos: Object.fromEntries(it.mudancas.map((m) => [m.campo, m.para])),
+            campos: Object.fromEntries(muds.map((m) => [m.campo, m.para])),
           });
           res.gravados.push(it.cod);
         } catch (e) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: `gravação: ${motivoDaFalha(e)}` }); }
