@@ -279,6 +279,10 @@ interface TransferenciaRow {
   tipo_transferencia: string | null;
   regularizacao_lote_id: string | null;
   regularizacao_lote_codigo: string | null;
+  origem_codigo: string | null;
+  destino_codigo: string | null;
+  orfao: boolean | null;
+  canal: string | null;
 }
 
 /** Tipo da transferência: física, regularização (sem movimento físico) ou com retorno de remessa (lote). */
@@ -517,13 +521,14 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, canal"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
       return (data ?? []) as TransferenciaRow[];
     },
   });
+  const nOrfaos = (listaQ.data ?? []).filter((t) => t.orfao === true).length;
 
   const idsLista = (listaQ.data ?? []).map((t) => t.id);
   const recebQ = useQuery({
@@ -1037,7 +1042,14 @@ export default function TransferenciasInternas() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Transferências</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            Transferências
+            {nOrfaos > 0 && (
+              <span className="text-xs font-normal text-muted-foreground">
+                {nOrfaos} {nOrfaos === 1 ? "sem origem/destino declarado" : "sem origem/destino declarados"}
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {listaQ.isLoading ? (
@@ -1058,6 +1070,7 @@ export default function TransferenciasInternas() {
                 <TableRow>
                   <TableHead>Número</TableHead>
                   <TableHead>Tipo</TableHead>
+                  <TableHead>Origem</TableHead>
                   <TableHead>Destino</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead className="text-right">Qtd. itens</TableHead>
@@ -1101,7 +1114,24 @@ export default function TransferenciasInternas() {
                         </span>
                       </TableCell>
                       <TableCell onKeyDown={(e) => e.stopPropagation()}>
-                        <SeloTipo t={t} />
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <SeloTipo t={t} />
+                          {t.orfao === true && (
+                            <Badge
+                              variant="outline"
+                              title="Transferência nascida fora do fluxo TRS — origem e/ou destino não foram declarados."
+                            >
+                              Sem origem/destino
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {t.origem_codigo ? (
+                          t.origem_codigo
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
@@ -1133,6 +1163,13 @@ export default function TransferenciasInternas() {
                                   </span>
                                 )}
                               </div>
+                            );
+                          }
+                          if (t.orfao === true) {
+                            return (
+                              <span className="text-xs text-muted-foreground">
+                                Declare o destino primeiro
+                              </span>
                             );
                           }
                           if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
