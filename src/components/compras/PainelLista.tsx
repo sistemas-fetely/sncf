@@ -3,7 +3,9 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle, ChevronDown } from "lucide-react";
+import { Ship, Plus, Trash2, Pencil, Check, AlertTriangle, ChevronDown, FileText } from "lucide-react";
+import LancarInvoiceDialog from "@/components/compras/LancarInvoiceDialog";
+import { invalidarCompras } from "@/lib/compras/invalidar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -93,6 +95,8 @@ interface PedidoVinculado {
   id: number;
   numero_pedido: string | null;
   fabrica_id: number | null;
+  fornecedor_id: string | null;
+  moeda: string | null;
   valor_fob_total: number | null;
   cbm_total: number | null;
 }
@@ -366,7 +370,7 @@ const SELECT_EMBARQUE = `
   ),
   vinculos:importacao_embarque_pedido (
     id, parcial, observacao,
-    pedido:importacao_pedido ( id, numero_pedido, fabrica_id, valor_fob_total, cbm_total )
+    pedido:importacao_pedido ( id, numero_pedido, fabrica_id, fornecedor_id, moeda, valor_fob_total, cbm_total )
   )
 `;
 
@@ -678,6 +682,8 @@ function PainelEdicao({ embarque, tipos, portos, status, aoFechar }: PainelProps
         </Button>
       </div>
 
+      <DocumentosRemessa embarque={embarque} />
+
       {/* ── contêineres ── */}
       <div className="space-y-3 border-t pt-4">
         <div className="flex items-center justify-between">
@@ -860,6 +866,228 @@ function PainelEdicao({ embarque, tipos, portos, status, aoFechar }: PainelProps
           </Card>
         ) : null}
       </div>
+    </div>
+  );
+}
+
+/* ───────────────── documentos da remessa (Doutrina #167) ─────────────────
+ * Pedido = PI; embarque = remessa. Invoice e NF entram pelo embarque e se
+ * ligam aos pedidos dele (importacao_invoice_pedido / importacao_nf_pedido).
+ * ------------------------------------------------------------------------ */
+
+interface InvoiceRemessa {
+  id: number;
+  numero: string;
+  data_emissao: string | null;
+  moeda: string | null;
+  valor_total: number | null;
+  linhas: number;
+  sem_sku: number;
+}
+interface NfRemessa {
+  id: number;
+  numero: string | null;
+  data_emissao: string | null;
+  valor_total: number | null;
+}
+
+function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
+  const qc = useQueryClient();
+  const [dialogAberto, setDialogAberto] = useState(false);
+  const pedidos = embarque.vinculos
+    .map((v) => v.pedido)
+    .filter((p): p is PedidoVinculado => !!p);
+  const pedidoIds = pedidos.map((p) => p.id);
+  const fornecedores = Array.from(new Set(pedidos.map((p) => p.fornecedor_id ?? "")));
+  const fornecedoresDiferentes = fornecedores.length > 1;
+  const fornecedorId = fornecedores.length === 1 && fornecedores[0] ? fornecedores[0] : null;
+  const moeda = pedidos.find((p) => p.moeda)?.moeda ?? null;
+
+  const docsQ = useQuery({
+    queryKey: ["embarque-documentos", embarque.id, pedidoIds],
+    enabled: pedidoIds.length > 0,
+    queryFn: async () => {
+      const [invPed, nfPed] = await Promise.all([
+        supabase
+          .from("importacao_invoice_pedido")
+          .select("invoice_id")
+          .in("importacao_pedido_id", pedidoIds),
+        supabase.from("importacao_nf_pedido").select("nf_id").in("importacao_pedido_id", pedidoIds),
+      ]);
+      if (invPed.error) throw invPed.error;
+      if (nfPed.error) throw nfPed.error;
+      const invIds = Array.from(new Set((invPed.data ?? []).map((r) => Number(r.invoice_id))));
+      const nfIds = Array.from(new Set((nfPed.data ?? []).map((r) => Number(r.nf_id))));
+
+      let invoices: InvoiceRemessa[] = [];
+      if (invIds.length > 0) {
+        const [inv, lin] = await Promise.all([
+          supabase
+            .from("importacao_invoice")
+            .select("id, numero, data_emissao, moeda, valor_total")
+            .in("id", invIds)
+            .order("data_emissao", { ascending: false }),
+          supabase.from("importacao_invoice_linha").select("invoice_id, sku").in("invoice_id", invIds),
+        ]);
+        if (inv.error) throw inv.error;
+        if (lin.error) throw lin.error;
+        const cont = new Map<number, { linhas: number; sem_sku: number }>();
+        for (const l of lin.data ?? []) {
+          const c = cont.get(Number(l.invoice_id)) ?? { linhas: 0, sem_sku: 0 };
+          c.linhas += 1;
+          if (l.sku == null) c.sem_sku += 1;
+          cont.set(Number(l.invoice_id), c);
+        }
+        invoices = (inv.data ?? []).map((i) => ({
+          id: Number(i.id),
+          numero: i.numero,
+          data_emissao: i.data_emissao,
+          moeda: i.moeda,
+          valor_total: i.valor_total,
+          linhas: cont.get(Number(i.id))?.linhas ?? 0,
+          sem_sku: cont.get(Number(i.id))?.sem_sku ?? 0,
+        }));
+      }
+
+      let nfs: NfRemessa[] = [];
+      if (nfIds.length > 0) {
+        const r = await supabase
+          .from("importacao_nf")
+          .select("id, numero, data_emissao, valor_total")
+          .in("id", nfIds)
+          .order("data_emissao", { ascending: false });
+        if (r.error) throw r.error;
+        nfs = (r.data ?? []).map((n) => ({
+          id: Number(n.id),
+          numero: n.numero,
+          data_emissao: n.data_emissao,
+          valor_total: n.valor_total,
+        }));
+      }
+      return { invoices, nfs };
+    },
+  });
+
+  const reprocessar = useMutation({
+    mutationFn: async (invoiceId: number) => {
+      const { data, error } = await (supabase as any).rpc("fn_invoice_reresolver", {
+        p_invoice_id: invoiceId,
+      });
+      if (error) throw error;
+      return data as { linhas_resolvidas?: number; linhas_ainda_sem_sku?: number } | null;
+    },
+    onSuccess: async (d) => {
+      toast.success(
+        `${d?.linhas_resolvidas ?? 0} linha(s) resolvida(s) · ${d?.linhas_ainda_sem_sku ?? 0} ainda sem produto`,
+      );
+      await qc.invalidateQueries({ queryKey: ["embarque-documentos"] });
+      invalidarCompras(qc);
+    },
+    onError: (err) => toast.error(mensagemErro(err)),
+  });
+
+  const fmtData = (d: string | null) => (d ? d.split("-").reverse().join("/") : "—");
+  const fmtValor = (v: number | null) =>
+    v == null ? "—" : Number(v).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  return (
+    <div className="space-y-3 border-t pt-4">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <p className="text-sm font-medium">Documentos da remessa</p>
+          <p className="text-xs text-muted-foreground">
+            Invoice e NF entram pelo embarque e valem para os pedidos dele.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pedidoIds.length === 0 || fornecedoresDiferentes}
+          onClick={() => setDialogAberto(true)}
+        >
+          <FileText className="mr-1 h-4 w-4" /> Lançar invoice
+        </Button>
+      </div>
+      {fornecedoresDiferentes && (
+        <p className="text-xs text-warning">pedidos com fornecedores diferentes</p>
+      )}
+      {pedidoIds.length === 0 && (
+        <p className="text-xs text-muted-foreground">Nenhum pedido vinculado a este embarque.</p>
+      )}
+
+      {docsQ.isLoading ? (
+        <Skeleton className="h-16 w-full" />
+      ) : docsQ.isError ? (
+        <p className="text-sm text-destructive">
+          Falha ao carregar documentos: {mensagemErro(docsQ.error)}
+        </p>
+      ) : pedidoIds.length > 0 ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Invoices</p>
+            {(docsQ.data?.invoices.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma invoice lançada.</p>
+            ) : (
+              docsQ.data!.invoices.map((i) => (
+                <div
+                  key={i.id}
+                  className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <span className="font-mono">{i.numero}</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {fmtData(i.data_emissao)} · {i.moeda ?? ""} {fmtValor(i.valor_total)} ·{" "}
+                      {i.linhas} linhas
+                      {i.sem_sku > 0 ? (
+                        <span className="text-warning"> · {i.sem_sku} sem SKU</span>
+                      ) : null}
+                    </span>
+                  </div>
+                  {i.sem_sku > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={reprocessar.isPending}
+                      onClick={() => reprocessar.mutate(i.id)}
+                    >
+                      Reprocessar produtos
+                    </Button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium text-muted-foreground">Notas fiscais</p>
+            {(docsQ.data?.nfs.length ?? 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma NF ligada.</p>
+            ) : (
+              docsQ.data!.nfs.map((n) => (
+                <div key={n.id} className="rounded-md border px-3 py-2 text-sm">
+                  <span className="font-mono">{(n.numero ?? "").replace(/^0+(?=\d)/, "") || "—"}</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    {fmtData(n.data_emissao)} · R$ {fmtValor(n.valor_total)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      {dialogAberto && (
+        <LancarInvoiceDialog
+          open={dialogAberto}
+          onOpenChange={(o) => {
+            setDialogAberto(o);
+            if (!o) void qc.invalidateQueries({ queryKey: ["embarque-documentos"] });
+          }}
+          pedidoIds={pedidoIds}
+          fornecedorId={fornecedorId}
+          moedaPadrao={moeda}
+        />
+      )}
     </div>
   );
 }
