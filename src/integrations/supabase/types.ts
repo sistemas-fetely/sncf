@@ -25063,6 +25063,27 @@ export type Database = {
           },
         ]
       }
+      expedicao_b2b_cd: {
+        Row: {
+          atualizado_em: string
+          centro_codigo: string
+          habilitado: boolean
+          observacao: string | null
+        }
+        Insert: {
+          atualizado_em?: string
+          centro_codigo: string
+          habilitado?: boolean
+          observacao?: string | null
+        }
+        Update: {
+          atualizado_em?: string
+          centro_codigo?: string
+          habilitado?: boolean
+          observacao?: string | null
+        }
+        Relationships: []
+      }
       export_log: {
         Row: {
           arquivo_nome: string | null
@@ -79601,14 +79622,21 @@ export type Database = {
           canal: string | null
           cancelado_em: string | null
           cancelado_motivo: string | null
+          data_entrega_prevista: string | null
           data_pedido: string | null
           destino_centro_id: string | null
           destino_codigo: string | null
           destino_interno: string | null
+          entregue_em: string | null
           estagio: string | null
           id: string | null
           id_externo: string | null
           natureza_codigo: string | null
+          nf_chave: string | null
+          nf_data_emissao: string | null
+          nf_numero: string | null
+          nf_serie: string | null
+          nf_situacao: string | null
           observacao_pedido: string | null
           orfao: boolean | null
           origem_centro_id: string | null
@@ -79618,6 +79646,8 @@ export type Database = {
           recebido_em: string | null
           regularizacao_lote_codigo: string | null
           regularizacao_lote_id: string | null
+          sem_destino: boolean | null
+          sem_origem: boolean | null
           tipo_transferencia: string | null
           valor_bruto: number | null
           valor_liquido: number | null
@@ -117874,14 +117904,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -123472,6 +123502,14 @@ export type Database = {
         Returns: Json
       }
       atualizar_qualidade_painel: { Args: never; Returns: Json }
+      b2b_escolher_cd_expedicao: {
+        Args: {
+          p_centro_codigo: string
+          p_motivo?: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
       baixar_bandeira_vermelha: {
         Args: { p_motivo: string; p_parceiro_id: string }
         Returns: Json
@@ -124649,6 +124687,7 @@ export type Database = {
         Args: { p_linhas: Json; p_pedido_id: string }
         Returns: Json
       }
+      fn_b2b_sugestao_cd: { Args: { p_pedido_id: string }; Returns: Json }
       fn_b2c_abrir_devolucao_por_rastreio: {
         Args: { p_dry_run?: boolean }
         Returns: Json
