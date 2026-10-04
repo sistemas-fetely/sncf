@@ -125744,6 +125744,8 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_invoice_aplicar_iv: { Args: { p_invoice_id: number }; Returns: Json }
+      fn_invoice_reresolver: { Args: { p_invoice_id: number }; Returns: Json }
       fn_lancamento_vincular_prova: {
         Args: {
           p_lancamento_id: string
