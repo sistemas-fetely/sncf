@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
@@ -10,17 +10,19 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { gerarPlanilhaCadastro, nomeArquivoCadastro, type RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
-interface Props { open: boolean; onOpenChange: (v: boolean) => void; colecoes: string[] }
+interface Props { open: boolean; onOpenChange: (v: boolean) => void; colecoes: string[]; inicialSoMedicao?: boolean }
 
-export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes }: Props) {
+export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, inicialSoMedicao = false }: Props) {
   const [sel, setSel] = useState<Set<string>>(new Set());
+  const [soMedicao, setSoMedicao] = useState(inicialSoMedicao);
+  useEffect(() => { if (open) setSoMedicao(inicialSoMedicao); }, [open, inicialSoMedicao]);
   const [erro, setErro] = useState<string | null>(null);
 
   const exportar = useMutation({
     mutationFn: async () => {
       const lista = [...sel];
       const { data, error } = await supabase.functions.invoke("exportar-planilha-produto", {
-        body: { colecoes: lista.length ? lista : null },
+        body: { colecoes: lista.length ? lista : null, so_aguardando_medicao: soMedicao },
       });
       if (error) {
         let m = error.message;
@@ -66,6 +68,10 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes }:
             </label>
           ))}
         </div>
+        <label className="flex items-center gap-2 text-sm cursor-pointer">
+          <Checkbox checked={soMedicao} onCheckedChange={(v) => setSoMedicao(v === true)} />
+          Só aguardando medição (lista para o showroom)
+        </label>
         {erro && <Alert variant="destructive"><AlertDescription>{erro}</AlertDescription></Alert>}
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

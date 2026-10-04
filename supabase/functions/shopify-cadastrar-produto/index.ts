@@ -135,6 +135,23 @@ Deno.serve(async (req) => {
     const cadPorSku = new Map((cad ?? []).map((d: Linha) => [d.sku, d]));
     const porSku = new Map((fila ?? []).map((l: Linha) => [l.sku, { ...l, ...(cadPorSku.get(l.sku) ?? {}) }]));
 
+    // Freio "aguardando medição": campos vêm da ficha (exigido_para = 'medicao'), nunca fixos.
+    const { data: med, error: mErr } = await supabase
+      .from("produto_ficha_nascimento").select("campo, rotulo").eq("exigido_para", "medicao").order("ordem");
+    if (mErr) throw new Error(`leitura dos campos de medição falhou: ${mErr.message}`);
+    const camposMed = (med ?? []) as { campo: string; rotulo: string | null }[];
+    const medPorSku = new Map<string, Linha>();
+    if (camposMed.length) {
+      const { data: mv, error: mvErr } = await supabase
+        .from("sncf_produtos").select(["sku", ...camposMed.map((c) => c.campo)].join(",")).in("sku", skus);
+      if (mvErr) throw new Error(`leitura dos valores de medição falhou: ${mvErr.message}`);
+      for (const r of (mv ?? []) as unknown as Linha[]) medPorSku.set(r.sku, r);
+    }
+    const vazioMed = (v: unknown) =>
+      v === null || v === undefined || (typeof v === "string" && v.trim() === "") ||
+      (typeof v === "number" && v <= 0) ||
+      (typeof v === "string" && v.trim() !== "" && !isNaN(Number(v)) && Number(v) <= 0);
+
     const shop = await makeShopifyAdmin(supabase);
 
     // Locais Shopify amarrados a um centro SNCF (fonte: shopify_location).
@@ -158,6 +175,14 @@ Deno.serve(async (req) => {
       const l = porSku.get(sku);
       if (!l) { resultados.push({ sku, status: "fora_da_fila", erro: "SKU não está na fila (fase/canal não elegível ou já existe no Shopify)." }); continue; }
       if (!l.pode_enviar) { resultados.push({ sku, status: "bloqueado", erro: `Bloqueado pela fila: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}`, avisos: l.avisos }); continue; }
+      const mRow = medPorSku.get(sku) ?? {};
+      const faltaMedir = camposMed.filter((c) => vazioMed((mRow as Linha)[c.campo]));
+      if (faltaMedir.length) {
+        resultados.push({ sku, status: "bloqueado", motivo: "aguardando_medicao",
+          erro: `aguardando medição: ${faltaMedir.map((c) => (c.rotulo || c.campo).toLowerCase()).join(", ")}`,
+          campos: faltaMedir.map((c) => c.campo) });
+        continue;
+      }
 
       // Anti-duplicata AO VIVO por SKU OU EAN: o espelho local pode ter fóssil, estar defasado,
       // cortar variantes (>100) ou o produto existir no Shopify com outro SKU e o mesmo EAN.

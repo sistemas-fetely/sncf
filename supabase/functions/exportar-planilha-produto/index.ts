@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     const { data: u, error: uErr } = await sb.auth.getUser(auth.replace("Bearer ", ""));
     if (uErr || !u?.user) return json({ ok: false, erro: "Sessão inválida" }, 401);
 
-    let body: { colecoes?: unknown } = {};
+    let body: { colecoes?: unknown; so_aguardando_medicao?: unknown; so_contagem?: unknown } = {};
     try { body = await req.json(); } catch { body = {}; }
     let colecoes: string[] | null = null;
     if (body.colecoes !== undefined && body.colecoes !== null) {
@@ -43,6 +43,13 @@ Deno.serve(async (req) => {
       }
       colecoes = (body.colecoes as string[]).length ? (body.colecoes as string[]) : null;
     }
+    for (const k of ["so_aguardando_medicao", "so_contagem"] as const) {
+      if (body[k] !== undefined && body[k] !== null && typeof body[k] !== "boolean") {
+        return json({ ok: false, erro: `${k} deve ser verdadeiro/falso` }, 400);
+      }
+    }
+    const soMedicao = body.so_aguardando_medicao === true;
+    const soContagem = body.so_contagem === true;
 
     const { data: token, error: tErr } = await sb.rpc("get_vault_secret", { p_name: "FOP_INBOUND_TOKEN" });
     if (tErr) throw new Error(`Falha ao ler FOP_INBOUND_TOKEN: ${msg(tErr)}`);
@@ -55,7 +62,11 @@ Deno.serve(async (req) => {
     });
     if (fErr) throw new Error(`FOP recusou fn_produtos_para_sncf: ${msg(fErr)}`);
     if (!Array.isArray(fopRaw)) throw new Error("fn_produtos_para_sncf não devolveu uma lista");
-    const fopProdutos = fopRaw as Record<string, unknown>[];
+    const pendMed = (p: Record<string, unknown>) =>
+      Array.isArray(p._pendencias_medicao) ? (p._pendencias_medicao as string[]) : [];
+    const aguardando = (fopRaw as Record<string, unknown>[]).filter((p) => pendMed(p).length > 0);
+    if (soContagem) return json({ ok: true, aguardando_medicao: aguardando.length });
+    const fopProdutos = soMedicao ? aguardando : (fopRaw as Record<string, unknown>[]);
 
     const { data: fichaRaw, error: fiErr } = await sb
       .from("produto_ficha_nascimento")
@@ -106,6 +117,7 @@ Deno.serve(async (req) => {
         fase_atual: p._fase_atual ?? null,
         proxima_fase: p._fase_proxima ?? null,
         pendencias: Array.isArray(p._pendencias_proxima) ? p._pendencias_proxima : [],
+        pendencias_medicao: pendMed(p),
       };
     });
 
