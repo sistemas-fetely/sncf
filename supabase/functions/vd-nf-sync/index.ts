@@ -6,7 +6,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { ensureFreshToken, makeBlingClient, type BlingConfig } from "../_shared/bling/bling-client.ts";
-import { sincronizarNfePorId } from "../sync-bling-financeiro/sync-nfe.ts";
+import { sincronizarNfePorId } from "../_shared/bling/nfe-item.ts";
 
 const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret` };
 const json = (body: unknown, status = 200) =>
