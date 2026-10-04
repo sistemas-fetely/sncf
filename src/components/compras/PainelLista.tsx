@@ -885,6 +885,7 @@ interface InvoiceRemessa {
   valor_total: number | null;
   linhas: number;
   sem_sku: number;
+  sem_destino: number;
 }
 interface NfRemessa {
   id: number;
@@ -935,11 +936,26 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
         ]);
         if (inv.error) throw inv.error;
         if (lin.error) throw lin.error;
-        const cont = new Map<number, { linhas: number; sem_sku: number }>();
+        // SKUs que já têm linha (importacao_linha) em algum pedido do embarque.
+        const skusInv = Array.from(
+          new Set((lin.data ?? []).map((l) => l.sku).filter((x): x is string => !!x)),
+        );
+        const skusNosPedidos = new Set<string>();
+        if (skusInv.length > 0) {
+          const pl = await supabase
+            .from("importacao_linha")
+            .select("sku")
+            .in("importacao_pedido_id", pedidoIds)
+            .in("sku", skusInv);
+          if (pl.error) throw pl.error;
+          for (const r of pl.data ?? []) if (r.sku) skusNosPedidos.add(r.sku);
+        }
+        const cont = new Map<number, { linhas: number; sem_sku: number; sem_destino: number }>();
         for (const l of lin.data ?? []) {
-          const c = cont.get(Number(l.invoice_id)) ?? { linhas: 0, sem_sku: 0 };
+          const c = cont.get(Number(l.invoice_id)) ?? { linhas: 0, sem_sku: 0, sem_destino: 0 };
           c.linhas += 1;
           if (l.sku == null) c.sem_sku += 1;
+          if (l.sku == null || !skusNosPedidos.has(l.sku)) c.sem_destino += 1;
           cont.set(Number(l.invoice_id), c);
         }
         invoices = (inv.data ?? []).map((i) => ({
@@ -950,6 +966,7 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
           valor_total: i.valor_total,
           linhas: cont.get(Number(i.id))?.linhas ?? 0,
           sem_sku: cont.get(Number(i.id))?.sem_sku ?? 0,
+          sem_destino: cont.get(Number(i.id))?.sem_destino ?? 0,
         }));
       }
 
@@ -1066,12 +1083,12 @@ function DocumentosRemessa({ embarque }: { embarque: EmbarqueRow }) {
                     <span className="ml-2 text-xs text-muted-foreground">
                       {fmtData(i.data_emissao)} · {i.moeda ?? ""} {fmtValor(i.valor_total)} ·{" "}
                       {i.linhas} linhas
-                      {i.sem_sku > 0 ? (
-                        <span className="text-warning"> · {i.sem_sku} sem SKU</span>
+                      {i.sem_destino > 0 ? (
+                        <span className="text-warning"> · {i.sem_destino} linhas sem destino</span>
                       ) : null}
                     </span>
                   </div>
-                  {i.sem_sku > 0 && (
+                  {i.sem_destino > 0 && (
                     <Button
                       variant="ghost"
                       size="sm"
