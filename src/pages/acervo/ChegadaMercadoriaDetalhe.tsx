@@ -304,7 +304,7 @@ export default function ChegadaMercadoriaDetalhe() {
       const { data: vincs, error } = await (supabase as any)
         .from("importacao_embarque_pedido")
         .select("embarque_id")
-        .eq("importacao_pedido_id", pedidoId);
+        .eq("pedido_id", pedidoId);
       if (error) throw error;
       const ids = Array.from(new Set(((vincs ?? []) as Array<{ embarque_id: number }>).map((v) => Number(v.embarque_id))));
       if (ids.length === 0) return [] as Array<{ id: number; ref_rocabella: string | null }>;
