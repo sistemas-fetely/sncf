@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -119,6 +119,154 @@ interface EmbarqueRow {
   total_conteineres: number | null;
   conteineres: ConteinerRow[];
   vinculos: VinculoRow[];
+}
+
+/* ───────────────────── pedidos (linhas-filhas) ─────────────────────
+ * Nomes vêm de vw_importacao_pedido_detalhe; documentos, kits, caixas e FOB
+ * de importacao_pedido. Só leitura.
+ * ------------------------------------------------------------------ */
+
+const CHAVE_PEDIDOS_PAINEL = ["importacao-pedidos-painel"] as const;
+
+interface PedidoLinha {
+  id: number;
+  numero_pedido: string | null;
+  fornecedor: string | null;
+  fabrica: string | null;
+  fabrica_id: number | null;
+  status: string | null;
+  centro: string | null;
+  etd: string | null;
+  eta: string | null;
+  cbm_total: number | null;
+  valor_fob_total: number | null;
+  qtd_kits: number | null;
+  caixas_inner: number | null;
+  caixas_master: number | null;
+  numero_proforma: string | null;
+  numero_invoice: string | null;
+  numero_packing_list: string | null;
+}
+type PedidoLinhaComParcial = PedidoLinha & { parcial: boolean };
+
+function usePedidosPainel() {
+  return useQuery({
+    queryKey: CHAVE_PEDIDOS_PAINEL,
+    queryFn: async (): Promise<PedidoLinha[]> => {
+      const [det, ped] = await Promise.all([
+        supabase
+          .from("vw_importacao_pedido_detalhe" as never)
+          .select("id, fornecedor, fabrica, fabrica_id, status, centro"),
+        supabase
+          .from("importacao_pedido")
+          .select(
+            "id, numero_pedido, etd, eta, cbm_total, valor_fob_total, qtd_kits, caixas_inner, caixas_master, numero_proforma, numero_invoice, numero_packing_list",
+          ),
+      ]);
+      if (det.error) throw det.error;
+      if (ped.error) throw ped.error;
+      type Det = Pick<PedidoLinha, "fornecedor" | "fabrica" | "fabrica_id" | "status" | "centro"> & {
+        id: number;
+      };
+      const nomes = new Map(((det.data ?? []) as unknown as Det[]).map((d) => [Number(d.id), d]));
+      return ((ped.data ?? []) as unknown as PedidoLinha[]).map((p) => {
+        const d = nomes.get(Number(p.id));
+        return {
+          ...p,
+          id: Number(p.id),
+          fornecedor: d?.fornecedor ?? null,
+          fabrica: d?.fabrica ?? null,
+          fabrica_id: d?.fabrica_id ?? null,
+          status: d?.status ?? null,
+          centro: d?.centro ?? null,
+        };
+      });
+    },
+  });
+}
+
+function ordemPedido(a: PedidoLinha, b: PedidoLinha): number {
+  if ((a.eta ?? "") !== (b.eta ?? "")) {
+    if (!a.eta) return 1;
+    if (!b.eta) return -1;
+    return a.eta.localeCompare(b.eta);
+  }
+  return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
+}
+
+function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vazio: string }) {
+  const navigate = useNavigate();
+  if (linhas.length === 0) return <p className="text-sm text-muted-foreground">{vazio}</p>;
+  const docs = (p: PedidoLinha) =>
+    [
+      p.numero_proforma ? `PI ${p.numero_proforma}` : null,
+      p.numero_invoice ? `INV ${p.numero_invoice}` : null,
+      p.numero_packing_list ? `PL ${p.numero_packing_list}` : null,
+    ].filter(Boolean);
+  return (
+    <div className="overflow-x-auto rounded-md border bg-background">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Pedido</TableHead>
+            <TableHead>Fornecedor</TableHead>
+            <TableHead>Proforma / Invoice / PL</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Kits</TableHead>
+            <TableHead className="text-right">Caixas inner / master</TableHead>
+            <TableHead className="text-right">CBM</TableHead>
+            <TableHead className="text-right">FOB USD</TableHead>
+            <TableHead>ETD</TableHead>
+            <TableHead>ETA</TableHead>
+            <TableHead>Centro</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {linhas.map((p) => {
+            const d = docs(p);
+            return (
+              <TableRow
+                key={p.id}
+                className="cursor-pointer"
+                onClick={(ev) => {
+                  ev.stopPropagation();
+                  navigate(`/vendas/produto/chegada-mercadoria/${p.id}`);
+                }}
+              >
+                <TableCell className="whitespace-nowrap text-sm font-medium">
+                  {p.numero_pedido ?? "—"}
+                  {p.fabrica ? (
+                    <span className="ml-1 text-xs text-muted-foreground">{p.fabrica}</span>
+                  ) : null}
+                  {p.parcial ? (
+                    <Selo estado="warning" className="ml-2">
+                      parcial
+                    </Selo>
+                  ) : null}
+                </TableCell>
+                <TableCell className="text-sm">{p.fornecedor ?? "—"}</TableCell>
+                <TableCell className="whitespace-nowrap font-mono text-xs">
+                  {d.length === 0 ? "—" : d.join(" · ")}
+                </TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{p.status ?? "—"}</TableCell>
+                <TableCell className="text-right tabular-nums text-sm">{fmtNum(p.qtd_kits, 0)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right tabular-nums text-sm">
+                  {fmtNum(p.caixas_inner, 0)} / {fmtNum(p.caixas_master, 0)}
+                </TableCell>
+                <TableCell className="text-right tabular-nums text-sm">{fmtNum(p.cbm_total, 3)}</TableCell>
+                <TableCell className="whitespace-nowrap text-right tabular-nums text-sm">
+                  {fmtUsd(p.valor_fob_total)}
+                </TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums text-sm">{fmtData(p.etd)}</TableCell>
+                <TableCell className="whitespace-nowrap tabular-nums text-sm">{fmtData(p.eta)}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{p.centro ?? "—"}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </div>
+  );
 }
 
 /* ───────────────────────── formatacao ───────────────────────── */
@@ -718,10 +866,16 @@ function PainelEdicao({ embarque, tipos, portos, status, aoFechar }: PainelProps
 
 /* ───────────────────────── aba ───────────────────────── */
 
-export default function EmbarquesTab() {
+export default function PainelLista() {
   const qc = useQueryClient();
   const dimQ = useDimensoes();
   const embarquesQ = useEmbarques();
+  const pedidosQ = usePedidosPainel();
+  const pedidoPorId = useMemo(
+    () => new Map((pedidosQ.data ?? []).map((p) => [p.id, p])),
+    [pedidosQ.data],
+  );
+  const [semEmbarqueAberto, setSemEmbarqueAberto] = useState(true);
 
   const [busca, setBusca] = useState("");
   const [statusSel, setStatusSel] = useState<string[]>([]);
@@ -815,7 +969,10 @@ export default function EmbarquesTab() {
         const alvo = [
           e.ref_rocabella,
           ...e.conteineres.flatMap((c) => [c.numero_conteiner ?? "", c.lacre ?? ""]),
-          ...e.vinculos.map((v) => v.pedido?.numero_pedido ?? ""),
+          ...e.vinculos.flatMap((v) => {
+            const p = v.pedido ? pedidoPorId.get(v.pedido.id) : undefined;
+            return [v.pedido?.numero_pedido ?? "", p?.fornecedor ?? ""];
+          }),
         ]
           .join(" ")
           .toLowerCase();
@@ -823,18 +980,53 @@ export default function EmbarquesTab() {
       }
       return true;
     });
-  }, [embarques, busca, statusSel, portoSel, fabricaSel, soTransito, soFurada, alertaPorId]);
+  }, [embarques, busca, statusSel, portoSel, fabricaSel, soTransito, soFurada, alertaPorId, pedidoPorId]);
 
+  // Nao entregues por ETA mais proxima (sem ETA no fim); depois entregues, chegada mais recente.
   const ordenados = useMemo(
     () =>
       [...filtrados].sort((a, b) => {
-        if (!a.eta && !b.eta) return a.ref_rocabella.localeCompare(b.ref_rocabella);
-        if (!a.eta) return 1;
-        if (!b.eta) return -1;
-        return a.eta.localeCompare(b.eta);
+        const ea = a.data_chegada ? 1 : 0;
+        const eb = b.data_chegada ? 1 : 0;
+        if (ea !== eb) return ea - eb;
+        if (ea === 1) {
+          const c = (b.data_chegada ?? "").localeCompare(a.data_chegada ?? "");
+          if (c !== 0) return c;
+          return a.ref_rocabella.localeCompare(b.ref_rocabella);
+        }
+        if ((a.eta ?? "") !== (b.eta ?? "")) {
+          if (!a.eta) return 1;
+          if (!b.eta) return -1;
+          return a.eta.localeCompare(b.eta);
+        }
+        return a.ref_rocabella.localeCompare(b.ref_rocabella);
       }),
     [filtrados],
   );
+
+  const vinculados = useMemo(
+    () => new Set(embarques.flatMap((e) => e.vinculos.map((v) => v.pedido?.id).filter(Boolean))),
+    [embarques],
+  );
+  const semEmbarque = useMemo<PedidoLinhaComParcial[]>(() => {
+    const termo = busca.trim().toLowerCase();
+    return (pedidosQ.data ?? [])
+      .filter((p) => !vinculados.has(p.id))
+      .filter((p) => fabricaSel === "todas" || String(p.fabrica_id) === fabricaSel)
+      .filter(
+        (p) =>
+          !termo ||
+          [p.numero_pedido ?? "", p.fornecedor ?? ""].join(" ").toLowerCase().includes(termo),
+      )
+      .sort(ordemPedido)
+      .map((p) => ({ ...p, parcial: false }));
+  }, [pedidosQ.data, vinculados, busca, fabricaSel]);
+  const mostrarSemEmbarque =
+    semEmbarque.length > 0 &&
+    !soFurada &&
+    !soTransito &&
+    statusSel.length === 0 &&
+    portoSel === "todos";
 
   const embarqueEmEdicao = embarques.find((e) => e.id === editando) ?? null;
 
@@ -948,11 +1140,11 @@ export default function EmbarquesTab() {
           mensagem="Nenhum embarque bate com este filtro. Limpe a busca ou solte o filtro de status."
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
+        <div className="max-h-[calc(100vh-18rem)] overflow-auto rounded-lg border">
+          <Table containerClassName="overflow-visible">
+            <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
-                <TableHead>REF</TableHead>
+                <TableHead className="sticky left-0 z-20 bg-background">REF</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Pedidos</TableHead>
                 <TableHead>Porto</TableHead>
@@ -966,6 +1158,38 @@ export default function EmbarquesTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {mostrarSemEmbarque ? (
+                <Fragment>
+                  <TableRow
+                    className={cn("cursor-pointer", semEmbarqueAberto && "bg-muted/30")}
+                    onClick={() => setSemEmbarqueAberto((v) => !v)}
+                  >
+                    <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-background text-sm font-medium">
+                      Sem embarque
+                    </TableCell>
+                    <TableCell />
+                    <TableCell className="text-sm tabular-nums">{semEmbarque.length}</TableCell>
+                    <TableCell colSpan={7} className="text-xs text-muted-foreground">
+                      Pedidos que ainda não estão em nenhum embarque
+                    </TableCell>
+                    <TableCell>
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 text-muted-foreground transition-transform",
+                          semEmbarqueAberto && "rotate-180",
+                        )}
+                      />
+                    </TableCell>
+                  </TableRow>
+                  {semEmbarqueAberto ? (
+                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                      <TableCell colSpan={11} className="p-4">
+                        <PedidosTabela linhas={semEmbarque} vazio="Nenhum pedido sem embarque." />
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
+                </Fragment>
+              ) : null}
               {ordenados.map((e) => {
                 const st = e.status_id ? statusPorId.get(e.status_id) : undefined;
                 const porto = e.porto_chegada_id ? portoPorId.get(e.porto_chegada_id) : undefined;
@@ -986,51 +1210,21 @@ export default function EmbarquesTab() {
                   <Fragment key={e.id}>
                     <TableRow
                       className={cn("cursor-pointer", aberto && "bg-muted/30")}
-                      onClick={() => alternar(e.id)}
+                      onClick={() => setEditando(e.id)}
                     >
-                      <TableCell className="whitespace-nowrap font-mono text-sm font-medium">
+                      <TableCell className="sticky left-0 z-[1] whitespace-nowrap bg-background font-mono text-sm font-medium">
                         {e.ref_rocabella}
                       </TableCell>
                       <TableCell>
                         <Selo estado={tomDoStatus(st?.codigo)}>{st?.codigo ?? "—"}</Selo>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {e.vinculos.length === 0
-                            ? "—"
-                            : e.vinculos.map((v) => {
-                                const fab = v.pedido?.fabrica_id
-                                  ? fabricaPorId.get(v.pedido.fabrica_id)
-                                  : undefined;
-                                if (!v.pedido) {
-                                  return (
-                                    <span
-                                      key={v.id}
-                                      className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground"
-                                    >
-                                      pedido removido
-                                    </span>
-                                  );
-                                }
-                                return (
-                                  <Link
-                                    key={v.id}
-                                    to={`/vendas/produto/chegada-mercadoria/${v.pedido.id}`}
-                                    onClick={(ev) => ev.stopPropagation()}
-                                    className={cn(
-                                      "inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] cursor-pointer transition-colors hover:border-foreground/40 hover:underline",
-                                      v.parcial && "border-warning/50",
-                                    )}
-                                  >
-                                    {v.pedido.numero_pedido ?? "pedido removido"}
-                                    {fab ? (
-                                      <span className="text-muted-foreground">{fab.codigo}</span>
-                                    ) : null}
-                                    {v.parcial ? <span className="text-warning">parcial</span> : null}
-                                  </Link>
-                                );
-                              })}
-                        </div>
+                      <TableCell className="whitespace-nowrap text-sm tabular-nums">
+                        {e.vinculos.length === 0 ? "—" : e.vinculos.length}
+                        {e.vinculos.some((v) => v.parcial) ? (
+                          <span className="ml-1 text-xs text-warning">
+                            ({e.vinculos.filter((v) => v.parcial).length} parcial)
+                          </span>
+                        ) : null}
                       </TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{porto?.nome ?? "—"}</TableCell>
                       <TableCell className="whitespace-nowrap text-sm">{conts}</TableCell>
@@ -1076,7 +1270,13 @@ export default function EmbarquesTab() {
                           ) : null}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          alternar(e.id);
+                        }}
+                        aria-label={aberto ? "Recolher pedidos" : "Mostrar pedidos"}
+                      >
                         <ChevronDown
                           className={cn(
                             "h-4 w-4 text-muted-foreground transition-transform",
@@ -1088,6 +1288,14 @@ export default function EmbarquesTab() {
                     {aberto ? (
                       <TableRow className="bg-muted/30 hover:bg-muted/30">
                         <TableCell colSpan={11} className="space-y-4 p-4">
+                  <PedidosTabela
+                    linhas={e.vinculos
+                      .map((v) => ({ v, p: v.pedido ? pedidoPorId.get(v.pedido.id) : undefined }))
+                      .filter((x): x is { v: VinculoRow; p: PedidoLinha } => !!x.p)
+                      .sort((a, b) => ordemPedido(a.p, b.p))
+                      .map(({ v, p }) => ({ ...p, parcial: v.parcial }))}
+                    vazio="Nenhum pedido vinculado a este embarque."
+                  />
                   <div className="flex flex-wrap gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEditando(e.id)}>
                       <Pencil className="mr-1 h-4 w-4" /> Editar
