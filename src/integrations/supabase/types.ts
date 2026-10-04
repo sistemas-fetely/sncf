@@ -54449,6 +54449,45 @@ export type Database = {
           },
         ]
       }
+      produto_campo_alteracao: {
+        Row: {
+          campo: string
+          cod_cadastro: string
+          criado_em: string
+          id: number
+          lote_id: string | null
+          motivo: string | null
+          origem: string
+          usuario_id: string | null
+          valor_de: string | null
+          valor_para: string | null
+        }
+        Insert: {
+          campo: string
+          cod_cadastro: string
+          criado_em?: string
+          id?: number
+          lote_id?: string | null
+          motivo?: string | null
+          origem: string
+          usuario_id?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
+        }
+        Update: {
+          campo?: string
+          cod_cadastro?: string
+          criado_em?: string
+          id?: number
+          lote_id?: string | null
+          motivo?: string | null
+          origem?: string
+          usuario_id?: string | null
+          valor_de?: string | null
+          valor_para?: string | null
+        }
+        Relationships: []
+      }
       produto_canal_dim: {
         Row: {
           ativo: boolean
