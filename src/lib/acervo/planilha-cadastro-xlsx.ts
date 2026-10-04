@@ -12,6 +12,7 @@ export interface CampoFicha {
 }
 export interface ProdutoExport {
   sku: string;
+  cod_cadastro?: string | null;
   valores: Record<string, unknown>;
   sugestoes: Record<string, unknown>;
   fase_atual: string | null;
@@ -90,7 +91,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const proximas = [...new Set(r.produtos.map((p) => p.proxima_fase).filter(Boolean))] as string[];
   const tituloFalta = proximas.length === 1 ? `Falta para ${legivel(proximas[0])}` : "Falta para a próxima fase";
   const nCampos = ficha.length;
-  const colFase = nCampos + 1, colFalta = nCampos + 2, colMedir = nCampos + 3;
+  const colFase = nCampos + 1, colFalta = nCampos + 2, colMedir = nCampos + 3, colLib = nCampos + 4;
 
   // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3 = rótulo · dono.
   const r1 = ws.getRow(1), r2 = ws.getRow(2), r3 = ws.getRow(3);
@@ -112,6 +113,18 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   r1.getCell(colFase).value = "_fase_atual";
   r1.getCell(colFalta).value = "_pendencias_proxima";
   r1.getCell(colMedir).value = "_pendencias_medicao";
+  r1.getCell(colLib).value = "_liberar";
+  {
+    const c2 = r2.getCell(colLib);
+    c2.value = "Ação";
+    c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00703C" } };
+    c2.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
+    const c3 = r3.getCell(colLib);
+    c3.value = "Liberar para venda";
+    c3.font = { bold: true, name: "Arial", size: 10 };
+    c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+  }
+  ws.getColumn(colLib).width = 18;
   for (const [c, t] of [[colFase, "Fase atual"], [colFalta, tituloFalta], [colMedir, "Falta medir"]] as const) {
     const c2 = r2.getCell(c);
     c2.value = "Situação (FOP)";
@@ -168,10 +181,21 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     row.getCell(colFase).protection = { locked: true };
     row.getCell(colFalta).protection = { locked: true };
     row.getCell(colMedir).protection = { locked: true };
+    // Liberar: editável só em produto exportado com próxima fase.
+    const prod = r.produtos[lin - 4];
+    const cLib = row.getCell(colLib);
+    if (prod && prod.proxima_fase) {
+      cLib.protection = { locked: false };
+      cLib.dataValidation = { type: "list", allowBlank: true, formulae: ['"Sim"'], showErrorMessage: true,
+        errorTitle: "Liberar para venda", error: "Use \"Sim\" ou deixe vazio." };
+    } else {
+      cLib.protection = { locked: true };
+      cLib.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
+    }
   }
 
   ws.views = [{ state: "frozen", ySplit: 3, xSplit: 0 }];
-  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colMedir } };
+  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colLib } };
   await ws.protect("", {
     selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true,
     autoFilter: true, sort: true,
