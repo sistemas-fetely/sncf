@@ -792,16 +792,31 @@ Deno.serve(async (req) => {
           }
           let avisoEnderecoVd: string | null = null;
           if (preexistenteVd && !dry) {
+            // O nome da NF é o do dono do CPF no SNCF: contato achado pelo documento
+            // com outro nome é corrigido no mesmo PUT; se não corrigir, não desce.
+            const normalizarNome = (s: unknown) =>
+              String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim().toUpperCase();
+            let nomeAntigoVd: string | null = null;
+            let nomeDivergeVd = false;
             try {
               await dormir(ESPERA_ENTRE_CHAMADAS_MS);
               const atual = await bling.get(`/contatos/${preexistenteVd}`);
               const contatoAtual = ((atual?.data ?? atual ?? {}) as Record<string, unknown>);
               const enderecoAtual = (contatoAtual.endereco ?? {}) as Record<string, unknown>;
+              nomeAntigoVd = String(contatoAtual.nome ?? "");
+              nomeDivergeVd = normalizarNome(nomeAntigoVd) !== normalizarNome(nomeVd);
               await putBling(`/contatos/${preexistenteVd}`, {
                 ...contatoAtual,
+                ...(nomeDivergeVd ? { nome: nomeVd } : {}),
                 endereco: { ...enderecoAtual, geral: enderecoGeralVd },
               });
             } catch (e) {
+              if (nomeDivergeVd) {
+                await falharVd(
+                  `Contato do Bling com o CPF ${documentoVd} está com outro nome ('${nomeAntigoVd}') e não foi possível corrigir: ${(e as Error).message}. Corrija o nome no Bling e reenvie.`,
+                );
+                continue;
+              }
               avisoEnderecoVd =
                 `aviso: falha ao atualizar endereço do contato ${preexistenteVd}: ${(e as Error).message}`;
               console.warn("[b2c-descida][vd]", avisoEnderecoVd, { pedido_id: pedidoIdVd });
@@ -809,6 +824,16 @@ Deno.serve(async (req) => {
                 .from("bling_pedido_fila_b2c")
                 .update({ ultimo_erro: avisoEnderecoVd.slice(0, 2000) })
                 .eq("id", item.id);
+            }
+            if (nomeDivergeVd) {
+              const docMascarado = documentoVd.length === 11
+                ? `***.${documentoVd.slice(3, 6)}.${documentoVd.slice(6, 9)}-**`
+                : `${documentoVd.slice(0, 2)}.***.***/${documentoVd.slice(8, 12)}-**`;
+              await registrarEvento(
+                "alterado",
+                `Contato do Bling corrigido: '${nomeAntigoVd}' → '${nomeVd}' (CPF ${docMascarado})`,
+                { bling_contato_id: preexistenteVd, nome_antigo: nomeAntigoVd, nome_novo: nomeVd },
+              );
             }
           }
 
@@ -886,7 +911,8 @@ Deno.serve(async (req) => {
                   nomePais: "",
                 },
               },
-            observacoes: obsVd,
+            // Só no pedido do Bling: `observacoes` vira "Informações complementares" da NF.
+            observacoesInternas: obsVd,
           };
 
           if (dry) {
