@@ -1081,10 +1081,13 @@ export default function TransferenciasInternas() {
                   <TableHead>Origem</TableHead>
                   <TableHead>Destino</TableHead>
                   <TableHead>Estágio</TableHead>
+                  <TableHead>NF</TableHead>
                   <TableHead className="text-right">Qtd. itens</TableHead>
                   <TableHead className="text-right">Qtd. peças</TableHead>
                   <TableHead className="text-right">Valor (a custo)</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>Previsão</TableHead>
+                  <TableHead>Entrega</TableHead>
                   <TableHead>Recebimento</TableHead>
                 </TableRow>
               </TableHeader>
@@ -1148,6 +1151,20 @@ export default function TransferenciasInternas() {
                       <TableCell>{t.destino_interno ?? "—"}</TableCell>
                       <TableCell>
                         <SeloEstagio estagio={t.estagio} />
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          if (!t.nf_numero) return <span className="text-muted-foreground">—</span>;
+                          const alerta = t.nf_situacao && t.nf_situacao !== "autorizada";
+                          return (
+                            <span
+                              className={cn("tabular-nums", alerta && "text-warning")}
+                              title={`NF ${t.nf_numero}/${t.nf_serie} · emitida em ${formatDateBR(t.nf_data_emissao)} · ${t.nf_situacao}`}
+                            >
+                              {t.nf_numero}
+                            </span>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-sm">
                         {t.qtd_itens ?? "—"}
