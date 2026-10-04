@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CardIndicador } from "@/components/ui/card-indicador";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import CadastroPedidoCompra from "@/pages/acervo/CadastroPedidoCompra";
-import EmbarquesTab from "@/components/compras/EmbarquesTab";
+import PainelLista from "@/components/compras/PainelLista";
 import { ParaQueServe } from "@/components/compras/ParaQueServe";
 import { useEmbarquePainel } from "@/lib/compras/embarque-painel";
 
@@ -17,7 +15,6 @@ function ddMM(iso: string | null): string {
 
 export default function PainelTab() {
   const [params, setParams] = useSearchParams();
-  const visao = params.get("visao") === "embarque" ? "embarque" : "pedido";
   const q = useEmbarquePainel();
 
   const kpi = useMemo(() => {
@@ -35,12 +32,12 @@ export default function PainelTab() {
     };
   }, [q.data]);
 
-  const setVisao = (v: string, extra?: Record<string, string>) => {
-    if (!v) return;
+  // "Data furada" liga/desliga o filtro da lista única; "visao" é legado e é descartado.
+  const alternarFurada = () => {
     const next = new URLSearchParams(params);
-    next.set("visao", v);
-    if (v !== "embarque") next.delete("furada");
-    Object.entries(extra ?? {}).forEach(([k, val]) => next.set(k, val));
+    next.delete("visao");
+    if (next.get("furada") === "1") next.delete("furada");
+    else next.set("furada", "1");
     setParams(next, { replace: true });
   };
 
@@ -49,7 +46,7 @@ export default function PainelTab() {
   return (
     <div className="space-y-4">
       <ParaQueServe>
-        O que está vindo, quando e em que pé. Clique numa linha para ver o detalhe.
+        O que está vindo, quando e em que pé. Cada embarque abre os pedidos que vêm nele. Clique numa linha para ver o detalhe.
       </ParaQueServe>
 
       {q.isError ? (
@@ -82,7 +79,7 @@ export default function PainelTab() {
         <button
           type="button"
           className="rounded-lg text-left transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={() => setVisao("embarque", { furada: "1" })}
+          onClick={alternarFurada}
         >
           <CardIndicador
             rotulo="Data furada"
@@ -96,21 +93,7 @@ export default function PainelTab() {
         </button>
       </div>
 
-      <ToggleGroup
-        type="single"
-        value={visao}
-        onValueChange={(v) => setVisao(v)}
-        className="justify-start"
-      >
-        <ToggleGroupItem value="pedido" size="sm">
-          Por pedido
-        </ToggleGroupItem>
-        <ToggleGroupItem value="embarque" size="sm">
-          Por embarque
-        </ToggleGroupItem>
-      </ToggleGroup>
-
-      {visao === "pedido" ? <CadastroPedidoCompra vista="acompanhamento" /> : <EmbarquesTab />}
+      <PainelLista />
     </div>
   );
 }

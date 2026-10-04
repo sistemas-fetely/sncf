@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 /**
  * Leitura compartilhada da view vw_importacao_embarque_painel.
  * Vive fora dos componentes para evitar import circular entre
- * PainelTab (que renderiza EmbarquesTab) e EmbarquesTab.
+ * PainelTab (KPIs) e PainelLista (lista única).
  */
 
 export const CHAVE_EMBARQUE_PAINEL = ["vw_importacao_embarque_painel"] as const;
