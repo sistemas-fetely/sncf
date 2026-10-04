@@ -134,6 +134,7 @@ interface PedidoListaRow {
   rocabella_ref: string | null;
   modalidade: string | null;
   moeda: string | null;
+  fabrica: string | null;
   data_pedido: string | null;
   prazo_entrega_acordado: string | null;
   etd: string | null;
@@ -480,7 +481,7 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       const { data, error } = await (supabase as any)
         .from("vw_importacao_pedido_detalhe")
         .select(
-          "id, numero_pedido, rocabella_ref, modalidade, moeda, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
+          "id, numero_pedido, rocabella_ref, modalidade, moeda, fabrica, data_pedido, prazo_entrega_acordado, etd, eta, fornecedor, apelido, centro, status, linhas, kits, custo_total",
         );
       if (error) throw error;
       return (data ?? []) as PedidoListaRow[];
