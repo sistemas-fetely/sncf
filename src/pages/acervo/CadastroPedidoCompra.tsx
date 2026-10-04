@@ -233,35 +233,6 @@ const EMPTY_HEADER: HeaderForm = {
 const fmtBRL = (v: number, moeda = "BRL") =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: moeda || "BRL" }).format(v || 0);
 
-const fmtInt = (v: number) => new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(v || 0);
-const fmtPct = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 }).format(v || 0) + "%";
-
-const fmtDate = (d?: string | null) =>
-  d ? format(parseISO(d), "dd/MM/yyyy") : "—";
-
-/** Atraso vem pronto de vw_importacao_saldo_pedido — nada é calculado aqui. */
-function rotuloAtraso(diasAtraso?: number | null) {
-  if (diasAtraso == null) return <span className="text-muted-foreground">—</span>;
-  const dias = Number(diasAtraso);
-  if (dias <= 0) return <span className="text-muted-foreground">0</span>;
-  return <Selo estado="warning">{dias} {dias === 1 ? "dia" : "dias"}</Selo>;
-}
-
-const ROTULO_CICLO_ESTADO: Record<string, { rotulo: string; estado: EstadoSelo; icone?: boolean }> = {
-  aguardando_nf: { rotulo: "Aguardando NF", estado: "muted" },
-  faturando: { rotulo: "Faturando", estado: "warning" },
-  aguardando_conferencia: { rotulo: "Aguardando conferência", estado: "warning" },
-  divergencia: { rotulo: "Divergência", estado: "destructive" },
-  completo: { rotulo: "Completo", estado: "success", icone: true },
-};
-
-function corBarraProgresso(estado: string | null | undefined): string {
-  if (estado === "completo") return "bg-success";
-  if (estado === "divergencia") return "bg-destructive";
-  return "bg-warning";
-}
-
 /** Saldos de três camadas por pedido (view pronta — nada é calculado aqui). */
 interface TresCamadasPedidoLinha {
   pedido_id: number;
@@ -488,62 +459,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
     },
   });
 
-
-  // Saldo por pedido (view pronta — nada e calculado aqui)
-  const saldoQ = useQuery({
-    queryKey: ["importacao-saldo-pedido-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_importacao_saldo_pedido")
-        .select(
-          "pedido_id, data_prevista, data_realizada, dias_atraso",
-        );
-      if (error) throw error;
-      return (data ?? []) as SaldoPedidoLinha[];
-    },
-  });
-
-  const saldoPorPedido = useMemo(() => {
-    const m = new Map<number, SaldoPedidoLinha>();
-    (saldoQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
-    return m;
-  }, [saldoQ.data]);
-
-  // Três camadas por pedido: A faturar (fornecedor deve NF) e A confirmar (XPM deve conferência)
-  const tresCamadasQ = useQuery({
-    queryKey: ["compra-tres-camadas-pedido-lista"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("vw_compra_tres_camadas_pedido")
-        .select("pedido_id, a_faturar, a_confirmar, qtd_faturada, valor_faturado_brl, pct_faturado_sobre_iv, ciclo_estado, tem_divergencia, divergencia_total, pct_conferido_sobre_iv");
-      if (error) throw error;
-      return (data ?? []) as TresCamadasPedidoLinha[];
-    },
-  });
-
-  const tresCamadasPorPedido = useMemo(() => {
-    const m = new Map<number, TresCamadasPedidoLinha>();
-    (tresCamadasQ.data ?? []).forEach((s) => m.set(Number(s.pedido_id), s));
-    return m;
-  }, [tresCamadasQ.data]);
-
-  // Pendências por pedido (view pronta — nada e calculado aqui)
-  const pendenciasQ = useQuery({
-    queryKey: ["compras-pendencias"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vw_compras_pendencias" as never)
-        .select(SELECT_PENDENCIAS);
-      if (error) throw error;
-      return (data ?? []) as unknown as PendenciaPedido[];
-    },
-  });
-
-  const pendenciaPorPedido = useMemo(() => {
-    const m = new Map<number, PendenciaPedido>();
-    (pendenciasQ.data ?? []).forEach((r) => m.set(Number(r.pedido_id), r));
-    return m;
-  }, [pendenciasQ.data]);
 
   // ---------------- Exclusão de pedido ----------------
   const [excluirAlvo, setExcluirAlvo] = useState<PedidoListaRow | null>(null);
@@ -804,34 +719,6 @@ export default function CadastroPedidoCompra({ vista = "novo" }: { vista?: Vista
     header.modalidade.length > 0 &&
     header.fornecedor_id.length > 0;
 
-  // ORDENACAO-POR-EMBARQUE: ETA crescente (nulos no fim); dentro do mesmo embarque,
-  // por referência e depois por número do pedido.
-  // A busca varre o campo `busca` da view de identidade + a referência do embarque (rocabella_ref).
-  const pedidosOrdenados = useMemo(() => {
-    const termo = buscaPedido.trim().toLowerCase();
-    let lista = [...(pedidosQ.data ?? [])];
-    if (termo) {
-      lista = lista.filter((p) => {
-        const id = identidade.porPedido.get(Number(p.id));
-        const alvo = [(id?.busca ?? p.numero_pedido ?? ""), p.rocabella_ref ?? ""]
-          .join(" ")
-          .toLowerCase();
-        return alvo.includes(termo);
-      });
-    }
-    lista.sort((a, b) => {
-      if ((a.eta ?? "") !== (b.eta ?? "")) {
-        if (!a.eta) return 1;
-        if (!b.eta) return -1;
-        return a.eta.localeCompare(b.eta);
-      }
-      const ra = a.rocabella_ref ?? "";
-      const rb = b.rocabella_ref ?? "";
-      if (ra !== rb) return ra.localeCompare(rb, "pt-BR");
-      return (a.numero_pedido ?? "").localeCompare(b.numero_pedido ?? "");
-    });
-    return lista;
-  }, [pedidosQ.data, identidade.porPedido, buscaPedido]);
 
 
   // ============================ RENDER ============================
