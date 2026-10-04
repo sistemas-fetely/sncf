@@ -6,6 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { exigirAcao } from "../_shared/permissao-acao.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -23,6 +24,10 @@ const FOP_URL = "https://onalegxugtuxpfhonayq.supabase.co";
 
 // Identidade nao se escreve por aqui nem sendo dono='fetely': quem aloca codigo,
 // EAN e DUN e o cartorio (fn_pi_efetivar_lote), que marca o codigo e grava o vinculo.
+const FOP_ANON_KEY = "sb_publishable_LKB5TwMha9KGj8v_YZkquA_Zz8NyriO";
+const SLUG_PLANILHA = "acao.produto_importar_planilha_cadastro";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const CAMPOS_IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun"]);
 
 serve(async (req) => {
@@ -60,6 +65,15 @@ serve(async (req) => {
       return json({ ok: false, erro: "campos obrigatório (objeto campo → valor)" }, 400);
     }
 
+    // Modo planilha (F2a): permissão própria, whitelist = importavel_planilha (qualquer dono), trilha.
+    const modoPlanilha = body?.origem === "planilha";
+    const loteId = typeof body?.lote_id === "string" ? body.lote_id.trim() : "";
+    if (modoPlanilha) {
+      const perm = await exigirAcao(supabase, auth, SLUG_PLANILHA, "importar a planilha de cadastro");
+      if (!perm.ok) return json({ ok: false, erro: perm.erro }, perm.status);
+      if (!UUID_RE.test(loteId)) return json({ ok: false, erro: "lote_id (uuid) obrigatório na importação de planilha" }, 400);
+    }
+
     const pedidos = Object.keys(campos as Record<string, unknown>);
     if (pedidos.length === 0) {
       return json({ ok: false, erro: "campos vazio: nada para gravar" }, 400);
@@ -87,11 +101,14 @@ serve(async (req) => {
     // 2) Whitelist vem da matriz, nunca de lista no codigo
     const { data: matriz, error: errMatriz } = await supabase
       .from("produto_ficha_nascimento")
-      .select("campo, dono");
+      .select("campo, dono, importavel_planilha");
     if (errMatriz) {
       console.error("[gravar-produto-fop] erro lendo produto_ficha_nascimento", errMatriz);
       return json({ ok: false, erro: errMatriz.message }, 500);
     }
+    const importavel = new Map<string, boolean>(
+      (matriz ?? []).map((m: any) => [String(m.campo), m.importavel_planilha === true]),
+    );
     const donoDoCampo = new Map<string, string>(
       (matriz ?? []).map((m: any) => [String(m.campo), String(m.dono ?? "")]),
     );
@@ -112,6 +129,13 @@ serve(async (req) => {
           { ok: false, campo, erro: `campo \`${campo}\` não existe na matriz produto_fase_ficha` },
           403,
         );
+      }
+      if (modoPlanilha) {
+        if (!importavel.get(campo)) {
+          console.error("[gravar-produto-fop] recusa: não importável", { codCadastro, campo });
+          return json({ ok: false, campo, erro: `campo \`${campo}\` não é importável pela planilha (importavel_planilha = false)` }, 403);
+        }
+        continue;
       }
       if (dono !== "fetely") {
         console.error("[gravar-produto-fop] recusa: dono", { codCadastro, campo, dono });
@@ -142,6 +166,24 @@ serve(async (req) => {
       const valor = (campos as Record<string, unknown>)[campo];
       patch[campo] = valor;
       dePara[campo] = { de: (atual as Record<string, unknown>)[campo] ?? null, para: valor };
+    }
+
+    // 6b) Modo planilha: o valor_de da trilha vem do FOP, nunca do espelho.
+    //     Lê o valor atual no FOP antes de gravar (usado se o FOP não devolver de_para).
+    let antesFop: Record<string, unknown> | null = null;
+    if (modoPlanilha) {
+      const { data: tk, error: eTk } = await supabase.rpc("get_vault_secret", { p_name: "FOP_INBOUND_TOKEN" });
+      if (eTk || !tk) return json({ ok: false, erro: `FOP_INBOUND_TOKEN indisponível no vault${eTk ? `: ${eTk.message}` : ""}` }, 500);
+      const fopLeitura = createClient(FOP_URL, FOP_ANON_KEY, { auth: { persistSession: false } });
+      const colecao = (atual as Record<string, unknown>).colecao;
+      const { data: lista, error: eL } = await fopLeitura.rpc("fn_produtos_para_sncf", {
+        p_token: String(tk),
+        p_colecoes: typeof colecao === "string" && colecao ? [colecao] : null,
+      });
+      if (eL) return json({ ok: false, erro: `Falha lendo o valor atual no FOP: ${eL.message}` }, 502);
+      antesFop = (Array.isArray(lista) ? lista : []).find((x: any) => String(x?.cod_cadastro ?? "") === codCadastro) ?? null;
+      if (!antesFop) return json({ ok: false, erro: `Produto ${codCadastro} não encontrado na leitura do FOP` }, 404);
+      for (const campo of pedidos) dePara[campo] = { de: antesFop[campo] ?? null, para: (campos as Record<string, unknown>)[campo] };
     }
 
     // 7) Escrita no mestre do cadastro: FOP, via endpoint inbound que ja autentica.
@@ -228,10 +270,38 @@ serve(async (req) => {
     const fopRepresentacao = fopJson;
     console.log("[gravar-produto-fop] FOP aceitou", { codCadastro, campos: pedidos });
 
+    // 7b) Modo planilha: de_para devolvido pelo FOP prevalece; trilha por campo.
+    if (modoPlanilha) {
+      const dpFop = (fopJson?.de_para ?? null) as Record<string, { de?: unknown }> | null;
+      if (dpFop && typeof dpFop === "object") {
+        for (const campo of pedidos) if (dpFop[campo] && "de" in dpFop[campo]) dePara[campo].de = dpFop[campo].de ?? null;
+      }
+      const txt = (v: unknown) => (v === null || v === undefined ? null : typeof v === "object" ? JSON.stringify(v) : String(v));
+      const linhas = pedidos.map((campo) => ({
+        cod_cadastro: codCadastro,
+        campo,
+        valor_de: txt(dePara[campo].de),
+        valor_para: txt(dePara[campo].para),
+        origem: "planilha",
+        motivo,
+        usuario_id: userData.user.id,
+        lote_id: loteId,
+      }));
+      const { error: errTrilha } = await (supabase as any).from("produto_campo_alteracao").insert(linhas);
+      if (errTrilha) {
+        console.error("[gravar-produto-fop] falha na trilha", errTrilha);
+        return json({ ok: false, erro: `FOP aceitou, mas a trilha (produto_campo_alteracao) falhou: ${errTrilha.message}`, gravados: pedidos }, 500);
+      }
+    }
+
     // 8) Espelho local — o sync reconcilia, mas a falha nao pode ficar muda
-    const { error: errEspelho } = await (supabase as any)
+    //    (modo planilha: só colunas que existem no espelho)
+    const patchEspelho = modoPlanilha
+      ? Object.fromEntries(Object.entries(patch).filter(([k]) => k in (atual as Record<string, unknown>)))
+      : patch;
+    const { error: errEspelho } = Object.keys(patchEspelho).length === 0 ? { error: null } : await (supabase as any)
       .from("sncf_produtos")
-      .update(patch)
+      .update(patchEspelho)
       .eq("cod_cadastro", codCadastro);
     if (errEspelho) {
       console.error("[gravar-produto-fop] falha no espelho local", errEspelho);
