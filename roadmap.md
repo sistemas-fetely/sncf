@@ -12,7 +12,7 @@
 - [x] Aplicar rolagem interna e cabeçalhos congelados às cinco tabelas de Importar PI.
 - [x] Paginar Conferência, Efetivação e Nascer no FOP acima de 50 linhas.
 - [x] Executar o typecheck sem publicar.
-- [ ] Adicionar seleção de produtos filtrados na Mesa do Produto.
+- [x] Adicionar seleção de produtos filtrados na Mesa do Produto.
 - [ ] Criar promoção de fase em lote com progresso e falhas nomeadas.
 - [ ] Encadear sucessos promovidos a Ativo com o fluxo existente do Bling.
 - [ ] Validar seleção, atalhos, permissões, typecheck e build.
