@@ -8,6 +8,7 @@ import RateioNfTab from "@/components/compras/RateioNfTab";
 import PendenciasTab from "@/components/compras/PendenciasTab";
 import PainelTab from "@/components/compras/PainelTab";
 import ImportarPiPedidoTab from "@/components/compras/ImportarPiPedidoTab";
+import ImportarPI from "@/pages/acervo/ImportarPI";
 
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -26,6 +27,7 @@ const ABAS: AbaMercadoria[] = [
   { value: "pendencias", label: "Pendências", grupo: "gestao", render: () => <PendenciasTab /> },
   { value: "novo", label: "Novo pedido", grupo: "ferramenta", render: () => <CadastroPedidoCompra vista="novo" /> },
   { value: "importar-pi", label: "Importar linhas da PI", grupo: "ferramenta", render: () => <ImportarPiPedidoTab /> },
+  { value: "cadastro-pi", label: "Cadastro de produto (PI)", grupo: "ferramenta", render: () => <ImportarPI embutido /> },
   { value: "de-para", label: "De-para de fornecedor", grupo: "ferramenta", render: () => <DeParaFornecedor /> },
   { value: "rateio-nf", label: "Rateio de NF", grupo: "ferramenta", render: () => <RateioNfTab /> },
 ];
