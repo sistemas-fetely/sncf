@@ -102,14 +102,14 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
             <p className="text-muted-foreground">
-              {validos.length} produto(s) a processar · {semMudanca.length} sem mudança · {comErro.length} com erro · {previa.novos.length} produto(s) novo(s) ignorado(s)
+              {validos.length} produto(s) a processar · {semMudanca.length} sem mudança · {comErro.length} com erro · {previa.novos.length} produto(s) novo(s) ignorado(s){(() => { const n = previa.itens.reduce((a, i) => a + i.sugestoes_ignoradas, 0); return n ? ` · ${n} sugestão(ões) amarela(s) não alterada(s) — não gravadas` : ""; })()}
             </p>
             {validos.map((i) => (
               <div key={i.cod} className="rounded-md border p-2">
                 <div className="font-medium">{i.cod} <span className="font-mono text-xs text-muted-foreground">{i.sku}</span>
                   {i.liberar && <span className="ml-2 rounded bg-success/15 px-1.5 py-0.5 text-xs text-success">Liberar → {legivel(i.fase_destino)}</span>}</div>
                 {i.mudancas.map((m) => (
-                  <div key={m.campo} className="text-xs"><span className="text-muted-foreground">{m.rotulo}:</span> {fmt(m.de)} → <strong>{fmt(m.para)}</strong>{m.sugestao_sncf && <span className="ml-1 rounded bg-warning/20 px-1 text-warning-foreground">sugestão do SNCF mantida</span>}</div>
+                  <div key={m.campo} className="text-xs"><span className="text-muted-foreground">{m.rotulo}:</span> {fmt(m.de)} → <strong>{fmt(m.para)}</strong></div>
                 ))}
               </div>
             ))}

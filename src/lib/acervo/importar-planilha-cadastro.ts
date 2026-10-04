@@ -9,11 +9,12 @@ export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"])
 
 export interface LinhaPlanilha { linha: number; cod: string | null; celulas: Record<string, unknown>; liberar: boolean }
 
-export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown; sugestao_sncf?: boolean }
+export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown }
 export interface ItemPrevia {
   linha: number; cod: string; sku: string;
   mudancas: Mudanca[]; liberar: boolean; fase_destino: string | null;
   erros: string[];
+  sugestoes_ignoradas: number;
 }
 export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number }
 
@@ -112,29 +113,32 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     const p = porCod.get(l.cod);
     const erros: string[] = [];
     if (!p) {
-      itens.push({ linha: l.linha, cod: l.cod, sku: "", mudancas: [], liberar: l.liberar, fase_destino: null, erros: [`código ${l.cod} não encontrado no FOP`] });
+      itens.push({ linha: l.linha, cod: l.cod, sku: "", mudancas: [], liberar: l.liberar, fase_destino: null, sugestoes_ignoradas: 0, erros: [`código ${l.cod} não encontrado no FOP`] });
       continue;
     }
     if (vistos.has(l.cod)) erros.push(`código ${l.cod} repetido na planilha`);
     vistos.add(l.cod);
     const mudancas: Mudanca[] = [];
+    let sugeridas = 0;
     for (const [campo, cel] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo)) continue;
       const f = ficha.get(campo);
       if (!f || f.importavel_planilha !== true) continue;
       const atual = p.valores[campo];
       if (igual(cel, atual)) continue;
+      // Sugestão amarela do SNCF deixada como veio = não confirmada: não grava.
+      if (vazio(atual) && !vazio(p.sugestoes?.[campo]) && igual(cel, p.sugestoes[campo])) { sugeridas++; continue; }
       const rotulo = f.rotulo || campo;
       const ops = r.opcoes[campo];
       if (ops?.length && !ops.includes(String(cel).trim())) { erros.push(`${rotulo}: "${String(cel)}" fora da lista válida`); continue; }
       const n = normalizar(cel, atual);
       if (n.erro) { erros.push(`${rotulo}: ${n.erro}`); continue; }
-      mudancas.push({ campo, rotulo, de: atual ?? null, para: n.valor, sugestao_sncf: !vazio(p.sugestoes?.[campo]) && igual(cel, p.sugestoes[campo]) });
+      mudancas.push({ campo, rotulo, de: atual ?? null, para: n.valor });
     }
     if (l.liberar && !p.proxima_fase) erros.push("marcado para liberar, mas o produto não tem próxima fase");
     itens.push({
       linha: l.linha, cod: l.cod, sku: p.sku, mudancas,
-      liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros,
+      liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros, sugestoes_ignoradas: sugeridas,
     });
   }
   return { itens, novos, total_linhas: linhas.length };
