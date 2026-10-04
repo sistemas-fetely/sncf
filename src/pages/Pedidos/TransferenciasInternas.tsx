@@ -279,6 +279,10 @@ interface TransferenciaRow {
   tipo_transferencia: string | null;
   regularizacao_lote_id: string | null;
   regularizacao_lote_codigo: string | null;
+  origem_codigo: string | null;
+  destino_codigo: string | null;
+  orfao: boolean | null;
+  canal: string | null;
 }
 
 /** Tipo da transferência: física, regularização (sem movimento físico) ou com retorno de remessa (lote). */
@@ -517,7 +521,7 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, canal"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
