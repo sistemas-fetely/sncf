@@ -820,9 +820,11 @@ export default function CadastroPedidoCompra({ vista = "acompanhamento" }: { vis
       });
     }
     lista.sort((a, b) => {
-      if (a.eta && b.eta && a.eta !== b.eta) return a.eta.localeCompare(b.eta);
-      if (a.eta) return -1;
-      if (b.eta) return 1;
+      if ((a.eta ?? "") !== (b.eta ?? "")) {
+        if (!a.eta) return 1;
+        if (!b.eta) return -1;
+        return a.eta.localeCompare(b.eta);
+      }
       const ra = a.rocabella_ref ?? "";
       const rb = b.rocabella_ref ?? "";
       if (ra !== rb) return ra.localeCompare(rb, "pt-BR");
