@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Download } from "lucide-react";
+import { toast } from "sonner";
+import { baixarRelatorioDivergencia, temDivergencia, type LinhaDivergencia } from "@/lib/compras/relatorio-divergencia-xlsx";
 
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
@@ -187,6 +189,49 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
     },
   });
 
+  const divergenciaQ = useQuery({
+    queryKey: ["recebimento-divergencia", pedidoId],
+    enabled: Number.isFinite(pedidoId),
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_recebimento_divergencia")
+        .select(
+          "nf_numero, nf_data_emissao, termos, data_termo, sku, qtd_nf, qtd_recebida, qtd_falta, qtd_excesso, qtd_nao_conforme, preco_unit_nf, valor_falta, valor_nao_conforme, classificacao, em_aberto, fornecedor, numero_pedido",
+        )
+        .eq("pedido_id", pedidoId)
+        .order("nf_numero")
+        .order("sku");
+      if (error) throw error;
+      return (data ?? []) as LinhaDivergencia[];
+    },
+  });
+
+  const baixarDivergencia = async () => {
+    try {
+      const linhas = divergenciaQ.data ?? [];
+      const skus = Array.from(new Set(linhas.map((l) => l.sku).filter(Boolean))) as string[];
+      const prods = new Map<string, { nome_comercial: string | null; cod_cadastro: string | null }>();
+      if (skus.length) {
+        const { data, error } = await (supabase as any)
+          .from("sncf_produtos")
+          .select("sku, nome_comercial, cod_cadastro")
+          .in("sku", skus);
+        if (error) throw error;
+        for (const p of data ?? []) prods.set(p.sku, { nome_comercial: p.nome_comercial, cod_cadastro: p.cod_cadastro });
+      }
+      baixarRelatorioDivergencia(
+        linhas.map((l) => ({
+          ...l,
+          nome_comercial: l.sku ? prods.get(l.sku)?.nome_comercial ?? null : null,
+          cod_cadastro: l.sku ? prods.get(l.sku)?.cod_cadastro ?? null : null,
+        })),
+      );
+    } catch (e) {
+      toast.error(`Não foi possível gerar o relatório: ${formatError(e)}`);
+    }
+  };
+  const haDivergencia = (divergenciaQ.data ?? []).some(temDivergencia);
+
   const skusQ = useQuery({
     queryKey: ["compra-tres-camadas-sku", pedidoId],
     enabled: Number.isFinite(pedidoId),
@@ -322,6 +367,21 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                       </Selo>
                     </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="ml-auto"
+                    disabled={!haDivergencia}
+                    title={
+                      haDivergencia
+                        ? "Baixar planilha com o que foi faturado em NF e não chegou"
+                        : "Sem falta, excesso ou não conforme neste pedido"
+                    }
+                    onClick={baixarDivergencia}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Relatório de divergência
+                  </Button>
                 </div>
 
                 {diasAtraso > 0 && (
