@@ -15,6 +15,8 @@ export interface ItemPrevia {
   mudancas: Mudanca[]; liberar: boolean; fase_destino: string | null;
   erros: string[];
   sugestoes_ignoradas: number;
+  /** Sugestões amarelas deixadas como vieram — só gravadas se o usuário confirmar na prévia. */
+  sugestoes_mantidas: Mudanca[];
 }
 export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number }
 
@@ -113,12 +115,13 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     const p = porCod.get(l.cod);
     const erros: string[] = [];
     if (!p) {
-      itens.push({ linha: l.linha, cod: l.cod, sku: "", mudancas: [], liberar: l.liberar, fase_destino: null, sugestoes_ignoradas: 0, erros: [`código ${l.cod} não encontrado no FOP`] });
+      itens.push({ linha: l.linha, cod: l.cod, sku: "", mudancas: [], liberar: l.liberar, fase_destino: null, sugestoes_ignoradas: 0, sugestoes_mantidas: [], erros: [`código ${l.cod} não encontrado no FOP`] });
       continue;
     }
     if (vistos.has(l.cod)) erros.push(`código ${l.cod} repetido na planilha`);
     vistos.add(l.cod);
     const mudancas: Mudanca[] = [];
+    const mantidas: Mudanca[] = [];
     let sugeridas = 0;
     for (const [campo, cel] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo)) continue;
@@ -127,7 +130,12 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
       const atual = p.valores[campo];
       if (igual(cel, atual)) continue;
       // Sugestão amarela do SNCF deixada como veio = não confirmada: não grava.
-      if (vazio(atual) && !vazio(p.sugestoes?.[campo]) && igual(cel, p.sugestoes[campo])) { sugeridas++; continue; }
+      if (vazio(atual) && !vazio(p.sugestoes?.[campo]) && igual(cel, p.sugestoes[campo])) {
+        sugeridas++;
+        const nm = normalizar(cel, atual);
+        if (!nm.erro) mantidas.push({ campo, rotulo: f.rotulo || campo, de: null, para: nm.valor, confirmando_sugestao: true });
+        continue;
+      }
       const rotulo = f.rotulo || campo;
       const ops = r.opcoes[campo];
       if (ops?.length && !ops.includes(String(cel).trim())) { erros.push(`${rotulo}: "${String(cel)}" fora da lista válida`); continue; }
@@ -138,7 +146,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     if (l.liberar && !p.proxima_fase) erros.push("marcado para liberar, mas o produto não tem próxima fase");
     itens.push({
       linha: l.linha, cod: l.cod, sku: p.sku, mudancas,
-      liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros, sugestoes_ignoradas: sugeridas,
+      liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros, sugestoes_ignoradas: sugeridas, sugestoes_mantidas: mantidas,
     });
   }
   return { itens, novos, total_linhas: linhas.length };
