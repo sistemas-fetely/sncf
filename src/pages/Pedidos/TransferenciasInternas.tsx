@@ -1165,6 +1165,13 @@ export default function TransferenciasInternas() {
                               </div>
                             );
                           }
+                          if (t.orfao === true) {
+                            return (
+                              <span className="text-xs text-muted-foreground">
+                                Declare o destino primeiro
+                              </span>
+                            );
+                          }
                           if (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") {
                             return (
                               <button
