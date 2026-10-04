@@ -17,3 +17,4 @@
 - [ ] Encadear sucessos promovidos a Ativo com o fluxo existente do Bling.
 - [ ] Validar seleção, atalhos, permissões, typecheck e build.
 - [ ] Mover observações da venda direta para observações internas no envio ao Bling e validar com Deno.
+- [ ] Corrigir no Bling o nome do contato da venda direta encontrado pelo CPF, com bloqueio em falha.
