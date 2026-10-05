@@ -54707,6 +54707,103 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_destino_divergencia: {
+        Row: {
+          campo: string
+          campo_destino: string | null
+          cod_cadastro: string | null
+          destino_id: string | null
+          detectado_em: string
+          id: number
+          lote_id: string
+          sistema: string
+          sku: string
+          valor_destino: string | null
+          valor_sncf: string | null
+        }
+        Insert: {
+          campo: string
+          campo_destino?: string | null
+          cod_cadastro?: string | null
+          destino_id?: string | null
+          detectado_em?: string
+          id?: number
+          lote_id: string
+          sistema: string
+          sku: string
+          valor_destino?: string | null
+          valor_sncf?: string | null
+        }
+        Update: {
+          campo?: string
+          campo_destino?: string | null
+          cod_cadastro?: string | null
+          destino_id?: string | null
+          detectado_em?: string
+          id?: number
+          lote_id?: string
+          sistema?: string
+          sku?: string
+          valor_destino?: string | null
+          valor_sncf?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_destino_divergencia_sistema_fkey"
+            columns: ["sistema"]
+            isOneToOne: false
+            referencedRelation: "divergencia_sistema_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      produto_destino_varredura: {
+        Row: {
+          concluido_em: string | null
+          detalhe_erros: Json | null
+          divergencias: number | null
+          erros: number | null
+          iniciado_em: string
+          lote_id: string
+          modo: string
+          produtos_com_divergencia: number | null
+          produtos_lidos: number | null
+          sistema: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          detalhe_erros?: Json | null
+          divergencias?: number | null
+          erros?: number | null
+          iniciado_em?: string
+          lote_id: string
+          modo?: string
+          produtos_com_divergencia?: number | null
+          produtos_lidos?: number | null
+          sistema: string
+        }
+        Update: {
+          concluido_em?: string | null
+          detalhe_erros?: Json | null
+          divergencias?: number | null
+          erros?: number | null
+          iniciado_em?: string
+          lote_id?: string
+          modo?: string
+          produtos_com_divergencia?: number | null
+          produtos_lidos?: number | null
+          sistema?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_destino_varredura_sistema_fkey"
+            columns: ["sistema"]
+            isOneToOne: false
+            referencedRelation: "divergencia_sistema_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       produto_embalagem_dim: {
         Row: {
           ativo: boolean
