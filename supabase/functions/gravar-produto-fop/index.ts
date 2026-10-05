@@ -168,6 +168,20 @@ serve(async (req) => {
       dePara[campo] = { de: (atual as Record<string, unknown>)[campo] ?? null, para: valor };
     }
 
+    // 6a) F4 — portão de formato (só modo planilha): recusa 422 com motivo por campo.
+    if (modoPlanilha) {
+      const { data: viol, error: eViol } = await supabase.rpc("fn_produto_formato_validar_patch", {
+        p_cod_cadastro: codCadastro,
+        p_campos: patch,
+      });
+      if (eViol) return json({ ok: false, erro: `Falha validando o formato: ${eViol.message}` }, 500);
+      const violacoes = Array.isArray(viol) ? viol : [];
+      if (violacoes.length) {
+        const erro = violacoes.map((v: any) => `${v.campo}: ${v.motivo} — ${v.valor ?? "vazio"}`).join("; ");
+        return json({ ok: false, erro: `Formato inválido: ${erro}`, violacoes }, 422);
+      }
+    }
+
     // 6b) Modo planilha: o valor_de da trilha vem do FOP, nunca do espelho.
     //     Lê o valor atual no FOP antes de gravar (usado se o FOP não devolver de_para).
     let antesFop: Record<string, unknown> | null = null;
