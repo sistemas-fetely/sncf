@@ -21,6 +21,7 @@ interface Posicao {
   pedido: string | null;
   base_total: number | null;
   desconto_pct: number | null;
+  desconto_campanha_pct?: number | null;
   ajuste_pp: number | null;
   valor_devido: number | null;
   liberado: number | null;
