@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
+import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase } from "../_shared/bling/montar-valores-produto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,18 +21,9 @@ const json = (body: unknown, status = 200) =>
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const THROTTLE_MS = 350;
 const TETO = 50;
-const TOL = 0.005;
 
 type DePara = { campo: string; bling: unknown; novo: unknown };
 type Resultado = { sku: string; status: string; bling_id?: string; de_para?: DePara[]; erro?: string };
-
-const vazio = (v: unknown) => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
-const num = (v: unknown): number | null => {
-  if (vazio(v)) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
-const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
