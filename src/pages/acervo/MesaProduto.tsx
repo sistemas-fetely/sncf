@@ -1,11 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowDown, ArrowDownCircle, ArrowUp, ArrowUpCircle, ArrowUpDown, Ban, Check,
+  AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check,
   ChevronDown, Columns3, Download, GripVertical,
-  ImageOff, Loader2, PackageX, RefreshCw, Search, X,
+  ImageOff, PackageX, RefreshCw, Search, X,
   Upload,
 } from "lucide-react";
 
@@ -19,22 +18,18 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
-import { fmtData, fmtDataHora } from "@/lib/data";
+import { fmtDataHora } from "@/lib/data";
 // O de-para da conciliação virou componente compartilhado com a tela Conciliação de Cadastro.
 import { type ConcLinha, type RegraDiv } from "@/components/acervo/DeParaConciliacao";
 
@@ -210,7 +205,6 @@ export default function MesaProduto() {
   const carregando=situacoesDim.isLoading||pendenciasQ.isLoading||lista.isLoading||conc.isLoading||sugestoes.isLoading||fasesDim.isLoading||camposDim.isLoading||regrasDim.isLoading; const erro=situacoesDim.error??pendenciasQ.error??lista.error??conc.error??sugestoes.error??fasesDim.error??camposDim.error??regrasDim.error;
   const fases=useMemo(()=>{const m=new Map<string,{valor:string;rotulo:string;ordem:number}>();for(const l of linhas){const v=l.fase??"__sem__";if(!m.has(v))m.set(v,{valor:v,rotulo:l.fase_nome??l.fase??"Sem fase",ordem:l.fase_ordem??999});}return[...m.values()].sort((a,b)=>a.ordem-b.ordem);},[linhas]);
   const faseAntesDe=(slug:string|null|undefined)=>{const atual=fasesDim.data?.find(f=>f.slug===slug);if(!atual)return null;return[...(fasesDim.data??[])].filter(f=>f.ordem<atual.ordem).sort((a,b)=>b.ordem-a.ordem)[0]??null;};
-  const faseAnterior=(l:LinhaUnida)=>faseAntesDe(l.fase);
   const valores=(key:"colecao"|"grupo")=>[...new Set(linhas.map(l=>l[key]).filter(temValor).map(String))].sort((a,b)=>a.localeCompare(b,"pt-BR"));
 
   function aplica(l:LinhaUnida, ignorar?:GrupoFiltro, semIndicador=false){
