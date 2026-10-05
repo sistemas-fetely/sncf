@@ -136,7 +136,18 @@ export function AbaApuradas() {
                   <TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted">Competência</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Base</TableHead>
-                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Desconto</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Desc. pedido</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help underline decoration-dotted underline-offset-4">Campanha</span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-72 text-center">
+                        Desconto de campanha Fetely — não reduz a comissão do representante.
+                        A régua usa Desc. pedido − Campanha.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Ajuste</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Valor devido</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Liberado</TableHead>
