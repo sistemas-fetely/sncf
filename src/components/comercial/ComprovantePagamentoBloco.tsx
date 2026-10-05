@@ -105,9 +105,13 @@ function CardComprovanteLido({
   const saida = (comprovante.sentido ?? "").toLowerCase() === "saida";
   const ehCartao = tipo.toLowerCase() === "cartao";
   const semChave = chave.trim().length === 0;
-  const semJustificativa = temDivergencia && justificativa.trim().length === 0;
+  // Banco pode pedir justificativa (ex.: valor difere do saldo de cartão em aberto).
+  const erroMsg = (confirmar.error as Error | null)?.message ?? "";
+  const pedeJustificativa = /justifi/i.test(erroMsg);
+  const mostraJustificativa = temDivergencia || pedeJustificativa;
+  const semJustificativa = mostraJustificativa && justificativa.trim().length === 0;
 
-  const bloqueado = saida || ehCartao || semChave || semJustificativa || !data || valorNum <= 0;
+  const bloqueado = saida || semChave || semJustificativa || !data || valorNum <= 0;
 
   return (
     <div className="rounded-md border p-3 space-y-3">
@@ -136,7 +140,7 @@ function CardComprovanteLido({
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Chave / E2E / NSU</Label>
+          <Label className="text-xs">{ehCartao ? "NSU do cartão" : "Chave / E2E / NSU"}</Label>
           <Input value={chave} onChange={(e) => setChave(e.target.value)} className="h-9" />
         </div>
         <div className="space-y-1">
@@ -177,13 +181,6 @@ function CardComprovanteLido({
         </Alert>
       )}
 
-      {ehCartao && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>Cartão fecha pela captura com NSU, não por aqui.</AlertDescription>
-        </Alert>
-      )}
-
       {semChave && (
         <Alert>
           <AlertTriangle className="h-4 w-4" />
@@ -191,13 +188,20 @@ function CardComprovanteLido({
         </Alert>
       )}
 
-      {temDivergencia && (
+      {erroMsg && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{erroMsg}</AlertDescription>
+        </Alert>
+      )}
+
+      {mostraJustificativa && (
         <div className="space-y-2">
-          <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm">
+          {temDivergencia && <div className="rounded-md border border-warning bg-warning/10 px-3 py-2 text-sm">
             Diferença em relação ao portão:{" "}
             <span className="font-semibold">{formatBRL(diferenca)}</span> (portão{" "}
             {formatBRL(valorPortao)} × comprovante {formatBRL(valorNum)})
-          </div>
+          </div>}
           <div className="space-y-1">
             <Label className="text-xs">Justificativa da diferença</Label>
             <Textarea
@@ -218,9 +222,7 @@ function CardComprovanteLido({
             ? "Você não tem permissão para confirmar pagamento declarado."
             : saida
               ? "Comprovante de saída não prova recebimento."
-              : ehCartao
-                ? "Cartão fecha pela captura com NSU."
-                : semChave
+              : semChave
                   ? "Sem a chave o extrato nunca vai casar."
                   : semJustificativa
                     ? "Preencha a justificativa da diferença."
@@ -233,7 +235,7 @@ function CardComprovanteLido({
             chave: chave.trim(),
             valor: valorNum,
             data,
-            justificativa: temDivergencia ? justificativa.trim() : null,
+            justificativa: mostraJustificativa ? justificativa.trim() : null,
           })
         }
       >
@@ -323,13 +325,6 @@ export function ComprovantePagamentoBloco({
             <span className="text-xs text-muted-foreground">{arquivoNome}</span>
           )}
         </div>
-      )}
-
-      {!somenteLeitura && (tipoPortao ?? "").toLowerCase() === "cartao" && (
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>Cartão fecha pela captura com NSU, não por aqui.</AlertDescription>
-        </Alert>
       )}
 
       {!somenteLeitura && lista.isLoading && (

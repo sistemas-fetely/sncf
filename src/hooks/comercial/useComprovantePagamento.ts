@@ -210,10 +210,19 @@ export function useConfirmarComprovante(pedidoId: string) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onSuccess: (data: any, args) => {
       qc.invalidateQueries({ queryKey: ["oportunidades-comercial"] });
       qc.invalidateQueries({ queryKey: chaveLista(pedidoId) });
       qc.invalidateQueries({ queryKey: ["oportunidade-obs-comerciais", pedidoId] });
+      if (data?.prova_tipo === "cartao_nsu") {
+        let msg = `Pagamento no cartão confirmado — captura registrada (NSU ${args.chave}).`;
+        if (data?.venda_safrapay === "aguardando_importacao") {
+          msg += " A venda será conferida quando o arquivo SafraPay for importado.";
+        }
+        toast.success(msg);
+        return;
+      }
       toast.success("Pagamento confirmado pelo comprovante");
     },
     onError: (e: Error) => {
