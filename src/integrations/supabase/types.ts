@@ -52912,6 +52912,7 @@ export type Database = {
           candidatos: number
           conciliados: number
           detalhe: Json
+          dry_run: boolean
           erros: number
           executado_em: string
           id: string
@@ -52923,6 +52924,7 @@ export type Database = {
           candidatos?: number
           conciliados?: number
           detalhe?: Json
+          dry_run?: boolean
           erros?: number
           executado_em?: string
           id?: string
@@ -52934,6 +52936,7 @@ export type Database = {
           candidatos?: number
           conciliados?: number
           detalhe?: Json
+          dry_run?: boolean
           erros?: number
           executado_em?: string
           id?: string
@@ -111585,6 +111588,20 @@ export type Database = {
         }
         Relationships: []
       }
+      vw_portao_cartao_observacao: {
+        Row: {
+          capturado_em: string | null
+          motivo_fila: string | null
+          nsu: string | null
+          pedido_humano: string | null
+          pedido_ref: string | null
+          resultado_robo: string | null
+          venda: number | null
+          veredito: string | null
+          visto_primeiro_em: string | null
+        }
+        Relationships: []
+      }
       vw_preco_espelho: {
         Row: {
           alertas: string[] | null
@@ -118391,14 +118408,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -127432,6 +127449,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_xpm_descricao_nova: { Args: { p_sku: string }; Returns: Json }
       fn_xpm_estoque_foto_recalc: {
         Args: { p_fotos: string[] }
         Returns: undefined
