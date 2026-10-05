@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertTriangle, Loader2, Unlock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPP, fmtPct } from "./fmt";
 import { EstornarBotao, EstornosLancados } from "./Estornos";
 
