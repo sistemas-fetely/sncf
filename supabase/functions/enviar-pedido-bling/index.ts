@@ -1271,19 +1271,19 @@ if (itensSemProdutoBling.length > 0) {
     // expedição — é esse número que vai na NF e na transportadora.
     // UMA busca só: peso_bruto e quantidade_volumes vêm da mesma linha.
     // Sem código XPM ou sem linha: cai no teórico — não é erro e não bloqueia o envio.
-    const { data: xpmExp } = pedido.xpm_expedicao_codigo
-      ? await supabase
-          .from("xpm_expedicao")
-          .select("peso_bruto, quantidade_volumes")
-          .eq("codigo", pedido.xpm_expedicao_codigo)
-          .maybeSingle()
-      : { data: null };
-    const pesoXpm = Number(xpmExp?.peso_bruto ?? 0);
-    const fontePeso: "xpm" | "teorico" = pesoXpm > 0 ? "xpm" : "teorico";
-    // Quando o envio migrar pro pré-faturamento, `teorico` vira sinal de que o pedido
-    // chegou cedo demais (a XPM ainda não pesou a caixa).
-    const pesoReal = fontePeso === "xpm" ? pesoXpm : Number(pedido.peso_bruto_total ?? 0);
-    const qtdVolumes = Number(xpmExp?.quantidade_volumes ?? 0);
+    // F3: porta única `fn_pedido_peso_real` (xpm | mesa_sp | teorico).
+    const { data: pesoRealRpc, error: pesoRealErr } = await supabase.rpc(
+      "fn_pedido_peso_real",
+      { p_pedido_id: pedido.id },
+    );
+    if (pesoRealErr) console.warn("fn_pedido_peso_real falhou:", pesoRealErr.message);
+    const rPeso = (Array.isArray(pesoRealRpc) ? pesoRealRpc[0] : pesoRealRpc) as
+      | { fonte?: string; peso?: number | string | null; volumes?: number | string | null }
+      | null;
+    const pesoFonte = Number(rPeso?.peso ?? 0);
+    const fontePeso: string = pesoFonte > 0 ? (rPeso?.fonte ?? "teorico") : "teorico";
+    const pesoReal = pesoFonte > 0 ? pesoFonte : Number(pedido.peso_bruto_total ?? 0);
+    const qtdVolumes = Number(rPeso?.volumes ?? 0);
 
     if (transpNome || valorFrete > 0 || pesoReal > 0) {
       // BLING V3: A TRANSPORTADORA VIVE EM `transporte.contato`, NÃO EM `transporte.transportadora`.

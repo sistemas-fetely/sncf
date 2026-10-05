@@ -12,6 +12,7 @@ import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
 import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
+import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
@@ -226,7 +227,7 @@ export default function ExpedicaoSp() {
         estado={
           pedidosQ.isLoading
             ? "Carregando a bancada…"
-            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF`
+            : `${fila.length} na fila · ${naMesa.length} na mesa · ${prontosDespacho.length + nfEmitida.length} prontos p/ despacho · ${aguardandoRetirada.length} aguardando retirada · ${aguardandoNf.length} aguardando NF`
         }
       />
 
@@ -238,7 +239,7 @@ export default function ExpedicaoSp() {
           </Selo>
         ))}
         <Selo estado={prontosDespacho.length > 0 ? "info" : "muted"}>
-          Prontos p/ despacho · {prontosDespacho.length}
+          Prontos p/ despacho · {prontosDespacho.length + nfEmitida.length}
         </Selo>
         <Selo estado={aguardandoRetirada.length > 0 ? "info" : "muted"}>
           Aguardando retirada · {aguardandoRetirada.length}
@@ -339,7 +340,7 @@ export default function ExpedicaoSp() {
 
           {ESTACOES_B2B_POS_EMBALAGEM.map((estacao) => {
             const lista = estacao === "aguardando_nf" ? aguardandoNf : nfEmitida;
-            if (estacao === "nf_emitida" && lista.length === 0) return null;
+            if (estacao === "nf_emitida") return null; // B2B faturado vive em "Prontos p/ despacho"
             return (
               <Card key={estacao}>
                 <CardContent className="space-y-3 p-4">
@@ -371,9 +372,27 @@ export default function ExpedicaoSp() {
           <Card>
             <CardContent className="space-y-3 p-4">
               <p className="text-sm font-medium">
-                Prontos p/ despacho · {prontosDespacho.length}
+                Prontos p/ despacho · {prontosDespacho.length + nfEmitida.length}
               </p>
-              {prontosDespacho.length === 0 ? (
+              {nfEmitida.length > 0 && (
+                <ul className="space-y-2">
+                  {nfEmitida.map((p) => {
+                    const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
+                    const nf = identidadesQ.data?.get(p.id)?.nf_refs;
+                    return (
+                      <li key={p.id}>
+                        <LinhaPedido
+                          pedido={p}
+                          ativo={p.id === selecionadoId}
+                          rotulo={`${nf ? `NF ${nf} · ` : ""}${medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}`}
+                          onSelecionar={() => setSelecionadoId(p.id)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+              {prontosDespacho.length === 0 && nfEmitida.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma caixa pronta para despacho.
                 </p>
@@ -459,7 +478,27 @@ export default function ExpedicaoSp() {
                 </CardContent>
               </Card>
 
-              {(estacaoSelecionada === "aguardando_nf" || estacaoSelecionada === "nf_emitida") && (
+              {estacaoSelecionada === "nf_emitida" && (() => {
+                const emb = embalagemDoPedido(eventosSelecionado);
+                const nf = identidadesSelecionado?.nf_refs;
+                return (
+                  <DespachoB2b
+                    modais={modaisQ.data ?? []}
+                    medidas={`Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`}
+                    nfRotulo={nf ? `NF ${nf}` : null}
+                    despachando={despachar.isPending}
+                    onDespachar={(modal, referencia) =>
+                      despachar.mutate({
+                        p_pedido_id: selecionado.id,
+                        p_modal: modal,
+                        p_referencia: referencia,
+                      })
+                    }
+                  />
+                );
+              })()}
+
+              {estacaoSelecionada === "aguardando_nf" && (
                 <Card>
                   <CardContent className="space-y-2 p-4">
                     {(() => {
