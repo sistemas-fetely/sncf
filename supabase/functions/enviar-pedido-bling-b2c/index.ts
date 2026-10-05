@@ -103,17 +103,25 @@ const limparTexto = (v: unknown): string =>
     .trim();
 
 /** Normaliza telefone BR para o formato que o Bling aceita: "(15) 99789-6084".
- *  O Bling RECUSA E.164 com "+" (medido no pedido Shopify 6726112280635: o POST
- *  /contatos voltava VALIDATION_ERROR "campo Celular" e o item esgotava as 3
- *  tentativas). Tira o DDI 55 quando presente e formata DDD+numero. Devolve
- *  null quando o tamanho nao e 10/11 — lixo nao vai pro Bling: o campo e
- *  omitido em vez de mandar valor que a API recusa. */
+ *  O Bling RECUSA E.164 com "+" (pedido Shopify 6726112280635). Validacao
+ *  SEMANTICA (pedido #1384, 6751151358011: "+15089880936", numero dos EUA,
+ *  virava "(15) 08988-0936", passava so por tamanho e o Bling recusava com
+ *  VALIDATION_ERROR): "+" sem "+55" = estrangeiro -> null; tira DDI 55 (12/13
+ *  digitos); DDD com digitos 1-9; celular (11) com 3o digito 9; fixo (10) com
+ *  3o digito 2-5. Devolve null quando invalido: o campo e omitido. */
 const telefoneBR = (v: unknown): string | null => {
-  let d = String(v ?? "").replace(/\D/g, "");
+  const bruto = String(v ?? "").trim();
+  if (bruto.startsWith("+") && !bruto.startsWith("+55")) return null;
+  let d = bruto.replace(/\D/g, "");
   if (d.startsWith("55") && (d.length === 12 || d.length === 13)) d = d.slice(2);
-  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-  return null;
+  if (d.length !== 10 && d.length !== 11) return null;
+  if (!/^[1-9][1-9]$/.test(d.slice(0, 2))) return null;
+  if (d.length === 11) {
+    if (d[2] !== "9") return null;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  }
+  if (!/[2-5]/.test(d[2])) return null;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
 };
 
 const arred2 = (n: number) => parseFloat(n.toFixed(2));
@@ -763,6 +771,11 @@ Deno.serve(async (req) => {
             ...(telefoneVd ? { celular: telefoneVd, telefone: telefoneVd } : {}),
             endereco: { geral: enderecoGeralVd },
           };
+          let avisoTelVd: string | null = null;
+          if (!contatoVd && telefoneBrutoVd && !telefoneVd) {
+            avisoTelVd = `aviso: telefone inválido para o Bling ("${String(telefoneBrutoVd)}") — contato criado sem telefone`;
+            console.warn("[b2c-descida][vd]", avisoTelVd, { pedido_id: pedidoIdVd, fila_id: item.id });
+          }
           if (!contatoVd) {
             if (dry) {
               console.log("[b2c-descida][vd][dry] contato inexistente, seria criado", {
@@ -770,12 +783,6 @@ Deno.serve(async (req) => {
                 contato: contatoNovoVd,
               });
             } else {
-              if (telefoneBrutoVd && !telefoneVd) {
-                await falharVd(
-                  `Telefone do cliente inválido para o Bling ("${String(telefoneBrutoVd)}") — contato novo não pode ser criado. Corrija o telefone no cadastro do cliente e reenvie.`,
-                );
-                continue;
-              }
               await dormir(ESPERA_ENTRE_CHAMADAS_MS);
               try {
                 const criado = await bling.post("/contatos", contatoNovoVd);
@@ -859,7 +866,11 @@ Deno.serve(async (req) => {
             valor: parseFloat(it.unitario.toFixed(4)),
           }));
           const hojeVd = new Date().toISOString().slice(0, 10);
-          const obsVd = [`Venda direta SNCF ${idExterno}`, limparTexto(ped.observacao_pedido)]
+          const obsVd = [
+            `Venda direta SNCF ${idExterno}`,
+            limparTexto(ped.observacao_pedido),
+            avisoTelVd ? `Telefone original do cliente (inválido p/ Bling): ${String(telefoneBrutoVd)}` : null,
+          ]
             .filter(Boolean)
             .join(" · ");
 
@@ -991,7 +1002,7 @@ Deno.serve(async (req) => {
               bling_pedido_id: blingIdVd,
               bling_pedido_numero: blingNumeroVd,
               processado_em: new Date().toISOString(),
-              ultimo_erro: avisoEnderecoVd ?? null,
+              ultimo_erro: ([avisoEnderecoVd, avisoTelVd].filter(Boolean).join(" · ") || null),
             })
             .eq("id", item.id);
           const errosPos: string[] = [];
@@ -1304,6 +1315,11 @@ Deno.serve(async (req) => {
           },
         };
 
+        let avisoTel: string | null = null;
+        if (!contatoId && telefoneBruto && !telefoneCliente) {
+          avisoTel = `aviso: telefone inválido para o Bling ("${String(telefoneBruto)}") — contato criado sem telefone`;
+          console.warn("[b2c-descida]", avisoTel, { fila_id: item.id, order_name: pedido.order_name ?? item.order_name });
+        }
         if (!contatoId) {
           if (dry) {
             // Dry-run NAO cria cadastro no Bling. O payload sai com contato nulo e
@@ -1313,16 +1329,6 @@ Deno.serve(async (req) => {
               contato: contatoNovo,
             });
           } else {
-            // GUARDRAIL: contato novo com telefone bruto que a normalizacao recusou
-            // (null). Sem isso o POST /contatos voltava VALIDATION_ERROR do Bling e o
-            // operador via um JSON de API na coluna "Proxima acao". Falha legivel aqui;
-            // SEM telefone nenhum no Shopify segue sem o campo (o Bling aceita).
-            if (telefoneBruto && !telefoneCliente) {
-              await falhar(
-                `Telefone do cliente inválido para o Bling ("${String(telefoneBruto)}") — contato novo não pode ser criado. Corrija o telefone no pedido Shopify e reenvie.`,
-              );
-              continue;
-            }
             await dormir(ESPERA_ENTRE_CHAMADAS_MS);
             try {
               const criado = await bling.post("/contatos", contatoNovo);
@@ -1487,6 +1493,7 @@ Deno.serve(async (req) => {
             },
           },
           observacoes: `Pedido ${pedido.order_name ?? item.order_name ?? ""} (Shopify ${item.shopify_pedido_id}) via SNCF`.trim(),
+          ...(avisoTel ? { observacoesInternas: `Telefone original do cliente (inválido p/ Bling): ${String(telefoneBruto)}` } : {}),
         };
 
         if (dry) {
@@ -1583,7 +1590,7 @@ Deno.serve(async (req) => {
             bling_pedido_numero: blingPedidoNumero,
             processado_em: new Date().toISOString(),
             // aviso de endereco (se houve) sobrevive ao sucesso — nao some no null.
-            ultimo_erro: avisoEndereco ?? null,
+            ultimo_erro: ([avisoEndereco, avisoTel].filter(Boolean).join(" · ") || null),
           })
           .eq("id", item.id);
         if (eOk) {
