@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { chamarFuncao, motivoDaFalha } from "@/components/acervo/promocaoFase";
-import { calcularPrevia, lerPlanilha, type ItemPrevia, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
+import { calcularPrevia, lerPlanilha, validarFormatoPrevia, type ItemPrevia, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
+import { supabase } from "@/integrations/supabase/client";
 import type { RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido: () => void }
@@ -41,7 +42,11 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         try { r = (await chamarFuncao("exportar-planilha-produto", { cods })) as unknown as RespostaExport; }
         catch (e) { throw new Error(`Leitura do FOP falhou: ${motivoDaFalha(e)}`); }
       }
-      setPrevia(calcularPrevia(linhas, r));
+      setPrevia(await validarFormatoPrevia(calcularPrevia(linhas, r), async (cod, campos) => {
+        const { data, error } = await (supabase.rpc as any)("fn_produto_formato_validar_patch", { p_cod_cadastro: cod, p_campos: campos });
+        if (error) throw new Error(error.message);
+        return (data ?? []) as { campo: string; valor: unknown; motivo: string }[];
+      }));
     } catch (e) {
       const m = e instanceof Error ? e.message : String(e);
       setErro(m); toast.error(m);

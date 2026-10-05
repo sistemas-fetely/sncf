@@ -10,9 +10,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { gerarPlanilhaCadastro, nomeArquivoCadastro, type RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
-interface Props { open: boolean; onOpenChange: (v: boolean) => void; colecoes: string[]; inicialSoMedicao?: boolean }
+interface Props { open: boolean; onOpenChange: (v: boolean) => void; colecoes: string[]; inicialSoMedicao?: boolean; cods?: string[] | null }
 
-export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, inicialSoMedicao = false }: Props) {
+export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, inicialSoMedicao = false, cods = null }: Props) {
   const [sel, setSel] = useState<Set<string>>(new Set());
   const [soMedicao, setSoMedicao] = useState(inicialSoMedicao);
   useEffect(() => { if (open) setSoMedicao(inicialSoMedicao); }, [open, inicialSoMedicao]);
@@ -22,7 +22,7 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, i
     mutationFn: async () => {
       const lista = [...sel];
       const { data, error } = await supabase.functions.invoke("exportar-planilha-produto", {
-        body: { colecoes: lista.length ? lista : null, so_aguardando_medicao: soMedicao },
+        body: cods ? { cods, so_aguardando_medicao: soMedicao } : { colecoes: lista.length ? lista : null, so_aguardando_medicao: soMedicao },
       });
       if (error) {
         let m = error.message;
@@ -35,7 +35,7 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, i
       const blob = await gerarPlanilhaCadastro(r);
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = nomeArquivoCadastro(lista); a.click();
+      a.href = url; a.download = cods ? nomeArquivoCadastro(["formato_invalido"]) : nomeArquivoCadastro(lista); a.click();
       URL.revokeObjectURL(url);
       return r.produtos.length;
     },
@@ -55,6 +55,7 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, i
             Produtos lidos do FOP. Valores que só existem no SNCF vêm em amarelo, para confirmar. Sem coleção marcada, sai o catálogo inteiro.
           </DialogDescription>
         </DialogHeader>
+        {cods ? <p className="text-sm">{cods.length} produto(s) com formato inválido.</p> : <>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">{sel.size ? `${sel.size} coleção(ões)` : "Catálogo inteiro"}</span>
           {sel.size > 0 && <Button variant="ghost" size="sm" onClick={() => setSel(new Set())}>Limpar</Button>}
@@ -67,7 +68,7 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, i
               {c}
             </label>
           ))}
-        </div>
+        </div></>}
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <Checkbox checked={soMedicao} onCheckedChange={(v) => setSoMedicao(v === true)} />
           Só aguardando medição (lista para o showroom)

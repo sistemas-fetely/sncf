@@ -151,3 +151,34 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
   }
   return { itens, novos, total_linhas: linhas.length };
 }
+
+/**
+ * F4 — portão de formato na prévia: valida o patch de cada SKU no banco
+ * (`fn_produto_formato_validar_patch`), 8 por vez. Violação em campo alterado
+ * vira erro nomeado e pula a linha; violação em sugestão mantida tira a sugestão.
+ */
+export async function validarFormatoPrevia(
+  previa: Previa,
+  validar: (cod: string, campos: Record<string, unknown>) => Promise<{ campo: string; valor: unknown; motivo: string }[]>,
+): Promise<Previa> {
+  const alvos = previa.itens.filter((i) => !i.erros.length && (i.mudancas.length || i.sugestoes_mantidas.length));
+  for (let k = 0; k < alvos.length; k += 8) {
+    await Promise.all(alvos.slice(k, k + 8).map(async (i) => {
+      const campos: Record<string, unknown> = {};
+      for (const m of [...i.sugestoes_mantidas, ...i.mudancas]) campos[m.campo] = m.para;
+      try {
+        const viol = await validar(i.cod, campos);
+        const rot = new Map([...i.mudancas, ...i.sugestoes_mantidas].map((m) => [m.campo, m.rotulo]));
+        const alterados = new Set(i.mudancas.map((m) => m.campo));
+        for (const v of viol) {
+          if (alterados.has(v.campo)) i.erros.push(`${rot.get(v.campo) ?? v.campo}: ${v.motivo} — ${v.valor ?? "vazio"}`);
+        }
+        const ruins = new Set(viol.map((v) => v.campo));
+        i.sugestoes_mantidas = i.sugestoes_mantidas.filter((m) => !ruins.has(m.campo) || alterados.has(m.campo));
+      } catch (e) {
+        i.erros.push(`validação de formato falhou: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }));
+  }
+  return { ...previa, itens: [...previa.itens] };
+}
