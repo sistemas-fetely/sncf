@@ -21,6 +21,10 @@ const SISTEMA = "Bling";
 // deno-lint-ignore no-explicit-any
 type Any = any;
 
+// No Bling, número opcional "não preenchido" vem como 0: 0 e vazio são equivalentes (preço continua estrito).
+const OPCIONAIS_ZERO_VAZIO = new Set(["inner_qtd", "peso_g", "altura_cm", "largura_cm", "profundidade_cm"]);
+const zeroOuVazio = (v: unknown) => v === null || v === undefined || txt(v) === "" || Number(v) === 0;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -110,6 +114,7 @@ Deno.serve(async (req) => {
             const exts = EXTRATORES_BLING[d.campo];
             exts.forEach((ex, k) => {
               const vs = ex.sncf(ctx), vb = ex.bling(atual);
+              if (OPCIONAIS_ZERO_VAZIO.has(d.campo) && (zeroOuVazio(vs) && zeroOuVazio(vb))) return;
               if (!difere(ex.tipo, vs, vb)) return;
               const destino = exts.length > 1 ? txt(d.campo_destino).split("+").map((s) => s.trim())[k] ?? d.campo_destino : d.campo_destino;
               novas.push({
