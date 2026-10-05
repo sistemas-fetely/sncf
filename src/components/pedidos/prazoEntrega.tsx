@@ -45,11 +45,9 @@ export function jaPassou(v: string | null): boolean {
   const d = parseDataLocal(v);
   if (!d) return false;
   const hoje = new Date();
-  return (
-    d.getFullYear() !== hoje.getFullYear() ||
-    d.getMonth() !== hoje.getMonth() ||
-    d.getDate() !== hoje.getDate()
-  ) ? hoje > d : false;
+  // Compara só ano/mês/dia locais — hora nunca decide.
+  const dia = (x: Date) => x.getFullYear() * 10000 + (x.getMonth() + 1) * 100 + x.getDate();
+  return dia(hoje) > dia(d);
 }
 
 /** Selo de procedência da data de entrega já confirmada. */
