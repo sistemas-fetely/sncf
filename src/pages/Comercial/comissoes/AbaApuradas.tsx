@@ -173,6 +173,9 @@ export function AbaApuradas() {
                       <TableCell>{fmtCompetencia(p.competencia)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(p.base_total)}</TableCell>
                       <TableCell className="text-right">{fmtPct(p.desconto_pct)}</TableCell>
+                      <TableCell className="text-right">
+                        {Number(p.desconto_campanha_pct ?? 0) === 0 ? "—" : fmtPct(p.desconto_campanha_pct)}
+                      </TableCell>
                       <TableCell className="text-right">{fmtPP(p.ajuste_pp)}</TableCell>
                       <TableCell className="text-right font-medium">{fmtBRL(p.valor_devido)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(p.liberado)}</TableCell>
