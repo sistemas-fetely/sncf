@@ -11949,6 +11949,7 @@ export type Database = {
           competencia: string
           criado_em: string
           criado_por: string | null
+          desconto_campanha_pct: number
           desconto_origem: string
           desconto_pct: number
           id: string
@@ -11970,6 +11971,7 @@ export type Database = {
           competencia: string
           criado_em?: string
           criado_por?: string | null
+          desconto_campanha_pct?: number
           desconto_origem: string
           desconto_pct: number
           id?: string
@@ -11991,6 +11993,7 @@ export type Database = {
           competencia?: string
           criado_em?: string
           criado_por?: string | null
+          desconto_campanha_pct?: number
           desconto_origem?: string
           desconto_pct?: number
           id?: string
@@ -13616,6 +13619,58 @@ export type Database = {
           vigencia_inicio?: string
         }
         Relationships: []
+      }
+      comissao_retificacao: {
+        Row: {
+          antes: Json
+          apuracao_id: string
+          criado_em: string
+          criado_por: string | null
+          depois: Json
+          id: string
+          motivo: string
+        }
+        Insert: {
+          antes: Json
+          apuracao_id: string
+          criado_em?: string
+          criado_por?: string | null
+          depois: Json
+          id?: string
+          motivo: string
+        }
+        Update: {
+          antes?: Json
+          apuracao_id?: string
+          criado_em?: string
+          criado_por?: string | null
+          depois?: Json
+          id?: string
+          motivo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissao_retificacao_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "comissao_apuracao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_retificacao_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["apuracao_id"]
+          },
+          {
+            foreignKeyName: "comissao_retificacao_apuracao_id_fkey"
+            columns: ["apuracao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["apuracao_id"]
+          },
+        ]
       }
       compra_categoria: {
         Row: {
@@ -49354,6 +49409,10 @@ export type Database = {
           cubagem_total: number | null
           data_entrega_prevista: string | null
           data_pedido: string
+          desconto_campanha_declarado_por: string | null
+          desconto_campanha_em: string | null
+          desconto_campanha_origem: string | null
+          desconto_campanha_pct: number | null
           desconto_celebra_valor: number
           desconto_pct: number | null
           destino_centro_id: string | null
@@ -49473,6 +49532,10 @@ export type Database = {
           cubagem_total?: number | null
           data_entrega_prevista?: string | null
           data_pedido: string
+          desconto_campanha_declarado_por?: string | null
+          desconto_campanha_em?: string | null
+          desconto_campanha_origem?: string | null
+          desconto_campanha_pct?: number | null
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           destino_centro_id?: string | null
@@ -49592,6 +49655,10 @@ export type Database = {
           cubagem_total?: number | null
           data_entrega_prevista?: string | null
           data_pedido?: string
+          desconto_campanha_declarado_por?: string | null
+          desconto_campanha_em?: string | null
+          desconto_campanha_origem?: string | null
+          desconto_campanha_pct?: number | null
           desconto_celebra_valor?: number
           desconto_pct?: number | null
           destino_centro_id?: string | null
@@ -85274,7 +85341,9 @@ export type Database = {
           comissao_linha: number | null
           data_emissao: string | null
           delta_nota_itens: number | null
+          desconto_campanha_pct: number | null
           desconto_comercial_pct: number | null
+          desconto_pedido_pct: number | null
           desconto_regua_pct: number | null
           desconto_total_pct: number | null
           exige_aprovacao_diretoria: boolean | null
@@ -85315,7 +85384,9 @@ export type Database = {
           comissao_linha: number | null
           data_emissao: string | null
           delta_nota_itens: number | null
+          desconto_campanha_pct: number | null
           desconto_comercial_pct: number | null
+          desconto_pedido_pct: number | null
           desconto_regua_pct: number | null
           desconto_total_pct: number | null
           exige_aprovacao_diretoria: boolean | null
@@ -105008,14 +105079,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -106767,14 +106838,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -125511,6 +125582,10 @@ export type Database = {
           p_resposta: string
           p_valor_estorno?: number
         }
+        Returns: Json
+      }
+      fn_comissao_retificar: {
+        Args: { p_apuracao_id: string; p_dry_run?: boolean; p_motivo: string }
         Returns: Json
       }
       fn_comprovante_saida_registrar: {
