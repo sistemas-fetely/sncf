@@ -46,6 +46,7 @@ const FONTE_ROTULO: Record<string, string> = {
   entrega_confirmada: "entrega confirmada",
   sem_expedicao: "Encerra no faturamento",
   cte_previsao: "prazo do CT-e",
+  rastreio_transportadora: "previsão da transportadora",
   cte_emissao_mais_tabela: "CT-e + tabela",
   expedicao_mais_tabela: "estimado pela expedição",
   projecao_interna: "projetado pelas fases",

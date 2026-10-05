@@ -52907,6 +52907,42 @@ export type Database = {
           },
         ]
       }
+      portao_cartao_auto_log: {
+        Row: {
+          candidatos: number
+          conciliados: number
+          detalhe: Json
+          erros: number
+          executado_em: string
+          id: string
+          na_fila: number
+          origem: string
+          valor_conciliado: number
+        }
+        Insert: {
+          candidatos?: number
+          conciliados?: number
+          detalhe?: Json
+          erros?: number
+          executado_em?: string
+          id?: string
+          na_fila?: number
+          origem: string
+          valor_conciliado?: number
+        }
+        Update: {
+          candidatos?: number
+          conciliados?: number
+          detalhe?: Json
+          erros?: number
+          executado_em?: string
+          id?: string
+          na_fila?: number
+          origem?: string
+          valor_conciliado?: number
+        }
+        Relationships: []
+      }
       posicoes: {
         Row: {
           area: string | null
@@ -126751,6 +126787,10 @@ export type Database = {
       fn_portal_vendedor_da_sessao: {
         Args: { p_token: string }
         Returns: string
+      }
+      fn_portao_cartao_conciliar_automatico: {
+        Args: { p_corte?: string; p_dry_run?: boolean; p_origem?: string }
+        Returns: Json
       }
       fn_portao_conciliar_automatico: {
         Args: { p_corte?: string; p_dry_run?: boolean }
