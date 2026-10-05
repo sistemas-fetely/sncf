@@ -7,6 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
+import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase } from "../_shared/bling/montar-valores-produto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,18 +21,9 @@ const json = (body: unknown, status = 200) =>
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const THROTTLE_MS = 350;
 const TETO = 50;
-const TOL = 0.005;
 
 type DePara = { campo: string; bling: unknown; novo: unknown };
 type Resultado = { sku: string; status: string; bling_id?: string; de_para?: DePara[]; erro?: string };
-
-const vazio = (v: unknown) => v === null || v === undefined || (typeof v === "string" && v.trim() === "");
-const num = (v: unknown): number | null => {
-  if (vazio(v)) return null;
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
-};
-const txt = (v: unknown) => (v === null || v === undefined ? "" : String(v).trim());
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -135,7 +127,7 @@ serve(async (req) => {
       setTxt("nome", () => atual.nome, (v) => (novo.nome = v), f.nome_operacional);
       setNum("preco", () => atual.preco, (v) => (novo.preco = v), num(f.preco_varejo));
       setTxt("gtin", () => atual.gtin, (v) => (novo.gtin = v), f.ean);
-      const pesoKg = num(f.peso_g) === null ? null : Math.round((num(f.peso_g)! / 1000) * 100000) / 100000;
+      const pesoKg = pesoGParaKg(f.peso_g);
       setNum("pesoLiquido", () => atual.pesoLiquido, (v) => (novo.pesoLiquido = v), pesoKg);
       setNum("pesoBruto", () => atual.pesoBruto, (v) => (novo.pesoBruto = v), pesoKg);
       setNum("largura", () => atual.dimensoes?.largura, (v) => (novo.dimensoes.largura = v), num(f.largura_cm));
@@ -155,11 +147,10 @@ serve(async (req) => {
       }
       setTxt("gtinEmbalagem", () => atual.gtinEmbalagem, (v) => (novo.gtinEmbalagem = v), f.dun);
       setNum("itensPorCaixa", () => atual.itensPorCaixa, (v) => (novo.itensPorCaixa = v), inners.get(f.cod_cadastro) ?? null);
-      const soDig = (v: unknown) => (vazio(v) ? null : String(v).replace(/\D/g, "") || null);
       setTxt("ncm", () => soDig(atual.tributacao?.ncm), (v) => (novo.tributacao.ncm = v), soDig(f.ncm));
       setTxt("cest", () => soDig(atual.tributacao?.cest), (v) => (novo.tributacao.cest = v), soDig(f.cest));
       if (ativarCard) {
-        const alvo = fases.get(sku) === "ativo" ? "A" : "I";
+        const alvo = situacaoPelaFase(fases.get(sku));
         if (txt(atual.situacao) !== alvo) { de_para.push({ campo: "situacao", bling: atual.situacao ?? null, novo: alvo }); novo.situacao = alvo; }
       }
 
