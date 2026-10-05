@@ -10,29 +10,46 @@ import type { EntregaLinhaInfo } from "@/hooks/pedidos/usePedidoEntrega";
  * vêm de vw_pedido_entrega. Nunca se troca uma data por um delta.
  */
 
+/**
+ * Date-only ("2026-10-05", colunas `date` de vw_pedido_entrega) é interpretado
+ * pelo JS como meia-noite UTC e vira o dia anterior em America/Sao_Paulo.
+ * Data sem hora é parseada como LOCAL; string com hora segue new Date().
+ */
+function parseDataLocal(v: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (m) {
+    const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(v);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 export function fmtDataCurta(v: string | null): string | null {
   if (!v) return null;
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return null;
+  const d = parseDataLocal(v);
+  if (!d) return null;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
 }
 
 export function fmtDataLonga(v: string | null): string | null {
   if (!v) return null;
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return null;
+  const d = parseDataLocal(v);
+  if (!d) return null;
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 /** Só responde "essa data já passou?" — nunca calcula diferença (isso é do banco). */
 export function jaPassou(v: string | null): boolean {
   if (!v) return false;
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return false;
+  const d = parseDataLocal(v);
+  if (!d) return false;
   const hoje = new Date();
-  const a = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
-  const b = Date.UTC(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-  return b > a;
+  return (
+    d.getFullYear() !== hoje.getFullYear() ||
+    d.getMonth() !== hoje.getMonth() ||
+    d.getDate() !== hoje.getDate()
+  ) ? hoje > d : false;
 }
 
 /** Selo de procedência da data de entrega já confirmada. */
