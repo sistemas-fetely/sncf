@@ -54523,6 +54523,56 @@ export type Database = {
         }
         Relationships: []
       }
+      produto_campo_destino: {
+        Row: {
+          ativo: boolean
+          campo: string
+          campo_destino: string
+          conversao: string | null
+          criado_em: string
+          id: number
+          na_correcao: boolean
+          na_criacao: boolean
+          observacao: string | null
+          sistema: string
+          sobrescreve: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          campo: string
+          campo_destino: string
+          conversao?: string | null
+          criado_em?: string
+          id?: number
+          na_correcao?: boolean
+          na_criacao?: boolean
+          observacao?: string | null
+          sistema: string
+          sobrescreve?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          campo?: string
+          campo_destino?: string
+          conversao?: string | null
+          criado_em?: string
+          id?: number
+          na_correcao?: boolean
+          na_criacao?: boolean
+          observacao?: string | null
+          sistema?: string
+          sobrescreve?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_campo_destino_sistema_fkey"
+            columns: ["sistema"]
+            isOneToOne: false
+            referencedRelation: "divergencia_sistema_dim"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
       produto_canal_dim: {
         Row: {
           ativo: boolean
@@ -104822,14 +104872,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -106581,14 +106631,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -112021,6 +112071,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_colecao_cad_dim"
             referencedColumns: ["rotulo"]
+          },
+          {
+            foreignKeyName: "produto_ficha_nascimento_regra_formato_fkey"
+            columns: ["regra"]
+            isOneToOne: false
+            referencedRelation: "produto_regra_formato_dim"
+            referencedColumns: ["slug"]
           },
         ]
       }
