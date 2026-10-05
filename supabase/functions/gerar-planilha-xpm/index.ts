@@ -12,22 +12,149 @@ serve(async (req) => {
   try {
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Gera planilha com itens de pedido — exige sessão e permissão de Logística (achado crítico 23/08/2026).
-    const auth = req.headers.get("Authorization");
-    if (!auth) return jsonErr({ error: "Não autorizado: token ausente." }, 401);
-    const { data: userData, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
-    if (userErr || !userData?.user) return jsonErr({ error: "Não autorizado: sessão inválida." }, 401);
-    const { data: telas } = await supabase.rpc("usuario_telas_permitidas", { p_user_id: userData.user.id });
-    let permitido = Array.isArray(telas) && telas.some((t: any) =>
-      typeof t === "string" ? t === "tela.logistica" : t?.slug === "tela.logistica");
-    if (!permitido) {
-      const { data: ehSuper } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "super_admin" });
-      permitido = !!ehSuper;
-    }
-    if (!permitido) return jsonErr({ error: "Sem permissão para gerar a planilha XPM." }, 403);
-
-    const body = await req.json();
+    // Body lido UMA vez, antes do auth (o ramo atualizar_descricao_xpm aceita chamada interna via x-cron-secret).
+    const body = await req.json().catch(() => ({}));
     const { pedido_ref, fase } = body ?? {};
+
+    let interno = false;
+    if (body?.tipo === "atualizar_descricao_xpm") {
+      const cronSecret = req.headers.get("x-cron-secret");
+      if (cronSecret) {
+        const { data: esperado, error: eSec } = await supabase.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+        if (!eSec && esperado && cronSecret === esperado) interno = true;
+      }
+    }
+
+    // Gera planilha com itens de pedido — exige sessão e permissão de Logística (achado crítico 23/08/2026).
+    let userData: any = null;
+    if (!interno) {
+      const auth = req.headers.get("Authorization");
+      if (!auth) return jsonErr({ error: "Não autorizado: token ausente." }, 401);
+      const { data: ud, error: userErr } = await supabase.auth.getUser(auth.replace("Bearer ", ""));
+      if (userErr || !ud?.user) return jsonErr({ error: "Não autorizado: sessão inválida." }, 401);
+      userData = ud;
+      const { data: telas } = await supabase.rpc("usuario_telas_permitidas", { p_user_id: userData.user.id });
+      let permitido = Array.isArray(telas) && telas.some((t: any) =>
+        typeof t === "string" ? t === "tela.logistica" : t?.slug === "tela.logistica");
+      if (!permitido) {
+        const { data: ehSuper } = await supabase.rpc("has_role", { _user_id: userData.user.id, _role: "super_admin" });
+        permitido = !!ehSuper;
+      }
+      if (!permitido) return jsonErr({ error: "Sem permissão para gerar a planilha XPM." }, 403);
+    }
+
+    // ===================== ATUALIZAR DESCRICAO NO XPM =====================
+    // So descricao/descricaoReduzida mudam; o resto do PUT e copia do GET do proprio XPM (cache.payload).
+    if (body?.tipo === "atualizar_descricao_xpm") {
+      const t0 = Date.now();
+      const tipo = "atualizar_descricao_xpm";
+      const skus: string[] = Array.isArray(body.skus) ? body.skus.map((s: unknown) => String(s)) : [];
+      const dry_run: boolean = body.dry_run ?? true;
+      const resultados: Record<string, unknown>[] = [];
+      try {
+        if (skus.length === 0) throw new Error("skus obrigatorio");
+        if (skus.length > 100) throw new Error("teto de 100 SKUs por chamada");
+
+        const { data: cfgRow, error: eCfg } = await supabase
+          .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
+        if (eCfg) throw new Error(`config zenlog_prd: ${eCfg.message}`);
+        const cfg = (cfgRow!.config ?? {}) as Record<string, string>;
+        if (!cfg.base_url) throw new Error("base_url ausente na config zenlog_prd");
+        const { data: pat, error: ePat } = await supabase.rpc("get_vault_secret", { p_name: cfg.pat_vault_key });
+        if (ePat) throw new Error(`vault: ${ePat.message}`);
+        if (!pat) throw new Error("PAT ausente no vault");
+        const base = cfg.base_url;
+        const authRes = await fetch(`${base}${cfg.auth_endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({ personalAccessToken: pat, tenantName: cfg.tenant_name }),
+        });
+        const authJson = await authRes.json().catch(() => ({}));
+        const token = authJson?.result?.accessToken;
+        if (!authRes.ok || !token) throw new Error(`auth falhou: ${authJson?.error?.message ?? authRes.status}`);
+        const hJson = { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
+
+        const so = (v: unknown) => (v == null ? "" : String(v).trim());
+        for (const sku of skus) {
+          const { data: cache, error: eCache } = await supabase
+            .from("xpm_produtos_cache")
+            .select("xpm_produto_id, descricao, descricao_reduzida, payload")
+            .eq("codigo", sku).maybeSingle();
+          if (eCache) throw new Error(`xpm_produtos_cache ${sku}: ${eCache.message}`);
+          if (!cache) { resultados.push({ sku, status: "nao_esta_no_xpm" }); continue; }
+
+          const { data: nova, error: eNova } = await supabase.rpc("fn_xpm_descricao_nova", { p_sku: sku });
+          if (eNova) throw new Error(`fn_xpm_descricao_nova ${sku}: ${eNova.message}`);
+          if (!nova) { resultados.push({ sku, status: "sem_cod_cadastro" }); continue; }
+          const n = nova as { descricao?: string; descricao_reduzida?: string };
+          const de = { descricao: cache.descricao ?? null, descricao_reduzida: cache.descricao_reduzida ?? null };
+          const para = { descricao: n.descricao ?? null, descricao_reduzida: n.descricao_reduzida ?? null };
+          if (so(de.descricao) === so(para.descricao) && so(de.descricao_reduzida) === so(para.descricao_reduzida)) {
+            resultados.push({ sku, status: "sem_diferenca" }); continue;
+          }
+          if (dry_run) { resultados.push({ sku, status: "tem_diferenca", de, para }); continue; }
+
+          const payload = (cache.payload ?? {}) as Record<string, any>;
+          const put: Record<string, unknown> = {};
+          for (const [k, v] of Object.entries(payload)) {
+            if (v === null || typeof v !== "object") put[k] = v;
+          }
+          put.codigoUnidadeMedida = payload?.unidadeMedida?.codigo;
+          put.cpfCnpjDepositante = payload?.depositante?.cpfCnpj;
+          put.cpfCnpj = payload?.entidade?.cpfCnpj;
+          put.descricao = para.descricao;
+          put.descricaoReduzida = para.descricao_reduzida;
+
+          try {
+            const r = await fetch(`${base}/api/services/app/Produto/Update`, {
+              method: "PUT", headers: hJson, body: JSON.stringify(put),
+            });
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok || j?.success === false) {
+              resultados.push({ sku, status: "erro_update", erro: j?.error?.message ?? j?.error?.details ?? `HTTP ${r.status}` });
+              continue;
+            }
+            const novoPayload = { ...payload, descricao: para.descricao, descricaoReduzida: para.descricao_reduzida };
+            const { error: eUp } = await supabase.from("xpm_produtos_cache").update({
+              descricao: para.descricao, descricao_reduzida: para.descricao_reduzida,
+              payload: novoPayload, sincronizado_em: new Date().toISOString(),
+            }).eq("codigo", sku);
+            if (eUp) { resultados.push({ sku, status: "erro_update", erro: `XPM ok, cache falhou: ${eUp.message}` }); continue; }
+            resultados.push({ sku, status: "ok" });
+          } catch (e) {
+            resultados.push({ sku, status: "erro_update", erro: (e as Error).message });
+          }
+        }
+
+        if (!dry_run) {
+          const okQtd = resultados.filter((r) => r.status === "ok").length;
+          const errQtd = resultados.filter((r) => r.status === "erro_update").length;
+          const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
+            sistema: "zenlog_prd", tipo: "produto_update_descricao", status: errQtd > 0 ? "parcial" : "sucesso",
+            registros_atualizados: okQtd, registros_erro: errQtd, duracao_ms: Date.now() - t0,
+            detalhes: {
+              acao: tipo,
+              oks: resultados.filter((r) => r.status === "ok"),
+              falhas: resultados.filter((r) => r.status !== "ok"),
+            },
+          });
+          if (eLog) throw new Error(`log: ${eLog.message}`);
+        }
+        return new Response(JSON.stringify({ ok: true, tipo, dry_run, total: skus.length, resultados }), {
+          headers: { ...cors, "Content-Type": "application/json" },
+        });
+      } catch (e) {
+        if (!dry_run) {
+          const { error: eLog } = await supabase.from("integracoes_sync_log").insert({
+            sistema: "zenlog_prd", tipo: "produto_update_descricao", status: "erro",
+            registros_atualizados: 0, registros_erro: skus.length, duracao_ms: Date.now() - t0,
+            detalhes: { acao: tipo, erro: (e as Error).message, resultados },
+          });
+          if (eLog) console.error("falha ao logar erro:", eLog.message);
+        }
+        throw e;
+      }
+    }
 
     // ===================== BRANCHES DE API (orfaos) =====================
     // Canal API existe SO para produto vendavel que nunca teve entrada fisica.
