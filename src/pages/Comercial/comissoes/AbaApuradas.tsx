@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { AlertTriangle, Loader2, Unlock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPP, fmtPct } from "./fmt";
 import { EstornarBotao, EstornosLancados } from "./Estornos";
 
@@ -21,6 +22,7 @@ interface Posicao {
   pedido: string | null;
   base_total: number | null;
   desconto_pct: number | null;
+  desconto_campanha_pct?: number | null;
   ajuste_pp: number | null;
   valor_devido: number | null;
   liberado: number | null;
@@ -135,7 +137,18 @@ export function AbaApuradas() {
                   <TableHead className="sticky top-0 z-40 bg-muted">Pedido</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted">Competência</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Base</TableHead>
-                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Desconto</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">Desc. pedido</TableHead>
+                  <TableHead className="sticky top-0 z-40 bg-muted text-right">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help underline decoration-dotted underline-offset-4">Campanha</span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-72 text-center">
+                        Desconto de campanha Fetely — não reduz a comissão do representante.
+                        A régua usa Desc. pedido − Campanha.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Ajuste</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Valor devido</TableHead>
                   <TableHead className="sticky top-0 z-40 bg-muted text-right">Liberado</TableHead>
@@ -161,6 +174,9 @@ export function AbaApuradas() {
                       <TableCell>{fmtCompetencia(p.competencia)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(p.base_total)}</TableCell>
                       <TableCell className="text-right">{fmtPct(p.desconto_pct)}</TableCell>
+                      <TableCell className="text-right">
+                        {Number(p.desconto_campanha_pct ?? 0) === 0 ? "—" : fmtPct(p.desconto_campanha_pct)}
+                      </TableCell>
                       <TableCell className="text-right">{fmtPP(p.ajuste_pp)}</TableCell>
                       <TableCell className="text-right font-medium">{fmtBRL(p.valor_devido)}</TableCell>
                       <TableCell className="text-right">{fmtBRL(p.liberado)}</TableCell>
