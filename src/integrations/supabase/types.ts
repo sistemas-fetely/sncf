@@ -126623,6 +126623,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_pedido_peso_real: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pedido_portao_liberado: {
         Args: { p_pedido_id: string }
         Returns: Json
