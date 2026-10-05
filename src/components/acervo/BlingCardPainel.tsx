@@ -496,7 +496,9 @@ export function BlingCardPainel() {
               Padrão do catálogo: {qOrigem.data ?? "—"} (a Fetely compra de importadora). Mude só se o contador indicar.
             </p>
             {origem && qOrigem.data && origem !== qOrigem.data && (
-              <p className="text-[11px] text-warning">Diferente do padrão do catálogo ({qOrigem.data})</p>
+              <p className="text-[11px] text-warning">
+                A origem fiscal do cadastro é a do FOP; para mudar, corrija pela planilha.
+              </p>
             )}
           </div>
           <Badge variant="outline">{selecionadasVisiveis.length} selecionado(s)</Badge>
