@@ -204,7 +204,7 @@ function PaginaResumo({ representante, serie, competencia, pagarAte }: { represe
   );
 }
 
-function PaginaExtrato({ competencia, selo, detalhes, estornos }: { competencia: string; selo: string; detalhes: Linha[]; estornos: Linha[] }) {
+function PaginaExtrato({ competencia, selo, detalhes, memoria, estornos }: { competencia: string; selo: string; detalhes: Linha[]; memoria: Linha[]; estornos: Linha[] }) {
   const grupos = useMemo(() => {
     const porApuracao = new Map<string, Linha[]>();
     for (const linha of detalhes) {
@@ -274,6 +274,8 @@ function PaginaExtrato({ competencia, selo, detalhes, estornos }: { competencia:
         </table>
       )}
 
+      <MemoriaCalculoNF memoria={memoria} competencia={competencia} />
+
       {estornos.length > 0 && (
         <section className="mt-4">
           <h2 className="text-[8pt] font-medium">Estornos da competência</h2>
@@ -304,8 +306,8 @@ function PaginaExtrato({ competencia, selo, detalhes, estornos }: { competencia:
    Nada é recalculado aqui — é o mesmo conteúdo que o representante recebeu. */
 type ItemCongelado = Record<string, any>;
 
-function PaginaExtratoCongelado({ competencia, selo, itens, valorTotal }: {
-  competencia: string; selo: string; itens: ItemCongelado[]; valorTotal: number;
+function PaginaExtratoCongelado({ competencia, selo, itens, memoria, valorTotal }: {
+  competencia: string; selo: string; itens: ItemCongelado[]; memoria: Linha[]; valorTotal: number;
 }) {
   const liberacoes = itens.filter((i) => String(i.tipo ?? "liberacao") !== "estorno");
   const estornos = itens.filter((i) => String(i.tipo) === "estorno");
@@ -359,6 +361,8 @@ function PaginaExtratoCongelado({ competencia, selo, itens, valorTotal }: {
           </tbody>
         </table>
       )}
+
+      <MemoriaCalculoNF memoria={memoria} competencia={competencia} />
 
       {estornos.length > 0 && (
         <section className="mt-4">
@@ -492,10 +496,9 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
               const linhas = linhasDaMemoria(nf);
               const subtotal = linhas.reduce((soma, linha) => soma + numero(linha.comissao), 0);
               const indice = indiceRetificacao.get(String(nf.apuracao_id ?? nf.nf_id));
-              return (
-                <tbody key={String(nf.apuracao_id ?? nf.nf_id ?? nf.nf_numero)} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-                  {linhas.map((linha, linhaIndice) => (
-                    <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")}>
+              return [
+                ...linhas.map((linha, linhaIndice) => (
+                    <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1 align-top tabular-nums">{linhaIndice === 0 ? <>{nf.nf_numero ?? "—"}{indice ? <sup>{indice}</sup> : null}</> : ""}</td>
                       <td className="px-0.5 py-1 align-top text-[5.6pt]">{linhaIndice === 0 ? origemMemoria(nf, competencia) : ""}</td>
                       <td className="px-0.5 py-1 align-top tabular-nums">{linhaIndice === 0 ? fmtData(nf.nf_emissao) : ""}</td>
@@ -513,15 +516,14 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_aplicado)}</td>
                       <td className="py-1 pl-0.5 text-right align-top tabular-nums">{fmtBRL(numero(linha.comissao))}</td>
                     </tr>
-                  ))}
-                  {linhas.length > 1 && (
+                  )),
+                  ...(linhas.length > 1 ? [
                     <tr className="border-b border-border bg-muted/30 font-medium">
                       <td colSpan={13} className="py-1 text-right">Subtotal NF {nf.nf_numero}</td>
                       <td className="py-1 pl-0.5 text-right tabular-nums">{fmtBRL(subtotal)}</td>
                     </tr>
-                  )}
-                </tbody>
-              );
+                  ] : []),
+              ];
             })}
           </tbody>
           <tfoot>
@@ -628,10 +630,21 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     },
     enabled: detalhesQ.isSuccess && aoVivo,
   });
+  const memoriaQ = useQuery({
+    queryKey: ["representante-extrato-memoria-nf", vendedorId, competencia],
+    queryFn: () => lerTudo(
+      "vw_comissao_memoria_nf",
+      (q) => q
+        .eq("vendedor_id", vendedorId)
+        .or(`competencia.eq.${mesAnterior(competencia)}-01,meses_pagamento_liberados.cs.{${competencia}-01}`),
+      { col: "nf_emissao", asc: true },
+    ),
+    enabled: Boolean(vendedorId) && competenciaValida,
+  });
 
   const carregando = representanteQ.isLoading || serieQ.isLoading || extratosQ.isLoading
-    || (aoVivo && (detalhesQ.isLoading || estornosQ.isLoading));
-  const erro = representanteQ.error || serieQ.error || extratosQ.error || detalhesQ.error || estornosQ.error;
+    || memoriaQ.isLoading || (aoVivo && (detalhesQ.isLoading || estornosQ.isLoading));
+  const erro = representanteQ.error || serieQ.error || extratosQ.error || memoriaQ.error || detalhesQ.error || estornosQ.error;
   const representante = representanteQ.data?.[0];
 
   if (!competenciaValida) {
@@ -678,10 +691,11 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
           competencia={competencia}
           selo={selo}
           itens={Array.isArray(extrato.detalhe) ? extrato.detalhe : []}
+          memoria={memoriaQ.data ?? []}
           valorTotal={numero(extrato.valor_total)}
         />
       ) : (
-        <PaginaExtrato competencia={competencia} selo={selo} detalhes={detalhesQ.data ?? []} estornos={estornosQ.data ?? []} />
+        <PaginaExtrato competencia={competencia} selo={selo} detalhes={detalhesQ.data ?? []} memoria={memoriaQ.data ?? []} estornos={estornosQ.data ?? []} />
       )}
     </>
   );
