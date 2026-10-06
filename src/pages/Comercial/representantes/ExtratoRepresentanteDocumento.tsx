@@ -466,7 +466,7 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
       {memoria.length === 0 ? (
         <p className="mt-2 border-y border-border py-3 text-[7.5pt] text-muted-foreground">Nenhuma NF emitida ou paga neste período.</p>
       ) : (
-        <table className="mt-2 w-full table-fixed border-collapse text-[6.1pt] leading-tight">
+        <table className="mt-2 w-full table-fixed border-collapse text-[8pt] leading-tight">
           <colgroup>
             <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[6%]" /><col className="w-[13%]" />
             <col className="w-[8%]" /><col className="w-[7%]" /><col className="w-[8%]" /><col className="w-[6%]" />
@@ -500,13 +500,13 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                   {linhas.map((linha, linhaIndice) => (
                     <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1 align-top tabular-nums">{linhaIndice === 0 ? <>{nf.nf_numero ?? "—"}{indice ? <sup>{indice}</sup> : null}</> : ""}</td>
-                      <td className="px-0.5 py-1 align-top text-[5.6pt]">{linhaIndice === 0 ? origemMemoria(nf, competencia) : ""}</td>
+                      <td className="px-0.5 py-1 align-top text-[7pt]">{linhaIndice === 0 ? origemMemoria(nf, competencia) : ""}</td>
                       <td className="px-0.5 py-1 align-top tabular-nums">{linhaIndice === 0 ? fmtData(nf.nf_emissao) : ""}</td>
                       <td className="break-words px-0.5 py-1 align-top">{linhaIndice === 0 ? nf.cliente || "—" : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.valor_nf)) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.frete)) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">
-                        {linhaIndice === 0 ? fmtBRL(numero(nf.base)) : <span className="text-[5.5pt] text-muted-foreground">{fmtBRL(numero(linha.base))}</span>}
+                        {linhaIndice === 0 ? fmtBRL(numero(nf.base)) : <span className="text-[7pt] text-muted-foreground">{fmtBRL(numero(linha.base))}</span>}
                       </td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_pct) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_regua_pct) : ""}</td>
