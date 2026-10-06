@@ -37,7 +37,11 @@ function RodapeMensal() {
 }
 
 function CarteiraTabela({ parcelas, atrasada = false }: { parcelas: Linha[]; atrasada?: boolean }) {
-  const linhas = carteiraPorPedido(parcelas, atrasada ? "vencida" : "a_vencer");
+  const linhas = atrasada
+    ? parcelas.filter(p => p.situacao_parcela === "vencida")
+      .map(p => ({ ...p, comissao: numero(p.comissao_da_parcela) }))
+      .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")))
+    : carteiraPorPedido(parcelas, "a_vencer");
   if (atrasada && !linhas.length) return null;
   return <section className="bloco-mensal mt-6">
     <h2 className="text-[12pt] font-medium">{atrasada ? "Travado por atraso do cliente" : "A receber"}</h2>
