@@ -20,9 +20,15 @@ export interface ProdutoExport {
   pendencias: string[];
   pendencias_medicao?: string[];
 }
+export interface CampoDestinoExport {
+  campo: string;
+  sistema: "Bling" | "Shopify" | "XPM" | string;
+  campo_destino: string;
+  rotulo_tela: string | null;
+}
 export interface RespostaExport {
   ok: boolean; erro?: string;
-  ficha: CampoFicha[]; opcoes: Record<string, string[]>; produtos: ProdutoExport[];
+  ficha: CampoFicha[]; opcoes: Record<string, string[]>; destinos?: CampoDestinoExport[]; produtos: ProdutoExport[];
 }
 
 // Ordem visual dos blocos na planilha (blocos desconhecidos vão no fim, em ordem alfabética).
@@ -34,6 +40,12 @@ const COR_PADRAO = "FF595959";
 const AMARELO = "FFFFFF00";
 const NOTA_SUGESTAO = "valor só no SNCF — confirme ou corrija";
 const LINHAS_LIVRES = 200; // linhas extras editáveis para produto novo
+const SISTEMAS = ["Bling", "Shopify", "XPM"] as const;
+const COR_SISTEMA: Record<(typeof SISTEMAS)[number], string> = {
+  Bling: "FFEAF2F8",
+  Shopify: "FFEAF6EC",
+  XPM: "FFFDF1E6",
+};
 
 const legivel = (s: string | null | undefined) => {
   if (!s) return "";
@@ -70,6 +82,11 @@ export function nomeArquivoCadastro(colecoes: string[]) {
 export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const ficha = ordenarFicha(r.ficha);
   const rotuloCampo = new Map(ficha.map((f) => [f.campo, f.rotulo || legivel(f.campo)]));
+  const destinos = new Map<string, CampoDestinoExport[]>();
+  for (const d of r.destinos ?? []) {
+    const chave = `${d.campo}|${d.sistema}`;
+    (destinos.get(chave) ?? destinos.set(chave, []).get(chave))?.push(d);
+  }
   const wb = new ExcelJS.Workbook();
   wb.creator = "SNCF";
   const ws = wb.addWorksheet("cadastro");
@@ -91,23 +108,31 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const proximas = [...new Set(r.produtos.map((p) => p.proxima_fase).filter(Boolean))] as string[];
   const tituloFalta = proximas.length === 1 ? `Falta para ${legivel(proximas[0])}` : "Falta para a próxima fase";
   const nCampos = ficha.length;
-  const colFase = nCampos + 1, colFalta = nCampos + 2, colMedir = nCampos + 3, colLib = nCampos + 4;
+  const colFase = nCampos + 2, colFalta = nCampos + 3, colMedir = nCampos + 4, colLib = nCampos + 5;
 
-  // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3 = rótulo · dono.
-  const r1 = ws.getRow(1), r2 = ws.getRow(2), r3 = ws.getRow(3);
+  // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3–5 = de-para, 6 = rótulo · dono.
+  const r1 = ws.getRow(1), r2 = ws.getRow(2), r6 = ws.getRow(6);
+  r1.getCell(1).value = "_sistema";
+  r2.getCell(1).value = "Sistema";
+  r2.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_PADRAO } };
+  r2.getCell(1).font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
+  r6.getCell(1).value = "Sistema";
+  r6.getCell(1).font = { bold: true, name: "Arial", size: 10 };
+  r6.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+  ws.getColumn(1).width = 13;
   ficha.forEach((f, i) => {
-    const c = i + 1;
+    const c = i + 2;
     r1.getCell(c).value = f.campo;
     const cor = COR_BLOCO[f.bloco] ?? COR_PADRAO;
     const c2 = r2.getCell(c);
     c2.value = legivel(f.bloco);
     c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cor } };
     c2.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
-    const c3 = r3.getCell(c);
-    c3.value = `${rotuloCampo.get(f.campo)} · ${f.dono ?? "—"}`;
-    c3.font = { bold: true, name: "Arial", size: 10 };
-    c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
-    c3.alignment = { wrapText: true, vertical: "middle" };
+    const c6 = r6.getCell(c);
+    c6.value = `${rotuloCampo.get(f.campo)} · ${f.dono ?? "—"}`;
+    c6.font = { bold: true, name: "Arial", size: 10 };
+    c6.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+    c6.alignment = { wrapText: true, vertical: "middle" };
     ws.getColumn(c).width = Math.max(14, Math.min(40, (rotuloCampo.get(f.campo)?.length ?? 10) + 8));
   });
   r1.getCell(colFase).value = "_fase_atual";
@@ -119,10 +144,10 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     c2.value = "Ação";
     c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF00703C" } };
     c2.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
-    const c3 = r3.getCell(colLib);
-    c3.value = "Liberar para venda";
-    c3.font = { bold: true, name: "Arial", size: 10 };
-    c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+    const c6 = r6.getCell(colLib);
+    c6.value = "Liberar para venda";
+    c6.font = { bold: true, name: "Arial", size: 10 };
+    c6.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
   }
   ws.getColumn(colLib).width = 18;
   for (const [c, t] of [[colFase, "Fase atual"], [colFalta, tituloFalta], [colMedir, "Falta medir"]] as const) {
@@ -130,23 +155,51 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     c2.value = "Situação (FOP)";
     c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFC00000" } };
     c2.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
-    const c3 = r3.getCell(c);
-    c3.value = t;
-    c3.font = { bold: true, name: "Arial", size: 10 };
-    c3.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
+    const c6 = r6.getCell(c);
+    c6.value = t;
+    c6.font = { bold: true, name: "Arial", size: 10 };
+    c6.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
   }
   ws.getColumn(colFase).width = 14;
   ws.getColumn(colFalta).width = 50;
   ws.getColumn(colMedir).width = 40;
   r1.hidden = true;
-  r3.height = 32;
+  r6.height = 32;
+
+  SISTEMAS.forEach((sistema, indice) => {
+    const row = ws.getRow(3 + indice);
+    row.getCell(1).value = sistema;
+    row.getCell(1).font = { bold: true, name: "Arial", size: 9 };
+    for (let c = 1; c <= colLib; c++) {
+      row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_SISTEMA[sistema] } };
+      row.getCell(c).protection = { locked: false };
+    }
+    ficha.forEach((f, i) => {
+      const cell = row.getCell(i + 2);
+      const itens = destinos.get(`${f.campo}|${sistema}`) ?? [];
+      if (!itens.length) {
+        cell.value = "não vai";
+        cell.font = { italic: true, color: { argb: "FFB7B7B7" }, name: "Arial", size: 9 };
+        return;
+      }
+      const richText: ExcelJS.RichText[] = [];
+      itens.forEach((d, itemIndice) => {
+        if (itemIndice) richText.push({ text: " + ", font: { name: "Arial", size: 9 } });
+        richText.push(d.rotulo_tela
+          ? { text: d.rotulo_tela, font: { name: "Arial", size: 9 } }
+          : { text: d.campo_destino, font: { italic: true, color: { argb: "FF7F7F7F" }, name: "Arial", size: 9 } });
+      });
+      cell.value = { richText };
+      cell.alignment = { wrapText: true, vertical: "middle" };
+    });
+  });
 
   // Dados.
-  const ultima = 3 + r.produtos.length + LINHAS_LIVRES;
+  const ultima = 6 + r.produtos.length + LINHAS_LIVRES;
   r.produtos.forEach((p, idx) => {
-    const row = ws.getRow(4 + idx);
+    const row = ws.getRow(7 + idx);
     ficha.forEach((f, i) => {
-      const cell = row.getCell(i + 1);
+      const cell = row.getCell(i + 2);
       const v = p.valores[f.campo];
       if (v !== undefined && v !== null && v !== "") { cell.value = valorCelula(v); return; }
       const s = p.sugestoes[f.campo];
@@ -165,10 +218,10 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   });
 
   // Travas + listas: campo importável fica destravado em todas as linhas de dado.
-  for (let lin = 4; lin <= ultima; lin++) {
+  for (let lin = 7; lin <= ultima; lin++) {
     const row = ws.getRow(lin);
     ficha.forEach((f, i) => {
-      const cell = row.getCell(i + 1);
+      const cell = row.getCell(i + 2);
       const editavel = f.importavel_planilha !== false;
       cell.protection = { locked: !editavel };
       if (!editavel) cell.fill = cell.fill ?? { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
@@ -182,7 +235,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     row.getCell(colFalta).protection = { locked: true };
     row.getCell(colMedir).protection = { locked: true };
     // Liberar: editável só em produto exportado com próxima fase.
-    const prod = r.produtos[lin - 4];
+    const prod = r.produtos[lin - 7];
     const cLib = row.getCell(colLib);
     if (prod && prod.proxima_fase) {
       cLib.protection = { locked: false };
@@ -194,8 +247,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     }
   }
 
-  ws.views = [{ state: "frozen", ySplit: 3, xSplit: 0 }];
-  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colLib } };
+  ws.views = [{ state: "frozen", ySplit: 6, xSplit: 1 }];
+  ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: colLib } };
   await ws.protect("", {
     selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true,
     autoFilter: true, sort: true,

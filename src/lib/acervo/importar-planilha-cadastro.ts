@@ -3,9 +3,10 @@ import type { CampoFicha, ProdutoExport, RespostaExport } from "@/lib/acervo/pla
 
 /**
  * F2a — leitura da planilha de cadastro e cálculo da diferença contra o FOP (mestre).
- * Linha 1 = slugs, dados a partir da linha 4. Célula vazia = não mexe.
+ * Localiza slugs e cabeçalho; aceita os layouts antigo e novo. Célula vazia = não mexe.
  */
 export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"]);
+const SLUGS_CONHECIDOS = new Set([...IDENTIDADE, "_sistema", "_fase_atual", "_pendencias_proxima", "_pendencias_medicao", "_liberar"]);
 
 export interface LinhaPlanilha { linha: number; cod: string | null; celulas: Record<string, unknown>; liberar: boolean }
 
@@ -40,17 +41,56 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
   await wb.xlsx.load(await arquivo.arrayBuffer());
   const ws = wb.getWorksheet("cadastro") ?? wb.worksheets[0];
   if (!ws) throw new Error("A planilha não tem a aba \"cadastro\".");
+
+  let linhaSlugs = 0;
+  for (let r = 1; r <= ws.rowCount; r++) {
+    let achouCod = false;
+    let conhecidos = 0;
+    ws.getRow(r).eachCell({ includeEmpty: false }, (c) => {
+      const v = textoCelula(c.value);
+      if (typeof v !== "string") return;
+      const slug = v.trim();
+      if (slug === "cod_cadastro") achouCod = true;
+      if (SLUGS_CONHECIDOS.has(slug)) conhecidos++;
+    });
+    if (achouCod && conhecidos >= 2) { linhaSlugs = r; break; }
+  }
+  if (!linhaSlugs) {
+    throw new Error("Não foi encontrada uma linha de slugs com cod_cadastro — use a planilha exportada pela Mesa do Produto.");
+  }
   const slugs = new Map<number, string>();
-  ws.getRow(1).eachCell({ includeEmpty: false }, (c, col) => {
+  ws.getRow(linhaSlugs).eachCell({ includeEmpty: false }, (c, col) => {
     const s = textoCelula(c.value);
     if (typeof s === "string" && s.trim()) slugs.set(col, s.trim());
   });
-  if (![...slugs.values()].includes("cod_cadastro")) {
-    throw new Error("Linha 1 sem o slug cod_cadastro — use a planilha exportada pela Mesa do Produto.");
+  const colCod = [...slugs].find(([, slug]) => slug === "cod_cadastro")?.[0];
+  if (!colCod) {
+    throw new Error("A linha de slugs não contém cod_cadastro — use a planilha exportada pela Mesa do Produto.");
   }
+
+  const colFase = [...slugs].find(([, slug]) => slug === "_fase_atual")?.[0];
+  const colLiberar = [...slugs].find(([, slug]) => slug === "_liberar")?.[0];
+  let linhaRotulos = 0;
+  for (let r = linhaSlugs + 1; r <= ws.rowCount; r++) {
+    const fase = colFase ? String(textoCelula(ws.getRow(r).getCell(colFase).value) ?? "").trim().toLowerCase() : "";
+    const liberar = colLiberar ? String(textoCelula(ws.getRow(r).getCell(colLiberar).value) ?? "").trim().toLowerCase() : "";
+    if (fase === "fase atual" || liberar === "liberar para venda") { linhaRotulos = r; break; }
+  }
+  if (!linhaRotulos) throw new Error("Não foi encontrado o cabeçalho de rótulos da planilha.");
+
+  let primeiraLinhaDados = 0;
+  for (let r = linhaRotulos + 1; r <= ws.rowCount; r++) {
+    if (!vazio(textoCelula(ws.getRow(r).getCell(colCod).value))) { primeiraLinhaDados = r; break; }
+  }
+  if (!primeiraLinhaDados) return [];
+
+  const colSistema = [...slugs].find(([, slug]) => slug === "_sistema")?.[0];
+  const sistemas = new Set(["bling", "shopify", "xpm"]);
   const out: LinhaPlanilha[] = [];
-  for (let r = 4; r <= ws.rowCount; r++) {
+  for (let r = primeiraLinhaDados; r <= ws.rowCount; r++) {
     const row = ws.getRow(r);
+    const sistema = colSistema ? String(textoCelula(row.getCell(colSistema).value) ?? "").trim().toLowerCase() : "";
+    if (sistemas.has(sistema)) continue;
     const celulas: Record<string, unknown> = {};
     let algum = false;
     for (const [col, slug] of slugs) {

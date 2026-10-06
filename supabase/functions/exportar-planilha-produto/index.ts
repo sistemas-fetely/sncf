@@ -91,6 +91,20 @@ Deno.serve(async (req) => {
       (opcoes[o.campo] ??= []).push(o.valor);
     }
 
+    const { data: destinosRaw, error: dErr } = await sb
+      .from("produto_campo_destino")
+      .select("campo,sistema,campo_destino,rotulo_tela,id")
+      .eq("ativo", true)
+      .in("sistema", ["Bling", "Shopify", "XPM"])
+      .order("id");
+    if (dErr) throw new Error(`Falha ao ler produto_campo_destino: ${msg(dErr)}`);
+    const destinos = (destinosRaw ?? []).map((d) => ({
+      campo: d.campo,
+      sistema: d.sistema,
+      campo_destino: d.campo_destino,
+      rotulo_tela: d.rotulo_tela,
+    }));
+
     const skus = [...new Set(fopProdutos.map((p) => p.sku).filter((s) => !vazio(s)).map(String))];
     const espelho = new Map<string, Record<string, unknown>>();
     const inner = new Map<string, number | null>();
@@ -143,7 +157,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ ok: true, ficha, opcoes, produtos });
+    return json({ ok: true, ficha, opcoes, destinos, produtos });
   } catch (e) {
     const m = msg(e);
     console.error("[exportar-planilha-produto] ERRO:", m);
