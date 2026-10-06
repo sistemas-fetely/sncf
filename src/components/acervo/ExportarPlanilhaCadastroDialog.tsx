@@ -58,7 +58,12 @@ export function ExportarPlanilhaCadastroDialog({ open, onOpenChange, colecoes, i
         {cods ? <p className="text-sm">{cods.length} produto(s) com formato inválido.</p> : <>
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">{sel.size ? `${sel.size} coleção(ões)` : "Catálogo inteiro"}</span>
-          {sel.size > 0 && <Button variant="ghost" size="sm" onClick={() => setSel(new Set())}>Limpar</Button>}
+          <div className="flex items-center gap-2">
+            {colecoes.length > 0 && sel.size < colecoes.length && (
+              <Button variant="ghost" size="sm" onClick={() => setSel(new Set(colecoes))}>Selecionar todas</Button>
+            )}
+            {sel.size > 0 && <Button variant="ghost" size="sm" onClick={() => setSel(new Set())}>Limpar</Button>}
+          </div>
         </div>
         <div className="max-h-[50vh] overflow-auto rounded-md border p-2 space-y-1">
           {colecoes.length === 0 && <p className="text-sm text-muted-foreground p-2">Nenhuma coleção carregada na Mesa.</p>}
