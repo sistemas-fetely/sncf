@@ -243,6 +243,9 @@ export const ESTILOS_IMPRESSAO = `
     .documento-extrato .anexo-print { display: block; break-before: page; }
     .quebra-pagina { break-before: page; page-break-before: always; }
     .documento-extrato .bloco-mensal h2 { break-after: avoid; }
+    .documento-extrato .bloco-mensal.mt-6 { margin-top: 16px; }
+    .documento-extrato .bloco-mensal.py-6 { padding-top: 18px; padding-bottom: 18px; }
+    .documento-extrato .rodape-mensal { margin-top: 16px; }
     .documento-extrato tbody { break-inside: auto; }
     .documento-extrato .memoria-nf tbody { break-inside: avoid; }
     .documento-extrato .rodape-mensal { break-inside: avoid; }
