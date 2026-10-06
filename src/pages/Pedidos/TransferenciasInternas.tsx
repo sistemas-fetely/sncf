@@ -53,6 +53,8 @@ import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
+import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
+import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
 
 
 interface CentroDestino {
@@ -119,12 +121,11 @@ export default function TransferenciasInternas() {
   const navigate = useNavigate();
   const permRetorno = usePermissoesTela("tela.regularizacao_estoque");
   const [abaUrl, setAba] = useAbaUrl("transferencias");
-  // Aba válida: "retorno" só com permissão; qualquer outra → "transferencias".
-  const aba = abaUrl === "retorno" && permRetorno.podeVer ? "retorno" : "transferencias";
-  // Compatibilidade: link salvo com ?aba=receber vai para a tela própria.
-  useEffect(() => {
-    if (abaUrl === "receber") navigate("/vendas/produto/estoque/recebimento-centro", { replace: true });
-  }, [abaUrl, navigate]);
+  // Aba válida: "nova"/"receber"; "retorno" só com permissão; qualquer outra → "transferencias".
+  const aba =
+    abaUrl === "nova" || abaUrl === "receber" ? abaUrl
+    : abaUrl === "retorno" && permRetorno.podeVer ? "retorno"
+    : "transferencias";
   const [soOrfaos, setSoOrfaos] = useState(false);
   const semBaixaRef = useRef<HTMLDivElement>(null);
 
@@ -196,7 +197,7 @@ export default function TransferenciasInternas() {
         icone={PackageCheck}
         estado="Movimentação entre pontos Fetely — sem cobrança, precificada a custo"
         acoes={
-          <Button size="sm" onClick={() => navigate("/pedidos/transferencias/nova")}>
+          <Button size="sm" onClick={() => setAba("nova")}>
             <Plus className="mr-1 h-4 w-4" /> Nova transferência
           </Button>
         }
@@ -204,11 +205,19 @@ export default function TransferenciasInternas() {
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="transferencias">Transferências</TabsTrigger>
+          <TabsTrigger value="transferencias">Painel</TabsTrigger>
+          <TabsTrigger value="nova">Nova transferência</TabsTrigger>
+          <TabsTrigger value="receber">Receber no destino</TabsTrigger>
           {permRetorno.podeVer && (
             <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
           )}
         </TabsList>
+        <TabsContent value="nova">
+          <NovaTransferenciaForm onCriado={() => setAba("transferencias")} onCancelar={() => setAba("transferencias")} />
+        </TabsContent>
+        <TabsContent value="receber">
+          <ReceberNoDestinoPainel />
+        </TabsContent>
         {permRetorno.podeVer && (
           <TabsContent value="retorno">
             <ListaLotesRetorno />
@@ -229,7 +238,7 @@ export default function TransferenciasInternas() {
           {nAReceber > 0 && (
             <button
               type="button"
-              onClick={() => navigate("/vendas/produto/estoque/recebimento-centro")}
+              onClick={() => setAba("receber")}
               className="rounded-md border bg-card px-4 py-2 text-left text-sm hover:bg-muted/50"
             >
               A receber no destino <span className="font-medium tabular-nums">({nAReceber})</span>
@@ -422,7 +431,7 @@ export default function TransferenciasInternas() {
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate("/vendas/produto/estoque/recebimento-centro");
+                                  setAba("receber");
                                 }}
                                 className="text-xs text-primary underline-offset-2 hover:underline"
                               >

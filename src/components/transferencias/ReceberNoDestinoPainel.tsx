@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, Loader2, PackageCheck } from "lucide-react";
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,7 +32,7 @@ interface Recebida {
   id_externo: string | null;
 }
 
-export default function RecebimentoCentro() {
+export function ReceberNoDestinoPainel() {
   const qc = useQueryClient();
   const [receber, setReceber] = useState<Linha | null>(null);
 
@@ -129,13 +127,6 @@ export default function RecebimentoCentro() {
   const recebidas = recebidasQ.data ?? [];
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Recebimento no Centro"
-        breadcrumb={[{ label: "Produto" }, { label: "Recebimento no Centro" }]}
-        icone={PackageCheck}
-        estado="Chegada física de transferência em centro sem sistema próprio"
-      />
     <div className="space-y-6">
       <p className="text-sm text-muted-foreground">
         Chegada física em centro sem sistema próprio (ex.: Site SP). Transferências vindas de SC e contagem da prateleira. Fornecedor entregando direto: use 'Receber fora do XPM' na NF do pedido (aba Embarques/Acompanhamento).
@@ -242,6 +233,5 @@ export default function RecebimentoCentro() {
         />
       )}
     </div>
-    </PageShell>
   );
 }
