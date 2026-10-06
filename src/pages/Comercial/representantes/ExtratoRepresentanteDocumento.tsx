@@ -130,9 +130,9 @@ function MemoriaCalculoNF({ memoria }: { memoria: Linha[] }) {
       ) : (
         <table className="memoria-nf mt-2 w-full table-fixed border-collapse text-[7pt] leading-tight">
           <colgroup>
-            <col className="w-[7%]"/><col className="w-[10%]"/><col className={mostrarFrete ? "w-[12%]" : "w-[15%]"}/><col className="w-[10%]"/>
-            {mostrarFrete && <col className="w-[9%]"/>}<col className="w-[10%]"/><col className="w-[8%]"/><col className="w-[6%]"/>
-            <col className="w-[11%]"/><col className="w-[7%]"/><col className="w-[8%]"/><col className={mostrarFrete ? "w-[11%]" : "w-[17%]"}/>
+            <col className="w-[7%]"/><col className="w-[9%]"/><col className={mostrarFrete ? "w-[12%]" : "w-[15%]"}/><col className="w-[11%]"/>
+            {mostrarFrete && <col className="w-[7%]"/>}<col className="w-[11%]"/><col className="w-[8%]"/><col className="w-[6%]"/>
+            <col className="w-[9%]"/><col className="w-[6%]"/><col className="w-[6%]"/><col className={mostrarFrete ? "w-[8%]" : "w-[12%]"}/>
           </colgroup>
           <thead style={{ display: "table-header-group" }}>
             <tr className="border-y border-border text-muted-foreground">
@@ -224,9 +224,11 @@ export const ESTILOS_IMPRESSAO = `
   .documento-extrato .tabela-mensal td { border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
   .documento-extrato .tabela-mensal th, .documento-extrato .tabela-mensal td { padding: 8px 4px; }
   .documento-extrato tfoot { font-weight: 500; }
-  .documento-extrato .memoria-nf th, .documento-extrato .memoria-nf td { padding: 5px 2px; }
+  .documento-extrato .memoria-nf th, .documento-extrato .memoria-nf td { padding: 5px 3px; }
   .documento-extrato .memoria-nf th { white-space: normal; }
-  .documento-extrato .memoria-nf td:not(:nth-child(3)) { white-space: nowrap; }
+  .documento-extrato .memoria-nf td { white-space: normal; }
+  .documento-extrato .memoria-nf tbody td:first-child, .documento-extrato .memoria-nf tbody td:nth-child(2) { white-space: nowrap; }
+  .documento-extrato .tabela-mensal td.tabular-nums { white-space: nowrap; }
   @media screen and (max-width: 700px) {
     .documento-extrato .pagina-a4 { padding: 20px; min-height: 0; }
     .documento-extrato .anexo-conteudo { overflow-x: auto; }
