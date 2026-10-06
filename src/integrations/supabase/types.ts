@@ -85504,6 +85504,8 @@ export type Database = {
           competencia_pagamento: string | null
           cpr_id: string | null
           data_liquidacao: string | null
+          desconto_campanha_pct: number | null
+          desconto_considerado_pct: number | null
           desconto_pct: number | null
           dias_atraso: number | null
           email_contato: string | null
@@ -107513,14 +107515,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
