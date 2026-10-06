@@ -20,3 +20,6 @@
 - [x] Corrigir no Bling o nome do contato da venda direta encontrado pelo CPF, com bloqueio em falha.
 - [ ] F1 exportar planilha de cadastro (bloqueado: FOP sem função de leitura de produtos).
 - [x] Reprocessar produtos: contar "linhas sem destino" (sem SKU + SKU fora dos pedidos do embarque).
+- [x] Incluir memória de cálculo por NF nos extratos individual e em lote.
+- [x] Enxugar o Gerencial em tela e PDF, mantendo comparativo, conta corrente e representantes.
+- [x] Validar Lucia 10/2026, Anne 11/2026, lote 10/2026 e Gerencial 09/2026 sem publicar.

@@ -491,13 +491,13 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
               <th className="py-1 pl-0.5 text-right font-medium">Comissão</th>
             </tr>
           </thead>
-          <tbody>
-            {memoria.map((nf) => {
+          {memoria.map((nf) => {
               const linhas = linhasDaMemoria(nf);
               const subtotal = linhas.reduce((soma, linha) => soma + numero(linha.comissao), 0);
               const indice = indiceRetificacao.get(String(nf.apuracao_id ?? nf.nf_id));
-              return [
-                ...linhas.map((linha, linhaIndice) => (
+              return (
+                <tbody key={String(nf.apuracao_id ?? nf.nf_id ?? nf.nf_numero)} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+                  {linhas.map((linha, linhaIndice) => (
                     <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1 align-top tabular-nums">{linhaIndice === 0 ? <>{nf.nf_numero ?? "—"}{indice ? <sup>{indice}</sup> : null}</> : ""}</td>
                       <td className="px-0.5 py-1 align-top text-[5.6pt]">{linhaIndice === 0 ? origemMemoria(nf, competencia) : ""}</td>
@@ -516,16 +516,16 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_aplicado)}</td>
                       <td className="py-1 pl-0.5 text-right align-top tabular-nums">{fmtBRL(numero(linha.comissao))}</td>
                     </tr>
-                  )),
-                  ...(linhas.length > 1 ? [
+                  ))}
+                  {linhas.length > 1 && (
                     <tr className="border-b border-border bg-muted/30 font-medium">
                       <td colSpan={13} className="py-1 text-right">Subtotal NF {nf.nf_numero}</td>
                       <td className="py-1 pl-0.5 text-right tabular-nums">{fmtBRL(subtotal)}</td>
                     </tr>
-                  ] : []),
-              ];
+                  )}
+                </tbody>
+              );
             })}
-          </tbody>
           <tfoot>
             <tr className="border-t border-foreground/50 font-medium">
               <td colSpan={4} className="py-1.5">Total</td>
