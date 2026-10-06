@@ -6,6 +6,7 @@ import type { CampoFicha, ProdutoExport, RespostaExport } from "@/lib/acervo/pla
  * Localiza slugs e cabeçalho; aceita os layouts antigo e novo. Célula vazia = não mexe.
  */
 export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"]);
+const SLUGS_CONHECIDOS = new Set([...IDENTIDADE, "_sistema", "_fase_atual", "_pendencias_proxima", "_pendencias_medicao", "_liberar"]);
 
 export interface LinhaPlanilha { linha: number; cod: string | null; celulas: Record<string, unknown>; liberar: boolean }
 
@@ -44,11 +45,15 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
   let linhaSlugs = 0;
   for (let r = 1; r <= ws.rowCount; r++) {
     let achouCod = false;
+    let conhecidos = 0;
     ws.getRow(r).eachCell({ includeEmpty: false }, (c) => {
       const v = textoCelula(c.value);
-      if (typeof v === "string" && v.trim() === "cod_cadastro") achouCod = true;
+      if (typeof v !== "string") return;
+      const slug = v.trim();
+      if (slug === "cod_cadastro") achouCod = true;
+      if (SLUGS_CONHECIDOS.has(slug)) conhecidos++;
     });
-    if (achouCod) { linhaSlugs = r; break; }
+    if (achouCod && conhecidos >= 2) { linhaSlugs = r; break; }
   }
   if (!linhaSlugs) {
     throw new Error("Não foi encontrada uma linha de slugs com cod_cadastro — use a planilha exportada pela Mesa do Produto.");
