@@ -146,14 +146,12 @@ function PaginaDetalhe({
   representantes,
   travada,
   vencida,
-  competencia,
 }: {
   competencia: string;
   rotulo: string;
   representantes: LinhaRepresentante[];
   travada: number;
   vencida: number;
-  competencia: string;
 }) {
   const totais = representantes.reduce(
     (acc, r) => ({
@@ -373,7 +371,6 @@ export default function GerencialImpressao() {
         representantes={g.representantes}
         travada={g.travadaInadimplencia}
         vencida={g.carteiraVencida}
-        competencia={competencia}
       />
     </main>
   );
