@@ -468,10 +468,10 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
       ) : (
         <table className="memoria-nf mt-2 w-full table-fixed border-collapse text-[7pt] leading-tight">
           <colgroup>
-            <col className="w-[6%]" /><col className="w-[7%]" /><col className="w-[8%]" /><col className="w-[14%]" />
-            <col className="w-[9%]" /><col className="w-[7%]" /><col className="w-[9%]" /><col className="w-[5%]" />
-            <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[7%]" /><col className="w-[5%]" />
-            <col className="w-[5%]" /><col className="w-[8%]" />
+            <col className="w-[6%]" /><col className="w-[7%]" /><col className="w-[9%]" /><col className="w-[13%]" />
+            <col className="w-[10%]" /><col className="w-[6%]" /><col className="w-[10%]" /><col className="w-[5%]" />
+            <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[6%]" /><col className="w-[4%]" />
+            <col className="w-[5%]" /><col className="w-[9%]" />
           </colgroup>
           <thead style={{ display: "table-header-group" }}>
             <tr className="border-y border-border text-muted-foreground">
@@ -558,6 +558,7 @@ export const ESTILOS_IMPRESSAO = `
   .documento-extrato { min-height: 100vh; background: hsl(var(--muted)); padding: 12mm 0; }
   .pagina-a4 { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
   .memoria-nf th, .memoria-nf td { overflow-wrap: anywhere; padding-left: 1px; padding-right: 1px; }
+  .memoria-nf tbody td:first-child, .memoria-nf tbody td:nth-child(3) { white-space: nowrap; }
   @page { size: A4; margin: 15mm; }
   @media print {
     html, body, #root { margin: 0 !important; padding: 0 !important; background: hsl(var(--card)) !important; }
