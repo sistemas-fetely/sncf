@@ -54640,6 +54640,7 @@ export type Database = {
           na_correcao: boolean
           na_criacao: boolean
           observacao: string | null
+          rotulo_tela: string | null
           sistema: string
           sobrescreve: boolean
         }
@@ -54653,6 +54654,7 @@ export type Database = {
           na_correcao?: boolean
           na_criacao?: boolean
           observacao?: string | null
+          rotulo_tela?: string | null
           sistema: string
           sobrescreve?: boolean
         }
@@ -54666,6 +54668,7 @@ export type Database = {
           na_correcao?: boolean
           na_criacao?: boolean
           observacao?: string | null
+          rotulo_tela?: string | null
           sistema?: string
           sobrescreve?: boolean
         }
