@@ -10,9 +10,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../../comissoes/fmt";
 import { fmtInt } from "@/pages/Comercial/representantes/dados";
-import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
-import { Badge } from "@/components/ui/badge";
-import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { colunasCC, LEGENDA_CC, useContaCorrente } from "./contaCorrente";
 import { competenciaPadrao, mesSeguinte, num, primeiroDia, useGerencial } from "./dados";
 
@@ -218,10 +215,6 @@ export function AbaGerencial() {
               <p className="text-xs text-muted-foreground">
                 Cada mês mostra o que aconteceu nele: NFs faturadas, comissão apurada e NFs pagas pelos clientes. A comissão das NFs pagas é paga ao representante até o dia 15 do mês seguinte.
               </p>
-              <GraficoCustoDesconto historico={g.historico} altura={240} />
-              <p className="text-xs text-muted-foreground">
-                Quando o desconto médio sobe, o custo da comissão cai pela régua. A margem é o que fica entre as duas linhas.
-              </p>
             </CardContent>
           </Card>
 
@@ -330,76 +323,7 @@ export function AbaGerencial() {
           </p>
         </>
       )}
-
-      {!g.carregando && !g.erro && <BlocoPagamentoMes competencia={competencia} rotulo={rotulo} />}
     </div>
-  );
-}
-
-function BlocoPagamentoMes({ competencia, rotulo }: { competencia: string; rotulo: string }) {
-  const p = usePagamentoMes(competencia);
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">NFs pagas pelos clientes em {rotulo}</CardTitle>
-        <p className="text-xs text-muted-foreground">
-          {p.pagarAte ? `Comissão a pagar ao representante até ${fmtData(p.pagarAte)}` : "Comissão a pagar ao representante"}
-        </p>
-      </CardHeader>
-      <CardContent>
-        {p.carregando ? (
-          <div className="flex justify-center p-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
-        ) : p.erro ? (
-          <p className="py-6 text-center text-sm text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
-        ) : p.linhas.length === 0 ? (
-          <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma NF paga pelos clientes neste mês.</p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Representante</TableHead>
-                <TableHead>NF</TableHead>
-                <TableHead>Pedido</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Cliente pagou em</TableHead>
-                <TableHead className="text-right">Comissão</TableHead>
-                <TableHead>Situação</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {p.grupos.map((g) => (
-                <Fragment key={g.representante}>
-                  {g.linhas.map((l, i) => {
-                    const estorno = l.tipo_linha === "estorno";
-                    return (
-                      <TableRow key={`${g.representante}-${l.liberacao_id ?? i}-${i}`}>
-                        <TableCell>{l.representante ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{estorno ? "—" : l.nf_numero ?? "—"}</TableCell>
-                        <TableCell>{estorno ? "—" : l.pedido ?? "—"}</TableCell>
-                        <TableCell>{l.cliente ?? "—"}</TableCell>
-                        <TableCell className="tabular-nums">{l.cliente_pagou_em ? fmtData(l.cliente_pagou_em) : "—"}</TableCell>
-                        <TableCell className={`text-right tabular-nums ${estorno ? "text-destructive" : ""}`}>{fmtBRL(Number(l.valor ?? 0))}</TableCell>
-                        <TableCell><Badge variant="outline">{rotuloSituacao(l)}</Badge></TableCell>
-                      </TableRow>
-                    );
-                  })}
-                  <TableRow key={`sub-${g.representante}`} className="bg-muted/40">
-                    <TableCell colSpan={5} className="text-xs text-muted-foreground">Subtotal · {g.representante}</TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{fmtBRL(g.subtotal)}</TableCell>
-                    <TableCell />
-                  </TableRow>
-                </Fragment>
-              ))}
-              <TableRow className="border-t-2 border-foreground/30 font-medium">
-                <TableCell colSpan={5}>Total geral</TableCell>
-                <TableCell className="text-right tabular-nums">{fmtBRL(p.total)}</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
