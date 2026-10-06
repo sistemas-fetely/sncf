@@ -204,7 +204,6 @@ const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
 
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const TransferenciasInternas = lazy(() => import("@/pages/Pedidos/TransferenciasInternas"));
-const NovaTransferencia = lazy(() => import("@/pages/Pedidos/NovaTransferencia"));
 const VendaDiretaNovo = lazy(() => import("@/pages/Pedidos/VendaDiretaNovo"));
 const VendaDiretaGestao = lazy(() => import("@/pages/Pedidos/VendaDiretaGestao"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
@@ -224,7 +223,6 @@ const ComissoesIndex = lazy(() => import("@/pages/Comercial/comissoes/ComissoesI
 const XpmIndex = lazy(() => import("@/pages/vendas/xpm/XpmIndex"));
 const SaudeEstoque = lazy(() => import("@/pages/acervo/SaudeEstoque"));
 const EntradasEstoque = lazy(() => import("@/pages/vendas/produto/EntradasEstoque"));
-const RecebimentoCentro = lazy(() => import("@/pages/vendas/produto/RecebimentoCentro"));
 const RetornoDevolucao = lazy(() => import("@/pages/estoque/RetornoDevolucao"));
 const RegularizacaoLoteDetalhe = lazy(() => import("@/pages/Estoque/RegularizacaoLoteDetalhe"));
 
@@ -438,7 +436,6 @@ const App = () => (
                     (canal='interno'), ao lado da Casa dos Pedidos. Nó em sncf_navegacao
                     (sops.transferencias_internas) — ativo/status são virados fora do front. */}
                 <Route path="/pedidos/transferencias" element={<TransferenciasInternas />} />
-                <Route path="/pedidos/transferencias/nova" element={<NovaTransferencia />} />
                 {/* Venda Direta (B2C por telefone/WhatsApp) — nó sops.venda_direta_novo, slug tela.venda_direta_novo. */}
                 <Route path="/pedidos/venda-direta/novo" element={<VendaDiretaNovo />} />
                 <Route path="/pedidos/venda-direta/:id/editar" element={<VendaDiretaNovo />} />
@@ -489,7 +486,6 @@ const App = () => (
                   <Route path="/vendas/produto/estoque/virtual" element={<EstoqueVirtual />} />
                   <Route path="/vendas/produto/estoque/saude" element={<SaudeEstoque />} />
                   <Route path="/vendas/produto/estoque/entradas" element={<EntradasEstoque />} />
-                  <Route path="/vendas/produto/estoque/recebimento-centro" element={<RecebimentoCentro />} />
                   <Route path="/vendas/produto/estoque/nomes-bling" element={
                     <ProtectedRoute>
                       <NomesBling />
@@ -949,6 +945,9 @@ const App = () => (
                 ela não exibe nada, e o destino tem o portão dele.
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
+            {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
+            <Route path="/pedidos/transferencias/nova" element={<Navigate to="/pedidos/transferencias?aba=nova" replace />} />
+            <Route path="/vendas/produto/estoque/recebimento-centro" element={<Navigate to="/pedidos/transferencias?aba=receber" replace />} />
             {/* ORGANOGRAMA-MORA-EM-PESSOAS (12/09/2026): rota oficial é /pessoas/organograma */}
             <Route path="/organograma" element={<Navigate to="/pessoas/organograma" replace />} />
             {/* DESMONTE-PROJECOES (23/08/2026): absorvido pela classificação de despesa */}

@@ -1,5 +1,5 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,8 +8,6 @@ import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -268,9 +266,8 @@ function useCentrosDestino() {
 }
 
 
-export default function NovaTransferencia() {
+export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () => void; onCancelar: () => void }) {
   const qc = useQueryClient();
-  const navigate = useNavigate();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -491,7 +488,7 @@ export default function NovaTransferencia() {
           : `${res.id_externo} criado — pedido entrou em Pré-Separação.`
       );
       void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });
-      navigate("/pedidos/transferencias");
+      onCriado();
     },
     onError: (err: Error) => {
       toast.error(err.message);
@@ -501,17 +498,7 @@ export default function NovaTransferencia() {
   const onSubmit = form.handleSubmit((valores) => criar.mutate(valores));
 
   return (
-    <PageShell>
-      <PageHeader
-        titulo="Nova transferência"
-        breadcrumb={[
-          { label: "Operação" },
-          { label: "Transferências Internas", to: "/pedidos/transferencias" },
-          { label: "Nova transferência" },
-        ]}
-        icone={Plus}
-        estado="Movimentação entre pontos Fetely — sem cobrança, precificada a custo"
-      />
+    <>
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -933,7 +920,7 @@ export default function NovaTransferencia() {
                 {previaValida && <span> · Total a custo {formatBRL(totalPrevia)}</span>}
               </div>
               <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" onClick={() => navigate("/pedidos/transferencias")}>
+                <Button type="button" variant="outline" onClick={onCancelar}>
                   Cancelar
                 </Button>
                 <BotaoGuardado
@@ -950,6 +937,6 @@ export default function NovaTransferencia() {
           </form>
         </CardContent>
       </Card>
-    </PageShell>
+    </>
   );
 }
