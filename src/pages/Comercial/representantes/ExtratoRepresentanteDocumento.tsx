@@ -466,12 +466,12 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
       {memoria.length === 0 ? (
         <p className="mt-2 border-y border-border py-3 text-[7.5pt] text-muted-foreground">Nenhuma NF emitida ou paga neste período.</p>
       ) : (
-        <table className="mt-2 w-full table-fixed border-collapse text-[8pt] leading-tight">
+        <table className="memoria-nf mt-2 w-full table-fixed border-collapse text-[7pt] leading-tight">
           <colgroup>
-            <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[6%]" /><col className="w-[13%]" />
-            <col className="w-[8%]" /><col className="w-[7%]" /><col className="w-[8%]" /><col className="w-[6%]" />
-            <col className="w-[7%]" /><col className="w-[6%]" /><col className="w-[8%]" /><col className="w-[6%]" />
-            <col className="w-[7%]" /><col className="w-[8%]" />
+            <col className="w-[6%]" /><col className="w-[7%]" /><col className="w-[8%]" /><col className="w-[14%]" />
+            <col className="w-[9%]" /><col className="w-[7%]" /><col className="w-[9%]" /><col className="w-[5%]" />
+            <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[7%]" /><col className="w-[5%]" />
+            <col className="w-[5%]" /><col className="w-[8%]" />
           </colgroup>
           <thead style={{ display: "table-header-group" }}>
             <tr className="border-y border-border text-muted-foreground">
@@ -506,7 +506,7 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.valor_nf)) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.frete)) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">
-                        {linhaIndice === 0 ? fmtBRL(numero(nf.base)) : <span className="text-[7pt] text-muted-foreground">{fmtBRL(numero(linha.base))}</span>}
+                        {fmtBRL(numero(linhas.length > 1 ? linha.base : nf.base))}
                       </td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_pct) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_regua_pct) : ""}</td>
@@ -557,6 +557,7 @@ export const ESTILOS_IMPRESSAO = `
   [aria-label="Minhas tarefas"] { display: none !important; }
   .documento-extrato { min-height: 100vh; background: hsl(var(--muted)); padding: 12mm 0; }
   .pagina-a4 { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
+  .memoria-nf th, .memoria-nf td { overflow-wrap: anywhere; padding-left: 1px; padding-right: 1px; }
   @page { size: A4; margin: 15mm; }
   @media print {
     html, body, #root { margin: 0 !important; padding: 0 !important; background: hsl(var(--card)) !important; }
