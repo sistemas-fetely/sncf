@@ -632,13 +632,19 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
   });
   const memoriaQ = useQuery({
     queryKey: ["representante-extrato-memoria-nf", vendedorId, competencia],
-    queryFn: () => lerTudo(
-      "vw_comissao_memoria_nf",
-      (q) => q
-        .eq("vendedor_id", vendedorId)
-        .or(`competencia.eq.${mesAnterior(competencia)}-01,meses_pagamento_liberados.cs.{${competencia}-01}`),
-      { col: "nf_emissao", asc: true },
-    ),
+    queryFn: async () => {
+      const linhas = await lerTudo(
+        "vw_comissao_memoria_nf",
+        (q) => q
+          .eq("vendedor_id", vendedorId)
+          .or(`competencia.eq.${mesAnterior(competencia)}-01,meses_pagamento_liberados.cs.{${competencia}-01}`),
+        { col: "nf_emissao", asc: true },
+      );
+      return linhas.sort((a, b) => {
+        const porEmissao = String(a.nf_emissao ?? "").localeCompare(String(b.nf_emissao ?? ""));
+        return porEmissao || String(a.nf_numero ?? "").localeCompare(String(b.nf_numero ?? ""), "pt-BR", { numeric: true });
+      });
+    },
     enabled: Boolean(vendedorId) && competenciaValida,
   });
 
