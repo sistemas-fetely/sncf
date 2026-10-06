@@ -12,6 +12,8 @@ import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransfer
 import { ContagemCentroPainel } from "@/components/estoque/ContagemCentroPainel";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
+import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
+import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const ESTAGIOS = ["em_transito", "em_transporte", "entregue"];
@@ -32,6 +34,14 @@ interface Recebida {
   id_externo: string | null;
 }
 
+function SeloEstagio({ estagio }: { estagio: string | null }) {
+  if (!estagio) return <span className="text-sm text-muted-foreground">—</span>;
+  if (estagio in ESTAGIO_LABELS) {
+    return <EstagioBadge estagio={estagio as EstagioPedido} />;
+  }
+  return <Badge variant="outline">{estagio}</Badge>;
+}
+
 export function ReceberNoDestinoPainel() {
   const qc = useQueryClient();
   const [receber, setReceber] = useState<Linha | null>(null);
@@ -40,7 +50,7 @@ export function ReceberNoDestinoPainel() {
     queryKey: ["recebimento-loja", "pendentes"],
     queryFn: async (): Promise<Linha[]> => {
       const { data: nat, error: eN } = await (supabase as any)
-        .from("naturezas_operacao").select("id").eq("codigo", "transferencia_interna");
+        .from("naturezas_operacao").select("id").eq("exige_receber_destino", true);
       if (eN) throw eN;
       const natIds = ((nat ?? []) as { id: string }[]).map((n) => n.id);
       if (!natIds.length) return [];
@@ -159,7 +169,7 @@ export function ReceberNoDestinoPainel() {
                   <TableRow key={p.id}>
                     <TableCell className="font-medium tabular-nums">{p.id_externo ?? p.id.slice(0, 8)}</TableCell>
                     <TableCell className="text-sm">{fmtData(p.data_pedido)}</TableCell>
-                    <TableCell><Badge variant="outline">{p.estagio ?? "—"}</Badge></TableCell>
+                    <TableCell><SeloEstagio estagio={p.estagio} /></TableCell>
                     <TableCell className="text-right tabular-nums">{p.itens}</TableCell>
                     <TableCell className="text-right tabular-nums">{p.pecas}</TableCell>
                     <TableCell>{p.destinoCodigo ?? "—"}</TableCell>
