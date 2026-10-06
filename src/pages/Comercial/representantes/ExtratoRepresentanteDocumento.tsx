@@ -37,9 +37,9 @@ function RodapeMensal() {
 }
 
 function CarteiraTabela({ parcelas, atrasada = false }: { parcelas: Linha[]; atrasada?: boolean }) {
-  const linhas = atrasada
+  const linhas: Linha[] = atrasada
     ? parcelas.filter(p => p.situacao_parcela === "vencida")
-      .map(p => ({ ...p, comissao: numero(p.comissao_da_parcela) }))
+      .map((p): Linha => ({ ...p, comissao: numero(p.comissao_da_parcela) }))
       .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")))
     : carteiraPorPedido(parcelas, "a_vencer");
   if (atrasada && !linhas.length) return null;
