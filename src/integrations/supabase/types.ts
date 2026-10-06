@@ -13334,8 +13334,10 @@ export type Database = {
           criado_em: string
           data_liquidacao: string
           id: string
+          motivo: string | null
           proporcao: number
-          titulo_id: string
+          tipo: string
+          titulo_id: string | null
           valor_liberado: number
         }
         Insert: {
@@ -13345,8 +13347,10 @@ export type Database = {
           criado_em?: string
           data_liquidacao: string
           id?: string
+          motivo?: string | null
           proporcao: number
-          titulo_id: string
+          tipo?: string
+          titulo_id?: string | null
           valor_liberado: number
         }
         Update: {
@@ -13356,8 +13360,10 @@ export type Database = {
           criado_em?: string
           data_liquidacao?: string
           id?: string
+          motivo?: string | null
           proporcao?: number
-          titulo_id?: string
+          tipo?: string
+          titulo_id?: string | null
           valor_liberado?: number
         }
         Relationships: [
@@ -118483,14 +118489,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
