@@ -1,13 +1,12 @@
-import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../comissoes/fmt";
-import { TIPOS_ESTORNO } from "../comissoes/Estornos";
 import { lerTudo, type Linha } from "./dados";
+import { ajustesDoExtrato, carteiraPorPedido, pagamentosDoExtrato } from "./extratoMensal";
+import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
 import {
   dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
 } from "./extratoCompetencias";
@@ -17,27 +16,11 @@ const NOTA_LEGAL =
   "A comissão nasce na nota fiscal, sobre o valor da NF menos frete, e só é liberada quando o cliente paga. Pagamento até o dia 15 do mês subsequente à liquidação, mediante nota fiscal de serviço (Lei 4.886/1965, art. 32). Dúvidas podem ser registradas pelo portal do representante.";
 const RE_COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
-function proximoMes(competencia: string) {
-  const [ano, mes] = competencia.split("-").map(Number);
-  const proximo = new Date(Date.UTC(ano, mes, 1));
-  return `${proximo.getUTCFullYear()}-${String(proximo.getUTCMonth() + 1).padStart(2, "0")}-01`;
-}
-
 /** Mês anterior ao mês de pagamento — o período medido pelo extrato. */
 function mesAnterior(competencia: string) {
   const [ano, mes] = competencia.split("-").map(Number);
   const d = new Date(Date.UTC(ano, mes - 2, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-
-function primeiroDia(competencia: string) {
-  return `${competencia}-01`;
-}
-
-function ultimoDia(competencia: string) {
-  const [ano, mes] = competencia.split("-").map(Number);
-  const d = new Date(Date.UTC(ano, mes, 0));
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
 }
 
 function rotuloCompetencia(competencia: string) {
@@ -49,358 +32,50 @@ function numero(v: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function Inteiro({ valor }: { valor: unknown }) {
-  return <>{numero(valor).toLocaleString("pt-BR")}</>;
+function RodapeMensal() {
+  return <footer className="rodape-mensal mt-6 border-t border-border pt-3 text-[7pt] leading-relaxed text-muted-foreground"><p>{NOTA_LEGAL}</p><p className="mt-2">{EMPRESA}</p></footer>;
 }
 
-function ValorGrande({ titulo, valor, detalhe }: { titulo: string; valor: unknown; detalhe?: string }) {
-  return (
-    <div className="min-w-0 border-l border-border pl-3 first:border-l-0 first:pl-0">
-      <div className="text-[8pt] text-muted-foreground">{titulo}</div>
-      <div className="mt-1 whitespace-nowrap text-[17pt] font-medium tabular-nums leading-none">{fmtBRL(numero(valor))}</div>
-      {detalhe && <div className="mt-1 text-[7.5pt] text-muted-foreground">{detalhe}</div>}
-    </div>
-  );
+function CarteiraTabela({ parcelas, atrasada = false }: { parcelas: Linha[]; atrasada?: boolean }) {
+  const linhas = carteiraPorPedido(parcelas, atrasada ? "vencida" : "a_vencer");
+  if (atrasada && !linhas.length) return null;
+  return <section className="bloco-mensal mt-6">
+    <h2 className="text-[12pt] font-medium">{atrasada ? "Travado por atraso do cliente" : "A receber"}</h2>
+    {!atrasada && <p className="mt-1 text-[7.5pt] text-muted-foreground">Posição em {fmtData(hojeISO())}</p>}
+    {!linhas.length ? <p className="mt-3 text-[9pt] text-muted-foreground">Nada a receber no momento</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
+      <colgroup><col className="w-[31%]"/><col className="w-[15%]"/><col className="w-[17%]"/><col className="w-[17%]"/><col className="w-[20%]"/></colgroup>
+      <thead><tr><th>Cliente</th><th>Pedido</th><th className="text-right">{atrasada ? "Vencido desde" : "Parcelas restantes"}</th><th className="text-right">{atrasada ? "Dias em atraso" : "Próximo vencimento"}</th><th className="text-right">{atrasada ? "Comissão travada" : "Comissão a receber"}</th></tr></thead>
+      <tbody>{linhas.map((l, i) => <tr key={i}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="text-right tabular-nums">{atrasada ? fmtData(l.vencimento) : l.parcelas}</td><td className="text-right tabular-nums">{atrasada ? l.dias_atraso : fmtData(l.vencimento)}</td><td className="text-right tabular-nums">{fmtBRL(l.comissao)}</td></tr>)}</tbody>
+      <tfoot><tr><td colSpan={4}>Total</td><td className="text-right tabular-nums">{fmtBRL(linhas.reduce((t, l) => t + numero(l.comissao), 0))}</td></tr></tfoot>
+    </table>}
+  </section>;
 }
 
-function Metrica({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <div className="border-t border-border pt-2">
-      <div className="text-[7.5pt] text-muted-foreground">{titulo}</div>
-      <div className="mt-0.5 text-[10pt] font-medium tabular-nums">{children}</div>
-    </div>
-  );
-}
-
-function Rodape({ pagina, legal = false }: { pagina: 1 | 2; legal?: boolean }) {
-  return (
-    <footer className="absolute inset-x-0 bottom-0 border-t border-border pt-2 text-[6.5pt] leading-snug text-muted-foreground">
-      {legal && <p className="mb-2 max-w-[154mm]">{NOTA_LEGAL}</p>}
-      <div className="flex items-end justify-between gap-4">
-        <span>{EMPRESA}</span>
-        <span className="shrink-0 tabular-nums">Página {pagina} de 2</span>
-      </div>
-    </footer>
-  );
-}
-
-function TabelaHistorico({ serie }: { serie: Linha[] }) {
-  const mesAtual = hojeISO().slice(0, 7);
-  const linhas = [...serie]
-    .filter((linha) => String(linha.mes ?? "").slice(0, 7) <= mesAtual)
-    .sort((a, b) => String(b.mes ?? "").localeCompare(String(a.mes ?? "")))
-    .slice(0, 6)
-    .reverse();
-  return (
-    <section className="mt-5">
-      <h2 className="text-[11pt] font-medium">Comissão apurada por mês</h2>
-      {linhas.length === 0 ? (
-        <p className="mt-2 text-[8pt] text-muted-foreground">Ainda não há histórico mensal apurado.</p>
-      ) : (
-        <table className="mt-2 w-full table-fixed border-collapse text-[8pt]">
-          <thead>
-            <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1.5 text-left font-medium">Mês</th>
-              <th className="py-1.5 text-right font-medium">Vendido</th>
-              <th className="py-1.5 text-right font-medium">Comissão apurada</th>
-            </tr>
-          </thead>
-          <tbody>
-            {linhas.map((linha) => (
-              <tr key={String(linha.mes)} className="border-b border-border/70">
-                <td className="py-1.5">{fmtCompetencia(linha.mes)}</td>
-                <td className="py-1.5 text-right tabular-nums">{fmtBRL(numero(linha.base_faturada))}</td>
-                <td className="py-1.5 text-right tabular-nums">{fmtBRL(numero(linha.comissao_apurada))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
-  );
-}
-
-function PaginaResumo({ representante, serie, competencia, pagarAte }: { representante: Linha; serie: Linha[]; competencia: string; pagarAte: string | null }) {
-  const travada = numero(representante.comissao_travada_inadimplencia);
-  const proximaData = representante.proximo_recebimento_data ? fmtData(representante.proximo_recebimento_data) : "Sem previsão";
-  const mesMedido = mesAnterior(competencia);
-  const periodo = `${fmtData(primeiroDia(mesMedido))} → ${fmtData(ultimoDia(mesMedido))}`;
-  const pagamentoAte = pagarAte ?? `${competencia}-15`;
-  return (
-    <section className="pagina-a4 relative bg-card text-card-foreground">
-      <header className="border-b border-border pb-4">
-        <div className="font-display text-[25pt] font-medium leading-none text-gold">FETÉLY</div>
-        <div className="mt-1 text-[9pt] text-muted-foreground">Extrato do Representante</div>
-      </header>
-
-      <section className="mt-4 grid grid-cols-[1fr_auto] gap-6">
-        <div>
-          <h1 className="text-[18pt] font-medium leading-tight">{representante.representante}</h1>
-            <p className="mt-1 text-[8.5pt] text-muted-foreground">
-              {representante.email_contato || "E-mail não informado"}
-            </p>
-            {representante.regiao && (
-              <p className="text-[8.5pt] text-muted-foreground">Região: {representante.regiao}</p>
-            )}
-            {representante.primeira_venda && (
-              <p className="text-[7.5pt] text-muted-foreground">Representante desde {fmtData(representante.primeira_venda)}</p>
-            )}
-        </div>
-        <dl className="grid grid-cols-[auto_auto] gap-x-3 gap-y-1 text-[7.5pt]">
-          <dt className="text-muted-foreground">Competência</dt><dd className="text-right tabular-nums">{periodo}</dd>
-          <dt className="text-muted-foreground">Pagamento até</dt><dd className="text-right tabular-nums">{fmtData(pagamentoAte)}</dd>
-          <dt className="text-muted-foreground">Emissão</dt><dd className="text-right tabular-nums">{fmtData(hojeISO())}</dd>
-        </dl>
-      </section>
-
-      <section className="mt-5 border-y border-border py-4">
-        <h2 className="mb-3 text-[11pt] font-medium">Sua situação hoje</h2>
-        <div className="grid grid-cols-3 gap-4">
-          <ValorGrande titulo="Recebida" valor={representante.comissao_recebida} />
-          <ValorGrande titulo="A receber" valor={representante.comissao_a_receber} />
-          <ValorGrande titulo="Próximo recebimento" valor={representante.proximo_recebimento} detalhe={proximaData} />
-        </div>
-      </section>
-
-      <div className="mt-5 grid grid-cols-2 gap-7">
-        <section>
-          <h2 className="text-[11pt] font-medium">Seu desempenho</h2>
-          <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2">
-            <Metrica titulo="Vendido no total">{fmtBRL(numero(representante.valor_vendido_bruto))}</Metrica>
-            <Metrica titulo="Pedidos"><Inteiro valor={representante.pedidos_total} /></Metrica>
-            <Metrica titulo="Clientes atendidos"><Inteiro valor={representante.clientes_distintos} /></Metrica>
-            <Metrica titulo="Clientes abertos por você"><Inteiro valor={representante.clientes_novos_total} /></Metrica>
-            <Metrica titulo="Clientes novos nos últimos 90 dias"><Inteiro valor={representante.clientes_novos_90d} /></Metrica>
-            <Metrica titulo="Clientes que já eram da Fetély"><Inteiro valor={representante.clientes_recompra} /></Metrica>
-            <Metrica titulo="Ticket médio">{fmtBRL(numero(representante.ticket_medio))}</Metrica>
-            <Metrica titulo="Última venda">
-              {representante.ultima_venda_valor == null ? "—" : `${fmtBRL(numero(representante.ultima_venda_valor))} · ${fmtData(representante.ultima_venda_data)}`}
-            </Metrica>
-            <Metrica titulo="Média mensal (3m)">{fmtBRL(numero(representante.media_mensal_3m))}</Metrica>
-          </div>
-        </section>
-
-        <section>
-          <h2 className="text-[11pt] font-medium">Carteira dos seus clientes</h2>
-          <div className="mt-2 grid grid-cols-2 gap-x-5 gap-y-2">
-            <Metrica titulo="Carteira a receber">{fmtBRL(numero(representante.carteira_a_receber))}</Metrica>
-            <Metrica titulo="Carteira vencida">
-              <span className={cn(numero(representante.carteira_vencida) > 0 && "text-destructive-strong")}>{fmtBRL(numero(representante.carteira_vencida))}</span>
-            </Metrica>
-            <Metrica titulo="Parcelas vencidas"><Inteiro valor={representante.parcelas_vencidas} /></Metrica>
-            <Metrica titulo="Maior atraso"><Inteiro valor={representante.maior_atraso_dias} /> dias</Metrica>
-          </div>
-          {travada > 0 && (
-            <p className="mt-3 border-l-2 border-destructive pl-2 text-[7.5pt] leading-relaxed text-destructive-strong">
-              {fmtBRL(travada)} de comissão está aguardando clientes inadimplentes. O valor não foi estornado e será liberado quando o cliente pagar.
-            </p>
-          )}
-        </section>
-      </div>
-
-      <TabelaHistorico serie={serie} />
-      <Rodape pagina={1} />
-    </section>
-  );
-}
-
-function PaginaExtrato({ competencia, selo, detalhes, memoria, estornos }: { competencia: string; selo: string; detalhes: Linha[]; memoria: Linha[]; estornos: Linha[] }) {
-  const grupos = useMemo(() => {
-    const porApuracao = new Map<string, Linha[]>();
-    for (const linha of detalhes) {
-      const chave = String(linha.apuracao_id ?? linha.nf_id ?? linha.nf ?? "");
-      const grupo = porApuracao.get(chave) ?? [];
-      grupo.push(linha);
-      porApuracao.set(chave, grupo);
-    }
-    return [...porApuracao.values()];
-  }, [detalhes]);
-  const totalApurado = grupos.reduce((soma, grupo) => soma + numero(grupo[0]?.comissao_da_nota), 0);
-  const totalLiberado = detalhes.reduce((soma, linha) => soma + numero(linha.valor_liberado), 0);
-  const totalEstornado = estornos.reduce((soma, estorno) => soma + numero(estorno.valor_estornado), 0);
-  const totalALiberar = Math.max(0, totalApurado - totalLiberado - totalEstornado);
-
-  return (
-    <section className="pagina-a4 quebra-pagina relative bg-card text-card-foreground">
-      <header className="flex items-end justify-between border-b border-border pb-3">
-        <div>
-          <div className="font-display text-[17pt] font-medium leading-none text-gold">FETÉLY</div>
-          <h1 className="mt-2 text-[16pt] font-medium">Extrato de {rotuloCompetencia(competencia)}</h1>
-          <p className="mt-1 text-[7.5pt] text-muted-foreground">{selo}</p>
-        </div>
-        <div className="text-[7.5pt] text-muted-foreground">Emitido em {fmtData(hojeISO())}</div>
-      </header>
-
-      {detalhes.length === 0 ? (
-        <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
-          Nenhuma comissão apurada nesta competência.
-        </div>
-      ) : (
-        <table className="mt-4 w-full table-fixed border-collapse text-[6.8pt] leading-tight">
-          <colgroup>
-            <col className="w-[8%]" /><col className="w-[8%]" /><col className="w-[21%]" /><col className="w-[13%]" />
-            <col className="w-[7%]" /><col className="w-[10%]" /><col className="w-[18%]" /><col className="w-[15%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1.5 pr-1 text-left font-medium">NF</th>
-              <th className="px-1 py-1.5 text-left font-medium">Pedido</th>
-              <th className="px-1 py-1.5 text-left font-medium">Cliente</th>
-              <th className="px-1 py-1.5 text-right font-medium">Comissão NF</th>
-              <th className="px-1 py-1.5 text-center font-medium">Parc.</th>
-              <th className="px-1 py-1.5 text-center font-medium">Vencimento</th>
-              <th className="px-1 py-1.5 text-left font-medium">Situação</th>
-              <th className="py-1.5 pl-1 text-right font-medium">Comissão parcela</th>
-            </tr>
-          </thead>
-          <tbody>
-            {grupos.map((grupo) =>
-              [...grupo]
-                .sort((a, b) => numero(a.numero_parcela) - numero(b.numero_parcela))
-                .map((linha, indice) => (
-                  <tr key={`${linha.apuracao_id}-${linha.titulo_id ?? indice}`} className={cn("border-b border-border/70", indice === 0 && "border-t border-t-foreground/30")}>
-                    <td className="py-1.5 pr-1 align-top">{indice === 0 ? linha.nf || "—" : ""}</td>
-                    <td className="px-1 py-1.5 align-top">{indice === 0 ? linha.pedido || "—" : ""}</td>
-                    <td className="break-words px-1 py-1.5 align-top">{indice === 0 ? linha.cliente || "—" : ""}</td>
-                    <td className="px-1 py-1.5 text-right align-top tabular-nums">{indice === 0 ? fmtBRL(numero(linha.comissao_da_nota)) : ""}</td>
-                    <td className="px-1 py-1.5 text-center align-top tabular-nums">{linha.numero_parcela ? `${linha.numero_parcela}/${linha.total_parcelas ?? "?"}` : "—"}</td>
-                    <td className="px-1 py-1.5 text-center align-top tabular-nums">{fmtData(linha.vencimento)}</td>
-                    <td className="break-words px-1 py-1.5 align-top">{situacao(linha.situacao_parcela)}</td>
-                    <td className="py-1.5 pl-1 text-right align-top tabular-nums">{fmtBRL(numero(linha.comissao_da_parcela))}</td>
-                  </tr>
-                )),
-            )}
-          </tbody>
-        </table>
-      )}
-
-      <MemoriaCalculoNF memoria={memoria} competencia={competencia} />
-
-      {estornos.length > 0 && (
-        <section className="mt-4">
-          <h2 className="text-[8pt] font-medium">Estornos da competência</h2>
-          <div className="mt-1 border-y border-border">
-            {estornos.map((estorno) => (
-              <div key={String(estorno.id)} className="grid grid-cols-[25mm_1fr_28mm] gap-2 border-b border-border/70 py-1.5 text-[6.8pt] last:border-b-0">
-                <span>{TIPOS_ESTORNO[String(estorno.tipo)] ?? estorno.tipo}</span>
-                <span className="break-words text-muted-foreground">{estorno.motivo}</span>
-                <span className="text-right tabular-nums text-destructive-strong">− {fmtBRL(numero(estorno.valor_estornado))}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="mt-4 ml-auto grid w-[92mm] grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-t border-foreground pt-2 text-[8pt]">
-        <span>Total apurado</span><span className="text-right font-medium tabular-nums">{fmtBRL(totalApurado)}</span>
-        <span>Total liberado</span><span className="text-right font-medium tabular-nums">{fmtBRL(totalLiberado)}</span>
-        <span>Total a liberar</span><span className="text-right font-medium tabular-nums">{fmtBRL(totalALiberar)}</span>
-      </section>
-
-      <Rodape pagina={2} legal />
-    </section>
-  );
-}
-
-/* Competência FECHADA: o documento lê o detalhe congelado em comissao_extrato.
-   Nada é recalculado aqui — é o mesmo conteúdo que o representante recebeu. */
-type ItemCongelado = Record<string, any>;
-
-function PaginaExtratoCongelado({ competencia, selo, itens, memoria, valorTotal }: {
-  competencia: string; selo: string; itens: ItemCongelado[]; memoria: Linha[]; valorTotal: number;
+function DocumentoMensal({ competencia, representante, extrato, parcelas, pagamentos }: {
+  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; parcelas: Linha[]; pagamentos: Linha[];
 }) {
-  const liberacoes = itens.filter((i) => String(i.tipo ?? "liberacao") !== "estorno");
-  const estornos = itens.filter((i) => String(i.tipo) === "estorno");
-  const totalLiberado = liberacoes.reduce((s, i) => s + numero(i.valor), 0);
-  const totalEstornado = estornos.reduce((s, i) => s + Math.abs(numero(i.valor)), 0);
-
-  return (
-    <section className="pagina-a4 quebra-pagina relative bg-card text-card-foreground">
-      <header className="flex items-end justify-between border-b border-border pb-3">
-        <div>
-          <div className="font-display text-[17pt] font-medium leading-none text-gold">FETÉLY</div>
-          <h1 className="mt-2 text-[16pt] font-medium">Extrato de {rotuloCompetencia(competencia)}</h1>
-          <p className="mt-1 text-[7.5pt] text-muted-foreground">{selo}</p>
-        </div>
-        <div className="text-[7.5pt] text-muted-foreground">Emitido em {fmtData(hojeISO())}</div>
-      </header>
-
-      {liberacoes.length === 0 ? (
-        <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
-          Nenhuma comissão liberada nesta competência.
-        </div>
-      ) : (
-        <table className="mt-4 w-full table-fixed border-collapse text-[6.8pt] leading-tight">
-          <colgroup>
-            <col className="w-[12%]" /><col className="w-[16%]" /><col className="w-[10%]" />
-            <col className="w-[16%]" /><col className="w-[18%]" /><col className="w-[10%]" /><col className="w-[18%]" />
-          </colgroup>
-          <thead>
-            <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1.5 pr-1 text-left font-medium">NF</th>
-              <th className="px-1 py-1.5 text-left font-medium">Pedido</th>
-              <th className="px-1 py-1.5 text-center font-medium">Parc.</th>
-              <th className="px-1 py-1.5 text-center font-medium">Liquidação</th>
-              <th className="px-1 py-1.5 text-right font-medium">Comissão da NF</th>
-              <th className="px-1 py-1.5 text-right font-medium">Proporção</th>
-              <th className="py-1.5 pl-1 text-right font-medium">Valor liberado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {liberacoes.map((i, indice) => (
-              <tr key={String(i.liberacao_id ?? indice)} className="border-b border-border/70">
-                <td className="py-1.5 pr-1 align-top">{i.nf || "—"}</td>
-                <td className="px-1 py-1.5 align-top">{i.pedido || "—"}</td>
-                <td className="px-1 py-1.5 text-center align-top tabular-nums">{i.parcela ?? "—"}</td>
-                <td className="px-1 py-1.5 text-center align-top tabular-nums">{fmtData(i.data_liquidacao)}</td>
-                <td className="px-1 py-1.5 text-right align-top tabular-nums">{fmtBRL(numero(i.comissao_da_nota))}</td>
-                <td className="px-1 py-1.5 text-right align-top tabular-nums">{i.proporcao != null ? fmtPct(numero(i.proporcao) * 100) : "—"}</td>
-                <td className="py-1.5 pl-1 text-right align-top tabular-nums">{fmtBRL(numero(i.valor))}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      <MemoriaCalculoNF memoria={memoria} competencia={competencia} />
-
-      {estornos.length > 0 && (
-        <section className="mt-4">
-          <h2 className="text-[8pt] font-medium">Estornos abatidos nesta competência</h2>
-          <div className="mt-1 border-y border-border">
-            {estornos.map((e, indice) => (
-              <div key={String(e.estorno_id ?? indice)} className="grid grid-cols-[25mm_1fr_28mm] gap-2 border-b border-border/70 py-1.5 text-[6.8pt] last:border-b-0">
-                <span>{TIPOS_ESTORNO[String(e.estorno_tipo)] ?? e.estorno_tipo ?? "Estorno"}</span>
-                <span className="break-words text-muted-foreground">
-                  {e.motivo}{e.parcial ? " (abatimento parcial)" : ""}
-                </span>
-                <span className="text-right tabular-nums text-destructive-strong">− {fmtBRL(Math.abs(numero(e.valor)))}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <section className="mt-4 ml-auto grid w-[92mm] grid-cols-[1fr_auto] gap-x-4 gap-y-1 border-t border-foreground pt-2 text-[8pt]">
-        <span>Comissão liberada</span><span className="text-right font-medium tabular-nums">{fmtBRL(totalLiberado)}</span>
-        <span>Estornos abatidos</span><span className="text-right font-medium tabular-nums">− {fmtBRL(totalEstornado)}</span>
-        <span className="font-medium">Valor do extrato</span><span className="text-right font-medium tabular-nums">{fmtBRL(valorTotal)}</span>
-      </section>
-
-      <Rodape pagina={2} legal />
+  const ajustes = ajustesDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
+  return <section className="pagina-a4 pagina-mensal bg-card text-card-foreground">
+    <header className="flex items-end justify-between gap-4 border-b border-border pb-4">
+      <div><div className="font-display text-[25pt] font-medium leading-none text-gold">FETÉLY</div><h1 className="mt-3 text-[17pt] font-medium">Extrato de {rotuloCompetencia(competencia)}</h1><p className="mt-1 text-[10pt]">{representante.representante}</p></div>
+      <p className="text-right text-[7.5pt] text-muted-foreground">Emitido em {fmtData(hojeISO())}</p>
+    </header>
+    <section className="bloco-mensal border-b border-border py-6">
+      <h2 className="text-[12pt] font-medium">Você recebe</h2>
+      {extrato ? <><div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-2"><strong className="text-[29pt] font-medium tabular-nums leading-tight">{fmtBRL(numero(extrato.valor_total))}</strong><span className="text-[12pt]">até {fmtData(extrato.pagar_ate)}</span></div><p className="mt-2 text-[8pt] text-muted-foreground">Extrato {rotuloCompetencia(competencia)} · fechado em {fmtData(extrato.fechado_em)}</p></> : <p className="mt-3 text-[10pt] text-muted-foreground">Prévia — valor a pagar disponível após o fechamento em {dataDoFechamento(competencia)}.</p>}
     </section>
-  );
-}
-
-function situacao(valor: unknown) {
-  const labels: Record<string, string> = {
-    liberada: "Liberada",
-    paga_aguarda_liberacao: "Paga, aguarda liberação",
-    vencida: "Vencida",
-    a_vencer: "A vencer",
-  };
-  const chave = String(valor ?? "");
-  return labels[chave] ?? (chave.replace(/_/g, " ") || "—");
+    <section className="bloco-mensal mt-6">
+      <h2 className="text-[12pt] font-medium">De onde vem</h2>
+      {!pagamentos.length ? <p className="mt-3 text-[9pt] text-muted-foreground">{extrato ? "Nenhuma parcela paga neste extrato." : "As parcelas deste extrato serão identificadas após o fechamento."}</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
+        <colgroup><col className="w-[28%]"/><col className="w-[14%]"/><col className="w-[26%]"/><col className="w-[16%]"/><col className="w-[16%]"/></colgroup>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Cliente pagou</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{pagamentos.map((p, i) => <tr key={String(p.liberacao_id)}><td>{i === 0 || pagamentos[i - 1].cliente !== p.cliente ? p.cliente || "—" : ""}</td><td>{p.pedido || "—"}</td><td><span className="tabular-nums">{fmtBRL(numero(p.valor_parcela))}</span><span> · parc. {p.numero_parcela}/{p.total_parcelas}</span><div className="mt-1 text-[7pt] text-muted-foreground">{fmtData(p.pago_em)}</div></td><td className="text-right tabular-nums">{fmtPct(p.pct_efetivo)}{numero(p.ajuste_pp) > 0 && <div className="mt-1 text-[7pt] leading-relaxed text-muted-foreground">desc. {fmtPct(Math.round(numero(p.desconto_considerado_pct) * 10) / 10, "%", 1)} → −{fmtPct(p.ajuste_pp, " p.p.")}</div>}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.valor_liberado))}</td></tr>)}</tbody>
+      </table>}
+    </section>
+    <CarteiraTabela parcelas={parcelas}/><CarteiraTabela parcelas={parcelas} atrasada/>
+    {ajustes.length > 0 && <section className="bloco-mensal mt-6"><h2 className="text-[12pt] font-medium">Ajustes</h2><div className="mt-3 border-t border-border">{ajustes.map((a, i) => <div key={String(a.liberacao_id ?? a.estorno_id ?? i)} className="flex justify-between gap-5 border-b border-border py-3 text-[8pt]"><div>{a.pedido && <p className="font-medium">{a.pedido}</p>}<p className="text-muted-foreground">{a.motivo || "Motivo não informado"}</p></div><span className="shrink-0 text-right tabular-nums">{a.tipo === "estorno" ? "−" : "+"} {fmtBRL(Math.abs(numero(a.valor)))}</span></div>)}</div></section>}
+    <RodapeMensal/>
+  </section>;
 }
 
 type LinhaMemoria = {
@@ -411,20 +86,6 @@ type LinhaMemoria = {
   pct_aplicado?: number | string;
   comissao?: number | string;
 };
-
-function contemMes(meses: unknown, dia: string) {
-  if (!Array.isArray(meses)) return false;
-  return meses.some((mes) => String(mes).slice(0, 10) === dia);
-}
-
-function origemMemoria(nf: Linha, competencia: string) {
-  const emitida = String(nf.competencia ?? "").slice(0, 10) === `${mesAnterior(competencia)}-01`;
-  const paga = contemMes(nf.meses_pagamento_liberados, `${competencia}-01`);
-  if (emitida && paga) return "Emitida · Paga";
-  if (emitida) return "Emitida";
-  if (paga) return "Paga";
-  return "—";
-}
 
 function linhasDaMemoria(nf: Linha): LinhaMemoria[] {
   if (Array.isArray(nf.linhas) && nf.linhas.length > 0) return nf.linhas as LinhaMemoria[];
@@ -441,10 +102,11 @@ function linhasDaMemoria(nf: Linha): LinhaMemoria[] {
 function fmtAjuste(v: unknown) {
   const n = numero(v);
   if (n === 0) return "—";
-  return `${n < 0 ? "−" : "+"}${fmtPct(Math.abs(n), " pp")}`;
+  return `${n > 0 ? "−" : "+"}${fmtPct(Math.abs(n), " p.p.")}`;
 }
 
-function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competencia: string }) {
+function MemoriaCalculoNF({ memoria }: { memoria: Linha[] }) {
+  const mostrarFrete = memoria.some(nf => numero(nf.frete) !== 0);
   const retificadas = memoria.filter((nf) => Boolean(nf.retificacao_motivo));
   const indiceRetificacao = new Map(retificadas.map((nf, indice) => [String(nf.apuracao_id ?? nf.nf_id), indice + 1]));
   const totais = memoria.reduce((acc, nf) => {
@@ -459,7 +121,7 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
 
   return (
     <section className="mt-4">
-      <h2 className="text-[8pt] font-medium">Memória de cálculo por NF</h2>
+      <h2 className="text-[8pt] font-medium">Memória de cálculo</h2>
       <p className="mt-1 text-[7pt] leading-relaxed text-muted-foreground">
         Base = valor da NF − frete. % aplicado = % da tabela da linha − ajuste da régua de desconto. Comissão = base × % aplicado, por linha de produto.
       </p>
@@ -468,23 +130,20 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
       ) : (
         <table className="memoria-nf mt-2 w-full table-fixed border-collapse text-[7pt] leading-tight">
           <colgroup>
-            <col className="w-[6%]" /><col className="w-[7%]" /><col className="w-[9%]" /><col className="w-[13%]" />
-            <col className="w-[10%]" /><col className="w-[6%]" /><col className="w-[10%]" /><col className="w-[5%]" />
-            <col className="w-[5%]" /><col className="w-[5%]" /><col className="w-[6%]" /><col className="w-[4%]" />
-            <col className="w-[5%]" /><col className="w-[9%]" />
+            <col className="w-[7%]"/><col className="w-[10%]"/><col className={mostrarFrete ? "w-[12%]" : "w-[15%]"}/><col className="w-[10%]"/>
+            {mostrarFrete && <col className="w-[9%]"/>}<col className="w-[10%]"/><col className="w-[8%]"/><col className="w-[6%]"/>
+            <col className="w-[11%]"/><col className="w-[7%]"/><col className="w-[8%]"/><col className={mostrarFrete ? "w-[11%]" : "w-[17%]"}/>
           </colgroup>
           <thead style={{ display: "table-header-group" }}>
             <tr className="border-y border-border text-muted-foreground">
               <th className="py-1 text-left font-medium">NF</th>
-              <th className="px-0.5 py-1 text-left font-medium">Origem</th>
               <th className="px-0.5 py-1 text-left font-medium">Emissão</th>
               <th className="px-0.5 py-1 text-left font-medium">Cliente</th>
               <th className="px-0.5 py-1 text-right font-medium">Valor NF</th>
-              <th className="px-0.5 py-1 text-right font-medium">Frete</th>
+              {mostrarFrete && <th className="px-0.5 py-1 text-right font-medium">Frete</th>}
               <th className="px-0.5 py-1 text-right font-medium">Base</th>
               <th className="px-0.5 py-1 text-right font-medium">Desconto</th>
-              <th className="px-0.5 py-1 text-right font-medium">Desc. p/ régua</th>
-              <th className="px-0.5 py-1 text-right font-medium">Ajuste régua</th>
+              <th className="px-0.5 py-1 text-right font-medium">Ajuste</th>
               <th className="px-0.5 py-1 text-left font-medium">Linha</th>
               <th className="px-0.5 py-1 text-right font-medium">% tabela</th>
               <th className="px-0.5 py-1 text-right font-medium">% aplicado</th>
@@ -500,18 +159,16 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                   {linhas.map((linha, linhaIndice) => (
                     <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
                       <td className="py-1 align-top tabular-nums">{linhaIndice === 0 ? <>{nf.nf_numero ?? "—"}{indice ? <sup>{indice}</sup> : null}</> : ""}</td>
-                      <td className="px-0.5 py-1 align-top text-[7pt]">{linhaIndice === 0 ? origemMemoria(nf, competencia) : ""}</td>
                       <td className="px-0.5 py-1 align-top tabular-nums">{linhaIndice === 0 ? fmtData(nf.nf_emissao) : ""}</td>
-                      <td className="break-words px-0.5 py-1 align-top">{linhaIndice === 0 ? nf.cliente || "—" : ""}</td>
+                      <td className="px-0.5 py-1 align-top">{linhaIndice === 0 ? nf.cliente || "—" : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.valor_nf)) : ""}</td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.frete)) : ""}</td>
+                      {mostrarFrete && <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.frete)) : ""}</td>}
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">
                         {fmtBRL(numero(linhas.length > 1 ? linha.base : nf.base))}
                       </td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_pct) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_regua_pct) : ""}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtAjuste(nf.ajuste_pp) : ""}</td>
-                      <td className="break-words px-0.5 py-1 align-top">{linha.linha || "—"}</td>
+                      <td className="px-0.5 py-1 align-top">{linha.linha || "—"}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_tabela)}</td>
                       <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_aplicado)}</td>
                       <td className="py-1 pl-0.5 text-right align-top tabular-nums">{fmtBRL(numero(linha.comissao))}</td>
@@ -519,7 +176,7 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
                   ))}
                   {linhas.length > 1 && (
                     <tr className="border-b border-border bg-muted/30 font-medium">
-                      <td colSpan={13} className="py-1 text-right">Subtotal NF {nf.nf_numero}</td>
+                      <td colSpan={mostrarFrete ? 11 : 10} className="py-1 text-right">Subtotal NF {nf.nf_numero}</td>
                       <td className="py-1 pl-0.5 text-right tabular-nums">{fmtBRL(subtotal)}</td>
                     </tr>
                   )}
@@ -528,11 +185,11 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
             })}
           <tfoot>
             <tr className="border-t border-foreground/50 font-medium">
-              <td colSpan={4} className="py-1.5">Total</td>
+              <td colSpan={3} className="py-1.5">Total</td>
               <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.valor)}</td>
-              <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.frete)}</td>
+              {mostrarFrete && <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.frete)}</td>}
               <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.base)}</td>
-              <td colSpan={6} />
+              <td colSpan={5} />
               <td className="py-1.5 pl-0.5 text-right tabular-nums">{fmtBRL(totais.comissao)}</td>
             </tr>
           </tfoot>
@@ -556,17 +213,38 @@ function MemoriaCalculoNF({ memoria, competencia }: { memoria: Linha[]; competen
 export const ESTILOS_IMPRESSAO = `
   [aria-label="Minhas tarefas"] { display: none !important; }
   .documento-extrato { min-height: 100vh; background: hsl(var(--muted)); padding: 12mm 0; }
-  .pagina-a4 { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
-  .memoria-nf th, .memoria-nf td { overflow-wrap: anywhere; padding-left: 1px; padding-right: 1px; }
-  .memoria-nf tbody td:first-child, .memoria-nf tbody td:nth-child(3) { white-space: nowrap; }
+  .documento-extrato .pagina-a4 { box-sizing: border-box; width: 210mm; max-width: 100%; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
+  .documento-extrato .anexo-tela { min-height: 0; }
+  .documento-extrato .anexo-print { display: none; }
+  .documento-extrato table { word-break: normal; overflow-wrap: normal; }
+  .documento-extrato thead { display: table-header-group; }
+  .documento-extrato tr, .documento-extrato tbody { break-inside: avoid; }
+  .documento-extrato .tabela-mensal th { font-weight: 500; text-align: left; color: hsl(var(--muted-foreground)); border-block: 1px solid hsl(var(--border)); }
+  .documento-extrato .tabela-mensal th.text-right { text-align: right; }
+  .documento-extrato .tabela-mensal td { border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
+  .documento-extrato .tabela-mensal th, .documento-extrato .tabela-mensal td { padding: 8px 4px; }
+  .documento-extrato tfoot { font-weight: 500; }
+  .documento-extrato .memoria-nf th, .documento-extrato .memoria-nf td { padding: 5px 2px; }
+  .documento-extrato .memoria-nf th { white-space: normal; }
+  .documento-extrato .memoria-nf td:not(:nth-child(3)) { white-space: nowrap; }
+  @media screen and (max-width: 700px) {
+    .documento-extrato .pagina-a4 { padding: 20px; min-height: 0; }
+    .documento-extrato .anexo-conteudo { overflow-x: auto; }
+    .documento-extrato .memoria-nf { min-width: 680px; }
+  }
   @page { size: A4; margin: 15mm; }
   @media print {
     html, body, #root { margin: 0 !important; padding: 0 !important; background: hsl(var(--card)) !important; }
     .documento-extrato { min-height: 0; padding: 0; background: hsl(var(--card)); }
-    .pagina-a4 { width: 180mm; height: 267mm; min-height: 267mm; margin: 0; padding: 0; box-shadow: none; overflow: hidden; }
+    .documento-extrato .pagina-a4 { width: 180mm; max-width: none; min-height: 0; height: auto; margin: 0; padding: 0; box-shadow: none; overflow: visible; }
+    .documento-extrato .anexo-tela { display: none !important; }
+    .documento-extrato .anexo-print { display: block; break-before: page; }
     .quebra-pagina { break-before: page; page-break-before: always; }
-    .tela-apenas { display: none !important; }
-    .seletor-competencia { display: none !important; }
+    .documento-extrato .bloco-mensal h2 { break-after: avoid; }
+    .documento-extrato tbody { break-inside: auto; }
+    .documento-extrato .memoria-nf tbody { break-inside: avoid; }
+    .documento-extrato .rodape-mensal { break-inside: avoid; }
+    .tela-apenas, .seletor-competencia { display: none !important; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
@@ -575,24 +253,16 @@ export function EstilosExtrato() {
   return <style>{ESTILOS_IMPRESSAO}</style>;
 }
 
-/** Documento do extrato (2 folhas A4). Os estilos vêm de <EstilosExtrato /> no pai. */
+/** Prestação de contas mensal e anexo compartilhados entre individual e lote. */
 export function ExtratoRepresentanteDocumento({ vendedorId, competencia: competenciaProp, mostrarSeletor }: {
   vendedorId: string; competencia: string | null; mostrarSeletor: boolean;
 }) {
   const [, setParams] = useSearchParams();
   const competencia = competenciaProp ?? hojeISO().slice(0, 7);
   const competenciaValida = RE_COMPETENCIA.test(competencia);
-  const inicio = competenciaValida ? `${competencia}-01` : "";
-  const fim = competenciaValida ? proximoMes(competencia) : "";
-
   const representanteQ = useQuery({
     queryKey: ["representante-extrato-impressao", vendedorId],
     queryFn: () => lerTudo("vw_representante_financeiro", (q) => q.eq("vendedor_id", vendedorId)),
-    enabled: Boolean(vendedorId) && competenciaValida,
-  });
-  const serieQ = useQuery({
-    queryKey: ["representante-extrato-serie", vendedorId],
-    queryFn: () => lerTudo("vw_representante_serie_mensal", (q) => q.eq("vendedor_id", vendedorId), { col: "mes" }),
     enabled: Boolean(vendedorId) && competenciaValida,
   });
   const extratosQ = useQuery({
@@ -601,36 +271,10 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     enabled: Boolean(vendedorId),
   });
   const extrato = extratosQ.data ? extratoDaCompetencia(extratosQ.data, competencia) : undefined;
-  const fechada = Boolean(extrato);
-  const aoVivo = extratosQ.isSuccess && !fechada;
-
   const detalhesQ = useQuery({
-    queryKey: ["representante-extrato-competencia", vendedorId, competencia],
-    queryFn: () => lerTudo(
-      "vw_comissao_detalhe",
-      (q) => q.eq("vendedor_id", vendedorId).gte("competencia", inicio).lt("competencia", fim),
-      { col: "nf_emissao", asc: true },
-    ),
-    enabled: Boolean(vendedorId) && competenciaValida && aoVivo,
-  });
-  const apuracoes = useMemo(
-    () => [...new Set((detalhesQ.data ?? []).map((linha) => String(linha.apuracao_id ?? "")).filter(Boolean))],
-    [detalhesQ.data],
-  );
-  const estornosQ = useQuery({
-    queryKey: ["representante-extrato-estornos", vendedorId, competencia, apuracoes],
-    queryFn: async () => {
-      if (apuracoes.length === 0) return [] as Linha[];
-      const { data, error } = await (supabase as any)
-        .from("comissao_estorno")
-        .select("id,apuracao_id,tipo,motivo,valor_estornado")
-        .eq("vendedor_id", vendedorId)
-        .in("apuracao_id", apuracoes)
-        .order("criado_em", { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as Linha[];
-    },
-    enabled: detalhesQ.isSuccess && aoVivo,
+    queryKey: ["representante-extrato-posicao", vendedorId, competencia],
+    queryFn: () => lerTudo("vw_comissao_detalhe", q => q.eq("vendedor_id", vendedorId), { col: "nf_emissao", asc: true }),
+    enabled: Boolean(vendedorId) && competenciaValida,
   });
   const memoriaQ = useQuery({
     queryKey: ["representante-extrato-memoria-nf", vendedorId, competencia],
@@ -650,9 +294,8 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     enabled: Boolean(vendedorId) && competenciaValida,
   });
 
-  const carregando = representanteQ.isLoading || serieQ.isLoading || extratosQ.isLoading
-    || memoriaQ.isLoading || (aoVivo && (detalhesQ.isLoading || estornosQ.isLoading));
-  const erro = representanteQ.error || serieQ.error || extratosQ.error || memoriaQ.error || detalhesQ.error || estornosQ.error;
+  const carregando = representanteQ.isLoading || extratosQ.isLoading || memoriaQ.isLoading || detalhesQ.isLoading;
+  const erro = representanteQ.error || extratosQ.error || memoriaQ.error || detalhesQ.error;
   const representante = representanteQ.data?.[0];
 
   if (!competenciaValida) {
@@ -668,9 +311,13 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
     return <div className="flex min-h-screen items-center justify-center bg-background p-8 text-muted-foreground">Representante não encontrado.</div>;
   }
 
-  const selo = extrato
-    ? `Extrato fechado em ${fmtData(extrato.fechado_em)}`
-    : `Prévia — sujeita a alteração até o fechamento em ${dataDoFechamento(competencia)}`;
+  let pagamentos: Linha[];
+  try {
+    pagamentos = pagamentosDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : [], detalhesQ.data ?? []);
+  } catch (e) {
+    return <div className="p-8 text-destructive-strong">Falha ao preparar o extrato: {formatError(e)}</div>;
+  }
+  const selo = extrato ? `Fechado em ${fmtData(extrato.fechado_em)}` : "Prévia";
   const opcoes = opcoesCompetencia(extratosQ.data ?? []);
 
   return (
@@ -693,18 +340,15 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <PaginaResumo representante={representante} serie={serieQ.data ?? []} competencia={competencia} pagarAte={extrato?.pagar_ate ?? null} />
-      {extrato ? (
-        <PaginaExtratoCongelado
-          competencia={competencia}
-          selo={selo}
-          itens={Array.isArray(extrato.detalhe) ? extrato.detalhe : []}
-          memoria={memoriaQ.data ?? []}
-          valorTotal={numero(extrato.valor_total)}
-        />
-      ) : (
-        <PaginaExtrato competencia={competencia} selo={selo} detalhes={detalhesQ.data ?? []} memoria={memoriaQ.data ?? []} estornos={estornosQ.data ?? []} />
-      )}
+      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={detalhesQ.data ?? []} pagamentos={pagamentos}/>
+      <details className="pagina-a4 anexo-tela bg-card text-card-foreground">
+        <summary className="cursor-pointer text-[12pt] font-medium">Memória de cálculo</summary>
+        <div className="anexo-conteudo"><MemoriaCalculoNF memoria={memoriaQ.data ?? []}/></div>
+      </details>
+      <section className="pagina-a4 anexo-print bg-card text-card-foreground">
+        <header className="mb-4 border-b border-border pb-3"><div className="font-display text-[20pt] text-gold">FETÉLY</div><p className="mt-2 text-[9pt]">{representante.representante} · Extrato {rotuloCompetencia(competencia)} · Anexo</p></header>
+        <MemoriaCalculoNF memoria={memoriaQ.data ?? []}/><RodapeMensal/>
+      </section>
     </>
   );
 }
