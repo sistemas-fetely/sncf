@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Reformular o extrato mensal com pagamento, origem, carteira, atrasos e ajustes.
-- [ ] Separar memória em anexo e validar extratos e PDFs A4 sem alterar banco ou publicar.
+- [x] Reformular o extrato mensal com pagamento, origem, carteira, atrasos e ajustes.
+- [x] Separar memória em anexo e validar extratos e PDFs A4 sem alterar banco ou publicar.
 
 - [x] Reutilizar o popover explicativo do Cockpit na coluna Funil.
 - [x] Validar Funil e Margem no navegador e executar o typecheck.
