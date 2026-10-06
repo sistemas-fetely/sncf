@@ -945,6 +945,9 @@ const App = () => (
                 ela não exibe nada, e o destino tem o portão dele.
                 NÃO adicionar tela real aqui.
                 ═══════════════════════════════════════════════ */}
+            {/* TRANSFERENCIA-E-UM-PROCESSO (06/10/2026): criar e receber são abas de Transferências Internas */}
+            <Route path="/pedidos/transferencias/nova" element={<Navigate to="/pedidos/transferencias?aba=nova" replace />} />
+            <Route path="/vendas/produto/estoque/recebimento-centro" element={<Navigate to="/pedidos/transferencias?aba=receber" replace />} />
             {/* ORGANOGRAMA-MORA-EM-PESSOAS (12/09/2026): rota oficial é /pessoas/organograma */}
             <Route path="/organograma" element={<Navigate to="/pessoas/organograma" replace />} />
             {/* DESMONTE-PROJECOES (23/08/2026): absorvido pela classificação de despesa */}
