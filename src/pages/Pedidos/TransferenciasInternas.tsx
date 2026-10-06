@@ -4,14 +4,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -196,11 +194,6 @@ export default function TransferenciasInternas() {
         breadcrumb={[{ label: "Operação" }, { label: "Transferências Internas" }]}
         icone={PackageCheck}
         estado="Movimentação entre pontos Fetely — sem cobrança, precificada a custo"
-        acoes={
-          <Button size="sm" onClick={() => setAba("nova")}>
-            <Plus className="mr-1 h-4 w-4" /> Nova transferência
-          </Button>
-        }
       />
 
       <Tabs value={aba} onValueChange={setAba} className="space-y-4">

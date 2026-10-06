@@ -313,6 +313,12 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
     form.clearErrors("itens");
   };
 
+  const selecionarTipo = (novoRegularizacao: boolean) => {
+    if (novoRegularizacao === regularizacao) return;
+    setRegularizacao(novoRegularizacao);
+    if (novoRegularizacao && modo === "sugestao") trocarModo("item");
+  };
+
   const destinoAtual = form.watch("destino");
   useEffect(() => {
     limparSugestao();
@@ -502,6 +508,46 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Tipo</legend>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-pressed={!regularizacao}
+                  onClick={() => selecionarTipo(false)}
+                  className={cn(
+                    "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
+                    !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                  )}
+                >
+                  <span>
+                    <span className="block font-medium">Física</span>
+                    <span className="mt-1 block text-sm font-normal text-muted-foreground">
+                      A mercadoria sai do XPM-SC, é separada, viaja e é conferida no destino.
+                    </span>
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-pressed={regularizacao}
+                  onClick={() => selecionarTipo(true)}
+                  className={cn(
+                    "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
+                    regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                  )}
+                >
+                  <span>
+                    <span className="block font-medium">Regularização</span>
+                    <span className="mt-1 block text-sm font-normal text-muted-foreground">
+                      A mercadoria já está no destino. Só a nota fiscal acompanha: não vai ao XPM e não passa por conferência.
+                    </span>
+                  </span>
+                </Button>
+              </div>
+            </fieldset>
+
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label htmlFor="destino" className="text-sm font-medium">
@@ -539,24 +585,6 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                     {form.formState.errors.destino.message}
                   </p>
                 )}
-                <div className="flex items-center gap-2 pt-1">
-                  <Switch
-                    checked={regularizacao}
-                    onCheckedChange={setRegularizacao}
-                    id="regularizacao"
-                    aria-label="Regularização (sem movimento físico)"
-                  />
-                  <label htmlFor="regularizacao" className="text-sm font-medium">
-                    Regularização (sem movimento físico)
-                  </label>
-                </div>
-                {regularizacao && (
-                  <p className="text-xs text-warning">
-                    A mercadoria já está no destino. O pedido não vai ao XPM e nasce em
-                    Pré-faturamento, pronto para a NF 6152. Não use para mercadoria que precisa ser
-                    separada.
-                  </p>
-                )}
               </div>
               <div className="space-y-1.5">
                 <label htmlFor="observacao" className="text-sm font-medium">
@@ -578,7 +606,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                   <TabsList>
                     <TabsTrigger value="item">Item a item</TabsTrigger>
                     <TabsTrigger value="colar">Colar da planilha</TabsTrigger>
-                    <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>
+                    {!regularizacao && <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>}
                   </TabsList>
                 </Tabs>
               </div>
