@@ -5,8 +5,6 @@ import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import type { Linha } from "@/pages/Comercial/representantes/dados";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../../comissoes/fmt";
-import { GraficoCustoDesconto } from "./GraficoCustoDesconto";
-import { rotuloSituacao, usePagamentoMes } from "./pagamentoMes";
 import { colunasCC, LEGENDA_CC, useContaCorrente, type ValoresCC } from "./contaCorrente";
 import {
   competenciaPadrao,
@@ -23,7 +21,7 @@ function inteiro(v: unknown) {
   return num(v).toLocaleString("pt-BR");
 }
 
-function Rodape({ pagina, total = 3, fluido = false }: { pagina: 1 | 2 | 3; total?: 1 | 2 | 3; fluido?: boolean }) {
+function Rodape({ pagina, total = 2, fluido = false }: { pagina: 1 | 2; total?: 1 | 2; fluido?: boolean }) {
   return (
     <footer className={`${fluido ? "mt-6" : "absolute inset-x-0 bottom-0"} flex items-end justify-between gap-4 border-t border-border pt-2 text-[6.5pt] leading-snug text-muted-foreground`}>
       <span>{EMPRESA}</span>
@@ -137,81 +135,7 @@ function PaginaResumo({ mes, historico, rotulo, hcc }: { mes: Linha | null; hist
         </p>
       </section>
 
-      <section className="mt-5">
-        <GraficoCustoDesconto historico={historico} altura={175} />
-        <p className="mt-2 text-[7pt] leading-relaxed text-muted-foreground">
-          Quando o desconto médio sobe, o custo da comissão cai pela régua. A margem é o que fica entre as duas linhas.
-        </p>
-      </section>
-
-      <Rodape pagina={1} total={3} />
-    </section>
-  );
-}
-
-function BlocoPagamentoMesPdf({ competencia, rotulo }: { competencia: string; rotulo: string }) {
-  const p = usePagamentoMes(competencia);
-  return (
-    <section className="mt-5">
-      <h2 className="text-[10.5pt] font-medium">NFs pagas pelos clientes em {rotulo}</h2>
-      <p className="text-[7pt] text-muted-foreground">
-        {p.pagarAte ? `Comissão a pagar ao representante até ${fmtData(p.pagarAte)}` : "Comissão a pagar ao representante"}
-      </p>
-      {p.carregando ? (
-        <p className="mt-2 text-[8pt] text-muted-foreground">Carregando…</p>
-      ) : p.erro ? (
-        <p className="mt-2 text-[8pt] text-destructive-strong">Falha ao carregar: {formatError(p.erro)}</p>
-      ) : p.linhas.length === 0 ? (
-        <p className="mt-2 text-[8pt] text-muted-foreground">Nenhuma NF paga pelos clientes neste mês.</p>
-      ) : (
-        <table className="mt-2 w-full table-fixed border-collapse text-[7.2pt]">
-          <colgroup>
-            <col className="w-[18%]" /><col className="w-[8%]" /><col className="w-[10%]" /><col className="w-[24%]" />
-            <col className="w-[10%]" /><col className="w-[11%]" /><col className="w-[19%]" />
-          </colgroup>
-          <thead style={{ display: "table-header-group" }}>
-            <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1.5 text-left font-medium">Representante</th>
-              <th className="px-1 py-1.5 text-left font-medium">NF</th>
-              <th className="px-1 py-1.5 text-left font-medium">Pedido</th>
-              <th className="px-1 py-1.5 text-left font-medium">Cliente</th>
-              <th className="px-1 py-1.5 text-left font-medium">Cliente pagou em</th>
-              <th className="px-1 py-1.5 text-right font-medium">Comissão</th>
-              <th className="py-1.5 pl-1 text-left font-medium">Situação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {p.grupos.map((g) => (
-              <Fragment key={g.representante}>
-                {g.linhas.map((l, i) => {
-                  const estorno = l.tipo_linha === "estorno";
-                  return (
-                    <tr key={i} className="border-b border-border/70" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-                      <td className="truncate py-1.5" title={l.representante ?? ""}>{l.representante ?? "—"}</td>
-                      <td className="px-1 py-1.5 tabular-nums">{estorno ? "—" : l.nf_numero ?? "—"}</td>
-                      <td className="truncate px-1 py-1.5">{estorno ? "—" : l.pedido ?? "—"}</td>
-                      <td className="truncate px-1 py-1.5" title={l.cliente ?? ""}>{l.cliente ?? "—"}</td>
-                      <td className="px-1 py-1.5 tabular-nums">{l.cliente_pagou_em ? fmtData(l.cliente_pagou_em) : "—"}</td>
-                      <td className={`px-1 py-1.5 text-right tabular-nums ${estorno ? "text-destructive" : ""}`}>{fmtBRL(Number(l.valor ?? 0))}</td>
-                      <td className="truncate py-1.5 pl-1">{rotuloSituacao(l)}</td>
-                    </tr>
-                  );
-                })}
-                <tr className="border-b border-border" style={{ breakBefore: "avoid", pageBreakBefore: "avoid", breakInside: "avoid", pageBreakInside: "avoid" }}>
-                  <td colSpan={5} className="py-1.5 text-muted-foreground">Subtotal · {g.representante}</td>
-                  <td className="px-1 py-1.5 text-right font-medium tabular-nums">{fmtBRL(g.subtotal)}</td>
-                  <td />
-                </tr>
-              </Fragment>
-            ))}
-            <tr className="border-t border-foreground/40 font-medium" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-              <td colSpan={5} className="py-1.5">Total geral</td>
-              <td className="px-1 py-1.5 text-right tabular-nums">{fmtBRL(p.total)}</td>
-              <td />
-            </tr>
-          </tbody>
-        </table>
-      )}
+      <Rodape pagina={1} total={2} />
     </section>
   );
 }
@@ -319,7 +243,9 @@ function PaginaDetalhe({
         Clientes novos: primeiro pedido registrado no SNCF (base desde 05/2026). Cliente que comprava antes disso aparece como novo no primeiro pedido registrado.
       </p>
 
-      <Rodape pagina={2} total={3} />
+      <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />
+
+      <Rodape pagina={2} total={2} />
     </section>
   );
 }
@@ -371,27 +297,15 @@ function BlocoContaCorrentePdf({ competencia, rotulo }: { competencia: string; r
   );
 }
 
-function PaginaPagamento({ competencia, rotulo, pagina, total }: { competencia: string; rotulo: string; pagina: 2 | 3; total: 2 | 3 }) {
-  return (
-    <section className="pagina-fluida quebra-pagina relative bg-card text-card-foreground">
-      <Cabecalho rotulo={rotulo} />
-      <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />
-      <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />
-      <Rodape pagina={pagina} total={total} fluido />
-    </section>
-  );
-}
-
 const ESTILOS_IMPRESSAO = `
   [aria-label="Minhas tarefas"] { display: none !important; }
   .documento-gerencial { min-height: 100vh; background: hsl(var(--muted)); padding: 12mm 0; }
-  .pagina-a4, .pagina-fluida { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
+  .pagina-a4 { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto 10mm; padding: 15mm; box-shadow: 0 1mm 4mm hsl(var(--foreground) / 0.12); font-family: 'DM Sans', system-ui, sans-serif; font-weight: 400; }
   @page { size: A4; margin: 15mm; }
   @media print {
     html, body, #root { margin: 0 !important; padding: 0 !important; background: hsl(var(--card)) !important; }
     .documento-gerencial { min-height: 0; padding: 0; background: hsl(var(--card)); }
     .pagina-a4 { width: 180mm; height: 267mm; min-height: 267mm; margin: 0; padding: 0; box-shadow: none; overflow: hidden; }
-    .pagina-fluida { width: 180mm; height: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; overflow: visible; }
     .quebra-pagina { break-before: page; page-break-before: always; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
@@ -402,7 +316,6 @@ export default function GerencialImpressao() {
   const competencia = params.get("competencia") ?? competenciaPadrao();
   const valida = RE_COMPETENCIA.test(competencia);
   const g = useGerencial(valida ? competencia : competenciaPadrao());
-  const pagamento = usePagamentoMes(valida ? competencia : competenciaPadrao());
   const cc = useContaCorrente(valida ? competencia : competenciaPadrao());
   const rotulo = useMemo(() => fmtCompetencia(primeiroDia(valida ? competencia : competenciaPadrao())), [competencia, valida]);
 
@@ -431,7 +344,6 @@ export default function GerencialImpressao() {
     );
   }
   if (g.semMovimento) {
-    const pagamentoEmPaginaPropria = pagamento.linhas.length > 0;
     return (
       <main className="documento-gerencial">
         <style>{ESTILOS_IMPRESSAO}</style>
@@ -441,11 +353,9 @@ export default function GerencialImpressao() {
           <div className="mt-12 border-y border-border py-8 text-center text-[10pt] text-muted-foreground">
             Nenhuma comissão apurada em {rotulo}.
           </div>
-          {!pagamentoEmPaginaPropria && <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />}
-          {!pagamentoEmPaginaPropria && <BlocoPagamentoMesPdf competencia={competencia} rotulo={rotulo} />}
-          <Rodape pagina={1} total={pagamentoEmPaginaPropria ? 2 : 1} />
+          <BlocoContaCorrentePdf competencia={competencia} rotulo={rotulo} />
+          <Rodape pagina={1} total={1} />
         </section>
-        {pagamentoEmPaginaPropria && <PaginaPagamento competencia={competencia} rotulo={rotulo} pagina={2} total={2} />}
       </main>
     );
   }
@@ -462,7 +372,6 @@ export default function GerencialImpressao() {
         travada={g.travadaInadimplencia}
         vencida={g.carteiraVencida}
       />
-      <PaginaPagamento competencia={competencia} rotulo={rotulo} pagina={3} total={3} />
     </main>
   );
 }
