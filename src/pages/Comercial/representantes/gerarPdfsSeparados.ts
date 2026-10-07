@@ -6,7 +6,7 @@ const ALTURA_UTIL_MM = 297 - 2 * MARGEM_MM;
 
 const ESTILO_CAPTURA = `
   .documento-extrato { padding: 0 !important; background: hsl(var(--card)) !important; }
-  .documento-extrato .pagina-a4 { width: 180mm !important; max-width: none !important; min-height: 0 !important; padding: 0 !important; margin: 0 0 10mm !important; box-shadow: none !important; }
+  .documento-extrato .pagina-a4 { width: 180mm !important; max-width: none !important; min-height: 0 !important; padding: 0 0 6mm !important; margin: 0 0 10mm !important; box-shadow: none !important; }
   .tela-apenas, .seletor-competencia { display: none !important; }
 `;
 
