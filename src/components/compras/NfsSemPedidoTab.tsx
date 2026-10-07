@@ -379,6 +379,48 @@ export default function NfsSemPedidoTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!reclass} onOpenChange={(v) => { if (!v && !salvandoReclass) setReclass(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Não é compra</DialogTitle></DialogHeader>
+          {reclass && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border bg-muted/30 p-3 text-xs">
+                <span className="text-muted-foreground">NF</span>
+                <span className="font-medium">{reclass.nf_numero ?? "—"}{reclass.nf_serie ? `/${reclass.nf_serie}` : ""}</span>
+                <span className="text-muted-foreground">Emissão</span><span>{fmtData(reclass.nf_data_emissao)}</span>
+                <span className="text-muted-foreground">Fornecedor</span>
+                <span>{reclass.apelido ?? reclass.fornecedor ?? reclass.fornecedor_razao_social ?? "—"}</span>
+                <span className="text-muted-foreground">Valor no XML</span><span>{fmtMoeda(reclass.valor_no_xml)}</span>
+                <span className="text-muted-foreground">Destino atual</span><span>{reclass.destino_codigo ?? "—"}</span>
+              </div>
+              <div className="space-y-1">
+                <Label>Destino</Label>
+                <Select value={destinoNovo} onValueChange={setDestinoNovo}>
+                  <SelectTrigger><SelectValue placeholder={destinos.isLoading ? "Carregando…" : "Selecione"} /></SelectTrigger>
+                  <SelectContent>
+                    {(destinos.data ?? []).map((d) => (
+                      <SelectItem key={d.codigo} value={d.codigo}>{d.rotulo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {destinos.error && <p className="text-xs text-destructive">{rawMessage(destinos.error)}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Motivo</Label>
+                <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} />
+              </div>
+              {erroReclass && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap">{erroReclass}</AlertDescription></Alert>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReclass(null)} disabled={salvandoReclass}>Cancelar</Button>
+            <Button onClick={() => void confirmarReclass()} disabled={salvandoReclass || !destinoNovo || !motivo.trim()}>
+              {salvandoReclass && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
