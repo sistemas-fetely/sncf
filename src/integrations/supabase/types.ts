@@ -128964,6 +128964,10 @@ export type Database = {
         Returns: Json
       }
       fn_pedido_raiz_split: { Args: { p_pedido_id: string }; Returns: string }
+      fn_pedido_retroativo_da_nf: {
+        Args: { p_dry_run?: boolean; p_stage_id: string }
+        Returns: Json
+      }
       fn_pedido_tem_adiantamento_vivo: {
         Args: { p_pedido_id: string }
         Returns: boolean
