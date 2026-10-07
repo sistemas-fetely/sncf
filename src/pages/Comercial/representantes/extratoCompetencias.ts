@@ -43,17 +43,17 @@ export function extratoDaCompetencia(
   return extratos.find((e) => String(e.competencia ?? "").slice(0, 7) === competencia);
 }
 
-/** "01/MM" do mês seguinte — data do fechamento automático da competência corrente. */
-export function dataDoFechamento(competencia: string): string {
+function fechamentoISO(competencia: string): string {
   const [ano, mes] = competencia.split("-").map(Number);
-  const d = new Date(Date.UTC(ano, mes, 1));
-  return `01/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  return new Date(Date.UTC(ano, mes, 1)).toISOString().slice(0, 10);
 }
 
-/**
- * Competência de PAGAMENTO P mede o mês anterior: fecha no dia 1 de P
- * (ex.: extratos de 10/2026 fechados em 03/10/2026).
- */
+/** "01/MM" do mês seguinte — data do fechamento automático da competência corrente. */
+export function dataDoFechamento(competencia: string): string {
+  return `01/${fechamentoISO(competencia).slice(5, 7)}`;
+}
+
+/** Usa a mesma data do fechamento automático apresentada na prévia. */
 export function competenciaFechada(competencia: string, hoje = hojeISO()): boolean {
-  return hoje.slice(0, 10) >= `${competencia}-01`;
+  return hoje.slice(0, 10) >= fechamentoISO(competencia);
 }
