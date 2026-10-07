@@ -40,6 +40,8 @@ function statusDePara(item: Obj | undefined): "mapeado" | "sem" | null {
   if (!item) return null;
   const s = String(item.status ?? "").toLowerCase();
   if (!s) return null;
+  if (s === "mapeado") return "mapeado";
+  if (s === "sem_depara") return "sem";
   return s.includes("sem") || s.includes("pend") || s.includes("falt") ? "sem" : "mapeado";
 }
 
@@ -103,8 +105,9 @@ export default function NfsSemPedidoTab() {
   const aviso = previa?.aviso;
 
   const deParaDaLinha = (l: Obj, i: number) => {
-    const cod = pick(l, "codigo_nf", "codigo_fornecedor", "codigo");
+    const cod = pick(l, "ref_item", "codigo_nf", "codigo_fornecedor", "codigo");
     const it = itensVal.find((x) => cod != null && String(x.codigo_nf) === String(cod))
+      ?? itensVal.find((x) => cod != null && x.ref_item != null && String(x.ref_item) === String(cod))
       ?? itensVal.find((x) => x.item_seq != null && x.item_seq === pick(l, "item_seq", "seq"))
       ?? itensVal[i];
     return statusDePara(it);
@@ -170,7 +173,7 @@ export default function NfsSemPedidoTab() {
                 <div><div className="text-muted-foreground">Pedido</div><b>{pick(ped, "numero_pedido", "numero") ?? "—"}</b></div>
                 <div><div className="text-muted-foreground">Fornecedor</div><b>{pick(ped, "fornecedor", "fornecedor_nome", "apelido") ?? alvo?.apelido ?? alvo?.fornecedor ?? "—"}</b></div>
                 <div><div className="text-muted-foreground">Itens</div><b>{pick(ped, "itens", "qtd_itens", "n_itens") ?? linhas.length}</b></div>
-                <div><div className="text-muted-foreground">Valor</div><b>{fmtMoeda(pick(ped, "valor_total", "valor", "total") ?? alvo?.valor_no_xml)}</b></div>
+                <div><div className="text-muted-foreground">Valor</div><b>{fmtMoeda(pick(ped, "valor_nf", "valor_total", "valor", "total") ?? alvo?.valor_no_xml)}</b></div>
                 <div><div className="text-muted-foreground">Status</div><b>{pick(ped, "status", "situacao") ?? "—"}</b></div>
               </div>
               <div className="max-h-72 overflow-auto rounded-md border">
@@ -188,8 +191,8 @@ export default function NfsSemPedidoTab() {
                       const st = deParaDaLinha(l, i);
                       return (
                         <TableRow key={i}>
-                          <TableCell>{pick(l, "descricao", "descricao_item", "produto_descricao", "codigo_nf") ?? "—"}</TableCell>
-                          <TableCell className="text-right">{pick(l, "quantidade", "qtd") ?? "—"}</TableCell>
+                          <TableCell>{pick(l, "descricao_original", "descricao", "descricao_item", "produto_descricao", "ref_item") ?? "—"}</TableCell>
+                          <TableCell className="text-right">{pick(l, "qtd", "quantidade") ?? "—"}</TableCell>
                           <TableCell className="text-right">{fmtMoeda(pick(l, "custo_unitario", "valor_unit", "preco_unitario", "custo_unit"))}</TableCell>
                           <TableCell>
                             {st === "mapeado" && <Badge variant="outline" className="border-success/40 bg-success/10 text-success">mapeado</Badge>}
