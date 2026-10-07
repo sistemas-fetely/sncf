@@ -64276,6 +64276,7 @@ export type Database = {
           peso_g: number
           preco_atacado: number
           preco_custo: number | null
+          preco_site: number | null
           preco_varejo: number | null
           profundidade_cm: number | null
           qtd_kit: number | null
@@ -64327,6 +64328,7 @@ export type Database = {
           peso_g?: number
           preco_atacado?: number
           preco_custo?: number | null
+          preco_site?: number | null
           preco_varejo?: number | null
           profundidade_cm?: number | null
           qtd_kit?: number | null
@@ -64378,6 +64380,7 @@ export type Database = {
           peso_g?: number
           preco_atacado?: number
           preco_custo?: number | null
+          preco_site?: number | null
           preco_varejo?: number | null
           profundidade_cm?: number | null
           qtd_kit?: number | null
