@@ -1073,7 +1073,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       for (const item of lista) if (casaAchado(t, item.chave)) item.n += 1;
     }
     return lista;
-  }, [data]);
+  }, [data, vencidoIds]);
 
   /* ---------- Tabela mensal (mantida como está) ---------- */
   const mensal = useMemo(() => {
@@ -1099,13 +1099,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       linha.total += v;
       if (t.eixo_recebimento === "compensado" || t.eixo_recebimento === "quitado")
         linha.recebido += v;
-      else if (t.eh_inadimplente === true) linha.atrasado += v;
+      else if (estaVencido(t)) linha.atrasado += v;
       else linha.aberto += v;
 
       mapa.set(key, linha);
     }
     return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
-  }, [data, baseMensal]);
+  }, [data, baseMensal, vencidoIds]);
 
   const totalMensal = useMemo(
     () =>
