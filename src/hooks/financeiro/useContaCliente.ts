@@ -160,7 +160,7 @@ export function useContaClienteLancamentos(parceiroId: string | null | undefined
       const { data, error } = await supabase
         .from("vw_conta_cliente_lancamentos")
         .select(
-          "parceiro_id, data, tipo, sinal, valor, ref, pedido_ref, vencimento, vencido_aberto, titulo_id, banco, meio, data_pagamento",
+          "parceiro_id, data, tipo, sinal, valor, ref, pedido_ref, vencimento, vencido_aberto, titulo_id, banco, meio, data_pagamento, lancamento_id",
         )
         .eq("parceiro_id", parceiroId)
         .order("data", { ascending: false });
