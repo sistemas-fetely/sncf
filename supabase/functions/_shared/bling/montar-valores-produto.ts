@@ -51,6 +51,21 @@ export const EXTRATORES_BLING: Record<string, Extrator[]> = {
   sku: [{ tipo: "txt", sncf: (c) => txt(c.ficha.sku).toUpperCase() || null, bling: (a) => txt(a.codigo).toUpperCase() || null }],
 };
 
+// GRUPO TRIBUTÁRIO (07/10/2026): deriva da origem fiscal. No GET v3 vem em
+// tributacao.grupoProduto = { id } (0 = sem grupo); o nome sai de /grupos-produtos.
+export const GRUPO_L1 = "L1 - Produto Nacional Importado";
+export const GRUPO_L2 = "L2 - Produto Nacional";
+export function grupoTributarioEsperado(origem: unknown): string | null {
+  const o = txt(origem);
+  if (["1", "2", "6", "7"].includes(o)) return GRUPO_L1;
+  if (["0", "3", "4", "5", "8"].includes(o)) return GRUPO_L2;
+  return null;
+}
+export const grupoIdDoCard = (atual: any): number | null => {
+  const id = num(atual?.tributacao?.grupoProduto?.id);
+  return id && id > 0 ? id : null;
+};
+
 /** Compara já normalizado (trim, vazio = null, números com tolerância). */
 export function difere(tipo: "txt" | "num", sncf: unknown, bling: unknown): boolean {
   if (tipo === "num") {
