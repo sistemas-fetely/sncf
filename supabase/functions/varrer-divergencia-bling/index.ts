@@ -65,7 +65,7 @@ Deno.serve(async (req) => {
       const { error } = await sb.from("produto_destino_varredura").insert({
         lote_id: loteId, sistema: SISTEMA, modo,
         produtos_lidos: 0, produtos_com_divergencia: 0, divergencias: 0, erros: 0,
-        detalhe_erros: corrigir ? { dry_run: dryRun, corrigidos: 0, pulados: [], erros: [] } : [],
+        detalhe_erros: corrigir ? { dry_run: dryRun, corrigidos: 0, planejados: 0, pulados: [], erros: [] } : [],
       });
       if (error) throw new Error(`criar lote: ${error.message}`);
     }
@@ -214,7 +214,8 @@ Deno.serve(async (req) => {
       const ant: Any = lote.detalhe_erros && !Array.isArray(lote.detalhe_erros) ? lote.detalhe_erros : {};
       detalhe = {
         dry_run: dryRun,
-        corrigidos: (ant.corrigidos ?? 0) + divs,
+        corrigidos: (ant.corrigidos ?? 0) + (dryRun ? 0 : divs),
+        planejados: (ant.planejados ?? 0) + (dryRun ? divs : 0),
         pulados: [...(ant.pulados ?? []), ...pulados],
         erros: [...(ant.erros ?? []), ...detalheErros],
       };
