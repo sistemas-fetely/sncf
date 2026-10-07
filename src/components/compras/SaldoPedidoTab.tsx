@@ -623,6 +623,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
           </>
         </TabelaFetely>
       </div>
+      <DeclararForaControleDialog pedidoId={pedidoId} aberto={foraAberto} onFechar={() => setForaAberto(false)} />
     </TooltipProvider>
   );
 }
