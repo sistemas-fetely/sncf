@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { hojeISO } from "@/lib/data";
@@ -161,8 +162,10 @@ export function EstilosExtrato() {
 }
 
 /** Prestação de contas mensal compartilhada entre individual e lote. */
-export function ExtratoRepresentanteDocumento({ vendedorId, competencia: competenciaProp, mostrarSeletor }: {
+export function ExtratoRepresentanteDocumento({ vendedorId, competencia: competenciaProp, mostrarSeletor, onPronto }: {
   vendedorId: string; competencia: string | null; mostrarSeletor: boolean;
+  /** Chamado quando os dados terminaram de carregar (com a mensagem de erro, se houver). */
+  onPronto?: (erro: string | null) => void;
 }) {
   const [, setParams] = useSearchParams();
   const competencia = competenciaProp ?? hojeISO().slice(0, 7);
@@ -197,6 +200,9 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
   const carregando = kpisQ.isLoading || representanteQ.isLoading || extratosQ.isLoading || detalhesQ.isLoading || complementosQ.isLoading;
   const erro = kpisQ.error || representanteQ.error || extratosQ.error || detalhesQ.error || complementosQ.error;
   const representante = representanteQ.data?.[0];
+  const sinal = !competenciaValida ? "Competência inválida" : carregando ? undefined
+    : erro ? formatError(erro) : !representante ? "Representante não encontrado" : null;
+  useEffect(() => { if (sinal !== undefined) onPronto?.(sinal); }, [sinal, onPronto]);
 
   if (!competenciaValida) {
     return <div className="flex min-h-screen items-center justify-center bg-background p-8 text-destructive-strong">Competência inválida. Use o formato AAAA-MM.</div>;
