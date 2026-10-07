@@ -44,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import BotaoGuardado from "@/components/acesso/BotaoGuardado";
 import { QK_CONTA_CLIENTE_LANC } from "@/hooks/financeiro/useContaCliente";
 
 function dataBR(iso: string | null | undefined) {
@@ -212,12 +212,10 @@ function AlocacoesDetalheCorpo({ l }: { l: ContaClienteLancamento }) {
 function AlocacoesDetalhe({
   l,
   estornado,
-  podeEstornar,
   onEstornar,
 }: {
   l: ContaClienteLancamento;
   estornado: boolean;
-  podeEstornar: boolean;
   onEstornar: () => void;
 }) {
   const ehRecebimento = l.tipo === "recebimento_conta" && !!l.lancamento_id;
@@ -227,8 +225,11 @@ function AlocacoesDetalhe({
         <AlocacoesDetalheCorpo l={l} />
       </div>
       {ehRecebimento && estornado && <Selo estado="muted">Estornado</Selo>}
-      {ehRecebimento && !estornado && podeEstornar && (
-        <Button
+      {ehRecebimento && !estornado && (
+        <BotaoGuardado
+          slug="acao.cobranca_estornar"
+          rotuloAcao="Estornar recebimento"
+          contexto={{ lancamento_id: l.lancamento_id }}
           size="sm"
           variant="outline"
           className="h-7 gap-1.5"
@@ -238,7 +239,7 @@ function AlocacoesDetalhe({
           }}
         >
           <Undo2 className="h-3.5 w-3.5" /> Estornar
-        </Button>
+        </BotaoGuardado>
       )}
     </div>
   );
