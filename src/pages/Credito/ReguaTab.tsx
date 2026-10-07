@@ -39,6 +39,8 @@ import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 import { estaVencido } from "@/lib/data";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useCobrancaKanban } from "@/hooks/credito/useCobrancaKanban";
+import { KanbanCobranca } from "@/components/credito/kanban/KanbanCobranca";
 
 type Vista = "fila" | "pausados";
 
@@ -589,18 +591,6 @@ export default function ReguaTab() {
   const semCartao = (t: TituloCobranca) =>
     ((t as any)._mesa as LinhaMesa | undefined)?.instrumento !== "cartao";
 
-  const zonaAtraso = useMemo(
-    () =>
-      fila
-        .filter((t) => (t.dias_atraso ?? 0) > 0 && semCartao(t))
-        .sort(
-          (a, b) =>
-            (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0) ||
-            Number(b.valor_efetivo ?? 0) - Number(a.valor_efetivo ?? 0),
-        ),
-    [fila],
-  );
-
   const zonaAVencer = useMemo(
     () =>
       fila
@@ -611,7 +601,7 @@ export default function ReguaTab() {
 
   const foraDaReguaVisivel = useMemo(() => foraDaRegua.filter(semCartao), [foraDaRegua]);
 
-  const somaZona1 = useMemo(() => somaValor(zonaAtraso), [zonaAtraso]);
+  const somaKanban = useMemo(() => somaValor(kanbanCards), [kanbanCards]);
   const somaZona2 = useMemo(() => somaValor(foraDaReguaVisivel), [foraDaReguaVisivel]);
 
   const somaZona3 = useMemo(() => somaValor(zonaAVencer), [zonaAVencer]);
