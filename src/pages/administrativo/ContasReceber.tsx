@@ -648,7 +648,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds, vencidoIds]);
 
   /**
    * Base dos chips de recebimento: já com carteira, achado e instrumento
@@ -865,7 +865,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
     }
     return { aVencer, vencidos };
-  }, [baseCarteiraSemPrazo]);
+  }, [baseCarteiraSemPrazo, vencidoIds]);
 
   const rotuloFiltroKpi =
     filtroInstrumento === "garantido"
