@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Completar carteira paga pendente e seleção do lote; validar os quatro extratos de 10/2026 e PDFs, sem banco ou publicação.
+
 - [x] Reformular o extrato mensal com pagamento, origem, carteira, atrasos e ajustes.
 - [x] Separar memória em anexo e validar extratos e PDFs A4 sem alterar banco ou publicar.
 
