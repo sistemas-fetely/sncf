@@ -7,8 +7,8 @@ interface DadosEnvio {
   pedidoId: string;
   transportadoraId: string | null;
   pesoBrutoTotal: number;
-  freteTipo: string | null;
-  valorFrete: number;
+  freteTipo?: string | null;
+  valorFrete?: number | null;
   estimativaValor?: number | null;
   estimativaJson?: unknown;
 }
@@ -32,8 +32,8 @@ export function useSalvarDadosEnvio() {
         p_pedido_id:         pedidoId,
         p_transportadora_id: transportadoraId || null,
         p_peso_bruto_total:  pesoBrutoTotal,
-        p_frete_tipo:        freteTipo || null,
-        p_valor_frete:       valorFrete,
+        p_frete_tipo:        freteTipo ?? null,
+        p_valor_frete:       valorFrete ?? null,
         p_estimativa_valor:  estimativaValor ?? null,
         p_estimativa_json:   estimativaJson ?? null,
       });

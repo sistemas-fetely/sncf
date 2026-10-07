@@ -62,6 +62,8 @@ const CHAVES_GLOBAIS: readonly (readonly unknown[])[] = [
 /** Chaves por pedido — invalidadas por prefixo, independentemente do id. */
 const CHAVES_POR_PEDIDO: readonly string[] = [
   "pedido-detalhe",
+  "previa-empurrar-xpm",
+  "previa-estoque-xpm",
   "pedido",
   "pedido-adiantamento",
   "pedido-portao-regra",
