@@ -112,7 +112,7 @@ export function CardKanbanCompacto({
               <TooltipTrigger asChild>
                 <Badge variant="outline" className="text-[10px]">{chipEtapa}</Badge>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-xs">{etapa!.descricao_acao}</TooltipContent>
+              <TooltipContent className="max-w-xs text-xs">{chipEtapaTooltip}</TooltipContent>
             </Tooltip>
           </TooltipProvider>
         )}
