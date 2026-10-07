@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Completar carteira paga pendente e seleção do lote; validar os quatro extratos de 10/2026 e PDFs, sem banco ou publicação.
+- [x] Completar carteira paga pendente e seleção do lote; preservar fechamento existente e rodar testes, sem banco ou publicação.
+- [ ] Validar os quatro extratos de 10/2026 e PDFs no navegador (bloqueado: conexão do Lovable Cloud indisponível).
 
 - [x] Reformular o extrato mensal com pagamento, origem, carteira, atrasos e ajustes.
 - [x] Separar memória em anexo e validar extratos e PDFs A4 sem alterar banco ou publicar.
