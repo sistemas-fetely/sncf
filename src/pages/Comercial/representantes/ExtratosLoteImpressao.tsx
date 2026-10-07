@@ -1,7 +1,6 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { lerTudo } from "./dados";
-import { representantesDoLote } from "./extratoMensal";
+import { listarRepresentantesDoLote } from "./loteRepresentantes";
 import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { formatError } from "@/lib/format-error";
 import { fmtCompetencia } from "../comissoes/fmt";
@@ -19,22 +18,7 @@ export default function ExtratosLoteImpressao() {
   const q = useQuery({
     queryKey: ["extratos-lote-representantes", competencia],
     enabled: valida,
-    queryFn: async () => {
-      const [ex, cart, comp] = await Promise.all([
-        lerTudo("comissao_extrato", undefined, { col: "id" }, "id,vendedor_id,competencia,detalhe"),
-        lerTudo("vw_comissao_detalhe", q => q.in("situacao_parcela", ["a_vencer", "vencida", "paga_aguarda_liberacao", "liberada"])),
-        lerTudo("vw_comissao_complemento_pendente"),
-      ]);
-      const ids = representantesDoLote(ex, cart, comp, competencia);
-      const nomes = new Map<string, string>();
-      for (const id of ids) nomes.set(id, "");
-      if (ids.length) {
-        const representantes = await lerTudo("vw_representante_financeiro", q => q.in("vendedor_id", ids), undefined, "vendedor_id,representante");
-        for (const l of representantes) nomes.set(l.vendedor_id, l.representante ?? "");
-      }
-      return [...nomes].map(([id, nome]) => ({ id, nome: nome || "Sem nome" }))
-        .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-    },
+    queryFn: () => listarRepresentantesDoLote(competencia),
   });
 
   if (!valida) return <div className="flex min-h-screen items-center justify-center p-8 text-destructive-strong">Competência inválida. Use o formato AAAA-MM.</div>;

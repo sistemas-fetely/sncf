@@ -7,8 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, Download, FileText, Loader2, Printer } from "lucide-react";
 import { toast } from "sonner";
-import { gerarPdfsSeparados } from "../gerarPdfsSeparados";
-import { nomeZipExtratos } from "../pdfSeparados";
+import { BotaoPdfsSeparados } from "../GeradorPdfsSeparados";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../../comissoes/fmt";
@@ -34,28 +33,6 @@ function Numerao({ titulo, valor, detalhe, destaque }: { titulo: string; valor: 
         {detalhe && <div className="mt-1 text-xs text-muted-foreground">{detalhe}</div>}
       </CardContent>
     </Card>
-  );
-}
-
-function BotaoPdfsSeparados({ competencia }: { competencia: string }) {
-  const [prog, setProg] = useState<string | null>(null);
-  const gerar = async () => {
-    setProg("Preparando…");
-    try {
-      const r = await gerarPdfsSeparados(competencia, nomeZipExtratos(competencia), (a, t) => setProg(`Gerando ${a}/${t}…`));
-      if (r.falhas.length) toast.error(`${r.gerados} PDF(s) gerados. Falharam: ${r.falhas.join("; ")}`);
-      else toast.success(`${r.gerados} PDF(s) gerados.`);
-    } catch (e) {
-      toast.error(`Falha ao gerar os PDFs: ${formatError(e)}`);
-    } finally {
-      setProg(null);
-    }
-  };
-  return (
-    <Button size="sm" variant="outline" onClick={gerar} disabled={prog !== null}>
-      {prog ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Download className="mr-1 h-4 w-4" />}
-      {prog ?? "Baixar PDFs separados"}
-    </Button>
   );
 }
 
