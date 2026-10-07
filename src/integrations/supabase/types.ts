@@ -106111,6 +106111,7 @@ export type Database = {
           fornecedor_razao_social: string | null
           itens: number | null
           itens_com_depara: number | null
+          itens_detalhe: Json | null
           itens_ncm_produto: number | null
           ja_lancada: boolean | null
           nf_chave_acesso: string | null
@@ -120680,14 +120681,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -128949,6 +128950,10 @@ export type Database = {
         Returns: Json
       }
       fn_nfs_stage_normalizar_itens: { Args: { p_itens: Json }; Returns: Json }
+      fn_nfs_stage_reclassificar: {
+        Args: { p_destino_codigo: string; p_motivo: string; p_stage_id: string }
+        Returns: Json
+      }
       fn_nome_do_usuario: { Args: { p_user?: string }; Returns: string }
       fn_norm_texto: { Args: { p_texto: string }; Returns: string }
       fn_norm_vendedor: { Args: { p_txt: string }; Returns: string }
