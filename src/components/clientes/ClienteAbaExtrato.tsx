@@ -382,7 +382,6 @@ export function ClienteAbaExtrato({
     () => new Set((estornosQ.data ?? []).map((e) => e.estornado_de)),
     [estornosQ.data],
   );
-  const { permitido: podeEstornar } = usePermissaoAcaoOuSuperAdmin("acao.cobranca_receber");
   const qc = useQueryClient();
   const [estornando, setEstornando] = useState<ContaClienteLancamento | null>(null);
   const [motivo, setMotivo] = useState("");
@@ -677,7 +676,6 @@ export function ClienteAbaExtrato({
                         <AlocacoesDetalhe
                           l={l}
                           estornado={!!l.lancamento_id && jaEstornados.has(l.lancamento_id)}
-                          podeEstornar={podeEstornar}
                           onEstornar={() => {
                             setMotivo("");
                             setEstornando(l);
