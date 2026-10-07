@@ -50,10 +50,10 @@ export function dataDoFechamento(competencia: string): string {
   return `01/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-/** Competência fechada = já chegou o dia do fechamento (dia 1 do mês seguinte). */
+/**
+ * Competência de PAGAMENTO P mede o mês anterior: fecha no dia 1 de P
+ * (ex.: extratos de 10/2026 fechados em 03/10/2026).
+ */
 export function competenciaFechada(competencia: string, hoje = hojeISO()): boolean {
-  const [ano, mes] = competencia.split("-").map(Number);
-  const d = new Date(Date.UTC(ano, mes, 1));
-  const fechamento = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-01`;
-  return hoje.slice(0, 10) >= fechamento;
+  return hoje.slice(0, 10) >= `${competencia}-01`;
 }

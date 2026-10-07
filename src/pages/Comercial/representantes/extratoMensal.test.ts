@@ -44,8 +44,8 @@ describe("prestação de contas mensal", () => {
   it("complemento pendente entra no A receber com o valor como comissão", () => {
     expect(complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: "22.20" }])).toEqual([{ cliente: "FZL", pedido: "PED-2187", comissao: 22.2, complemento: true }]);
   });
-  it("competência fecha no dia 1 do mês seguinte", () => {
-    expect(competenciaFechada("2026-10", "2026-10-31")).toBe(false);
-    expect(competenciaFechada("2026-10", "2026-11-01")).toBe(true);
+  it("competência de pagamento fecha no dia 1 do próprio mês", () => {
+    expect(competenciaFechada("2026-10", "2026-09-30")).toBe(false);
+    expect(competenciaFechada("2026-10", "2026-10-01")).toBe(true);
   });
 });
