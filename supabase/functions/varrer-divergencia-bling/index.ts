@@ -7,7 +7,10 @@
 // Pagina e se re-encadeia no mesmo lote_id até terminar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BLING_BASE, ensureFreshToken, makeBlingClient, refreshAccessToken } from "../_shared/bling/bling-client.ts";
-import { EXTRATORES_BLING, difere, num, txt } from "../_shared/bling/montar-valores-produto.ts";
+import {
+  EXTRATORES_BLING, GRUPO_L1, GRUPO_L2, difere, grupoIdDoCard, grupoTributarioEsperado, num, txt,
+} from "../_shared/bling/montar-valores-produto.ts";
+const CAMPO_GRUPO = "grupo_tributario";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
