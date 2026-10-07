@@ -143,8 +143,25 @@ export default function NfsSemPedidoTab() {
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Switch checked={mostrarTodas} onCheckedChange={setMostrarTodas} />
+          Mostrar todas
+        </label>
+        <span className="text-xs text-muted-foreground">{rows.length} de {todas.length}</span>
+      </div>
+      {mostrarTodas && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>NFs de fornecedor novo/produto novo aparecem aqui — nasça o produto com o NCM da NF antes de gerar o pedido retroativo.</span>
+        </div>
+      )}
       {rows.length === 0 ? (
-        <div className="rounded-md border p-4 text-sm">Nenhuma NF de entrada sem pedido.</div>
+        <div className="rounded-md border p-4 text-sm">
+          {todas.length === 0
+            ? "Nenhuma NF de entrada sem pedido."
+            : "Nenhuma NF classificada como mercadoria ou possível mercadoria."}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <Table>
@@ -153,6 +170,14 @@ export default function NfsSemPedidoTab() {
                 <TableHead>NF</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead>Fornecedor</TableHead>
+                <TableHead className="group">
+                  <span className="inline-flex items-center gap-1">
+                    Classificação
+                    <InfoMetrica rotulo="Classificação">
+                      Fornecedor conhecido (pedido ou de-para) + NCM batendo com produto nosso.
+                    </InfoMetrica>
+                  </span>
+                </TableHead>
                 <TableHead className="text-right">Valor no XML</TableHead>
                 <TableHead className="text-right">Itens</TableHead>
                 <TableHead className="w-48" />
@@ -164,6 +189,11 @@ export default function NfsSemPedidoTab() {
                   <TableCell className="font-medium">{r.nf_numero ?? "—"}{r.nf_serie ? `/${r.nf_serie}` : ""}</TableCell>
                   <TableCell>{fmtData(r.nf_data_emissao)}</TableCell>
                   <TableCell>{r.apelido ?? r.fornecedor ?? r.fornecedor_razao_social ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={classeClassificacao(r.classificacao)}>
+                      {rotuloClassificacao(r.classificacao)}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">{fmtMoeda(r.valor_no_xml)}</TableCell>
                   <TableCell className="text-right">{r.itens ?? 0}</TableCell>
                   <TableCell className="text-right">
