@@ -1197,7 +1197,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       // PIOR-ESTADO-VENCE: o grupo vale pelo membro mais grave, nunca pela moda.
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
-      const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
+      const inadimplente = titulos.find((t) => estaVencido(t));
       const aberto = titulos.find((t) => naoRecebido(t));
       const fechados = titulos.filter((t) => !naoRecebido(t));
 
@@ -1267,7 +1267,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data, hojeIso, carenciaIds]);
+  }, [filtrados, data, hojeIso, carenciaIds, vencidoIds]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
@@ -1289,7 +1289,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   );
 
   const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
-    const atrasado = t.eh_inadimplente === true;
+    const atrasado = estaVencido(t);
     const desvio = t.desvio_registro_dias;
     const saldo = saldosPorTitulo.get(t.id);
     return (
@@ -1477,7 +1477,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
       Qualidade: t.qualidade ?? "",
       Estado: t.estado_rotulo ?? "",
-      Inadimplente: t.eh_inadimplente ? "Sim" : "Não",
+      Inadimplente: estaVencido(t) ? "Sim" : "Não",
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
