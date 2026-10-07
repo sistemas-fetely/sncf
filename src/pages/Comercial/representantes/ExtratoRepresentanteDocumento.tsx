@@ -31,7 +31,8 @@ function CarteiraTabela({ parcelas, complementos = [], atrasada = false }: { par
     ? parcelas.filter(p => p.situacao_parcela === "vencida")
       .map((p): Linha => ({ ...p, comissao: numero(p.comissao_da_parcela) }))
       .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")))
-    : [...carteiraPorPedido(parcelas, "a_vencer"), ...complementosNaCarteira(complementos)];
+    : [...carteiraPorPedido(parcelas, "a_vencer"), ...complementosNaCarteira(complementos)]
+      .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.pedido ?? "").localeCompare(String(b.pedido ?? ""), "pt-BR"));
   if (atrasada && !linhas.length) return null;
   return <section className="bloco-mensal mt-6">
     <h2 className="text-[12pt] font-medium">{atrasada ? "Travado por atraso do cliente" : "A receber"}</h2>
