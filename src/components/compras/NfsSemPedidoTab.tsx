@@ -130,9 +130,17 @@ export default function NfsSemPedidoTab() {
     return statusDePara(it);
   };
 
+  const todas = q.data ?? [];
+  const rows = useMemo(
+    () =>
+      mostrarTodas
+        ? todas
+        : todas.filter((r) => r.classificacao === "mercadoria" || r.classificacao === "possivel"),
+    [todas, mostrarTodas],
+  );
+
   if (q.isLoading) return <div className="p-4 text-sm text-muted-foreground">Carregando NFs…</div>;
   if (q.error) return <Alert variant="destructive"><AlertDescription>{rawMessage(q.error)}</AlertDescription></Alert>;
-  const todas = q.data ?? [];
 
 
   return (
