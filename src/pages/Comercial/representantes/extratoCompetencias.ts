@@ -49,3 +49,11 @@ export function dataDoFechamento(competencia: string): string {
   const d = new Date(Date.UTC(ano, mes, 1));
   return `01/${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
+
+/**
+ * Competência de PAGAMENTO P mede o mês anterior: fecha no dia 1 de P
+ * (ex.: extratos de 10/2026 fechados em 03/10/2026).
+ */
+export function competenciaFechada(competencia: string, hoje = hojeISO()): boolean {
+  return hoje.slice(0, 10) >= `${competencia}-01`;
+}

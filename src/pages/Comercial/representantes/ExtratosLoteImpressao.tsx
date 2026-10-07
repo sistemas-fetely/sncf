@@ -19,14 +19,19 @@ export default function ExtratosLoteImpressao() {
     queryKey: ["extratos-lote-representantes", competencia],
     enabled: valida,
     queryFn: async () => {
-      const [ex, pg] = await Promise.all([
+      const [ex, pg, cart, comp] = await Promise.all([
         (supabase as any).from("comissao_extrato").select("vendedor_id").eq("competencia", dia),
         (supabase as any).from("vw_comissao_pagamento_mes").select("vendedor_id, representante").eq("mes_pagamento", dia),
+        (supabase as any).from("vw_comissao_detalhe").select("vendedor_id").in("situacao_parcela", ["a_vencer", "vencida"]).limit(10000),
+        (supabase as any).from("vw_comissao_complemento_pendente").select("vendedor_id"),
       ]);
+      if (cart.error) throw cart.error;
+      if (comp.error) throw comp.error;
       if (ex.error) throw ex.error;
       if (pg.error) throw pg.error;
       const nomes = new Map<string, string>();
       for (const l of pg.data ?? []) if (l.vendedor_id) nomes.set(l.vendedor_id, l.representante ?? nomes.get(l.vendedor_id) ?? "");
+      for (const l of [...(cart.data ?? []), ...(comp.data ?? [])]) if (l.vendedor_id && !nomes.has(l.vendedor_id)) nomes.set(l.vendedor_id, "");
       for (const l of ex.data ?? []) if (l.vendedor_id && !nomes.has(l.vendedor_id)) nomes.set(l.vendedor_id, "");
       const faltam = [...nomes].filter(([, n]) => !n).map(([id]) => id);
       if (faltam.length) {

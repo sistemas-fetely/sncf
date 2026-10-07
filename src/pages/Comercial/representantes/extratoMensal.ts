@@ -50,3 +50,17 @@ export function carteiraPorPedido(parcelas: Linha[], status: "a_vencer" | "venci
   return [...grupos.values()].sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR")
     || String(a.pedido ?? "").localeCompare(String(b.pedido ?? ""), "pt-BR"));
 }
+
+/** Taxa por linha de produto; nunca a média. Ex.: [8, 10] → "8% / 10%". */
+export function rotuloTaxas(taxas: unknown, fallback?: unknown): string {
+  const lista = Array.isArray(taxas) ? taxas.map(valorNumero) : [];
+  const fmt = (n: number) => `${new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 2 }).format(n)}%`;
+  if (!lista.length) return fallback == null ? "—" : fmt(valorNumero(fallback));
+  return lista.map(fmt).join(" / ");
+}
+
+/** Complementos pendentes viram linhas comuns do "A receber". */
+export function complementosNaCarteira(complementos: Linha[]): Linha[] {
+  return complementos.map(c => ({ cliente: c.cliente, pedido: c.pedido, comissao: valorNumero(c.valor), complemento: true }))
+    .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR"));
+}
