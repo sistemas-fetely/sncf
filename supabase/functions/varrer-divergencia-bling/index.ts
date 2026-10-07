@@ -79,6 +79,7 @@ Deno.serve(async (req) => {
     if (dpErr) throw new Error(`produto_campo_destino: ${dpErr.message}`);
     const detalheErros: Any[] = [];
     const campos = (dePara ?? []).filter((d: Any) => {
+      if (d.campo === CAMPO_GRUPO) return false; // tratado à parte
       if (EXTRATORES_BLING[d.campo]) return true;
       if (!cursor && !corrigir) detalheErros.push({ sku: null, mensagem: `campo sem extrator: ${d.campo}` });
       return false;
