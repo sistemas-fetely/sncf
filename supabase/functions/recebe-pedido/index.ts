@@ -384,7 +384,7 @@ if (body.tipo === "dimensoes_produto") {
         "departamento", "categoria", "colecao", "cor_nome", "cor", "estampa",
         "tamanho_numero", "descricao_produto", "tipo_embalagem", "material",
         "material_descritivo", "ncm", "cest", "origem_fisc", "origem_prod",
-        "preco_atacado", "preco_varejo", "peso_g", "multiplos", "ativo",
+        "preco_atacado", "preco_varejo", "preco_site", "peso_g", "multiplos", "ativo",
         "altura_cm", "largura_cm", "profundidade_cm",
         "canal_venda", "familia", "qtd_kit",
         "meta_descricao", "tamanho_ref", "sub_colecao", "sub_colecao2",
@@ -437,6 +437,9 @@ if (body.tipo === "dimensoes_produto") {
         origem_prod: p.origem_prod,
         preco_atacado: p.preco_atacado,
         preco_varejo: p.preco_varejo,
+        // 06/10/2026: preço de venda no site/Shopify B2C, pass-through igual aos
+        // demais numéricos. fn_upsert_catalogo recebe e grava o campo novo.
+        preco_site: p.preco_site,
         peso_g: p.peso_g,
         multiplos: p.multiplos,
         ativo: p.ativo,
