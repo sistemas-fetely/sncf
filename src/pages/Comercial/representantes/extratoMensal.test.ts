@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, liberacoesEmExtratos, pagamentosDoExtrato, representantesDoLote, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, pagamentosDoExtrato, parcelasEmAtraso, representantesDoLote, rotuloTaxas, somarMeses } from "./extratoMensal";
 import { competenciaFechada, dataDoFechamento } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
@@ -15,35 +15,10 @@ describe("prestação de contas mensal", () => {
   it("falha claramente quando uma liberação não tem parcela correspondente", () => {
     expect(() => pagamentosDoExtrato([{ tipo: "liberacao", liberacao_id: "ausente" }], [])).toThrow("Liberação ausente");
   });
-  it("agrupa a vencer por pedido com quantidade, próximo vencimento e soma da comissão", () => {
-    const linhas = [{ pedido: "PED-1", cliente: "A", situacao_parcela: "a_vencer", vencimento: "2026-11-10", comissao_da_parcela: 100 }, { pedido: "PED-1", cliente: "A", situacao_parcela: "a_vencer", vencimento: "2026-12-10", comissao_da_parcela: 50 }, { pedido: "PED-1", cliente: "A", situacao_parcela: "liberada", comissao_da_parcela: 500 }];
-    expect(carteiraPorPedido(linhas, "a_vencer")).toEqual([{ pedido: "PED-1", cliente: "A", parcelas: 2, vencimento: "2026-11-10", dias_atraso: 0, comissao: 150, parcelas_lista: [], total_parcelas: 0 }]);
-  });
-  it("mostra o intervalo das parcelas a vencer sobre o total", () => {
-    expect(rotuloParcelas([2, 3, 4], 4)).toBe("2 a 4 de 4");
-    expect(rotuloParcelas([4], 4)).toBe("4 de 4");
-    expect(rotuloParcelas([2, 4], 4)).toBe("2, 4 de 4");
-  });
-  it("carteiraPorPedido devolve a lista de numero_parcela e o total do pedido", () => {
-    const linhas = [
-      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 2, comissao_da_parcela: 10 },
-      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 3, comissao_da_parcela: 10 },
-      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 4, comissao_da_parcela: 10 },
-      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "liberada", numero_parcela: 1, comissao_da_parcela: 10 },
-    ];
-    expect(carteiraPorPedido(linhas, "a_vencer")[0]).toMatchObject({ parcelas_lista: [2, 3, 4], total_parcelas: 4 });
-  });
-  it("seleciona somente vencidas e mantém a mais antiga e maior atraso", () => {
-    const linhas = [{ pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-09-01", dias_atraso: 35, comissao_da_parcela: 22 }, { pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-10-01", dias_atraso: 5, comissao_da_parcela: 10 }, { pedido: "X", situacao_parcela: "a_vencer", comissao_da_parcela: 100 }];
-    expect(carteiraPorPedido(linhas, "vencida")[0]).toMatchObject({ parcelas: 2, vencimento: "2026-09-01", dias_atraso: 35, comissao: 32 });
-  });
   it("mostra a taxa de cada linha de produto, nunca a média", () => {
     expect(rotuloTaxas([6])).toBe("6%");
     expect(rotuloTaxas([8, 10])).toBe("8% / 10%");
     expect(rotuloTaxas(null)).toBe("—");
-  });
-  it("complemento pendente entra no A receber com o valor como comissão", () => {
-    expect(complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: "22.20" }])).toEqual([{ cliente: "FZL", pedido: "PED-2187", comissao: 22.2, complemento: true }]);
   });
   it("preserva a data de fechamento existente no primeiro dia do mês seguinte", () => {
     expect(dataDoFechamento("2026-10")).toBe("01/10");
@@ -51,27 +26,40 @@ describe("prestação de contas mensal", () => {
     expect(competenciaFechada("2026-10", "2026-10-01")).toBe(true);
     expect(competenciaFechada("2026-12", "2026-12-01")).toBe(true);
   });
-  it("inclui a parcela 2 já paga de PED-2153 sem usar seu vencimento passado", () => {
+  it("agenda: a vencer recebe no mês seguinte ao vencimento, uma linha por parcela", () => {
     const parcelas = [
-      { cliente: "A", pedido: "PED-2153", numero_parcela: 2, total_parcelas: 5, situacao_parcela: "paga_aguarda_liberacao", vencimento: "2026-09-10", comissao_da_parcela: 411.13 },
-      { cliente: "A", pedido: "PED-2153", numero_parcela: 3, total_parcelas: 5, situacao_parcela: "a_vencer", vencimento: "2026-11-10", comissao_da_parcela: 411.13 },
+      { cliente: "A", pedido: "P1", numero_parcela: 2, total_parcelas: 4, situacao_parcela: "a_vencer", vencimento: "2026-10-20", comissao_da_parcela: 100 },
+      { cliente: "A", pedido: "P1", numero_parcela: 3, total_parcelas: 4, situacao_parcela: "a_vencer", vencimento: "2026-11-20", comissao_da_parcela: 50 },
     ];
-    expect(carteiraPorPedido(parcelas, "a_vencer", new Set())[0]).toMatchObject({ comissao: 822.26, parcelas_lista: [2, 3], total_parcelas: 5, vencimento: "2026-11-10" });
+    const ag = agendaRecebiveis(parcelas, [], [], "2026-10");
+    expect(ag.map(m => [m.mes, m.total, m.itens.length, m.pagarAte])).toEqual([["2026-11", 100, 1, "2026-11-15"], ["2026-12", 50, 1, "2026-12-15"]]);
+    expect(ag[0].itens[0].parcela).toBe("2/4");
   });
-  it("exclui liberações de qualquer extrato e usa valor_liberado nas ainda não incluídas", () => {
-    const ids = liberacoesEmExtratos([{ competencia: "2026-09-01", detalhe: [{ liberacao_id: "antiga" }] }, { competencia: "2026-11-01", detalhe: [{ liberacao_id: "futura" }] }]);
-    const parcelas = ["antiga", "futura", "pendente"].map(liberacao_id => ({ cliente: "A", pedido: "P", liberacao_id, situacao_parcela: "liberada", valor_liberado: 22.2, comissao_da_parcela: 100, vencimento: "2026-09-10" }));
-    expect(carteiraPorPedido(parcelas, "a_vencer", ids)[0]).toMatchObject({ comissao: 22.2, parcelas: 1, vencimento: null });
-  });
-  it("total a receber soma futuras, pagas pendentes, liberadas fora do extrato e complementos sem vencidas", () => {
+  it("agenda: parcela já paga em extrato futuro cai no mês daquele extrato com valor_liberado", () => {
+    const extratos = [{ competencia: "2026-11-01", pagar_ate: "2026-11-15", detalhe: [{ tipo: "liberacao", liberacao_id: "x" }] }, { competencia: "2026-09-01", detalhe: [{ tipo: "liberacao", liberacao_id: "velha" }] }];
     const parcelas = [
-      { pedido: "P", situacao_parcela: "a_vencer", comissao_da_parcela: 100 },
-      { pedido: "P", situacao_parcela: "paga_aguarda_liberacao", comissao_da_parcela: 411.13 },
-      { pedido: "P", situacao_parcela: "liberada", liberacao_id: "nova", valor_liberado: 50 },
-      { pedido: "P", situacao_parcela: "vencida", comissao_da_parcela: 999 },
+      { pedido: "PED-2153", numero_parcela: 2, total_parcelas: 4, situacao_parcela: "liberada", liberacao_id: "x", pago_em: "2026-10-01", valor_liberado: 411.13, comissao_da_parcela: 400 },
+      { pedido: "PED-2153", numero_parcela: 1, total_parcelas: 4, situacao_parcela: "liberada", liberacao_id: "velha", valor_liberado: 10 },
     ];
-    const linhas = [...carteiraPorPedido(parcelas, "a_vencer", new Set()), ...complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: 22.2 }])];
-    expect(linhas.reduce((s, l) => s + l.comissao, 0)).toBeCloseTo(583.33, 2);
+    const ag = agendaRecebiveis(parcelas, [], extratos, "2026-10");
+    expect(ag).toHaveLength(1);
+    expect(ag[0]).toMatchObject({ mes: "2026-11", total: 411.13 });
+    expect(ag[0].itens[0]).toMatchObject({ pago: true, vencimento: "2026-10-01" });
+  });
+  it("agenda: paga aguardando sem competência usa pago_em + 1; complemento usa competencia_pagamento", () => {
+    const ag = agendaRecebiveis([{ situacao_parcela: "paga_aguarda_liberacao", pago_em: "2026-10-05", comissao_da_parcela: 30 }], [{ pedido: "PED-2187", cliente: "FZL", valor: "22.20", competencia_pagamento: "2026-11-01" }], [], "2026-10");
+    expect(ag).toHaveLength(1);
+    expect(ag[0].total).toBeCloseTo(52.2, 2);
+    expect(ag[0].itens.find(i => i.parcela === "complemento")?.comissao).toBe(22.2);
+  });
+  it("agenda não inclui vencidas; atraso lista uma por linha", () => {
+    const parcelas = [{ situacao_parcela: "vencida", vencimento: "2026-09-01", comissao_da_parcela: 81.19 }, { situacao_parcela: "vencida", vencimento: "2026-08-01", comissao_da_parcela: 5 }];
+    expect(agendaRecebiveis(parcelas, [], [], "2026-10")).toEqual([]);
+    expect(parcelasEmAtraso(parcelas).map(p => p.vencimento)).toEqual(["2026-08-01", "2026-09-01"]);
+  });
+  it("somarMeses atravessa o ano", () => {
+    expect(somarMeses("2026-12-10", 1)).toBe("2027-01");
+    expect(somarMeses("2026-01", -1)).toBe("2025-12");
   });
   it("inclui no lote extrato do mês, futuras, pagas pendentes, vencidas e complementos, não liberações já pagas", () => {
     const extratos = [{ vendedor_id: "quitado", competencia: "2026-09-01", detalhe: [{ liberacao_id: "paga" }] }, { vendedor_id: "extrato", competencia: "2026-10-01" }];
