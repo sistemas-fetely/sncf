@@ -20,7 +20,8 @@ describe("prestação de contas mensal", () => {
     expect(parcelasEmAtraso(parcelas)[0]).toEqual(parcelas[0]);
   });
   it("calcula a base proporcional usada na liberação e arredonda em centavos", () => {
-    expect(baseDaLiberacao({ base_parcela: 5271.55, valor_liberado: 421.72, comissao_da_parcela: 421.724 })).toBe(5271.5);
+    expect(baseDaLiberacao({ base_parcela: 5271.55, valor_liberado: 421.72, comissao_da_parcela: 421.724 })).toBe(5271.55);
+    expect(baseDaLiberacao({ base_parcela: 1000, valor_liberado: 40, comissao_da_parcela: 80 })).toBe(500);
   });
   it("usa a base integral quando a comissão original não é positiva", () => {
     expect(baseDaLiberacao({ base_parcela: 465.04, valor_liberado: 27.9, comissao_da_parcela: 0 })).toBe(465.04);

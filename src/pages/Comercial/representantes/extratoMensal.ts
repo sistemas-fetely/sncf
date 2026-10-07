@@ -7,9 +7,10 @@ export function valorNumero(v: unknown): number {
 
 export function baseDaLiberacao(parcela: Linha): number {
   const base = valorNumero(parcela.base_parcela);
-  const comissao = valorNumero(parcela.comissao_da_parcela);
+  const comissao = Math.round(valorNumero(parcela.comissao_da_parcela) * 100) / 100;
   if (comissao <= 0) return base;
-  return Math.round((base * valorNumero(parcela.valor_liberado) / comissao) * 100) / 100;
+  const liberado = Math.round(valorNumero(parcela.valor_liberado) * 100) / 100;
+  return Math.round((base * liberado / comissao) * 100) / 100;
 }
 
 export function pagamentosDoExtrato(itens: Linha[], parcelas: Linha[]): Linha[] {
