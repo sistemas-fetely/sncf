@@ -14,7 +14,7 @@ function carregarIframe(url: string): Promise<HTMLIFrameElement> {
   return new Promise((resolve, reject) => {
     const f = document.createElement("iframe");
     f.setAttribute("aria-hidden", "true");
-    f.style.cssText = "position:fixed;left:-10000px;top:0;width:1100px;height:1600px;border:0;";
+    f.style.cssText = "position:fixed;left:-10000px;top:0;width:1100px;height:6000px;border:0;";
     f.onload = () => resolve(f);
     f.onerror = () => reject(new Error("Falha ao abrir o lote de extratos."));
     f.src = url;
@@ -56,10 +56,10 @@ async function pdfDaSecao(sec: HTMLElement): Promise<Blob> {
   const [{ default: html2canvas }, { jsPDF }] = await Promise.all([import("html2canvas"), import("jspdf")]);
   const larguraCss = sec.getBoundingClientRect().width;
   const pxPorMm = larguraCss / LARGURA_MM;
-  const totalCss = sec.scrollHeight;
+  const totalCss = Math.ceil(sec.getBoundingClientRect().height);
   const cortes = pontosDeCorte(totalCss, ALTURA_UTIL_MM * pxPorMm, blocosDe(sec));
   const escala = 2.5;
-  const canvas = await html2canvas(sec, { scale: escala, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: sec.ownerDocument.documentElement.scrollWidth });
+  const canvas = await html2canvas(sec, { scale: escala, backgroundColor: "#ffffff", useCORS: true, logging: false, windowWidth: sec.ownerDocument.documentElement.scrollWidth, windowHeight: sec.ownerDocument.documentElement.scrollHeight });
   const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4", compress: true });
   const limites = [0, ...cortes, totalCss];
   for (let i = 0; i < limites.length - 1; i++) {
