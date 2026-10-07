@@ -258,15 +258,17 @@ serve(async (req) => {
     // Pedido sem natureza ou sem o campo preenchido segue exatamente como antes,
     // sem a chave no payload.
     let blingNaturezaId: number | null = null;
+    let naturezaNome: string | null = null;
     if (pedido.natureza_operacao_id) {
       const { data: natDim, error: natDimErr } = await supabase
         .from("naturezas_operacao")
-        .select("bling_natureza_id")
+        .select("bling_natureza_id, nome")
         .eq("id", pedido.natureza_operacao_id)
         .maybeSingle();
       if (natDimErr) {
         return err(`Falha ao ler a natureza de operação do pedido: ${natDimErr.message}`, 500);
       }
+      naturezaNome = natDim?.nome ?? null;
       if (natDim?.bling_natureza_id != null) {
         blingNaturezaId = Number(natDim.bling_natureza_id);
       }
@@ -1444,7 +1446,7 @@ if (itensSemProdutoBling.length > 0) {
         descricao: `Enviado ao Bling (id ${blingId}) · remessa ${remessaCodigo} — proximo passo e emitir a NF no Bling` +
           (motivoOverride ? ` · override declarado: "${motivoOverride}"` : "") +
           (blingNaturezaId && naturezaConfirmada !== true
-            ? " · ATENÇÃO: o Bling não confirmou a natureza de operação — ao emitir a NF, selecione a natureza de transferência (CFOP 6152)"
+            ? ` · ATENÇÃO: o Bling não confirmou a natureza de operação — ao emitir a NF, selecione a natureza "${naturezaNome ?? "do pedido"}"`
             : ""),
         metadata: {
           bling_id: String(blingId),
