@@ -5,11 +5,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { nomeCanonico } from "@/lib/parceiros/nome";
 import type { CardKanban, RaiaKanban } from "@/hooks/credito/useCobrancaKanban";
-import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
+import { CANAL_LABEL, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { fmtDiaMes, iniciais } from "./cores";
 
 export function CardKanbanCompacto({
