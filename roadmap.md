@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Unificar nascimento por origem e reorganizar abas da Chegada, preservando links e conteúdos, sem banco/publicação.
+
 - [x] Exibir a base de comissão nos três blocos do extrato e validar Lucia, Carine e Everson 10/2026, sem banco/publicação.
 
 - [x] Incluir valor da parcela e taxa na agenda e atrasos; testar e conferir Lucia/Everson 10/2026 em A4, sem banco/publicação.
