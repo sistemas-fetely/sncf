@@ -2,7 +2,6 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
-import { cn } from "@/lib/utils";
 import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
 import { ajustesDoExtrato, carteiraPorPedido, pagamentosDoExtrato, rotuloParcelas } from "./extratoMensal";
