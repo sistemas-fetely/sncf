@@ -20,14 +20,6 @@ export function ajustesDoExtrato(itens: Linha[]): Linha[] {
   return itens.filter(i => i.tipo === "estorno" || (i.tipo === "liberacao" && i.subtipo === "complemento"));
 }
 
-export function rotuloParcelas(lista: number[], total: number): string {
-  const ordem = [...lista].sort((a, b) => a - b);
-  if (!ordem.length) return "";
-  const contiguas = ordem.length > 1 && ordem.every((n, i) => i === 0 || n === ordem[i - 1] + 1);
-  const meio = contiguas ? `${ordem[0]} a ${ordem[ordem.length - 1]}` : ordem.join(", ");
-  return total > 0 ? `${meio} de ${total}` : meio;
-}
-
 export function liberacoesEmExtratos(extratos: Linha[]): Set<string> {
   return new Set(extratos.flatMap(e => Array.isArray(e.detalhe) ? e.detalhe : [])
     .filter(i => i.liberacao_id).map(i => String(i.liberacao_id)));
@@ -53,29 +45,6 @@ export function representantesDoLote(extratos: Linha[], parcelas: Linha[], compl
   ].filter(l => l.vendedor_id).map(l => String(l.vendedor_id)))];
 }
 
-export function carteiraPorPedido(parcelas: Linha[], status: "a_vencer" | "vencida", liberacoes?: Set<string>): Linha[] {
-  const totais = new Map<string, number>();
-  for (const p of parcelas) {
-    const chave = String(p.pedido_id ?? `${p.cliente}\u0000${p.pedido}`);
-    const n = Math.max(valorNumero(p.total_parcelas), valorNumero(p.numero_parcela));
-    if (n > (totais.get(chave) ?? 0)) totais.set(chave, n);
-  }
-  const grupos = new Map<string, Linha>();
-  for (const p of parcelas.filter(p => status === "a_vencer" && liberacoes ? parcelaAReceber(p, liberacoes) : p.situacao_parcela === status)) {
-    const chave = String(p.pedido_id ?? `${p.cliente}\u0000${p.pedido}`);
-    const g = grupos.get(chave) ?? { cliente: p.cliente, pedido: p.pedido, parcelas: 0, vencimento: null, dias_atraso: 0, comissao: 0, parcelas_lista: [] as number[], total_parcelas: totais.get(chave) ?? 0 };
-    g.parcelas += 1;
-    const n = valorNumero(p.numero_parcela);
-    if (n > 0 && !g.parcelas_lista.includes(n)) g.parcelas_lista.push(n);
-    if ((p.situacao_parcela === "a_vencer" || status === "vencida") && p.vencimento && (!g.vencimento || p.vencimento < g.vencimento)) g.vencimento = p.vencimento;
-    g.dias_atraso = Math.max(g.dias_atraso, valorNumero(p.dias_atraso));
-    g.comissao += valorNumero(p.situacao_parcela === "liberada" ? p.valor_liberado : p.comissao_da_parcela);
-    grupos.set(chave, g);
-  }
-  return [...grupos.values()].sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR")
-    || String(a.pedido ?? "").localeCompare(String(b.pedido ?? ""), "pt-BR"));
-}
-
 /** Taxa por linha de produto; nunca a média. Ex.: [8, 10] → "8% / 10%". */
 export function rotuloTaxas(taxas: unknown): string {
   const lista = Array.isArray(taxas) ? taxas.map(valorNumero) : [];
@@ -84,8 +53,75 @@ export function rotuloTaxas(taxas: unknown): string {
   return lista.map(fmt).join(" / ");
 }
 
-/** Complementos pendentes viram linhas comuns do "A receber". */
-export function complementosNaCarteira(complementos: Linha[]): Linha[] {
-  return complementos.map(c => ({ cliente: c.cliente, pedido: c.pedido, comissao: valorNumero(c.valor), complemento: true }))
-    .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR"));
+/** AAAA-MM somado de n meses. */
+export function somarMeses(ym: string, n: number): string {
+  const [a, m] = ym.slice(0, 7).split("-").map(Number);
+  const t = a * 12 + (m - 1) + n;
+  return `${Math.floor(t / 12)}-${String((t % 12) + 1).padStart(2, "0")}`;
+}
+
+export interface ItemAgenda {
+  mes: string; // AAAA-MM do pagamento ao representante
+  cliente: string | null;
+  pedido: string | null;
+  parcela: string; // "2/4" ou "complemento"
+  vencimento: string | null; // data ISO do cliente (vencimento ou pagamento)
+  pago: boolean;
+  comissao: number;
+}
+
+export interface MesAgenda { mes: string; pagarAte: string | null; total: number; itens: ItemAgenda[] }
+
+/**
+ * Agenda de recebíveis: uma linha por parcela, agrupada pelo mês em que o
+ * representante recebe. Competência ≤ documento já foi paga; extratos de
+ * competência futura definem o mês das parcelas/complementos que contêm.
+ */
+export function agendaRecebiveis(parcelas: Linha[], complementos: Linha[], extratos: Linha[], competencia: string): MesAgenda[] {
+  const comp = competencia.slice(0, 7);
+  const pagos = liberacoesEmExtratos(extratos.filter(e => String(e.competencia).slice(0, 7) <= comp));
+  const futuros = extratos.filter(e => String(e.competencia).slice(0, 7) > comp);
+  const mesFuturo = new Map<string, string>();
+  for (const e of futuros) for (const i of Array.isArray(e.detalhe) ? e.detalhe : []) if (i.liberacao_id) mesFuturo.set(String(i.liberacao_id), String(e.competencia).slice(0, 7));
+  const clientePorPedido = new Map(parcelas.map(p => [String(p.pedido), p.cliente]));
+  const itens: ItemAgenda[] = [];
+  const vistos = new Set<string>();
+  for (const p of parcelas) {
+    const lib = p.liberacao_id ? String(p.liberacao_id) : null;
+    const parcela = `${valorNumero(p.numero_parcela)}/${valorNumero(p.total_parcelas)}`;
+    if (p.situacao_parcela === "a_vencer") {
+      if (!p.vencimento) continue;
+      itens.push({ mes: somarMeses(String(p.vencimento), 1), cliente: p.cliente, pedido: p.pedido, parcela, vencimento: p.vencimento, pago: false, comissao: valorNumero(p.comissao_da_parcela) });
+    } else if (p.situacao_parcela === "paga_aguarda_liberacao" || (p.situacao_parcela === "liberada" && lib && !pagos.has(lib))) {
+      const pagoEm = p.pago_em ?? p.data_liquidacao ?? null;
+      const mes = (lib && mesFuturo.get(lib)) || (p.competencia_pagamento ? String(p.competencia_pagamento).slice(0, 7) : pagoEm ? somarMeses(String(pagoEm), 1) : somarMeses(comp, 1));
+      if (lib) vistos.add(lib);
+      itens.push({ mes, cliente: p.cliente, pedido: p.pedido, parcela, vencimento: pagoEm, pago: true, comissao: valorNumero(p.valor_liberado ?? p.comissao_da_parcela) });
+    }
+  }
+  for (const c of complementos) {
+    if (c.liberacao_id) vistos.add(String(c.liberacao_id));
+    itens.push({ mes: c.competencia_pagamento ? String(c.competencia_pagamento).slice(0, 7) : somarMeses(comp, 1), cliente: c.cliente, pedido: c.pedido, parcela: "complemento", vencimento: null, pago: false, comissao: valorNumero(c.valor) });
+  }
+  for (const e of futuros) for (const i of Array.isArray(e.detalhe) ? e.detalhe : []) {
+    if (i.tipo !== "liberacao" || i.subtipo !== "complemento" || vistos.has(String(i.liberacao_id))) continue;
+    itens.push({ mes: String(e.competencia).slice(0, 7), cliente: i.cliente ?? clientePorPedido.get(String(i.pedido)) ?? null, pedido: i.pedido, parcela: "complemento", vencimento: null, pago: false, comissao: valorNumero(i.valor) });
+  }
+  const meses = new Map<string, MesAgenda>();
+  for (const it of itens) {
+    const m = meses.get(it.mes) ?? { mes: it.mes, pagarAte: futuros.find(e => String(e.competencia).slice(0, 7) === it.mes)?.pagar_ate ?? `${it.mes}-15`, total: 0, itens: [] };
+    m.itens.push(it); m.total += it.comissao; meses.set(it.mes, m);
+  }
+  return [...meses.values()].sort((a, b) => a.mes.localeCompare(b.mes)).map(m => ({
+    ...m,
+    total: Math.round(m.total * 100) / 100,
+    itens: m.itens.sort((a, b) => String(a.vencimento ?? "9999").localeCompare(String(b.vencimento ?? "9999"))
+      || String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.pedido ?? "").localeCompare(String(b.pedido ?? ""), "pt-BR")),
+  }));
+}
+
+/** Parcelas vencidas, uma por linha, mais antigas primeiro. */
+export function parcelasEmAtraso(parcelas: Linha[]): Linha[] {
+  return parcelas.filter(p => p.situacao_parcela === "vencida")
+    .sort((a, b) => String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")) || String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR"));
 }
