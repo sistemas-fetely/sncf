@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ajustesDoExtrato, carteiraPorPedido, pagamentosDoExtrato } from "./extratoMensal";
+import { ajustesDoExtrato, carteiraPorPedido, pagamentosDoExtrato, rotuloParcelas } from "./extratoMensal";
 
 describe("prestação de contas mensal", () => {
   it("seleciona somente liberações do detalhe e usa valor_liberado da view", () => {
@@ -16,7 +16,21 @@ describe("prestação de contas mensal", () => {
   });
   it("agrupa a vencer por pedido com quantidade, próximo vencimento e soma da comissão", () => {
     const linhas = [{ pedido: "PED-1", cliente: "A", situacao_parcela: "a_vencer", vencimento: "2026-11-10", comissao_da_parcela: 100 }, { pedido: "PED-1", cliente: "A", situacao_parcela: "a_vencer", vencimento: "2026-12-10", comissao_da_parcela: 50 }, { pedido: "PED-1", cliente: "A", situacao_parcela: "liberada", comissao_da_parcela: 500 }];
-    expect(carteiraPorPedido(linhas, "a_vencer")).toEqual([{ pedido: "PED-1", cliente: "A", parcelas: 2, vencimento: "2026-11-10", dias_atraso: 0, comissao: 150 }]);
+    expect(carteiraPorPedido(linhas, "a_vencer")).toEqual([{ pedido: "PED-1", cliente: "A", parcelas: 2, vencimento: "2026-11-10", dias_atraso: 0, comissao: 150, parcelas_lista: [], total_parcelas: 0 }]);
+  });
+  it("mostra o intervalo das parcelas a vencer sobre o total", () => {
+    expect(rotuloParcelas([2, 3, 4], 4)).toBe("2 a 4 de 4");
+    expect(rotuloParcelas([4], 4)).toBe("4 de 4");
+    expect(rotuloParcelas([2, 4], 4)).toBe("2, 4 de 4");
+  });
+  it("carteiraPorPedido devolve a lista de numero_parcela e o total do pedido", () => {
+    const linhas = [
+      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 2, comissao_da_parcela: 10 },
+      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 3, comissao_da_parcela: 10 },
+      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "a_vencer", numero_parcela: 4, comissao_da_parcela: 10 },
+      { pedido_id: "p1", pedido: "PED-2172", cliente: "A", situacao_parcela: "liberada", numero_parcela: 1, comissao_da_parcela: 10 },
+    ];
+    expect(carteiraPorPedido(linhas, "a_vencer")[0]).toMatchObject({ parcelas_lista: [2, 3, 4], total_parcelas: 4 });
   });
   it("seleciona somente vencidas e mantém a mais antiga e maior atraso", () => {
     const linhas = [{ pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-09-01", dias_atraso: 35, comissao_da_parcela: 22 }, { pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-10-01", dias_atraso: 5, comissao_da_parcela: 10 }, { pedido: "X", situacao_parcela: "a_vencer", comissao_da_parcela: 100 }];
