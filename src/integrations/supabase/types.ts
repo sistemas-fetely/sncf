@@ -129351,6 +129351,10 @@ export type Database = {
             }
             Returns: Json
           }
+      fn_ref_dinheiro_norm: {
+        Args: { p_meio: string; p_ref: string }
+        Returns: string
+      }
       fn_refresh_dre: { Args: never; Returns: undefined }
       fn_registrar_contagem: {
         Args: {
