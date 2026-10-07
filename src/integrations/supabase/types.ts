@@ -38327,7 +38327,11 @@ export type Database = {
           dispensa_analise: boolean
           entra_receita: boolean
           estoque_centro_origem_id: string | null
+          estoque_consumo_centro_custo_id: string | null
           estoque_estorna_consumo_origem: boolean
+          estoque_motivo_consumo: string | null
+          estoque_motivo_entrada: string | null
+          estoque_motivo_saida: string | null
           exige_expedicao: boolean
           exige_receber_destino: boolean
           familia_processo: string | null
@@ -38351,7 +38355,11 @@ export type Database = {
           dispensa_analise?: boolean
           entra_receita?: boolean
           estoque_centro_origem_id?: string | null
+          estoque_consumo_centro_custo_id?: string | null
           estoque_estorna_consumo_origem?: boolean
+          estoque_motivo_consumo?: string | null
+          estoque_motivo_entrada?: string | null
+          estoque_motivo_saida?: string | null
           exige_expedicao?: boolean
           exige_receber_destino?: boolean
           familia_processo?: string | null
@@ -38375,7 +38383,11 @@ export type Database = {
           dispensa_analise?: boolean
           entra_receita?: boolean
           estoque_centro_origem_id?: string | null
+          estoque_consumo_centro_custo_id?: string | null
           estoque_estorna_consumo_origem?: boolean
+          estoque_motivo_consumo?: string | null
+          estoque_motivo_entrada?: string | null
+          estoque_motivo_saida?: string | null
           exige_expedicao?: boolean
           exige_receber_destino?: boolean
           familia_processo?: string | null
@@ -38403,6 +38415,48 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_consumo_centro_custo_id_fkey"
+            columns: ["estoque_consumo_centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_consumo_centro_custo_id_fkey"
+            columns: ["estoque_consumo_centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_custo_pessoas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_consumo_centro_custo_id_fkey"
+            columns: ["estoque_consumo_centro_custo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_dimensionamento_areas"
+            referencedColumns: ["centro_custo_id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_motivo_consumo_fkey"
+            columns: ["estoque_motivo_consumo"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_motivo_entrada_fkey"
+            columns: ["estoque_motivo_entrada"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_motivo_saida_fkey"
+            columns: ["estoque_motivo_saida"]
+            isOneToOne: false
+            referencedRelation: "estoque_motivo_movimento"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "naturezas_operacao_forma_pagamento_default_id_fkey"
