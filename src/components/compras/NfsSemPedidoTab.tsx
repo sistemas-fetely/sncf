@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, FilePlus2 } from "lucide-react";
+import { Loader2, FilePlus2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarCompras } from "@/lib/compras/invalidar";
@@ -10,6 +10,8 @@ import BotaoGuardado from "@/components/acesso/BotaoGuardado";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -23,6 +25,8 @@ interface StageRow {
   apelido: string | null;
   valor_no_xml: number | null;
   itens: number | null;
+  classificacao: string | null;
+  destino_codigo: string | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -35,6 +39,18 @@ const pick = (o: Obj | undefined, ...keys: string[]) => {
   for (const k of keys) if (o && o[k] != null) return o[k];
   return null;
 };
+
+const CLASSIFICACAO: Record<string, { rotulo: string; cls: string }> = {
+  mercadoria: { rotulo: "Mercadoria", cls: "border-success/40 bg-success/10 text-success" },
+  possivel: { rotulo: "Possível mercadoria", cls: "border-warning bg-warning/10 text-warning-strong" },
+  nao_mercadoria: { rotulo: "Não parece mercadoria", cls: "border-border bg-muted text-muted-foreground" },
+};
+
+const rotuloClassificacao = (c: string | null) =>
+  c ? CLASSIFICACAO[c]?.rotulo ?? c : "—";
+
+const classeClassificacao = (c: string | null) =>
+  (c && CLASSIFICACAO[c]?.cls) || "border-border bg-muted text-muted-foreground";
 
 function statusDePara(item: Obj | undefined): "mapeado" | "sem" | null {
   if (!item) return null;
@@ -52,6 +68,7 @@ export default function NfsSemPedidoTab() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   const q = useQuery({
     queryKey: ["nfs-stage-mercadoria-pendente", "sem-pedido"],
@@ -115,7 +132,14 @@ export default function NfsSemPedidoTab() {
 
   if (q.isLoading) return <div className="p-4 text-sm text-muted-foreground">Carregando NFs…</div>;
   if (q.error) return <Alert variant="destructive"><AlertDescription>{rawMessage(q.error)}</AlertDescription></Alert>;
-  const rows = q.data ?? [];
+  const todas = q.data ?? [];
+  const rows = useMemo(
+    () =>
+      mostrarTodas
+        ? todas
+        : todas.filter((r) => r.classificacao === "mercadoria" || r.classificacao === "possivel"),
+    [todas, mostrarTodas],
+  );
 
   return (
     <div className="space-y-3">
