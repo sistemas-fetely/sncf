@@ -57266,6 +57266,89 @@ export type Database = {
           },
         ]
       }
+      recebimento_fora_controle: {
+        Row: {
+          declarado_em: string
+          declarado_por: string | null
+          id: string
+          importacao_pedido_id: number
+          local: string
+          observacao: string | null
+          qtd: number
+          sku: string
+        }
+        Insert: {
+          declarado_em?: string
+          declarado_por?: string | null
+          id?: string
+          importacao_pedido_id: number
+          local: string
+          observacao?: string | null
+          qtd: number
+          sku: string
+        }
+        Update: {
+          declarado_em?: string
+          declarado_por?: string | null
+          id?: string
+          importacao_pedido_id?: number
+          local?: string
+          observacao?: string | null
+          qtd?: number
+          sku?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "importacao_pedido"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compra_pedido_identidade"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_nf_sem_entrada"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_compras_pendencias"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_detalhe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_pedido_regua"
+            referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "recebimento_fora_controle_importacao_pedido_id_fkey"
+            columns: ["importacao_pedido_id"]
+            isOneToOne: false
+            referencedRelation: "vw_importacao_saldo_pedido"
+            referencedColumns: ["pedido_id"]
+          },
+        ]
+      }
       recebimento_ocorrencia: {
         Row: {
           criado_em: string
@@ -87760,6 +87843,7 @@ export type Database = {
           estados: string[] | null
           excesso_xpm: number | null
           falta_xpm: number | null
+          fora_controle: number | null
           modalidade: string | null
           moeda: string | null
           moeda_origem: string | null
@@ -88080,6 +88164,7 @@ export type Database = {
           divergencia_total: number | null
           excesso_xpm: number | null
           falta_xpm: number | null
+          fora_controle: number | null
           modalidade: string | null
           moeda: string | null
           nao_conforme_xpm: number | null
@@ -120595,14 +120680,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -128107,6 +128192,16 @@ export type Database = {
           p_observacao?: string
           p_pedido_id: string
           p_venc_parcela1?: string
+        }
+        Returns: Json
+      }
+      fn_declarar_recebimento_fora_controle: {
+        Args: {
+          p_dry_run?: boolean
+          p_itens: Json
+          p_local: string
+          p_observacao?: string
+          p_pedido_id: number
         }
         Returns: Json
       }
