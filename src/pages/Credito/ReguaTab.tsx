@@ -41,17 +41,9 @@ import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
 import { useCobrancaKanban } from "@/hooks/credito/useCobrancaKanban";
 import { KanbanCobranca } from "@/components/credito/kanban/KanbanCobranca";
+import { CANAL_LABEL } from "@/hooks/credito/useReguaFila";
 
 type Vista = "fila" | "pausados";
-
-const CANAL_LABEL: Record<string, string> = {
-  email: "E-mail",
-  whatsapp: "WhatsApp",
-  telefone: "Telefone",
-  carta: "Carta",
-  cartorio: "Cartório",
-  advogado: "Advogado",
-};
 
 function KpiCard({
   label, valor, total, ativo, onClick, tone, labelTooltip,

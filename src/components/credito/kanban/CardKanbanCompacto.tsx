@@ -5,11 +5,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { formatBRL } from "@/lib/format-currency";
 import { nomeCanonico } from "@/lib/parceiros/nome";
 import type { CardKanban, RaiaKanban } from "@/hooks/credito/useCobrancaKanban";
-import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
+import { CANAL_LABEL, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { fmtDiaMes, iniciais } from "./cores";
 
 export function CardKanbanCompacto({
@@ -27,6 +30,11 @@ export function CardKanbanCompacto({
 }) {
   const k = card._kanban;
   const atraso = card.dias_atraso ?? 0;
+  /** Etapa com rótulo humano curto; o código cru nunca aparece na tela. */
+  const chipEtapa = etapa
+    ? `D+${etapa.dias_offset} · ${CANAL_LABEL[etapa.canal_sugerido] ?? etapa.canal_sugerido}`
+    : null;
+  const chipEtapaTooltip = etapa?.descricao_acao ?? null;
   return (
     <div
       draggable
@@ -98,8 +106,15 @@ export function CardKanbanCompacto({
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {etapa && (
-          <Badge variant="outline" className="text-[10px]">{etapa.codigo}</Badge>
+        {chipEtapa && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[10px]">{chipEtapa}</Badge>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">{chipEtapaTooltip}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         <Badge variant="secondary" className={cn("text-[10px] gap-1", !k.responsavel_user_id && "text-muted-foreground")}>
           {k.responsavel_user_id ? (

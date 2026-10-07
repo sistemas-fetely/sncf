@@ -12,6 +12,16 @@ export type CanalRegua =
   | "cartorio"
   | "advogado";
 
+/** Mapa único de rótulos de canal — usado pela Régua e pelo kanban (sem duplicar). */
+export const CANAL_LABEL: Record<string, string> = {
+  email: "E-mail",
+  whatsapp: "WhatsApp",
+  telefone: "Telefone",
+  carta: "Carta",
+  cartorio: "Cartório",
+  advogado: "Advogado",
+};
+
 export interface ReguaEtapa {
   id: string;
   codigo: string;
