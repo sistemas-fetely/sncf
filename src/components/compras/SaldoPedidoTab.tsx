@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { baixarRelatorioDivergencia, temDivergenciaLiquida, type LinhaDivergencia, type LinhaLiquida } from "@/lib/compras/relatorio-divergencia-xlsx";
 
 import { supabase } from "@/integrations/supabase/client";
+import BotaoGuardado from "@/components/acesso/BotaoGuardado";
+import DeclararForaControleDialog from "@/components/compras/DeclararForaControleDialog";
 import { formatError } from "@/lib/format-error";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -71,6 +73,7 @@ interface TresCamadasPedido {
   a_faturar: number | null;
   a_confirmar: number | null;
   aguarda_recebimento: number | null;
+  fora_controle?: number | null;
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
@@ -94,6 +97,7 @@ interface TresCamadasSku {
   a_faturar: number | null;
   a_confirmar: number | null;
   aguarda_recebimento: number | null;
+  fora_controle?: number | null;
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
@@ -165,6 +169,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
   const [quemDeve, setQuemDeve] = useState<string>("todos");
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
+  const [foraAberto, setForaAberto] = useState(false);
 
   const resumoQ = useQuery({
     queryKey: ["compra-tres-camadas-pedido", pedidoId],
@@ -173,7 +178,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
       const { data, error } = await (supabase as any)
         .from("vw_compra_tres_camadas_pedido")
         .select(
-          "pedido_id, numero_pedido, modalidade, data_pedido, prazo_entrega_acordado, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, aguarda_recebimento, falta_xpm, excesso_xpm, nao_conforme_xpm, pct_faturado, pct_confirmado, valor_a_faturar_acordado, valor_a_faturar_vigente, skus_custo_incompleto, dias_atraso, quem_deve",
+          "pedido_id, numero_pedido, modalidade, data_pedido, prazo_entrega_acordado, pedida, declarada_nf, confirmada_xpm, a_faturar, a_confirmar, aguarda_recebimento, falta_xpm, excesso_xpm, nao_conforme_xpm, pct_faturado, pct_confirmado, valor_a_faturar_acordado, valor_a_faturar_vigente, skus_custo_incompleto, dias_atraso, quem_deve, fora_controle",
         )
         .eq("pedido_id", pedidoId)
         .maybeSingle();
@@ -399,6 +404,18 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                     <Download className="mr-2 h-4 w-4" />
                     Relatório de divergência
                   </Button>
+                  {Number(resumo.a_confirmar ?? 0) > 0 && (
+                    <BotaoGuardado
+                      slug="acao.recebimento_fora_controle"
+                      rotuloAcao="Declarar recebimento fora de controle"
+                      contexto={{ pedido_id: pedidoId }}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setForaAberto(true)}
+                    >
+                      Declarar fora de controle
+                    </BotaoGuardado>
+                  )}
                 </div>
 
                 {diasAtraso > 0 && (
@@ -455,6 +472,11 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                     tom={divergencia > 0 ? "atencao" : "neutro"}
                   />
                 </div>
+                {Number(resumo.fora_controle ?? 0) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Fora de controle: {fmtQtd(resumo.fora_controle)}
+                  </p>
+                )}
               </>
             )}
           </CardContent>
@@ -602,6 +624,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
           </>
         </TabelaFetely>
       </div>
+      <DeclararForaControleDialog pedidoId={pedidoId} aberto={foraAberto} onFechar={() => setForaAberto(false)} />
     </TooltipProvider>
   );
 }
