@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -31,6 +32,7 @@ interface StageRow {
   fornecedor: string | null;
   fornecedor_razao_social: string | null;
   apelido: string | null;
+  parceiro_ok: boolean | null;
   valor_no_xml: number | null;
   itens: number | null;
   classificacao: string | null;
@@ -207,7 +209,7 @@ export default function NfsSemPedidoTab() {
             : "Nenhuma NF classificada como mercadoria ou possível mercadoria."}
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-md border">
+        <div className="max-h-[70vh] overflow-auto rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -246,7 +248,21 @@ export default function NfsSemPedidoTab() {
                   </TableCell>
                   <TableCell className="font-medium">{r.nf_numero ?? "—"}{r.nf_serie ? `/${r.nf_serie}` : ""}</TableCell>
                   <TableCell>{fmtData(r.nf_data_emissao)}</TableCell>
-                  <TableCell>{r.apelido ?? r.fornecedor ?? r.fornecedor_razao_social ?? "—"}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {r.apelido ?? r.fornecedor ?? r.fornecedor_razao_social ?? "—"}
+                      {r.parceiro_ok === false && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="bg-muted text-muted-foreground">Fornecedor sem cadastro</Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Cadastre o parceiro para gerar o pedido retroativo</TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={classeClassificacao(r.classificacao)}>
                       {rotuloClassificacao(r.classificacao)}
