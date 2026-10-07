@@ -13624,6 +13624,13 @@ export type Database = {
             foreignKeyName: "comissao_extrato_item_liberacao_id_fkey"
             columns: ["liberacao_id"]
             isOneToOne: true
+            referencedRelation: "vw_comissao_complemento_pendente"
+            referencedColumns: ["liberacao_id"]
+          },
+          {
+            foreignKeyName: "comissao_extrato_item_liberacao_id_fkey"
+            columns: ["liberacao_id"]
+            isOneToOne: true
             referencedRelation: "vw_comissao_detalhe"
             referencedColumns: ["liberacao_id"]
           },
@@ -85932,6 +85939,74 @@ export type Database = {
           },
         ]
       }
+      vw_comissao_complemento_pendente: {
+        Row: {
+          cliente: string | null
+          competencia_pagamento: string | null
+          liberacao_id: string | null
+          pedido: string | null
+          valor: number | null
+          vendedor_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_posicao"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_representante_financeiro"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_representante_kpi"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_representante_serie_mensal"
+            referencedColumns: ["vendedor_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vw_vendedor_contato"
+            referencedColumns: ["vendedor_id"]
+          },
+        ]
+      }
       vw_comissao_conta_corrente_mensal: {
         Row: {
           a_liberar_a_vencer: number | null
@@ -85982,6 +86057,7 @@ export type Database = {
           situacao_parcela: string | null
           status_apuracao: string | null
           status_titulo: string | null
+          taxas_linhas: number[] | null
           titulo_id: string | null
           total_parcelas: number | null
           valor_liberado: number | null
@@ -106223,14 +106299,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]

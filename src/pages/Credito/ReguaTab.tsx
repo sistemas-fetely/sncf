@@ -39,6 +39,8 @@ import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 import { estaVencido } from "@/lib/data";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 import { useTituloEstadoKpis } from "@/hooks/financeiro/useTituloEstadoKpis";
+import { useCobrancaKanban } from "@/hooks/credito/useCobrancaKanban";
+import { KanbanCobranca } from "@/components/credito/kanban/KanbanCobranca";
 
 type Vista = "fila" | "pausados";
 
@@ -535,7 +537,12 @@ async function rodarReguaAgora(invalidarRecebivel: () => Promise<void>) {
     return;
   }
   const qtd = data?.titulos_atualizados ?? 0;
-  toast.success(`Régua rodada — ${qtd} título(s) atualizado(s).`);
+  const entrada = Number(data?.raia_entrada ?? 0);
+  const retorno = Number(data?.raia_retorno ?? 0);
+  let msg = `Régua rodada — ${qtd} título(s) atualizado(s)`;
+  if (entrada > 0) msg += ` · ${entrada} entraram no kanban`;
+  if (retorno > 0) msg += ` · ${retorno} voltaram de Aguardando`;
+  toast.success(`${msg}.`);
   await invalidarRecebivel();
 }
 
@@ -546,7 +553,14 @@ export default function ReguaTab() {
   const { data: etapas = [] } = useReguaEtapas();
   const { data: fila = [], isLoading: loadingFila } = useReguaFilaHoje();
   const { data: foraDaRegua = [], isLoading: loadingFora } = useReguaVencidoForaDaFila();
-  const { data: pausados = [], isLoading: loadingPausados } = useReguaPausados();
+  const { data: pausadosTodos = [], isLoading: loadingPausados } = useReguaPausados();
+  const { data: kanban } = useCobrancaKanban();
+  const kanbanCards = kanban?.cards ?? [];
+  /** Pausa de raia é gerida no kanban: não duplica em "Pausados". */
+  const pausados = useMemo(
+    () => pausadosTodos.filter((t) => !kanban?.idsNoKanban.has(t.id)),
+    [pausadosTodos, kanban],
+  );
   const { data: conferencias } = useBoletoVencimentoConferencia();
 
   const [vista, setVista] = useState<Vista>("fila");
@@ -577,18 +591,6 @@ export default function ReguaTab() {
   const semCartao = (t: TituloCobranca) =>
     ((t as any)._mesa as LinhaMesa | undefined)?.instrumento !== "cartao";
 
-  const zonaAtraso = useMemo(
-    () =>
-      fila
-        .filter((t) => (t.dias_atraso ?? 0) > 0 && semCartao(t))
-        .sort(
-          (a, b) =>
-            (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0) ||
-            Number(b.valor_efetivo ?? 0) - Number(a.valor_efetivo ?? 0),
-        ),
-    [fila],
-  );
-
   const zonaAVencer = useMemo(
     () =>
       fila
@@ -599,7 +601,7 @@ export default function ReguaTab() {
 
   const foraDaReguaVisivel = useMemo(() => foraDaRegua.filter(semCartao), [foraDaRegua]);
 
-  const somaZona1 = useMemo(() => somaValor(zonaAtraso), [zonaAtraso]);
+  const somaKanban = useMemo(() => somaValor(kanbanCards), [kanbanCards]);
   const somaZona2 = useMemo(() => somaValor(foraDaReguaVisivel), [foraDaReguaVisivel]);
 
   const somaZona3 = useMemo(() => somaValor(zonaAVencer), [zonaAVencer]);
@@ -730,24 +732,21 @@ export default function ReguaTab() {
 
       {vista === "fila" && !loadingFila && !loadingFora && (
         <>
-          {/* ── Zona 1 — EM ATRASO ── */}
+          {/* ── Zona 1 — EM ATRASO · KANBAN-DE-COBRANÇA (06/10/2026) ── */}
           <section className="space-y-2">
             <ZonaHeader
               id="zona-em-atraso"
               titulo="Cobrável hoje"
-              qtd={zonaAtraso.length}
-              total={somaZona1}
+              qtd={kanbanCards.length}
+              total={somaKanban}
               tom="destructive"
             />
-            {zonaAtraso.length === 0 ? (
-              <ZonaVazia texto="Nenhum título vencido na régua." tom="success" />
-            ) : (
-              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                {zonaAtraso.map((t) => (
-                  <div key={t.id}>{cardCompleto(t, { zonaAtraso: true })}</div>
-                ))}
-              </div>
-            )}
+            <KanbanCobranca
+              etapas={etapas}
+              acaoAtrasada={acaoAtrasada}
+              renderCompleto={(t) => cardCompleto(t, { zonaAtraso: true })}
+              vazio={<ZonaVazia texto="Nenhum título vencido na régua." tom="success" />}
+            />
           </section>
 
           {/* ── Zona 2 — VENCIDO FORA DA RÉGUA ── */}
