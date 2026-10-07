@@ -499,6 +499,27 @@ export default function FichaProduto() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Mesa do Produto
               </Button>
+              {produto?.sku && (
+                <BotaoGuardado
+                  slug="acao.cadastrar_produto_xpm"
+                  rotuloAcao="Cadastrar no XPM"
+                  contexto={{ sku: produto.sku }}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setXpmAberto(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Cadastrar no XPM
+                </BotaoGuardado>
+              )}
+              {produto?.sku && (
+                <CadastrarProdutoXpmDialog
+                  sku={produto.sku}
+                  open={xpmAberto}
+                  onOpenChange={setXpmAberto}
+                  onCadastrado={() => { produtoQ.refetch(); }}
+                />
+              )}
               <Button
                 variant="outline"
                 size="sm"

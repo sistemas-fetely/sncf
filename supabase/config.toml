@@ -156,3 +156,6 @@ additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
 
 [functions.vd-nf-sync]
     verify_jwt = false
+
+[functions.cadastrar-produto-xpm]
+  verify_jwt = true
