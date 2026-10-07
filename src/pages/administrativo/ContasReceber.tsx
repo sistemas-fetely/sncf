@@ -1522,15 +1522,17 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           ativo={filtroInstrumento === "sem_instrumento"}
           onClick={() => clicarInstrumento("sem_instrumento")}
         />
-        {/* DUAS-MEDIDAS-DO-VENCIDO: atraso real (cobrável) separado da carência
-            bancária. A barra de faixas continua contábil (faixa_aging). */}
+        {/* UM-VENCIDO-SO: card e botão "Vencidos" são o mesmo número e a mesma
+            lista — o valor vem do vencido total (contábil). Cobrável e carência
+            bancária viram detalhe informativo na sublinha. A barra de faixas
+            continua contábil (faixa_aging). */}
         <ColunaKpi
-          rotulo="Vencido — cobrável"
-          valor={formatBRLCurto(cobravelHoje.valor)}
+          rotulo="Vencido"
+          valor={formatBRLCurto(vencidoContabil.valor)}
           corValor="text-destructive"
-          sublinha={`de ${formatBRLCurto(vencidoContabil.valor)} vencidos no total`}
-          ativo={filtroPrazo === "cobravel"}
-          onClick={() => clicarPrazo("cobravel")}
+          sublinha={`${formatBRLCurto(cobravelHoje.valor)} cobrável · ${formatBRLCurto(emCarenciaBancaria.valor)} em carência`}
+          ativo={filtroPrazo === "vencidos"}
+          onClick={() => clicarPrazo("vencidos")}
           extraRotulo={
             <Popover>
               <PopoverTrigger asChild>
