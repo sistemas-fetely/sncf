@@ -43,17 +43,16 @@ export function extratoDaCompetencia(
   return extratos.find((e) => String(e.competencia ?? "").slice(0, 7) === competencia);
 }
 
+/** Competência de pagamento AAAA-MM fecha no dia 1 do próprio mês. Fonte única da regra. */
 function fechamentoISO(competencia: string): string {
-  const [ano, mes] = competencia.split("-").map(Number);
-  return new Date(Date.UTC(ano, mes, 1)).toISOString().slice(0, 10);
+  return `${competencia.slice(0, 7)}-01`;
 }
 
-/** "01/MM" do mês seguinte — data do fechamento automático da competência corrente. */
+/** "01/MM" do próprio mês da competência. */
 export function dataDoFechamento(competencia: string): string {
   return `01/${fechamentoISO(competencia).slice(5, 7)}`;
 }
 
-/** Usa a mesma data do fechamento automático apresentada na prévia. */
 export function competenciaFechada(competencia: string, hoje = hojeISO()): boolean {
   return hoje.slice(0, 10) >= fechamentoISO(competencia);
 }
