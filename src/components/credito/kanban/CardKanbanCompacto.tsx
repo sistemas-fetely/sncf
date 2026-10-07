@@ -28,12 +28,13 @@ export function CardKanbanCompacto({
   onAlterarData: () => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
-const k = card._kanban;
+  const k = card._kanban;
   const atraso = card.dias_atraso ?? 0;
   /** Etapa com rótulo humano curto; o código cru nunca aparece na tela. */
   const chipEtapa = etapa
     ? `D+${etapa.dias_offset} · ${CANAL_LABEL[etapa.canal_sugerido] ?? etapa.canal_sugerido}`
     : null;
+  const chipEtapaTooltip = etapa?.descricao_acao ?? null;
   return (
     <div
       draggable
