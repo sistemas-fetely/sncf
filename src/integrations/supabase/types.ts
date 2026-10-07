@@ -86575,6 +86575,7 @@ export type Database = {
           ajuste_pp: number | null
           apuracao_id: string | null
           base_comissionavel: number | null
+          base_parcela: number | null
           cliente: string | null
           comissao_da_nota: number | null
           comissao_da_parcela: number | null
