@@ -614,6 +614,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       ),
     [tituloEstadoLinhas],
   );
+  const vencidoIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.vencido_contabil && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
 
   /**
    * Camada nova entre `baseFiltros` e `baseCarteira`: filtros da faixa de KPI.
