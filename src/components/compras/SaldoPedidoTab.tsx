@@ -73,6 +73,7 @@ interface TresCamadasPedido {
   a_faturar: number | null;
   a_confirmar: number | null;
   aguarda_recebimento: number | null;
+  fora_controle?: number | null;
   falta_xpm: number | null;
   excesso_xpm: number | null;
   nao_conforme_xpm: number | null;
