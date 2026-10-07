@@ -30,6 +30,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 
 import { PageShell } from "@/components/layout/PageShell";
+import { RaiasKanbanSecao } from "@/components/credito/kanban/RaiasKanbanSecao";
 const PERFIS: PerfilCadencia[] = ["padrao", "bandeira_amarela", "vip"];
 const PERFIL_LABEL: Record<PerfilCadencia, string> = {
   padrao: "Padrão",
@@ -328,6 +329,7 @@ export default function ReguaEtapas() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <RaiasKanbanSecao />
     </PageShell>
   );
 }
