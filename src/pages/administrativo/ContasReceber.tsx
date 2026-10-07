@@ -575,11 +575,11 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const naoRecebido = (t: RecebivelB2B) =>
     t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
 
-  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
-     na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
-     coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
-     pertence à Controladoria. */
-  const estaVencido = (t: RecebivelB2B) => t.eh_inadimplente === true;
+  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro —
+     `vw_titulo_estado.vencido_contabil`, lida via `tituloEstadoLinhas` (vencidoIds).
+     A tela de Cobrança lê a mesma coisa. Régua de caixa (data_caixa_projetada) mede
+     conciliação, não atraso, e pertence à Controladoria. */
+  const estaVencido = (t: RecebivelB2B) => vencidoIds.has(t.id);
 
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
@@ -587,7 +587,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     if (a === "sem_prova") return t.fonte_data_recebimento === "marcado_humano";
     if (a === "data_divergente") return t.data_divergente === true;
     if (a === "meio_divergente") return t.meio_divergente === true;
-    return t.eh_inadimplente === true;
+    return estaVencido(t);
   };
 
   /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
