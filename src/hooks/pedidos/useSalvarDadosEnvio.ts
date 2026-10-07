@@ -31,7 +31,7 @@ export function useSalvarDadosEnvio() {
       const { data, error } = await (supabase as any).rpc("atualizar_frete_pedido", {
         p_pedido_id:         pedidoId,
         p_transportadora_id: transportadoraId || null,
-        p_peso_bruto_total:  pesoBrutoTotal,
+        p_peso_bruto_total:  pesoBrutoTotal ?? null,
         p_frete_tipo:        freteTipo ?? null,
         p_valor_frete:       valorFrete ?? null,
         p_estimativa_valor:  estimativaValor ?? null,
