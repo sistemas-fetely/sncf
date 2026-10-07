@@ -42,22 +42,30 @@ import { Selo } from "@/components/ui/selo";
 import { formatBRL } from "@/lib/format-currency";
 import {
   useClientesBusca,
-  useLerComprovanteConta,
   useRegistrarRecebimentoCliente,
   type NivelProva,
 } from "@/hooks/financeiro/useContaCliente";
-import type { LeituraComprovante } from "@/hooks/comercial/useComprovantePagamento";
+import {
+  useConfirmarComprovanteCliente,
+  useLerComprovanteCliente,
+  type LeituraComprovante,
+} from "@/hooks/comercial/useComprovantePagamento";
+import { useBancosRecebimento } from "@/hooks/financeiro/useBancosRecebimento";
+import { useAuth } from "@/contexts/AuthContext";
 import { InputMoedaBR } from "@/components/compras/InputMoedaBR";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
 
-const MEIOS: { valor: string; label: string }[] = [
+// COMPROVANTE-É-A-PORTA: PIX/transferência só entram pelo comprovante; cartão
+// pela captura no pedido; boleto pelo retorno do banco. Dinheiro/Outro: só super admin.
+const MEIOS_COMPROVANTE: { valor: string; label: string }[] = [
   { valor: "pix", label: "PIX" },
-  { valor: "cartao", label: "Cartão" },
-  { valor: "boleto", label: "Boleto" },
   { valor: "transferencia", label: "Transferência" },
+];
+const MEIOS_SUPER_ADMIN: { valor: string; label: string }[] = [
   { valor: "dinheiro", label: "Dinheiro" },
   { valor: "outro", label: "Outro" },
 ];
+const MIN_OBS = 10;
 
 const PROVA_META: Record<NivelProva, { estado: "success" | "warning" | "destructive"; label: string }> = {
   conciliado: { estado: "success", label: "Conciliado" },
@@ -68,8 +76,6 @@ const PROVA_META: Record<NivelProva, { estado: "success" | "warning" | "destruct
 /** tipo lido pela IA -> meio da conta do cliente. `indefinido` não mexe no campo. */
 const MEIO_POR_TIPO: Record<string, string> = {
   pix: "pix",
-  cartao: "cartao",
-  boleto: "boleto",
   ted: "transferencia",
 };
 
@@ -110,11 +116,18 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
   const [comprovantePath, setComprovantePath] = useState<string | null>(null);
   const [comprovanteNome, setComprovanteNome] = useState<string | null>(null);
   const [leitura, setLeitura] = useState<LeituraComprovante | null>(null);
+  const [comprovanteId, setComprovanteId] = useState<string | null>(null);
+  const [bancoId, setBancoId] = useState("");
   const inputArquivo = useRef<HTMLInputElement | null>(null);
 
   const { data: opcoes = [], isLoading: buscando } = useClientesBusca(busca);
   const registrar = useRegistrarRecebimentoCliente();
-  const lerComprovante = useLerComprovanteConta();
+  const lerComprovante = useLerComprovanteCliente();
+  const confirmarComprovante = useConfirmarComprovanteCliente(cliente?.id ?? null);
+  const bancosQ = useBancosRecebimento(open);
+  const { roles } = useAuth();
+  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const meios = isSuperAdmin ? [...MEIOS_COMPROVANTE, ...MEIOS_SUPER_ADMIN] : MEIOS_COMPROVANTE;
   const invalidarRecebivel = useInvalidarRecebivel();
 
   useEffect(() => {
@@ -128,7 +141,22 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
 
   const maxData = hojeIso();
   const dataFutura = data > maxData;
-  const podeSalvar = !!cliente && valor > 0 && !!data && !dataFutura && !!meio && !registrar.isPending;
+  const viaComprovante = meio === "pix" || meio === "transferencia";
+  const enviando = registrar.isPending || confirmarComprovante.isPending;
+  const semComprovante = viaComprovante && !comprovanteId;
+  const bancoFaltando = viaComprovante && !bancoId;
+  const obsCurta = !viaComprovante && observacao.trim().length < MIN_OBS;
+  const meioNaoPermitido = !viaComprovante && !isSuperAdmin;
+  const podeSalvar =
+    !!cliente && valor > 0 && !!data && !dataFutura && !!meio && !enviando &&
+    !semComprovante && !bancoFaltando && !obsCurta && !meioNaoPermitido;
+  const motivoBloqueio = semComprovante
+    ? "PIX e transferência entram pelo comprovante"
+    : bancoFaltando
+      ? "Diga em qual conta o dinheiro entrou."
+      : obsCurta
+        ? `Observação obrigatória (mínimo ${MIN_OBS} caracteres).`
+        : null;
 
   const resumo = useMemo(
     () => (valor > 0 ? formatBRL(valor) : null),
@@ -151,15 +179,18 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
     setComprovantePath(null);
     setComprovanteNome(null);
     setLeitura(null);
+    setComprovanteId(null);
+    setBancoId("");
     if (inputArquivo.current) inputArquivo.current.value = "";
   }
 
   /** SISTEMA SUGERE / HUMANO DECIDE: preenche o formulário, nunca registra. */
   async function importarComprovante(file: File) {
+    if (!cliente) return;
     try {
-      const { leitura: lido, storagePath } = await lerComprovante.mutateAsync({
+      const { leitura: lido, comprovante_id } = await lerComprovante.mutateAsync({
         file,
-        parceiroId: cliente?.id ?? null,
+        parceiroId: cliente.id,
       });
 
       if (lido.valor > 0) setValor(lido.valor);
@@ -179,7 +210,8 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
       if (lido.pagador_documento) setPagadorDoc(lido.pagador_documento);
 
       setLeitura(lido);
-      setComprovantePath(storagePath);
+      setComprovanteId(comprovante_id);
+      setComprovantePath(null);
       setComprovanteNome(file.name);
     } catch (e: any) {
       // FAIL-LOUD: mensagem real na tela. O caminho manual continua livre.
@@ -190,7 +222,29 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
   }
 
   async function submit() {
-    if (!cliente) return;
+    if (!cliente || !podeSalvar) return;
+    if (viaComprovante) {
+      try {
+        await confirmarComprovante.mutateAsync({
+          comprovante_id: comprovanteId!,
+          tipo: meio === "transferencia" ? "ted" : "pix",
+          chave: chave.trim(),
+          valor,
+          data,
+          justificativa: observacao,
+          banco_recebimento_id: bancoId,
+        });
+        toast.success(`${formatBRL(valor)} registrado para ${cliente.nome} pelo comprovante`);
+        await invalidarRecebivel();
+        limpar();
+        setOpen(false);
+        onSucesso?.();
+      } catch (e: any) {
+        // FAIL-LOUD: mensagem do banco crua; diálogo fica aberto.
+        toast.error("Recebimento não registrado", { description: e?.message ?? String(e) });
+      }
+      return;
+    }
     try {
       const res = await registrar.mutateAsync({
         parceiro_id: cliente.id,
@@ -257,7 +311,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
               variant="outline"
               size="sm"
               className="h-8 gap-2"
-              disabled={lerComprovante.isPending}
+              disabled={lerComprovante.isPending || !cliente}
               onClick={() => inputArquivo.current?.click()}
             >
               {lerComprovante.isPending ? (
@@ -333,6 +387,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
                           key={o.id}
                           value={o.id}
                           onSelect={() => {
+                            if (cliente?.id !== o.id) descartarComprovante();
                             setCliente({ id: o.id, nome: o.nome });
                             setBuscaOpen(false);
                           }}
@@ -383,15 +438,35 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {MEIOS.map((m) => (
+                {meios.map((m) => (
                   <SelectItem key={m.valor} value={m.valor}>
                     {m.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-[11px] text-muted-foreground">
+              Cartão entra pela captura no pedido; boleto pelo retorno do banco.
+            </p>
           </div>
 
+          {viaComprovante && (
+            <div className="space-y-1.5">
+              <Label>Em qual conta o dinheiro entrou</Label>
+              <Select value={bancoId} onValueChange={setBancoId}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder={bancosQ.isLoading ? "Carregando…" : "Escolha a conta"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {(bancosQ.data ?? []).map((b) => (
+                    <SelectItem key={b.id} value={b.id}>{b.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {(!viaComprovante || !!leitura) && (
           <div className="space-y-1.5">
             <Label>Chave</Label>
             <Input
@@ -401,6 +476,7 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
               className="h-8"
             />
           </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -442,12 +518,15 @@ export function RegistrarRecebimentoDialog({ children, parceiroId, parceiroNome,
           )}
         </div>
 
+        {motivoBloqueio && cliente && (
+          <p className="text-right text-[11px] text-muted-foreground">{motivoBloqueio}</p>
+        )}
         <DialogFooter>
           <Button variant="ghost" onClick={() => setOpen(false)}>
             Cancelar
           </Button>
           <Button onClick={submit} disabled={!podeSalvar} className="gap-2">
-            {registrar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {enviando && <Loader2 className="h-4 w-4 animate-spin" />}
             Registrar{resumo ? ` ${resumo}` : ""}
           </Button>
         </DialogFooter>
