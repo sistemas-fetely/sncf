@@ -1,15 +1,22 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, FilePlus2 } from "lucide-react";
+import { Loader2, FilePlus2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import { fmtMoeda } from "@/lib/compras/lancamento-utils";
+import {
+  classeClassificacao,
+  filtrarPorClassificacao,
+  rotuloClassificacao,
+} from "@/lib/compras/classificacao-nfs";
 import BotaoGuardado from "@/components/acesso/BotaoGuardado";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -23,6 +30,8 @@ interface StageRow {
   apelido: string | null;
   valor_no_xml: number | null;
   itens: number | null;
+  classificacao: string | null;
+  destino_codigo: string | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -52,6 +61,7 @@ export default function NfsSemPedidoTab() {
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
   const [enviando, setEnviando] = useState(false);
+  const [mostrarTodas, setMostrarTodas] = useState(false);
 
   const q = useQuery({
     queryKey: ["nfs-stage-mercadoria-pendente", "sem-pedido"],
@@ -113,14 +123,37 @@ export default function NfsSemPedidoTab() {
     return statusDePara(it);
   };
 
+  const todas = q.data ?? [];
+  const rows = useMemo(
+    () => filtrarPorClassificacao(todas, mostrarTodas),
+    [todas, mostrarTodas],
+  );
+
   if (q.isLoading) return <div className="p-4 text-sm text-muted-foreground">Carregando NFs…</div>;
   if (q.error) return <Alert variant="destructive"><AlertDescription>{rawMessage(q.error)}</AlertDescription></Alert>;
-  const rows = q.data ?? [];
+
 
   return (
     <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <label className="flex cursor-pointer items-center gap-2 text-xs text-muted-foreground">
+          <Switch checked={mostrarTodas} onCheckedChange={setMostrarTodas} />
+          Mostrar todas
+        </label>
+        <span className="text-xs text-muted-foreground">{rows.length} de {todas.length}</span>
+      </div>
+      {mostrarTodas && (
+        <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          <span>NFs de fornecedor novo/produto novo aparecem aqui — nasça o produto com o NCM da NF antes de gerar o pedido retroativo.</span>
+        </div>
+      )}
       {rows.length === 0 ? (
-        <div className="rounded-md border p-4 text-sm">Nenhuma NF de entrada sem pedido.</div>
+        <div className="rounded-md border p-4 text-sm">
+          {todas.length === 0
+            ? "Nenhuma NF de entrada sem pedido."
+            : "Nenhuma NF classificada como mercadoria ou possível mercadoria."}
+        </div>
       ) : (
         <div className="overflow-x-auto rounded-md border">
           <Table>
@@ -129,6 +162,14 @@ export default function NfsSemPedidoTab() {
                 <TableHead>NF</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead>Fornecedor</TableHead>
+                <TableHead className="group">
+                  <span className="inline-flex items-center gap-1">
+                    Classificação
+                    <InfoMetrica rotulo="Classificação">
+                      Fornecedor conhecido (pedido ou de-para) + NCM batendo com produto nosso.
+                    </InfoMetrica>
+                  </span>
+                </TableHead>
                 <TableHead className="text-right">Valor no XML</TableHead>
                 <TableHead className="text-right">Itens</TableHead>
                 <TableHead className="w-48" />
@@ -140,6 +181,11 @@ export default function NfsSemPedidoTab() {
                   <TableCell className="font-medium">{r.nf_numero ?? "—"}{r.nf_serie ? `/${r.nf_serie}` : ""}</TableCell>
                   <TableCell>{fmtData(r.nf_data_emissao)}</TableCell>
                   <TableCell>{r.apelido ?? r.fornecedor ?? r.fornecedor_razao_social ?? "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={classeClassificacao(r.classificacao)}>
+                      {rotuloClassificacao(r.classificacao)}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">{fmtMoeda(r.valor_no_xml)}</TableCell>
                   <TableCell className="text-right">{r.itens ?? 0}</TableCell>
                   <TableCell className="text-right">
