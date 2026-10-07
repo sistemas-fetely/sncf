@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, X,
+  AlertTriangle, ArrowDownCircle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, Upload, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,7 @@ import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { CadastrarProdutoXpmDialog } from "@/components/acervo/CadastrarProdutoXpmDialog";
 
 type LinhaMatriz = {
   campo: string;
@@ -167,6 +168,7 @@ export default function FichaProduto() {
   const navigate = useNavigate();
 
   const [rascunho, setRascunho] = useState<Record<string, string>>({});
+  const [xpmAberto, setXpmAberto] = useState(false);
   const [motivo, setMotivo] = useState("");
   const [confirmar, setConfirmar] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -499,6 +501,27 @@ export default function FichaProduto() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Mesa do Produto
               </Button>
+              {produto?.sku && (
+                <BotaoGuardado
+                  slug="acao.cadastrar_produto_xpm"
+                  rotuloAcao="Cadastrar no XPM"
+                  contexto={{ sku: produto.sku }}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setXpmAberto(true)}
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Cadastrar no XPM
+                </BotaoGuardado>
+              )}
+              {produto?.sku && (
+                <CadastrarProdutoXpmDialog
+                  sku={produto.sku}
+                  open={xpmAberto}
+                  onOpenChange={setXpmAberto}
+                  onCadastrado={() => { produtoQ.refetch(); }}
+                />
+              )}
               <Button
                 variant="outline"
                 size="sm"
