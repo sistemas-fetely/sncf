@@ -1,6 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { lerTudo } from "./dados";
+import { representantesDoLote } from "./extratoMensal";
 import { BarraImpressao } from "@/components/impressao/BarraImpressao";
 import { formatError } from "@/lib/format-error";
 import { fmtCompetencia } from "../comissoes/fmt";
@@ -19,25 +20,17 @@ export default function ExtratosLoteImpressao() {
     queryKey: ["extratos-lote-representantes", competencia],
     enabled: valida,
     queryFn: async () => {
-      const [ex, pg, cart, comp] = await Promise.all([
-        (supabase as any).from("comissao_extrato").select("vendedor_id").eq("competencia", dia),
-        (supabase as any).from("vw_comissao_pagamento_mes").select("vendedor_id, representante").eq("mes_pagamento", dia),
-        (supabase as any).from("vw_comissao_detalhe").select("vendedor_id").in("situacao_parcela", ["a_vencer", "vencida"]).limit(10000),
-        (supabase as any).from("vw_comissao_complemento_pendente").select("vendedor_id"),
+      const [ex, cart, comp] = await Promise.all([
+        lerTudo("comissao_extrato", undefined, { col: "id" }, "id,vendedor_id,competencia,detalhe"),
+        lerTudo("vw_comissao_detalhe", q => q.in("situacao_parcela", ["a_vencer", "vencida", "paga_aguarda_liberacao", "liberada"])),
+        lerTudo("vw_comissao_complemento_pendente"),
       ]);
-      if (cart.error) throw cart.error;
-      if (comp.error) throw comp.error;
-      if (ex.error) throw ex.error;
-      if (pg.error) throw pg.error;
+      const ids = representantesDoLote(ex, cart, comp, competencia);
       const nomes = new Map<string, string>();
-      for (const l of pg.data ?? []) if (l.vendedor_id) nomes.set(l.vendedor_id, l.representante ?? nomes.get(l.vendedor_id) ?? "");
-      for (const l of [...(cart.data ?? []), ...(comp.data ?? [])]) if (l.vendedor_id && !nomes.has(l.vendedor_id)) nomes.set(l.vendedor_id, "");
-      for (const l of ex.data ?? []) if (l.vendedor_id && !nomes.has(l.vendedor_id)) nomes.set(l.vendedor_id, "");
-      const faltam = [...nomes].filter(([, n]) => !n).map(([id]) => id);
-      if (faltam.length) {
-        const { data, error } = await (supabase as any).from("vw_representante_financeiro").select("vendedor_id, representante").in("vendedor_id", faltam);
-        if (error) throw error;
-        for (const l of data ?? []) nomes.set(l.vendedor_id, l.representante ?? "");
+      for (const id of ids) nomes.set(id, "");
+      if (ids.length) {
+        const representantes = await lerTudo("vw_representante_financeiro", q => q.in("vendedor_id", ids), undefined, "vendedor_id,representante");
+        for (const l of representantes) nomes.set(l.vendedor_id, l.representante ?? "");
       }
       return [...nomes].map(([id, nome]) => ({ id, nome: nome || "Sem nome" }))
         .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));

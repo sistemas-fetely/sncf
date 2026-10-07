@@ -2,9 +2,9 @@ import { useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
-import { fmtBRL, fmtCompetencia, fmtData, fmtPct } from "../comissoes/fmt";
+import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
-import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, pagamentosDoExtrato, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
+import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
 import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
 import {
   competenciaFechada, dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
@@ -26,18 +26,17 @@ function RodapeMensal() {
   return <footer className="rodape-mensal mt-6 border-t border-border pt-3 text-[7pt] leading-relaxed text-muted-foreground"><p>{EMPRESA}</p></footer>;
 }
 
-function CarteiraTabela({ parcelas, complementos = [], atrasada = false }: { parcelas: Linha[]; complementos?: Linha[]; atrasada?: boolean }) {
+function CarteiraTabela({ parcelas, complementos = [], liberacoes, atrasada = false }: { parcelas: Linha[]; complementos?: Linha[]; liberacoes?: Set<string>; atrasada?: boolean }) {
   const linhas: Linha[] = atrasada
     ? parcelas.filter(p => p.situacao_parcela === "vencida")
       .map((p): Linha => ({ ...p, comissao: numero(p.comissao_da_parcela) }))
       .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.vencimento ?? "").localeCompare(String(b.vencimento ?? "")))
-    : [...carteiraPorPedido(parcelas, "a_vencer"), ...complementosNaCarteira(complementos)]
+    : [...carteiraPorPedido(parcelas, "a_vencer", liberacoes), ...complementosNaCarteira(complementos)]
       .sort((a, b) => String(a.cliente ?? "").localeCompare(String(b.cliente ?? ""), "pt-BR") || String(a.pedido ?? "").localeCompare(String(b.pedido ?? ""), "pt-BR"));
   if (atrasada && !linhas.length) return null;
   return <section className="bloco-mensal mt-6">
     <h2 className="text-[12pt] font-medium">{atrasada ? "Travado por atraso do cliente" : "A receber"}</h2>
-    {!atrasada && <p className="mt-1 text-[7.5pt] text-muted-foreground">Posição em {fmtData(hojeISO())}</p>}
-    {!linhas.length ? <p className="mt-3 text-[9pt] text-muted-foreground">Nada a receber no momento</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
+    {!linhas.length ? <p className="mt-3 text-[9pt] text-muted-foreground">—</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
       <colgroup><col className="w-[31%]"/><col className="w-[15%]"/><col className="w-[17%]"/><col className="w-[17%]"/><col className="w-[20%]"/></colgroup>
       <thead><tr><th>Cliente</th><th>Pedido</th><th className="text-right">{atrasada ? "Vencido desde" : "Parcelas"}</th><th className="text-right">{atrasada ? "Dias em atraso" : "Próximo vencimento"}</th><th className="text-right">{atrasada ? "Comissão travada" : "Comissão a receber"}</th></tr></thead>
       <tbody>{linhas.map((l, i) => <tr key={i}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="text-right tabular-nums">{atrasada ? fmtData(l.vencimento) : (l.complemento ? "—" : rotuloParcelas(l.parcelas_lista ?? [], l.total_parcelas ?? 0))}</td><td className="text-right tabular-nums">{atrasada ? l.dias_atraso : l.complemento ? "—" : fmtData(l.vencimento)}</td><td className="text-right tabular-nums">{fmtBRL(l.comissao)}</td></tr>)}</tbody>
@@ -46,8 +45,8 @@ function CarteiraTabela({ parcelas, complementos = [], atrasada = false }: { par
   </section>;
 }
 
-function DocumentoMensal({ competencia, representante, extrato, parcelas, complementos, pagamentos }: {
-  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[];
+function DocumentoMensal({ competencia, representante, extrato, parcelas, complementos, pagamentos, liberacoes }: {
+  competencia: string; representante: Linha; extrato?: ExtratoFechadoDoRepresentante; parcelas: Linha[]; complementos: Linha[]; pagamentos: Linha[]; liberacoes: Set<string>;
 }) {
   const fechadaSemExtrato = !extrato && competenciaFechada(competencia);
   const ajustes = ajustesDoExtrato(Array.isArray(extrato?.detalhe) ? extrato.detalhe : []);
@@ -62,13 +61,13 @@ function DocumentoMensal({ competencia, representante, extrato, parcelas, comple
     </section>
     {!fechadaSemExtrato && <section className="bloco-mensal mt-6">
       <h2 className="text-[12pt] font-medium">De onde vem</h2>
-      {!pagamentos.length ? <p className="mt-3 text-[9pt] text-muted-foreground">{extrato ? "Nenhuma parcela paga neste extrato." : "As parcelas deste extrato serão identificadas após o fechamento."}</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
+      {!pagamentos.length ? <p className="mt-3 text-[9pt] text-muted-foreground">—</p> : <table className="tabela-mensal mt-3 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[28%]"/><col className="w-[14%]"/><col className="w-[26%]"/><col className="w-[16%]"/><col className="w-[16%]"/></colgroup>
         <thead><tr><th>Cliente</th><th>Pedido</th><th>Cliente pagou</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{pagamentos.map((p, i) => <tr key={String(p.liberacao_id)}><td>{i === 0 || pagamentos[i - 1].cliente !== p.cliente ? p.cliente || "—" : ""}</td><td>{p.pedido || "—"}</td><td><span className="tabular-nums">{fmtBRL(numero(p.valor_parcela))}</span><span> · parc. {p.numero_parcela}/{p.total_parcelas}</span></td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas, p.pct_efetivo)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.valor_liberado))}</td></tr>)}</tbody>
+        <tbody>{pagamentos.map((p, i) => <tr key={String(p.liberacao_id)}><td>{i === 0 || pagamentos[i - 1].cliente !== p.cliente ? p.cliente || "—" : ""}</td><td>{p.pedido || "—"}</td><td><span className="tabular-nums">{fmtBRL(numero(p.valor_parcela))}</span><span> · parc. {p.numero_parcela}/{p.total_parcelas}</span></td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.valor_liberado))}</td></tr>)}</tbody>
       </table>}
     </section>}
-    <CarteiraTabela parcelas={parcelas} complementos={complementos}/><CarteiraTabela parcelas={parcelas} atrasada/>
+    <CarteiraTabela parcelas={parcelas} complementos={complementos} liberacoes={liberacoes}/><CarteiraTabela parcelas={parcelas} atrasada/>
     {ajustes.length > 0 && <section className="bloco-mensal mt-6"><h2 className="text-[12pt] font-medium">Ajustes</h2><div className="mt-3 border-t border-border">{ajustes.map((a, i) => <div key={String(a.liberacao_id ?? a.estorno_id ?? i)} className="flex justify-between gap-5 border-b border-border py-3 text-[8pt]"><div className="flex gap-4"><span className="font-medium">{a.tipo === "estorno" ? "Estorno" : "Complemento"}</span><span>{a.pedido || "—"}</span></div><span className="shrink-0 text-right tabular-nums">{a.tipo === "estorno" ? "−" : "+"} {fmtBRL(Math.abs(numero(a.valor)))}</span></div>)}</div></section>}
     <RodapeMensal/>
   </section>;
@@ -165,6 +164,9 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
   }
   const selo = extrato ? `Fechado em ${fmtData(extrato.fechado_em)}` : competenciaFechada(competencia) ? "Sem extrato" : "Prévia";
   const opcoes = opcoesCompetencia(extratosQ.data ?? []);
+  const liberacoes = liberacoesEmExtratos(extratosQ.data ?? []);
+  const parcelas = detalhesQ.data ?? [];
+  if (!extrato && !(complementosQ.data?.length) && !parcelas.some(p => p.situacao_parcela === "vencida" || parcelaAReceber(p, liberacoes))) return null;
 
   return (
     <>
@@ -186,7 +188,7 @@ export function ExtratoRepresentanteDocumento({ vendedorId, competencia: compete
         </select>
         <span className="text-muted-foreground">{selo}</span>
       </div>}
-      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={detalhesQ.data ?? []} complementos={complementosQ.data ?? []} pagamentos={pagamentos}/>
+      <DocumentoMensal competencia={competencia} representante={representante} extrato={extrato} parcelas={parcelas} complementos={complementosQ.data ?? []} pagamentos={pagamentos} liberacoes={liberacoes}/>
     </>
   );
 }

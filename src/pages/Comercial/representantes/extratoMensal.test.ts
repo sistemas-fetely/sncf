@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, pagamentosDoExtrato, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
-import { competenciaFechada } from "./extratoCompetencias";
+import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, liberacoesEmExtratos, pagamentosDoExtrato, representantesDoLote, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
+import { competenciaFechada, dataDoFechamento } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
   it("seleciona somente liberações do detalhe e usa valor_liberado da view", () => {
@@ -39,13 +39,49 @@ describe("prestação de contas mensal", () => {
   });
   it("mostra a taxa de cada linha de produto, nunca a média", () => {
     expect(rotuloTaxas([6])).toBe("6%");
-    expect(rotuloTaxas([8, 10], 8.15)).toBe("8% / 10%");
+    expect(rotuloTaxas([8, 10])).toBe("8% / 10%");
+    expect(rotuloTaxas(null)).toBe("—");
   });
   it("complemento pendente entra no A receber com o valor como comissão", () => {
     expect(complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: "22.20" }])).toEqual([{ cliente: "FZL", pedido: "PED-2187", comissao: 22.2, complemento: true }]);
   });
-  it("competência de pagamento fecha no dia 1 do próprio mês", () => {
-    expect(competenciaFechada("2026-10", "2026-09-30")).toBe(false);
-    expect(competenciaFechada("2026-10", "2026-10-01")).toBe(true);
+  it("preserva a data de fechamento existente no primeiro dia do mês seguinte", () => {
+    expect(dataDoFechamento("2026-10")).toBe("01/11");
+    expect(competenciaFechada("2026-10", "2026-10-31")).toBe(false);
+    expect(competenciaFechada("2026-10", "2026-11-01")).toBe(true);
+    expect(competenciaFechada("2026-12", "2027-01-01")).toBe(true);
+  });
+  it("inclui a parcela 2 já paga de PED-2153 sem usar seu vencimento passado", () => {
+    const parcelas = [
+      { cliente: "A", pedido: "PED-2153", numero_parcela: 2, total_parcelas: 5, situacao_parcela: "paga_aguarda_liberacao", vencimento: "2026-09-10", comissao_da_parcela: 411.13 },
+      { cliente: "A", pedido: "PED-2153", numero_parcela: 3, total_parcelas: 5, situacao_parcela: "a_vencer", vencimento: "2026-11-10", comissao_da_parcela: 411.13 },
+    ];
+    expect(carteiraPorPedido(parcelas, "a_vencer", new Set())[0]).toMatchObject({ comissao: 822.26, parcelas_lista: [2, 3], total_parcelas: 5, vencimento: "2026-11-10" });
+  });
+  it("exclui liberações de qualquer extrato e usa valor_liberado nas ainda não incluídas", () => {
+    const ids = liberacoesEmExtratos([{ competencia: "2026-09-01", detalhe: [{ liberacao_id: "antiga" }] }, { competencia: "2026-11-01", detalhe: [{ liberacao_id: "futura" }] }]);
+    const parcelas = ["antiga", "futura", "pendente"].map(liberacao_id => ({ cliente: "A", pedido: "P", liberacao_id, situacao_parcela: "liberada", valor_liberado: 22.2, comissao_da_parcela: 100, vencimento: "2026-09-10" }));
+    expect(carteiraPorPedido(parcelas, "a_vencer", ids)[0]).toMatchObject({ comissao: 22.2, parcelas: 1, vencimento: null });
+  });
+  it("total a receber soma futuras, pagas pendentes, liberadas fora do extrato e complementos sem vencidas", () => {
+    const parcelas = [
+      { pedido: "P", situacao_parcela: "a_vencer", comissao_da_parcela: 100 },
+      { pedido: "P", situacao_parcela: "paga_aguarda_liberacao", comissao_da_parcela: 411.13 },
+      { pedido: "P", situacao_parcela: "liberada", liberacao_id: "nova", valor_liberado: 50 },
+      { pedido: "P", situacao_parcela: "vencida", comissao_da_parcela: 999 },
+    ];
+    const linhas = [...carteiraPorPedido(parcelas, "a_vencer", new Set()), ...complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: 22.2 }])];
+    expect(linhas.reduce((s, l) => s + l.comissao, 0)).toBeCloseTo(583.33, 2);
+  });
+  it("inclui no lote extrato do mês, futuras, pagas pendentes, vencidas e complementos, não liberações já pagas", () => {
+    const extratos = [{ vendedor_id: "quitado", competencia: "2026-09-01", detalhe: [{ liberacao_id: "paga" }] }, { vendedor_id: "extrato", competencia: "2026-10-01" }];
+    const parcelas = [
+      { vendedor_id: "quitado", situacao_parcela: "liberada", liberacao_id: "paga" },
+      { vendedor_id: "futuro", situacao_parcela: "a_vencer" },
+      { vendedor_id: "pendente", situacao_parcela: "paga_aguarda_liberacao" },
+      { vendedor_id: "liberado", situacao_parcela: "liberada", liberacao_id: "nova" },
+      { vendedor_id: "atrasado", situacao_parcela: "vencida" },
+    ];
+    expect(representantesDoLote(extratos, parcelas, [{ vendedor_id: "complemento", valor: 22.2 }], "2026-10")).toEqual(["extrato", "futuro", "pendente", "liberado", "atrasado", "complemento"]);
   });
 });
