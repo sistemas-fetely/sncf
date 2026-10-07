@@ -12,8 +12,6 @@ import {
 } from "./extratoCompetencias";
 
 const EMPRESA = "Fetély Comércio Importação e Exportação Ltda · CNPJ 63.591.078/0001-48";
-const NOTA_LEGAL =
-  "A comissão nasce na nota fiscal, sobre o valor da NF menos frete, e só é liberada quando o cliente paga. Pagamento até o dia 15 do mês subsequente à liquidação, mediante nota fiscal de serviço (Lei 4.886/1965, art. 32). Dúvidas podem ser registradas pelo portal do representante.";
 const RE_COMPETENCIA = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 /** Mês anterior ao mês de pagamento — o período medido pelo extrato. */
@@ -33,7 +31,7 @@ function numero(v: unknown) {
 }
 
 function RodapeMensal() {
-  return <footer className="rodape-mensal mt-6 border-t border-border pt-3 text-[7pt] leading-relaxed text-muted-foreground"><p>{NOTA_LEGAL}</p><p className="mt-2">{EMPRESA}</p></footer>;
+  return <footer className="rodape-mensal mt-6 border-t border-border pt-3 text-[7pt] leading-relaxed text-muted-foreground"><p>{EMPRESA}</p></footer>;
 }
 
 function CarteiraTabela({ parcelas, atrasada = false }: { parcelas: Linha[]; atrasada?: boolean }) {
@@ -77,7 +75,7 @@ function DocumentoMensal({ competencia, representante, extrato, parcelas, pagame
       </table>}
     </section>
     <CarteiraTabela parcelas={parcelas}/><CarteiraTabela parcelas={parcelas} atrasada/>
-    {ajustes.length > 0 && <section className="bloco-mensal mt-6"><h2 className="text-[12pt] font-medium">Ajustes</h2><div className="mt-3 border-t border-border">{ajustes.map((a, i) => <div key={String(a.liberacao_id ?? a.estorno_id ?? i)} className="flex justify-between gap-5 border-b border-border py-3 text-[8pt]"><div>{a.pedido && <p className="font-medium">{a.pedido}</p>}<p className="text-muted-foreground">{a.motivo || "Motivo não informado"}</p></div><span className="shrink-0 text-right tabular-nums">{a.tipo === "estorno" ? "−" : "+"} {fmtBRL(Math.abs(numero(a.valor)))}</span></div>)}</div></section>}
+    {ajustes.length > 0 && <section className="bloco-mensal mt-6"><h2 className="text-[12pt] font-medium">Ajustes</h2><div className="mt-3 border-t border-border">{ajustes.map((a, i) => <div key={String(a.liberacao_id ?? a.estorno_id ?? i)} className="flex justify-between gap-5 border-b border-border py-3 text-[8pt]"><div className="flex gap-4"><span className="font-medium">{a.tipo === "estorno" ? "Estorno" : "Complemento"}</span><span>{a.pedido || "—"}</span></div><span className="shrink-0 text-right tabular-nums">{a.tipo === "estorno" ? "−" : "+"} {fmtBRL(Math.abs(numero(a.valor)))}</span></div>)}</div></section>}
     <RodapeMensal/>
   </section>;
 }
@@ -103,112 +101,67 @@ function linhasDaMemoria(nf: Linha): LinhaMemoria[] {
   }];
 }
 
-function fmtAjuste(v: unknown) {
-  const n = numero(v);
-  if (n === 0) return "—";
-  return `${n > 0 ? "−" : "+"}${fmtPct(Math.abs(n), " p.p.")}`;
+function fmtTaxa(l: LinhaMemoria) {
+  const ajuste = numero(l.ajuste_pp);
+  return ajuste > 0 ? `${fmtPct(l.pct_aplicado)} (−${fmtPct(ajuste, " p.p.")})` : fmtPct(l.pct_aplicado);
+}
+
+function BlocoNF({ nf }: { nf: Linha }) {
+  const linhas = linhasDaMemoria(nf);
+  const frete = numero(nf.frete);
+  const pix = numero(nf.pix_na_base);
+  const conta: [string, number][] = [["Valor da NF", numero(nf.valor_nf)]];
+  if (frete !== 0) conta.push(["− Frete", frete]);
+  if (pix !== 0) conta.push(["+ Bônus PIX", pix]);
+  conta.push(["= Base", numero(nf.base)]);
+  const totalBase = linhas.reduce((s, l) => s + numero(l.base), 0);
+  const totalComissao = linhas.reduce((s, l) => s + numero(l.comissao), 0);
+  return (
+    <div className="bloco-nf mt-3 border border-border p-3 text-[8pt]" style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
+      <p className="font-medium">NF {nf.nf_numero ?? "—"} · {nf.pedido || "—"} · {nf.cliente || "—"} · {fmtData(nf.nf_emissao)}</p>
+      <div className="mt-2 flex gap-8">
+        {conta.map(([rotulo, valor]) => (
+          <div key={rotulo} className="text-right">
+            <p className="text-[7pt] text-muted-foreground">{rotulo}</p>
+            <p className="tabular-nums">{fmtBRL(valor)}</p>
+          </div>
+        ))}
+      </div>
+      <table className="mt-2 w-full border-collapse">
+        <thead><tr className="border-b border-border text-[7pt] text-muted-foreground">
+          <th className="py-1 text-left font-medium">Linha</th><th className="py-1 text-right font-medium">Base</th>
+          <th className="py-1 text-right font-medium">Taxa</th><th className="py-1 text-right font-medium">Comissão</th>
+        </tr></thead>
+        <tbody>
+          {linhas.map((l, i) => (
+            <tr key={i} className="border-b border-border/60">
+              <td className="whitespace-nowrap py-1">{l.linha || "—"}</td>
+              <td className="py-1 text-right tabular-nums">{fmtBRL(numero(l.base))}</td>
+              <td className="whitespace-nowrap py-1 text-right tabular-nums">{fmtTaxa(l)}</td>
+              <td className="py-1 text-right tabular-nums">{fmtBRL(numero(l.comissao))}</td>
+            </tr>
+          ))}
+          {linhas.length > 1 && (
+            <tr className="font-semibold">
+              <td className="py-1">Total da NF</td>
+              <td className="py-1 text-right tabular-nums">{fmtBRL(totalBase)}</td>
+              <td />
+              <td className="py-1 text-right tabular-nums">{fmtBRL(totalComissao)}</td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function MemoriaCalculoNF({ memoria }: { memoria: Linha[] }) {
-  const mostrarFrete = memoria.some(nf => numero(nf.frete) !== 0);
-  const retificadas = memoria.filter((nf) => Boolean(nf.retificacao_motivo));
-  const indiceRetificacao = new Map(retificadas.map((nf, indice) => [String(nf.apuracao_id ?? nf.nf_id), indice + 1]));
-  const totais = memoria.reduce((acc, nf) => {
-    const linhas = linhasDaMemoria(nf);
-    return {
-      valor: acc.valor + numero(nf.valor_nf),
-      frete: acc.frete + numero(nf.frete),
-      base: acc.base + numero(nf.base),
-      comissao: acc.comissao + linhas.reduce((soma, linha) => soma + numero(linha.comissao), 0),
-    };
-  }, { valor: 0, frete: 0, base: 0, comissao: 0 });
-
   return (
     <section className="mt-4">
       <h2 className="text-[8pt] font-medium">Memória de cálculo</h2>
-      <p className="mt-1 text-[7pt] leading-relaxed text-muted-foreground">
-        Base = valor da NF − frete. % aplicado = % da tabela da linha − ajuste da régua de desconto. Comissão = base × % aplicado, por linha de produto.
-      </p>
-      {memoria.length === 0 ? (
-        <p className="mt-2 border-y border-border py-3 text-[7.5pt] text-muted-foreground">Nenhuma NF emitida ou paga neste período.</p>
-      ) : (
-        <table className="memoria-nf mt-2 w-full table-fixed border-collapse text-[7pt] leading-tight">
-          <colgroup>
-            <col className="w-[7%]"/><col className="w-[9%]"/><col className={mostrarFrete ? "w-[12%]" : "w-[15%]"}/><col className="w-[11%]"/>
-            {mostrarFrete && <col className="w-[7%]"/>}<col className="w-[11%]"/><col className="w-[8%]"/><col className="w-[6%]"/>
-            <col className="w-[9%]"/><col className="w-[6%]"/><col className="w-[6%]"/><col className={mostrarFrete ? "w-[8%]" : "w-[12%]"}/>
-          </colgroup>
-          <thead style={{ display: "table-header-group" }}>
-            <tr className="border-y border-border text-muted-foreground">
-              <th className="py-1 text-left font-medium">NF</th>
-              <th className="px-0.5 py-1 text-left font-medium">Emissão</th>
-              <th className="px-0.5 py-1 text-left font-medium">Cliente</th>
-              <th className="px-0.5 py-1 text-right font-medium">Valor NF</th>
-              {mostrarFrete && <th className="px-0.5 py-1 text-right font-medium">Frete</th>}
-              <th className="px-0.5 py-1 text-right font-medium">Base</th>
-              <th className="px-0.5 py-1 text-right font-medium">Desconto</th>
-              <th className="px-0.5 py-1 text-right font-medium">Ajuste</th>
-              <th className="px-0.5 py-1 text-left font-medium">Linha</th>
-              <th className="px-0.5 py-1 text-right font-medium">% tabela</th>
-              <th className="px-0.5 py-1 text-right font-medium">% aplicado</th>
-              <th className="py-1 pl-0.5 text-right font-medium">Comissão</th>
-            </tr>
-          </thead>
-          {memoria.map((nf) => {
-              const linhas = linhasDaMemoria(nf);
-              const subtotal = linhas.reduce((soma, linha) => soma + numero(linha.comissao), 0);
-              const indice = indiceRetificacao.get(String(nf.apuracao_id ?? nf.nf_id));
-              return (
-                <tbody key={String(nf.apuracao_id ?? nf.nf_id ?? nf.nf_numero)} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-                  {linhas.map((linha, linhaIndice) => (
-                    <tr key={`${nf.apuracao_id ?? nf.nf_id}-${linhaIndice}`} className={cn("border-b border-border/60", linhaIndice === 0 && "border-t border-t-foreground/30")} style={{ breakInside: "avoid", pageBreakInside: "avoid" }}>
-                      <td className="py-1 align-top tabular-nums">{linhaIndice === 0 ? <>{nf.nf_numero ?? "—"}{indice ? <sup>{indice}</sup> : null}</> : ""}</td>
-                      <td className="px-0.5 py-1 align-top tabular-nums">{linhaIndice === 0 ? fmtData(nf.nf_emissao) : ""}</td>
-                      <td className="px-0.5 py-1 align-top">{linhaIndice === 0 ? nf.cliente || "—" : ""}</td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.valor_nf)) : ""}</td>
-                      {mostrarFrete && <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtBRL(numero(nf.frete)) : ""}</td>}
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">
-                        {fmtBRL(numero(linhas.length > 1 ? linha.base : nf.base))}
-                      </td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtPct(nf.desconto_regua_pct) : ""}</td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{linhaIndice === 0 ? fmtAjuste(nf.ajuste_pp) : ""}</td>
-                      <td className="px-0.5 py-1 align-top">{linha.linha || "—"}</td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_tabela)}</td>
-                      <td className="px-0.5 py-1 text-right align-top tabular-nums">{fmtPct(linha.pct_aplicado)}</td>
-                      <td className="py-1 pl-0.5 text-right align-top tabular-nums">{fmtBRL(numero(linha.comissao))}</td>
-                    </tr>
-                  ))}
-                  {linhas.length > 1 && (
-                    <tr className="border-b border-border bg-muted/30 font-medium">
-                      <td colSpan={mostrarFrete ? 11 : 10} className="py-1 text-right">Subtotal NF {nf.nf_numero}</td>
-                      <td className="py-1 pl-0.5 text-right tabular-nums">{fmtBRL(subtotal)}</td>
-                    </tr>
-                  )}
-                </tbody>
-              );
-            })}
-          <tfoot>
-            <tr className="border-t border-foreground/50 font-medium">
-              <td colSpan={3} className="py-1.5">Total</td>
-              <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.valor)}</td>
-              {mostrarFrete && <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.frete)}</td>}
-              <td className="px-0.5 py-1.5 text-right tabular-nums">{fmtBRL(totais.base)}</td>
-              <td colSpan={5} />
-              <td className="py-1.5 pl-0.5 text-right tabular-nums">{fmtBRL(totais.comissao)}</td>
-            </tr>
-          </tfoot>
-        </table>
-      )}
-      {retificadas.length > 0 && (
-        <div className="mt-1.5 space-y-0.5 text-[7pt] leading-relaxed text-muted-foreground">
-          {retificadas.map((nf, indice) => (
-            <p key={String(nf.apuracao_id ?? nf.nf_id)}>
-              <sup>{indice + 1}</sup> NF {nf.nf_numero}: {nf.retificacao_motivo}
-              {nf.retificado_em ? ` (retificado em ${fmtData(nf.retificado_em)})` : ""}
-            </p>
-          ))}
-        </div>
-      )}
+      {memoria.length === 0
+        ? <p className="mt-2 border-y border-border py-3 text-[7.5pt] text-muted-foreground">—</p>
+        : memoria.map((nf) => <BlocoNF key={String(nf.apuracao_id ?? nf.nf_id ?? nf.nf_numero)} nf={nf}/>)}
     </section>
   );
 }
