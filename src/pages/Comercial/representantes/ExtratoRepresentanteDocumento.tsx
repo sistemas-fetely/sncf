@@ -130,7 +130,7 @@ export const ESTILOS_IMPRESSAO = `
   .documento-extrato .tabela-mensal th.text-right { text-align: right; }
   .documento-extrato .tabela-mensal td { border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
   .documento-extrato .tabela-mensal th, .documento-extrato .tabela-mensal td { padding: 8px 4px; }
-  .documento-extrato tfoot { font-weight: 500; }
+  .documento-extrato tfoot { display: table-row-group; font-weight: 500; }
   .documento-extrato .tabela-mensal tr.cabecalho-mes td { background: hsl(var(--muted)); font-weight: 600; }
   .documento-extrato .tabela-mensal tr.cabecalho-mes { break-after: avoid; page-break-after: avoid; }
   .documento-extrato .tabela-mensal td.tabular-nums { white-space: nowrap; }
