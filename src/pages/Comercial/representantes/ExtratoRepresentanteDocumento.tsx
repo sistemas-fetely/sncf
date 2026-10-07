@@ -4,7 +4,7 @@ import { hojeISO } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 import { fmtBRL, fmtCompetencia, fmtData } from "../comissoes/fmt";
 import { lerTudo, type Linha } from "./dados";
-import { agendaRecebiveis, ajustesDoExtrato, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, parcelasEmAtraso, rotuloTaxas, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, liberacoesEmExtratos, pagamentosDoExtrato, parcelaAReceber, parcelasEmAtraso, rotuloTaxas, somarMeses } from "./extratoMensal";
 import type { ExtratoFechadoDoRepresentante } from "./extratoCompetencias";
 import {
   competenciaFechada, dataDoFechamento, extratoDaCompetencia, lerExtratosDoRepresentante, opcoesCompetencia,
@@ -58,8 +58,8 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
   const ano = kpis.filter(k => String(k.competencia).slice(0, 4) === mesVendas.slice(0, 4) && String(k.competencia).slice(0, 7) <= mesVendas);
   const soma = (c: string) => ano.reduce((t, k) => t + numero(k[c]), 0);
   const linhasPagas = [
-    ...pagamentos.map(p => ({ k: String(p.liberacao_id), cliente: p.cliente, pedido: p.pedido, parcela: `${p.numero_parcela}/${p.total_parcelas} · ${ddmm(p.pago_em ?? p.data_liquidacao)}`, pagou: fmtBRL(numero(p.valor_parcela)), taxa: rotuloTaxas(p.taxas_linhas), valor: numero(p.valor_liberado) })),
-    ...ajustes.map((a, i) => ({ k: String(a.liberacao_id ?? a.estorno_id ?? i), cliente: a.cliente ?? clientePorPedido.get(String(a.pedido)), pedido: a.pedido, parcela: a.tipo === "estorno" ? "estorno" : "complemento", pagou: "—", taxa: "—", valor: numero(a.valor) })),
+    ...pagamentos.map(p => ({ k: String(p.liberacao_id), cliente: p.cliente, pedido: p.pedido, parcela: `${p.numero_parcela}/${p.total_parcelas} · ${ddmm(p.pago_em ?? p.data_liquidacao)}`, base: fmtBRL(baseDaLiberacao(p)), taxa: rotuloTaxas(p.taxas_linhas), valor: numero(p.valor_liberado) })),
+    ...ajustes.map((a, i) => ({ k: String(a.liberacao_id ?? a.estorno_id ?? i), cliente: a.cliente ?? clientePorPedido.get(String(a.pedido)), pedido: a.pedido, parcela: a.tipo === "estorno" ? "estorno" : "complemento", base: "—", taxa: "—", valor: numero(a.valor) })),
   ];
   return <section className="pagina-a4 pagina-mensal bg-card text-card-foreground">
     <header className="flex items-start justify-between gap-4 border-b border-border pb-4">
@@ -89,8 +89,8 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       <h2 className="text-[11pt] font-medium">Comissões pagas em {mesNome(competencia)}</h2>
       <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[28%]"/><col className="w-[13%]"/><col className="w-[17%]"/><col className="w-[16%]"/><col className="w-[11%]"/><col className="w-[15%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th className="text-right">Cliente pagou</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{linhasPagas.map(l => <tr key={l.k}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="tabular-nums">{l.parcela}</td><td className="text-right tabular-nums">{l.pagou}</td><td className="text-right tabular-nums">{l.taxa}</td><td className="text-right tabular-nums">{fmtBRL(l.valor)}</td></tr>)}</tbody>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{linhasPagas.map(l => <tr key={l.k}><td>{l.cliente || "—"}</td><td>{l.pedido || "—"}</td><td className="tabular-nums">{l.parcela}</td><td className="text-right tabular-nums">{l.base}</td><td className="text-right tabular-nums">{l.taxa}</td><td className="text-right tabular-nums">{fmtBRL(l.valor)}</td></tr>)}</tbody>
         <tfoot><tr><td colSpan={5}>Total</td><td className="text-right tabular-nums">{fmtBRL(linhasPagas.reduce((t, l) => t + l.valor, 0))}</td></tr></tfoot>
       </table>
     </section>}
@@ -98,10 +98,10 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       <h2 className="text-[11pt] font-medium">Próximos pagamentos</h2>
       <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Valor da parcela</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
         {agenda.map(m => <tbody key={m.mes} className="mes-agenda">
           <tr className="cabecalho-mes"><td colSpan={6}>{capital(mesAno(m.mes))} · até {ddmm(m.pagarAte)}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
-          {m.itens.map((it, i) => <tr key={i}><td className="truncate" title={it.cliente || undefined}>{it.cliente || "—"}</td><td className="whitespace-nowrap">{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{it.valorParcela === null ? "—" : fmtBRL(it.valorParcela)}</td><td className="text-right tabular-nums">{rotuloTaxas(it.taxas)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
+          {m.itens.map((it, i) => <tr key={i}><td className="truncate" title={it.cliente || undefined}>{it.cliente || "—"}</td><td className="whitespace-nowrap">{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{it.base === null ? "—" : fmtBRL(it.base)}</td><td className="text-right tabular-nums">{rotuloTaxas(it.taxas)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
         </tbody>)}
         <tfoot><tr><td colSpan={6}>Total a receber</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
       </table>
@@ -110,8 +110,8 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
       <h2 className="text-[11pt] font-medium text-destructive">Em atraso</h2>
       <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
         <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Venceu em</th><th className="text-right">Valor da parcela</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{atraso.map((p, i) => <tr key={i}><td className="truncate" title={p.cliente || undefined}>{p.cliente || "—"}</td><td className="whitespace-nowrap">{p.pedido || "—"}</td><td className="tabular-nums">{p.numero_parcela}/{p.total_parcelas}</td><td className="tabular-nums">{ddmm(p.vencimento)} · {numero(p.dias_atraso)} dias</td><td className="text-right tabular-nums">{fmtBRL(numero(p.valor_parcela))}</td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.comissao_da_parcela))}</td></tr>)}</tbody>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Venceu em</th><th className="text-right">Base</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{atraso.map((p, i) => <tr key={i}><td className="truncate" title={p.cliente || undefined}>{p.cliente || "—"}</td><td className="whitespace-nowrap">{p.pedido || "—"}</td><td className="tabular-nums">{p.numero_parcela}/{p.total_parcelas}</td><td className="tabular-nums">{ddmm(p.vencimento)} · {numero(p.dias_atraso)} dias</td><td className="text-right tabular-nums">{fmtBRL(numero(p.base_parcela))}</td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.comissao_da_parcela))}</td></tr>)}</tbody>
       </table>
     </section>}
     <RodapeMensal/>

@@ -5,6 +5,13 @@ export function valorNumero(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+export function baseDaLiberacao(parcela: Linha): number {
+  const base = valorNumero(parcela.base_parcela);
+  const comissao = valorNumero(parcela.comissao_da_parcela);
+  if (comissao <= 0) return base;
+  return Math.round((base * valorNumero(parcela.valor_liberado) / comissao) * 100) / 100;
+}
+
 export function pagamentosDoExtrato(itens: Linha[], parcelas: Linha[]): Linha[] {
   const porId = new Map(parcelas.filter(p => p.liberacao_id).map(p => [String(p.liberacao_id), p]));
   return itens.filter(i => i.tipo === "liberacao" && i.subtipo !== "complemento").map(i => {
@@ -67,7 +74,7 @@ export interface ItemAgenda {
   parcela: string; // "2/4" ou "complemento"
   vencimento: string | null; // data ISO do cliente (vencimento ou pagamento)
   pago: boolean;
-  valorParcela: number | null;
+  base: number | null;
   taxas: unknown;
   comissao: number;
 }
@@ -93,21 +100,21 @@ export function agendaRecebiveis(parcelas: Linha[], complementos: Linha[], extra
     const parcela = `${valorNumero(p.numero_parcela)}/${valorNumero(p.total_parcelas)}`;
     if (p.situacao_parcela === "a_vencer") {
       if (!p.vencimento) continue;
-      itens.push({ mes: somarMeses(String(p.vencimento), 1), cliente: p.cliente, pedido: p.pedido, parcela, vencimento: p.vencimento, pago: false, valorParcela: valorNumero(p.valor_parcela), taxas: p.taxas_linhas, comissao: valorNumero(p.comissao_da_parcela) });
+      itens.push({ mes: somarMeses(String(p.vencimento), 1), cliente: p.cliente, pedido: p.pedido, parcela, vencimento: p.vencimento, pago: false, base: valorNumero(p.base_parcela), taxas: p.taxas_linhas, comissao: valorNumero(p.comissao_da_parcela) });
     } else if (p.situacao_parcela === "paga_aguarda_liberacao" || (p.situacao_parcela === "liberada" && lib && !pagos.has(lib))) {
       const pagoEm = p.pago_em ?? p.data_liquidacao ?? null;
       const mes = (lib && mesFuturo.get(lib)) || (p.competencia_pagamento ? String(p.competencia_pagamento).slice(0, 7) : pagoEm ? somarMeses(String(pagoEm), 1) : somarMeses(comp, 1));
       if (lib) vistos.add(lib);
-      itens.push({ mes, cliente: p.cliente, pedido: p.pedido, parcela, vencimento: pagoEm, pago: true, valorParcela: valorNumero(p.valor_parcela), taxas: p.taxas_linhas, comissao: valorNumero(p.valor_liberado ?? p.comissao_da_parcela) });
+      itens.push({ mes, cliente: p.cliente, pedido: p.pedido, parcela, vencimento: pagoEm, pago: true, base: valorNumero(p.base_parcela), taxas: p.taxas_linhas, comissao: valorNumero(p.valor_liberado ?? p.comissao_da_parcela) });
     }
   }
   for (const c of complementos) {
     if (c.liberacao_id) vistos.add(String(c.liberacao_id));
-    itens.push({ mes: c.competencia_pagamento ? String(c.competencia_pagamento).slice(0, 7) : somarMeses(comp, 1), cliente: c.cliente, pedido: c.pedido, parcela: "complemento", vencimento: null, pago: false, valorParcela: null, taxas: null, comissao: valorNumero(c.valor) });
+    itens.push({ mes: c.competencia_pagamento ? String(c.competencia_pagamento).slice(0, 7) : somarMeses(comp, 1), cliente: c.cliente, pedido: c.pedido, parcela: "complemento", vencimento: null, pago: false, base: null, taxas: null, comissao: valorNumero(c.valor) });
   }
   for (const e of futuros) for (const i of Array.isArray(e.detalhe) ? e.detalhe : []) {
     if (i.tipo !== "liberacao" || i.subtipo !== "complemento" || vistos.has(String(i.liberacao_id))) continue;
-    itens.push({ mes: String(e.competencia).slice(0, 7), cliente: i.cliente ?? clientePorPedido.get(String(i.pedido)) ?? null, pedido: i.pedido, parcela: "complemento", vencimento: null, pago: false, valorParcela: null, taxas: null, comissao: valorNumero(i.valor) });
+    itens.push({ mes: String(e.competencia).slice(0, 7), cliente: i.cliente ?? clientePorPedido.get(String(i.pedido)) ?? null, pedido: i.pedido, parcela: "complemento", vencimento: null, pago: false, base: null, taxas: null, comissao: valorNumero(i.valor) });
   }
   const meses = new Map<string, MesAgenda>();
   for (const it of itens) {
