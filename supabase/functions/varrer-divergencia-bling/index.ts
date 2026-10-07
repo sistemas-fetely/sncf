@@ -83,6 +83,9 @@ Deno.serve(async (req) => {
       if (!cursor && !corrigir) detalheErros.push({ sku: null, mensagem: `campo sem extrator: ${d.campo}` });
       return false;
     });
+    // Grupo tributário: sempre comparado; só escreve se o banco ligar sobrescreve.
+    const dpGrupo: Any = (dePara ?? []).find((d: Any) => d.campo === CAMPO_GRUPO)
+      ?? { campo: CAMPO_GRUPO, campo_destino: "tributacao.grupoProduto", sobrescreve: false };
 
     // ---- página do universo ----
     const pag = corrigir ? PAGINA_CORRIGIR : PAGINA;
@@ -118,6 +121,25 @@ Deno.serve(async (req) => {
       if (!cfg?.access_token) throw new Error("Bling não conectado");
       const client = makeBlingClient(sb, cfg as Any, await ensureFreshToken(sb, cfg as Any));
       let token = client.currentToken();
+
+      // Tabela de grupos de produtos, uma vez por execução (id ↔ nome).
+      const grupoNome = new Map<number, string>();
+      const grupoId = new Map<string, number>();
+      for (let p = 1; p <= 20; p++) {
+        if (p > 1) await sleep(THROTTLE_MS);
+        const r = await client.get(`/grupos-produtos?pagina=${p}&limite=100`);
+        const itens: Any[] = r?.data ?? [];
+        for (const g of itens) {
+          const id = Number(g?.id), nome = txt(g?.nome);
+          if (id > 0 && nome) { grupoNome.set(id, nome); grupoId.set(nome.toLowerCase(), id); }
+        }
+        if (itens.length < 100) break;
+      }
+      for (const n of [GRUPO_L1, GRUPO_L2]) {
+        if (!grupoId.has(n.toLowerCase())) {
+          throw new Error(`grupo "${n}" não encontrado em /grupos-produtos do Bling (lidos: ${[...grupoNome.values()].join(" | ") || "nenhum"})`);
+        }
+      }
 
 
       // Freio de formato (só no modo corrigir): campo -> motivo por cod_cadastro.
@@ -165,6 +187,26 @@ Deno.serve(async (req) => {
               setter(card, vs);
               novas.push(linha);
             });
+          }
+          {
+            const esperado = grupoTributarioEsperado(ficha.origem_fisc);
+            const idCard = grupoIdDoCard(atual);
+            const nomeCard = idCard === null ? null : (grupoNome.get(idCard) ?? `id ${idCard}`);
+            if (difere("txt", esperado, nomeCard)) {
+              const linha = {
+                lote_id: loteId, sistema: SISTEMA, cod_cadastro: l.cod_cadastro, sku: l.sku,
+                destino_id: String(l.bling_card_canonico), campo: CAMPO_GRUPO, campo_destino: dpGrupo.campo_destino,
+                valor_sncf: esperado, valor_destino: nomeCard,
+              };
+              if (!corrigir) novas.push(linha);
+              else if (dpGrupo.sobrescreve === true) {
+                if (esperado === null) pulados.push({ sku: l.sku, campo: CAMPO_GRUPO, motivo: "SNCF vazio" });
+                else {
+                  card.tributacao = { ...(card.tributacao ?? {}), grupoProduto: { id: grupoId.get(esperado.toLowerCase()) } };
+                  novas.push(linha);
+                }
+              }
+            }
           }
           if (corrigir && novas.length) {
             if (dryRun) {
