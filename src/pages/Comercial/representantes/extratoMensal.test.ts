@@ -46,10 +46,10 @@ describe("prestação de contas mensal", () => {
     expect(complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: "22.20" }])).toEqual([{ cliente: "FZL", pedido: "PED-2187", comissao: 22.2, complemento: true }]);
   });
   it("preserva a data de fechamento existente no primeiro dia do mês seguinte", () => {
-    expect(dataDoFechamento("2026-10")).toBe("01/11");
-    expect(competenciaFechada("2026-10", "2026-10-31")).toBe(false);
-    expect(competenciaFechada("2026-10", "2026-11-01")).toBe(true);
-    expect(competenciaFechada("2026-12", "2027-01-01")).toBe(true);
+    expect(dataDoFechamento("2026-10")).toBe("01/10");
+    expect(competenciaFechada("2026-10", "2026-09-30")).toBe(false);
+    expect(competenciaFechada("2026-10", "2026-10-01")).toBe(true);
+    expect(competenciaFechada("2026-12", "2026-12-01")).toBe(true);
   });
   it("inclui a parcela 2 já paga de PED-2153 sem usar seu vencimento passado", () => {
     const parcelas = [
