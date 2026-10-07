@@ -128780,6 +128780,10 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_shopify_id: string }
         Returns: Json
       }
+      fn_nascer_produto_nacional: {
+        Args: { p_dry_run?: boolean; p_produto: Json }
+        Returns: Json
+      }
       fn_nascer_tela: {
         Args: {
           p_abas?: Json
