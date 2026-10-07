@@ -28,8 +28,12 @@ export function CardKanbanCompacto({
   onAlterarData: () => void;
   onDragStart: (e: React.DragEvent) => void;
 }) {
-  const k = card._kanban;
+const k = card._kanban;
   const atraso = card.dias_atraso ?? 0;
+  /** Etapa com rótulo humano curto; o código cru nunca aparece na tela. */
+  const chipEtapa = etapa
+    ? `D+${etapa.dias_offset} · ${CANAL_LABEL[etapa.canal_sugerido] ?? etapa.canal_sugerido}`
+    : null;
   return (
     <div
       draggable
@@ -101,8 +105,15 @@ export function CardKanbanCompacto({
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {etapa && (
-          <Badge variant="outline" className="text-[10px]">{etapa.codigo}</Badge>
+        {chipEtapa && (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[10px]">{chipEtapa}</Badge>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs">{etapa!.descricao_acao}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
         <Badge variant="secondary" className={cn("text-[10px] gap-1", !k.responsavel_user_id && "text-muted-foreground")}>
           {k.responsavel_user_id ? (
