@@ -575,11 +575,11 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const naoRecebido = (t: RecebivelB2B) =>
     t.dinheiro_no_banco === false && t.carteira_gera_caixa !== false;
 
-  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro — `eh_inadimplente`
-     na view, que já respeita carteira.tem_vencimento. A tela de Cobrança lê a mesma
-     coisa. Régua de caixa (data_caixa_projetada) mede conciliação, não atraso, e
-     pertence à Controladoria. */
-  const estaVencido = (t: RecebivelB2B) => t.eh_inadimplente === true;
+  /* UM-VENCIDO-SO: "vencido" tem uma fonte só no sistema inteiro —
+     `vw_titulo_estado.vencido_contabil`, lida via `tituloEstadoLinhas` (vencidoIds).
+     A tela de Cobrança lê a mesma coisa. Régua de caixa (data_caixa_projetada) mede
+     conciliação, não atraso, e pertence à Controladoria. */
+  const estaVencido = (t: RecebivelB2B) => vencidoIds.has(t.id);
 
   const casaAchado = (t: RecebivelB2B, a: Achado) => {
     if (a === "sobreposicao") return t.sobreposicao_instrumento === true;
@@ -587,7 +587,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     if (a === "sem_prova") return t.fonte_data_recebimento === "marcado_humano";
     if (a === "data_divergente") return t.data_divergente === true;
     if (a === "meio_divergente") return t.meio_divergente === true;
-    return t.eh_inadimplente === true;
+    return estaVencido(t);
   };
 
   /* DUAS-MEDIDAS-DO-VENCIDO (09/09/2026): o CFO precisa separar atraso real
@@ -610,6 +610,15 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       new Set(
         (tituloEstadoLinhas ?? [])
           .filter((l) => l.em_carencia_bancaria && l.titulo_id)
+          .map((l) => l.titulo_id as string),
+      ),
+    [tituloEstadoLinhas],
+  );
+  const vencidoIds = useMemo(
+    () =>
+      new Set(
+        (tituloEstadoLinhas ?? [])
+          .filter((l) => l.vencido_contabil && l.titulo_id)
           .map((l) => l.titulo_id as string),
       ),
     [tituloEstadoLinhas],
@@ -639,7 +648,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
       return true;
     });
-  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds]);
+  }, [baseFiltros, filtroInstrumento, filtroPrazo, cobravelIds, carenciaIds, vencidoIds]);
 
   /**
    * Base dos chips de recebimento: já com carteira, achado e instrumento
@@ -856,7 +865,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
     }
     return { aVencer, vencidos };
-  }, [baseCarteiraSemPrazo]);
+  }, [baseCarteiraSemPrazo, vencidoIds]);
 
   const rotuloFiltroKpi =
     filtroInstrumento === "garantido"
@@ -1064,7 +1073,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       for (const item of lista) if (casaAchado(t, item.chave)) item.n += 1;
     }
     return lista;
-  }, [data]);
+  }, [data, vencidoIds]);
 
   /* ---------- Tabela mensal (mantida como está) ---------- */
   const mensal = useMemo(() => {
@@ -1090,13 +1099,13 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       linha.total += v;
       if (t.eixo_recebimento === "compensado" || t.eixo_recebimento === "quitado")
         linha.recebido += v;
-      else if (t.eh_inadimplente === true) linha.atrasado += v;
+      else if (estaVencido(t)) linha.atrasado += v;
       else linha.aberto += v;
 
       mapa.set(key, linha);
     }
     return Array.from(mapa.values()).sort((a, b) => (a.mes < b.mes ? 1 : -1));
-  }, [data, baseMensal]);
+  }, [data, baseMensal, vencidoIds]);
 
   const totalMensal = useMemo(
     () =>
@@ -1188,7 +1197,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       // PIOR-ESTADO-VENCE: o grupo vale pelo membro mais grave, nunca pela moda.
       const estadosDistintos = new Set(titulos.map((t) => t.estado_rotulo));
       const misto = estadosDistintos.size > 1;
-      const inadimplente = titulos.find((t) => t.eh_inadimplente === true);
+      const inadimplente = titulos.find((t) => estaVencido(t));
       const aberto = titulos.find((t) => naoRecebido(t));
       const fechados = titulos.filter((t) => !naoRecebido(t));
 
@@ -1258,7 +1267,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
           universo.get(chave)?.total ?? titulos.reduce((s, t) => s + efetivoDe(t), 0),
       };
     });
-  }, [filtrados, data, hojeIso, carenciaIds]);
+  }, [filtrados, data, hojeIso, carenciaIds, vencidoIds]);
 
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
   const toggleGrupo = (chave: string) =>
@@ -1280,7 +1289,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   );
 
   const linhaTitulo = (t: RecebivelB2B, aninhada: boolean) => {
-    const atrasado = t.eh_inadimplente === true;
+    const atrasado = estaVencido(t);
     const desvio = t.desvio_registro_dias;
     const saldo = saldosPorTitulo.get(t.id);
     return (
@@ -1468,7 +1477,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
 
       Qualidade: t.qualidade ?? "",
       Estado: t.estado_rotulo ?? "",
-      Inadimplente: t.eh_inadimplente ? "Sim" : "Não",
+      Inadimplente: estaVencido(t) ? "Sim" : "Não",
     }));
     const ws = XLSX.utils.json_to_sheet(linhas);
     const wb = XLSX.utils.book_new();
