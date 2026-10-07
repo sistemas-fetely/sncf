@@ -106119,6 +106119,7 @@ export type Database = {
           nf_numero: string | null
           nf_serie: string | null
           nfs_stage_id: string | null
+          parceiro_ok: boolean | null
           pedidos_do_fornecedor: number | null
           valor_no_xml: number | null
         }
@@ -120681,14 +120682,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
