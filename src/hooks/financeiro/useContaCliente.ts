@@ -51,6 +51,8 @@ export interface ContaClienteLancamento {
   banco: string | null;
   meio: string | null;
   data_pagamento: string | null;
+  /** Id do lançamento da conta — só em recebimento_conta / estorno_conta. */
+  lancamento_id: string | null;
 }
 
 export interface ContaClienteFuro {
