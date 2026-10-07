@@ -6,6 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import { fmtMoeda } from "@/lib/compras/lancamento-utils";
+import {
+  classeClassificacao,
+  filtrarPorClassificacao,
+  rotuloClassificacao,
+} from "@/lib/compras/classificacao-nfs";
 import BotaoGuardado from "@/components/acesso/BotaoGuardado";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -39,18 +44,6 @@ const pick = (o: Obj | undefined, ...keys: string[]) => {
   for (const k of keys) if (o && o[k] != null) return o[k];
   return null;
 };
-
-const CLASSIFICACAO: Record<string, { rotulo: string; cls: string }> = {
-  mercadoria: { rotulo: "Mercadoria", cls: "border-success/40 bg-success/10 text-success" },
-  possivel: { rotulo: "Possível mercadoria", cls: "border-warning bg-warning/10 text-warning-strong" },
-  nao_mercadoria: { rotulo: "Não parece mercadoria", cls: "border-border bg-muted text-muted-foreground" },
-};
-
-const rotuloClassificacao = (c: string | null) =>
-  c ? CLASSIFICACAO[c]?.rotulo ?? c : "—";
-
-const classeClassificacao = (c: string | null) =>
-  (c && CLASSIFICACAO[c]?.cls) || "border-border bg-muted text-muted-foreground";
 
 function statusDePara(item: Obj | undefined): "mapeado" | "sem" | null {
   if (!item) return null;
@@ -132,10 +125,7 @@ export default function NfsSemPedidoTab() {
 
   const todas = q.data ?? [];
   const rows = useMemo(
-    () =>
-      mostrarTodas
-        ? todas
-        : todas.filter((r) => r.classificacao === "mercadoria" || r.classificacao === "possivel"),
+    () => filtrarPorClassificacao(todas, mostrarTodas),
     [todas, mostrarTodas],
   );
 
