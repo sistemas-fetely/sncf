@@ -3,6 +3,22 @@ import { agendaRecebiveis, ajustesDoExtrato, pagamentosDoExtrato, parcelasEmAtra
 import { competenciaFechada, dataDoFechamento } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
+  it("preserva valor da parcela e taxas por linha na agenda futura e paga pendente", () => {
+    const ag = agendaRecebiveis([
+      { situacao_parcela: "a_vencer", vencimento: "2026-10-20", valor_parcela: "1250", taxas_linhas: [8], comissao_da_parcela: 100 },
+      { situacao_parcela: "paga_aguarda_liberacao", pago_em: "2026-10-01", valor_parcela: 2000, taxas_linhas: [8, 10], valor_liberado: 180 },
+    ], [], [], "2026-10");
+    expect(ag[0].itens.map(i => [i.valorParcela, i.taxas, i.comissao])).toEqual([[2000, [8, 10], 180], [1250, [8], 100]]);
+    expect(ag[0].total).toBe(280);
+  });
+  it("complementos pendentes e de extrato futuro não têm valor da parcela nem taxa", () => {
+    const ag = agendaRecebiveis([], [{ valor: 22.2, competencia_pagamento: "2026-11-01" }], [{ competencia: "2026-12-01", detalhe: [{ tipo: "liberacao", subtipo: "complemento", liberacao_id: "c", valor: 10 }] }], "2026-10");
+    expect(ag.flatMap(m => m.itens).map(i => [i.parcela, i.valorParcela, i.taxas, i.comissao])).toEqual([["complemento", null, null, 22.2], ["complemento", null, null, 10]]);
+  });
+  it("preserva o valor e as taxas originais das parcelas vencidas", () => {
+    const parcelas = [{ situacao_parcela: "vencida", valor_parcela: 1014.88, taxas_linhas: [8], comissao_da_parcela: 81.19 }];
+    expect(parcelasEmAtraso(parcelas)[0]).toEqual(parcelas[0]);
+  });
   it("seleciona somente liberações do detalhe e usa valor_liberado da view", () => {
     const parcelas = [{ liberacao_id: "a", cliente: "Z", valor_liberado: 421.72 }, { liberacao_id: "b", cliente: "A", valor_liberado: 148.01 }, { liberacao_id: "fora", valor_liberado: 99 }];
     expect(pagamentosDoExtrato([{ tipo: "liberacao", liberacao_id: "a" }, { tipo: "liberacao", liberacao_id: "b" }], parcelas).map(p => p.valor_liberado)).toEqual([148.01, 421.72]);

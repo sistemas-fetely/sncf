@@ -96,22 +96,22 @@ function DocumentoMensal({ competencia, representante, extrato, extratos, parcel
     </section>}
     {agenda.length > 0 && <section className="bloco-mensal mt-6">
       <h2 className="text-[11pt] font-medium">Próximos pagamentos</h2>
-      <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
-        <colgroup><col className="w-[34%]"/><col className="w-[16%]"/><col className="w-[14%]"/><col className="w-[18%]"/><col className="w-[18%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Comissão</th></tr></thead>
+      <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
+        <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Vencimento do cliente</th><th className="text-right">Valor da parcela</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
         {agenda.map(m => <tbody key={m.mes} className="mes-agenda">
-          <tr className="cabecalho-mes"><td colSpan={4}>{capital(mesAno(m.mes))} · até {ddmm(m.pagarAte)}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
-          {m.itens.map((it, i) => <tr key={i}><td>{it.cliente || "—"}</td><td>{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
+          <tr className="cabecalho-mes"><td colSpan={6}>{capital(mesAno(m.mes))} · até {ddmm(m.pagarAte)}</td><td className="text-right tabular-nums">{fmtBRL(m.total)}</td></tr>
+          {m.itens.map((it, i) => <tr key={i}><td className="truncate" title={it.cliente || undefined}>{it.cliente || "—"}</td><td className="whitespace-nowrap">{it.pedido || "—"}</td><td className="tabular-nums">{it.parcela}</td><td className="tabular-nums">{it.parcela === "complemento" ? "—" : it.pago ? `pago ${ddmm(it.vencimento)}` : ddmm(it.vencimento)}</td><td className="text-right tabular-nums">{it.valorParcela === null ? "—" : fmtBRL(it.valorParcela)}</td><td className="text-right tabular-nums">{rotuloTaxas(it.taxas)}</td><td className="text-right tabular-nums">{fmtBRL(it.comissao)}</td></tr>)}
         </tbody>)}
-        <tfoot><tr><td colSpan={4}>Total a receber</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
+        <tfoot><tr><td colSpan={6}>Total a receber</td><td className="text-right tabular-nums">{fmtBRL(totalAgenda)}</td></tr></tfoot>
       </table>
     </section>}
     {atraso.length > 0 && <section className="bloco-mensal mt-6">
       <h2 className="text-[11pt] font-medium text-destructive">Em atraso</h2>
-      <table className="tabela-mensal mt-2 w-full table-fixed border-collapse text-[8pt]">
-        <colgroup><col className="w-[34%]"/><col className="w-[16%]"/><col className="w-[14%]"/><col className="w-[18%]"/><col className="w-[18%]"/></colgroup>
-        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Venceu em</th><th className="text-right">Comissão</th></tr></thead>
-        <tbody>{atraso.map((p, i) => <tr key={i}><td>{p.cliente || "—"}</td><td>{p.pedido || "—"}</td><td className="tabular-nums">{p.numero_parcela}/{p.total_parcelas}</td><td className="tabular-nums">{ddmm(p.vencimento)} · {numero(p.dias_atraso)} dias</td><td className="text-right tabular-nums">{fmtBRL(numero(p.comissao_da_parcela))}</td></tr>)}</tbody>
+      <table className="tabela-mensal tabela-recebiveis mt-2 w-full table-fixed border-collapse text-[8pt]">
+        <colgroup><col className="w-[22%]"/><col className="w-[12%]"/><col className="w-[13%]"/><col className="w-[15%]"/><col className="w-[14%]"/><col className="w-[11%]"/><col className="w-[13%]"/></colgroup>
+        <thead><tr><th>Cliente</th><th>Pedido</th><th>Parcela</th><th>Venceu em</th><th className="text-right">Valor da parcela</th><th className="text-right">Taxa</th><th className="text-right">Comissão</th></tr></thead>
+        <tbody>{atraso.map((p, i) => <tr key={i}><td className="truncate" title={p.cliente || undefined}>{p.cliente || "—"}</td><td className="whitespace-nowrap">{p.pedido || "—"}</td><td className="tabular-nums">{p.numero_parcela}/{p.total_parcelas}</td><td className="tabular-nums">{ddmm(p.vencimento)} · {numero(p.dias_atraso)} dias</td><td className="text-right tabular-nums">{fmtBRL(numero(p.valor_parcela))}</td><td className="text-right tabular-nums">{rotuloTaxas(p.taxas_linhas)}</td><td className="text-right tabular-nums">{fmtBRL(numero(p.comissao_da_parcela))}</td></tr>)}</tbody>
       </table>
     </section>}
     <RodapeMensal/>
@@ -130,10 +130,12 @@ export const ESTILOS_IMPRESSAO = `
   .documento-extrato .tabela-mensal th.text-right { text-align: right; }
   .documento-extrato .tabela-mensal td { border-bottom: 1px solid hsl(var(--border)); vertical-align: top; }
   .documento-extrato .tabela-mensal th, .documento-extrato .tabela-mensal td { padding: 8px 4px; }
-  .documento-extrato tfoot { font-weight: 500; }
+  .documento-extrato tfoot { display: table-row-group; font-weight: 500; }
   .documento-extrato .tabela-mensal tr.cabecalho-mes td { background: hsl(var(--muted)); font-weight: 600; }
   .documento-extrato .tabela-mensal tr.cabecalho-mes { break-after: avoid; page-break-after: avoid; }
   .documento-extrato .tabela-mensal td.tabular-nums { white-space: nowrap; }
+  .documento-extrato .tabela-recebiveis th { word-break: normal; overflow-wrap: normal; }
+  .documento-extrato .tabela-recebiveis th, .documento-extrato .tabela-recebiveis td { padding-inline: 3px; }
   @media screen and (max-width: 700px) {
     .documento-extrato .pagina-a4 { padding: 20px; min-height: 0; }
   }
