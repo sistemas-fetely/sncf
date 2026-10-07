@@ -1,14 +1,16 @@
 /**
  * Extrato da conta do cliente. Data desc, sinal +/− colorido.
- * A única escrita é registrar recebimento — cliente já pré-selecionado.
+ * Escritas: registrar recebimento (cliente já pré-selecionado) e estornar
+ * recebimento (RPC estornar_lancamento_conta_cliente).
  *
  * Lançamentos que nasceram na conta corrente (`recebimento_conta` /
  * `estorno_conta` na view) expandem e mostram onde o dinheiro foi alocado
  * (`conta_cliente_alocacao` → título). A leitura é sob demanda, ao expandir.
  */
 import { useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus, Wallet } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { ChevronDown, ChevronRight, Loader2, Paperclip, Plus, Undo2, Wallet } from "lucide-react";
 import { CardIndicador } from "@/components/ui/card-indicador";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -32,6 +34,18 @@ import { useEnviarComprovanteCliente } from "@/hooks/comercial/useComprovantePag
 import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRecebimentoDialog";
 import { Selo } from "@/components/ui/selo";
 import { InfoMetrica } from "@/components/metricas/InfoMetrica";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { QK_CONTA_CLIENTE_LANC } from "@/hooks/financeiro/useContaCliente";
 
 function dataBR(iso: string | null | undefined) {
   if (!iso) return "—";
@@ -74,14 +88,24 @@ interface AlocacoesLancamento {
 
 /**
  * Alocações de um lançamento da conta — sob demanda (só dispara ao expandir).
- * A view do extrato não expõe o id do lançamento, então a amarra é pela
- * chave natural: parceiro + data + valor + meio.
+ * Amarra direta por `lancamento_id`; a chave natural (parceiro + data +
+ * valor + meio) é só fallback quando a view não traz o id.
  */
 function useAlocacoesLancamento(l: ContaClienteLancamento | null, aberto: boolean) {
   return useQuery({
-    queryKey: ["conta-cliente-alocacoes", l?.parceiro_id, l?.data, l?.valor, l?.meio],
+    queryKey: ["conta-cliente-alocacoes", l?.lancamento_id ?? null, l?.parceiro_id, l?.data, l?.valor, l?.meio],
     enabled: aberto && !!l,
     queryFn: async (): Promise<AlocacoesLancamento> => {
+      let lanc: { id: string; valor: number } | undefined;
+      if (l!.lancamento_id) {
+        const { data: porId, error: erroId } = await supabase
+          .from("conta_cliente_lancamento")
+          .select("id, valor")
+          .eq("id", l!.lancamento_id)
+          .maybeSingle();
+        if (erroId) throw erroId;
+        lanc = porId ?? undefined;
+      } else {
       let q = supabase
         .from("conta_cliente_lancamento")
         .select("id, valor")
@@ -93,7 +117,8 @@ function useAlocacoesLancamento(l: ContaClienteLancamento | null, aberto: boolea
       if (l!.meio) q = q.eq("meio", l!.meio);
       const { data: lancs, error: erroLanc } = await q;
       if (erroLanc) throw erroLanc;
-      const lanc = lancs?.[0];
+      lanc = lancs?.[0];
+      }
       if (!lanc) return { valor_lancamento: Number(l!.valor ?? 0), alocacoes: [] };
 
       const { data: als, error: erroAl } = await supabase
@@ -122,7 +147,7 @@ function useAlocacoesLancamento(l: ContaClienteLancamento | null, aberto: boolea
 }
 
 /** Detalhe "Alocado em" de um lançamento da conta corrente. */
-function AlocacoesDetalhe({ l }: { l: ContaClienteLancamento }) {
+function AlocacoesDetalheCorpo({ l }: { l: ContaClienteLancamento }) {
   const aloc = useAlocacoesLancamento(l, true);
 
   if (aloc.isLoading) {
@@ -183,6 +208,42 @@ function AlocacoesDetalhe({ l }: { l: ContaClienteLancamento }) {
   );
 }
 
+/** Linha expandida: "Alocado em" + ação de estorno à direita. */
+function AlocacoesDetalhe({
+  l,
+  estornado,
+  podeEstornar,
+  onEstornar,
+}: {
+  l: ContaClienteLancamento;
+  estornado: boolean;
+  podeEstornar: boolean;
+  onEstornar: () => void;
+}) {
+  const ehRecebimento = l.tipo === "recebimento_conta" && !!l.lancamento_id;
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0 flex-1">
+        <AlocacoesDetalheCorpo l={l} />
+      </div>
+      {ehRecebimento && estornado && <Selo estado="muted">Estornado</Selo>}
+      {ehRecebimento && !estornado && podeEstornar && (
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 gap-1.5"
+          onClick={(e) => {
+            e.stopPropagation();
+            onEstornar();
+          }}
+        >
+          <Undo2 className="h-3.5 w-3.5" /> Estornar
+        </Button>
+      )}
+    </div>
+  );
+}
+
 interface SaldoLinha {
   saldo: number;
   vencido_em_aberto: number;
@@ -225,16 +286,15 @@ function useSaldoContaCliente(parceiroId: string) {
 }
 
 interface EstornoComOrigem {
-  data: string;
-  valor: number;
-  meio: string | null;
+  id: string;
+  estornado_de: string;
   dataOriginal: string | null;
 }
 
 /**
  * Datas dos lançamentos estornados (`conta_cliente_lancamento.estornado_de`).
- * A view do extrato não expõe o vínculo; a amarra na exibição é pela chave
- * natural: parceiro + data + valor + meio (mesma política das alocações).
+ * A linha `estorno_conta` casa pelo id (lancamento_id da linha = id do
+ * estorno → estornado_de); `estornado_de` também diz o que já foi estornado.
  */
 function useEstornosContaCliente(parceiroId: string) {
   return useQuery({
@@ -244,17 +304,12 @@ function useEstornosContaCliente(parceiroId: string) {
     queryFn: async (): Promise<EstornoComOrigem[]> => {
       const { data, error } = await supabase
         .from("conta_cliente_lancamento")
-        .select("data_recebimento, valor, meio, estornado_de")
+        .select("id, estornado_de")
         .eq("parceiro_id", parceiroId)
         .eq("tipo", "estorno")
         .not("estornado_de", "is", null);
       if (error) throw error;
-      const rows = (data ?? []) as Array<{
-        data_recebimento: string;
-        valor: number;
-        meio: string | null;
-        estornado_de: string;
-      }>;
+      const rows = (data ?? []) as Array<{ id: string; estornado_de: string }>;
       const ids = Array.from(new Set(rows.map((r) => r.estornado_de)));
       if (!ids.length) return [];
       const { data: origs, error: erroOrig } = await supabase
@@ -266,9 +321,8 @@ function useEstornosContaCliente(parceiroId: string) {
         (origs ?? []).map((o) => [o.id, o.data_recebimento as string]),
       );
       return rows.map((r) => ({
-        data: r.data_recebimento,
-        valor: Number(r.valor ?? 0),
-        meio: r.meio ?? null,
+        id: r.id,
+        estornado_de: r.estornado_de,
         dataOriginal: dataDe.get(r.estornado_de) ?? null,
       }));
     },
@@ -314,25 +368,55 @@ export function ClienteAbaExtrato({
   // (data + valor + meio) para não colidir estornos gêmeos.
   const estornoOrigem = useMemo(() => {
     const m = new Map<number, string>();
-    const pendente = new Map<string, string[]>();
-    for (const e of estornosQ.data ?? []) {
-      const key = `${e.data}|${e.valor}|${e.meio ?? ""}`;
-      const arr = pendente.get(key) ?? [];
-      if (e.dataOriginal) arr.push(e.dataOriginal);
-      pendente.set(key, arr);
-    }
+    const porId = new Map((estornosQ.data ?? []).map((e) => [e.id, e.dataOriginal]));
     (lancamentos.data ?? []).forEach((l, i) => {
-      if (l.tipo !== "estorno_conta") return;
-      const key = `${l.data}|${Number(l.valor ?? 0)}|${l.meio ?? ""}`;
-      const arr = pendente.get(key);
-      if (arr && arr.length) {
-        const orig = arr.shift()!;
-        m.set(i, orig);
-        if (!arr.length) pendente.delete(key);
-      }
+      if (l.tipo !== "estorno_conta" || !l.lancamento_id) return;
+      const orig = porId.get(l.lancamento_id);
+      if (orig) m.set(i, orig);
     });
     return m;
   }, [estornosQ.data, lancamentos.data]);
+
+  const jaEstornados = useMemo(
+    () => new Set((estornosQ.data ?? []).map((e) => e.estornado_de)),
+    [estornosQ.data],
+  );
+  const { permitido: podeEstornar } = usePermissaoAcaoOuSuperAdmin("acao.cobranca_receber");
+  const qc = useQueryClient();
+  const [estornando, setEstornando] = useState<ContaClienteLancamento | null>(null);
+  const [motivo, setMotivo] = useState("");
+  const [enviandoEstorno, setEnviandoEstorno] = useState(false);
+
+  async function confirmarEstorno() {
+    if (!estornando?.lancamento_id) return;
+    setEnviandoEstorno(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("estornar_lancamento_conta_cliente", {
+        p_lancamento_id: estornando.lancamento_id,
+        p_motivo: motivo.trim(),
+      });
+      if (error) throw error;
+      const r = (data ?? {}) as { ok?: boolean; erro?: string };
+      if (r.ok !== true) {
+        toast.error(r.erro ?? "Estorno recusado sem mensagem do banco.");
+        return;
+      }
+      toast.success("Recebimento estornado");
+      setEstornando(null);
+      setMotivo("");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_LANC, parceiroId] }),
+        qc.invalidateQueries({ queryKey: ["conta-cliente-saldo", parceiroId] }),
+        qc.invalidateQueries({ queryKey: ["conta-cliente-estornos", parceiroId] }),
+        qc.invalidateQueries({ queryKey: ["conta-cliente-alocacoes"] }),
+      ]);
+    } catch (e) {
+      toast.error((e as Error)?.message ?? String(e));
+    } finally {
+      setEnviandoEstorno(false);
+    }
+  }
 
   const s = saldoQ.data;
   const saldoAtual = Number(s?.saldo ?? 0) + Number(s?.a_vencer ?? 0);
@@ -355,6 +439,43 @@ export function ClienteAbaExtrato({
 
   return (
     <div className="space-y-3">
+      <AlertDialog
+        open={!!estornando}
+        onOpenChange={(v) => {
+          if (!v && !enviandoEstorno) setEstornando(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Estornar recebimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              {estornando
+                ? `${dataBR(estornando.data)} · ${meioBanco(estornando.meio, estornando.banco)} · ${formatBRL(Math.abs(Number(estornando.valor ?? 0)))}`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-1.5">
+            <label htmlFor="estorno-motivo" className="text-sm font-medium">Motivo</label>
+            <Textarea
+              id="estorno-motivo"
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              disabled={enviandoEstorno}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={enviandoEstorno}>Cancelar</AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={motivo.trim().length < 5 || enviandoEstorno}
+              onClick={() => void confirmarEstorno()}
+            >
+              {enviandoEstorno && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Estornar
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className="flex items-center justify-between gap-3">
         <p className="text-[11px] text-muted-foreground">
           Todo dinheiro entra na conta do CNPJ; o pedido debita o saldo.
@@ -552,7 +673,15 @@ export function ClienteAbaExtrato({
                     <TableRow key={`${chave}-detalhe`} className="hover:bg-transparent">
                       <TableCell />
                       <TableCell colSpan={9} className="bg-muted/30 py-2">
-                        <AlocacoesDetalhe l={l} />
+                        <AlocacoesDetalhe
+                          l={l}
+                          estornado={!!l.lancamento_id && jaEstornados.has(l.lancamento_id)}
+                          podeEstornar={podeEstornar}
+                          onEstornar={() => {
+                            setMotivo("");
+                            setEstornando(l);
+                          }}
+                        />
                       </TableCell>
                     </TableRow>
                   ) : null,
