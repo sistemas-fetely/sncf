@@ -11481,6 +11481,267 @@ export type Database = {
         }
         Relationships: []
       }
+      cobranca_raia_dim: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          cor: string | null
+          created_at: string
+          departamento_id: string
+          descricao: string | null
+          exige_data_retorno: boolean
+          ordem: number
+          pausa_regua: boolean
+          rotulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          cor?: string | null
+          created_at?: string
+          departamento_id: string
+          descricao?: string | null
+          exige_data_retorno?: boolean
+          ordem: number
+          pausa_regua?: boolean
+          rotulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          cor?: string | null
+          created_at?: string
+          departamento_id?: string
+          descricao?: string | null
+          exige_data_retorno?: boolean
+          ordem?: number
+          pausa_regua?: boolean
+          rotulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_raia_dim_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "departamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_dim_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cadeira_atendimento"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_dim_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_catalogo_arvore"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_dim_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_carga_cadeira"
+            referencedColumns: ["cadeira_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_dim_departamento_id_fkey"
+            columns: ["departamento_id"]
+            isOneToOne: false
+            referencedRelation: "vw_mapa_operacao"
+            referencedColumns: ["cadeira_id"]
+          },
+        ]
+      }
+      cobranca_raia_movimento: {
+        Row: {
+          executado_em: string
+          executado_por: string | null
+          id: string
+          observacao: string | null
+          origem: string
+          raia_de: string | null
+          raia_para: string | null
+          responsavel_de: string | null
+          responsavel_para: string | null
+          retorno_em: string | null
+          titulo_id: string
+        }
+        Insert: {
+          executado_em?: string
+          executado_por?: string | null
+          id?: string
+          observacao?: string | null
+          origem: string
+          raia_de?: string | null
+          raia_para?: string | null
+          responsavel_de?: string | null
+          responsavel_para?: string | null
+          retorno_em?: string | null
+          titulo_id: string
+        }
+        Update: {
+          executado_em?: string
+          executado_por?: string | null
+          id?: string
+          observacao?: string | null
+          origem?: string
+          raia_de?: string | null
+          raia_para?: string | null
+          responsavel_de?: string | null
+          responsavel_para?: string | null
+          retorno_em?: string | null
+          titulo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_instrumento_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_gestao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_estado"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_para_vinculo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_saldo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_vivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cobranca_raia_movimento_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       colaborador_acessos_sistemas: {
         Row: {
           colaborador_id: string
@@ -67832,6 +68093,9 @@ export type Database = {
           prorrogacao_solicitada_em: string | null
           prorrogacao_venc_anterior: string | null
           provisao_id: string | null
+          raia_codigo: string | null
+          raia_responsavel_user_id: string | null
+          raia_retorno_em: string | null
           reemissao_aplicada_em: string | null
           reemissao_motivo: string | null
           reemissao_nova_data: string | null
@@ -67910,6 +68174,9 @@ export type Database = {
           prorrogacao_solicitada_em?: string | null
           prorrogacao_venc_anterior?: string | null
           provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -67988,6 +68255,9 @@ export type Database = {
           prorrogacao_solicitada_em?: string | null
           prorrogacao_venc_anterior?: string | null
           provisao_id?: string | null
+          raia_codigo?: string | null
+          raia_responsavel_user_id?: string | null
+          raia_retorno_em?: string | null
           reemissao_aplicada_em?: string | null
           reemissao_motivo?: string | null
           reemissao_nova_data?: string | null
@@ -68962,6 +69232,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_venda_direta_gestao"
             referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_raia_codigo_fkey"
+            columns: ["raia_codigo"]
+            isOneToOne: false
+            referencedRelation: "cobranca_raia_dim"
+            referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "titulo_a_receber_remessa_safra_id_fkey"
@@ -126188,6 +126465,16 @@ export type Database = {
       fn_cnpj_lido_e_da_casa: { Args: { p_lido: string }; Returns: boolean }
       fn_cnpj_valido: { Args: { p_cnpj: string }; Returns: boolean }
       fn_cobertura_refresh: { Args: never; Returns: number }
+      fn_cobranca_mover_raia: {
+        Args: {
+          p_observacao?: string
+          p_raia_codigo: string
+          p_responsavel_user_id?: string
+          p_retorno_em?: string
+          p_titulo_id: string
+        }
+        Returns: Json
+      }
       fn_colunas_sem_grant: {
         Args: never
         Returns: {
