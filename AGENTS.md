@@ -5,4 +5,4 @@
 
 - Use `InfoMetrica` para popovers explicativos de cabeçalhos, inclusive conteúdo personalizado, para preservar um único padrão visual.
 - Use `BotaoConcluir` como controle circular único de conclusão nas listas, no board e nas fichas, evitando ações com aparência de salvar.
-- Generate separate statement PDFs by capturing the batch print route in a hidden iframe, so each PDF uses the exact batch document and membership rules.
+- Generate separate statement PDFs by rendering each batch member off-screen in the current page (never an iframe — production hosting blocks framing), sharing `listarRepresentantesDoLote` with the batch print.
