@@ -133,44 +133,60 @@ export function useEnviarComprovante(pedidoId: string) {
  * Comprovante avulso, direto no cliente (PIX que chega por WhatsApp, sem pedido).
  * Mesma leitura pela IA; o registro fica pendente na fila da Cobrança.
  */
+/**
+ * Upload + leitura pela IA + `registrar_comprovante_cliente`. Devolve o id do
+ * comprovante e a leitura, para o humano conferir antes de confirmar.
+ */
+export async function enviarComprovanteCliente(
+  parceiroId: string,
+  file: File,
+): Promise<{ comprovante_id: string; leitura: LeituraComprovante }> {
+  const hash = await sha256Hex(file);
+  const path = `cliente/${parceiroId}/${hash}.${extensaoDe(file)}`;
+
+  const { error: erroUpload } = await supabase.storage
+    .from("comprovantes-pagamento")
+    .upload(path, file, { contentType: file.type || undefined, upsert: true });
+  if (erroUpload) throw erroUpload;
+
+  const { data: leitura, error: erroFn } = await supabase.functions.invoke(
+    "ler-comprovante-pagamento",
+    { body: { storage_path: path } },
+  );
+  if (erroFn) {
+    const detalhe =
+      (leitura as { error?: string } | null)?.error ?? erroFn.message ?? "falha ao ler o comprovante";
+    throw new Error(detalhe);
+  }
+  const lido = leitura as LeituraComprovante & { error?: string };
+  if (!lido || lido.error) {
+    throw new Error(lido?.error || "A IA não devolveu a leitura do comprovante.");
+  }
+
+  const { data, error } = await supabase.rpc("registrar_comprovante_cliente", {
+    p_parceiro_id: parceiroId,
+    p_storage_path: path,
+    p_hash: hash,
+    p_leitura: lido as unknown as Json,
+    p_mime: file.type || lido.mime || "application/octet-stream",
+    p_bytes: file.size,
+  });
+  if (error) throw error;
+  const res = (data ?? {}) as { ok?: boolean; erro?: string; comprovante_id?: string };
+  if (res.ok === false) throw new Error(res.erro || "Comprovante recusado pelo banco.");
+  if (!res.comprovante_id) throw new Error("O banco não devolveu o comprovante registrado.");
+  return { comprovante_id: res.comprovante_id, leitura: lido };
+}
+
+/**
+ * Comprovante avulso, direto no cliente (PIX que chega por WhatsApp, sem pedido).
+ * Mesma leitura pela IA; o registro fica pendente na fila da Cobrança.
+ */
 export function useEnviarComprovanteCliente(parceiroId: string) {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (file: File) => {
-      const hash = await sha256Hex(file);
-      const path = `cliente/${parceiroId}/${hash}.${extensaoDe(file)}`;
-
-      const { error: erroUpload } = await supabase.storage
-        .from("comprovantes-pagamento")
-        .upload(path, file, { contentType: file.type || undefined, upsert: true });
-      if (erroUpload) throw erroUpload;
-
-      const { data: leitura, error: erroFn } = await supabase.functions.invoke(
-        "ler-comprovante-pagamento",
-        { body: { storage_path: path } },
-      );
-      if (erroFn) {
-        const detalhe =
-          (leitura as { error?: string } | null)?.error ?? erroFn.message ?? "falha ao ler o comprovante";
-        throw new Error(detalhe);
-      }
-      const lido = leitura as LeituraComprovante & { error?: string };
-      if (!lido || lido.error) {
-        throw new Error(lido?.error || "A IA não devolveu a leitura do comprovante.");
-      }
-
-      const { data, error } = await supabase.rpc("registrar_comprovante_cliente", {
-        p_parceiro_id: parceiroId,
-        p_storage_path: path,
-        p_hash: hash,
-        p_leitura: lido as unknown as Json,
-        p_mime: file.type || lido.mime || "application/octet-stream",
-        p_bytes: file.size,
-      });
-      if (error) throw error;
-      return data;
-    },
+    mutationFn: (file: File) => enviarComprovanteCliente(parceiroId, file),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
       toast.success("Comprovante lido pela IA — entrou na fila de confirmação em Conciliação de Recebíveis → Entradas a reconhecer.");
@@ -178,6 +194,14 @@ export function useEnviarComprovanteCliente(parceiroId: string) {
     onError: (e: Error) => {
       toast.error(e.message);
     },
+  });
+}
+
+/** Mesma leitura, sem toast de fila: o diálogo de recebimento confirma na sequência. */
+export function useLerComprovanteCliente() {
+  return useMutation({
+    mutationFn: ({ parceiroId, file }: { parceiroId: string; file: File }) =>
+      enviarComprovanteCliente(parceiroId, file),
   });
 }
 
@@ -227,6 +251,42 @@ export function useConfirmarComprovante(pedidoId: string) {
     },
     onError: (e: Error) => {
       toast.error(e.message);
+    },
+  });
+}
+
+/**
+ * Confirma comprovante de cliente (sem pedido). A RPC roteia: lança na conta do
+ * cliente. FAIL-LOUD: `{ok:false}` vira erro com a mensagem do banco.
+ */
+export function useConfirmarComprovanteCliente(parceiroId: string | null) {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (args: ConfirmarArgs) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("confirmar_comprovante_pagamento", {
+        p_comprovante_id: args.comprovante_id,
+        p_tipo: args.tipo,
+        p_chave: args.chave,
+        p_valor: args.valor,
+        p_data: args.data,
+        p_justificativa: args.justificativa?.trim() || null,
+        p_banco_recebimento_id: args.banco_recebimento_id || null,
+      });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res = (data ?? {}) as any;
+      if (res.ok === false) throw new Error(res.erro || "Comprovante recusado pelo banco.");
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["conta-cliente-lancamentos", parceiroId] });
+      qc.invalidateQueries({ queryKey: ["conta-cliente-saldo"] });
+      qc.invalidateQueries({ queryKey: ["conta-cliente-estornos"] });
+      qc.invalidateQueries({ queryKey: ["conta-cliente-alocacoes"] });
+      qc.invalidateQueries({ queryKey: ["conta-cliente-cobertura", parceiroId] });
+      qc.invalidateQueries({ queryKey: ["comprovante-pendente-fila"] });
     },
   });
 }

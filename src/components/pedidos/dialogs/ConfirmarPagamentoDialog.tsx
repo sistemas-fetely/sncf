@@ -314,7 +314,11 @@ export function ConfirmarPagamentoDialog({
   const carregandoGate =
     modo === "mesa" ? mesaQ.carregando : semAnexoQ.carregando || declaradoQ.carregando;
 
-  const anexoFaltando = modo === "mesa" && !temAnexo;
+  // COMPROVANTE-É-A-PORTA: PIX/transferência só fecham com comprovante anexado,
+  // nos dois modos. O caminho de txid digitado deixou de existir (o banco recusa).
+  const anexoFaltando = modo === "mesa"
+    ? !temAnexo
+    : !ehCartao && !temAnexo && provaTipo === "pix_txid";
   const refFaltando = !referencia.trim();
   // CARTAO-E-CAPTURA-UNICA: na captura o dinheiro fica com a adquirente; a conta
   // bancaria so entra no repasse posterior. Por isso o campo de banco nao bloqueia
@@ -331,7 +335,9 @@ export function ConfirmarPagamentoDialog({
     valorFaltando || previaRecusou || !dataPagamento;
 
   const motivoBloqueio = anexoFaltando
-    ? "Na Mesa o pagamento só fecha com comprovante anexado."
+    ? modo === "mesa"
+      ? "Na Mesa o pagamento só fecha com comprovante anexado."
+      : "PIX e transferência entram pelo comprovante."
     : refFaltando
       ? "Sem a referência o extrato nunca vai casar."
       : bancoFaltando
@@ -370,7 +376,7 @@ export function ConfirmarPagamentoDialog({
           justificativa: observacao,
           banco_recebimento_id: bancoId,
         });
-      } else {
+      } else if (provaTipo === "ofx" || provaTipo === "boleto_cnab") {
         await confirmarLinha.mutateAsync({
           provisao_id: provisaoEfetiva!,
           prova_tipo: provaTipo,
@@ -378,6 +384,8 @@ export function ConfirmarPagamentoDialog({
           data_pagamento: dataPagamento,
           observacao,
         });
+      } else {
+        return;
       }
     } catch {
       // FAIL-LOUD: o toast com a mensagem do banco já saiu no hook. Mantém aberto.
@@ -394,7 +402,7 @@ export function ConfirmarPagamentoDialog({
           <DialogDescription>
             {modo === "mesa"
               ? "Na Mesa o pagamento fecha com o comprovante anexado — a IA lê e preenche os campos."
-              : "A referência é obrigatória. O anexo é opcional: se anexar, a IA preenche a referência sozinha."}
+              : "PIX e transferência fecham com o comprovante anexado — a IA lê e preenche os campos. Cartão fecha pela captura com NSU."}
           </DialogDescription>
         </DialogHeader>
 
@@ -465,7 +473,7 @@ export function ConfirmarPagamentoDialog({
             <p className="text-xs text-muted-foreground">
               {modo === "mesa"
                 ? "Obrigatório: o comprovante é a prova do vendedor."
-                : "Opcional — atalho: a IA lê e preenche referência, data e valor."}
+                : "Obrigatório para PIX e transferência — a IA lê e preenche referência, data e valor."}
             </p>
           </div>
 
