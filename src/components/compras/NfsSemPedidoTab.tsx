@@ -1,7 +1,10 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, FilePlus2, Info } from "lucide-react";
+import { Loader2, FilePlus2, Info, ChevronDown, ChevronRight, Ban } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { invalidarCompras } from "@/lib/compras/invalidar";
@@ -32,6 +35,10 @@ interface StageRow {
   itens: number | null;
   classificacao: string | null;
   destino_codigo: string | null;
+  itens_detalhe: {
+    descricao: string | null; codigo: string | null; ncm: string | null;
+    qtd: number | null; valor_unitario: number | null; valor_total: number | null;
+  }[] | null;
 }
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -62,6 +69,12 @@ export default function NfsSemPedidoTab() {
   const [carregando, setCarregando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [mostrarTodas, setMostrarTodas] = useState(false);
+  const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
+  const [reclass, setReclass] = useState<StageRow | null>(null);
+  const [destinoNovo, setDestinoNovo] = useState("");
+  const [motivo, setMotivo] = useState("");
+  const [erroReclass, setErroReclass] = useState<string | null>(null);
+  const [salvandoReclass, setSalvandoReclass] = useState(false);
 
   const q = useQuery({
     queryKey: ["nfs-stage-mercadoria-pendente", "sem-pedido"],
@@ -73,6 +86,21 @@ export default function NfsSemPedidoTab() {
         .order("nf_data_emissao", { ascending: false });
       if (error) throw error;
       return (data ?? []) as StageRow[];
+    },
+  });
+
+  const destinos = useQuery({
+    queryKey: ["nf-entrada-destino", "nao-compra"],
+    enabled: !!reclass,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("nf_entrada_destino")
+        .select("codigo, rotulo, entra_estoque, compoe_custo, ordem")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as Obj[]).filter((d) => !(d.entra_estoque && d.compoe_custo)) as
+        { codigo: string; rotulo: string }[];
     },
   });
 
@@ -129,6 +157,30 @@ export default function NfsSemPedidoTab() {
     [todas, mostrarTodas],
   );
 
+  const alternar = (id: string) =>
+    setExpandidos((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  function abrirReclass(r: StageRow) {
+    setReclass(r); setDestinoNovo(""); setMotivo(""); setErroReclass(null);
+  }
+
+  async function confirmarReclass() {
+    if (!reclass) return;
+    setSalvandoReclass(true); setErroReclass(null);
+    try {
+      const { error } = await (supabase as any).rpc("fn_nfs_stage_reclassificar", {
+        p_stage_id: reclass.nfs_stage_id, p_destino_codigo: destinoNovo, p_motivo: motivo.trim(),
+      });
+      if (error) throw error;
+      const rot = destinos.data?.find((d) => d.codigo === destinoNovo)?.rotulo ?? destinoNovo;
+      toast.success(`NF ${reclass.nf_numero ?? ""} reclassificada: ${rot}`);
+      await q.refetch();
+      setReclass(null);
+    } catch (e) {
+      const m = rawMessage(e); setErroReclass(m); toast.error(m);
+    } finally { setSalvandoReclass(false); }
+  }
+
   if (q.isLoading) return <div className="p-4 text-sm text-muted-foreground">Carregando NFs…</div>;
   if (q.error) return <Alert variant="destructive"><AlertDescription>{rawMessage(q.error)}</AlertDescription></Alert>;
 
@@ -159,6 +211,7 @@ export default function NfsSemPedidoTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-8" />
                 <TableHead>NF</TableHead>
                 <TableHead>Emissão</TableHead>
                 <TableHead>Fornecedor</TableHead>
@@ -176,8 +229,21 @@ export default function NfsSemPedidoTab() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
-                <TableRow key={r.nfs_stage_id}>
+              {rows.map((r) => {
+                const aberto = expandidos.has(r.nfs_stage_id);
+                const itensNf = Array.isArray(r.itens_detalhe) ? r.itens_detalhe : [];
+                return (
+                <Fragment key={r.nfs_stage_id}>
+                <TableRow>
+                  <TableCell className="w-8 px-2">
+                    <Button
+                      variant="ghost" size="icon" className="h-6 w-6"
+                      aria-label={aberto ? "Recolher itens" : "Expandir itens"}
+                      onClick={() => alternar(r.nfs_stage_id)}
+                    >
+                      {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                  </TableCell>
                   <TableCell className="font-medium">{r.nf_numero ?? "—"}{r.nf_serie ? `/${r.nf_serie}` : ""}</TableCell>
                   <TableCell>{fmtData(r.nf_data_emissao)}</TableCell>
                   <TableCell>{r.apelido ?? r.fornecedor ?? r.fornecedor_razao_social ?? "—"}</TableCell>
@@ -189,19 +255,69 @@ export default function NfsSemPedidoTab() {
                   <TableCell className="text-right">{fmtMoeda(r.valor_no_xml)}</TableCell>
                   <TableCell className="text-right">{r.itens ?? 0}</TableCell>
                   <TableCell className="text-right">
-                    <BotaoGuardado
-                      slug="acao.pedido_retroativo_nf"
-                      rotuloAcao="Gerar pedido retroativo"
-                      contexto={{ nfs_stage_id: r.nfs_stage_id }}
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void abrirPrevia(r)}
-                    >
-                      <FilePlus2 className="mr-1 h-4 w-4" />Gerar pedido retroativo
-                    </BotaoGuardado>
+                    <div className="flex items-center justify-end gap-1">
+                      <BotaoGuardado
+                        slug="acao.nf_reclassificar_destino"
+                        rotuloAcao="Reclassificar destino de documento (não é compra)"
+                        contexto={{ nfs_stage_id: r.nfs_stage_id }}
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground"
+                        onClick={() => abrirReclass(r)}
+                      >
+                        <Ban className="mr-1 h-4 w-4" />Não é compra…
+                      </BotaoGuardado>
+                      <BotaoGuardado
+                        slug="acao.pedido_retroativo_nf"
+                        rotuloAcao="Gerar pedido retroativo"
+                        contexto={{ nfs_stage_id: r.nfs_stage_id }}
+                        size="sm"
+                        variant="outline"
+                        onClick={() => void abrirPrevia(r)}
+                      >
+                        <FilePlus2 className="mr-1 h-4 w-4" />Gerar pedido retroativo
+                      </BotaoGuardado>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                {aberto && (
+                  <TableRow className="bg-muted/30 hover:bg-muted/30">
+                    <TableCell />
+                    <TableCell colSpan={7} className="py-2">
+                      {itensNf.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">Sem itens no XML.</div>
+                      ) : (
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead className="h-8 text-xs">Descrição</TableHead>
+                              <TableHead className="h-8 text-xs">Código</TableHead>
+                              <TableHead className="h-8 text-xs">NCM</TableHead>
+                              <TableHead className="h-8 text-right text-xs">Qtd</TableHead>
+                              <TableHead className="h-8 text-right text-xs">Vl. unit.</TableHead>
+                              <TableHead className="h-8 text-right text-xs">Vl. total</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {itensNf.map((it, i) => (
+                              <TableRow key={i} className="text-xs">
+                                <TableCell className="py-1">{it.descricao ?? "—"}</TableCell>
+                                <TableCell className="py-1 font-mono">{it.codigo ?? "—"}</TableCell>
+                                <TableCell className="py-1 font-mono">{it.ncm ?? "—"}</TableCell>
+                                <TableCell className="py-1 text-right">{it.qtd ?? "—"}</TableCell>
+                                <TableCell className="py-1 text-right">{fmtMoeda(it.valor_unitario)}</TableCell>
+                                <TableCell className="py-1 text-right">{fmtMoeda(it.valor_total)}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -259,6 +375,48 @@ export default function NfsSemPedidoTab() {
             <Button variant="outline" onClick={() => setAlvo(null)} disabled={enviando}>Cancelar</Button>
             <Button onClick={() => void confirmar()} disabled={!previa || enviando || carregando}>
               {enviando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar pedido retroativo
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!reclass} onOpenChange={(v) => { if (!v && !salvandoReclass) setReclass(null); }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader><DialogTitle>Não é compra</DialogTitle></DialogHeader>
+          {reclass && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 rounded-md border bg-muted/30 p-3 text-xs">
+                <span className="text-muted-foreground">NF</span>
+                <span className="font-medium">{reclass.nf_numero ?? "—"}{reclass.nf_serie ? `/${reclass.nf_serie}` : ""}</span>
+                <span className="text-muted-foreground">Emissão</span><span>{fmtData(reclass.nf_data_emissao)}</span>
+                <span className="text-muted-foreground">Fornecedor</span>
+                <span>{reclass.apelido ?? reclass.fornecedor ?? reclass.fornecedor_razao_social ?? "—"}</span>
+                <span className="text-muted-foreground">Valor no XML</span><span>{fmtMoeda(reclass.valor_no_xml)}</span>
+                <span className="text-muted-foreground">Destino atual</span><span>{reclass.destino_codigo ?? "—"}</span>
+              </div>
+              <div className="space-y-1">
+                <Label>Destino</Label>
+                <Select value={destinoNovo} onValueChange={setDestinoNovo}>
+                  <SelectTrigger><SelectValue placeholder={destinos.isLoading ? "Carregando…" : "Selecione"} /></SelectTrigger>
+                  <SelectContent>
+                    {(destinos.data ?? []).map((d) => (
+                      <SelectItem key={d.codigo} value={d.codigo}>{d.rotulo}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {destinos.error && <p className="text-xs text-destructive">{rawMessage(destinos.error)}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label>Motivo</Label>
+                <Textarea value={motivo} onChange={(e) => setMotivo(e.target.value)} rows={3} />
+              </div>
+              {erroReclass && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap">{erroReclass}</AlertDescription></Alert>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReclass(null)} disabled={salvandoReclass}>Cancelar</Button>
+            <Button onClick={() => void confirmarReclass()} disabled={salvandoReclass || !destinoNovo || !motivo.trim()}>
+              {salvandoReclass && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
             </Button>
           </DialogFooter>
         </DialogContent>
