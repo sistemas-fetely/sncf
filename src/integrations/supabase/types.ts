@@ -89660,6 +89660,7 @@ export type Database = {
           banco: string | null
           data: string | null
           data_pagamento: string | null
+          lancamento_id: string | null
           meio: string | null
           parceiro_id: string | null
           pedido_ref: string | null
@@ -108834,14 +108835,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -120594,14 +120595,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -127256,6 +127257,10 @@ export type Database = {
       }
       estornar_devolucao_pedido: {
         Args: { p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      estornar_lancamento_conta_cliente: {
+        Args: { p_lancamento_id: string; p_motivo: string }
         Returns: Json
       }
       estornar_recebimento_devolucao: {
