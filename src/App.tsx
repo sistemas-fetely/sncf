@@ -204,6 +204,7 @@ const ReguaEtapas = lazy(() => import("@/pages/Credito/ReguaEtapas"));
 
 const PedidosIndex = lazy(() => import("@/pages/Pedidos/PedidosIndex"));
 const TransferenciasInternas = lazy(() => import("@/pages/Pedidos/TransferenciasInternas"));
+const SimplesRemessa = lazy(() => import("@/pages/Pedidos/SimplesRemessa"));
 const VendaDiretaNovo = lazy(() => import("@/pages/Pedidos/VendaDiretaNovo"));
 const VendaDiretaGestao = lazy(() => import("@/pages/Pedidos/VendaDiretaGestao"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
@@ -436,6 +437,8 @@ const App = () => (
                     (canal='interno'), ao lado da Casa dos Pedidos. Nó em sncf_navegacao
                     (sops.transferencias_internas) — ativo/status são virados fora do front. */}
                 <Route path="/pedidos/transferencias" element={<TransferenciasInternas />} />
+                {/* Simples Remessa (mapa-simples-remessa-v1) — nó sops.simples_remessa, slug tela.simples_remessa. */}
+                <Route path="/pedidos/simples-remessa" element={<SimplesRemessa />} />
                 {/* Venda Direta (B2C por telefone/WhatsApp) — nó sops.venda_direta_novo, slug tela.venda_direta_novo. */}
                 <Route path="/pedidos/venda-direta/novo" element={<VendaDiretaNovo />} />
                 <Route path="/pedidos/venda-direta/:id/editar" element={<VendaDiretaNovo />} />

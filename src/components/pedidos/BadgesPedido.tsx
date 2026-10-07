@@ -114,10 +114,12 @@ export function NaturezaOperacaoBadge({ codigo, nome }: { codigo: string | null;
     bonificacao: "bg-info/10 text-info border-info/40",
     transferencia_interna: "bg-info/10 text-info border-info/40",
     venda_a_custo: "bg-info/10 text-info border-info/40",
+    remessa_mostruario: "bg-warning/10 text-warning border-warning/40",
   };
+  const rotulos: Record<string, string> = { remessa_mostruario: "Remessa mostruário" };
   return (
     <Badge variant="outline" className={cn("text-[10px] gap-1", estilos[codigo] ?? "")}>
-      {nome ?? codigo}
+      {rotulos[codigo] ?? nome ?? codigo}
     </Badge>
   );
 }

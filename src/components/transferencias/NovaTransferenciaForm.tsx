@@ -266,11 +266,19 @@ function useCentrosDestino() {
 }
 
 
-export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () => void; onCancelar: () => void }) {
+/** Modo Simples Remessa: mesma entrada de itens, sem tipo/destino/sugestão; cria via criar_remessa. */
+export interface ModoRemessa {
+  naturezaCodigo: string;
+  resumo: string;
+}
+
+const schemaRemessa = schema.extend({ destino: z.string() });
+
+export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa }) {
   const qc = useQueryClient();
 
   const form = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(remessa ? schemaRemessa : schema),
     defaultValues: { ...VAZIO },
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
@@ -473,6 +481,15 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
 
   const criar = useMutation({
     mutationFn: async (valores: FormValues) => {
+      if (remessa) {
+        const { data, error } = await (supabase as any).rpc("criar_remessa", {
+          p_natureza_codigo: remessa.naturezaCodigo,
+          p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
+          p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
+        });
+        if (error) throw error;
+        return data as { ok: boolean; id_externo: string; valor_bruto: number };
+      }
       const { data, error } = await supabase.rpc("criar_pedido_transferencia", {
         p_itens: valores.itens.map((i) => ({ sku: i.sku.trim(), quantidade: i.quantidade })),
         p_destino_codigo: valores.destino,
@@ -485,7 +502,14 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
     onSuccess: (res) => {
       // FAIL-LOUD: a RPC devolve ok=false sem exceção → trata como erro.
       if (!res?.ok) {
-        toast.error("A transferência não foi criada. Tente novamente.");
+        toast.error(remessa ? "A remessa não foi criada. Tente novamente." : "A transferência não foi criada. Tente novamente.");
+        return;
+      }
+      if (remessa) {
+        toast.success(`${res.id_externo} criada.`);
+        void qc.invalidateQueries({ queryKey: ["simples-remessas"] });
+        void qc.invalidateQueries({ queryKey: ["consumo-showroom"] });
+        onCriado();
         return;
       }
       toast.success(
@@ -508,6 +532,9 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
+            {remessa ? (
+              <p className="rounded-md border bg-muted/40 px-3 py-2 text-sm">{remessa.resumo}</p>
+            ) : (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Tipo</legend>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -547,9 +574,10 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                 </Button>
               </div>
             </fieldset>
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-1.5">
+              {!remessa && <div className="space-y-1.5">
                 <label htmlFor="destino" className="text-sm font-medium">
                   Destino
                 </label>
@@ -585,7 +613,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                     {form.formState.errors.destino.message}
                   </p>
                 )}
-              </div>
+              </div>}
               <div className="space-y-1.5">
                 <label htmlFor="observacao" className="text-sm font-medium">
                   Observação <span className="font-normal text-muted-foreground">(opcional)</span>
@@ -606,7 +634,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                   <TabsList>
                     <TabsTrigger value="item">Item a item</TabsTrigger>
                     <TabsTrigger value="colar">Colar da planilha</TabsTrigger>
-                    {!regularizacao && <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>}
+                    {!regularizacao && !remessa && <TabsTrigger value="sugestao">Sugestão do motor</TabsTrigger>}
                   </TabsList>
                 </Tabs>
               </div>
@@ -940,7 +968,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                     Regularização
                   </Badge>
                 )}
-                {!destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
+                {!remessa && !destinoAtual && <span className="mr-2 text-warning">Escolha o destino.</span>}
                 <span className="font-medium text-foreground">
                   {itensComSku.length} {itensComSku.length === 1 ? "SKU" : "SKUs"} · {totalPecasForm}{" "}
                   {totalPecasForm === 1 ? "peça" : "peças"}
@@ -951,6 +979,12 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                 <Button type="button" variant="outline" onClick={onCancelar}>
                   Cancelar
                 </Button>
+                {remessa ? (
+                  <Button type="submit" disabled={criar.isPending || colagemPendente}>
+                    {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Criar remessa
+                  </Button>
+                ) : (
                 <BotaoGuardado
                   slug="acao.transferencia_criar"
                   rotuloAcao="Criar transferência interna"
@@ -960,6 +994,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar }: { onCriado: () =
                   {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                   Criar transferência
                 </BotaoGuardado>
+                )}
               </div>
             </div>
           </form>
