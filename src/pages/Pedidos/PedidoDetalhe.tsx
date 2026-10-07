@@ -1202,6 +1202,7 @@ export default function PedidoDetalhe() {
   const [freteTipo, setFreteTipo] = useState("");
   const { tipos: freteTiposAtivos } = useFreteTipos();
   const [valorFrete, setValorFrete] = useState("");
+  const [confirmarFreteOpen, setConfirmarFreteOpen] = useState(false);
   
   const transportadoras = useTransportadoras();
   const { rotuloOrigem } = useTransportadoraOrigem();
@@ -1484,6 +1485,29 @@ export default function PedidoDetalhe() {
   const temOrigemConsolidada = origens.length > 0;
   const valorFreteAlterado =
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
+  const freteTipoAtual = (pedido as any).frete_tipo ?? "";
+  const freteTipoAlterado = !!freteTipo && freteTipo !== freteTipoAtual;
+  const valorFreteNum = valorFrete.trim() === "" ? null : parseFloat(valorFrete);
+  const valorFreteAtualNum = Number(pedido.valor_frete) || 0;
+  const valorFreteNovo = valorFreteAlterado && valorFreteNum !== null ? valorFreteNum : valorFreteAtualNum;
+  const liquidoAtualNum = Number(pedido.valor_liquido) || 0;
+  const liquidoNovoNum = liquidoAtualNum + (valorFreteNovo - valorFreteAtualNum);
+  const executarSalvarEnvio = () => {
+    if (!id) return;
+    salvarDadosEnvio.mutate({
+      pedidoId: id,
+      transportadoraId: transportadoraId || null,
+      pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+      freteTipo: freteTipoAlterado ? freteTipo : null,
+      valorFrete: valorFreteAlterado && valorFreteNum !== null ? valorFreteNum : null,
+      estimativaValor: cotacaoApiAtual
+        ? cotacaoApiAtual.valor
+        : (freteEst.data && !freteEst.data.erro ? freteEst.data.valor_estimado : null),
+      estimativaJson: cotacaoApiAtual
+        ? cotacaoApiAtual.json
+        : (freteEst.data && !freteEst.data.erro ? freteEst.data : null),
+    });
+  };
   // Fidelidade ao original do FOP como VISIBILIDADE, não como sobrescrita:
   // o campo segue carregando o valor real do pedido (o que gera a cobrança);
   // a divergência contra o snapshot aparece como selo.
@@ -2483,25 +2507,34 @@ export default function PedidoDetalhe() {
                       size="sm"
                       className="h-9 w-full"
                       disabled={salvarDadosEnvio.isPending}
-                      onClick={() =>
-                        id && salvarDadosEnvio.mutate({
-                          pedidoId: id,
-                          transportadoraId: transportadoraId || null,
-                          pesoBrutoTotal: parseFloat(pesoBruto) || 0,
-                          freteTipo: freteTipo || null,
-                          valorFrete: parseFloat(valorFrete) || 0,
-                          estimativaValor: cotacaoApiAtual
-                            ? cotacaoApiAtual.valor
-                            : (freteEst.data && !freteEst.data.erro ? freteEst.data.valor_estimado : null),
-                          estimativaJson: cotacaoApiAtual
-                            ? cotacaoApiAtual.json
-                            : (freteEst.data && !freteEst.data.erro ? freteEst.data : null),
-                        })
-                      }
+                      onClick={() => {
+                        if (!id) return;
+                        if (freteTipoAlterado || valorFreteAlterado) setConfirmarFreteOpen(true);
+                        else executarSalvarEnvio();
+                      }}
                     >
                       {salvarDadosEnvio.isPending ? (<><Loader2 className="h-3 w-3 animate-spin mr-1" />Salvando…</>) : ("Salvar")}
                     </Button>
                   )}
+
+                  <AlertDialog open={confirmarFreteOpen} onOpenChange={setConfirmarFreteOpen}>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Confirmar alteração de frete</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-1 text-sm">
+                            {freteTipoAlterado && <p>Tipo: {freteTipoAtual || "—"} → {freteTipo}</p>}
+                            {valorFreteAlterado && <p>Frete cobrado: {fmtBRL.format(valorFreteAtualNum)} → {fmtBRL.format(valorFreteNovo)}</p>}
+                            <p>Líquido: {fmtBRL.format(liquidoAtualNum)} → {fmtBRL.format(liquidoNovoNum)}</p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { setConfirmarFreteOpen(false); executarSalvarEnvio(); }}>Confirmar e salvar</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
 
                   {temNivel(2) && (
                     <CompararTransportadorasDialog
