@@ -1,23 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { agendaRecebiveis, ajustesDoExtrato, pagamentosDoExtrato, parcelasEmAtraso, representantesDoLote, rotuloTaxas, somarMeses } from "./extratoMensal";
+import { agendaRecebiveis, ajustesDoExtrato, baseDaLiberacao, pagamentosDoExtrato, parcelasEmAtraso, representantesDoLote, rotuloTaxas, somarMeses } from "./extratoMensal";
 import { competenciaFechada, dataDoFechamento } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
-  it("preserva valor da parcela e taxas por linha na agenda futura e paga pendente", () => {
+  it("preserva base e taxas por linha na agenda futura e paga pendente", () => {
     const ag = agendaRecebiveis([
-      { situacao_parcela: "a_vencer", vencimento: "2026-10-20", valor_parcela: "1250", taxas_linhas: [8], comissao_da_parcela: 100 },
-      { situacao_parcela: "paga_aguarda_liberacao", pago_em: "2026-10-01", valor_parcela: 2000, taxas_linhas: [8, 10], valor_liberado: 180 },
+      { situacao_parcela: "a_vencer", vencimento: "2026-10-20", base_parcela: "1250", taxas_linhas: [8], comissao_da_parcela: 100 },
+      { situacao_parcela: "paga_aguarda_liberacao", pago_em: "2026-10-01", base_parcela: 2000, taxas_linhas: [8, 10], valor_liberado: 180 },
     ], [], [], "2026-10");
-    expect(ag[0].itens.map(i => [i.valorParcela, i.taxas, i.comissao])).toEqual([[2000, [8, 10], 180], [1250, [8], 100]]);
+    expect(ag[0].itens.map(i => [i.base, i.taxas, i.comissao])).toEqual([[2000, [8, 10], 180], [1250, [8], 100]]);
     expect(ag[0].total).toBe(280);
   });
-  it("complementos pendentes e de extrato futuro não têm valor da parcela nem taxa", () => {
+  it("complementos pendentes e de extrato futuro não têm base nem taxa", () => {
     const ag = agendaRecebiveis([], [{ valor: 22.2, competencia_pagamento: "2026-11-01" }], [{ competencia: "2026-12-01", detalhe: [{ tipo: "liberacao", subtipo: "complemento", liberacao_id: "c", valor: 10 }] }], "2026-10");
-    expect(ag.flatMap(m => m.itens).map(i => [i.parcela, i.valorParcela, i.taxas, i.comissao])).toEqual([["complemento", null, null, 22.2], ["complemento", null, null, 10]]);
+    expect(ag.flatMap(m => m.itens).map(i => [i.parcela, i.base, i.taxas, i.comissao])).toEqual([["complemento", null, null, 22.2], ["complemento", null, null, 10]]);
   });
-  it("preserva o valor e as taxas originais das parcelas vencidas", () => {
-    const parcelas = [{ situacao_parcela: "vencida", valor_parcela: 1014.88, taxas_linhas: [8], comissao_da_parcela: 81.19 }];
+  it("preserva a base e as taxas originais das parcelas vencidas", () => {
+    const parcelas = [{ situacao_parcela: "vencida", base_parcela: 1014.89, taxas_linhas: [8], comissao_da_parcela: 81.19 }];
     expect(parcelasEmAtraso(parcelas)[0]).toEqual(parcelas[0]);
+  });
+  it("calcula a base proporcional usada na liberação e arredonda em centavos", () => {
+    expect(baseDaLiberacao({ base_parcela: 5549, valor_liberado: 421.72, comissao_da_parcela: 443.92 })).toBe(5271.5);
+    expect(baseDaLiberacao({ base_parcela: 1000, valor_liberado: 40, comissao_da_parcela: 80 })).toBe(500);
+  });
+  it("usa a base integral quando a comissão original não é positiva", () => {
+    expect(baseDaLiberacao({ base_parcela: 465.04, valor_liberado: 27.9, comissao_da_parcela: 0 })).toBe(465.04);
   });
   it("seleciona somente liberações do detalhe e usa valor_liberado da view", () => {
     const parcelas = [{ liberacao_id: "a", cliente: "Z", valor_liberado: 421.72 }, { liberacao_id: "b", cliente: "A", valor_liberado: 148.01 }, { liberacao_id: "fora", valor_liberado: 99 }];
