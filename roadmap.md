@@ -33,3 +33,4 @@
 - [x] Incluir memória de cálculo por NF nos extratos individual e em lote.
 - [x] Enxugar o Gerencial em tela e PDF, mantendo comparativo, conta corrente e representantes.
 - [x] Validar Lucia 10/2026, Anne 11/2026, lote 10/2026 e Gerencial 09/2026 sem publicar.
+- [x] Coluna Classificação, filtro padrão e aviso na aba "NFs sem pedido"; corrigir a quebra da tela durante o carregamento.
