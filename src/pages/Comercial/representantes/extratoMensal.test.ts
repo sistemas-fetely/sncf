@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ajustesDoExtrato, carteiraPorPedido, pagamentosDoExtrato, rotuloParcelas } from "./extratoMensal";
+import { ajustesDoExtrato, carteiraPorPedido, complementosNaCarteira, pagamentosDoExtrato, rotuloParcelas, rotuloTaxas } from "./extratoMensal";
+import { competenciaFechada } from "./extratoCompetencias";
 
 describe("prestação de contas mensal", () => {
   it("seleciona somente liberações do detalhe e usa valor_liberado da view", () => {
@@ -35,5 +36,16 @@ describe("prestação de contas mensal", () => {
   it("seleciona somente vencidas e mantém a mais antiga e maior atraso", () => {
     const linhas = [{ pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-09-01", dias_atraso: 35, comissao_da_parcela: 22 }, { pedido: "P", cliente: "A", situacao_parcela: "vencida", vencimento: "2026-10-01", dias_atraso: 5, comissao_da_parcela: 10 }, { pedido: "X", situacao_parcela: "a_vencer", comissao_da_parcela: 100 }];
     expect(carteiraPorPedido(linhas, "vencida")[0]).toMatchObject({ parcelas: 2, vencimento: "2026-09-01", dias_atraso: 35, comissao: 32 });
+  });
+  it("mostra a taxa de cada linha de produto, nunca a média", () => {
+    expect(rotuloTaxas([6])).toBe("6%");
+    expect(rotuloTaxas([8, 10], 8.15)).toBe("8% / 10%");
+  });
+  it("complemento pendente entra no A receber com o valor como comissão", () => {
+    expect(complementosNaCarteira([{ cliente: "FZL", pedido: "PED-2187", valor: "22.20" }])).toEqual([{ cliente: "FZL", pedido: "PED-2187", comissao: 22.2, complemento: true }]);
+  });
+  it("competência fecha no dia 1 do mês seguinte", () => {
+    expect(competenciaFechada("2026-10", "2026-10-31")).toBe(false);
+    expect(competenciaFechada("2026-10", "2026-11-01")).toBe(true);
   });
 });
