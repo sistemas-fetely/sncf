@@ -1483,8 +1483,14 @@ export default function PedidoDetalhe() {
   const valorFreteCongelado = temTituloAtivo || temRemessaAtiva;
   const origens = origensData ?? [];
   const temOrigemConsolidada = origens.length > 0;
+  // 07/10/2026: campo vazio = NÃO alterado — nunca grava 0 por engano
+  // (mesmo padrão aplicado ao frete no fix do PED-2289).
   const valorFreteAlterado =
+    valorFrete.trim() !== "" &&
     Math.abs((parseFloat(valorFrete) || 0) - (Number(pedido.valor_frete) || 0)) > 0.005;
+  const pesoBrutoAlterado =
+    pesoBruto.trim() !== "" &&
+    Math.abs((parseFloat(pesoBruto) || 0) - (Number(pedido.peso_bruto_total) || 0)) > 0.005;
   const freteTipoAtual = (pedido as any).frete_tipo ?? "";
   const freteTipoAlterado = !!freteTipo && freteTipo !== freteTipoAtual;
   const valorFreteNum = valorFrete.trim() === "" ? null : parseFloat(valorFrete);
@@ -1497,7 +1503,7 @@ export default function PedidoDetalhe() {
     salvarDadosEnvio.mutate({
       pedidoId: id,
       transportadoraId: transportadoraId || null,
-      pesoBrutoTotal: parseFloat(pesoBruto) || 0,
+      pesoBrutoTotal: pesoBrutoAlterado ? parseFloat(pesoBruto) : null,
       freteTipo: freteTipoAlterado ? freteTipo : null,
       valorFrete: valorFreteAlterado && valorFreteNum !== null ? valorFreteNum : null,
       estimativaValor: cotacaoApiAtual

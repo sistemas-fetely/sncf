@@ -6,7 +6,7 @@ import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 interface DadosEnvio {
   pedidoId: string;
   transportadoraId: string | null;
-  pesoBrutoTotal: number;
+  pesoBrutoTotal?: number | null;
   freteTipo?: string | null;
   valorFrete?: number | null;
   estimativaValor?: number | null;
