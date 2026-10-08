@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * F1 — Planilha de cadastro de produto (FOP é o mestre).
@@ -279,6 +280,35 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     autoFilter: true, sort: true,
   });
 
+  await adicionarAbaBancoGs1(wb);
+
   const buf = await wb.xlsx.writeBuffer();
   return new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+/** Aba "Banco GS1": códigos livres do cartório para o usuário pinar na coluna cod_cadastro. Somente leitura. */
+async function adicionarAbaBancoGs1(wb: ExcelJS.Workbook) {
+  const livres: { codigo: string; ean: string | null }[] = [];
+  for (let de = 0; ; de += 1000) {
+    const { data, error } = await supabase.from("cartorio_codigo").select("codigo, ean")
+      .eq("estado", "estoque").order("codigo").range(de, de + 999);
+    if (error) throw new Error(`Leitura do banco GS1 falhou: ${error.message}`);
+    livres.push(...((data ?? []) as { codigo: string; ean: string | null }[]));
+    if (!data || data.length < 1000) break;
+  }
+  const gs = wb.addWorksheet("Banco GS1");
+  gs.mergeCells(1, 1, 1, 2);
+  const inst = gs.getCell(1, 1);
+  inst.value = "Copie o Código para a coluna cod_cadastro da aba de produtos para escolher qual código o produto novo recebe. EAN e DUN são do código — nunca digite.";
+  inst.alignment = { wrapText: true, vertical: "middle" };
+  inst.font = { italic: true };
+  gs.getRow(1).height = 45;
+  const h = gs.getRow(3);
+  h.values = ["Código", "EAN"];
+  h.font = { bold: true };
+  h.eachCell((c) => { c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFE7EEF8" } }; });
+  livres.forEach((l, i) => { const r = gs.getRow(4 + i); r.getCell(1).value = String(l.codigo); r.getCell(2).value = l.ean ?? ""; });
+  gs.getColumn(1).width = 14; gs.getColumn(2).width = 18;
+  gs.views = [{ state: "frozen", ySplit: 3 }];
+  await gs.protect("", { selectLockedCells: true, selectUnlockedCells: true, autoFilter: true, sort: true });
 }
