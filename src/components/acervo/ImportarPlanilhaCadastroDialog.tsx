@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Download, Loader2, Upload } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,16 @@ import { Progress } from "@/components/ui/progress";
 import { chamarFuncao, motivoDaFalha } from "@/components/acervo/promocaoFase";
 import { calcularPrevia, lerPlanilha, montarNascimentos, validarFormatoPrevia, type ItemPrevia, type LinhaPlanilha, type MontagemNascimentos, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
 import { supabase } from "@/integrations/supabase/client";
-import type { RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
+import { gerarPlanilhaCadastro, nomeArquivoCadastro, type RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido: () => void }
 interface Resultado { nasceram: string[]; gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
 interface DryNascer {
   linhas?: number; nasceram?: number; nasceriam?: number; codigos_consumidos?: number; gs1_livres_depois?: number | null;
-  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string }[];
+  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null }[];
   problemas?: { linha: number; erro?: string; aviso?: string }[];
   pode_confirmar?: boolean;
-  produtos?: { cod_cadastro?: string }[];
+  produtos?: { cod_cadastro?: string; ean?: string | null }[];
 }
 
 async function nascerLote(produtos: Record<string, unknown>[], dry: boolean): Promise<DryNascer> {
