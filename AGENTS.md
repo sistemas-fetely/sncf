@@ -1,5 +1,7 @@
 # Decisões técnicas
 
+- Resolve grouped Chegada tabs and legacy links through a tested pure selector; use separate query parameters for each subgroup to avoid embedded-tab collisions.
+
 - Keep monthly statement selection/grouping in a pure tested helper; payment totals come from the closed statement, never recomputed from live receivables.
 - Render individual and batch statements through the same single-page representative document so content and print remain consistent.
 
