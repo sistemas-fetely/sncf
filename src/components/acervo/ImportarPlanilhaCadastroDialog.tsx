@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Upload } from "lucide-react";
+import { Download, Loader2, Upload } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -11,16 +11,16 @@ import { Progress } from "@/components/ui/progress";
 import { chamarFuncao, motivoDaFalha } from "@/components/acervo/promocaoFase";
 import { calcularPrevia, lerPlanilha, montarNascimentos, validarFormatoPrevia, type ItemPrevia, type LinhaPlanilha, type MontagemNascimentos, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
 import { supabase } from "@/integrations/supabase/client";
-import type { RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
+import { gerarPlanilhaCadastro, nomeArquivoCadastro, type RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido: () => void }
 interface Resultado { nasceram: string[]; gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
 interface DryNascer {
   linhas?: number; nasceram?: number; nasceriam?: number; codigos_consumidos?: number; gs1_livres_depois?: number | null;
-  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string }[];
+  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null }[];
   problemas?: { linha: number; erro?: string; aviso?: string }[];
   pode_confirmar?: boolean;
-  produtos?: { cod_cadastro?: string }[];
+  produtos?: { cod_cadastro?: string; ean?: string | null }[];
 }
 
 async function nascerLote(produtos: Record<string, unknown>[], dry: boolean): Promise<DryNascer> {
@@ -45,6 +45,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const [montagem, setMontagem] = useState<MontagemNascimentos | null>(null);
   const [dryNascer, setDryNascer] = useState<DryNascer | null>(null);
   const [erroNascer, setErroNascer] = useState<string | null>(null);
+  const [baixando, setBaixando] = useState(false);
 
   const reset = () => { setMontagem(null); setDryNascer(null); setErroNascer(null); setLinhasLidas([]); setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
   const fechar = (v: boolean) => { if (progresso && !resultado) return; if (!v) reset(); onOpenChange(v); };
@@ -101,7 +102,9 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
       try {
         const payloads = montarNascimentos(linhasLidas, motivo).nascimentos.map((n) => n.payload);
         const r = await nascerLote(payloads, false);
-        res.nasceram = (r.produtos ?? []).map((p) => String(p.cod_cadastro ?? "")).filter(Boolean);
+        res.nasceram = (r.produtos ?? [])
+          .map((p) => { const cod = String(p.cod_cadastro ?? "").trim(); return p.ean ? `${cod} · ${p.ean}` : cod; })
+          .filter(Boolean);
         if (!res.nasceram.length && r.nasceram) res.nasceram = [`${r.nasceram} produto(s)`];
       } catch (e) {
         const m = e instanceof Error ? e.message : String(e);
@@ -142,6 +145,30 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
   const comErro = (previa?.itens ?? []).filter((i) => i.erros.length && !i.inexistente);
   const semMudanca = semErro.filter((i) => !efetivas(i).length && !i.liberar);
+
+  // Mesmo export do botão "Exportar planilha de cadastro" da Mesa (catálogo inteiro).
+  async function baixarPlanilhaAtualizada() {
+    setBaixando(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("exportar-planilha-produto", { body: { colecoes: null, so_aguardando_medicao: false } });
+      if (error) {
+        let m = error.message;
+        try { const ctx = (error as { context?: Response }).context; const j = ctx ? await ctx.json() : null; if (j?.erro) m = j.erro; } catch { /* mantém */ }
+        throw new Error(m);
+      }
+      const r = data as RespostaExport;
+      if (!r?.ok) throw new Error(r?.erro ?? "Resposta inválida da exportação");
+      if (!r.produtos.length) throw new Error("O FOP não devolveu nenhum produto.");
+      const blob = await gerarPlanilhaCadastro(r);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = nomeArquivoCadastro([]); a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      const m = e instanceof Error ? e.message : String(e);
+      toast.error(m);
+    } finally { setBaixando(false); }
+  }
 
   return (
     <Dialog open={open} onOpenChange={fechar}>
@@ -208,13 +235,15 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 {erroNascer && <Alert variant="destructive"><AlertDescription>{erroNascer}</AlertDescription></Alert>}
                 {(dryNascer?.alocacao_prevista?.length ?? 0) > 0 && (
                   <table className="w-full text-xs">
-                    <thead><tr className="text-left text-muted-foreground"><th className="py-1">Linha</th><th>Código previsto</th><th>Nome</th><th>Origem</th><th>Inner</th></tr></thead>
+                    <thead><tr className="text-left text-muted-foreground"><th className="py-1">Linha</th><th>Código previsto</th><th>EAN</th><th>DUN</th><th>Nome</th><th>Origem</th><th>Inner</th></tr></thead>
                     <tbody>
                       {dryNascer!.alocacao_prevista!.map((a) => {
                         const n = linhaParaNasc.get(a.linha);
                         return (
                           <tr key={a.linha} className="border-t">
-                            <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}</td><td>{a.nome}</td>
+                            <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}</td>
+                            <td>{fmt(a.ean)}</td><td>{a.dun ? a.dun : "sem caixa master"}</td>
+                            <td>{a.nome}</td>
                             <td>{n ? legivel(n.origem) : "—"}</td><td>{fmt(n?.inner_qtd)}</td>
                           </tr>
                         );
@@ -249,6 +278,12 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
             <p><strong>Nasceram ({resultado.nasceram.length}):</strong> {resultado.nasceram.join(", ") || "—"}</p>
             <p><strong>Enriquecidos ({resultado.gravados.length}):</strong> {resultado.gravados.join(", ") || "—"}</p>
             <p><strong>Liberados ({resultado.promovidos.length}):</strong> {resultado.promovidos.join(", ") || "—"}</p>
+            {resultado.nasceram.length > 0 && (
+              <Button variant="outline" size="sm" onClick={() => void baixarPlanilhaAtualizada()} disabled={baixando}>
+                {baixando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Baixar planilha atualizada
+              </Button>
+            )}
             {resultado.recusas.length > 0 && (
               <Alert variant="destructive"><AlertDescription>
                 {resultado.recusas.map((r, k) => <div key={k}><strong>{r.cod}</strong>: {r.motivo}</div>)}
