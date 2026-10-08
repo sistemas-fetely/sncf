@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 type Campos = Record<string, string>;
-const TEXTO = ["nome_comercial", "nome_completo", "marca", "linha", "motivo", "ncm", "cest", "origem_fisc", "categoria", "departamento", "cor_nome"];
+const TEXTO = ["origem", "nome_comercial", "nome_completo", "marca", "linha", "motivo", "ncm", "cest", "origem_fisc", "categoria", "departamento", "cor_nome"];
 const NUMERO = ["inner_qtd", "preco_atacado", "preco_varejo"];
 const MAIS: [string, string][] = [["ncm", "NCM"], ["cest", "CEST"], ["origem_fisc", "Origem fiscal"], ["preco_atacado", "Preço atacado"], ["preco_varejo", "Preço varejo"], ["categoria", "Categoria"], ["departamento", "Departamento"], ["cor_nome", "Cor"]];
-const INICIAL: Campos = { origem_fisc: "0" };
+const INICIAL: Campos = { origem: "nacional", origem_fisc: "0" };
 
-function montar(c: Campos) {
+export function montar(c: Campos) {
   const p: Record<string, unknown> = {};
   for (const k of TEXTO) { const v = (c[k] ?? "").trim(); if (v) p[k] = v; }
   for (const k of NUMERO) { const v = (c[k] ?? "").trim().replace(",", "."); if (v) p[k] = Number(v); }
@@ -39,7 +40,7 @@ export function NascerProdutoNacionalDialog({ open, onOpenChange, onNasceu }: { 
   async function chamar(dry: boolean) {
     setRodando(true); setErro(null);
     try {
-      const { data, error } = await (supabase.rpc as any)("fn_nascer_produto_nacional", { p_produto: montar(c), p_dry_run: dry });
+      const { data, error } = await (supabase.rpc as any)("fn_nascer_produto", { p_produto: montar(c), p_dry_run: dry });
       if (error) throw error;
       if (dry) setPrevia(data as Previa);
       else {
@@ -63,15 +64,22 @@ export function NascerProdutoNacionalDialog({ open, onOpenChange, onNasceu }: { 
   return (
     <Dialog open={open} onOpenChange={(v) => !rodando && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nascer produto nacional</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Nascer produto</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label>Origem</Label>
+            <RadioGroup value={c.origem} onValueChange={(v) => set("origem", v)} className="flex gap-6" aria-label="Origem">
+              <div className="flex items-center gap-2"><RadioGroupItem id="np-origem-nacional" value="nacional" /><Label htmlFor="np-origem-nacional">Nacional</Label></div>
+              <div className="flex items-center gap-2"><RadioGroupItem id="np-origem-importado" value="importado" /><Label htmlFor="np-origem-importado">Importado</Label></div>
+            </RadioGroup>
+          </div>
           {campo("nome_comercial", "Nome comercial *")}
           {campo("nome_completo", "Nome completo")}
           <div className="grid grid-cols-2 gap-3">{campo("marca", "Marca")}{campo("linha", "Linha")}</div>
           <div className="space-y-1.5">
-            <Label htmlFor="np-inner_qtd">Inner (qtd. caixa master)</Label>
-            <Input id="np-inner_qtd" type="number" min={1} value={c.inner_qtd ?? ""} onChange={(e) => set("inner_qtd", e.target.value)} />
-            <p className="text-xs text-muted-foreground">Quantidade da caixa master. Sem caixa master? Deixe vazio — o produto nasce sem DUN.</p>
+            <Label htmlFor="np-inner_qtd">Inner (qtd. caixa master){c.origem === "importado" ? " *" : ""}</Label>
+            <Input id="np-inner_qtd" type="number" min={1} required={c.origem === "importado"} value={c.inner_qtd ?? ""} onChange={(e) => set("inner_qtd", e.target.value)} />
+            <p className="text-xs text-muted-foreground">{c.origem === "importado" ? "Obrigatório para importado — vem do packing list" : "Quantidade da caixa master. Sem caixa master? Deixe vazio — o produto nasce sem DUN."}</p>
           </div>
           {campo("motivo", "Motivo", "ex.: NF Mirandinha 56789")}
           <Collapsible>
@@ -86,6 +94,7 @@ export function NascerProdutoNacionalDialog({ open, onOpenChange, onNasceu }: { 
           {n && (
             <div className="rounded-md border bg-muted/30 p-3 text-sm space-y-2">
               <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <span className="text-muted-foreground">Origem</span><span>{n.origem === "nacional" ? "Nacional" : n.origem === "importado" ? "Importado" : n.origem ?? "—"}</span>
                 <span className="text-muted-foreground">Código</span><span className="font-mono">{n.cod_cadastro}</span>
                 <span className="text-muted-foreground">EAN</span><span className="font-mono">{n.ean}</span>
                 <span className="text-muted-foreground">DUN</span><span>{n.dun ? <span className="font-mono">{String(n.dun)}</span> : <Badge variant="secondary">sem DUN — sem caixa master</Badge>}</span>
