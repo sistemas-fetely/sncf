@@ -119,6 +119,8 @@ interface Props {
   aberto: boolean;
   aoFechar: () => void;
   modo: "sops" | "mesa";
+  /** Ação do toast quando o pagamento já está na conta do cliente. */
+  aoUsarSaldoConta?: () => void;
 }
 
 export function ConfirmarPagamentoDialog({
@@ -127,6 +129,7 @@ export function ConfirmarPagamentoDialog({
   aberto,
   aoFechar,
   modo,
+  aoUsarSaldoConta,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -154,7 +157,11 @@ export function ConfirmarPagamentoDialog({
   const enviarComprovante = useEnviarComprovante(pedidoId);
   const confirmarComprovante = useConfirmarComprovante(pedidoId);
   const confirmarLinha = useConfirmarPagamentoLinha();
-  const confirmarCaptura = useConfirmarCapturaCartao();
+  const confirmarCaptura = useConfirmarCapturaCartao(
+    aoUsarSaldoConta
+      ? { aoUsarSaldoConta: () => { aoFechar(); aoUsarSaldoConta(); } }
+      : undefined,
+  );
 
   // DESTINO-VISÍVEL: antes do clique, dizer para onde o dinheiro vai.
   const destinoQ = useQuery({

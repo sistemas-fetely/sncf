@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast as toastSonner } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import { rawMessage } from "@/lib/format-error";
 import { formatBRL } from "@/lib/format-currency";
@@ -91,7 +92,7 @@ export function usePreviaCapturaCartao(
   });
 }
 
-export function useConfirmarCapturaCartao() {
+export function useConfirmarCapturaCartao(opts?: { aoUsarSaldoConta?: () => void }) {
   const qc = useQueryClient();
   const { toast } = useToast();
 
@@ -131,6 +132,16 @@ export function useConfirmarCapturaCartao() {
 
     onError: (e: unknown) => {
       console.error("[fn_confirmar_captura_cartao]", e);
+      const msg = rawMessage(e);
+      if (opts?.aoUsarSaldoConta && msg.includes("já está lançado na conta do cliente")) {
+        const usar = opts.aoUsarSaldoConta;
+        toastSonner.error("Erro ao confirmar a captura", {
+          description: msg,
+          duration: 15000,
+          action: { label: "Usar saldo da conta", onClick: () => usar() },
+        });
+        return;
+      }
       toast({
         title: "Erro ao confirmar a captura",
         description: rawMessage(e),
