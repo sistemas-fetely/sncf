@@ -61,7 +61,8 @@ describe("sem proteção de aba na planilha de cadastro", () => {
     expect(abas["cadastro"]).toContain("autoFilter");
     expect(abas["cadastro"]).toContain('state="frozen"');
     expect(abas["cadastro"]).toContain("dataValidation");
-    expect(abas["cadastro"]).toContain("FFF2F2F2");
+    const estilos = await zip.file("xl/styles.xml")!.async("string");
+    expect(estilos, "cinza de identidade/situação sumiu").toContain("FFF2F2F2");
     expect(abas["Banco GS1"]).toContain("Copie o C");
     expect(abas["Banco GS1"]).toContain("7891234567890");
     expect(abas["Banco GS1"]).toContain('state="frozen"');
