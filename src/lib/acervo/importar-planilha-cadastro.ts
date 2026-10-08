@@ -15,8 +15,6 @@ export interface ItemPrevia {
   linha: number; cod: string; sku: string;
   mudancas: Mudanca[]; liberar: boolean; fase_destino: string | null;
   erros: string[];
-  /** cod_cadastro preenchido que não existe na matriz — bloqueia a importação inteira. */
-  inexistente?: boolean;
   sugestoes_ignoradas: number;
   /** Sugestões amarelas deixadas como vieram — só gravadas se o usuário confirmar na prévia. */
   sugestoes_mantidas: Mudanca[];
@@ -24,19 +22,21 @@ export interface ItemPrevia {
 export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number }
 
 export type OrigemProduto = "nacional" | "importado";
-export interface Nascimento { linha: number; payload: Record<string, unknown>; nome: string; origem: OrigemProduto; inner_qtd: number | null }
+export interface Nascimento { linha: number; pinado: boolean; payload: Record<string, unknown>; nome: string; origem: OrigemProduto; inner_qtd: number | null }
 export interface MontagemNascimentos { nascimentos: Nascimento[]; erros: { linha: number; erro: string }[] }
 
 /**
  * Linhas sem cod_cadastro = nascimento pela porta única (fn_nascer_produtos_lote).
  * Só monta o payload: origem vazia = nacional; validação de negócio é do banco.
  */
-export function montarNascimentos(linhas: LinhaPlanilha[], motivo: string): MontagemNascimentos {
+export function montarNascimentos(linhas: LinhaPlanilha[], motivo: string, codsMatriz: Set<string> = new Set()): MontagemNascimentos {
   const nascimentos: Nascimento[] = [];
   const erros: { linha: number; erro: string }[] = [];
   for (const l of linhas) {
-    if (l.cod) continue;
+    // cod existente na matriz = enriquecimento; cod inexistente = nascimento PINADO (a RPC valida contra o cartório).
+    if (l.cod && codsMatriz.has(l.cod)) continue;
     const payload: Record<string, unknown> = {};
+    if (l.cod) payload.cod_cadastro = l.cod;
     for (const [campo, v] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo) || campo === "origem" || campo === "inner_qtd") continue;
       payload[campo] = v;
@@ -51,7 +51,7 @@ export function montarNascimentos(linhas: LinhaPlanilha[], motivo: string): Mont
     payload.origem = o;
     if (inner !== null) payload.inner_qtd = inner;
     if (motivo.trim()) payload.motivo = motivo.trim();
-    nascimentos.push({ linha: l.linha, payload, nome: String(payload.nome_comercial ?? ""), origem: o, inner_qtd: inner });
+    nascimentos.push({ linha: l.linha, pinado: !!l.cod, payload, nome: String(payload.nome_comercial ?? ""), origem: o, inner_qtd: inner });
   }
   return { nascimentos, erros };
 }
@@ -186,10 +186,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     if (!l.cod) { novos.push(l.linha); continue; }
     const p = porCod.get(l.cod);
     const erros: string[] = [];
-    if (!p) {
-      itens.push({ linha: l.linha, cod: l.cod, sku: "", mudancas: [], liberar: l.liberar, fase_destino: null, sugestoes_ignoradas: 0, sugestoes_mantidas: [], inexistente: true, erros: [`código ${l.cod} não existe na matriz — código não se inventa; deixe vazio para nascer`] });
-      continue;
-    }
+    if (!p) continue; // nascimento pinado — vai para montarNascimentos
     if (vistos.has(l.cod)) erros.push(`código ${l.cod} repetido na planilha`);
     vistos.add(l.cod);
     const mudancas: Mudanca[] = [];
