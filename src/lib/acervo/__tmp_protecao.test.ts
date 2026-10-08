@@ -2,12 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 import JSZip from "jszip";
 
 vi.mock("@/integrations/supabase/client", () => {
-  const chain: Record<string, unknown> = {};
-  const proxy: unknown = new Proxy(chain, {
+  const alvo = function () {} as unknown as object;
+  const proxy: unknown = new Proxy(alvo, {
     get(_t, k) {
       if (k === "range") return () => Promise.resolve({ data: [{ cod_cadastro: "7891234567890", ean: "7891234567890" }], error: null });
       return proxy;
     },
+    apply() { return proxy; },
   });
   return { supabase: { from: () => proxy } };
 });
