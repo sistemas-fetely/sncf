@@ -40,7 +40,8 @@ const COR_BLOCO: Record<string, string> = {
 const COR_PADRAO = "FF595959";
 const AMARELO = "FFFFFF00";
 const NOTA_SUGESTAO = "valor só no SNCF — confirme ou corrija";
-const LINHAS_LIVRES = 200; // linhas extras editáveis para produto novo
+const LINHAS_LIVRES = 300;
+const IDENT_BANCO = new Set(["sku", "ean", "dun", "fase"]); // linhas extras editáveis para produto novo
 const SISTEMAS = ["Bling", "Shopify", "XPM"] as const;
 const COR_SISTEMA: Record<(typeof SISTEMAS)[number], string> = {
   Bling: "FFEAF2F8",
@@ -237,9 +238,11 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   // Travas + listas: campo importável fica destravado em todas as linhas de dado.
   for (let lin = 7; lin <= ultima; lin++) {
     const row = ws.getRow(lin);
+    const ehNova = !r.produtos[lin - 7];
     ficha.forEach((f, i) => {
       const cell = row.getCell(i + 2);
-      const editavel = f.importavel_planilha !== false;
+      // Linha de nascimento: tudo editável, inclusive cod_cadastro (pinagem); EAN/DUN/SKU/fase vêm do banco.
+      const editavel = ehNova ? (f.campo === "cod_cadastro" || !IDENT_BANCO.has(f.campo)) : f.importavel_planilha !== false;
       cell.protection = { locked: !editavel };
       if (!editavel) cell.fill = cell.fill ?? { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
       const ref = refLista.get(f.campo);
