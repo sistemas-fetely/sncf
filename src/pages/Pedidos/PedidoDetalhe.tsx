@@ -89,6 +89,9 @@ import { usePermissoesDoUsuario } from "@/hooks/usePermissoesDoUsuario";
 import { PreFaturamentoCard } from "@/components/pedidos/PreFaturamentoCard";
 import { AncoraFaturamentoCard } from "@/components/pedidos/AncoraFaturamentoCard";
 import { useNivel } from "@/hooks/useNivel";
+import { useUsarSaldoConta } from "@/components/pedidos/dialogs/UsarSaldoContaDialog";
+import { usePedidoPortaoAtual } from "@/hooks/pedidos/usePedidoPortaoAtual";
+import { useContaClienteCobertura } from "@/hooks/financeiro/useContaCliente";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -933,6 +936,16 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
   const { data: plano } = usePlanoAbertoPedido(pedido.id);
   const { temNivel } = useNivel();
   const [confirmarAberto, setConfirmarAberto] = useState(false);
+  const usarSaldo = useUsarSaldoConta(pedido.id);
+  const { data: portaoAtual } = usePedidoPortaoAtual(pedido.id);
+  const { data: cobConta } = useContaClienteCobertura(pedido.parceiro_id, pedido.id);
+  const permDinheiro = usePermissaoAcaoOuSuperAdmin("acao.pedido_dinheiro");
+  const permReceber = usePermissaoAcaoOuSuperAdmin("acao.cobranca_receber");
+  const valorPedidoNum = Number(pedido.valor_liquido ?? 0);
+  const coberturaEmpenhada =
+    valorPedidoNum > 0 && Number(cobConta?.empenho_deste_pedido ?? 0) >= valorPedidoNum;
+  const mostraUsarSaldo =
+    !!portaoAtual && coberturaEmpenhada && (permDinheiro.permitido || permReceber.permitido);
 
   const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
   const linhaALinha = (plano ?? []).filter((l) =>
@@ -960,6 +973,11 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
               ? "Confirmar captura"
               : "Confirmar pagamento"}
           </Button>
+          {mostraUsarSaldo && (
+            <Button size="sm" variant="outline" onClick={usarSaldo.iniciar} disabled={usarSaldo.simulando}>
+              Usar saldo da conta
+            </Button>
+          )}
           {cartao.length > 0 && linhaALinha.length > 0 && (
             <p className="text-xs text-muted-foreground">
               Cartão em aberto: {resumoMeios(cartao)} — fecha pela captura (NSU).
@@ -970,7 +988,9 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
             aberto={confirmarAberto}
             aoFechar={() => setConfirmarAberto(false)}
             modo="sops"
+            aoUsarSaldoConta={usarSaldo.iniciar}
           />
+          {usarSaldo.dialogo}
         </>
       )}
     </div>
