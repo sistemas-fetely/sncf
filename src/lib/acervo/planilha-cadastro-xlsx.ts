@@ -247,7 +247,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
       const ref = refLista.get(f.campo);
       if (ref && editavel) {
         cell.dataValidation = { type: "list", allowBlank: true, formulae: [ref], showErrorMessage: true,
-          errorTitle: rotuloCampo.get(f.campo) ?? f.campo, error: "Escolha um valor da lista." };
+          errorStyle: "warning", errorTitle: rotuloCampo.get(f.campo) ?? f.campo,
+          error: "Valor fora da lista atual — será criado como novo na importação." };
       }
     });
     // Liberar: usável só em produto exportado com próxima fase.
