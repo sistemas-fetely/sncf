@@ -9,12 +9,26 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { chamarFuncao, motivoDaFalha } from "@/components/acervo/promocaoFase";
-import { calcularPrevia, lerPlanilha, validarFormatoPrevia, type ItemPrevia, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
+import { calcularPrevia, lerPlanilha, montarNascimentos, validarFormatoPrevia, type ItemPrevia, type LinhaPlanilha, type MontagemNascimentos, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
 import { supabase } from "@/integrations/supabase/client";
 import type { RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
 interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido: () => void }
-interface Resultado { gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
+interface Resultado { nasceram: string[]; gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
+interface DryNascer {
+  linhas?: number; nasceram?: number; nasceriam?: number; codigos_consumidos?: number; gs1_livres_depois?: number | null;
+  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string }[];
+  problemas?: { linha: number; erro?: string; aviso?: string }[];
+  pode_confirmar?: boolean;
+  produtos?: { cod_cadastro?: string }[];
+}
+
+async function nascerLote(produtos: Record<string, unknown>[], dry: boolean): Promise<DryNascer> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("fn_nascer_produtos_lote", { p_produtos: produtos, p_dry_run: dry });
+  if (error) throw new Error([error.message, error.details, error.hint].filter(Boolean).join(" — "));
+  return (data ?? {}) as DryNascer;
+}
 
 const fmt = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v));
 const legivel = (s: string | null) => (s ? s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : "");
@@ -27,15 +41,26 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const [progresso, setProgresso] = useState<{ feito: number; total: number } | null>(null);
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [confirmarSug, setConfirmarSug] = useState(false);
+  const [linhasLidas, setLinhasLidas] = useState<LinhaPlanilha[]>([]);
+  const [montagem, setMontagem] = useState<MontagemNascimentos | null>(null);
+  const [dryNascer, setDryNascer] = useState<DryNascer | null>(null);
+  const [erroNascer, setErroNascer] = useState<string | null>(null);
 
-  const reset = () => { setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
+  const reset = () => { setMontagem(null); setDryNascer(null); setErroNascer(null); setLinhasLidas([]); setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
   const fechar = (v: boolean) => { if (progresso && !resultado) return; if (!v) reset(); onOpenChange(v); };
 
   async function carregar(arquivo: File) {
     reset(); setLendo(true);
     try {
       const linhas = await lerPlanilha(arquivo);
-      if (!linhas.length) throw new Error("Nenhuma linha preenchida a partir da linha 4.");
+      if (!linhas.length) throw new Error("Nenhuma linha preenchida na planilha.");
+      setLinhasLidas(linhas);
+      const m = montarNascimentos(linhas, motivo);
+      setMontagem(m);
+      if (m.nascimentos.length) {
+        try { setDryNascer(await nascerLote(m.nascimentos.map((n) => n.payload), true)); }
+        catch (e) { setErroNascer(e instanceof Error ? e.message : String(e)); }
+      }
       const cods = [...new Set(linhas.map((l) => l.cod).filter(Boolean))] as string[];
       let r: RespostaExport = { ok: true, ficha: [], opcoes: {}, produtos: [] };
       if (cods.length) {
@@ -58,10 +83,34 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const efetivas = (i: ItemPrevia) => (confirmarSug ? [...i.mudancas, ...i.sugestoes_mantidas] : i.mudancas);
   const validos: ItemPrevia[] = semErro.filter((i) => efetivas(i).length || i.liberar);
 
+  const nascimentos = montagem?.nascimentos ?? [];
+  const inexistentes = (previa?.itens ?? []).filter((i) => i.inexistente);
+  const errosNascer = [...(montagem?.erros ?? []), ...((dryNascer?.problemas ?? []).filter((p) => p.erro).map((p) => ({ linha: p.linha, erro: p.erro! })))];
+  const avisosNascer = (dryNascer?.problemas ?? []).filter((p) => p.aviso && !p.erro);
+  const nascerBloqueado = nascimentos.length > 0 && (!!erroNascer || !dryNascer || dryNascer.pode_confirmar === false || errosNascer.length > 0);
+  const bloqueado = inexistentes.length > 0 || nascerBloqueado || (montagem?.erros.length ?? 0) > 0;
+  const linhaParaNasc = new Map(nascimentos.map((n) => [n.linha, n]));
+
   async function confirmar() {
     if (!motivo.trim()) { toast.error("Informe o motivo."); return; }
+    if (bloqueado) { toast.error("Corrija os erros da planilha antes de confirmar."); return; }
     const loteId = crypto.randomUUID();
-    const res: Resultado = { gravados: [], promovidos: [], recusas: [] };
+    const res: Resultado = { nasceram: [], gravados: [], promovidos: [], recusas: [] };
+    if (nascimentos.length) {
+      setProgresso({ feito: 0, total: validos.length + 1 });
+      try {
+        const payloads = montarNascimentos(linhasLidas, motivo).nascimentos.map((n) => n.payload);
+        const r = await nascerLote(payloads, false);
+        res.nasceram = (r.produtos ?? []).map((p) => String(p.cod_cadastro ?? "")).filter(Boolean);
+        if (!res.nasceram.length && r.nasceram) res.nasceram = [`${r.nasceram} produto(s)`];
+      } catch (e) {
+        const m = e instanceof Error ? e.message : String(e);
+        res.recusas.push({ cod: "Nascimentos (lote inteiro desfeito)", motivo: m });
+        setResultado(res); setProgresso(null); onConcluido();
+        toast.error(`Nascimento recusado — nada foi gravado: ${m}`);
+        return;
+      }
+    }
     setProgresso({ feito: 0, total: validos.length });
     for (let i = 0; i < validos.length; i++) {
       const it = validos[i];
@@ -86,11 +135,12 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     }
     setResultado(res);
     onConcluido();
-    if (res.recusas.length) toast.error(`${res.recusas.length} recusa(s) na importação — veja a lista.`);
-    else toast.success(`Importação concluída: ${res.gravados.length} gravados, ${res.promovidos.length} liberados.`);
+    const resumo = `${res.nasceram.length} nascido(s), ${res.gravados.length} enriquecido(s), ${res.promovidos.length} liberado(s)`;
+    if (res.recusas.length) toast.error(`${resumo} · ${res.recusas.length} recusa(s) — veja a lista.`);
+    else toast.success(`Importação concluída: ${resumo}.`);
   }
 
-  const comErro = (previa?.itens ?? []).filter((i) => i.erros.length);
+  const comErro = (previa?.itens ?? []).filter((i) => i.erros.length && !i.inexistente);
   const semMudanca = semErro.filter((i) => !efetivas(i).length && !i.liberar);
 
   return (
@@ -99,7 +149,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         <DialogHeader>
           <DialogTitle>Importar planilha de cadastro</DialogTitle>
           <DialogDescription>
-            Use a planilha exportada pela Mesa. Só os campos que mudaram em relação ao FOP são gravados; célula vazia não apaga nada.
+            Use a planilha exportada pela Mesa. Linha com código enriquece (só o que mudou; vazio não apaga). Linha sem código nasce pela porta única.
           </DialogDescription>
         </DialogHeader>
 
@@ -112,8 +162,15 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
+            {inexistentes.length > 0 && (
+              <Alert variant="destructive"><AlertDescription>
+                <div className="font-medium">Código inexistente na matriz — importação bloqueada</div>
+                {inexistentes.map((i) => <div key={`x${i.linha}`}>Linha {i.linha} · {i.cod}: {i.erros.join("; ")}</div>)}
+              </AlertDescription></Alert>
+            )}
+            <div className="font-medium">✏️ Enriquecem: {validos.length} linha(s)</div>
             <p className="text-muted-foreground">
-              {validos.length} produto(s) a processar · {semMudanca.length} sem mudança · {comErro.length} com erro · {previa.novos.length} produto(s) novo(s) ignorado(s)
+              {semMudanca.length} sem mudança · {comErro.length} com erro
             </p>
             {mantidas.length > 0 && (
               <div className="rounded-md border border-warning/50 bg-warning/5 p-2 text-xs">
@@ -142,9 +199,35 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 <strong>Linha {i.linha} · {i.cod}</strong> — pulada: {i.erros.join("; ")}
               </div>
             ))}
-            {previa.novos.length > 0 && (
-              <div className="rounded-md border p-2 text-xs text-muted-foreground">
-                Linhas {previa.novos.join(", ")}: produto novo — ainda não suportado.
+            {(nascimentos.length > 0 || (montagem?.erros.length ?? 0) > 0) && (
+              <div className="space-y-2 rounded-md border p-2">
+                <div className="font-medium">
+                  🐣 Nascem: {nascimentos.length} linha(s) — consomem {dryNascer?.codigos_consumidos ?? nascimentos.length} código(s) do banco GS1
+                  {dryNascer?.gs1_livres_depois != null && <> (restam {dryNascer.gs1_livres_depois} depois)</>}
+                </div>
+                {erroNascer && <Alert variant="destructive"><AlertDescription>{erroNascer}</AlertDescription></Alert>}
+                {(dryNascer?.alocacao_prevista?.length ?? 0) > 0 && (
+                  <table className="w-full text-xs">
+                    <thead><tr className="text-left text-muted-foreground"><th className="py-1">Linha</th><th>Código previsto</th><th>Nome</th><th>Origem</th><th>Inner</th></tr></thead>
+                    <tbody>
+                      {dryNascer!.alocacao_prevista!.map((a) => {
+                        const n = linhaParaNasc.get(a.linha);
+                        return (
+                          <tr key={a.linha} className="border-t">
+                            <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}</td><td>{a.nome}</td>
+                            <td>{n ? legivel(n.origem) : "—"}</td><td>{fmt(n?.inner_qtd)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+                {avisosNascer.map((p, k) => (
+                  <div key={`a${k}`} className="rounded border border-warning/50 bg-warning/10 p-1.5 text-xs">Linha {p.linha}: {p.aviso}</div>
+                ))}
+                {errosNascer.map((p, k) => (
+                  <div key={`n${k}`} className="rounded border border-destructive/50 bg-destructive/10 p-1.5 text-xs text-destructive">Linha {p.linha}: {p.erro}</div>
+                ))}
               </div>
             )}
             <div className="space-y-1">
@@ -163,7 +246,8 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
         {resultado && (
           <div className="max-h-[50vh] space-y-2 overflow-auto text-sm">
-            <p><strong>Gravados ({resultado.gravados.length}):</strong> {resultado.gravados.join(", ") || "—"}</p>
+            <p><strong>Nasceram ({resultado.nasceram.length}):</strong> {resultado.nasceram.join(", ") || "—"}</p>
+            <p><strong>Enriquecidos ({resultado.gravados.length}):</strong> {resultado.gravados.join(", ") || "—"}</p>
             <p><strong>Liberados ({resultado.promovidos.length}):</strong> {resultado.promovidos.join(", ") || "—"}</p>
             {resultado.recusas.length > 0 && (
               <Alert variant="destructive"><AlertDescription>
@@ -178,9 +262,9 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
             ? <Button onClick={() => fechar(false)}>Fechar</Button>
             : <>
                 <Button variant="outline" onClick={() => fechar(false)} disabled={!!progresso}>Cancelar</Button>
-                <Button onClick={() => void confirmar()} disabled={!validos.length || !!progresso || !motivo.trim()}>
+                <Button onClick={() => void confirmar()} disabled={(!validos.length && !nascimentos.length) || bloqueado || !!progresso || !motivo.trim()}>
                   {progresso ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Confirmar ({validos.length})
+                  Confirmar ({nascimentos.length + validos.length})
                 </Button>
               </>}
         </DialogFooter>
