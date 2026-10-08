@@ -128890,6 +128890,10 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_produto: Json }
         Returns: Json
       }
+      fn_nascer_produtos_lote: {
+        Args: { p_dry_run?: boolean; p_produtos: Json }
+        Returns: Json
+      }
       fn_nascer_tela: {
         Args: {
           p_abas?: Json
