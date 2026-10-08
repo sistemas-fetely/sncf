@@ -30,9 +30,10 @@
 - [x] Validar seleção, atalhos, permissões, typecheck e build.
 - [x] Mover observações da venda direta para observações internas no envio ao Bling e validar com Deno.
 - [x] Corrigir no Bling o nome do contato da venda direta encontrado pelo CPF, com bloqueio em falha.
-- [ ] F1 exportar planilha de cadastro (bloqueado: FOP sem função de leitura de produtos).
+- [x] F1 exportar planilha de cadastro (catálogo inteiro, sem seletor de coleções).
 - [x] Reprocessar produtos: contar "linhas sem destino" (sem SKU + SKU fora dos pedidos do embarque).
 - [x] Incluir memória de cálculo por NF nos extratos individual e em lote.
 - [x] Enxugar o Gerencial em tela e PDF, mantendo comparativo, conta corrente e representantes.
 - [x] Validar Lucia 10/2026, Anne 11/2026, lote 10/2026 e Gerencial 09/2026 sem publicar.
 - [x] Coluna Classificação, filtro padrão e aviso na aba "NFs sem pedido"; corrigir a quebra da tela durante o carregamento.
+- [x] Tirar a proteção de aba da planilha de cadastro (aba "cadastro" e "Banco GS1"), mantendo cinza, listas, freeze e filtro.

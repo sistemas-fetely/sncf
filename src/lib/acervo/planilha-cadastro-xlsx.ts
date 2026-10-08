@@ -190,7 +190,6 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     row.getCell(1).font = { bold: true, name: "Arial", size: 9 };
     for (let c = 1; c <= colUltima; c++) {
       row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_SISTEMA[sistema] } };
-      row.getCell(c).protection = { locked: false };
     }
     ficha.forEach((f, i) => {
       const cell = row.getCell(i + 2);
@@ -235,7 +234,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     row.getCell(colMedir).value = med.length ? med.map((x) => rotuloCampo.get(x) ?? legivel(x)).join(", ") : "—";
   });
 
-  // Travas + listas: campo importável fica destravado em todas as linhas de dado.
+  // Cinza = "não edite aqui" (identidade/situação). Listas de opções. Sem proteção de aba: a integridade
+  // real é da importação (ignora colunas de identidade) + banco.
   for (let lin = 7; lin <= ultima; lin++) {
     const row = ws.getRow(lin);
     const ehNova = !r.produtos[lin - 7];
@@ -243,7 +243,6 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
       const cell = row.getCell(i + 2);
       // Linha de nascimento: tudo editável, inclusive cod_cadastro (pinagem); EAN/DUN/SKU/fase vêm do banco.
       const editavel = ehNova ? (f.campo === "cod_cadastro" || !IDENT_BANCO.has(f.campo)) : f.importavel_planilha !== false;
-      cell.protection = { locked: !editavel };
       if (!editavel) cell.fill = cell.fill ?? { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
       const ref = refLista.get(f.campo);
       if (ref && editavel) {
@@ -251,24 +250,18 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
           errorTitle: rotuloCampo.get(f.campo) ?? f.campo, error: "Escolha um valor da lista." };
       }
     });
-    row.getCell(colFase).protection = { locked: true };
-    row.getCell(colFalta).protection = { locked: true };
-    row.getCell(colMedir).protection = { locked: true };
-    // Liberar: editável só em produto exportado com próxima fase.
+    // Liberar: usável só em produto exportado com próxima fase.
     const prod = r.produtos[lin - 7];
     const cLib = row.getCell(colLib);
     if (prod && prod.proxima_fase) {
-      cLib.protection = { locked: false };
       cLib.dataValidation = { type: "list", allowBlank: true, formulae: ['"Sim"'], showErrorMessage: true,
         errorTitle: "Liberar para venda", error: "Use \"Sim\" ou deixe vazio." };
     } else {
-      cLib.protection = { locked: true };
       cLib.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
     }
     for (const [campo, c] of colExtra) {
       const cell = row.getCell(c);
-      if (prod) { cell.protection = { locked: true }; cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } }; continue; }
-      cell.protection = { locked: false };
+      if (prod) { cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } }; continue; }
       if (campo === "origem") {
         cell.dataValidation = { type: "list", allowBlank: true, formulae: ['"nacional,importado"'], showErrorMessage: true,
           errorTitle: "Origem", error: "Use nacional ou importado (vazio = nacional)." };
@@ -278,10 +271,6 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
 
   ws.views = [{ state: "frozen", ySplit: 6, xSplit: 1 }];
   ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: colUltima } };
-  await ws.protect("", {
-    selectLockedCells: true, selectUnlockedCells: true, formatColumns: true, formatRows: true,
-    autoFilter: true, sort: true,
-  });
 
   await adicionarAbaBancoGs1(wb);
 
@@ -313,5 +302,4 @@ async function adicionarAbaBancoGs1(wb: ExcelJS.Workbook) {
   livres.forEach((l, i) => { const r = gs.getRow(4 + i); r.getCell(1).value = String(l.codigo); r.getCell(2).value = l.ean ?? ""; });
   gs.getColumn(1).width = 14; gs.getColumn(2).width = 18;
   gs.views = [{ state: "frozen", ySplit: 3 }];
-  await gs.protect("", { selectLockedCells: true, selectUnlockedCells: true, autoFilter: true, sort: true });
 }
