@@ -92,7 +92,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "SNCF";
   const ws = wb.addWorksheet("cadastro");
-  const listas = wb.addWorksheet("listas", { state: "veryHidden" });
+  const listas = wb.addWorksheet("listas"); // visível: usuário consulta as opções existentes
 
   // Aba de listas: uma coluna por campo com opções.
   const refLista = new Map<string, string>();
@@ -102,7 +102,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     if (!ops?.length) continue;
     colL++;
     const L = colLetra(colL);
-    listas.getCell(`${L}1`).value = f.campo;
+    listas.getCell(`${L}1`).value = rotuloCampo.get(f.campo) ?? f.campo;
     ops.forEach((o, i) => { listas.getCell(`${L}${i + 2}`).value = o; });
     refLista.set(f.campo, `listas!$${L}$2:$${L}$${ops.length + 1}`);
   }
