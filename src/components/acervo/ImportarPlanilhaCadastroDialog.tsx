@@ -17,7 +17,7 @@ interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido
 interface Resultado { nasceram: string[]; gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
 interface DryNascer {
   linhas?: number; nasceram?: number; nasceriam?: number; codigos_consumidos?: number; gs1_livres_depois?: number | null;
-  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null }[];
+  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null; pinado?: boolean }[];
   problemas?: { linha: number; erro?: string; aviso?: string }[];
   pode_confirmar?: boolean;
   produtos?: { cod_cadastro?: string; ean?: string | null }[];
@@ -46,6 +46,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const [dryNascer, setDryNascer] = useState<DryNascer | null>(null);
   const [erroNascer, setErroNascer] = useState<string | null>(null);
   const [baixando, setBaixando] = useState(false);
+  const [codsMatriz, setCodsMatriz] = useState<Set<string>>(new Set());
 
   const reset = () => { setMontagem(null); setDryNascer(null); setErroNascer(null); setLinhasLidas([]); setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
   const fechar = (v: boolean) => { if (progresso && !resultado) return; if (!v) reset(); onOpenChange(v); };
@@ -56,17 +57,19 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
       const linhas = await lerPlanilha(arquivo);
       if (!linhas.length) throw new Error("Nenhuma linha preenchida na planilha.");
       setLinhasLidas(linhas);
-      const m = montarNascimentos(linhas, motivo);
-      setMontagem(m);
-      if (m.nascimentos.length) {
-        try { setDryNascer(await nascerLote(m.nascimentos.map((n) => n.payload), true)); }
-        catch (e) { setErroNascer(e instanceof Error ? e.message : String(e)); }
-      }
       const cods = [...new Set(linhas.map((l) => l.cod).filter(Boolean))] as string[];
       let r: RespostaExport = { ok: true, ficha: [], opcoes: {}, produtos: [] };
       if (cods.length) {
         try { r = (await chamarFuncao("exportar-planilha-produto", { cods })) as unknown as RespostaExport; }
         catch (e) { throw new Error(`Leitura do FOP falhou: ${motivoDaFalha(e)}`); }
+      }
+      const matriz = new Set(r.produtos.map((p) => String(p.cod_cadastro ?? "").trim()).filter(Boolean));
+      setCodsMatriz(matriz);
+      const m = montarNascimentos(linhas, motivo, matriz);
+      setMontagem(m);
+      if (m.nascimentos.length) {
+        try { setDryNascer(await nascerLote(m.nascimentos.map((n) => n.payload), true)); }
+        catch (e) { setErroNascer(e instanceof Error ? e.message : String(e)); }
       }
       setPrevia(await validarFormatoPrevia(calcularPrevia(linhas, r), async (cod, campos) => {
         const { data, error } = await (supabase.rpc as any)("fn_produto_formato_validar_patch", { p_cod_cadastro: cod, p_campos: campos });
@@ -85,11 +88,11 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const validos: ItemPrevia[] = semErro.filter((i) => efetivas(i).length || i.liberar);
 
   const nascimentos = montagem?.nascimentos ?? [];
-  const inexistentes = (previa?.itens ?? []).filter((i) => i.inexistente);
+
   const errosNascer = [...(montagem?.erros ?? []), ...((dryNascer?.problemas ?? []).filter((p) => p.erro).map((p) => ({ linha: p.linha, erro: p.erro! })))];
   const avisosNascer = (dryNascer?.problemas ?? []).filter((p) => p.aviso && !p.erro);
   const nascerBloqueado = nascimentos.length > 0 && (!!erroNascer || !dryNascer || dryNascer.pode_confirmar === false || errosNascer.length > 0);
-  const bloqueado = inexistentes.length > 0 || nascerBloqueado || (montagem?.erros.length ?? 0) > 0;
+  const bloqueado = nascerBloqueado || (montagem?.erros.length ?? 0) > 0;
   const linhaParaNasc = new Map(nascimentos.map((n) => [n.linha, n]));
 
   async function confirmar() {
@@ -100,7 +103,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     if (nascimentos.length) {
       setProgresso({ feito: 0, total: validos.length + 1 });
       try {
-        const payloads = montarNascimentos(linhasLidas, motivo).nascimentos.map((n) => n.payload);
+        const payloads = montarNascimentos(linhasLidas, motivo, codsMatriz).nascimentos.map((n) => n.payload);
         const r = await nascerLote(payloads, false);
         res.nasceram = (r.produtos ?? [])
           .map((p) => { const cod = String(p.cod_cadastro ?? "").trim(); return p.ean ? `${cod} · ${p.ean}` : cod; })
@@ -143,7 +146,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     else toast.success(`Importação concluída: ${resumo}.`);
   }
 
-  const comErro = (previa?.itens ?? []).filter((i) => i.erros.length && !i.inexistente);
+  const comErro = (previa?.itens ?? []).filter((i) => i.erros.length);
   const semMudanca = semErro.filter((i) => !efetivas(i).length && !i.liberar);
 
   // Mesmo export do botão "Exportar planilha de cadastro" da Mesa (catálogo inteiro).
@@ -189,12 +192,6 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
-            {inexistentes.length > 0 && (
-              <Alert variant="destructive"><AlertDescription>
-                <div className="font-medium">Código inexistente na matriz — importação bloqueada</div>
-                {inexistentes.map((i) => <div key={`x${i.linha}`}>Linha {i.linha} · {i.cod}: {i.erros.join("; ")}</div>)}
-              </AlertDescription></Alert>
-            )}
             <div className="font-medium">✏️ Enriquecem: {validos.length} linha(s)</div>
             <p className="text-muted-foreground">
               {semMudanca.length} sem mudança · {comErro.length} com erro
@@ -241,7 +238,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                         const n = linhaParaNasc.get(a.linha);
                         return (
                           <tr key={a.linha} className="border-t">
-                            <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}</td>
+                            <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}{a.pinado && <span className="ml-1 rounded border px-1 text-[10px] font-sans text-muted-foreground">pinado</span>}</td>
                             <td>{fmt(a.ean)}</td><td>{a.dun ? a.dun : "sem caixa master"}</td>
                             <td>{a.nome}</td>
                             <td>{n ? legivel(n.origem) : "—"}</td><td>{fmt(n?.inner_qtd)}</td>
