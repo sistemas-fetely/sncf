@@ -290,10 +290,10 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
 async function adicionarAbaBancoGs1(wb: ExcelJS.Workbook) {
   const livres: { codigo: string; ean: string | null }[] = [];
   for (let de = 0; ; de += 1000) {
-    const { data, error } = await supabase.from("cartorio_codigo").select("codigo, ean")
-      .eq("estado", "estoque").order("codigo").range(de, de + 999);
+    const { data, error } = await supabase.from("cartorio_codigo").select("cod_cadastro, ean")
+      .eq("estado", "estoque").order("cod_cadastro").range(de, de + 999);
     if (error) throw new Error(`Leitura do banco GS1 falhou: ${error.message}`);
-    livres.push(...((data ?? []) as { codigo: string; ean: string | null }[]));
+    livres.push(...(data ?? []).map((d) => ({ codigo: String(d.cod_cadastro ?? ""), ean: d.ean })));
     if (!data || data.length < 1000) break;
   }
   const gs = wb.addWorksheet("Banco GS1");
