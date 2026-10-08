@@ -38,7 +38,12 @@ const r = {
 describe("sem proteção de aba na planilha de cadastro", () => {
   it("não grava sheetProtection em nenhuma aba, mantendo autoFilter, freeze, listas e cinza", async () => {
     const blob = await gerarPlanilhaCadastro(r as never);
-    const buf = Buffer.from(await blob.arrayBuffer());
+    const buf = await new Promise<Buffer>((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(Buffer.from(fr.result as ArrayBuffer));
+      fr.onerror = () => rej(fr.error);
+      fr.readAsArrayBuffer(blob);
+    });
     const zip = await JSZip.loadAsync(buf);
 
     const nomes: Record<string, string> = { "xl/worksheets/sheet1.xml": "cadastro", "xl/worksheets/sheet2.xml": "listas", "xl/worksheets/sheet3.xml": "Banco GS1" };
