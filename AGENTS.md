@@ -1,5 +1,7 @@
 # Decisões técnicas
 
+- B2B SafraPay generation derives charges from open gate provisions; origin-specific permissions are checked after loading the order so Venda Direta access cannot authorize B2B charges.
+
 - Fetch payment-candidate details only for visible page IDs under the grid query prefix; candidate filtering scans scoped order-ID blocks before visual pagination so old delivered orders cannot be lost.
 
 - Resolve grouped Chegada tabs and legacy links through a tested pure selector; use separate query parameters for each subgroup to avoid embedded-tab collisions.
