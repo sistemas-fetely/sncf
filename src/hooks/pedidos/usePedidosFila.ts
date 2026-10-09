@@ -29,73 +29,77 @@ export function usePedidosFila(opts: Opts = {}) {
     queryKey: ["pedidos-fila", opts],
     staleTime: 30 * 1000,
     queryFn: async (): Promise<PedidoFilaItem[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let q = (supabase as any).from("v_pedidos_fila").select("*");
+      const montarQuery = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let q = (supabase as any).from("v_pedidos_fila").select("*");
 
-      if (!opts.comPagamentoSemVinculo && opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
+        if (!opts.comPagamentoSemVinculo && opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
 
-      if (opts.parceiroId) q = q.eq("parceiro_id", opts.parceiroId);
+        if (opts.parceiroId) q = q.eq("parceiro_id", opts.parceiroId);
 
-      const termo = (opts.busca || "").trim();
-      const temBusca = termo.length > 0;
+        const termo = (opts.busca || "").trim();
+        const temBusca = termo.length > 0;
 
-      const filtroEstagioExplicito =
-        (opts.estagios && opts.estagios.length > 0) ||
-        (!!opts.estagio && opts.estagio !== "todos");
+        const filtroEstagioExplicito =
+          (opts.estagios && opts.estagios.length > 0) ||
+          (!!opts.estagio && opts.estagio !== "todos");
 
-      // BUSCA-ESCAPA-A-FILA: termo digitado sem recorte explícito de estágio varre
-      // todo o histórico (entregue, cancelado, recuperacao_venda). Clique num card
-      // do pipeline continua sendo recorte explícito e prevalece sobre a busca.
-      const buscaGlobal = temBusca && !filtroEstagioExplicito;
+        // BUSCA-ESCAPA-A-FILA: termo digitado sem recorte explícito de estágio varre
+        // todo o histórico (entregue, cancelado, recuperacao_venda). Clique num card
+        // do pipeline continua sendo recorte explícito e prevalece sobre a busca.
+        const buscaGlobal = temBusca && !filtroEstagioExplicito;
 
-      if (!opts.comPagamentoSemVinculo && opts.estagios && opts.estagios.length > 0) {
-        q = q.in("estagio", opts.estagios);
-      } else if (!opts.comPagamentoSemVinculo && opts.estagio && opts.estagio !== "todos") {
-        q = q.eq("estagio", opts.estagio);
-      }
-
-      // Recuperação é DESVIO, não fase: sai da fila em definitivo e não volta
-      // nem com `incluirCancelados`. Só aparece se vier em `estagios` explícito.
-      if (opts.apenasAtivos && !buscaGlobal && !opts.comPagamentoSemVinculo) {
-        q = opts.incluirCancelados
-          ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
-          : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
-      }
-
-      if (temBusca) {
-        // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
-        const t = termo.replace(/[,()%]/g, " ").trim();
-        const digitos = t.replace(/\D/g, "");
-        const clausulas = [
-          `parceiro_razao.ilike.%${t}%`,
-          `parceiro_cnpj.ilike.%${t}%`,
-          `id_externo.ilike.%${t}%`,
-        ];
-        // CNPJ é armazenado só com dígitos: quem digita com pontuação também acha.
-        if (digitos.length >= 3 && digitos !== t) {
-          clausulas.push(`parceiro_cnpj.ilike.%${digitos}%`);
+        if (!opts.comPagamentoSemVinculo && opts.estagios && opts.estagios.length > 0) {
+          q = q.in("estagio", opts.estagios);
+        } else if (!opts.comPagamentoSemVinculo && opts.estagio && opts.estagio !== "todos") {
+          q = q.eq("estagio", opts.estagio);
         }
-        q = q.or(clausulas.join(","));
-      }
 
-      q = q.order("recebido_em", { ascending: false }).order("id");
+        // Recuperação é DESVIO, não fase: sai da fila em definitivo e não volta
+        // nem com `incluirCancelados`. Só aparece se vier em `estagios` explícito.
+        if (opts.apenasAtivos && !buscaGlobal && !opts.comPagamentoSemVinculo) {
+          q = opts.incluirCancelados
+            ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
+            : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
+        }
+
+        if (temBusca) {
+          // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
+          const t = termo.replace(/[,()%]/g, " ").trim();
+          const digitos = t.replace(/\D/g, "");
+          const clausulas = [
+            `parceiro_razao.ilike.%${t}%`,
+            `parceiro_cnpj.ilike.%${t}%`,
+            `id_externo.ilike.%${t}%`,
+          ];
+          // CNPJ é armazenado só com dígitos: quem digita com pontuação também acha.
+          if (digitos.length >= 3 && digitos !== t) {
+            clausulas.push(`parceiro_cnpj.ilike.%${digitos}%`);
+          }
+          q = q.or(clausulas.join(","));
+        }
+
+        return q.order("recebido_em", { ascending: false }).order("id");
+      };
 
       let result: PedidoFilaItem[];
       if (opts.comPagamentoSemVinculo) {
-        // Sem recorte de estágio nem limite dos 500 mais recentes: candidatos
-        // antigos/entregues devem ser localizados ANTES da paginação visual.
-        result = await pedidosComCandidato<PedidoFilaItem>(async (inicio, fim) => {
-          const { data, error } = await q.range(inicio, fim);
+        // A VIEW MANDA: candidatos antigos/entregues saem de vw_portao_candidato
+        // (lado pequeno), e a fila só é consultada com os ids que ela devolveu,
+        // em lotes — nunca varrendo a tabela de pedidos.
+        result = await pedidosComCandidato<PedidoFilaItem>(async () => {
+          const { data, error } = await (supabase as any)
+            .from("vw_portao_candidato")
+            .select("pedido_id");
           if (error) throw error;
           return data ?? [];
         }, async (ids) => {
-          const { data, error } = await (supabase as any).from("vw_portao_candidato")
-            .select("pedido_id").in("pedido_id", ids);
+          const { data, error } = await montarQuery().in("id", ids);
           if (error) throw error;
           return data ?? [];
         });
       } else {
-        const { data, error } = await q.limit(500);
+        const { data, error } = await montarQuery().limit(500);
         if (error) throw error;
         result = data ?? [];
       }

@@ -31,19 +31,20 @@ export function agruparCandidatos(linhas: PortaoCandidato[]) {
   return mapa;
 }
 
-// Consulta de existência sempre limitada aos ids de um bloco da grid.
+// A VIEW MANDA: vw_portao_candidato é o lado pequeno (dinheiro sem vínculo).
+// Buscamos os pedido_id dela primeiro e consultamos a fila APENAS com esses ids,
+// em lotes — nunca varremos a tabela de pedidos.
 export async function pedidosComCandidato<T extends { id: string }>(
-  carregarBloco: (inicio: number, fim: number) => Promise<T[]>,
-  carregarIds: (ids: string[]) => Promise<{ pedido_id: string }[]>,
-  tamanho = 500,
+  carregarIdsCandidatos: () => Promise<{ pedido_id: string }[]>,
+  carregarPedidos: (ids: string[]) => Promise<T[]>,
+  tamanhoLote = 200,
 ): Promise<T[]> {
+  const linhas = await carregarIdsCandidatos();
+  const ids = [...new Set(linhas.map((l) => l.pedido_id))];
+  if (ids.length === 0) return [];
   const encontrados: T[] = [];
-  for (let inicio = 0; ; inicio += tamanho) {
-    const bloco = await carregarBloco(inicio, inicio + tamanho - 1);
-    if (bloco.length === 0) break;
-    const ids = new Set((await carregarIds(bloco.map((p) => p.id))).map((p) => p.pedido_id));
-    encontrados.push(...bloco.filter((p) => ids.has(p.id)));
-    if (bloco.length < tamanho) break;
+  for (let i = 0; i < ids.length; i += tamanhoLote) {
+    encontrados.push(...(await carregarPedidos(ids.slice(i, i + tamanhoLote))));
   }
   return encontrados;
 }
