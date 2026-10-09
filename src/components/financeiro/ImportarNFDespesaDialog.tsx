@@ -239,6 +239,9 @@ export function ImportarNFDespesaDialog({
 
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Numerador do badge "Parcial (n/N)" no NFsStage: sem isto o selo não
+      // acompanha a despesa que acabou de ser lançada.
+      qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
 
       toast.success(
         data.parcelas > 1
