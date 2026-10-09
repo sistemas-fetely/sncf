@@ -13,3 +13,4 @@
 - Use `BotaoConcluir` como controle circular único de conclusão nas listas, no board e nas fichas, evitando ações com aparência de salvar.
 - Generate separate statement PDFs by rendering each batch member off-screen in the current page (never an iframe — production hosting blocks framing), sharing `listarRepresentantesDoLote` with the batch print.
 - Persist live Correios B2B quotes to `frete_cotacao` (one per order, update-then-insert because the unique index is partial) so the DB suggestion can read them; the front only highlights the DB winner and never re-implements eligibility rules.
+- CNAB settlement only advances an order that is still in the collection queue: the return processor reads the current stage and skips the transition otherwise, and a failed transition is logged without aborting the file, because recording the bank fact must never depend on stage changes.

@@ -784,15 +784,44 @@ serve(async (req) => {
           }
 
 
+          // LIQUIDACAO-NAO-REGRIDE-PEDIDO (09/10/2026): liquidação de parcela só move
+          // estágio se o pedido ainda estiver na fila de cobrança. Pedido já liberado,
+          // faturado ou expedido (em_transporte) NÃO volta pra pre_separacao — o
+          // pagamento de uma parcela não é sinal de "pode separar".
           if (t.pedido_id) {
-            const { error: errTransicao } = await sbUser.rpc("transicionar_pedido" as string, {
-              p_pedido_id: t.pedido_id,
-              p_para_estagio: "pre_separacao",
-              p_proxima_acao: "Pronto pra enviar pro Bling",
-              p_motivo: `Liquidação confirmada pelo Safra — ocorrência ${linha.ocorrencia}`,
-            });
-            if (errTransicao) {
-              console.warn(`[retorno-safra] transicionar_pedido falhou para ${t.pedido_id}:`, errTransicao);
+            const { data: rowEstagio, error: errEstagio } = await sb
+              .from("pedidos")
+              .select("estagio")
+              .eq("id", t.pedido_id)
+              .maybeSingle();
+
+            if (errEstagio) {
+              console.error(`[retorno-safra] falha ao ler estágio de ${t.pedido_id}:`, errEstagio);
+            }
+
+            const estagioAtual = rowEstagio?.estagio ?? null;
+            const podeMoverEstagio = estagioAtual === "aguardando_pagamento" || estagioAtual === "cobranca";
+
+            if (!podeMoverEstagio) {
+              console.warn(
+                `[retorno-safra] estágio NÃO alterado para ${t.pedido_id} (estagio=${estagioAtual ?? "desconhecido"}): liquidação de parcela não regrade pedido já fora da fila de cobrança.`,
+              );
+            } else {
+              const { error: errTransicao } = await sbUser.rpc("transicionar_pedido" as string, {
+                p_pedido_id: t.pedido_id,
+                p_para_estagio: "pre_separacao",
+                p_proxima_acao: "Pronto pra enviar pro Bling",
+                p_motivo: `Liquidação confirmada pelo Safra — ocorrência ${linha.ocorrencia}`,
+              });
+              // O erro da transição NUNCA aborta o processamento do arquivo: a
+              // ocorrência/liquidação já foi registrada e o loop segue pro próximo
+              // desfecho. A gravação do fato bancário não depende do estágio.
+              if (errTransicao) {
+                console.error(
+                  `[retorno-safra] transicionar_pedido falhou para ${t.pedido_id} (estagio=${estagioAtual}):`,
+                  errTransicao.message ?? errTransicao,
+                );
+              }
             }
           }
 
