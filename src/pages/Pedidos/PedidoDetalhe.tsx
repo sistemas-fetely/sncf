@@ -101,7 +101,7 @@ import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedi
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo, useSugestaoTransportadora } from "@/hooks/pedidos/useFreteComparativo";
-import { useCotacaoCorreios, useTranspCotacaoApi, persistirCotacaoCorreiosB2B } from "@/hooks/pedidos/useCotacaoCorreios";
+import { useCotacaoCorreios, useTranspCotacaoApi, persistirCotacaoCorreiosB2B, type OpcaoCorreios } from "@/hooks/pedidos/useCotacaoCorreios";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -2492,15 +2492,16 @@ export default function PedidoDetalhe() {
                       correios={{ isLoading: cotacaoCorreios.isFetching, data: cotacaoCorreios.data, error: cotacaoCorreios.error }}
                       sugestao={{ isLoading: sugestaoFrete.isFetching, data: sugestaoFrete.data, error: sugestaoFrete.error }}
                       onEscolher={(opcao) => {
-                        if ("fonte" in opcao && opcao.fonte === "correios" && opcao.transportadora_id) {
+                        if (opcao.fonte === "correios" && opcao.transportadora_id) {
+                          const oc = opcao as OpcaoCorreios;
                           setCotacaoApiEscolhida({
                             transportadora_id: opcao.transportadora_id,
                             valor: opcao.valor_estimado ?? 0,
-                            json: opcao.estimativa_json ?? {},
+                            json: oc.estimativa_json ?? {},
                             rotulo: opcao.transportadora_nome,
                             prazo_dias: opcao.prazo_dias,
-                            n_volumes: opcao.n_volumes,
-                            avisos: opcao.avisos,
+                            n_volumes: oc.n_volumes,
+                            avisos: oc.avisos,
                           });
                         } else {
                           setCotacaoApiEscolhida(null);
