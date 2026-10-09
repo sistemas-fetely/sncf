@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Exibir candidatos e filtro na Casa dos Pedidos; PED-2116 entregue conferido com badge âmbar e R$ 523,73 no navegador; 3 testes passaram, sem banco/publicação.
+
 - [x] Unificar nascimento por origem e reorganizar abas da Chegada; 8 testes e navegação/formulário conferidos no navegador, prévia interceptada sem nascimento real, sem banco/publicação.
 
 - [x] Exibir a base de comissão nos três blocos do extrato e validar Lucia, Carine e Everson 10/2026, sem banco/publicação.
