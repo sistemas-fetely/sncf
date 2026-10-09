@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PedidoFilaItem, EstagioPedido, AreaPedido } from "@/types/pedido";
+import { pedidosComCandidato } from "@/lib/pedidos/portao-candidato";
 
 interface Opts {
+  comPagamentoSemVinculo?: boolean;
   area?: AreaPedido | "todas";
   /** Filtro de UM estágio específico OU 'todos' */
   estagio?: EstagioPedido | "todos";
@@ -30,7 +32,7 @@ export function usePedidosFila(opts: Opts = {}) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let q = (supabase as any).from("v_pedidos_fila").select("*");
 
-      if (opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
+      if (!opts.comPagamentoSemVinculo && opts.area && opts.area !== "todas") q = q.eq("area_atual", opts.area);
 
       if (opts.parceiroId) q = q.eq("parceiro_id", opts.parceiroId);
 
@@ -46,15 +48,15 @@ export function usePedidosFila(opts: Opts = {}) {
       // do pipeline continua sendo recorte explícito e prevalece sobre a busca.
       const buscaGlobal = temBusca && !filtroEstagioExplicito;
 
-      if (opts.estagios && opts.estagios.length > 0) {
+      if (!opts.comPagamentoSemVinculo && opts.estagios && opts.estagios.length > 0) {
         q = q.in("estagio", opts.estagios);
-      } else if (opts.estagio && opts.estagio !== "todos") {
+      } else if (!opts.comPagamentoSemVinculo && opts.estagio && opts.estagio !== "todos") {
         q = q.eq("estagio", opts.estagio);
       }
 
       // Recuperação é DESVIO, não fase: sai da fila em definitivo e não volta
       // nem com `incluirCancelados`. Só aparece se vier em `estagios` explícito.
-      if (opts.apenasAtivos && !buscaGlobal) {
+      if (opts.apenasAtivos && !buscaGlobal && !opts.comPagamentoSemVinculo) {
         q = opts.incluirCancelados
           ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
           : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
@@ -76,12 +78,27 @@ export function usePedidosFila(opts: Opts = {}) {
         q = q.or(clausulas.join(","));
       }
 
-      q = q.order("recebido_em", { ascending: false }).limit(500);
+      q = q.order("recebido_em", { ascending: false }).order("id");
 
-      const { data, error } = await q;
-      if (error) throw error;
-
-      let result = (data || []) as PedidoFilaItem[];
+      let result: PedidoFilaItem[];
+      if (opts.comPagamentoSemVinculo) {
+        // Sem recorte de estágio nem limite dos 500 mais recentes: candidatos
+        // antigos/entregues devem ser localizados ANTES da paginação visual.
+        result = await pedidosComCandidato<PedidoFilaItem>(async (inicio, fim) => {
+          const { data, error } = await q.range(inicio, fim);
+          if (error) throw error;
+          return data ?? [];
+        }, async (ids) => {
+          const { data, error } = await (supabase as any).from("vw_portao_candidato")
+            .select("pedido_id").in("pedido_id", ids);
+          if (error) throw error;
+          return data ?? [];
+        });
+      } else {
+        const { data, error } = await q.limit(500);
+        if (error) throw error;
+        result = data ?? [];
+      }
 
 
       // Merge de situação financeira (fonte única: vw_pedido_situacao_financeira,

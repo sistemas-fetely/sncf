@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Selo } from "@/components/ui/selo";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
+import { usePortaoCandidato } from "@/hooks/pedidos/usePortaoCandidato";
+import { BadgePortaoCandidato } from "@/components/pedidos/BadgePortaoCandidato";
+import { Switch } from "@/components/ui/switch";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
 import { usePedidoAlerta, ALERTA_COR_TOKEN, type PedidoAlerta } from "@/hooks/pedidos/usePedidoAlerta";
 import { usePedidoRelogio } from "@/hooks/pedidos/usePedidoRelogio";
@@ -445,6 +448,7 @@ export function FilaPedidosPorArea({
     });
   };
   const [somenteComAlerta, setSomenteComAlerta] = useState(false);
+  const [comPagamentoSemVinculo, setComPagamentoSemVinculo] = useState(false);
   const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(() =>
     lerTamanhoPaginaSalvo(PAGE_SIZE_STORAGE_KEY),
@@ -458,7 +462,7 @@ export function FilaPedidosPorArea({
 
   useEffect(() => {
     setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, ordenacao, estagios, area]);
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, ordenacao, estagios, area, comPagamentoSemVinculo]);
 
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
@@ -473,6 +477,7 @@ export function FilaPedidosPorArea({
     (!usarEstagiosMultiplos && !!estagioFilter && estagioFilter !== "todos");
 
   const { data, isLoading, isError, error } = usePedidosFila({
+    comPagamentoSemVinculo,
     area,
     estagio: usarEstagiosMultiplos ? undefined : estagioFilter,
     estagios: usarEstagiosMultiplos ? estagios : undefined,
@@ -495,7 +500,7 @@ export function FilaPedidosPorArea({
   // pelo apelido em vw_parceiro_nome e traz os pedidos deles para o mesmo conjunto.
   const { data: pedidosPorApelido } = useQuery({
     queryKey: ["fila-por-apelido", termoBusca],
-    enabled: termoBusca.length >= 2,
+    enabled: termoBusca.length >= 2 && !comPagamentoSemVinculo,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<PedidoFilaItem[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -553,7 +558,7 @@ export function FilaPedidosPorArea({
 
   const linhas = useMemo(() => {
     let base: PedidoFilaItem[] = data || [];
-    if (termoBusca.length >= 2 && pedidosPorApelido && pedidosPorApelido.length > 0) {
+    if (!comPagamentoSemVinculo && termoBusca.length >= 2 && pedidosPorApelido && pedidosPorApelido.length > 0) {
       const vistos = new Set(base.map((p) => p.id));
       base = [...base, ...pedidosPorApelido.filter((p) => !vistos.has(p.id))];
     }
@@ -561,7 +566,7 @@ export function FilaPedidosPorArea({
     // Ele nao tem card no funil, mas some-lo da tabela criava pedido invisivel —
     // fora da fila e fora do card da Mesa. O selo "Mesa Comercial" na coluna Estagio
     // continua dizendo quem trabalha. Recuperacao (desvio) segue fora: é outra sala.
-    const foraDaFila = ["recuperacao_venda"] as const;
+    const foraDaFila = comPagamentoSemVinculo ? [] : ["recuperacao_venda"] as const;
     foraDaFila.forEach((est) => {
       const pedidoExplicitamente = !!estagios?.some((e) => e === est);
       if (!pedidoExplicitamente) {
@@ -613,7 +618,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
@@ -826,6 +831,7 @@ export function FilaPedidosPorArea({
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
+  const { data: candidatoMap, error: candidatoError } = usePortaoCandidato(pageItems.map((p) => p.id));
 
   if (isError) {
     return (
@@ -837,7 +843,7 @@ export function FilaPedidosPorArea({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -939,7 +945,12 @@ export function FilaPedidosPorArea({
         >
           Só com alerta
         </Button>
+        <Label className="flex items-center gap-2 text-xs">
+          <Switch checked={comPagamentoSemVinculo} onCheckedChange={setComPagamentoSemVinculo} aria-label="Com pagamento sem vínculo" />
+          Com pagamento sem vínculo
+        </Label>
       </div>
+      {candidatoError && <p role="alert" className="text-sm text-destructive">{(candidatoError as Error).message}</p>}
 
       {resumoBuscaGlobal && (() => {
         const grupos: string[] = [];
@@ -1095,6 +1106,9 @@ export function FilaPedidosPorArea({
                   </TableCell>
                   <TableCell>
                     <CelulaPagamento p={p} liberacao={liberacaoMap?.get(p.id)} />
+                    <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
+                      {candidatoMap?.get(p.id)?.map((c, indice) => <BadgePortaoCandidato key={indice} candidato={c} />)}
+                    </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <CelulaEstoque cob={coberturaMap?.get(p.id)} estagio={p.estagio} politica={politicaMap?.get(p.estagio ?? "")} />
