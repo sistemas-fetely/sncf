@@ -115,6 +115,7 @@ import { useReabrirAnalisePedido } from "@/hooks/pedidos/useReabrirAnalisePedido
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
+import { formatError } from "@/lib/format-error";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
