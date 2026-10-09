@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Loader2, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatBRL } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
-import type { FreteComparativoOpcao, FreteComparativoResult } from "@/hooks/pedidos/useFreteComparativo";
+import type { FreteComparativoOpcao, FreteComparativoResult, SugestaoTransportadora } from "@/hooks/pedidos/useFreteComparativo";
 import type { OpcaoCorreios } from "@/hooks/pedidos/useCotacaoCorreios";
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
   valorAtual: number;
   onEscolher: (opcao: FreteComparativoOpcao | OpcaoCorreios) => void;
   correios?: { isLoading: boolean; data?: { opcoes: OpcaoCorreios[] }; error?: Error | null };
+  sugestao?: { isLoading: boolean; data?: SugestaoTransportadora; error?: Error | null };
 }
 
 type OpcaoLista = FreteComparativoOpcao | OpcaoCorreios;
@@ -56,9 +58,12 @@ export function CompararTransportadorasDialog({
   valorAtual,
   onEscolher,
   correios,
+  sugestao,
 }: Props) {
   const opcoesCorreios: OpcaoLista[] = correios && !correios.isLoading && !correios.error ? (correios.data?.opcoes ?? []) : [];
-  const opcoes: OpcaoLista[] = [...(data?.opcoes ?? []), ...opcoesCorreios].sort((a, b) => {
+  // Cotação viva da API substitui o espelho em cache (fonte api_cache) do comparativo.
+  const opcoesBanco = (data?.opcoes ?? []).filter((o) => !(opcoesCorreios.length > 0 && o.fonte === "api_cache"));
+  const opcoes: OpcaoLista[] = [...opcoesBanco, ...opcoesCorreios].sort((a, b) => {
     const va = a.valor_estimado;
     const vb = b.valor_estimado;
     if (va == null && vb == null) return 0;
@@ -66,6 +71,18 @@ export function CompararTransportadorasDialog({
     if (vb == null) return -1;
     return va - vb;
   });
+
+  const sug = sugestao && !sugestao.isLoading && !sugestao.error ? sugestao.data : undefined;
+  const [destinoConfirmado, setDestinoConfirmado] = useState(false);
+  useEffect(() => { if (open) setDestinoConfirmado(false); }, [open]);
+  const aguardaDestino = !!sug?.confirmar_destino && !destinoConfirmado;
+  const servicoDe = (o: OpcaoLista): string | null =>
+    ehCorreios(o) ? String((o.estimativa_json as any)?.servico ?? "") || null : (o.servico ?? null);
+  const ehSugerida = (o: OpcaoLista): boolean => {
+    if (!sug?.ok || aguardaDestino || !sug.transportadora_id || o.transportadora_id !== sug.transportadora_id) return false;
+    if (sug.fonte_preco === "api_cache") return (ehCorreios(o) || o.fonte === "api_cache") && servicoDe(o) === sug.servico;
+    return !ehCorreios(o) && o.fonte !== "api_cache";
+  };
 
   const menorValor = opcoes.find((o) => !o.erro && o.valor_estimado != null)?.valor_estimado ?? null;
   const erroGeral = data && !isLoading && !data.opcoes ? (data.erro ?? "Não foi possível calcular o comparativo.") : null;
@@ -134,6 +151,24 @@ export function CompararTransportadorasDialog({
             </div>
 
 
+            {sug?.confirmar_destino && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+                <span>{destinoConfirmado ? "Destino confirmado — sugestão liberada." : "Destino veio do cadastro do cliente. Confirme o destino para ver a sugestão."}</span>
+                {!destinoConfirmado && (
+                  <Button size="sm" variant="outline" className="h-7" onClick={() => setDestinoConfirmado(true)}>Confirmar destino</Button>
+                )}
+              </div>
+            )}
+            {sug && sug.correios_avaliado === false && sug.motivo_exclusao && (
+              <p className="text-xs text-muted-foreground">Correios não avaliados: {sug.motivo_exclusao}</p>
+            )}
+            {sugestao?.error && (
+              <p className="text-xs text-destructive">Sugestão automática: {sugestao.error.message}</p>
+            )}
+            {sug && sug.ok === false && sug.motivo && (
+              <p className="text-xs text-muted-foreground">Sugestão automática: {sug.motivo}</p>
+            )}
+
             {opcoes.length === 0 && !correios?.isLoading && !correios?.error ? (
               <p className="py-6 text-sm text-muted-foreground text-center">
                 Nenhuma transportadora com tabela de preço vigente.
@@ -176,6 +211,7 @@ export function CompararTransportadorasDialog({
                       const oc = ehCorreios(o) ? o : null;
                       const temErro = !!o.erro || o.valor_estimado == null;
                       const isMenor = !temErro && menorValor != null && o.valor_estimado === menorValor;
+                      const isSugerida = !temErro && ehSugerida(o);
                       const pct = o.pct_sobre_pedido != null ? Number(o.pct_sobre_pedido) : null;
                       const pctAlto = pct != null && pct > 20;
                       const diff = !temErro && valorAtual > 0 && o.valor_estimado != null ? o.valor_estimado - valorAtual : null;
@@ -186,13 +222,16 @@ export function CompararTransportadorasDialog({
                           className={cn(
                             temErro && "text-muted-foreground",
                             isMenor && "bg-success/10",
+                            isSugerida && "ring-2 ring-inset ring-primary bg-primary/5",
                           )}
+                          aria-selected={isSugerida}
                         >
                           <TableCell>
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground">{o.transportadora_nome}</span>
                               {isMenor && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success/40 text-success">Mais barata</Badge>}
-                              {oc && <Badge variant="outline" className="text-[10px] px-1.5 py-0">via API</Badge>}
+                              {isSugerida && <Badge className="text-[10px] px-1.5 py-0">Sugerida</Badge>}
+                              {(oc || o.fonte === "api_cache") && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{oc ? "via API" : "API (cache)"}</Badge>}
                               {oc && oc.situacao === "improvavel" && (
                                 <TooltipProvider>
                                   <Tooltip>
@@ -257,7 +296,7 @@ export function CompararTransportadorasDialog({
                                     {diff > 0 ? "+" : ""}{formatBRL(diff)} vs cobrado
                                   </span>
                                 )}
-                                <Button size="sm" variant="outline" className="h-7" onClick={() => onEscolher(o)}>
+                                <Button size="sm" variant={isSugerida ? "default" : "outline"} className="h-7" onClick={() => onEscolher(o)}>
                                   Usar esta
                                 </Button>
                               </div>
