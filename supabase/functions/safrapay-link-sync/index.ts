@@ -123,9 +123,13 @@ Deno.serve(async (req) => {
     const { data: u, error: eU } = await sb.auth.getUser(auth.slice(7).trim());
     if (eU || !u?.user) return json({ ok: false, erro: "Não autorizado: sessão inválida." }, 401);
     const sbUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-    const { data: ok, error: eP } = await sbUser.rpc("tem_permissao", { p_slug: "tela.venda_direta_gestao" });
-    if (eP) return json({ ok: false, erro: `Falha ao avaliar permissão: ${eP.message}` }, 500);
-    if (ok !== true) return json({ ok: false, erro: "Sem permissão (tela.venda_direta_gestao)." }, 403);
+    let permitido = false;
+    for (const slug of ["tela.venda_direta_gestao", "acao.cobranca_gerar_link"]) {
+      const { data: ok, error: eP } = await sbUser.rpc("tem_permissao", { p_slug: slug });
+      if (eP) return json({ ok: false, erro: `Falha ao avaliar permissão: ${eP.message}` }, 500);
+      if (ok === true) { permitido = true; break; }
+    }
+    if (!permitido) return json({ ok: false, erro: "Sem permissão (tela.venda_direta_gestao ou acao.cobranca_gerar_link)." }, 403);
     pedidoId = String(body?.pedido_id ?? "");
     if (!/^[0-9a-f-]{36}$/i.test(pedidoId)) return json({ ok: false, erro: "pedido_id obrigatório." }, 400);
   }

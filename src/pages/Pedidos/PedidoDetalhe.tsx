@@ -19,6 +19,7 @@ const fmtNum = (v: number, casas: number) =>
 import { usePedidoOrigens } from "@/hooks/pedidos/usePedidoOrigens";
 import { supabase } from "@/integrations/supabase/client";
 import { usePedidoTitulos } from "@/hooks/pedidos/usePedidoTitulos";
+import { LinkPagamentoCard } from "@/components/pedidos/LinkPagamentoCard";
 import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard";
 import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
@@ -668,101 +669,6 @@ function BotaoEmailNfBoletos({ pedido }: { pedido: any }) {
 
 
 
-
-function LinkPagamentoCard({ pedido, titulos }: { pedido: any; titulos: any[] }) {
-  const navigate = useNavigate();
-  const statusPagos = ["pago", "pago_com_atraso", "pago_judicial", "baixado_por_perda", "cancelado"];
-  const tiposComLink = ["pix", "cartao", "cartao_credito", "cartao_debito"];
-
-  const link =
-    titulos
-      .filter((t) => tiposComLink.includes(t.tipo_pagamento ?? "") && !statusPagos.includes(t.status) && t.link_pagamento)
-      .map((t) => t.link_pagamento as string)[0] ??
-    (pedido.link_pagamento as string | null | undefined) ??
-    null;
-
-  const irParaCobranca = () => navigate(`/recebimento/cobranca/${pedido.id}`, { state: { from: `/pedidos/${pedido.id}`, fromLabel: "Pedido" } });
-  const formaEhBoleto = (pedido.forma_solicitada ?? "").toLowerCase().includes("boleto");
-  const podeAjustarCobranca = ["cobranca", "aguardando_pagamento"].includes(pedido.estagio ?? "");
-
-  // Boleto sem link em estágio que não permite ajuste → oculta o card
-  if (!link && formaEhBoleto && !podeAjustarCobranca) return null;
-
-  // Boleto sem link mas pode ajustar → mostrar só o botão de navegação
-  if (!link && formaEhBoleto && podeAjustarCobranca) {
-    return (
-      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-3 space-y-2">
-        <div className="flex items-center gap-1.5">
-          <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-          <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Cobrança</p>
-        </div>
-        <Button size="sm" variant="outline" className="w-full h-7 gap-1.5 text-xs" onClick={irParaCobranca} >
-          <ExternalLink className="h-3 w-3" />
-          {pedido.estagio === "aguardando_pagamento" ? "Ajustar na tela de cobrança" : "Cadastrar na tela de cobrança"}
-        </Button>
-      </div>
-    );
-  }
-
-  const handleCopiar = () => {
-    navigator.clipboard.writeText(link!).then(() => {
-      toast({ title: "Link copiado!", description: "Cole no WhatsApp ou onde preferir." });
-    });
-  };
-
-  const handleWhatsApp = () => {
-    const texto = `Olá! Segue o link de pagamento do pedido ${pedido.id_externo}:\n${link}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, "_blank");
-  };
-
-  if (!link) {
-    return (
-      <div className="rounded-md border border-dashed border-border/60 bg-muted/20 p-3 space-y-2">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Link de pagamento</p>
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">Nenhum link cadastrado.</p>
-        <Button
-          size="sm"
-          variant="outline"
-          className="w-full h-7 gap-1.5 text-xs"
-          onClick={irParaCobranca}
-        >
-          <ExternalLink className="h-3 w-3" />
-          Cadastrar na tela de cobrança
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-md border border-border/60 bg-muted/30 p-3 space-y-2">
-      <div className="flex items-center gap-1.5">
-        <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Link de pagamento</p>
-      </div>
-      <p className="text-xs text-muted-foreground truncate max-w-[220px]" title={link}>
-        {link}
-      </p>
-      <div className="flex gap-1.5">
-        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs" onClick={handleCopiar}>
-          <Copy className="h-3 w-3" />
-          Copiar
-        </Button>
-        <Button size="sm" variant="outline" className="flex-1 h-7 gap-1 text-xs text-success border-success/40 hover:bg-success/10 hover:text-success" onClick={handleWhatsApp}>
-          <MessageCircle className="h-3 w-3" />
-          WhatsApp
-        </Button>
-        <Button size="sm" variant="outline" className="h-7 w-7 p-0" title="Editar na tela de cobrança" onClick={irParaCobranca}>
-          <ExternalLink className="h-3 w-3" />
-        </Button>
-      </div>
-    </div>
-  );
-}
 
 function BotaoSplitPedidoInline({ pedido, estagio }: { pedido: any; estagio: string | null | undefined }) {
   return (
@@ -3201,7 +3107,7 @@ export default function PedidoDetalhe() {
                     estagio={pedido.estagio}
                   />
 
-                  <LinkPagamentoCard pedido={pedido} titulos={titulosData ?? []} />
+                  <LinkPagamentoCard pedidoId={pedido.id} />
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground italic px-1">

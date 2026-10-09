@@ -1,4 +1,5 @@
-// Safrapay Link de Pagamento (cartão) para a Venda Direta.
+// Safrapay Link de Pagamento (cartão) para a Venda Direta e pedidos B2B.
+// B2B: valor/parcelas nascem do portão; permissão acao.cobranca_gerar_link.
 // Cria (ou devolve o vigente) link de pagamento de um pedido. Usuário autenticado.
 // NUNCA loga nem devolve o MerchantToken ou o accessToken.
 // deno-lint-ignore-file no-explicit-any
@@ -32,7 +33,7 @@ function msgApi(corpo: any, status: number): string {
 
 function montarCustomer(parceiro: any, pedido: any, avisos: string[]) {
   const nome = txt(parceiro?.razao_social) ?? txt(parceiro?.nome_fantasia) ?? txt(pedido?.cliente_nome_snapshot);
-  const cpf = dig(parceiro?.cpf);
+  const cpf = dig(parceiro?.cpf ?? parceiro?.cnpj);
   if (!nome || (cpf.length !== 11 && cpf.length !== 14)) {
     avisos.push("Cliente sem nome ou CPF/CNPJ válido — link criado sem dados do comprador.");
     return undefined;
@@ -101,13 +102,13 @@ Deno.serve(async (req) => {
   const userId = u.user.id;
 
   const sbUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-  let permitido = false;
-  for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao"]) {
+  let slugOk: string | null = null;
+  const slugsPermitidos = new Set<string>();
+  for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao", "acao.cobranca_gerar_link"]) {
     const { data, error } = await sbUser.rpc("tem_permissao", { p_slug: slug });
     if (error) return json({ ok: false, erro: `Falha ao avaliar permissão ${slug}: ${error.message}` }, 500);
-    if (data === true) { permitido = true; break; }
+    if (data === true) { slugsPermitidos.add(slug); slugOk ??= slug; }
   }
-  if (!permitido) return json({ ok: false, erro: "Sem permissão para gerar link de pagamento da Venda Direta." }, 403);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "Corpo JSON inválido." }, 400); }
@@ -138,24 +139,38 @@ Deno.serve(async (req) => {
     .eq("id", pedidoId).maybeSingle();
   if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
   if (!pedido) return json({ ok: false, erro: "Pedido não encontrado." }, 404);
-  if (pedido.origem !== "venda_direta") return json({ ok: false, erro: "Pedido não é da Venda Direta." }, 409);
-  const forma = String(pedido.forma_solicitada);
-  if (!["pix", "cartao", "cartao_credito"].includes(forma)) return json({ ok: false, erro: `Forma do pedido não aceita link (${forma}).` }, 409);
-  const ehPix = forma === "pix";
-  if (ehPix && (cfg as any).pix_no_link !== true) return json({ ok: false, desligado: true, erro: "PIX por link desligado" }, 409);
-  if (ehPix) parcelasEscolhidas = null; // PIX: sempre 1x, ignora max_parcelas do body
+  const ehVD = pedido.origem === "venda_direta";
+  slugOk = ehVD
+    ? ["tela.venda_direta_novo", "tela.venda_direta_gestao"].find((slug) => slugsPermitidos.has(slug)) ?? null
+    : slugsPermitidos.has("acao.cobranca_gerar_link") ? "acao.cobranca_gerar_link" : null;
+  if (!slugOk) return json({ ok: false, erro: ehVD ? "Sem permissão para gerar link de pagamento da Venda Direta." : "Sem permissão para gerar link de pagamento (acao.cobranca_gerar_link)" }, 403);
   if (pedido.cancelado_em) return json({ ok: false, erro: "Pedido cancelado." }, 409);
   if (pedido.estagio !== "aguardando_pagamento") return json({ ok: false, erro: `Pedido não está aguardando pagamento (estágio ${pedido.estagio}).` }, 409);
-  const valor = Number(pedido.valor_liquido ?? 0);
-  const amount = Math.round(valor * 100);
-  if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
   const { data: provs, error: ePv } = await sb
-    .from("provisao_recebimento").select("id, status, pago_em")
+    .from("provisao_recebimento").select("id, status, pago_em, valor, numero_parcela, tipo_pagamento")
     .eq("pedido_id", pedidoId).eq("eh_portao", true).is("pago_em", null);
   if (ePv) return json({ ok: false, erro: `Ler provisão: ${ePv.message}` }, 500);
-  const prov = (provs ?? []).find((p: any) => !["pago", "cancelado", "cancelada"].includes(String(p.status)));
-  if (!prov) return json({ ok: false, erro: "Pedido sem provisão de portão em aberto." }, 409);
+  const abertas = (provs ?? []).filter((p: any) => p.pago_em == null && !["pago", "cancelado", "cancelada"].includes(String(p.status)));
+  const forma = String(pedido.forma_solicitada);
+  if (ehVD && !["pix", "cartao", "cartao_credito"].includes(forma)) return json({ ok: false, erro: `Forma do pedido não aceita link (${forma}).` }, 409);
+  let meioEscolhido = forma === "pix" ? "pix" : "cartao";
+  if (!ehVD) {
+    if (body?.meio != null && !["cartao", "pix"].includes(body.meio)) return json({ ok: false, erro: "meio deve ser cartao ou pix." }, 400);
+    const tiposAbertos = ["cartao", "pix"].filter((tipo) => abertas.some((p: any) => p.tipo_pagamento === tipo));
+    if (body?.meio == null && tiposAbertos.length > 1) return json({ ok: false, erro: "Pedido tem portão de cartão E de PIX abertos — informe o meio." }, 409);
+    meioEscolhido = body?.meio ?? tiposAbertos[0] ?? "cartao";
+  }
+  const conjunto = ehVD ? abertas : abertas.filter((p: any) => p.tipo_pagamento === meioEscolhido)
+    .sort((a: any, b: any) => Number(a.numero_parcela ?? 0) - Number(b.numero_parcela ?? 0));
+  const prov = conjunto[0];
+  if (!prov) return json({ ok: false, erro: ehVD ? "Pedido sem provisão de portão em aberto." : `Pedido sem linha de portão aberta para ${meioEscolhido}.` }, 409);
+  const ehPix = meioEscolhido === "pix";
+  if (ehPix && (cfg as any).pix_no_link !== true) return json({ ok: false, desligado: true, erro: "PIX por link desligado" }, 409);
+  if (ehPix) parcelasEscolhidas = null;
+  const valor = ehVD ? Number(pedido.valor_liquido ?? 0) : Math.round(conjunto.reduce((s: number, p: any) => s + Number(p.valor ?? 0), 0) * 100) / 100;
+  const amount = Math.round(valor * 100);
+  if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
   // Link vigente?
   const { data: vig, error: eV } = await sb
@@ -237,8 +252,8 @@ Deno.serve(async (req) => {
     const cfgMax = Math.max(1, Number(cfg.max_parcelas ?? 1));
     const minParcelar = Number(cfg.valor_minimo_parcelar_centavos ?? 0);
     const parcelaMin = Number(cfg.parcela_min_centavos ?? 0);
-    let parcelasPadrao = amount < minParcelar ? 1 : cfgMax;
-    if (parcelaMin > 0) parcelasPadrao = Math.min(parcelasPadrao, Math.floor(amount / parcelaMin));
+    let parcelasPadrao = ehVD ? (amount < minParcelar ? 1 : cfgMax) : conjunto.length;
+    if (ehVD && parcelaMin > 0) parcelasPadrao = Math.min(parcelasPadrao, Math.floor(amount / parcelaMin));
     parcelasPadrao = Math.max(1, parcelasPadrao);
     if (ehPix) parcelasPadrao = 1;
     const maxParcelas = ehPix ? 1 : (parcelasEscolhidas ?? parcelasPadrao);
@@ -253,7 +268,7 @@ Deno.serve(async (req) => {
     let parceiro: any = null;
     if (pedido.parceiro_id) {
       const { data: pc, error: ePc } = await sb.from("parceiros_comerciais")
-        .select("razao_social, nome_fantasia, cpf, email, telefone, cep, logradouro, numero, bairro, cidade, uf, endereco_complemento")
+        .select("razao_social, nome_fantasia, cpf, cnpj, email, telefone, cep, logradouro, numero, bairro, cidade, uf, endereco_complemento")
         .eq("id", pedido.parceiro_id).maybeSingle();
       if (ePc) return await falhar(`Ler cliente: ${ePc.message}`, 500);
       parceiro = pc;

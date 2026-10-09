@@ -1,4 +1,5 @@
-// Safrapay PIX (cobrança com QR dinâmico) para a Venda Direta.
+// Safrapay PIX (cobrança com QR dinâmico) para a Venda Direta e pedidos B2B.
+// B2B: valor/parcelas nascem do portão; permissão acao.cobranca_gerar_link.
 // Cria (ou devolve a vigente) cobrança PIX de um pedido. Usuário autenticado.
 // NUNCA loga nem devolve o MerchantToken ou o accessToken.
 // deno-lint-ignore-file no-explicit-any
@@ -29,7 +30,7 @@ function msgApi(corpo: any, status: number): string {
 /** Customer só vai completo: nome + CPF/CNPJ + e-mail válido + telefone completo. Senão, omite. */
 function montarCustomer(parceiro: any, pedido: any, avisos: string[]) {
   const nome = txt(parceiro?.razao_social) ?? txt(parceiro?.nome_fantasia) ?? txt(pedido?.cliente_nome_snapshot);
-  const doc = dig(parceiro?.cpf);
+  const doc = dig(parceiro?.cpf ?? parceiro?.cnpj);
   const email = txt(parceiro?.email);
   let tel = dig(parceiro?.telefone);
   if (tel.startsWith("55") && tel.length >= 12) tel = tel.slice(2);
@@ -66,13 +67,13 @@ Deno.serve(async (req) => {
   const userId = u.user.id;
 
   const sbUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
-  let permitido = false;
-  for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao"]) {
+  let slugOk: string | null = null;
+  const slugsPermitidos = new Set<string>();
+  for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao", "acao.cobranca_gerar_link"]) {
     const { data, error } = await sbUser.rpc("tem_permissao", { p_slug: slug });
     if (error) return json({ ok: false, erro: `Falha ao avaliar permissão ${slug}: ${error.message}` }, 500);
-    if (data === true) { permitido = true; break; }
+    if (data === true) { slugsPermitidos.add(slug); slugOk ??= slug; }
   }
-  if (!permitido) return json({ ok: false, erro: "Sem permissão para gerar PIX da Venda Direta." }, 403);
 
   let body: any;
   try { body = await req.json(); } catch { return json({ ok: false, erro: "Corpo JSON inválido." }, 400); }
@@ -97,20 +98,26 @@ Deno.serve(async (req) => {
     .eq("id", pedidoId).maybeSingle();
   if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
   if (!pedido) return json({ ok: false, erro: "Pedido não encontrado." }, 404);
-  if (pedido.origem !== "venda_direta") return json({ ok: false, erro: "Pedido não é da Venda Direta." }, 409);
-  if (pedido.forma_solicitada !== "pix") return json({ ok: false, erro: "Pedido não é de PIX." }, 409);
+  const ehVD = pedido.origem === "venda_direta";
+  slugOk = ehVD
+    ? ["tela.venda_direta_novo", "tela.venda_direta_gestao"].find((slug) => slugsPermitidos.has(slug)) ?? null
+    : slugsPermitidos.has("acao.cobranca_gerar_link") ? "acao.cobranca_gerar_link" : null;
+  if (!slugOk) return json({ ok: false, erro: ehVD ? "Sem permissão para gerar PIX da Venda Direta." : "Sem permissão para gerar link de pagamento (acao.cobranca_gerar_link)" }, 403);
   if (pedido.cancelado_em) return json({ ok: false, erro: "Pedido cancelado." }, 409);
   if (pedido.estagio !== "aguardando_pagamento") return json({ ok: false, erro: `Pedido não está aguardando pagamento (estágio ${pedido.estagio}).` }, 409);
-  const valor = Number(pedido.valor_liquido ?? 0);
-  const amount = Math.round(valor * 100);
-  if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
   const { data: provs, error: ePv } = await sb
-    .from("provisao_recebimento").select("id, status, pago_em")
+    .from("provisao_recebimento").select("id, status, pago_em, valor, numero_parcela, tipo_pagamento")
     .eq("pedido_id", pedidoId).eq("eh_portao", true).is("pago_em", null);
   if (ePv) return json({ ok: false, erro: `Ler provisão: ${ePv.message}` }, 500);
-  const prov = (provs ?? []).find((p: any) => !["pago", "cancelado", "cancelada"].includes(String(p.status)));
-  if (!prov) return json({ ok: false, erro: "Pedido sem provisão de portão em aberto." }, 409);
+  const abertas = (provs ?? []).filter((p: any) => p.pago_em == null && !["pago", "cancelado", "cancelada"].includes(String(p.status)));
+  if (ehVD && pedido.forma_solicitada !== "pix") return json({ ok: false, erro: "Pedido não é de PIX." }, 409);
+  const prov = ehVD ? abertas[0] : abertas.filter((p: any) => p.tipo_pagamento === "pix")
+    .sort((a: any, b: any) => Number(a.numero_parcela ?? 0) - Number(b.numero_parcela ?? 0))[0];
+  if (!prov) return json({ ok: false, erro: ehVD ? "Pedido sem provisão de portão em aberto." : "Pedido sem linha de portão aberta para pix." }, 409);
+  const valor = Number(ehVD ? pedido.valor_liquido ?? 0 : prov.valor ?? 0);
+  const amount = Math.round(valor * 100);
+  if (!(amount > 0)) return json({ ok: false, erro: "Pedido sem valor a cobrar." }, 409);
 
   // Registros vigentes (o índice vale para qualquer meio: 1 criando/aberto por pedido).
   const { data: vig, error: eV } = await sb
@@ -183,7 +190,7 @@ Deno.serve(async (req) => {
     let parceiro: any = null;
     if (pedido.parceiro_id) {
       const { data: pc, error: ePc } = await sb.from("parceiros_comerciais")
-        .select("razao_social, nome_fantasia, cpf, email, telefone").eq("id", pedido.parceiro_id).maybeSingle();
+        .select("razao_social, nome_fantasia, cpf, cnpj, email, telefone").eq("id", pedido.parceiro_id).maybeSingle();
       if (ePc) return await falhar(`Ler cliente: ${ePc.message}`, 500);
       parceiro = pc;
     }

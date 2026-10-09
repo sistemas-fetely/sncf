@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Captação F5: links B2B nas três edges e card compartilhado conectado ao detalhe; PED-2287 conferido com Gerar PIX e sem cartão, 7 testes simulados e Deno check passaram, sem gerar link real.
+
 - [x] Exibir candidatos e filtro na Casa dos Pedidos; PED-2116 entregue conferido com badge âmbar e R$ 523,73 no navegador; 3 testes passaram, sem banco/publicação.
 
 - [x] Unificar nascimento por origem e reorganizar abas da Chegada; 8 testes e navegação/formulário conferidos no navegador, prévia interceptada sem nascimento real, sem banco/publicação.

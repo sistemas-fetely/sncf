@@ -1,4 +1,10 @@
 import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { chamarEdge } from "@/components/venda-direta/LinkCartao";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Check, ChevronDown, Copy, Link2, Loader2, RefreshCw } from "lucide-react";
+import { Check, ChevronDown, Copy, CreditCard, Link2, Loader2, RefreshCw, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hojeISO } from "@/lib/data";
 import {
@@ -94,6 +100,55 @@ function UrlCopiavel({ url, className }: { url: string; className?: string }) {
 }
 
 export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; className?: string }) {
+  const qc = useQueryClient();
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const provisoesQ = useQuery({
+    queryKey: ["provisoes-pedido", pedidoId, "links"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("provisao_recebimento")
+        .select("tipo_pagamento, status, pago_em").eq("pedido_id", pedidoId).eq("eh_portao", true).is("pago_em", null);
+      if (error) throw error;
+      return (data ?? []).filter((p) => !["pago", "cancelado", "cancelada"].includes(String(p.status)));
+    },
+  });
+  const linksApiQ = useQuery({
+    queryKey: ["gerenciar-links", pedidoId, "api"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("pagamento_link")
+        .select("id, url, pix_copia_cola, status, expira_em, criado_em, meio, erro")
+        .eq("pedido_id", pedidoId).order("criado_em", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const atualizar = async () => {
+    invalidarPedido(qc, pedidoId);
+    await Promise.all([linksApiQ.refetch(), linkQ.refetch(), provisoesQ.refetch()]);
+  };
+  const gerar = async (meio: "cartao" | "pix") => {
+    setOcupado(meio);
+    try {
+      await chamarEdge(meio === "cartao" ? "safrapay-link" : "safrapay-pix", {
+        pedido_id: pedidoId, ...(meio === "cartao" ? { meio } : {}),
+      });
+      await atualizar();
+      toast.success(meio === "cartao" ? "Link de cartão gerado" : "PIX gerado");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { setOcupado(null); }
+  };
+  const sincronizar = async () => {
+    setOcupado("sync");
+    try {
+      const r = await chamarEdge<{ detalhes?: { erro?: string }[] }>("safrapay-link-sync", { pedido_id: pedidoId });
+      const erros = r.detalhes?.filter((d) => d.erro).map((d) => d.erro) ?? [];
+      await atualizar();
+      if (erros.length) throw new Error(erros.join("\n"));
+      toast.success("Links sincronizados");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    } finally { setOcupado(null); }
+  };
   const linkQ = useLinkPagamentoPedido(pedidoId);
   const registrar = useRegistrarLinkPagamento();
 
@@ -154,20 +209,53 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                   </p>
                 )}
               </>
-            ) : (
+            ) : linksApiQ.data?.length ? null : (
               <p className="text-sm text-muted-foreground">Nenhum link cadastrado</p>
             )}
           </div>
 
           <div className="flex flex-col items-end gap-2 shrink-0">
             {linha?.link && <BadgeSituacaoLink linha={linha} />}
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setForm((v) => !v)}>
-              <RefreshCw className="h-3.5 w-3.5" />
-              {linha?.link ? "Renovar link" : "Cadastrar link"}
-            </Button>
           </div>
         </div>
 
+        {(provisoesQ.error || linksApiQ.error) && (
+          <p role="alert" className="text-xs text-destructive">{(provisoesQ.error ?? linksApiQ.error)?.message}</p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          {(["cartao", "pix"] as const).map((meio) => provisoesQ.data?.some((p) => p.tipo_pagamento === meio) && (
+            <BotaoGuardado key={meio} slug="acao.cobranca_gerar_link" rotuloAcao="Gerar link de pagamento"
+              contexto={{ pedido_id: pedidoId }} size="sm" variant="outline" disabled={ocupado !== null}
+              className="gap-1.5" onClick={() => void gerar(meio)}>
+              {ocupado === meio ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : meio === "cartao" ? <CreditCard className="h-3.5 w-3.5" /> : <Zap className="h-3.5 w-3.5" />}
+              {meio === "cartao" ? "Gerar link de cartão" : "Gerar PIX"}
+            </BotaoGuardado>
+          ))}
+        </div>
+        {linksApiQ.isLoading && <Skeleton className="h-12 w-full" />}
+        {linksApiQ.data?.map((l) => (
+          <div key={l.id} className="border-t pt-2 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium">{l.meio === "pix" ? "PIX" : "Cartão"}</span>
+              <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
+              <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
+            </div>
+            {l.url && <UrlCopiavel url={l.url} />}
+            {l.pix_copia_cola && <UrlCopiavel url={l.pix_copia_cola} />}
+            {l.erro && <p className="text-xs text-destructive">{l.erro}</p>}
+          </div>
+        ))}
+        {!!linksApiQ.data?.length && (
+          <BotaoGuardado slug="acao.cobranca_gerar_link" rotuloAcao="Gerar link de pagamento" contexto={{ pedido_id: pedidoId }}
+            size="sm" variant="outline" disabled={ocupado !== null} className="gap-1.5" onClick={() => void sincronizar()}>
+            {ocupado === "sync" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Sincronizar agora
+          </BotaoGuardado>
+        )}
+        <Button size="sm" variant="outline" className="gap-1.5 h-auto py-2 max-w-full whitespace-normal text-left" onClick={() => setForm((v) => !v)}>
+          <RefreshCw className="h-3.5 w-3.5" />
+          Cadastrar link manual (failover)
+        </Button>
         {form && (
           <div className="rounded-md border bg-muted/40 p-3 space-y-3">
             <div className="space-y-1.5">
