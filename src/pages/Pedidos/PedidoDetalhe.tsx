@@ -100,8 +100,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
-import { useFreteComparativo } from "@/hooks/pedidos/useFreteComparativo";
-import { useCotacaoCorreios, useTranspCotacaoApi } from "@/hooks/pedidos/useCotacaoCorreios";
+import { useFreteComparativo, useSugestaoTransportadora } from "@/hooks/pedidos/useFreteComparativo";
+import { useCotacaoCorreios, useTranspCotacaoApi, persistirCotacaoCorreiosB2B, type OpcaoCorreios } from "@/hooks/pedidos/useCotacaoCorreios";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
@@ -115,6 +115,7 @@ import { useReabrirAnalisePedido } from "@/hooks/pedidos/useReabrirAnalisePedido
 import { AtencaoPedidoDialog } from "@/components/pedidos/dialogs/AtencaoPedidoDialog";
 import { useLimparAtencao } from "@/hooks/pedidos/useAtencaoPedido";
 import { toast } from "@/hooks/use-toast";
+import { formatError } from "@/lib/format-error";
 import { useTransportadoras } from "@/hooks/pedidos/useTransportadoras";
 import { useTransportadoraOrigem } from "@/hooks/pedidos/useTransportadoraOrigem";
 import { useRecotarTransportadora } from "@/hooks/pedidos/useRecotarTransportadora";
@@ -1140,6 +1141,20 @@ export default function PedidoDetalhe() {
     Number(data?.pedido?.valor_liquido) || Number(data?.pedido?.valor_bruto) || 0,
   );
   const transpCotacaoApi = useTranspCotacaoApi();
+  const sugestaoFrete = useSugestaoTransportadora(id);
+  const abrirComparativo = async () => {
+    const [fc, cc] = await Promise.all([freteComparativo.refetch(), cotacaoCorreios.refetch()]);
+    const peso = Number(fc.data?.peso_usado);
+    if (id && cc.data?.bruta && cc.data.bruta.cotacoes.length > 0 && Number.isFinite(peso) && peso > 0) {
+      try {
+        await persistirCotacaoCorreiosB2B(id, cc.data.bruta, peso);
+        await freteComparativo.refetch();
+      } catch (e) {
+        toast({ variant: "destructive", title: "Falha ao gravar cotação dos Correios", description: formatError(e) });
+      }
+    }
+    await sugestaoFrete.refetch();
+  };
   const [cotacaoApiEscolhida, setCotacaoApiEscolhida] = useState<{
     transportadora_id: string; valor: number; json: Record<string, unknown>; rotulo: string;
     prazo_dias: number | null; n_volumes: number; avisos: string[];
@@ -2381,8 +2396,7 @@ export default function PedidoDetalhe() {
                           className="h-8 w-full"
                           onClick={() => {
                             setCompararOpen(true);
-                            freteComparativo.refetch();
-                            cotacaoCorreios.refetch();
+                            void abrirComparativo();
                           }}
                         >
                           <Scale className="h-3.5 w-3.5 mr-1.5" />
@@ -2476,16 +2490,18 @@ export default function PedidoDetalhe() {
                       data={freteComparativo.data}
                       valorAtual={parseFloat(valorFrete) || 0}
                       correios={{ isLoading: cotacaoCorreios.isFetching, data: cotacaoCorreios.data, error: cotacaoCorreios.error }}
+                      sugestao={{ isLoading: sugestaoFrete.isFetching, data: sugestaoFrete.data, error: sugestaoFrete.error }}
                       onEscolher={(opcao) => {
-                        if ("fonte" in opcao && opcao.fonte === "correios" && opcao.transportadora_id) {
+                        if (opcao.fonte === "correios" && opcao.transportadora_id) {
+                          const oc = opcao as OpcaoCorreios;
                           setCotacaoApiEscolhida({
                             transportadora_id: opcao.transportadora_id,
                             valor: opcao.valor_estimado ?? 0,
-                            json: opcao.estimativa_json ?? {},
+                            json: oc.estimativa_json ?? {},
                             rotulo: opcao.transportadora_nome,
                             prazo_dias: opcao.prazo_dias,
-                            n_volumes: opcao.n_volumes,
-                            avisos: opcao.avisos,
+                            n_volumes: oc.n_volumes,
+                            avisos: oc.avisos,
                           });
                         } else {
                           setCotacaoApiEscolhida(null);

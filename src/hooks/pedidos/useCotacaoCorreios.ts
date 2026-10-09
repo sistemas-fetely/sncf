@@ -89,8 +89,51 @@ function opcaoErro(plano: Partial<PlanoVolumes> | null, erro: string): OpcaoCorr
   };
 }
 
+export interface CotacaoCorreiosBruta {
+  cep_origem: string;
+  cep_destino: string;
+  cotacoes: { servico: string; codigo: string | null; preco: number; prazo_dias: number | null; erro: null }[];
+}
+
+/**
+ * Persiste a cotação viva dos Correios do pedido B2B em frete_cotacao
+ * (uma por pedido; recotar substitui). A sugestão automática do banco lê daqui.
+ * Só serviços sem erro e com preço. Validade vem de frete_roteirizacao_parametro.
+ */
+export async function persistirCotacaoCorreiosB2B(pedidoId: string, bruta: CotacaoCorreiosBruta, pesoKg: number) {
+  if (!bruta.cotacoes.length) return;
+  const sb = supabase as any;
+  const { data: par, error: parErr } = await sb
+    .from("frete_roteirizacao_parametro").select("valor").eq("chave", "cache_validade_min").eq("ativo", true).maybeSingle();
+  if (parErr) throw parErr;
+  const minutos = Number(par?.valor);
+  if (!Number.isFinite(minutos) || minutos <= 0) throw new Error("Parâmetro cache_validade_min ausente em frete_roteirizacao_parametro.");
+  const campos = {
+    cotacoes: bruta.cotacoes,
+    valida_ate: new Date(Date.now() + minutos * 60_000).toISOString(),
+    peso_g: Math.round(pesoKg * 1000),
+    cep_destino: bruta.cep_destino,
+    criado_em: new Date().toISOString(),
+  };
+  // Upsert manual: o índice único é parcial (contexto='b2b'), que o PostgREST não consegue inferir.
+  const atualizar = async () => {
+    const { data, error } = await sb.from("frete_cotacao").update(campos)
+      .eq("contexto", "b2b").eq("pedido_id", pedidoId).select("id");
+    if (error) throw error;
+    return (data ?? []).length > 0;
+  };
+  if (await atualizar()) return;
+  const { error } = await sb.from("frete_cotacao").insert({
+    ...campos, contexto: "b2b", pedido_id: pedidoId, fonte: "correios", cep_origem: bruta.cep_origem,
+  });
+  if (error) {
+    if (error.code === "23505" && (await atualizar())) return;
+    throw error;
+  }
+}
+
 export function useCotacaoCorreios(pedidoId: string | undefined, valorReferencia: number) {
-  return useQuery<{ plano: PlanoVolumes; opcoes: OpcaoCorreios[] }>({
+  return useQuery<{ plano: PlanoVolumes; opcoes: OpcaoCorreios[]; bruta?: CotacaoCorreiosBruta }>({
     queryKey: ["cotacao-correios", pedidoId],
     enabled: false,
     staleTime: 60_000,
@@ -182,7 +225,14 @@ export function useCotacaoCorreios(pedidoId: string | undefined, valorReferencia
           },
         };
       });
-      return { plano, opcoes };
+      const bruta: CotacaoCorreiosBruta = {
+        cep_origem: plano.cep_origem,
+        cep_destino: plano.cep_destino,
+        cotacoes: (data.cotacoes ?? [])
+          .filter((c: any) => !c.erro && c.preco != null)
+          .map((c: any) => ({ servico: c.servico, codigo: c.codigo ?? null, preco: Number(c.preco), prazo_dias: c.prazo_dias ?? null, erro: null })),
+      };
+      return { plano, opcoes, bruta };
     },
   });
 }
