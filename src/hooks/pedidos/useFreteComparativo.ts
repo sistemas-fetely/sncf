@@ -14,6 +14,8 @@ export interface FreteComparativoOpcao {
   breakdown: Record<string, number> | null;
   valor_sem_icms?: number | null;
   icms_aliquota?: number | null;
+  fonte?: string | null;
+  servico?: string | null;
 }
 
 export interface FreteComparativoResult {
@@ -32,6 +34,35 @@ export interface FreteComparativoResult {
   fator_cubagem?: number | null;
   valor_referencia?: number;
   opcoes?: FreteComparativoOpcao[];
+  cache_api_vivo?: boolean;
+}
+
+export interface SugestaoTransportadora {
+  ok: boolean;
+  motivo?: string | null;
+  transportadora_id?: string | null;
+  transportadora_nome?: string | null;
+  valor_estimado?: number | null;
+  prazo_dias?: number | null;
+  fonte_preco?: "tabela" | "api_cache" | null;
+  servico?: string | null;
+  correios_avaliado?: boolean;
+  motivo_exclusao?: string | null;
+  confirmar_destino?: boolean;
+  alternativas?: { nome: string; valor: number; prazo_dias: number | null; fonte: string }[];
+}
+
+export function useSugestaoTransportadora(pedidoId: string | undefined) {
+  return useQuery<SugestaoTransportadora>({
+    queryKey: ["frete-sugestao", pedidoId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_frete_sugerir_transportadora", { p_pedido_id: pedidoId });
+      if (error) throw error;
+      return (data ?? { ok: false }) as SugestaoTransportadora;
+    },
+    enabled: false,
+    staleTime: 0,
+  });
 }
 
 
