@@ -344,6 +344,25 @@ Deno.serve(async (req) => {
     }).eq("id", linha!.id);
     if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
 
+    // Cartão B2B: nasce só em pagamento_link — registrar também na trilha pedido_link_pagamento
+    // para o envio de e-mail de cobrança achar o link (VD e PIX ficam fora desta trilha).
+    if (!ehVD && !ehPix) {
+      const fmtSaoPaulo = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit",
+      });
+      const hojeBRT = fmtSaoPaulo.format(new Date());
+      const expiraBRT = fmtSaoPaulo.format(new Date(expiraFinal));
+      const { error: eTrilha } = await sb.rpc("registrar_link_pagamento", {
+        p_pedido_id: pedidoId,
+        p_link: urlFinal,
+        p_gerado_em: hojeBRT,
+        p_expira_em: expiraBRT,
+        p_tipo_pagamento: "cartao",
+        p_motivo: null,
+      });
+      if (eTrilha) return await falhar(`Link criado no Safrapay mas não registrado na trilha: ${eTrilha.message}`, 500);
+    }
+
     return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, parcelas_padrao: parcelasPadrao, meio: ehPix ? "pix" : "cartao", pagamento_link_id: linha!.id, avisos });
   } catch (e) {
     return await falhar(e instanceof Error ? e.message : String(e));
