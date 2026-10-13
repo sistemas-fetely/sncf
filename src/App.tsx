@@ -207,6 +207,7 @@ const TransferenciasInternas = lazy(() => import("@/pages/Pedidos/Transferencias
 const SimplesRemessa = lazy(() => import("@/pages/Pedidos/SimplesRemessa"));
 const VendaDiretaNovo = lazy(() => import("@/pages/Pedidos/VendaDiretaNovo"));
 const VendaDiretaGestao = lazy(() => import("@/pages/Pedidos/VendaDiretaGestao"));
+const ImpressaoPedidoVD = lazy(() => import("@/components/venda-direta/ImpressaoPedidoVD"));
 const PedidoDetalhe = lazy(() => import("@/pages/Pedidos/PedidoDetalhe"));
 const ParceiroDetalhe = lazy(() => import("@/pages/Parceiros/ParceiroDetalhe"));
 const ClientePainel = lazy(() => import("@/pages/clientes/ClientePainel"));
@@ -442,6 +443,7 @@ const App = () => (
                 {/* Venda Direta (B2C por telefone/WhatsApp) — nó sops.venda_direta_novo, slug tela.venda_direta_novo. */}
                 <Route path="/pedidos/venda-direta/novo" element={<VendaDiretaNovo />} />
                 <Route path="/pedidos/venda-direta/:id/editar" element={<VendaDiretaNovo />} />
+                <Route path="/pedidos/venda-direta/:id/imprimir" element={<ImpressaoPedidoVD />} />
                 {/* Venda Direta · Gestão — nó sops.venda_direta_gestao, slug tela.venda_direta_gestao. */}
                 <Route path="/pedidos/venda-direta" element={<VendaDiretaGestao />} />
                 {/* /cliente = lista (porta); /cliente/:id = detalhe */}

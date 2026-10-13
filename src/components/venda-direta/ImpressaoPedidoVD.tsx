@@ -59,11 +59,11 @@ export default function ImpressaoPedidoVD() {
   const img = useImagensProduto((q.data?.itens ?? []).map((i) => i.sku));
   const imprimiu = useRef(false);
   useEffect(() => {
-    if (!q.data || imprimiu.current) return;
+    if (!q.data || imprimiu.current || img.isLoading) return;
     imprimiu.current = true;
     const t = window.setTimeout(() => window.print(), 600); // dá tempo para as miniaturas
     return () => window.clearTimeout(t);
-  }, [q.data]);
+  }, [q.data, img.isLoading]);
 
   if (q.isLoading) return <div className="flex items-center gap-2 p-8 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando pedido…</div>;
   if (q.isError || !q.data) return <p className="p-8 text-sm text-destructive">{rawMessage(q.error)}</p>;
@@ -78,8 +78,7 @@ export default function ImpressaoPedidoVD() {
   const pago = !!g.pagamento_confirmado_em;
   const meio = (g.pagamento ?? p.forma_solicitada) === "pix" ? "PIX" : "Cartão";
   const data = p.data_pedido ? new Date(p.data_pedido).toLocaleDateString("pt-BR") : "—";
-  const imagens = img as unknown as { data?: Map<string, any> } | Map<string, any>;
-  const mapaImg: Map<string, any> | undefined = imagens instanceof Map ? imagens : imagens?.data;
+  const mapaImg = img.data;
 
   return (
     <div className="impressao-vd mx-auto max-w-[210mm] bg-background p-8 text-sm text-foreground">
