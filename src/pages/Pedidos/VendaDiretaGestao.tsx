@@ -3,11 +3,12 @@ import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/Link
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
   AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
-  Pencil, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
 import { toast } from "sonner";
@@ -194,7 +195,15 @@ export default function VendaDiretaGestao() {
   const [cancelar, setCancelar] = useState<Linha | null>(null);
   const [devolver, setDevolver] = useState<Linha | null>(null);
   const [cancelarNf, setCancelarNf] = useState<Linha | null>(null);
-  const [gavetaId, setGavetaId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [gavetaId, setGavetaIdState] = useState<string | null>(() => searchParams.get("pedido"));
+  // ?pedido={id} abre a gaveta; fechar remove o parâmetro.
+  const setGavetaId = (id: string | null) => {
+    setGavetaIdState(id);
+    if (!id && searchParams.has("pedido")) {
+      const n = new URLSearchParams(searchParams); n.delete("pedido"); setSearchParams(n, { replace: true });
+    }
+  };
   const [confirmaPausado, setConfirmaPausado] = useState<Linha | null>(null);
   const navigate = useNavigate();
 
@@ -548,6 +557,7 @@ export default function VendaDiretaGestao() {
                             {etapa.map((a) => <BotaoIcone key={a.k} a={a} />)}
                             {(aviso || etapa.length > 0) && <span className="mx-1 h-5 w-px bg-border" aria-hidden="true" />}
                             <BotaoIcone a={{ k: "itens", label: "Ver itens", icon: List, onClick: () => setGavetaId(l.id) }} />
+                            <BotaoIcone a={{ k: "imprimir", label: "Imprimir", icon: Printer, onClick: () => abrirImpressaoVD(l.id) }} />
                             {podeCancelar(l) && <BotaoIcone a={{ k: "cancel", label: rotuloCancelar(l), icon: l.pagamento_confirmado_em || l.nf_numero ? RotateCcw : Ban, onClick: () => tentarCancelar(l), destrutiva: true }} />}
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -593,6 +603,7 @@ export default function VendaDiretaGestao() {
                   {gaveta.pagamento_confirmado_em || gaveta.nf_numero ? <RotateCcw className="mr-1 h-3.5 w-3.5" /> : <Ban className="mr-1 h-3.5 w-3.5" />}{rotuloCancelar(gaveta)}
                 </Button>
               )}
+              <Button size="sm" variant="outline" onClick={() => abrirImpressaoVD(gaveta.id)}><Printer className="mr-1 h-3.5 w-3.5" />Imprimir</Button>
               <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>
             </>
           )}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Loader2, Minus, PackageSearch, Plus, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -24,6 +24,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
+import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 const soDigitos = (s: string | null | undefined) => (s ?? "").replace(/\D/g, "");
@@ -541,6 +542,8 @@ export default function VendaDiretaNovo() {
               {edicao
                 ? <Button variant="outline" onClick={() => navigate("/pedidos/venda-direta")}>Voltar para a Gestão</Button>
                 : <Button variant="outline" onClick={limparTudo}><Plus className="h-4 w-4" /> Novo pedido</Button>}
+              <Button variant="outline" onClick={() => navigate(`/pedidos/venda-direta?pedido=${r.pedido_id}`)}>Voltar ao pedido</Button>
+              <Button variant="outline" onClick={() => abrirImpressaoVD(r.pedido_id)}><Printer className="h-4 w-4" /> Imprimir</Button>
               <Button variant="outline" onClick={() => window.history.length > 1 ? navigate(-1) : navigate("/")}>Fechar</Button>
             </div>
           </CardContent>
