@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { EnviarEmailPagamentoVD, type EmailPagamentoCtx } from "@/components/venda-direta/EnviarEmailPagamentoVD";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Loader2, MessageCircle, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -128,7 +129,7 @@ function whatsappUrl(telefone: string | null | undefined, nome: string | null | 
   return `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`;
 }
 
-function LinkBloco({ url, maxParcelas, expiraEm, wa, meio }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null; meio: MeioLink }) {
+function LinkBloco({ url, maxParcelas, expiraEm, wa, meio, email }: { url: string; maxParcelas: number; expiraEm: string | null; wa: string | null; meio: MeioLink; email?: EmailPagamentoCtx }) {
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -149,6 +150,7 @@ function LinkBloco({ url, maxParcelas, expiraEm, wa, meio }: { url: string; maxP
         <Button disabled={!wa} onClick={() => wa && window.open(wa, "_blank", "noopener")}>
           <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
         </Button>
+        {email && <EnviarEmailPagamentoVD ctx={email} meio={meio === "pix" ? "pix" : "cartao"} link={url} expiraEm={expiraEm} />}
         {!wa && <span className="text-xs text-muted-foreground">Cliente sem telefone válido.</span>}
         <span className="text-sm text-muted-foreground">vale até {fmtDataHora(expiraEm)}</span>
       </div>
@@ -188,6 +190,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoId]);
 
+  const emailCtx: EmailPagamentoCtx = { pedidoId, idExterno, total, clienteNome };
   if (estado.fase === "carregando")
     return <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Gerando link de pagamento…</p>;
   const nome = (clienteNome ?? "").trim().split(/\s+/)[0] ?? "";
@@ -203,7 +206,7 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
           Link PIX indisponível ({msg}) — usando QR na conta; confirmação pelo extrato.
         </div>
         <Button variant="outline" size="sm" onClick={gerar}><RefreshCw className="h-4 w-4" /> Tentar o link de novo</Button>
-        <PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} />
+        <PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} email={emailCtx} />
       </div>
     );
   }
@@ -216,14 +219,14 @@ export function LinkCartaoPainel({ pedidoId, idExterno, total, clienteNome, tele
       </div>
     );
   const r = estado.r;
-  const bloco = <LinkBloco meio={meio} url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, meio)} />;
+  const bloco = <LinkBloco meio={meio} url={r.url} maxParcelas={r.max_parcelas} expiraEm={r.expira_em} wa={whatsappUrl(telefone, clienteNome, idExterno, total, r.max_parcelas, r.url, meio)} email={emailCtx} />;
   if (meio !== "pix" || !pixLocal) return bloco;
   return (
     <div className="space-y-4">
       {bloco}
       <details className="rounded-md border bg-card p-3">
         <summary className="cursor-pointer text-sm text-muted-foreground">QR direto na conta da Fetely (sem confirmação automática)</summary>
-        <div className="pt-3"><PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} /></div>
+        <div className="pt-3"><PixPagamento payload={pixLocal.payload} link={pixLocal.link} whatsappUrl={waLocal} email={emailCtx} /></div>
       </details>
     </div>
   );
@@ -336,6 +339,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
                 maxParcelas={l.max_parcelas ?? 1}
                 expiraEm={l.expira_em}
                 wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!, meioDlg)}
+                email={linha ? { pedidoId: linha.id, idExterno: linha.id_externo, total: linha.valor_liquido, clienteNome: linha.cliente_nome } : undefined}
               />
             ) : l.url ? (
               <p className="break-all text-sm text-muted-foreground">{l.url} · vale até {fmtDataHora(l.expira_em)}</p>

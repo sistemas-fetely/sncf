@@ -7,11 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { rawMessage } from "@/lib/format-error";
+import { EnviarEmailPagamentoVD, type EmailPagamentoCtx } from "@/components/venda-direta/EnviarEmailPagamentoVD";
 
 interface PixPagamentoProps {
   payload: string | null;
   link: string | null;
   whatsappUrl?: string | null;
+  email?: EmailPagamentoCtx;
 }
 
 async function copiar(texto: string, rotulo: string) {
@@ -23,7 +25,7 @@ async function copiar(texto: string, rotulo: string) {
   }
 }
 
-export function PixPagamento({ payload, link, whatsappUrl }: PixPagamentoProps) {
+export function PixPagamento({ payload, link, whatsappUrl, email }: PixPagamentoProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const baixar = () => {
@@ -70,10 +72,15 @@ export function PixPagamento({ payload, link, whatsappUrl }: PixPagamentoProps) 
           </div>
         </div>
 
-        {whatsappUrl && (
-          <Button onClick={() => window.open(whatsappUrl, "_blank", "noopener")}>
-            <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
-          </Button>
+        {(whatsappUrl || (email && link)) && (
+          <div className="flex flex-wrap items-start gap-2">
+            {whatsappUrl && (
+              <Button onClick={() => window.open(whatsappUrl, "_blank", "noopener")}>
+                <MessageCircle className="h-4 w-4" /> Enviar no WhatsApp
+              </Button>
+            )}
+            {email && link && <EnviarEmailPagamentoVD ctx={email} meio="pix" link={link} />}
+          </div>
         )}
 
         <div className="space-y-1">
