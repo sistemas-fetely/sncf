@@ -62,7 +62,7 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
           <DialogDescription>{linha?.cliente_nome}</DialogDescription>
         </DialogHeader>
         {payloadNovo ? (
-          <PixPagamento payload={payloadNovo} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} />
+          <PixPagamento payload={payloadNovo} link={linha?.link_pagamento ?? null} whatsappUrl={whatsappUrl} email={linha ? { pedidoId: linha.id, idExterno: linha.id_externo, total: linha.valor_liquido, clienteNome: linha.cliente_nome } : undefined} />
         ) : pixQ.isLoading ? (
           <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin" /></div>
         ) : pixQ.isError ? (

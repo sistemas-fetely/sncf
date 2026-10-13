@@ -114,7 +114,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
   if (!pixAtivo && !safra) {
     const m = `Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${fallbackLink ?? ""}`;
     const w = fallbackLink && tel0.length >= 10 ? `https://wa.me/${telWa}?text=${encodeURIComponent(m)}` : null;
-    return <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={w} />;
+    return <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={w} email={{ pedidoId, idExterno, total, clienteNome }} />;
   }
 
   const botaoNovo = (
@@ -132,7 +132,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
           <SeloConfirmacaoAutomatica />
           {botaoNovo}
         </div>
-        <PixPagamento payload={safra} link={null} whatsappUrl={wa} />
+        <PixPagamento payload={safra} link={null} whatsappUrl={wa} email={{ pedidoId, idExterno, total, clienteNome }} />
       </div>
     );
   }
@@ -148,7 +148,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
         </div>
       )}
       <div className="flex justify-end">{botaoNovo}</div>
-      <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={waFb} />
+      <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={waFb} email={{ pedidoId, idExterno, total, clienteNome }} />
     </div>
   );
 }
