@@ -148,6 +148,7 @@ interface CockpitRow {
   dias_janela: number | null;
   preco_divergente_bling: boolean | null;
   preco_no_bling: number | null;
+  ean: string | null;
 }
 
 interface CarteiraResumo {
@@ -498,6 +499,7 @@ export default function Produtos() {
       return (
         p.cod_cadastro?.toLowerCase().includes(q) ||
         p.sku?.toLowerCase().includes(q) ||
+        p.ean?.toLowerCase().includes(q) ||
         p.nome_comercial?.toLowerCase().includes(q)
       );
     });
@@ -631,7 +633,7 @@ export default function Produtos() {
           <FilterInput
             value={busca}
             onChange={(e) => { setBusca(e.target.value); setPagina(1); }}
-            placeholder="Buscar por código, SKU ou nome"
+            placeholder="Buscar por código, SKU, EAN ou nome"
             className="pl-9"
           />
         </div>
