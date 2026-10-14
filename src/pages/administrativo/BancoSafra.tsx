@@ -524,21 +524,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     return map;
   }, [pendentesEntrada, cronogramas]);
 
-  /**
-   * Pendentes com sugestão diferente da data salva — universo do dialog em lote.
-   * Parcelas com `viavel: false` (data já passou) ficam FORA do lote: não dá
-   * para aplicar em massa uma data inviável — é decisão humana.
-   */
-  const pendentesComSugestao = useMemo(
-    () =>
-      pendentesEntrada.filter((b) => {
-        const s = sugestoes[b.id];
-        return s && s.viavel && s.data !== b.data_vencimento_atual;
-      }),
-    [pendentesEntrada, sugestoes],
-  );
-  const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
-  const [aplicandoSugestoes, setAplicandoSugestoes] = useState(false);
   /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
   const entradaLista = useMemo(() => {
     if (!escopoEntrada) return pendentesEntrada;
@@ -752,46 +737,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
       toast({ title: "Erro ao salvar", description: (e as Error).message, variant: "destructive" });
     } finally {
       setSalvando((p) => ({ ...p, [b.id]: false }));
-    }
-  };
-
-  /** Aplica em lote as sugestões de vencimento (em sequência, para na primeira falha). */
-  const aplicarSugestoes = async () => {
-    setAplicandoSugestoes(true);
-    let salvos = 0;
-    try {
-      for (const b of pendentesComSugestao) {
-        try {
-          const { data: resultado, error } = await supabase.rpc(
-            "ajustar_vencimento_boleto_pendente",
-            {
-              p_titulo_id: b.id,
-              p_nova_data: sugestoes[b.id].data,
-              p_motivo: "Sugestão de vencimento aplicada em lote (cronograma: duplicata da NF)",
-            },
-          );
-          if (error) throw error;
-          const r = resultado as { ok: boolean; erro?: string } | null;
-          if (!r?.ok) throw new Error(r?.erro ?? "Ajuste recusado pela RPC.");
-          salvos++;
-        } catch (e) {
-          throw new Error(
-            `${(e as Error).message} — ${salvos} título(s) salvo(s) antes da falha (${b.numero_titulo ?? b.id}).`,
-          );
-        }
-      }
-      toast({ title: `${salvos} vencimentos atualizados pela sugestão` });
-      setSugestoesDialogOpen(false);
-      await revalidarTitulos();
-    } catch (e) {
-      toast({
-        title: "Erro ao aplicar sugestões",
-        description: (e as Error).message,
-        variant: "destructive",
-      });
-      await revalidarTitulos();
-    } finally {
-      setAplicandoSugestoes(false);
     }
   };
 
@@ -1318,7 +1263,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     valor: number | null;
     tom: "vermelho" | "ambar" | "neutro";
     acao: { label: string; onClick: () => void; disabled?: boolean; loading?: boolean } | null;
-    acaoSecundaria?: { label: string; onClick: () => void; disabled?: boolean } | null;
   };
   const linhasFaixa: LinhaFaixa[] = [];
   if (boletosKpis.pendentes > 0) {
@@ -1343,13 +1287,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
         disabled: pendentesEntrada.length === 0 || gerandoEntrada,
         loading: gerandoEntrada,
       },
-      acaoSecundaria:
-        pendentesComSugestao.length > 0
-          ? {
-              label: "Aplicar sugestões de vencimento",
-              onClick: () => setSugestoesDialogOpen(true),
-            }
-          : null,
     });
   }
   if (boletosKpis.vencidos > 0) {
@@ -1500,17 +1437,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                         </span>
                       )}
                     </button>
-                    {l.acaoSecundaria && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="shrink-0"
-                        onClick={l.acaoSecundaria.onClick}
-                        disabled={l.acaoSecundaria.disabled}
-                      >
-                        {l.acaoSecundaria.label}
-                      </Button>
-                    )}
                     {l.acao && (
                       <Button
                         size="sm"
@@ -2026,65 +1952,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
               {gerandoBaixa && <Loader2 className="h-4 w-4 animate-spin" />}
               Gerar remessa com {baixaSelecionados.size} título(s) ·{" "}
               {formatBRL(totalBaixaSelecionado)}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Aplicar sugestões de vencimento em lote (só pendentes com sugestão diferente) */}
-      <Dialog open={sugestoesDialogOpen} onOpenChange={(v) => !aplicandoSugestoes && setSugestoesDialogOpen(v)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Aplicar sugestões de vencimento</DialogTitle>
-            <DialogDescription>
-              A data sugerida vem da duplicata da NF quando ela existe; sem duplicata, é calculada
-              pela função do banco. Só títulos nunca registrados no Safra, com data viável.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="max-h-[50vh] overflow-y-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Título</TableHead>
-                  <TableHead>Vencimento atual</TableHead>
-                  <TableHead>Sugestão</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {pendentesComSugestao.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="max-w-[200px] truncate">
-                      {b.conta?.parceiro?.razao_social || "—"}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{b.numero_titulo || "—"}</TableCell>
-                    <TableCell className="tabular-nums">
-                      {formatDateBR(b.data_vencimento_atual)}
-                    </TableCell>
-                    <TableCell className="tabular-nums font-medium">
-                      {formatDateBR(sugestoes[b.id].data)}
-                      {sugestoes[b.id].fonte === "duplicata_nf" && (
-                        <Badge variant="outline" className="ml-1.5 text-[10px] font-normal">
-                          data da NF
-                        </Badge>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setSugestoesDialogOpen(false)}
-              disabled={aplicandoSugestoes}
-            >
-              Cancelar
-            </Button>
-            <Button onClick={aplicarSugestoes} disabled={aplicandoSugestoes} className="gap-2">
-              {aplicandoSugestoes && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Confirmar e salvar ({pendentesComSugestao.length} títulos)
             </Button>
           </DialogFooter>
         </DialogContent>
