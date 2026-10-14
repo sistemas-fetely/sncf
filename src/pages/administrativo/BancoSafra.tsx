@@ -62,7 +62,6 @@ import {
   MoreHorizontal,
   Search,
 } from "lucide-react";
-import type { SugestaoVencimentoParcela } from "@/lib/financeiro/sugerir-vencimento-boleto";
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
 import { useRemessasSafra } from "@/hooks/credito/useRemessasSafra";
@@ -478,51 +477,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     0,
   );
 
-  // edição inline de boletos (declarada aqui porque as sugestões dependem dela)
+  // edição inline de boletos
   const [edits, setEdits] = useState<Record<string, { data?: string; valor?: string }>>({});
 
-  /**
-   * Sugestão de vencimento vem da RPC `fn_cronograma_sugerido_pedido` — a data
-   * que vale é a da duplicata da NF (fonte "duplicata_nf"); sem duplicata, o
-   * banco calcula ("calculado"). Uma chamada por pedido distinto, não por
-   * título. REGRA-NÃO-MORA-EM-TELA: nada de recalcular data no cliente.
-   */
-  const pedidosPendentesIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const b of pendentesEntrada) {
-      if (b.pedido?.id) ids.add(b.pedido.id);
-    }
-    return [...ids].sort();
-  }, [pendentesEntrada]);
-
-  const { data: cronogramas = {} } = useQuery<Record<string, Record<string, SugestaoVencimentoParcela>>>({
-    queryKey: ["cronograma-sugerido-boletos", pedidosPendentesIds],
-    ...OPCOES_QUERY_RECEBIVEL,
-    enabled: pedidosPendentesIds.length > 0,
-    queryFn: async () => {
-      const out: Record<string, Record<string, SugestaoVencimentoParcela>> = {};
-      for (const pid of pedidosPendentesIds) {
-        const { data, error } = await supabase.rpc("fn_cronograma_sugerido_pedido", {
-          p_pedido_id: pid,
-        });
-        if (error) throw error;
-        out[pid] = ((data ?? {}) as unknown) as Record<string, SugestaoVencimentoParcela>;
-      }
-      return out;
-    },
-  });
-
-  /** Sugestão por título pendente (só sugestão — nunca grava sozinha). */
-  const sugestoes = useMemo(() => {
-    const map: Record<string, SugestaoVencimentoParcela> = {};
-    for (const b of pendentesEntrada) {
-      const pid = b.pedido?.id;
-      if (!pid) continue;
-      const s = cronogramas[pid]?.[String(b.numero_parcela ?? 1)];
-      if (s?.data) map[b.id] = s;
-    }
-    return map;
-  }, [pendentesEntrada, cronogramas]);
 
   /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
   const entradaLista = useMemo(() => {
@@ -1130,55 +1087,14 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                   </Badge>
                 )}
                 {editavel ? (
-                  (() => {
-                    const valorAtual = edits[b.id]?.data ?? b.data_vencimento_atual ?? "";
-                    const sug = sugestoes[b.id];
-                    return (
-                      <div className="space-y-1">
-                        <Input
-                          type="date"
-                          className="h-8 w-[140px]"
-                          value={valorAtual}
-                          onChange={(e) =>
-                            setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
-                          }
-                        />
-                        {sug && sug.data !== valorAtual && !sug.viavel && (
-                          <div className="flex items-center gap-1 text-[11px] text-destructive">
-                            <AlertCircle className="h-3 w-3 shrink-0" />
-                            <span>
-                              Vencimento da NF ({formatDateBR(sug.data)?.slice(0, 5)}) já passou —
-                              precisa de decisão
-                            </span>
-                          </div>
-                        )}
-                        {sug && sug.data !== valorAtual && sug.viavel && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: sug.data } }))
-                                  }
-                                  className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-                                >
-                                  {sug.fonte === "duplicata_nf" ? "Data da NF" : "Sugestão"} →{" "}
-                                  {formatDateBR(sug.data)?.slice(0, 5)} ·{" "}
-                                  <span className="font-medium underline">usar</span>
-                                </button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {sug.fonte === "duplicata_nf"
-                                  ? "Data lida da duplicata da NF — é a que o cliente vê no documento fiscal"
-                                  : "Calculada pela função do banco (NF sem duplicata)"}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
-                      </div>
-                    );
-                  })()
+                  <Input
+                    type="date"
+                    className="h-8 w-[140px]"
+                    value={edits[b.id]?.data ?? b.data_vencimento_atual ?? ""}
+                    onChange={(e) =>
+                      setEdits((p) => ({ ...p, [b.id]: { ...p[b.id], data: e.target.value } }))
+                    }
+                  />
                 ) : registrado ? (
                   <TooltipProvider>
                     <Tooltip>
@@ -1631,32 +1547,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
                                     {x.qtd} {ATENCAO_CFG[x.tipo].label}
                                   </Badge>
                                 ))}
-                                {(() => {
-                                  const alvos = sp.boletos.filter((b) => {
-                                    const s = sugestoes[b.id];
-                                    return (
-                                      s &&
-                                      s.viavel &&
-                                      s.data !== (edits[b.id]?.data ?? b.data_vencimento_atual ?? "")
-                                    );
-                                  });
-                                  if (alvos.length === 0) return null;
-                                  return (
-                                    <button
-                                      type="button"
-                                      className="text-[11px] font-medium text-muted-foreground underline hover:text-foreground"
-                                      onClick={() =>
-                                        setEdits((p) => {
-                                          const n = { ...p };
-                                          for (const b of alvos) n[b.id] = { ...n[b.id], data: sugestoes[b.id].data };
-                                          return n;
-                                        })
-                                      }
-                                    >
-                                      usar sugestões ({alvos.length})
-                                    </button>
-                                  );
-                                })()}
                               </div>
                               {renderTabela(sp.boletos, true)}
                             </div>
