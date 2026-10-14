@@ -260,7 +260,6 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       const res = data as RenegociarResultado;
 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
-      const qtd = res?.filhos?.length ?? 0;
 
       if (instrumentos.length > 0 || boletoVivo) {
         // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
