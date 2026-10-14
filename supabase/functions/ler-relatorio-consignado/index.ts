@@ -18,10 +18,11 @@ REGRAS DURAS:
 - Descrições contêm números que NÃO são quantidade: "Prato Fundo Piacera, 26 cm" — 26 é medida. Ignore números dentro da descrição.
 - Ignore cabeçalhos, totais, subtotais e rodapés.
 - Se o item aparecer com quantidade vendida zero ou vazia, não inclua.
+- DEVOLUÇÕES: alguns relatórios têm uma SEGUNDA tabela de ABATIMENTO/DEVOLUÇÕES (título tipo "ABATIMENTO: PACKS DEVOLVIDOS AO NOSSO ESTOQUE (ENTREGA FALHADA)", colunas código/produto/NF/packs/preço pago/abatimento). Essas linhas NÃO entram em "itens": vão em "devolucoes", com o CÓDIGO (mesmas regras de código acima) e a quantidade de PACKS devolvidos (nunca NF, preço ou valor do abatimento). Se não houver essa seção, "devolucoes": [].
 - Se o documento trouxer período de apuração (datas de início e fim), extraia em ISO YYYY-MM-DD. Se não houver, use null.
 
 RESPONDA SOMENTE JSON VÁLIDO, sem markdown, sem texto fora do JSON:
-{"periodo_inicio":"YYYY-MM-DD"|null,"periodo_fim":"YYYY-MM-DD"|null,"itens":[{"codigo":"...","quantidade":N}]}`;
+{"periodo_inicio":"YYYY-MM-DD"|null,"periodo_fim":"YYYY-MM-DD"|null,"itens":[{"codigo":"...","quantidade":N}],"devolucoes":[{"codigo":"...","quantidade":N}]}`;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -61,7 +62,7 @@ Deno.serve(async (req) => {
               : { type: "image_url", image_url: { url: `data:${mime};base64,${base64}` } },
             {
               type: "text",
-              text: `Extraia os itens vendidos do relatório "${nome}". Só código e quantidade vendida.`,
+              text: `Extraia os itens vendidos do relatório "${nome}". Só código e quantidade vendida; e, se houver seção de abatimento/devoluções, código e packs devolvidos.`,
             },
           ],
         },
@@ -134,19 +135,23 @@ Deno.serve(async (req) => {
       return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
     };
 
-    const itens = Array.isArray(extraido?.itens)
-      ? extraido.itens
-          .map((it: any) => ({
-            codigo: String(it?.codigo ?? "").trim(),
-            quantidade: Number(it?.quantidade),
-          }))
-          .filter((it: any) => it.codigo && Number.isFinite(it.quantidade) && it.quantidade > 0)
-      : [];
+    const limpar = (arr: unknown) =>
+      Array.isArray(arr)
+        ? arr
+            .map((it: any) => ({
+              codigo: String(it?.codigo ?? "").trim(),
+              quantidade: Number(it?.quantidade),
+            }))
+            .filter((it: any) => it.codigo && Number.isFinite(it.quantidade) && it.quantidade > 0)
+        : [];
+    const itens = limpar(extraido?.itens);
+    const devolucoes = limpar(extraido?.devolucoes);
 
     return json({
       periodo_inicio: dataIso(extraido?.periodo_inicio),
       periodo_fim: dataIso(extraido?.periodo_fim),
       itens,
+      devolucoes,
       nome_arquivo: nome,
       modelo_usado: modeloUsado,
     });
