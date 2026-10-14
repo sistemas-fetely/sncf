@@ -497,10 +497,10 @@ export default function Produtos() {
       if (faseFiltro !== "todas" && p.fase !== faseFiltro) return false;
       if (!q) return true;
       return (
-        p.cod_cadastro?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q) ||
-        p.ean?.toLowerCase().includes(q) ||
-        p.nome_comercial?.toLowerCase().includes(q)
+        normalizarBusca(p.cod_cadastro).includes(q) ||
+        normalizarBusca(p.sku).includes(q) ||
+        normalizarBusca(p.ean).includes(q) ||
+        normalizarBusca(p.nome_comercial).includes(q)
       );
     });
     const dir = ordenacao.dir === "asc" ? 1 : -1;
