@@ -121,7 +121,6 @@ Deno.serve(async (req) => {
       if (cfgErr) throw new Error(`config Bling: ${cfgErr.message}`);
       if (!cfg?.access_token) throw new Error("Bling não conectado");
       const client = makeBlingClient(sb, cfg as Any, await ensureFreshToken(sb, cfg as Any));
-      let token = client.currentToken();
 
       // Tabela de grupos de produtos, uma vez por execução (id ↔ nome).
       const grupoNome = new Map<number, string>();

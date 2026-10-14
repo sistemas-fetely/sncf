@@ -24,10 +24,9 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  BLING_BASE,
+  BlingHttpError,
   ensureFreshToken,
   makeBlingClient,
-  refreshAccessToken,
 } from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
 import {
