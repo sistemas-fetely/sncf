@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  QK_CONTA_CLIENTE_SALDO, QK_CONTA_CLIENTE_LANC, QK_CONTA_CLIENTE_FUROS, QK_CONTA_CLIENTE_COBERTURA,
+} from "@/hooks/financeiro/useContaCliente";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useInvalidarRecebivel } from "@/hooks/recebivel/useInvalidarRecebivel";
@@ -61,6 +64,7 @@ export function CriarAcordoDialog({
   open, onClose, onCriado, titulos, selecionadosIniciais, saldoDe,
 }: Props) {
   const invalidarRecebivel = useInvalidarRecebivel();
+  const qc = useQueryClient();
   const amanha = somarDiasISO(hojeISO(), 1);
 
   const [marcados, setMarcados] = useState<Set<string>>(new Set(selecionadosIniciais));
@@ -129,6 +133,8 @@ export function CriarAcordoDialog({
     },
     onSuccess: async (res) => {
       await invalidarRecebivel();
+      await Promise.all([QK_CONTA_CLIENTE_SALDO, QK_CONTA_CLIENTE_LANC, QK_CONTA_CLIENTE_FUROS, QK_CONTA_CLIENTE_COBERTURA, "vw-titulo-saldo"]
+        .map((k) => qc.invalidateQueries({ queryKey: [k] })));
       const m = res.filhos?.length ?? parcelas.length;
       toast.success(`Acordo ${res.numero_acordo} criado — ${m} parcela${m !== 1 ? "s" : ""}`);
       onCriado?.();
