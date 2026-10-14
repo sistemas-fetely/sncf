@@ -1,7 +1,7 @@
 // Sincroniza estoque (saldo) dos produtos via /estoques/saldos.
 // O endpoint /produtos (lista) NÃO devolve estoque na v3 da API — por isso
 // rodamos esse passo dedicado, em lotes de até 100 IDs por chamada.
-import type { BlingClient } from "./bling-client.ts";
+import type { BlingClient } from "../_shared/bling/bling-client.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
