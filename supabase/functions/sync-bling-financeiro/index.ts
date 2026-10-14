@@ -109,31 +109,6 @@ serve(async (req) => {
 
     if (tipo === "ping") return ok({ sucesso: true, mensagem: "Edge OK" });
 
-    // Debug: inspeciona pedidos de venda no Bling sem rodar o sync
-    if (tipo === "debug_pedidos_venda") {
-      const blingConfig = await ensureFreshToken(supabase);
-      if (!blingConfig) return err("Token Bling não disponível");
-      const client = makeBlingClient(blingConfig);
-      const ids = body.ids || ["26052285385", "26062205196", "26062130615"];
-      const resultados: any[] = [];
-      for (const id of ids) {
-        try {
-          const res = await client.get(`/pedidos/vendas/${id}`);
-          const d = res?.data;
-          resultados.push({
-            blingId:    id,
-            numero:     (d as any)?.numero,
-            numeroLoja: (d as any)?.numeroLoja,
-            notaFiscal: (d as any)?.notaFiscal,
-            situacao:   (d as any)?.situacao,
-            total:      (d as any)?.total,
-          });
-        } catch (e) {
-          resultados.push({ blingId: id, erro: (e as Error).message });
-        }
-      }
-      return ok({ sucesso: true, resultados });
-    }
 
     if (tipo === "token_exchange" || tipo === "oauth.exchange") {
       if (!body.code) return err("code obrigatório");
@@ -203,7 +178,7 @@ serve(async (req) => {
         .select("*").eq("sistema", "bling").maybeSingle();
       if (!cfgData?.access_token) return err("Bling não conectado. Conecte primeiro.");
 
-      const cfg: BlingConfig = cfgData as any;
+      const cfg: BlingConfig & { ultima_sync_at: string | null } = cfgData as any;
       const accessToken = await ensureFreshToken(supabase, cfg);
       const client = makeBlingClient(supabase, cfg, accessToken);
 
