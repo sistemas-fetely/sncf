@@ -27,6 +27,7 @@ import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hook
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { EnviarPacoteDialog } from "@/components/credito/EnviarPacoteDialog";
 
@@ -701,14 +702,16 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                                   >
                                                     Pausar
                                                   </Button>
-                                                  <Button
+                                                  <BotaoGuardado
+                                                    slug="acao.titulo_renegociar"
+                                                    rotuloAcao="Renegociar"
                                                     size="sm"
                                                     variant="ghost"
                                                     className="h-6 px-2 text-[10px]"
                                                     onClick={() => setAcaoRegua({ titulo: tituloAdapt, etapa, tipo: "renegociar" })}
                                                   >
                                                     Renegociar
-                                                  </Button>
+                                                  </BotaoGuardado>
                                                 </div>
                                               )}
                                             </TableCell>

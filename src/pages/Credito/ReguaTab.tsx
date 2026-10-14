@@ -25,6 +25,7 @@ import { formatCNPJ } from "@/lib/cnpj";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { AcaoReguaDialog } from "@/components/credito/AcaoReguaDialog";
 import { PausarReguaDialog } from "@/components/credito/PausarReguaDialog";
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { EsperaRetornoSafra } from "@/components/credito/EsperaRetornoSafra";
 import { UltimoContatoRegua } from "@/components/credito/UltimoContatoRegua";
@@ -361,9 +362,9 @@ function CardTitulo({
         <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onPausar}>
           Pausar
         </Button>
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
+        <BotaoGuardado slug="acao.titulo_renegociar" rotuloAcao="Renegociar" size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
           Renegociar
-        </Button>
+        </BotaoGuardado>
         {!etapa && ultima && (
           <Button size="sm" variant="ghost" className="h-7 text-xs text-muted-foreground" onClick={onReenviar}>
             Reenviar lembrete
@@ -450,9 +451,9 @@ function CardForaDaRegua({
       )}
 
       <div className="flex flex-wrap gap-1.5 pt-1">
-        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
+        <BotaoGuardado slug="acao.titulo_renegociar" rotuloAcao="Renegociar" size="sm" variant="outline" className="h-7 text-xs" onClick={onRenegociar}>
           Renegociar
-        </Button>
+        </BotaoGuardado>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onVerTitulo}>
           Ver título
         </Button>
