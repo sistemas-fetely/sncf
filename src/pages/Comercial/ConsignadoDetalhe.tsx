@@ -7,6 +7,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -147,6 +148,7 @@ interface AcertoRow {
   periodo_fim: string | null;
   relatorio_path: string | null;
   titulo_acerto_id: string | null;
+  valor_abatimento: number | null;
 }
 
 interface AcertoItemRow {
@@ -178,6 +180,22 @@ interface ReportePrevia {
   n_linhas: number | null;
   valor_total: number | null;
   linhas: PreviaLinha[] | null;
+  devolucoes: PreviaDevolucao[] | null;
+  n_devolucoes: number | null;
+  valor_abatimento: number | null;
+  a_pagar: number | null;
+}
+
+interface PreviaDevolucao {
+  codigo_informado: string | null;
+  sku: string | null;
+  descricao: string | null;
+  quantidade: number;
+  valor_unitario: number | null;
+  valor_total: number | null;
+  ja_reportado: number | null;
+  ja_estornado: number | null;
+  diag: string | null;
 }
 
 const MSG_DIAG: Record<string, string> = {
@@ -187,6 +205,7 @@ const MSG_DIAG: Record<string, string> = {
   excede_disponivel: "Quantidade acima do disponível",
   sem_remessa_para_este_parceiro: "Sem remessa para este parceiro",
   linha_invalida: "Linha inválida",
+  excede_estornavel: "Devolução maior que o que foi pago em ciclos anteriores",
 };
 
 /**
@@ -456,7 +475,7 @@ export default function ConsignadoDetalhe() {
     queryFn: async (): Promise<AcertoRow[]> => {
       const { data, error } = await (supabase as any)
         .from("consignado_acerto")
-        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path, titulo_acerto_id")
+        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path, titulo_acerto_id, valor_abatimento")
         .eq("parceiro_id", parceiroId)
         .order("competencia", { ascending: false, nullsFirst: false });
       if (error) throw error;
@@ -687,6 +706,10 @@ export default function ConsignadoDetalhe() {
   const [importModo, setImportModo] = useState<"pdf" | "texto">("pdf");
   const [importArquivo, setImportArquivo] = useState<File | null>(null);
   const [origemPdf, setOrigemPdf] = useState<string | null>(null);
+  // Devoluções (abatimento) lidas do PDF; no modo Colar texto ficam vazias.
+  const [importDevolucoes, setImportDevolucoes] = useState<{ codigo: string; quantidade: number }[]>([]);
+  // Venda já gravada nesta sessão do modal: nova tentativa refaz só o estorno.
+  const [vendaGravada, setVendaGravada] = useState(false);
 
   const fecharImport = () => {
     setImportAberto(false);
@@ -697,6 +720,8 @@ export default function ConsignadoDetalhe() {
     setImportModo("pdf");
     setImportArquivo(null);
     setOrigemPdf(null);
+    setImportDevolucoes([]);
+    setVendaGravada(false);
   };
 
   const lerPdf = useMutation({
@@ -725,7 +750,7 @@ export default function ConsignadoDetalhe() {
         throw new Error(msg);
       }
       if ((data as any)?.error) throw new Error(String((data as any).error));
-      return data as { periodo_inicio: string | null; periodo_fim: string | null; itens: { codigo: string; quantidade: number }[] };
+      return data as { periodo_inicio: string | null; periodo_fim: string | null; itens: { codigo: string; quantidade: number }[]; devolucoes?: { codigo: string; quantidade: number }[] };
     },
     onSuccess: (d) => {
       const itens = d.itens ?? [];
@@ -740,18 +765,21 @@ export default function ConsignadoDetalhe() {
       if (d.periodo_inicio) setPeriodoInicio(d.periodo_inicio);
       if (d.periodo_fim) setPeriodoFim(d.periodo_fim);
       setOrigemPdf(importArquivo?.name ?? null);
-      analisar.mutate(linhas);
+      const devs = d.devolucoes ?? [];
+      setImportDevolucoes(devs);
+      analisar.mutate({ texto: linhas, devolucoes: devs });
     },
     onError: (e: Error) => toast.error("Falha ao ler o arquivo", { description: e.message }),
   });
 
   const analisar = useMutation({
-    mutationFn: async (textoOpcional?: string) => {
-      const itensColados = parsearLinhasColadas(textoOpcional ?? importTexto);
+    mutationFn: async (args?: { texto: string; devolucoes: { codigo: string; quantidade: number }[] }) => {
+      const itensColados = parsearLinhasColadas(args?.texto ?? importTexto);
       if (itensColados.length === 0) throw new Error("Nada para analisar: cole ao menos uma linha com código e quantidade.");
       const { data, error } = await (supabase as any).rpc("resolver_reporte_consignado", {
         p_parceiro_id: parceiroId,
         p_itens: itensColados,
+        p_devolucoes: args?.devolucoes ?? [],
       });
       if (error) throw new Error(error.message);
       return data as ReportePrevia;
@@ -769,13 +797,34 @@ export default function ConsignadoDetalhe() {
         quantidade: l.quantidade,
         valor_unitario: l.valor_unitario,
       }));
-      const { data, error } = await (supabase as any).rpc("registrar_venda_reportada_consignado", {
-        p_acerto_id: rascunho.id,
-        p_itens: payload,
-        p_periodo_inicio: periodoInicio || null,
-        p_periodo_fim: periodoFim || null,
-      });
-      if (error) throw new Error(error.message);
+      let data: unknown = null;
+      if (!vendaGravada) {
+        const r1 = await (supabase as any).rpc("registrar_venda_reportada_consignado", {
+          p_acerto_id: rascunho.id,
+          p_itens: payload,
+          p_periodo_inicio: periodoInicio || null,
+          p_periodo_fim: periodoFim || null,
+        });
+        if (r1.error) throw new Error(r1.error.message);
+        data = r1.data;
+        setVendaGravada(true);
+      }
+
+      // Devoluções: grava o estorno na sequência. Falha aqui NÃO desfaz a venda
+      // já gravada — o modal fica aberto e o operador tenta de novo.
+      const devsOk = (previa.devolucoes ?? []).filter((d) => d.diag === "ok" && d.sku);
+      if (devsOk.length > 0) {
+        const r2 = await (supabase as any).rpc("registrar_estorno_consignado", {
+          p_acerto_id: rascunho.id,
+          p_itens: devsOk.map((d) => ({ sku: d.sku, quantidade: d.quantidade })),
+        });
+        if (r2.error) {
+          await invalidarTudo();
+          throw new Error(
+            `A venda foi gravada, mas o abatimento das devoluções falhou: ${r2.error.message}. Clique de novo para gravar só o abatimento.`,
+          );
+        }
+      }
 
       // UM-GESTO-SÓ: o mesmo PDF que alimentou a importação vira o anexo do acerto.
       // Anexo é acessório: falha aqui não desfaz a importação já gravada.
@@ -797,11 +846,11 @@ export default function ConsignadoDetalhe() {
           avisoAnexo = e instanceof Error ? e.message : String(e);
         }
       }
-      return { retorno: data as Record<string, unknown>, avisoAnexo };
+      return { retorno: (data ?? {}) as Record<string, unknown>, avisoAnexo };
     },
     onSuccess: async ({ retorno: d, avisoAnexo }) => {
       toast.success(`Relatório importado — ${num(d?.itens)} item(ns)`, {
-        description: `Valor do acerto: ${formatBRL(Number(d?.valor_total ?? 0))}`,
+        description: `A pagar: ${formatBRL(Number(previa?.a_pagar ?? d?.valor_total ?? 0))}`,
       });
       if (avisoAnexo) {
         toast.warning("O arquivo não ficou anexado ao acerto", {
@@ -1415,6 +1464,10 @@ export default function ConsignadoDetalhe() {
                       </Button>
                       <span className="text-sm text-muted-foreground tabular-nums">
                         Valor do acerto: {formatBRL(rascunho.valor_total)}
+                        {Number(rascunho.valor_abatimento ?? 0) > 0 && (
+                          <> · Abatimento − {formatBRL(rascunho.valor_abatimento)} · A pagar{" "}
+                            {formatBRL(Number(rascunho.valor_total ?? 0) - Number(rascunho.valor_abatimento ?? 0))}</>
+                        )}
                       </span>
                     </div>
 
@@ -1917,7 +1970,7 @@ export default function ConsignadoDetalhe() {
               </p>
               {importModo === "texto" && (
                 <DialogFooter>
-                  <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => analisar.mutate(undefined)}>
+                  <Button disabled={analisar.isPending || !importTexto.trim()} onClick={() => { setImportDevolucoes([]); analisar.mutate(undefined); }}>
                     {analisar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                     Analisar
                   </Button>
@@ -1965,9 +2018,62 @@ export default function ConsignadoDetalhe() {
                 </Table>
               </div>
 
+              {Number(previa.n_devolucoes ?? 0) > 0 && (
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">Devoluções — abatimento</p>
+                  <div className="rounded-md border max-h-[16rem] overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Código informado</TableHead>
+                          <TableHead>SKU resolvido</TableHead>
+                          <TableHead>Descrição</TableHead>
+                          <TableHead className="text-right">Qtd</TableHead>
+                          <TableHead className="text-right">Valor</TableHead>
+                          <TableHead>Situação</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {(previa.devolucoes ?? []).map((l, i) => (
+                          <TableRow
+                            key={`dev-${l.codigo_informado ?? "sem-codigo"}-${i}`}
+                            className={cn(l.diag !== "ok" && "bg-destructive/10")}
+                          >
+                            <TableCell className="font-mono text-xs">{l.codigo_informado ?? "—"}</TableCell>
+                            <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                            <TableCell className="text-sm">{l.descricao ?? "—"}</TableCell>
+                            <TableCell className="text-right tabular-nums">{num(l.quantidade)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{formatBRL(l.valor_total)}</TableCell>
+                            <TableCell className="text-xs">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span>
+                                      <Badge
+                                        variant={l.diag === "ok" ? "secondary" : "destructive"}
+                                        className="text-[10px]"
+                                      >
+                                        {l.diag === "ok" ? "OK" : l.diag ?? "—"}
+                                      </Badge>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>{l.diag ? MSG_DIAG[l.diag] ?? l.diag : "—"}</TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm tabular-nums">
-                  {num(previa.n_linhas)} itens · Total {formatBRL(previa.valor_total)}
+                  {num(previa.n_linhas)} itens · Vendido {formatBRL(previa.valor_total)}
+                  {Number(previa.valor_abatimento ?? 0) > 0 && <> · Abatimento − {formatBRL(previa.valor_abatimento)}</>}
+                  {" "}· A pagar {formatBRL(previa.a_pagar ?? previa.valor_total)}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   O preço vem da NF de remessa — não é editável aqui.
@@ -1983,7 +2089,9 @@ export default function ConsignadoDetalhe() {
                   onClick={() => importarPrevia.mutate()}
                 >
                   {importarPrevia.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {`Importar ${num(previa.n_linhas)} itens — ${formatBRL(previa.valor_total)}`}
+                  {vendaGravada
+                    ? "Gravar abatimento das devoluções"
+                    : `Importar ${num(previa.n_linhas)} itens — a pagar ${formatBRL(previa.a_pagar ?? previa.valor_total)}`}
                 </Button>
               </DialogFooter>
             </div>
@@ -2047,6 +2155,14 @@ export default function ConsignadoDetalhe() {
                   </span>
                 )}
                 <span className="tabular-nums text-foreground">{formatBRL(acertoAberto.valor_total)}</span>
+                {Number(acertoAberto.valor_abatimento ?? 0) > 0 && (
+                  <span className="tabular-nums">
+                    Abatimento − {formatBRL(acertoAberto.valor_abatimento)} · A pagar{" "}
+                    <span className="text-foreground">
+                      {formatBRL(Number(acertoAberto.valor_total ?? 0) - Number(acertoAberto.valor_abatimento ?? 0))}
+                    </span>
+                  </span>
+                )}
               </div>
 
               <div className="max-h-[45vh] overflow-auto rounded-md border">
