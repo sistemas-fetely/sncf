@@ -524,21 +524,6 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
     return map;
   }, [pendentesEntrada, cronogramas]);
 
-  /**
-   * Pendentes com sugestão diferente da data salva — universo do dialog em lote.
-   * Parcelas com `viavel: false` (data já passou) ficam FORA do lote: não dá
-   * para aplicar em massa uma data inviável — é decisão humana.
-   */
-  const pendentesComSugestao = useMemo(
-    () =>
-      pendentesEntrada.filter((b) => {
-        const s = sugestoes[b.id];
-        return s && s.viavel && s.data !== b.data_vencimento_atual;
-      }),
-    [pendentesEntrada, sugestoes],
-  );
-  const [sugestoesDialogOpen, setSugestoesDialogOpen] = useState(false);
-  const [aplicandoSugestoes, setAplicandoSugestoes] = useState(false);
   /** Universo do Dialog: escopo do cliente, ou todos os pendentes. */
   const entradaLista = useMemo(() => {
     if (!escopoEntrada) return pendentesEntrada;
