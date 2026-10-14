@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   QK_CONTA_CLIENTE_SALDO, QK_CONTA_CLIENTE_LANC, QK_CONTA_CLIENTE_FUROS, QK_CONTA_CLIENTE_COBERTURA,
 } from "@/hooks/financeiro/useContaCliente";
@@ -15,12 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command, CommandEmpty, CommandInput, CommandItem, CommandList,
-} from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ContaAjusteSelect } from "@/components/credito/ContaAjusteSelect";
+import { Plus, Trash2 } from "lucide-react";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { hojeISO } from "@/lib/data";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
@@ -75,8 +71,7 @@ export function CriarAcordoDialog({
   const [parcelas, setParcelas] = useState<ParcelaAcordo[]>([]);
   const [contaAjuste, setContaAjuste] = useState<string | null>(null);
   const [justificativa, setJustificativa] = useState("");
-  const [contaAberta, setContaAberta] = useState(false);
-
+  
   useEffect(() => {
     if (open) setMarcados(new Set(selecionadosIniciais));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -90,29 +85,17 @@ export function CriarAcordoDialog({
   const M = tipo === "boleto" ? parcelas.length : 0;
   const cliente = titulos[0]?.parceiro_razao_social ?? "—";
 
-  const { data: contasFolha = [] } = useQuery({
-    queryKey: ["plano-contas-folhas-ajuste-acordo"],
-    enabled: open && ajuste.valor !== 0,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("plano_contas")
-        .select("id, codigo, nome, parent_id, ativo")
-        .order("codigo");
-      if (error) throw new Error(error.message);
-      const rows = data ?? [];
-      const pais = new Set(rows.map((r) => r.parent_id).filter(Boolean));
-      return rows.filter((r) => r.ativo && !pais.has(r.id));
-    },
-  });
-  const contaSel = contasFolha.find((c) => c.id === contaAjuste);
 
   const parcelasValidas = parcelas.length > 0
     && parcelas.every((p) => Number(p.valor) > 0 && !!p.data_vencimento && p.data_vencimento > hojeISO());
+  // Sem parcelas válidas não há ajuste a declarar (evita "Desconto = saldo" antes de dividir).
+  const temAjuste = parcelasValidas && ajuste.valor !== 0;
+  const natureza = ajuste.valor > 0 ? "Acréscimo" : "Desconto";
+  useEffect(() => { setContaAjuste(null); }, [natureza]);
   const podeConfirmar = selecionados.length > 0
     && parcelasValidas
     && justificativa.trim().length >= 10
-    && (ajuste.valor === 0 || !!contaAjuste);
+    && (!temAjuste || !!contaAjuste);
 
   const mutation = useMutation({
     mutationFn: async (): Promise<ResultadoAcordo> => {
@@ -124,7 +107,7 @@ export function CriarAcordoDialog({
         })),
         p_justificativa: justificativa.trim(),
         p_tipo_pagamento: tipo,
-        p_plano_contas_ajuste_id: ajuste.valor !== 0 ? contaAjuste : null,
+        p_plano_contas_ajuste_id: temAjuste ? contaAjuste : null,
       });
       if (error) throw new Error(error.message);
       const res = data as ResultadoAcordo;
@@ -233,43 +216,15 @@ export function CriarAcordoDialog({
               </div>
             ))}
             <p className="text-xs text-muted-foreground">
-              Saldo em aberto <b>{formatBRL(saldo)}</b> · Soma das parcelas <b>{formatBRL(soma)}</b> ·{" "}
-              {ajuste.rotulo}{ajuste.valor !== 0 && <> <b>{formatBRL(Math.abs(ajuste.valor))}</b></>}
+              Saldo em aberto <b>{formatBRL(saldo)}</b> · Soma das parcelas <b>{formatBRL(soma)}</b>
+              {parcelasValidas && (
+                <> · {ajuste.rotulo}{ajuste.valor !== 0 && <> <b>{formatBRL(Math.abs(ajuste.valor))}</b></>}</>
+              )}
             </p>
           </div>
 
-          {ajuste.valor !== 0 && (
-            <div className="space-y-1.5">
-              <Label className="text-xs">
-                Conta contábil do ajuste <span className="text-destructive">*</span>
-              </Label>
-              <Popover open={contaAberta} onOpenChange={setContaAberta}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox"
-                    className={cn("w-full justify-between font-normal", !contaSel && "text-muted-foreground")}>
-                    <span className="truncate">
-                      {contaSel ? `${contaSel.codigo} — ${contaSel.nome}` : "Selecione a conta..."}
-                    </span>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Buscar conta..." />
-                    <CommandList className="max-h-72">
-                      <CommandEmpty>Nenhuma conta encontrada.</CommandEmpty>
-                      {contasFolha.map((c) => (
-                        <CommandItem key={c.id} value={`${c.codigo} ${c.nome}`}
-                          onSelect={() => { setContaAjuste(c.id); setContaAberta(false); }}>
-                          <Check className={cn("mr-2 h-4 w-4", contaAjuste === c.id ? "opacity-100" : "opacity-0")} />
-                          <span className="text-sm">{c.codigo} — {c.nome}</span>
-                        </CommandItem>
-                      ))}
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+          {temAjuste && (
+            <ContaAjusteSelect natureza={natureza} value={contaAjuste} onChange={setContaAjuste} />
           )}
 
           <div className="space-y-1.5">
