@@ -178,7 +178,7 @@ serve(async (req) => {
         .select("*").eq("sistema", "bling").maybeSingle();
       if (!cfgData?.access_token) return err("Bling não conectado. Conecte primeiro.");
 
-      const cfg: BlingConfig = cfgData as any;
+      const cfg: BlingConfig & { ultima_sync_at?: string | null } = cfgData as any;
       const accessToken = await ensureFreshToken(supabase, cfg);
       const client = makeBlingClient(supabase, cfg, accessToken);
 
