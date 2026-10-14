@@ -3,7 +3,7 @@
 // + exemplo cru de /estoques/saldos de um produto, para conhecer o formato por depósito.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
+import { ensureFreshToken, makeBlingClient, BlingHttpError } from "../_shared/bling/bling-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -78,12 +78,12 @@ Deno.serve(async (req) => {
       const mudaria = { campo: "desconsiderarSaldo", atual: atual?.desconsiderarSaldo ?? null, novo: false };
       if (dryRun) return json({ ok: true, dry_run: true, deposito: atual, mudaria });
       const novo = { ...atual, desconsiderarSaldo: false };
-      const res = await fetch(`${BLING_BASE}/depositos/${depId}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${client.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify(novo),
-      });
-      if (!res.ok) throw new Error(`Bling PUT /depositos/${depId} ${res.status}: ${(await res.text()).slice(0, 800)}`);
+      try {
+        await client.put(`/depositos/${depId}`, novo);
+      } catch (e) {
+        if (!(e instanceof BlingHttpError)) throw e;
+        throw new Error(`Bling PUT /depositos/${depId} ${e.status}: ${e.corpo.slice(0, 800)}`);
+      }
       await sleep(THROTTLE_MS);
       const pos: any = await client.get(`/depositos/${depId}`);
       const depois = pos?.data ?? pos;

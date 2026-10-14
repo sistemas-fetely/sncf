@@ -7,7 +7,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
+import { ensureFreshToken, makeBlingClient, BLING_BASE, BlingHttpError } from "../_shared/bling/bling-client.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,19 +214,13 @@ serve(async (req) => {
       let status = 0;
       let putErro = "";
       try {
-        const res = await fetch(`${BLING_BASE}/produtos/${blingId}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${client!.currentToken()}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
-        status = res.status;
-        if (!res.ok) putErro = `Bling PUT ${status}: ${(await res.text()).slice(0, 500)}`;
+        await client!.put(`/produtos/${blingId}`, payload);
+        status = 200;
       } catch (e) {
-        putErro = e instanceof Error ? e.message : String(e);
+        if (e instanceof BlingHttpError) {
+          status = e.status;
+          putErro = `Bling PUT ${status}: ${e.corpo.slice(0, 500)}`;
+        } else putErro = e instanceof Error ? e.message : String(e);
       }
 
       processados++;

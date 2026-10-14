@@ -24,10 +24,9 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  BLING_BASE,
+  BlingHttpError,
   ensureFreshToken,
   makeBlingClient,
-  refreshAccessToken,
 } from "../_shared/bling/bling-client.ts";
 import { makeShopifyAdmin, gidPedido } from "../_shared/shopify/admin-client.ts";
 import {
@@ -314,24 +313,11 @@ Deno.serve(async (req) => {
     // PUT /contatos/{id} — o cliente compartilhado so tem get/post. Usado apenas
     // para atualizar o endereco do contato pre-existente; falha nao bloqueia.
     const putBling = async (endpoint: string, body: unknown): Promise<void> => {
-      const doFetch = (tk: string) =>
-        fetch(`${BLING_BASE}${endpoint}`, {
-          method: "PUT",
-          headers: {
-            Authorization: `Bearer ${tk}`,
-            Accept: "application/json",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(body),
-        });
-      let res = await doFetch(bling.currentToken());
-      if (res.status === 401) {
-        const novoToken = await refreshAccessToken(supabase, { ...cfg, access_token: bling.currentToken() });
-        res = await doFetch(novoToken);
-      }
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`Bling PUT ${endpoint} ${res.status}: ${txt.slice(0, 300)}`);
+      try {
+        await bling.put(endpoint, body);
+      } catch (e) {
+        if (!(e instanceof BlingHttpError)) throw e;
+        throw new Error(`Bling PUT ${endpoint} ${e.status}: ${e.corpo.slice(0, 300)}`);
       }
     };
 

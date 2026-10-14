@@ -6,7 +6,7 @@
 // _shared/bling/montar-valores-produto.ts (mesma regra da corrigir-produto-bling).
 // Pagina e se re-encadeia no mesmo lote_id até terminar.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { BLING_BASE, ensureFreshToken, makeBlingClient, refreshAccessToken } from "../_shared/bling/bling-client.ts";
+import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import {
   EXTRATORES_BLING, GRUPO_L1, GRUPO_L2, difere, grupoIdDoCard, grupoTributarioEsperado, num, txt,
 } from "../_shared/bling/montar-valores-produto.ts";
@@ -121,7 +121,6 @@ Deno.serve(async (req) => {
       if (cfgErr) throw new Error(`config Bling: ${cfgErr.message}`);
       if (!cfg?.access_token) throw new Error("Bling não conectado");
       const client = makeBlingClient(sb, cfg as Any, await ensureFreshToken(sb, cfg as Any));
-      let token = client.currentToken();
 
       // Tabela de grupos de produtos, uma vez por execução (id ↔ nome).
       const grupoNome = new Map<number, string>();
@@ -231,22 +230,14 @@ Deno.serve(async (req) => {
         }
       }
 
-      // PUT do card inteiro (partindo do GET). 401 renova uma vez; 429/5xx: 1s, 2s, 4s.
-      async function putCard(id: string, corpo: Any, tentativa = 0): Promise<void> {
-        const res = await fetch(`${BLING_BASE}/produtos/${id}`, {
-          method: "PUT",
-          headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify(corpo),
-        });
-        if (res.status === 401 && tentativa === 0) {
-          token = await refreshAccessToken(sb, { ...(cfg as Any), access_token: token });
-          return putCard(id, corpo, tentativa + 1);
+      // PUT do card inteiro (partindo do GET). Renovação 401 e retry 429/5xx ficam no cliente.
+      async function putCard(id: string, corpo: Any): Promise<void> {
+        try {
+          await client.put(`/produtos/${id}`, corpo);
+        } catch (e) {
+          if (!(e instanceof BlingHttpError)) throw e;
+          throw new Error(`Bling PUT ${e.status}: ${e.corpo.slice(0, 500)}`);
         }
-        if ((res.status === 429 || res.status >= 500) && tentativa < 3) {
-          await sleep(1000 * Math.pow(2, tentativa));
-          return putCard(id, corpo, tentativa + 1);
-        }
-        if (!res.ok) throw new Error(`Bling PUT ${res.status}: ${(await res.text()).slice(0, 500)}`);
       }
     }
 
