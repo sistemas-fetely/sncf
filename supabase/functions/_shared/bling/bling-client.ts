@@ -78,8 +78,12 @@ export async function exchangeAuthorizationCode(
     },
     body: params,
   });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new BlingHttpError(`Bling rejeitou: ${res.status} ${txt}`, res.status, txt);
+  }
   const tokens = await res.json();
-  if (tokens.access_token) {
+  {
     await supabase.from("integracoes_config").update({
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
@@ -96,9 +100,12 @@ export type BlingPostOpts = { retry?: boolean };
 /** Erro HTTP do Bling com status (mensagem idêntica à anterior). */
 export class BlingHttpError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  /** Corpo cru da resposta do Bling (para call-sites que montam a própria mensagem). */
+  corpo: string;
+  constructor(message: string, status: number, corpo = "") {
     super(message);
     this.status = status;
+    this.corpo = corpo;
   }
 }
 
@@ -156,7 +163,7 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
     }
     if (!res.ok) {
       const txt = await res.text();
-      throw new BlingHttpError(`Bling POST ${endpoint} ${res.status}: ${txt.slice(0, 500)}`, res.status);
+      throw new BlingHttpError(`Bling POST ${endpoint} ${res.status}: ${txt.slice(0, 500)}`, res.status, txt);
     }
     return res.json();
   }
@@ -185,7 +192,7 @@ export function makeBlingClient(supabase: any, cfg: BlingConfig, initialToken: s
     }
     const txt = await res.text();
     if (!res.ok) {
-      throw new BlingHttpError(`Bling ${metodo} ${endpoint} ${res.status}: ${txt.slice(0, 500)}`, res.status);
+      throw new BlingHttpError(`Bling ${metodo} ${endpoint} ${res.status}: ${txt.slice(0, 500)}`, res.status, txt);
     }
     if (res.status === 204 || !txt.trim()) return null;
     try {

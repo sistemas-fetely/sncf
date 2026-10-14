@@ -141,29 +141,16 @@ serve(async (req) => {
         .select("client_id, client_secret").eq("sistema", "bling").maybeSingle();
       if (!cfg?.client_id || !cfg?.client_secret) return err("Client ID/Secret não cadastrados");
 
-      const encoded = btoa(`${cfg.client_id}:${cfg.client_secret}`);
-      const params = new URLSearchParams();
-      params.set("grant_type", "authorization_code");
-      params.set("code", body.code);
-      params.set("redirect_uri", body.redirect_uri || "https://sncf.lovable.app/administrativo/bling-callback");
-      const tokenRes = await fetch(`${BLING_BASE}/oauth/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-          Authorization: `Basic ${encoded}`,
-        },
-        body: params,
-      });
-      if (!tokenRes.ok) return err(`Bling rejeitou: ${tokenRes.status} ${await tokenRes.text()}`);
-      const tokens = await tokenRes.json();
-      await supabase.from("integracoes_config").update({
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token,
-        token_expires_at: new Date(Date.now() + (tokens.expires_in || 3600) * 1000).toISOString(),
-        ativo: true,
-        updated_at: new Date().toISOString(),
-      }).eq("sistema", "bling");
+      try {
+        await exchangeAuthorizationCode(
+          supabase,
+          cfg,
+          body.code,
+          body.redirect_uri || "https://sncf.lovable.app/administrativo/bling-callback",
+        );
+      } catch (e) {
+        return err(e instanceof Error ? e.message : String(e));
+      }
       return ok({ sucesso: true, mensagem: "Bling conectado" });
     }
 
