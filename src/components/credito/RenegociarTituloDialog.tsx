@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,9 +23,11 @@ import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
 import type { ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
 import { hojeISO } from "@/lib/data";
+import { ContaAjusteSelect } from "@/components/credito/ContaAjusteSelect";
+import { ajusteDoAcordo } from "@/lib/financeiro/acordo-parcelas";
 
 type Modalidade = 1 | 2 | 3 | 4;
-type NovoInstrumento = "pix" | "transferencia";
+type NovoInstrumento = "pix";
 
 /** Retorno da RPC `renegociar_titulo` (contrato de 24/08/2026). */
 export interface InstrumentoRenegociado {
@@ -43,6 +45,10 @@ export interface InstrumentoRenegociado {
 
 export interface RenegociarResultado {
   ok: boolean;
+  numero_acordo?: string | null;
+  saldo_origem?: number | null;
+  valor_acordado?: number | null;
+  ajuste?: number | null;
   modalidade: 2 | 3;
   filhos: string[];
   instrumentos?: InstrumentoRenegociado[];
@@ -150,7 +156,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const [parcelas, setParcelas] = useState<Parcela[]>([
     { valor: String(titulo.valor_efetivo ?? 0), data_vencimento: amanhaISO() },
   ]);
-  const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
+  const [novoInstrumento] = useState<NovoInstrumento>("pix");
+  const [contaAjuste, setContaAjuste] = useState<string | null>(null);
   const [showProrrogar, setShowProrrogar] = useState(false);
   const [resultado, setResultado] = useState<RenegociarResultado | null>(null);
   const permTesouraria = usePermissoesTela("tela.fin_tesouraria");
@@ -181,6 +188,11 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     () => parcelas.reduce((acc, p) => acc + (parseFloat(p.valor.replace(",", ".")) || 0), 0),
     [parcelas],
   );
+  const emAberto = Number(titulo.valor_efetivo ?? 0);
+  const ajuste = ajusteDoAcordo(emAberto, Math.round(somaParcelas * 100) / 100);
+  const temAjuste = (modalidade === 2 || modalidade === 3) && ajuste.valor !== 0;
+  const natureza = ajuste.valor > 0 ? "Acréscimo" : "Desconto";
+  useEffect(() => { setContaAjuste(null); }, [natureza]);
 
   const addParcela = () =>
     setParcelas((p) => [...p, { valor: "0", data_vencimento: amanhaISO() }]);
@@ -232,6 +244,10 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         p_parcelas: payloadParcelas,
       };
       if (modalidade === 3) args.p_novo_tipo_pagamento = novoInstrumento;
+      if (temAjuste) {
+        if (!contaAjuste) throw new Error("Selecione a conta contábil do ajuste.");
+        args.p_plano_contas_ajuste_id = contaAjuste;
+      }
 
       const { data, error } = await (supabase as any).rpc("renegociar_titulo", args);
       if (error) throw new Error(error.message);
@@ -244,7 +260,6 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       const res = data as RenegociarResultado;
 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
-      const qtd = res?.filhos?.length ?? 0;
 
       if (instrumentos.length > 0 || boletoVivo) {
         // PIX-NAO-FECHA-EM-SILENCIO: o operador precisa levar o código embora.
@@ -252,13 +267,13 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         setResultado({ ...res, instrumentos, boletoABaixar: boletoVivo });
         if (boletoVivo) {
           toast.warning(
-            `${qtd} título(s) criado(s). Falta gerar a remessa de baixa do boleto antigo — ele segue pagável no Safra.`,
+            `Renegociado — acordo ${res?.numero_acordo ?? "—"}. Falta gerar a remessa de baixa do boleto antigo — ele segue pagável no Safra.`,
           );
         }
         return;
       }
 
-      toast.success(`Renegociação concluída — ${qtd} título(s) criado(s).`);
+      toast.success(`Renegociado — acordo ${res?.numero_acordo ?? "—"}`);
       onClose();
     },
     onError: (err: any) => toast.error(err?.message ?? "Erro ao renegociar."),
@@ -458,7 +473,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                   <div>
                     <div className="font-medium">3 — Troca de instrumento</div>
                     <div className="text-xs text-muted-foreground">
-                      1 parcela, novo tipo (PIX / Transferência). Encerra o original.
+                      1 parcela, novo tipo (PIX). Encerra o original.
                     </div>
                   </div>
                 </label>
@@ -573,14 +588,10 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 {modalidade === 3 && (
                   <div className="space-y-1.5">
                     <Label className="text-xs">Novo instrumento</Label>
-                    <Select
-                      value={novoInstrumento}
-                      onValueChange={(v) => setNovoInstrumento(v as NovoInstrumento)}
-                    >
+                    <Select value={novoInstrumento}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pix">PIX</SelectItem>
-                        <SelectItem value="transferencia">Transferência</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -626,13 +637,16 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                       )}
                     </div>
                   ))}
-                  {modalidade === 2 && (
-                    <p className="text-xs text-muted-foreground">
-                      Soma parcelas: <b>{formatBRL(somaParcelas)}</b> · Em aberto:{" "}
-                      <b>{formatBRL(titulo.valor_efetivo)}</b>
-                    </p>
-                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Soma parcelas: <b>{formatBRL(somaParcelas)}</b> · Em aberto:{" "}
+                    <b>{formatBRL(titulo.valor_efetivo)}</b>
+                    {temAjuste && <> · {natureza} <b>{formatBRL(Math.abs(ajuste.valor))}</b></>}
+                  </p>
                 </div>
+
+                {temAjuste && (
+                  <ContaAjusteSelect natureza={natureza} value={contaAjuste} onChange={setContaAjuste} />
+                )}
 
                 <div className="space-y-1.5">
                   <Label className="text-xs">
@@ -669,7 +683,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 disabled={
                   modalidade === 1 ||
                   pendente ||
-                  justificativa.trim().length < 10
+                  justificativa.trim().length < 10 ||
+                  (temAjuste && !contaAjuste)
                 }
               >
                 {mutation.isPending ? "Renegociando..." : "Confirmar renegociação"}

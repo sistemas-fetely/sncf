@@ -131894,6 +131894,7 @@ export type Database = {
         Args: {
           p_justificativa: string
           p_parcelas: Json
+          p_modalidade?: number
           p_plano_contas_ajuste_id?: string
           p_tipo_pagamento: string
           p_titulo_ids: string[]
@@ -131906,6 +131907,7 @@ export type Database = {
           p_modalidade: number
           p_novo_tipo_pagamento?: string
           p_parcelas: Json
+          p_plano_contas_ajuste_id?: string
           p_titulo_id: string
         }
         Returns: Json
