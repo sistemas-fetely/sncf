@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizarBusca } from "@/lib/normalizar-busca";
 import { formatError } from "@/lib/format-error";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";

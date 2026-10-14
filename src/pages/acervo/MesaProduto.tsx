@@ -27,6 +27,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { normalizarBusca } from "@/lib/normalizar-busca";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
