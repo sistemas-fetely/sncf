@@ -67,6 +67,9 @@ import { RegistrarDevolucaoDialog } from "@/components/credito/RegistrarDevoluca
 import { DevolucaoParcialDialog } from "@/components/credito/DevolucaoParcialDialog";
 import { BaixarPorPerdaDialog } from "@/components/credito/BaixarPorPerdaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
+import { CriarAcordoDialog, tituloElegivelAcordo } from "@/components/credito/CriarAcordoDialog";
+import { useAcordosTitulos } from "@/hooks/credito/useAcordosTitulos";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TituloTarefasBloco } from "@/components/credito/TituloTarefasBloco";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -385,8 +388,15 @@ function matchCards(t: TituloCobranca, cards: Set<string>, mesAtual: string): bo
 
 
 
+type SelecaoLinha = {
+  elegivel: boolean;
+  marcado: boolean;
+  acordo: string | null;
+  alternar: (v: boolean) => void;
+};
+
 function LinhaTitulo({
-  t, aninhada, onAbrir, onPedido, saldo, numeroPai,
+  t, aninhada, onAbrir, onPedido, saldo, numeroPai, sel,
 }: {
   t: TituloCobranca;
   aninhada?: boolean;
@@ -394,6 +404,7 @@ function LinhaTitulo({
   onPedido: (pedidoId: string) => void;
   saldo?: TituloSaldo;
   numeroPai?: string | null;
+  sel?: SelecaoLinha;
 }) {
   let liquid: React.ReactNode;
   if (t.data_liquidacao_real) {
@@ -428,6 +439,16 @@ function LinhaTitulo({
       )}
       onClick={() => onAbrir(t)}
     >
+      <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+        {sel && (
+          <Checkbox
+            disabled={!sel.elegivel}
+            checked={sel.marcado}
+            onCheckedChange={(v) => sel.alternar(v === true)}
+            aria-label={`Selecionar ${t.numero_titulo}`}
+          />
+        )}
+      </TableCell>
       <TableCell className={cn(aninhada && "pl-10")}>
         <div className="flex items-center gap-2">
           <span className={cn("font-mono text-xs", encerrada && "line-through")}>
@@ -435,6 +456,9 @@ function LinhaTitulo({
           </span>
           {t.eh_entrada && (
             <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Entrada</Badge>
+          )}
+          {sel?.acordo && (
+            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-mono">{sel.acordo}</Badge>
           )}
           <BadgeParcelasAcerto saldo={saldo} />
           <BadgeAcerto saldo={saldo} />
@@ -503,17 +527,28 @@ function LinhaTitulo({
 }
 
 function LinhaGrupo({
-  g, aberto, onToggle, onPedido,
+  g, aberto, onToggle, onPedido, selGrupo,
 }: {
   g: GrupoPedido;
   aberto: boolean;
   onToggle: () => void;
   onPedido: (pedidoId: string) => void;
+  selGrupo?: { habilitado: boolean; estado: boolean | "indeterminate"; alternar: (v: boolean) => void };
 }) {
   const c = g.cabeca;
   const regerado = g.totalParcelasDeclarado > 0 && g.titulos.length > g.totalParcelasDeclarado;
   return (
     <TableRow className="cursor-pointer bg-muted/40 hover:bg-muted/60" onClick={onToggle}>
+      <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
+        {selGrupo && (
+          <Checkbox
+            disabled={!selGrupo.habilitado}
+            checked={selGrupo.estado}
+            onCheckedChange={(v) => selGrupo.alternar(v === true)}
+            aria-label="Selecionar parcelas do pedido"
+          />
+        )}
+      </TableCell>
       <TableCell>
         <div className="flex items-center gap-1.5">
           {aberto
@@ -676,6 +711,23 @@ export default function TitulosTab() {
   const [devolvendoParcial, setDevolvendoParcial] = useState<TituloCobranca | null>(null);
   const [baixandoPerda, setBaixandoPerda] = useState<TituloCobranca | null>(null);
   const [renegociando, setRenegociando] = useState<TituloCobranca | null>(null);
+  const [selecaoAcordo, setSelecaoAcordo] = useState<Set<string>>(new Set());
+  const [acordoModal, setAcordoModal] = useState<{ titulos: TituloCobranca[]; marcados: string[] } | null>(null);
+  const { data: acordosPorTitulo } = useAcordosTitulos();
+  const saldoAberto = (t: TituloCobranca) =>
+    Number(saldosPorTitulo.get(t.id)?.saldo_a_receber ?? t.valor_efetivo ?? 0);
+  const selecaoLista = titulos.filter((t) => selecaoAcordo.has(t.id));
+  const clientesSelecao = new Set(selecaoLista.map((t) => t.parceiro_id)).size;
+  const selDe = (t: TituloCobranca): SelecaoLinha => ({
+    elegivel: tituloElegivelAcordo(t),
+    marcado: selecaoAcordo.has(t.id),
+    acordo: acordosPorTitulo?.get(t.id) ?? null,
+    alternar: (v) => setSelecaoAcordo((s) => {
+      const n = new Set(s);
+      if (v) n.add(t.id); else n.delete(t.id);
+      return n;
+    }),
+  });
 
   const [agrupado, setAgrupado] = useState(true);
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
@@ -1026,11 +1078,40 @@ export default function TitulosTab() {
         </div>
       </div>
 
+      {selecaoLista.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 px-3 py-2 text-sm">
+          <span>
+            {selecaoLista.length} título{selecaoLista.length !== 1 ? "s" : ""} ·{" "}
+            <b>{formatBRL(selecaoLista.reduce((s, t) => s + saldoAberto(t), 0))}</b> em aberto
+          </span>
+          {clientesSelecao > 1 && (
+            <span className="text-xs text-muted-foreground">Acordo só reúne títulos do mesmo cliente</span>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setSelecaoAcordo(new Set())}>Limpar</Button>
+            <Button
+              size="sm"
+              disabled={clientesSelecao !== 1}
+              onClick={() => {
+                const pid = selecaoLista[0].parceiro_id;
+                setAcordoModal({
+                  titulos: titulos.filter((x) => x.parceiro_id === pid && selecaoAcordo.has(x.id)),
+                  marcados: selecaoLista.map((x) => x.id),
+                });
+              }}
+            >
+              Criar acordo
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Tabela */}
       <div className="rounded-md border bg-card">
         <Table containerClassName="overflow-visible">
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
+              <TableHead className="w-8" />
               {agrupado ? (
                 <TableHead>Título</TableHead>
               ) : (
@@ -1054,14 +1135,14 @@ export default function TitulosTab() {
           <TableBody>
             {isLoading && (
               <TableRow>
-                <TableCell colSpan={10} className="py-6">
+                <TableCell colSpan={11} className="py-6">
                   <Skeleton className="h-10 w-full" />
                 </TableCell>
               </TableRow>
             )}
             {!isLoading && filtrados.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                   {cardsAtivos.size === 0
                     ? "Nenhum recorte selecionado — clique num card acima."
                     : "Nenhum título encontrado."}
@@ -1081,10 +1162,13 @@ export default function TitulosTab() {
                     numeroPai={s0?.titulo_pai_id ? numerosPorId.get(s0.titulo_pai_id) ?? null : null}
                     onAbrir={setDetalhe}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
+                    sel={selDe(t0)}
                   />
                 );
               }
               const aberto = abertos.has(g.chave);
+              const elegGrupo = g.titulos.filter(tituloElegivelAcordo);
+              const nMarc = elegGrupo.filter((x) => selecaoAcordo.has(x.id)).length;
               return (
                 <Fragment key={g.chave}>
                   <LinhaGrupo
@@ -1092,6 +1176,15 @@ export default function TitulosTab() {
                     aberto={aberto}
                     onToggle={() => toggleGrupo(g.chave)}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
+                    selGrupo={{
+                      habilitado: elegGrupo.length > 0,
+                      estado: nMarc === 0 ? false : nMarc === elegGrupo.length ? true : "indeterminate",
+                      alternar: (v) => setSelecaoAcordo((s) => {
+                        const n = new Set(s);
+                        for (const x of elegGrupo) { if (v) n.add(x.id); else n.delete(x.id); }
+                        return n;
+                      }),
+                    }}
                   />
                   {aberto && g.titulos.map((t) => {
                     const s = saldosPorTitulo.get(t.id);
@@ -1104,6 +1197,7 @@ export default function TitulosTab() {
                         aninhada
                         onAbrir={setDetalhe}
                         onPedido={(id) => navigate(`/pedidos/${id}`)}
+                        sel={selDe(t)}
                       />
                     );
                   })}
@@ -1120,6 +1214,7 @@ export default function TitulosTab() {
                   numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
                   onAbrir={setDetalhe}
                   onPedido={(id) => navigate(`/pedidos/${id}`)}
+                  sel={selDe(t)}
                 />
               );
             })}
@@ -1575,6 +1670,20 @@ export default function TitulosTab() {
                         </Button>
                       )}
 
+                      {tituloElegivelAcordo(detalhe) && (
+                        <Button
+                          variant="outline"
+                          onClick={() => setAcordoModal({
+                            titulos: titulos.filter(
+                              (x) => x.parceiro_id === detalhe.parceiro_id && tituloElegivelAcordo(x),
+                            ),
+                            marcados: [detalhe.id],
+                          })}
+                        >
+                          Criar acordo com outros títulos do cliente
+                        </Button>
+                      )}
+
                       {/* Cliente pagou por fora — porta certa: o dinheiro entra na CONTA do
                           cliente e o FIFO do banco abate os títulos abertos. A baixa manual
                           direta no título só sobra para haver/troca, onde não entrou dinheiro. */}
@@ -1787,6 +1896,20 @@ export default function TitulosTab() {
           open={!!renegociando}
           onClose={() => {
             setRenegociando(null);
+          }}
+        />
+      )}
+
+      {acordoModal && (
+        <CriarAcordoDialog
+          open={!!acordoModal}
+          titulos={acordoModal.titulos}
+          selecionadosIniciais={acordoModal.marcados}
+          saldoDe={saldoAberto}
+          onClose={() => setAcordoModal(null)}
+          onCriado={() => {
+            setSelecaoAcordo(new Set());
+            setDetalhe(null);
           }}
         />
       )}
