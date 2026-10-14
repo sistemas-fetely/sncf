@@ -22,6 +22,7 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { BotaoGuardado, usePedirAcesso } from "@/components/acesso/BotaoGuardado";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -392,6 +393,7 @@ type SelecaoLinha = {
   elegivel: boolean;
   marcado: boolean;
   acordo: string | null;
+  bloqueado?: boolean;
   alternar: (v: boolean) => void;
 };
 
@@ -444,6 +446,8 @@ function LinhaTitulo({
           <Checkbox
             disabled={!sel.elegivel}
             checked={sel.marcado}
+            className={cn(sel.bloqueado && "opacity-50 cursor-not-allowed")}
+            title={sel.bloqueado ? "Sem permissão (acao.titulo_renegociar) — clique para pedir acesso" : undefined}
             onCheckedChange={(v) => sel.alternar(v === true)}
             aria-label={`Selecionar ${t.numero_titulo}`}
           />
@@ -533,7 +537,7 @@ function LinhaGrupo({
   aberto: boolean;
   onToggle: () => void;
   onPedido: (pedidoId: string) => void;
-  selGrupo?: { habilitado: boolean; estado: boolean | "indeterminate"; alternar: (v: boolean) => void };
+  selGrupo?: { habilitado: boolean; bloqueado?: boolean; estado: boolean | "indeterminate"; alternar: (v: boolean) => void };
 }) {
   const c = g.cabeca;
   const regerado = g.totalParcelasDeclarado > 0 && g.titulos.length > g.totalParcelasDeclarado;
@@ -544,6 +548,8 @@ function LinhaGrupo({
           <Checkbox
             disabled={!selGrupo.habilitado}
             checked={selGrupo.estado}
+            className={cn(selGrupo.bloqueado && "opacity-50 cursor-not-allowed")}
+            title={selGrupo.bloqueado ? "Sem permissão (acao.titulo_renegociar) — clique para pedir acesso" : undefined}
             onCheckedChange={(v) => selGrupo.alternar(v === true)}
             aria-label="Selecionar parcelas do pedido"
           />
@@ -718,11 +724,14 @@ export default function TitulosTab() {
     Number(saldosPorTitulo.get(t.id)?.saldo_a_receber ?? t.valor_efetivo ?? 0);
   const selecaoLista = titulos.filter((t) => selecaoAcordo.has(t.id));
   const clientesSelecao = new Set(selecaoLista.map((t) => t.parceiro_id)).size;
+  const permAcordo = usePedirAcesso("acao.titulo_renegociar", "Selecionar títulos para acordo");
+  const semPermAcordo = !permAcordo.carregando && !permAcordo.permitido;
   const selDe = (t: TituloCobranca): SelecaoLinha => ({
-    elegivel: tituloElegivelAcordo(t),
+    elegivel: tituloElegivelAcordo(t) && !permAcordo.carregando,
     marcado: selecaoAcordo.has(t.id),
     acordo: acordosPorTitulo?.get(t.id) ?? null,
-    alternar: (v) => setSelecaoAcordo((s) => {
+    bloqueado: semPermAcordo,
+    alternar: (v) => semPermAcordo ? void permAcordo.pedir() : setSelecaoAcordo((s) => {
       const n = new Set(s);
       if (v) n.add(t.id); else n.delete(t.id);
       return n;
@@ -1089,7 +1098,9 @@ export default function TitulosTab() {
           )}
           <div className="ml-auto flex gap-2">
             <Button size="sm" variant="ghost" onClick={() => setSelecaoAcordo(new Set())}>Limpar</Button>
-            <Button
+            <BotaoGuardado
+              slug="acao.titulo_renegociar"
+              rotuloAcao="Criar acordo"
               size="sm"
               disabled={clientesSelecao !== 1}
               onClick={() => {
@@ -1101,7 +1112,7 @@ export default function TitulosTab() {
               }}
             >
               Criar acordo
-            </Button>
+            </BotaoGuardado>
           </div>
         </div>
       )}
@@ -1177,9 +1188,10 @@ export default function TitulosTab() {
                     onToggle={() => toggleGrupo(g.chave)}
                     onPedido={(id) => navigate(`/pedidos/${id}`)}
                     selGrupo={{
-                      habilitado: elegGrupo.length > 0,
+                      habilitado: elegGrupo.length > 0 && !permAcordo.carregando,
+                      bloqueado: semPermAcordo,
                       estado: nMarc === 0 ? false : nMarc === elegGrupo.length ? true : "indeterminate",
-                      alternar: (v) => setSelecaoAcordo((s) => {
+                      alternar: (v) => semPermAcordo ? void permAcordo.pedir() : setSelecaoAcordo((s) => {
                         const n = new Set(s);
                         for (const x of elegGrupo) { if (v) n.add(x.id); else n.delete(x.id); }
                         return n;
@@ -1665,13 +1677,16 @@ export default function TitulosTab() {
 
                       {/* Renegociar — Pós-NF */}
                       {posNF && podeRenegociar && (
-                        <Button variant="outline" onClick={() => setRenegociando(detalhe)}>
+                        <BotaoGuardado slug="acao.titulo_renegociar" rotuloAcao="Renegociar"
+                          variant="outline" onClick={() => setRenegociando(detalhe)}>
                           Renegociar
-                        </Button>
+                        </BotaoGuardado>
                       )}
 
                       {tituloElegivelAcordo(detalhe) && (
-                        <Button
+                        <BotaoGuardado
+                          slug="acao.titulo_renegociar"
+                          rotuloAcao="Criar acordo com outros títulos do cliente"
                           variant="outline"
                           onClick={() => setAcordoModal({
                             titulos: titulos.filter(
@@ -1681,7 +1696,7 @@ export default function TitulosTab() {
                           })}
                         >
                           Criar acordo com outros títulos do cliente
-                        </Button>
+                        </BotaoGuardado>
                       )}
 
                       {/* Cliente pagou por fora — porta certa: o dinheiro entra na CONTA do
