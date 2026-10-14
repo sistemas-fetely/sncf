@@ -2,7 +2,7 @@
 // Regra: fase "ativo" → card Ativo ("A"); qualquer outra fase → Inativo ("I").
 // Card-alvo = o canônico (vw_bling_card_360.e_canonico). O PUT do Bling SUBSTITUI o cadastro
 // inteiro: sempre GET antes e reenvia o objeto trocando só `situacao` (mesmo padrão do corrigir-produto-bling).
-import { ensureFreshToken, makeBlingClient, BLING_BASE } from "./bling-client.ts";
+import { ensureFreshToken, makeBlingClient, BlingHttpError } from "./bling-client.ts";
 
 export type ResultadoSituacao = { ok: boolean; acao: string; bling_id?: string; erro?: string };
 
@@ -27,12 +27,12 @@ export async function sincronizarSituacaoCardBling(supabase: any, sku: string, f
     if (!atual?.id) return { ok: false, acao: "erro", bling_id: blingId, erro: "GET /produtos retornou vazio" };
 
     if (String(atual.situacao ?? "") !== alvo) {
-      const res = await fetch(`${BLING_BASE}/produtos/${blingId}`, {
-        method: "PUT",
-        headers: { Authorization: `Bearer ${client.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
-        body: JSON.stringify({ ...atual, situacao: alvo }),
-      });
-      if (!res.ok) return { ok: false, acao: "erro", bling_id: blingId, erro: `Bling PUT ${res.status}: ${(await res.text()).slice(0, 400)}` };
+      try {
+        await client.put(`/produtos/${blingId}`, { ...atual, situacao: alvo });
+      } catch (e) {
+        if (!(e instanceof BlingHttpError)) throw e;
+        return { ok: false, acao: "erro", bling_id: blingId, erro: `Bling PUT ${e.status}: ${e.corpo.slice(0, 400)}` };
+      }
     }
     // Espelho local do card (base da vw_bling_card_360).
     const { error: espErr } = await supabase.from("produtos").update({ ativo: alvo === "A" }).eq("bling_id", blingId);

@@ -3,11 +3,11 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
-import { BLING_BASE, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
 const cors = { ...corsHeaders, "Access-Control-Allow-Headers": `${corsHeaders["Access-Control-Allow-Headers"] ?? "authorization, x-client-info, apikey, content-type"}, x-cron-secret` };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
-async function corpo(res: Response) { const t = await res.text(); try { return t ? JSON.parse(t) : null; } catch { return { texto: t.slice(0, 2000) }; } }
+function corpoTexto(t: string) { try { return t ? JSON.parse(t) : null; } catch { return { texto: t.slice(0, 2000) }; } }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -48,11 +48,14 @@ Deno.serve(async (req) => {
 
   for (const f of filas ?? []) {
     try {
-      const res = await fetch(`${BLING_BASE}/pedidos/vendas/${encodeURIComponent(String(f.bling_pedido_id))}/situacoes/${encodeURIComponent(String(f.situacao_alvo_id))}`, {
-        method: "PATCH", headers: { Authorization: `Bearer ${client.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" }, body: "{}",
-      });
-      const c = await corpo(res);
-      if (!res.ok) throw new Error(`Bling PATCH ${res.status}: ${c?.message ?? c?.error ?? c?.texto ?? JSON.stringify(c)}`);
+      let c: any;
+      try {
+        c = await client.patch(`/pedidos/vendas/${encodeURIComponent(String(f.bling_pedido_id))}/situacoes/${encodeURIComponent(String(f.situacao_alvo_id))}`, {});
+      } catch (e) {
+        if (!(e instanceof BlingHttpError)) throw e;
+        const ce = corpoTexto(e.corpo);
+        throw new Error(`Bling PATCH ${e.status}: ${ce?.message ?? ce?.error ?? ce?.texto ?? JSON.stringify(ce)}`);
+      }
       const { error } = await sb.from("bling_situacao_fila").update({ status: "enviado", tentativas: Number(f.tentativas ?? 0) + 1, ultimo_erro: null, resposta: c, processado_em: new Date().toISOString() }).eq("id", f.id);
       if (error) throw new Error(`Gravar fila enviada: ${error.message}`);
       resumo.processados++; resumo.detalhes.push({ pedido_id: f.pedido_id, resultado: "enviado" });
