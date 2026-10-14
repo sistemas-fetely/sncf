@@ -19,7 +19,7 @@ import { useNivel } from "@/hooks/useNivel";
  * A tela NÃO valida nada: ela desenha o que a RPC
  * `fn_pedido_pre_faturamento_checklist` devolve, na ordem em que vem.
  * Regra nova vai pra RPC, nunca pro .tsx — foi uma regra morando em .tsx
- * (piso de 7 dias em sugerir-vencimento-boleto.ts) que produziu o PED-2164.
+ * (piso de 7 dias no antigo helper de vencimento, já removido) que produziu o PED-2164.
  *
  * Semáforo com override declarado, exceto portão:
  *  - bloqueia && !ok  → bloqueio duro (botão desabilitado, sem override)
