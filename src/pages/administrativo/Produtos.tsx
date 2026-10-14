@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Copy } from "lucide-react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { normalizarBusca } from "@/lib/normalizar-busca";
 import { formatError } from "@/lib/format-error";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { FilterInput } from "@/components/ui/filter-input";
@@ -476,7 +477,7 @@ export default function Produtos() {
   }
 
   const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
+    const q = normalizarBusca(busca);
     const faixaMargemSel = margemFiltro.startsWith("f") ? faixasMargem[Number(margemFiltro.slice(1))] : undefined;
     const faixaGmroiSel = gmroiFiltro.startsWith("f") ? faixasGmroi[Number(gmroiFiltro.slice(1))] : undefined;
     const base = lista.filter((p) => {
@@ -497,10 +498,10 @@ export default function Produtos() {
       if (faseFiltro !== "todas" && p.fase !== faseFiltro) return false;
       if (!q) return true;
       return (
-        p.cod_cadastro?.toLowerCase().includes(q) ||
-        p.sku?.toLowerCase().includes(q) ||
-        p.ean?.toLowerCase().includes(q) ||
-        p.nome_comercial?.toLowerCase().includes(q)
+        normalizarBusca(p.cod_cadastro).includes(q) ||
+        normalizarBusca(p.sku).includes(q) ||
+        normalizarBusca(p.ean).includes(q) ||
+        normalizarBusca(p.nome_comercial).includes(q)
       );
     });
     const dir = ordenacao.dir === "asc" ? 1 : -1;
