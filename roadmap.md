@@ -44,3 +44,5 @@
 - [x] Validar Lucia 10/2026, Anne 11/2026, lote 10/2026 e Gerencial 09/2026 sem publicar.
 - [x] Coluna Classificação, filtro padrão e aviso na aba "NFs sem pedido"; corrigir a quebra da tela durante o carregamento.
 - [x] Tirar a proteção de aba da planilha de cadastro (aba "cadastro" e "Banco GS1"), mantendo cinza, listas, freeze e filtro.
+- [x] Datas do ciclo no painel do consignado: "Fechamento dia X · Pagamento dia Y", com fechamento nulo mostrando só o pagamento; WeConnect e Utilplast conferidos no navegador, typecheck e build ok.
+- [ ] Campo "Dia de fechamento" no cadastro do parceiro (bloqueado: consignado_dia_acerto não é editável em nenhuma tela hoje; definir onde os dois campos devem ficar).

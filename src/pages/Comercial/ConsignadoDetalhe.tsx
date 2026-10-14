@@ -312,11 +312,11 @@ export default function ConsignadoDetalhe() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("parceiros_comerciais")
-        .select("id, razao_social, nome_fantasia, cnpj, consignado_cadencia_dias, consignado_dia_acerto")
+        .select("id, razao_social, nome_fantasia, cnpj, consignado_cadencia_dias, consignado_dia_acerto, consignado_dia_fechamento")
         .eq("id", parceiroId)
         .maybeSingle();
       if (error) throw error;
-      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null; consignado_dia_acerto: number | null } | null;
+      return data as { id: string; razao_social: string; nome_fantasia: string | null; cnpj: string | null; consignado_cadencia_dias: number | null; consignado_dia_acerto: number | null; consignado_dia_fechamento: number | null } | null;
     },
   });
 
@@ -977,11 +977,19 @@ export default function ConsignadoDetalhe() {
   const formaNaoAprovada = limite?.forma_conta_corrente_aprovada === false;
   const operacaoBloqueada = situacaoRuim || formaNaoAprovada;
   const creditoOk = situacao === "ok" && limite?.forma_conta_corrente_aprovada === true;
-  const cadencia = diaAcerto
-    ? `acerto todo dia ${diaAcerto}`
-    : parceiroQ.data?.consignado_cadencia_dias
+  // Datas do ciclo: fechamento (novo) e pagamento (consignado_dia_acerto, que
+  // passou a significar o dia de pagamento — vencimento do título do acerto).
+  const diaFechamento = parceiroQ.data?.consignado_dia_fechamento ?? null;
+  const cadencia =
+    [
+      diaFechamento != null ? `Fechamento dia ${diaFechamento}` : null,
+      diaAcertoParceiro != null ? `Pagamento dia ${diaAcertoParceiro}` : null,
+    ]
+      .filter(Boolean)
+      .join(" · ") ||
+    (parceiroQ.data?.consignado_cadencia_dias
       ? `acerto a cada ${parceiroQ.data.consignado_cadencia_dias} dias`
-      : "cadência não definida";
+      : "cadência não definida");
   const secoes = ehConsignacaoFiscal
     ? ["visao", "ciclo", "remessas", "estoque", "retorno"]
     : ["visao", "ciclo", "remessas", "estoque"];
