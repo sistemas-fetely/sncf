@@ -6,7 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
-import { ensureFreshToken, makeBlingClient, BLING_BASE } from "../_shared/bling/bling-client.ts";
+import { ensureFreshToken, makeBlingClient, BLING_BASE, BlingHttpError } from "../_shared/bling/bling-client.ts";
 import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase } from "../_shared/bling/montar-valores-produto.ts";
 
 const corsHeaders = {
@@ -166,14 +166,10 @@ serve(async (req) => {
       if (de_para.length) {
         try {
           await sleep(THROTTLE_MS);
-          const res = await fetch(`${BLING_BASE}/produtos/${blingId}`, {
-            method: "PUT",
-            headers: { Authorization: `Bearer ${client!.currentToken()}`, Accept: "application/json", "Content-Type": "application/json" },
-            body: JSON.stringify(novo),
-          });
-          if (!res.ok) putErro = `Bling PUT ${res.status}: ${(await res.text()).slice(0, 800)}`;
+          await client!.put(`/produtos/${blingId}`, novo);
         } catch (e) {
-          putErro = e instanceof Error ? e.message : String(e);
+          if (e instanceof BlingHttpError) putErro = `Bling PUT ${e.status}: ${e.corpo.slice(0, 800)}`;
+          else putErro = e instanceof Error ? e.message : String(e);
         }
       }
       if (putErro) { resultados.push({ sku, bling_id: blingId, status: "erro_put", de_para, erro: putErro }); continue; }
