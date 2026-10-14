@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useTituloSaldos } from "@/hooks/financeiro/useTituloSaldo";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -188,7 +189,21 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
     () => parcelas.reduce((acc, p) => acc + (parseFloat(p.valor.replace(",", ".")) || 0), 0),
     [parcelas],
   );
-  const emAberto = Number(titulo.valor_efetivo ?? 0);
+  // Em aberto = vw_titulo_saldo.saldo_a_receber (mesma fonte do banco e do CriarAcordoDialog).
+  const { porTitulo: saldosPorTitulo, isLoading: saldoCarregando } = useTituloSaldos();
+  const saldoTitulo = saldosPorTitulo.get(titulo.id)?.saldo_a_receber;
+  const saldoPronto = !saldoCarregando && saldoTitulo != null;
+  const emAberto = Number(saldoTitulo ?? 0);
+  const parcelaInicialAjustada = useRef(false);
+  useEffect(() => {
+    if (!saldoPronto || parcelaInicialAjustada.current) return;
+    parcelaInicialAjustada.current = true;
+    setParcelas((ps) =>
+      ps.length === 1 && ps[0].valor === String(titulo.valor_efetivo ?? 0)
+        ? [{ ...ps[0], valor: String(emAberto) }]
+        : ps,
+    );
+  }, [saldoPronto, emAberto, titulo.valor_efetivo]);
   const ajuste = ajusteDoAcordo(emAberto, Math.round(somaParcelas * 100) / 100);
   const temAjuste = (modalidade === 2 || modalidade === 3) && ajuste.valor !== 0;
   const natureza = ajuste.valor > 0 ? "Acréscimo" : "Desconto";
@@ -391,7 +406,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
             <DialogTitle>Renegociar título</DialogTitle>
             <DialogDescription>
               {titulo.parceiro_razao_social} · {titulo.numero_titulo} ·{" "}
-              {formatBRL(titulo.valor_efetivo)}
+              {saldoPronto ? formatBRL(emAberto) : "carregando saldo…"}
             </DialogDescription>
           </DialogHeader>
 
@@ -639,7 +654,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                   ))}
                   <p className="text-xs text-muted-foreground">
                     Soma parcelas: <b>{formatBRL(somaParcelas)}</b> · Em aberto:{" "}
-                    <b>{formatBRL(titulo.valor_efetivo)}</b>
+                    <b>{saldoPronto ? formatBRL(emAberto) : "…"}</b>
                     {temAjuste && <> · {natureza} <b>{formatBRL(Math.abs(ajuste.valor))}</b></>}
                   </p>
                 </div>
@@ -683,6 +698,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                 disabled={
                   modalidade === 1 ||
                   pendente ||
+                  !saldoPronto ||
                   justificativa.trim().length < 10 ||
                   (temAjuste && !contaAjuste)
                 }
