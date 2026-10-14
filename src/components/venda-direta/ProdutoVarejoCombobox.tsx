@@ -40,17 +40,22 @@ export function ProdutoVarejoCombobox({
     queryKey: ["venda-direta-busca-sku", debounced],
     enabled: aberto && debounced.length >= 2,
     queryFn: async (): Promise<ProdutoVarejo[]> => {
-      const t = debounced.replace(/[,()%*]/g, " ").trim();
+      // Apóstrofo/aspa simples vira `_` (coringa de 1 caractere do LIKE) para casar ' e ’.
+      const t = debounced.replace(/[,()%*]/g, " ").replace(/['’‘`´]/g, "_").trim();
       const { data, error } = await (supabase as any)
         .from("sncf_produtos")
-        .select("sku, nome_completo, preco_varejo, cod_cadastro, ean")
+        .select("sku, nome_completo, nome_comercial, nome_operacional, preco_varejo, cod_cadastro, ean")
         .eq("ativo", true)
         .gt("preco_varejo", 0)
-        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%,cod_cadastro.ilike.%${t}%,ean.ilike.%${t}%`)
+        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%,nome_comercial.ilike.%${t}%,nome_operacional.ilike.%${t}%,cod_cadastro.ilike.%${t}%,ean.ilike.%${t}%`)
         .order("sku")
         .limit(20);
       if (error) throw error;
-      return (data ?? []).map((p: any) => ({ ...p, preco_varejo: Number(p.preco_varejo) }));
+      return (data ?? []).map((p: any) => ({
+        ...p,
+        preco_varejo: Number(p.preco_varejo),
+        nome_completo: p.nome_completo ?? p.nome_comercial ?? p.nome_operacional,
+      }));
     },
   });
   const imgsQ = useImagensProduto((buscaQ.data ?? []).map((p) => p.sku));

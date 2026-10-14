@@ -476,7 +476,7 @@ export default function Produtos() {
   }
 
   const filtrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
+    const q = normalizarBusca(busca);
     const faixaMargemSel = margemFiltro.startsWith("f") ? faixasMargem[Number(margemFiltro.slice(1))] : undefined;
     const faixaGmroiSel = gmroiFiltro.startsWith("f") ? faixasGmroi[Number(gmroiFiltro.slice(1))] : undefined;
     const base = lista.filter((p) => {
