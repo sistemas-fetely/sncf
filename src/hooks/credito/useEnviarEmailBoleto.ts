@@ -229,6 +229,7 @@ export function useEnviarEmailBoletosLote() {
       });
       if (errEmail || (respEmail as any)?.error)
         throw new Error(`Falha ao enviar e-mail: ${(respEmail as any)?.error ?? errEmail?.message}`);
+      validarRespostaEmail(respEmail, destinatarios.join(", "), true);
 
       const { error: errUpd } = await sb
         .from("titulo_a_receber").update({ boleto_enviado_em: new Date().toISOString() }).in("id", ids);
