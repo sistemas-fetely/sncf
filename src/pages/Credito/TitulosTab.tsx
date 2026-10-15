@@ -1473,6 +1473,10 @@ export default function TitulosTab() {
                         enviando={enviarBoleto.isPending}
                         onEnviar={() => setConfirmarEnvioBoleto(detalhe)}
                       />
+                      <EnviarBoletosAcordoBotao
+                        tituloId={detalhe.id}
+                        emailPadrao={detalhe.parceiro_email_cobranca ?? detalhe.parceiro_email ?? null}
+                      />
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}
                         tituloId={detalhe.id}

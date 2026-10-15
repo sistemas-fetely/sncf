@@ -17,6 +17,7 @@ export function ConfirmarEnvioEmailDialog({
   loading,
   onConfirm,
   titleLabel = "Reenviar boleto por e-mail",
+  itens,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -29,6 +30,8 @@ export function ConfirmarEnvioEmailDialog({
   loading?: boolean;
   onConfirm: (destinatarios: string[]) => void;
   titleLabel?: string;
+  /** Lista opcional dos itens que vão no envio (ex.: boletos do lote). */
+  itens?: string[];
 }) {
   const [dest, setDest] = useState("");
 
@@ -54,6 +57,12 @@ export function ConfirmarEnvioEmailDialog({
             {formatDateBR(titulo.data_vencimento_atual)}
           </DialogDescription>
         </DialogHeader>
+
+        {itens && itens.length > 0 && (
+          <ul className="max-h-48 overflow-y-auto rounded-md border px-3 py-2 text-xs space-y-1">
+            {itens.map((i) => <li key={i} className="font-mono">{i}</li>)}
+          </ul>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="dest-emails">Destinatários</Label>
