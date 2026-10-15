@@ -77,7 +77,7 @@ export function DefinirSenhaButton({ userId, nome }: Props) {
             <KeyRound className="h-3.5 w-3.5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Definir senha</TooltipContent>
+        <TooltipContent>Definir senha manualmente (não envia e-mail)</TooltipContent>
       </Tooltip>
 
       <AlertDialog
