@@ -1512,12 +1512,12 @@ export default function ConsoleAcessoTab({
                         className="w-[90px] max-w-[90px] px-1 text-center align-bottom"
                       >
                         {/*
-                          Não exibimos role_automatico aqui porque
-                          grupos_acesso.role_automatico não é consultado por nenhuma
-                          função, policy, view ou trigger do banco, e 7 dos 9 grupos
-                          têm o mesmo valor. Pior, o rótulo sugere que entrar no grupo
-                          concede aquele papel — o que não acontece. Papel vem de
-                          user_roles, por outro caminho.
+                          role_automatico não é exibido aqui, mas NÃO é legado: a edge
+                          function create-portal-access lê grupos_acesso.role_automatico
+                          na ativação do convite e grava o role inicial do usuário em
+                          user_roles. Não dropar a coluna.
+                          Dívida conhecida: trocar o grupo de um usuário depois da
+                          ativação não reajusta o role (sem trigger).
                         */}
                         <span
                           className="block whitespace-normal break-words text-[11px] font-medium leading-tight"
