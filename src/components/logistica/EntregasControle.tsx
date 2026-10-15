@@ -419,7 +419,7 @@ function SaudeTransportadora() {
 }
 
 
-export function EntregasControle() {
+export function EntregasControle({ soAtencao = false }: { soAtencao?: boolean } = {}) {
   const { data = [], isLoading, error } = useLogisticaEntregas();
 
   const [canal, setCanal] = useState<string>("todos");
@@ -475,6 +475,7 @@ export function EntregasControle() {
   const filtradas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     const base = porCanal.filter((r) => {
+      if (soAtencao && !r.eh_problema) return false;
       if (transps.size > 0 && !(r.transportadora && transps.has(r.transportadora))) return false;
       if (estados.size > 0 && !(r.estado_rotulo && estados.has(r.estado_rotulo))) return false;
       if (ufs.size > 0 && !(r.uf_destino && ufs.has(r.uf_destino))) return false;
@@ -505,7 +506,7 @@ export function EntregasControle() {
       previsao: (r) => ts(r.previsao_entrega),
       entrega: (r) => ts(r.data_entrega),
     });
-  }, [porCanal, transps, estados, ufs, busca, sort]);
+  }, [porCanal, transps, estados, ufs, busca, sort, soAtencao]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / PAGINA));
   const paginaAtual = Math.min(pagina, totalPaginas - 1);

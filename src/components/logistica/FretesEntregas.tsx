@@ -1,16 +1,13 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Upload, Loader2, Search, Truck } from "lucide-react";
+import { Loader2, Search, Truck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useFretesTransportadora } from "@/hooks/logistica/useFretesTransportadora";
 import { CardFrete } from "./CardFrete";
 import { TabelaFretes } from "./TabelaFretes";
-import { ImportarFretesDialog } from "./ImportarFretesDialog";
-import { FretesEntregasBraspress } from "./FretesEntregasBraspress";
 import { cn } from "@/lib/utils";
 
 const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -20,31 +17,10 @@ type Filtro = "todos" | "entregue" | "em_transito" | "atencao";
 interface Props {
   transportadoraId: string;
   transportadoraNome: string;
-  hideImport?: boolean;
 }
 
-export function FretesEntregas({ transportadoraId, transportadoraNome, hideImport }: Props) {
-  const ehBraspress = (transportadoraNome ?? "").toUpperCase().includes("BRASPRESS");
-  if (ehBraspress) {
-    return (
-      <FretesEntregasBraspress
-        transportadoraId={transportadoraId}
-        transportadoraNome={transportadoraNome}
-      />
-    );
-  }
-  return (
-    <FretesEntregasPadrao
-      transportadoraId={transportadoraId}
-      transportadoraNome={transportadoraNome}
-      hideImport={hideImport}
-    />
-  );
-}
-
-function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport }: Props) {
+export function FretesEntregasPadrao({ transportadoraNome }: Props) {
   const { data: fretes = [], isLoading } = useFretesTransportadora(transportadoraId);
-  const [importando, setImportando] = useState(false);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busca, setBusca] = useState("");
   const mobile = useIsMobile();
@@ -101,11 +77,6 @@ function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          {!hideImport && (
-            <Button onClick={() => setImportando(true)} className="gap-2">
-              <Upload className="h-4 w-4" /> Importar planilha
-            </Button>
-          )}
           {ultimoImport && (
             <span className="text-xs text-muted-foreground">atualizado {ultimoImport}</span>
           )}
@@ -164,13 +135,8 @@ function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport
         <div className="border rounded-lg p-10 text-center space-y-3">
           <Truck className="h-10 w-10 mx-auto text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Nenhum frete importado ainda. Importe a planilha da {transportadoraNome}.
+            Nenhum frete importado ainda. Importe a fatura da {transportadoraNome} pelo botão no cabeçalho.
           </p>
-          {!hideImport && (
-            <Button onClick={() => setImportando(true)} className="gap-2">
-              <Upload className="h-4 w-4" /> Importar planilha
-            </Button>
-          )}
         </div>
       ) : filtrados.length === 0 ? (
         <div className="border rounded-lg p-10 text-center text-sm text-muted-foreground">
@@ -182,15 +148,6 @@ function FretesEntregasPadrao({ transportadoraId, transportadoraNome, hideImport
         </div>
       ) : (
         <TabelaFretes fretes={filtrados} />
-      )}
-
-      {importando && (
-        <ImportarFretesDialog
-          open={importando}
-          onOpenChange={setImportando}
-          transportadoraId={transportadoraId}
-          transportadoraNome={transportadoraNome}
-        />
       )}
     </div>
   );
