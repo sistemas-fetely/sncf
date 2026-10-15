@@ -104,6 +104,7 @@ export function useEnviarEmailBoleto() {
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
+      validarRespostaEmail(respEmail, destinatarios.join(", "), false);
 
       // 5. Marca timestamp
       await (supabase as any)
