@@ -211,7 +211,7 @@ export function useEnviarEmailBoletosLote() {
           templateName: "boleto-safra-lote",
           recipientEmail: destinatarios[0],
           cc: destinatarios.slice(1),
-          idempotencyKey: `boletos-lote-${acordo_id ?? [...ids].sort().join("-")}`,
+          idempotencyKey: `boletos-lote-${acordo_id ?? [...ids].sort().join("-")}-${chaveDestinatarios(destinatarios)}`,
           templateData: {
             parceiro_nome: parceiro?.razao_social,
             numero_acordo: numeroAcordo,
