@@ -151,7 +151,7 @@ function EscopoGeral({
             <button key={c.v} onClick={() => setCanal(c.v)} className={chip(canal === c.v)}>{c.l}</button>
           ))}
         </div>
-        <EntregasRemessas transportadoraId={null} canal={canal === "total" ? "total" : canal} />
+        <EntregasRemessas transportadoraId={null} canal={canal === "interno" ? "total" : canal} />
         <section className="rounded-lg border bg-card">
           <button onClick={() => setFilaAberta((v) => !v)} className="w-full flex items-center gap-2 p-3 text-sm font-medium">
             {filaAberta ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
