@@ -14,6 +14,10 @@ import { fmtDataHora } from "@/lib/data";
 import { formatError } from "@/lib/format-error";
 
 const SLUG = "acao.varrer_bling";
+/** Lote sem conclusão há mais que isto = cadeia interrompida; não trava os botões. */
+const LIMITE_LOTE_MS = 30 * 60 * 1000;
+const emAndamento = (l: { concluido_em: string | null; iniciado_em: string } | null | undefined) =>
+  !!l && !l.concluido_em && Date.now() - new Date(l.iniciado_em).getTime() < LIMITE_LOTE_MS;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
@@ -39,9 +43,10 @@ export function ConsistenciaBlingCard() {
       if (error) throw error;
       return data;
     },
-    refetchInterval: (q) => (q.state.data && !q.state.data.concluido_em ? 3000 : false),
+    refetchInterval: (q) => (emAndamento(q.state.data) ? 3000 : false),
   });
-  const rodando = !!lote.data && !lote.data.concluido_em;
+  const rodando = emAndamento(lote.data);
+  const interrompido = !!lote.data && !lote.data.concluido_em && !rodando;
 
   const porCampo = useQuery({
     queryKey: ["consistencia-bling", "por-campo", lote.data?.lote_id, lote.data?.concluido_em],
@@ -100,6 +105,7 @@ export function ConsistenciaBlingCard() {
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-semibold">Consistência Bling</h2>
           {rodando && <Badge variant="secondary" className="gap-1"><RefreshCw className="h-3 w-3 animate-spin" />Em andamento</Badge>}
+          {interrompido && <Badge variant="destructive">Interrompido</Badge>}
         </div>
         <div className="flex gap-2">
           <BotaoGuardado slug={SLUG} rotuloAcao="Detectar divergências no Bling" variant="outline" size="sm" disabled={ocupado} onClick={() => disparar("detectar")}>
