@@ -4,7 +4,7 @@ import { Truck, Loader2, Plus, LayoutGrid, Package, Receipt, Table2, ChevronDown
 import { useTransportadorasLogistica, type TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora, ABAS_LOGISTICA } from "@/components/logistica/AbaTransportadora";
 import { PainelRemessas } from "@/components/logistica/PainelRemessas";
-import { EntregasControle } from "@/components/logistica/EntregasControle";
+import { EntregasRemessas } from "@/components/logistica/EntregasRemessas";
 import { FilaAtencaoLogistica } from "@/components/logistica/FilaAtencaoLogistica";
 import {
   CustosFaturasTransportadora, SeletorTransportadora, TabelasCotacaoTransportadora,
@@ -126,7 +126,6 @@ function EscopoGeral({
   filaTotal: number | null;
 }) {
   const [escolhida, setEscolhida] = useState<string | null>(null);
-  const [soAtencao, setSoAtencao] = useState(false);
   const [filaAberta, setFilaAberta] = useState(false);
   useEffect(() => setEscolhida(null), [aba]);
   const atual = transportadoras.find((t) => t.id === escolhida) ?? null;
@@ -147,8 +146,12 @@ function EscopoGeral({
   if (aba === "entregas") {
     return (
       <div className="space-y-4">
-        <button onClick={() => setSoAtencao((v) => !v)} className={chip(soAtencao)}>Só atenção</button>
-        <EntregasControle soAtencao={soAtencao} />
+        <div className="flex gap-1.5">
+          {CANAIS.map((c) => (
+            <button key={c.v} onClick={() => setCanal(c.v)} className={chip(canal === c.v)}>{c.l}</button>
+          ))}
+        </div>
+        <EntregasRemessas transportadoraId={null} canal={canal === "total" ? "total" : canal} />
         <section className="rounded-lg border bg-card">
           <button onClick={() => setFilaAberta((v) => !v)} className="w-full flex items-center gap-2 p-3 text-sm font-medium">
             {filaAberta ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}

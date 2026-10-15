@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { FaturasConciliacao } from "./FaturasConciliacao";
+import { DocumentosFrete } from "./DocumentosFrete";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OcorrenciasDepara } from "./OcorrenciasDepara";
 import { CotacaoApiCorreios } from "./CotacaoApiCorreios";
 import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
@@ -14,20 +16,26 @@ import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportador
 export function CustosFaturasTransportadora({ id, nome }: { id: string; nome: string }) {
   const perfil = usePerfilDe(id);
   if (!perfil) return null;
+  const comOcorrencias = perfil.modo_rastreio !== "correios_api";
   return (
-    <div className="space-y-6">
-      <FaturasConciliacao
-        transportadoraId={id}
-        transportadoraNome={nome}
-        carrierB2C={perfil.modo_custo === "lancamento_postagem" ? "Correios" : null}
-      />
-      {perfil.modo_rastreio !== "correios_api" && (
-        <section className="space-y-2">
-          <h3 className="text-sm font-medium">Ocorrências (de-para)</h3>
-          <OcorrenciasDepara transportadoraId={id} />
-        </section>
+    <Tabs defaultValue="documentos">
+      <TabsList>
+        <TabsTrigger value="documentos">Documentos</TabsTrigger>
+        <TabsTrigger value="faturas">Faturas & conciliação</TabsTrigger>
+        {comOcorrencias && <TabsTrigger value="ocorrencias">Ocorrências (de-para)</TabsTrigger>}
+      </TabsList>
+      <TabsContent value="documentos" className="mt-4"><DocumentosFrete transportadoraId={id} /></TabsContent>
+      <TabsContent value="faturas" className="mt-4">
+        <FaturasConciliacao
+          transportadoraId={id}
+          transportadoraNome={nome}
+          carrierB2C={perfil.modo_custo === "lancamento_postagem" ? "Correios" : null}
+        />
+      </TabsContent>
+      {comOcorrencias && (
+        <TabsContent value="ocorrencias" className="mt-4"><OcorrenciasDepara transportadoraId={id} /></TabsContent>
       )}
-    </div>
+    </Tabs>
   );
 }
 

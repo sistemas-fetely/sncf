@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { SortableTableHead, type SortState } from "@/components/shared/SortableTableHead";
 import { KpiPill } from "@/components/shared/KpiPill";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -199,7 +199,7 @@ export function EntregasRemessas({ transportadoraId = null, canal = "total" }: {
                 <SortableTableHead column="entregue" sort={sort} onSort={setSort}>Entregue em</SortableTableHead>
                 <SortableTableHead column="prazo" sort={sort} onSort={setSort}>Prazo</SortableTableHead>
                 <SortableTableHead column="parado" sort={sort} onSort={setSort} align="right">Parado há</SortableTableHead>
-                <SortableTableHead column="estado" sort={null} onSort={() => {}}>Última ocorrência</SortableTableHead>
+                <TableHead>Última ocorrência</TableHead>
                 <SortableTableHead column="receita" sort={sort} onSort={setSort} align="right">Frete cobrado</SortableTableHead>
                 <SortableTableHead column="custo" sort={sort} onSort={setSort} align="right">Custo</SortableTableHead>
               </TableRow>
