@@ -87,7 +87,6 @@ export function useConsoleAcesso() {
 export interface GrupoConsole {
   id: string;
   nome: string;
-  role_automatico: string | null;
 }
 
 export function useGruposConsole() {
@@ -96,7 +95,7 @@ export function useGruposConsole() {
     queryFn: async (): Promise<GrupoConsole[]> => {
       const { data, error } = await supabase
         .from("grupos_acesso")
-        .select("id, nome, role_automatico")
+        .select("id, nome")
         .eq("ativo", true)
         .order("nome");
       if (error) throw error;
