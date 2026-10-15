@@ -134,7 +134,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
       }
       if (mudsSncf.length && gravouOk) {
         const { data: upd, error: uErr } = await supabase.from("sncf_produtos")
-          .update(Object.fromEntries(mudsSncf.map((m) => [m.campo, m.para])))
+          .update(Object.fromEntries(mudsSncf.map((m) => [m.campo, m.para])) as { nome_operacional?: string; preco_site?: number })
           .eq("cod_cadastro", it.cod).select("cod_cadastro");
         if (uErr) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: `SNCF: ${uErr.message}` }); }
         else if (!upd?.length) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: "SNCF: nenhum produto com esse código em sncf_produtos" }); }
