@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { cn } from "@/lib/utils";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2, Upload } from "lucide-react";
 import { EntregasRemessas } from "./EntregasRemessas";
@@ -12,7 +11,6 @@ import { CustosFaturasTransportadora, TabelasCotacaoTransportadora } from "./Con
 import { useUltimaSincronizacao } from "@/hooks/logistica/useUltimaSincronizacao";
 import { useTransportadoraPerfis, PERFIL_SEM_CADASTRO } from "@/hooks/logistica/useTransportadoraPerfil";
 import { ROTULO_MODO_CUSTO, ROTULO_MODO_RASTREIO } from "@/lib/logistica/perfilRotulos";
-import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Badge } from "@/components/ui/badge";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
@@ -118,15 +116,13 @@ export const ABAS_LOGISTICA = [
 ] as const;
 
 // PERFIL-É-DIMENSÃO: tudo que muda entre transportadoras vem de transportadora_perfil.
-export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
+export function AbaTransportadora({ transportadora, aba }: { transportadora: TransportadoraLogistica; aba: string }) {
   const nome = nomeExibicao(transportadora.razao_social, transportadora.nome_fantasia);
   const { data: perfis, isLoading: carregandoPerfil } = useTransportadoraPerfis();
   const cadastrado = perfis?.[transportadora.id] ?? null;
   const perfil = cadastrado ?? { transportadora_id: transportadora.id, ...PERFIL_SEM_CADASTRO };
-  const [aba, setAba] = useAbaUrl("painel");
   const [abrirRastreio, setAbrirRastreio] = useState(false);
   const [abrirFatura, setAbrirFatura] = useState(false);
-  const abaValida = ABAS_LOGISTICA.some((a) => a.value === aba) ? aba : "painel";
 
   return (
     <div className="space-y-4">
@@ -169,23 +165,10 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
         </div>
       </div>
 
-      <Tabs value={abaValida} onValueChange={setAba} className="w-full">
-        <TabsList>
-          {ABAS_LOGISTICA.map((a) => <TabsTrigger key={a.value} value={a.value}>{a.label}</TabsTrigger>)}
-        </TabsList>
-        <TabsContent value="painel" className="mt-4">
-          <PainelRemessas escopo={{ canal: "total", transportadoraId: transportadora.id }} mostrarPorTransportadora={false} />
-        </TabsContent>
-        <TabsContent value="entregas" className="mt-4">
-          <EntregasRemessas transportadoraId={transportadora.id} />
-        </TabsContent>
-        <TabsContent value="custos" className="mt-4">
-          <CustosFaturasTransportadora id={transportadora.id} nome={nome} />
-        </TabsContent>
-        <TabsContent value="tabelas" className="mt-4">
-          <TabelasCotacaoTransportadora id={transportadora.id} />
-        </TabsContent>
-      </Tabs>
+      {aba === "painel" && <PainelRemessas escopo={{ canal: "total", transportadoraId: transportadora.id }} mostrarPorTransportadora={false} />}
+      {aba === "entregas" && <EntregasRemessas transportadoraId={transportadora.id} />}
+      {aba === "custos" && <CustosFaturasTransportadora id={transportadora.id} nome={nome} />}
+      {aba === "tabelas" && <TabelasCotacaoTransportadora id={transportadora.id} />}
 
       {abrirRastreio && (
         <ImportarRastreioDialog open={abrirRastreio} onOpenChange={setAbrirRastreio}

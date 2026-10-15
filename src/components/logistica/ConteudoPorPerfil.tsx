@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { nomeExibicao } from "@/lib/parceiros/nome";
+import { nomeCurtoTransportadora } from "@/lib/logistica/escopo";
+import { Button } from "@/components/ui/button";
 import { FaturasConciliacao } from "./FaturasConciliacao";
 import { DocumentosFrete } from "./DocumentosFrete";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -84,16 +85,16 @@ export function SeletorTransportadora({
   return (
     <div className="flex flex-wrap gap-1.5">
       {transportadoras.map((t) => (
-        <button
+        <Button variant="outline"
           key={t.id}
           onClick={() => onChange(t.id)}
           className={cn(
-            "rounded-full px-3 py-1 text-xs border transition",
+            "h-auto rounded-full px-3 py-1 text-xs border transition",
             valor === t.id ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted border-border",
           )}
         >
-          {nomeExibicao(t.razao_social, t.nome_fantasia)}
-        </button>
+          {nomeCurtoTransportadora(t)}
+        </Button>
       ))}
     </div>
   );
