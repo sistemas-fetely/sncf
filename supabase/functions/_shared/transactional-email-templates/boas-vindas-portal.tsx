@@ -16,6 +16,7 @@ interface BoasVindasProps {
   email_pessoal?: string | null
   email?: string // legado
   link?: string
+  site_url?: string
 }
 
 const BoasVindasPortalEmail = ({
@@ -23,6 +24,7 @@ const BoasVindasPortalEmail = ({
   email_corporativo,
   email,
   link = 'https://sncf.lovable.app',
+  site_url = 'https://sncf.lovable.app',
 }: BoasVindasProps) => {
   const emailMostrado = email_corporativo || email || ''
   const primeiroNome = (nome || '').split(' ')[0] || 'colaborador(a)'
@@ -71,7 +73,7 @@ const BoasVindasPortalEmail = ({
               na tela de login. Self-service é libertador.
             </Text>
             <Text style={textSmall}>
-              Este link expira em 24 horas por segurança. Se já venceu, acesse {link} e
+              Este link expira em 24 horas por segurança. Se já venceu, acesse {site_url} e
               clique em "Esqueci minha senha".
             </Text>
           </Section>

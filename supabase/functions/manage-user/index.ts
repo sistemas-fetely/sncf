@@ -208,11 +208,13 @@ Deno.serve(async (req) => {
       }
 
       // Send password recovery link for first access
+      let linkPrimeiroAcesso: string | null = null;
       try {
-        await adminClient.auth.admin.generateLink({
+        const { data: linkData } = await adminClient.auth.admin.generateLink({
           type: "recovery",
           email,
         });
+        linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
       } catch (linkErr) {
         console.error("Erro ao gerar link de recuperação:", linkErr);
       }
@@ -226,7 +228,8 @@ Deno.serve(async (req) => {
           templateData: {
             nome: full_name,
             email,
-            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
+            link: linkPrimeiroAcesso ?? (Deno.env.get("SITE_URL") || "https://sncf.lovable.app"),
+            site_url: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -335,7 +338,8 @@ Deno.serve(async (req) => {
           templateData: {
             nome: full_name,
             email,
-            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
+            link: linkPrimeiroAcesso ?? (Deno.env.get("SITE_URL") || "https://sncf.lovable.app"),
+            site_url: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -506,8 +510,10 @@ Deno.serve(async (req) => {
       }
 
       // 7. Gerar link de recuperação (primeiro acesso)
+      let linkPrimeiroAcesso: string | null = null;
       try {
-        await adminClient.auth.admin.generateLink({ type: "recovery", email });
+        const { data: linkData } = await adminClient.auth.admin.generateLink({ type: "recovery", email });
+        linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
       } catch (e) {
         console.error("[create_user_from_colaborador] Erro ao gerar link de recuperação:", e);
       }
@@ -522,7 +528,8 @@ Deno.serve(async (req) => {
             nome: full_name,
             email_corporativo: emailCorporativo,
             email_pessoal: emailPessoal,
-            link: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
+            link: linkPrimeiroAcesso ?? (Deno.env.get("SITE_URL") || "https://sncf.lovable.app"),
+            site_url: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
           },
         });
         if (!r.ok) {
@@ -846,7 +853,8 @@ Deno.serve(async (req) => {
             templateData: {
               nome: fullName,
               email_corporativo: emailCorp,
-              link: linkPrimeiroAcesso || Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
+              link: linkPrimeiroAcesso ?? (Deno.env.get("SITE_URL") || "https://sncf.lovable.app"),
+              site_url: Deno.env.get("SITE_URL") || "https://sncf.lovable.app",
             },
           });
           if (!r.ok) {
@@ -1107,7 +1115,8 @@ Deno.serve(async (req) => {
 
       // 4. Escolher template
       const templateName = ehPrimeiroAcesso ? "boas-vindas-portal" : "recuperacao-senha";
-      const link = Deno.env.get("SITE_URL") || "https://sncf.lovable.app";
+      const siteUrl = Deno.env.get("SITE_URL") || "https://sncf.lovable.app";
+      const link = linkPrimeiroAcesso ?? siteUrl;
 
       try {
         const r = await invokeSendTransactionalEmail(supabaseUrl, anonKey, authHeader, {
@@ -1118,6 +1127,7 @@ Deno.serve(async (req) => {
             nome,
             email_corporativo: targetEmail,
             link,
+            site_url: siteUrl,
           },
         });
         if (!r.ok) {
