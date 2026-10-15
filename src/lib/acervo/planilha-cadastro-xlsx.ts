@@ -29,7 +29,7 @@ export interface CampoDestinoExport {
 }
 export interface RespostaExport {
   ok: boolean; erro?: string;
-  ficha: CampoFicha[]; opcoes: Record<string, string[]>; destinos?: CampoDestinoExport[]; produtos: ProdutoExport[];
+  ficha: CampoFicha[]; opcoes: Record<string, string[]>; destinos?: CampoDestinoExport[]; destinos_planilha?: Record<string, string>; produtos: ProdutoExport[];
 }
 
 // Ordem visual dos blocos na planilha (blocos desconhecidos vão no fim, em ordem alfabética).
@@ -42,12 +42,6 @@ const AMARELO = "FFFFFF00";
 const NOTA_SUGESTAO = "valor só no SNCF — confirme ou corrija";
 const LINHAS_LIVRES = 300;
 const IDENT_BANCO = new Set(["sku", "ean", "dun", "fase"]); // linhas extras editáveis para produto novo
-const SISTEMAS = ["Bling", "Shopify", "XPM"] as const;
-const COR_SISTEMA: Record<(typeof SISTEMAS)[number], string> = {
-  Bling: "FFEAF2F8",
-  Shopify: "FFEAF6EC",
-  XPM: "FFFDF1E6",
-};
 
 const legivel = (s: string | null | undefined) => {
   if (!s) return "";
@@ -60,9 +54,20 @@ function colLetra(n: number) {
   return s;
 }
 
+export const PREFIXO_DESTINO = "→ ";
+const IDENT_GS1 = new Set(["cod_cadastro", "ean", "dun", "sku"]);
+const LOGO_APOS_NOME = ["nome_operacional", "preco_site"];
+
 function ordenarFicha(ficha: CampoFicha[]) {
   const pos = (b: string) => { const i = ORDEM_BLOCO.indexOf(b); return i < 0 ? 100 : i; };
-  return [...ficha].sort((a, b) => pos(a.bloco) - pos(b.bloco) || a.bloco.localeCompare(b.bloco) || a.ordem - b.ordem);
+  const base = [...ficha].sort((a, b) => pos(a.bloco) - pos(b.bloco) || a.bloco.localeCompare(b.bloco) || a.ordem - b.ordem);
+  // nome_operacional e preco_site vão logo depois de nome_comercial.
+  const i = base.findIndex((f) => f.campo === "nome_comercial");
+  if (i < 0) return base;
+  const mover = LOGO_APOS_NOME.map((c) => base.find((f) => f.campo === c)).filter(Boolean) as CampoFicha[];
+  const resto = base.filter((f) => !LOGO_APOS_NOME.includes(f.campo));
+  const j = resto.findIndex((f) => f.campo === "nome_comercial");
+  return [...resto.slice(0, j + 1), ...mover, ...resto.slice(j + 1)];
 }
 
 function valorCelula(v: unknown): ExcelJS.CellValue {
@@ -84,11 +89,8 @@ export function nomeArquivoCadastro(colecoes: string[]) {
 export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const ficha = ordenarFicha(r.ficha);
   const rotuloCampo = new Map(ficha.map((f) => [f.campo, f.rotulo || legivel(f.campo)]));
-  const destinos = new Map<string, CampoDestinoExport[]>();
-  for (const d of r.destinos ?? []) {
-    const chave = `${d.campo}|${d.sistema}`;
-    (destinos.get(chave) ?? destinos.set(chave, []).get(chave))?.push(d);
-  }
+  const destinoTexto = (campo: string) =>
+    PREFIXO_DESTINO + (IDENT_GS1.has(campo) ? "GS1/cartório — não digitar" : (r.destinos_planilha?.[campo] || "FOP"));
   const wb = new ExcelJS.Workbook();
   wb.creator = "SNCF";
   const ws = wb.addWorksheet("cadastro");
@@ -116,8 +118,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   const colExtra = new Map(extras.map((c, i) => [c, colLib + 1 + i]));
   const colUltima = colLib + extras.length;
 
-  // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3–5 = de-para, 6 = rótulo · dono.
-  const r1 = ws.getRow(1), r2 = ws.getRow(2), r6 = ws.getRow(6);
+  // Cabeçalho: 1 = slug (oculta), 2 = faixa do bloco, 3 = rótulo · dono, 4 = "→ para onde vai".
+  const r1 = ws.getRow(1), r2 = ws.getRow(2), r6 = ws.getRow(3);
   r1.getCell(1).value = "_sistema";
   r2.getCell(1).value = "Sistema";
   r2.getCell(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_PADRAO } };
@@ -184,37 +186,22 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
   r1.hidden = true;
   r6.height = 32;
 
-  SISTEMAS.forEach((sistema, indice) => {
-    const row = ws.getRow(3 + indice);
-    row.getCell(1).value = sistema;
-    row.getCell(1).font = { bold: true, name: "Arial", size: 9 };
-    for (let c = 1; c <= colUltima; c++) {
-      row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: COR_SISTEMA[sistema] } };
-    }
-    ficha.forEach((f, i) => {
-      const cell = row.getCell(i + 2);
-      const itens = destinos.get(`${f.campo}|${sistema}`) ?? [];
-      if (!itens.length) {
-        cell.value = "não vai";
-        cell.font = { italic: true, color: { argb: "FFB7B7B7" }, name: "Arial", size: 9 };
-        return;
-      }
-      const richText: ExcelJS.RichText[] = [];
-      itens.forEach((d, itemIndice) => {
-        if (itemIndice) richText.push({ text: " + ", font: { name: "Arial", size: 9 } });
-        richText.push(d.rotulo_tela
-          ? { text: d.rotulo_tela, font: { name: "Arial", size: 9 } }
-          : { text: d.campo_destino, font: { italic: true, color: { argb: "FF7F7F7F" }, name: "Arial", size: 9 } });
-      });
-      cell.value = { richText };
-      cell.alignment = { wrapText: true, vertical: "middle" };
-    });
-  });
+  const r4 = ws.getRow(4);
+  r4.getCell(1).value = PREFIXO_DESTINO + "para onde vai";
+  for (let c = 1; c <= colUltima; c++) {
+    const cell = r4.getCell(c);
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF2F2F2" } };
+    cell.font = { italic: true, color: { argb: "FF7F7F7F" }, name: "Arial", size: 9 };
+    cell.alignment = { wrapText: true, vertical: "middle" };
+  }
+  ficha.forEach((f, i) => { r4.getCell(i + 2).value = destinoTexto(f.campo); });
+  for (const c of [colFase, colFalta, colMedir, colLib, ...colExtra.values()]) r4.getCell(c).value = PREFIXO_DESTINO + "SNCF";
+  r4.height = 30;
 
   // Dados.
-  const ultima = 6 + r.produtos.length + LINHAS_LIVRES;
+  const ultima = 4 + r.produtos.length + LINHAS_LIVRES;
   r.produtos.forEach((p, idx) => {
-    const row = ws.getRow(7 + idx);
+    const row = ws.getRow(5 + idx);
     ficha.forEach((f, i) => {
       const cell = row.getCell(i + 2);
       const v = p.valores[f.campo];
@@ -236,9 +223,9 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
 
   // Cinza = "não edite aqui" (identidade/situação). Listas de opções. Sem proteção de aba: a integridade
   // real é da importação (ignora colunas de identidade) + banco.
-  for (let lin = 7; lin <= ultima; lin++) {
+  for (let lin = 5; lin <= ultima; lin++) {
     const row = ws.getRow(lin);
-    const ehNova = !r.produtos[lin - 7];
+    const ehNova = !r.produtos[lin - 5];
     ficha.forEach((f, i) => {
       const cell = row.getCell(i + 2);
       // Linha de nascimento: tudo editável, inclusive cod_cadastro (pinagem); EAN/DUN/SKU/fase vêm do banco.
@@ -252,7 +239,7 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
       }
     });
     // Liberar: usável só em produto exportado com próxima fase.
-    const prod = r.produtos[lin - 7];
+    const prod = r.produtos[lin - 5];
     const cLib = row.getCell(colLib);
     if (prod && prod.proxima_fase) {
       cLib.dataValidation = { type: "list", allowBlank: true, formulae: ['"Sim"'], showErrorMessage: true,
@@ -270,8 +257,8 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     }
   }
 
-  ws.views = [{ state: "frozen", ySplit: 6, xSplit: 1 }];
-  ws.autoFilter = { from: { row: 6, column: 1 }, to: { row: 6, column: colUltima } };
+  ws.views = [{ state: "frozen", ySplit: 4, xSplit: 1 }];
+  ws.autoFilter = { from: { row: 3, column: 1 }, to: { row: 3, column: colUltima } };
 
   await adicionarAbaBancoGs1(wb);
 

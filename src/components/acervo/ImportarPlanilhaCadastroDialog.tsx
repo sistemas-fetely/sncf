@@ -17,7 +17,7 @@ interface Props { open: boolean; onOpenChange: (v: boolean) => void; onConcluido
 interface Resultado { nasceram: string[]; gravados: string[]; promovidos: string[]; recusas: { cod: string; motivo: string }[] }
 interface DryNascer {
   linhas?: number; nasceram?: number; nasceriam?: number; codigos_consumidos?: number; gs1_livres_depois?: number | null;
-  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null; pinado?: boolean }[];
+  alocacao_prevista?: { linha: number; cod_cadastro: string; nome: string; ean?: string | null; dun?: string | null; pinado?: boolean; sncf?: { nome_operacional?: string | null } }[];
   problemas?: { linha: number; erro?: string; aviso?: string }[];
   pode_confirmar?: boolean;
   produtos?: { cod_cadastro?: string; ean?: string | null }[];
@@ -122,15 +122,24 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
       const it = validos[i];
       let gravouOk = true;
       const muds = efetivas(it);
-      if (muds.length) {
+      const mudsFop = muds.filter((m) => !m.sncf);
+      const mudsSncf = muds.filter((m) => m.sncf);
+      if (mudsFop.length) {
         try {
           await chamarFuncao("gravar-produto-fop", {
             cod_cadastro: it.cod, motivo: motivo.trim(), origem: "planilha", lote_id: loteId,
-            campos: Object.fromEntries(muds.map((m) => [m.campo, m.para])),
+            campos: Object.fromEntries(mudsFop.map((m) => [m.campo, m.para])),
           });
-          res.gravados.push(it.cod);
         } catch (e) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: `gravação: ${motivoDaFalha(e)}` }); }
       }
+      if (mudsSncf.length && gravouOk) {
+        const { data: upd, error: uErr } = await supabase.from("sncf_produtos")
+          .update(Object.fromEntries(mudsSncf.map((m) => [m.campo, m.para])) as { nome_operacional?: string; preco_site?: number })
+          .eq("cod_cadastro", it.cod).select("cod_cadastro");
+        if (uErr) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: `SNCF: ${uErr.message}` }); }
+        else if (!upd?.length) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: "SNCF: nenhum produto com esse código em sncf_produtos" }); }
+      }
+      if (muds.length && gravouOk) res.gravados.push(it.cod);
       if (it.liberar && gravouOk && it.fase_destino) {
         try {
           await chamarFuncao("promover-fase-produto", { sku: it.sku, fase_destino: it.fase_destino, motivo: motivo.trim() });
@@ -232,7 +241,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 {erroNascer && <Alert variant="destructive"><AlertDescription>{erroNascer}</AlertDescription></Alert>}
                 {(dryNascer?.alocacao_prevista?.length ?? 0) > 0 && (
                   <table className="w-full text-xs">
-                    <thead><tr className="text-left text-muted-foreground"><th className="py-1">Linha</th><th>Código previsto</th><th>EAN</th><th>DUN</th><th>Nome</th><th>Origem</th><th>Inner</th></tr></thead>
+                    <thead><tr className="text-left text-muted-foreground"><th className="py-1">Linha</th><th>Código previsto</th><th>EAN</th><th>DUN</th><th>Nome</th><th>Nome operacional</th><th>Origem</th><th>Inner</th></tr></thead>
                     <tbody>
                       {dryNascer!.alocacao_prevista!.map((a) => {
                         const n = linhaParaNasc.get(a.linha);
@@ -241,6 +250,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                             <td className="py-1">{a.linha}</td><td className="font-mono">{a.cod_cadastro}{a.pinado && <span className="ml-1 rounded border px-1 text-[10px] font-sans text-muted-foreground">pinado</span>}</td>
                             <td>{fmt(a.ean)}</td><td>{a.dun ? a.dun : "sem caixa master"}</td>
                             <td>{a.nome}</td>
+                            <td>{fmt(a.sncf?.nome_operacional ?? n?.payload.nome_operacional ?? n?.payload.nome_comercial ?? a.nome)}</td>
                             <td>{n ? legivel(n.origem) : "—"}</td><td>{fmt(n?.inner_qtd)}</td>
                           </tr>
                         );

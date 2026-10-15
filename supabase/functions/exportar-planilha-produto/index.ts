@@ -92,18 +92,11 @@ Deno.serve(async (req) => {
     }
 
     const { data: destinosRaw, error: dErr } = await sb
-      .from("produto_campo_destino")
-      .select("campo,sistema,campo_destino,rotulo_tela,id")
-      .eq("ativo", true)
-      .in("sistema", ["Bling", "Shopify", "XPM"])
-      .order("id");
-    if (dErr) throw new Error(`Falha ao ler produto_campo_destino: ${msg(dErr)}`);
-    const destinos = (destinosRaw ?? []).map((d) => ({
-      campo: d.campo,
-      sistema: d.sistema,
-      campo_destino: d.campo_destino,
-      rotulo_tela: d.rotulo_tela,
-    }));
+      .from("vw_produto_campo_destino_planilha")
+      .select("campo,destinos");
+    if (dErr) throw new Error(`Falha ao ler vw_produto_campo_destino_planilha: ${msg(dErr)}`);
+    const destinos_planilha: Record<string, string> = {};
+    for (const d of destinosRaw ?? []) if (d.campo && d.destinos) destinos_planilha[d.campo] = d.destinos;
 
     const skus = [...new Set(fopProdutos.map((p) => p.sku).filter((s) => !vazio(s)).map(String))];
     const espelho = new Map<string, Record<string, unknown>>();
@@ -138,10 +131,14 @@ Deno.serve(async (req) => {
       const valores: Record<string, unknown> = {};
       const sugestoes: Record<string, unknown> = {};
       for (const f of ficha) {
+        // nome_operacional e preco_site: a fonte é sncf_produtos.
+        if (f.campo === "nome_operacional" || f.campo === "preco_site") {
+          if (!vazio(esp[f.campo])) valores[f.campo] = esp[f.campo];
+          continue;
+        }
         const vFop = p[f.campo];
         if (!vazio(vFop)) { valores[f.campo] = vFop; continue; }
         // Campos que ainda não existem no FOP: espelho é a fonte (não é sugestão).
-        if (f.campo === "nome_operacional" && !vazio(esp.nome_operacional)) { valores[f.campo] = esp.nome_operacional; continue; }
         if (f.campo === "inner_qtd" && inner.has(sku)) { valores[f.campo] = inner.get(sku); continue; }
         if (!vazio(sugCod[f.campo])) sugestoes[f.campo] = sugCod[f.campo];
       }
@@ -157,7 +154,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ ok: true, ficha, opcoes, destinos, produtos });
+    return json({ ok: true, ficha, opcoes, destinos_planilha, produtos });
   } catch (e) {
     const m = msg(e);
     console.error("[exportar-planilha-produto] ERRO:", m);
