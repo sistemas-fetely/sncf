@@ -5,12 +5,14 @@ import type { CampoFicha, ProdutoExport, RespostaExport } from "@/lib/acervo/pla
  * F2a — leitura da planilha de cadastro e cálculo da diferença contra o FOP (mestre).
  * Localiza slugs e cabeçalho; aceita os layouts antigo e novo. Célula vazia = não mexe.
  */
+/** Gravados direto em sncf_produtos (por cod_cadastro), não pelo FOP. */
+export const CAMPOS_SNCF = new Set(["nome_operacional", "preco_site"]);
 export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"]);
 const SLUGS_CONHECIDOS = new Set([...IDENTIDADE, "_sistema", "_fase_atual", "_pendencias_proxima", "_pendencias_medicao", "_liberar", "origem", "inner_qtd"]);
 
 export interface LinhaPlanilha { linha: number; cod: string | null; celulas: Record<string, unknown>; liberar: boolean }
 
-export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown; confirmando_sugestao?: boolean }
+export interface Mudanca { campo: string; rotulo: string; de: unknown; para: unknown; confirmando_sugestao?: boolean; sncf?: boolean }
 export interface ItemPrevia {
   linha: number; cod: string; sku: string;
   mudancas: Mudanca[]; liberar: boolean; fase_destino: string | null;
@@ -118,11 +120,16 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
 
   const colSistema = [...slugs].find(([, slug]) => slug === "_sistema")?.[0];
   const sistemas = new Set(["bling", "shopify", "xpm"]);
+  const colNome = [...slugs].find(([, slug]) => slug === "nome_comercial")?.[0];
   const out: LinhaPlanilha[] = [];
   for (let r = primeiraLinhaDados; r <= ws.rowCount; r++) {
     const row = ws.getRow(r);
     const sistema = colSistema ? String(textoCelula(row.getCell(colSistema).value) ?? "").trim().toLowerCase() : "";
     if (sistemas.has(sistema)) continue;
+    // Linha "→ para onde vai": nome_comercial começa com "→" (ou vazio) e cod_cadastro vazio.
+    const nomeCel = colNome ? String(textoCelula(row.getCell(colNome).value) ?? "").trim() : "";
+    const codCel = String(textoCelula(row.getCell(colCod).value) ?? "").trim();
+    if (sistema.startsWith("→") || (!codCel && nomeCel.startsWith("→"))) continue;
     const celulas: Record<string, unknown> = {};
     let algum = false;
     for (const [col, slug] of slugs) {
@@ -195,6 +202,17 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     for (const [campo, cel] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo)) continue;
       const f = ficha.get(campo);
+      if (CAMPOS_SNCF.has(campo)) {
+        const atualS = p.valores[campo];
+        if (igual(cel, atualS)) continue;
+        const rot = f?.rotulo || campo;
+        if (campo === "preco_site") {
+          const n = numero(cel);
+          if (n === null) { erros.push(`${rot}: "${String(cel)}" não é número`); continue; }
+          mudancas.push({ campo, rotulo: rot, de: atualS ?? null, para: n, sncf: true });
+        } else mudancas.push({ campo, rotulo: rot, de: atualS ?? null, para: String(cel).trim(), sncf: true });
+        continue;
+      }
       if (!f || f.importavel_planilha !== true) continue;
       const atual = p.valores[campo];
       if (igual(cel, atual)) continue;
@@ -234,7 +252,8 @@ export async function validarFormatoPrevia(
   for (let k = 0; k < alvos.length; k += 8) {
     await Promise.all(alvos.slice(k, k + 8).map(async (i) => {
       const campos: Record<string, unknown> = {};
-      for (const m of [...i.sugestoes_mantidas, ...i.mudancas]) campos[m.campo] = m.para;
+      for (const m of [...i.sugestoes_mantidas, ...i.mudancas]) if (!m.sncf) campos[m.campo] = m.para;
+      if (!Object.keys(campos).length) return;
       try {
         const viol = await validar(i.cod, campos);
         const rot = new Map([...i.mudancas, ...i.sugestoes_mantidas].map((m) => [m.campo, m.rotulo]));
