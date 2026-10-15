@@ -8,7 +8,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import {
-  EXTRATORES_BLING, GRUPO_L1, GRUPO_L2, difere, grupoIdDoCard, grupoTributarioEsperado, num, txt,
+  EXTRATORES_BLING, FaseSemRegra, GRUPO_L1, GRUPO_L2, carregarFaseDestino, difere, grupoIdDoCard,
+  grupoTributarioEsperado, num, txt,
 } from "../_shared/bling/montar-valores-produto.ts";
 const CAMPO_GRUPO = "grupo_tributario";
 
@@ -42,10 +43,50 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-  const segredo = req.headers.get("x-cron-secret");
-  if (!segredo) return json(401, { error: "x-cron-secret ausente." });
+  // Porta dupla (15/10/2026): cron com x-cron-secret OU usuário com tem_permissao('acao.varrer_bling').
   const { data: esperado, error: segErr } = await sb.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
-  if (segErr || !esperado || segredo !== esperado) return json(401, { error: "x-cron-secret inválido." });
+  if (segErr || !esperado) return json(500, { error: `Não foi possível ler o SYNC_CRON_SECRET: ${segErr?.message ?? "vazio"}` });
+  const segredo: string = esperado;
+  const segredoRecebido = req.headers.get("x-cron-secret");
+  if (segredoRecebido) {
+    if (segredoRecebido !== esperado) return json(401, { error: "x-cron-secret inválido." });
+  } else {
+    const auth = req.headers.get("Authorization");
+    if (!auth?.startsWith("Bearer ")) return json(403, { error: "Sem x-cron-secret e sem sessão." });
+    const { data: u, error: uErr } = await sb.auth.getUser(auth.slice(7).trim());
+    if (uErr || !u?.user) return json(403, { error: "Sessão inválida." });
+    const { data: pode, error: pErr } = await sb.rpc("tem_permissao", { p_slug: "acao.varrer_bling", p_user: u.user.id });
+    if (pErr) return json(500, { error: `Falha ao avaliar acao.varrer_bling: ${pErr.message}` });
+    if (pode !== true) return json(403, { error: "Sem permissão (acao.varrer_bling)." });
+  }
+
+  // Disparo pela tela: cria o lote e entrega o trabalho a uma chamada de fundo com o segredo,
+  // para o lote não morrer se a pessoa fechar a página. A tela acompanha o lote por polling.
+  if (!segredoRecebido) {
+    try {
+      let b: Any = {};
+      try { b = await req.json(); } catch { b = {}; }
+      const modoT = b?.modo === "corrigir" ? "corrigir" : "detectar";
+      const dryT = modoT === "corrigir" && b?.dry_run === true;
+      const novoLote = crypto.randomUUID();
+      const { error } = await sb.from("produto_destino_varredura").insert({
+        lote_id: novoLote, sistema: SISTEMA, modo: modoT,
+        produtos_lidos: 0, produtos_com_divergencia: 0, divergencias: 0, erros: 0,
+        detalhe_erros: modoT === "corrigir" ? { dry_run: dryT, corrigidos: 0, planejados: 0, pulados: [], erros: [] } : [],
+      });
+      if (error) throw new Error(`criar lote: ${error.message}`);
+      const fundo = fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/varrer-divergencia-bling`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-cron-secret": segredo },
+        body: JSON.stringify({ lote_id: novoLote, modo: modoT, dry_run: dryT }),
+      }).catch((e) => console.error("disparo de fundo falhou", novoLote, e));
+      // deno-lint-ignore no-explicit-any
+      (globalThis as any).EdgeRuntime?.waitUntil?.(fundo);
+      return json(202, { ok: true, lote_id: novoLote, modo: modoT, dry_run: dryT, concluido: false });
+    } catch (e) {
+      return json(500, { ok: false, lote_id: null, error: e instanceof Error ? e.message : String(e) });
+    }
+  }
 
   try {
     let body: Any = {};
@@ -116,6 +157,7 @@ Deno.serve(async (req) => {
           if (c.cod_cadastro && c.inner_qtd !== null && Number(c.inner_qtd) >= 1 && !inners.has(c.cod_cadastro)) inners.set(c.cod_cadastro, Number(c.inner_qtd));
         }
       }
+      const faseDestino = await carregarFaseDestino(sb, SISTEMA);
 
       const { data: cfg, error: cfgErr } = await sb.from("integracoes_config").select("*").eq("sistema", "bling").maybeSingle();
       if (cfgErr) throw new Error(`config Bling: ${cfgErr.message}`);
@@ -161,13 +203,21 @@ Deno.serve(async (req) => {
           const r = await client.get(`/produtos/${l.bling_card_canonico}`);
           const atual = r?.data;
           if (!atual?.id) throw new Error("GET /produtos retornou vazio ou sem id");
-          const ctx = { ficha, fase: l.fase, inner: inners.get(l.cod_cadastro) ?? null };
+          const ctx = { ficha, fase: l.fase, inner: inners.get(l.cod_cadastro) ?? null, faseDestino };
           const novas: Any[] = [];
           const card: Any = corrigir ? structuredClone(atual) : null;
           for (const d of campos) {
             const exts = EXTRATORES_BLING[d.campo];
             exts.forEach((ex, k) => {
-              const vs = ex.sncf(ctx), vb = ex.bling(atual);
+              let vs: unknown;
+              try { vs = ex.sncf(ctx); } catch (e) {
+                if (!(e instanceof FaseSemRegra)) throw e;
+                // Pula só esta linha (campo), com o motivo; nunca inventa valor.
+                if (corrigir) pulados.push({ sku: l.sku, campo: d.campo, motivo: e.message });
+                else detalheErros.push({ sku: l.sku, campo: d.campo, mensagem: e.message });
+                return;
+              }
+              const vb = ex.bling(atual);
               if (OPCIONAIS_ZERO_VAZIO.has(d.campo) && (zeroOuVazio(vs) && zeroOuVazio(vb))) return;
               if (!difere(ex.tipo, vs, vb)) return;
               const destino = exts.length > 1 ? txt(d.campo_destino).split("+").map((s) => s.trim())[k] ?? d.campo_destino : d.campo_destino;

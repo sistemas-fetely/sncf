@@ -7,7 +7,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient, BLING_BASE, BlingHttpError } from "../_shared/bling/bling-client.ts";
-import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase } from "../_shared/bling/montar-valores-produto.ts";
+import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase, carregarFaseDestino, FaseSemRegra } from "../_shared/bling/montar-valores-produto.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,6 +62,7 @@ serve(async (req) => {
     const blingIds = new Map<string, string>();
     for (const c of cacheQ.data ?? []) if (c.bling_produto_id) blingIds.set(c.sku, String(c.bling_produto_id));
     const fichas = new Map<string, any>((fichaQ.data ?? []).map((f: any) => [f.sku, f]));
+    const faseDestino = await carregarFaseDestino(supabase, "Bling");
     const fases = new Map<string, string | null>((faseQ.data ?? []).map((f: any) => [f.sku, f.fase]));
 
     // Inner do cartório por cod_cadastro (itensPorCaixa do Bling). Só vale inner_qtd >= 1.
@@ -150,7 +151,12 @@ serve(async (req) => {
       setTxt("ncm", () => soDig(atual.tributacao?.ncm), (v) => (novo.tributacao.ncm = v), soDig(f.ncm));
       setTxt("cest", () => soDig(atual.tributacao?.cest), (v) => (novo.tributacao.cest = v), soDig(f.cest));
       if (ativarCard) {
-        const alvo = situacaoPelaFase(fases.get(sku));
+        let alvo: string;
+        try { alvo = situacaoPelaFase(faseDestino, fases.get(sku)); } catch (e) {
+          if (!(e instanceof FaseSemRegra)) throw e;
+          resultados.push({ sku, bling_id: blingId, status: "pulado", erro: e.message });
+          continue;
+        }
         if (txt(atual.situacao) !== alvo) { de_para.push({ campo: "situacao", bling: atual.situacao ?? null, novo: alvo }); novo.situacao = alvo; }
       }
 
