@@ -7,6 +7,29 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtDate = (s?: string | null) =>
   s ? new Date(s + "T12:00:00").toLocaleDateString("pt-BR") : "";
 
+/** Parte da idempotencyKey que diferencia destinatários (mesmo título p/ outro e-mail = envio novo). */
+function chaveDestinatarios(destinatarios: string[]): string {
+  return destinatarios.map((e) => e.trim().toLowerCase()).sort().join(",");
+}
+
+/**
+ * send-transactional-email repassa o idempotencyKey ao Resend: chave repetida em até 24h
+ * devolve `{ success: true, duplicate: true }` e NADA é reenviado. Nesse caso não marcar
+ * `boleto_enviado_em` — o envio precisa ser tratado como falha, não como sucesso.
+ */
+function validarRespostaEmail(resp: any, email: string, plural: boolean): void {
+  if (resp?.duplicate) {
+    throw new Error(
+      plural
+        ? `Estes boletos já foram enviados para ${email} nas últimas 24h — nada foi reenviado.`
+        : `Este boleto já foi enviado para ${email} nas últimas 24h — nada foi reenviado.`,
+    );
+  }
+  if (resp && resp.success === false) {
+    throw new Error(`E-mail ${email} está bloqueado para envio (descadastrado).`);
+  }
+}
+
 export function useEnviarEmailBoleto() {
   const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
@@ -60,12 +83,12 @@ export function useEnviarEmailBoleto() {
       const { pdf_base64, nome_arquivo } = pdfResp;
 
       // 4. Envia email com PDF anexo
-      const { error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
+      const { data: respEmail, error: errEmail } = await supabase.functions.invoke("send-transactional-email", {
         body: {
           templateName: "boleto-safra",
           recipientEmail: destinatarios[0],
           cc: destinatarios.slice(1),
-          idempotencyKey: `boleto-safra-${titulo_id}`,
+          idempotencyKey: `boleto-safra-${titulo_id}-${chaveDestinatarios(destinatarios)}`,
           templateData: {
             parceiro_nome:  parceiro.razao_social,
             numero_parcela: String(titulo.numero_parcela ?? "1"),
@@ -81,6 +104,7 @@ export function useEnviarEmailBoleto() {
         },
       });
       if (errEmail) throw new Error(`Falha ao enviar email: ${errEmail.message}`);
+      validarRespostaEmail(respEmail, destinatarios.join(", "), false);
 
       // 5. Marca timestamp
       await (supabase as any)
@@ -187,7 +211,7 @@ export function useEnviarEmailBoletosLote() {
           templateName: "boleto-safra-lote",
           recipientEmail: destinatarios[0],
           cc: destinatarios.slice(1),
-          idempotencyKey: `boletos-lote-${acordo_id ?? [...ids].sort().join("-")}`,
+          idempotencyKey: `boletos-lote-${acordo_id ?? [...ids].sort().join("-")}-${chaveDestinatarios(destinatarios)}`,
           templateData: {
             parceiro_nome: parceiro?.razao_social,
             numero_acordo: numeroAcordo,
@@ -205,6 +229,7 @@ export function useEnviarEmailBoletosLote() {
       });
       if (errEmail || (respEmail as any)?.error)
         throw new Error(`Falha ao enviar e-mail: ${(respEmail as any)?.error ?? errEmail?.message}`);
+      validarRespostaEmail(respEmail, destinatarios.join(", "), true);
 
       const { error: errUpd } = await sb
         .from("titulo_a_receber").update({ boleto_enviado_em: new Date().toISOString() }).in("id", ids);
