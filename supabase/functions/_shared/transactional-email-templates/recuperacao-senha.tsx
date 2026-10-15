@@ -17,6 +17,7 @@ import type { TemplateEntry } from "./registry.ts";
 interface Props {
   nome?: string;
   link?: string;
+  site_url?: string;
 }
 
 const COR_VERDE = "#1a3d2b";
