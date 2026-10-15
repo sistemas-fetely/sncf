@@ -104,7 +104,7 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       if (mutationError) throw mutationError;
       return { resposta: (data ?? {}) as Record<string, unknown>, haver };
     },
-    onSuccess: ({ resposta, haver }) => {
+    onSuccess: async ({ resposta, haver }) => {
       const valorAplicado = Number(resposta.valor_aplicado ?? haver.saldo ?? 0);
       const diferenca = Number(resposta.diferenca ?? 0);
       const complemento =
@@ -112,11 +112,14 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
           ? ` — resta ${formatBRL(diferenca)} a cobrar — remonte o plano em Cobrança se já houver portão montado`
           : "";
       toast.success(`Crédito de ${formatBRL(valorAplicado)} aplicado${complemento}`);
-      invalidarPedido(qc, pedidoId);
+      await invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA, parceiroId] });
       qc.invalidateQueries({ queryKey: [QK_CREDITOS_CLIENTE_LIVRES, parceiroId] });
     },
-    onError: (mutationError: Error) => toast.error(mutationError.message),
+    onError: async (mutationError: Error) => {
+      toast.error(mutationError.message);
+      await invalidarPedido(qc, pedidoId);
+    },
   });
 
   if (!parceiroId) return null;
@@ -208,6 +211,8 @@ export function CoberturaClienteCard({ parceiroId, valorPedido, pedidoId, estagi
       toast.error("Não foi possível liberar por cobertura", {
         description: e?.message ?? "Erro desconhecido.",
       });
+    } finally {
+      await invalidarPedido(qc, pedidoId);
     }
   }
 

@@ -1,3 +1,4 @@
+import { ErroEdge, chamarEdge } from "@/lib/pedidos/edgePagamento";
 import { useEffect, useRef, useState } from "react";
 import { EnviarEmailPagamentoVD, type EmailPagamentoCtx } from "@/components/venda-direta/EnviarEmailPagamentoVD";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -93,29 +94,7 @@ export function SelectParcelas({ value, onChange, disabled }: { value: number; o
     </Select>
   );
 }
-export class ErroEdge extends Error {
-  constructor(msg: string, readonly status: number | null) { super(msg); }
-}
-
-/** Chama uma edge e devolve o corpo; erro HTTP vira ErroEdge com a mensagem real do corpo. */
-export async function chamarEdge<T>(nome: string, body: unknown): Promise<T> {
-  const { data, error } = await supabase.functions.invoke(nome, { body });
-  if (error) {
-    const ctx = (error as { context?: Response }).context;
-    let msg = error.message;
-    let status: number | null = null;
-    if (ctx && typeof ctx.json === "function") {
-      status = ctx.status ?? null;
-      try {
-        const j = await ctx.clone().json();
-        if (j?.erro) msg = String(j.erro);
-      } catch { /* mantém mensagem original */ }
-    }
-    throw new ErroEdge(msg, status);
-  }
-  if (data && (data as { ok?: boolean }).ok === false) throw new ErroEdge(String((data as { erro?: string }).erro ?? "Falha"), null);
-  return data as T;
-}
+export { ErroEdge, chamarEdge } from "@/lib/pedidos/edgePagamento";
 
 const fmtDataHora = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "—";

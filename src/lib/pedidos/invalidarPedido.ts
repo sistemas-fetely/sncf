@@ -106,9 +106,24 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "cobranca-proposta",
   // PreFaturamentoCard — some depois de enviar/declarar âncora.
   "pre-faturamento-checklist",
+  "pedido-portao-atual",
+  "conta-cliente-cobertura",
+  "conta-cliente-saldo",
+  "conta-cliente-lancamentos",
+  "creditos-cliente-livres",
+  "haver-disponivel",
+  "haveres-parceiro",
+  "link-pagamento",
+  "historico-links",
+  "links-pagamento-fila",
+  "portao-links",
+  "comunic-portao",
+  "captura-cartao-previa",
 ];
 
-export function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): void {
-  CHAVES_GLOBAIS.forEach((queryKey) => qc.invalidateQueries({ queryKey }));
-  CHAVES_POR_PEDIDO.forEach((prefixo) => qc.invalidateQueries({ queryKey: [prefixo] }));
+export async function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): Promise<void> {
+  await Promise.all([
+    ...CHAVES_GLOBAIS.map((queryKey) => qc.invalidateQueries({ queryKey })),
+    ...CHAVES_POR_PEDIDO.map((prefixo) => qc.invalidateQueries({ queryKey: [prefixo] })),
+  ]);
 }

@@ -67,12 +67,14 @@ export function useUsarSaldoConta(pedidoId: string) {
       const res = await chamar(pedidoId, true);
       if (res.idempotente) {
         toast.success("Portão já estava quitado");
+        await invalidarPedido(qc, pedidoId);
         return;
       }
       setPrevia(res);
     } catch (e) {
       console.error("[fn_portao_quitar_com_saldo_conta simular]", e);
       toast.error(rawMessage(e));
+      await invalidarPedido(qc, pedidoId);
     } finally {
       setSimulando(false);
     }
@@ -84,13 +86,12 @@ export function useUsarSaldoConta(pedidoId: string) {
       await chamar(pedidoId, false);
       toast.success("Portão quitado com o saldo da conta do cliente");
       setPrevia(null);
-      invalidarPedido(qc, pedidoId);
-      qc.invalidateQueries({ queryKey: ["pedido-portao-atual"] });
-      qc.invalidateQueries({ queryKey: [QK_CONTA_CLIENTE_COBERTURA] });
+
     } catch (e) {
       console.error("[fn_portao_quitar_com_saldo_conta]", e);
       toast.error(rawMessage(e));
     } finally {
+      await invalidarPedido(qc, pedidoId);
       setGravando(false);
     }
   }
