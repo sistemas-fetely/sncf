@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { estaVencido } from "@/lib/data";
+import { temAbatimentoAcerto, valorAPagarAcerto } from "./consignado/acertoValores";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useContaCorrenteCliente } from "./Consignados";
 import { VisaoConsignado } from "./consignado/VisaoConsignado";
@@ -1037,6 +1038,12 @@ export default function ConsignadoDetalhe() {
     () => new Set((acertosQ.data ?? []).map((a) => a.titulo_acerto_id).filter((id): id is string => !!id)),
     [acertosQ.data],
   );
+  // O card do ciclo mostra A PAGAR (bruto − abatimento). A view de resumo não traz
+  // abatimento, então o valor vem da linha do próprio acerto vivo.
+  const acertoVivo = useMemo(
+    () => (acertosQ.data ?? []).find((a) => a.id === resumo?.acerto_vivo_id) ?? null,
+    [acertosQ.data, resumo?.acerto_vivo_id],
+  );
   const statusAcerto = resumo?.acerto_vivo_status === "rascunho"
     ? "em preparação"
     : resumo?.acerto_vivo_status === "confirmado"
@@ -1178,8 +1185,15 @@ export default function ConsignadoDetalhe() {
               <CardContent className="p-4">
                 <p className="text-xs text-muted-foreground">Acerto do ciclo</p>
                 <p className="mt-1 text-2xl font-medium tabular-nums">
-                  {resumo?.acerto_vivo_id ? formatBRL(resumo.acerto_vivo_valor) : "—"}
+                  {resumo?.acerto_vivo_id
+                    ? formatBRL(acertoVivo ? valorAPagarAcerto(acertoVivo) : resumo.acerto_vivo_valor)
+                    : "—"}
                 </p>
+                {acertoVivo && temAbatimentoAcerto(acertoVivo) && (
+                  <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+                    Vendido {formatBRL(acertoVivo.valor_total)} · Abatimento − {formatBRL(acertoVivo.valor_abatimento)}
+                  </p>
+                )}
                 <p className={cn("mt-1 text-xs text-muted-foreground", resumo?.acerto_vivo_status === "confirmado" && "text-warning")}>
                   {resumo?.acerto_vivo_id
                     ? `${resumo.acerto_vivo_numero ?? "Acerto"} · ${statusAcerto ?? "—"}`
@@ -1568,7 +1582,16 @@ export default function ConsignadoDetalhe() {
                               {a.status ?? "—"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right text-sm tabular-nums">{formatBRL(a.valor_total)}</TableCell>
+                          <TableCell className="text-right text-sm tabular-nums">
+                            {temAbatimentoAcerto(a) ? (
+                              <div className="flex flex-col items-end leading-tight">
+                                <span>{formatBRL(valorAPagarAcerto(a))}</span>
+                                <span className="text-xs text-muted-foreground line-through">{formatBRL(a.valor_total)}</span>
+                              </div>
+                            ) : (
+                              formatBRL(a.valor_total)
+                            )}
+                          </TableCell>
                           <TableCell className="text-xs">
                             {a.pedido_sintetico_id ? (
                               <Link
