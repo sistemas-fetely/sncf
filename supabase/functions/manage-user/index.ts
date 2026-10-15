@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+const SITE_URL = Deno.env.get("SITE_URL") || "https://sncf.lovable.app";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -210,10 +212,7 @@ Deno.serve(async (req) => {
       // Send password recovery link for first access
       let linkPrimeiroAcesso: string | null = null;
       try {
-        const { data: linkData } = await adminClient.auth.admin.generateLink({
-          type: "recovery",
-          email,
-        });
+        const { data: linkData } = await adminClient.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: `${SITE_URL}/definir-senha` } });
         linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
       } catch (linkErr) {
         console.error("Erro ao gerar link de recuperação:", linkErr);
@@ -317,10 +316,7 @@ Deno.serve(async (req) => {
 
       let linkPrimeiroAcesso: string | null = null;
       try {
-        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
-          type: "recovery",
-          email,
-        });
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: `${SITE_URL}/definir-senha` } });
         if (linkErr) {
           console.error("Erro ao gerar link de recuperação:", linkErr);
         } else {
@@ -512,7 +508,7 @@ Deno.serve(async (req) => {
       // 7. Gerar link de recuperação (primeiro acesso)
       let linkPrimeiroAcesso: string | null = null;
       try {
-        const { data: linkData } = await adminClient.auth.admin.generateLink({ type: "recovery", email });
+        const { data: linkData } = await adminClient.auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: `${SITE_URL}/definir-senha` } });
         linkPrimeiroAcesso = linkData?.properties?.action_link ?? null;
       } catch (e) {
         console.error("[create_user_from_colaborador] Erro ao gerar link de recuperação:", e);
@@ -829,10 +825,7 @@ Deno.serve(async (req) => {
       // 12. Link de primeiro acesso + e-mail de boas-vindas (nunca derruba a criação)
       let linkPrimeiroAcesso: string | null = null;
       try {
-        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
-          type: "recovery",
-          email: emailCorp,
-        });
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({ type: "recovery", email: emailCorp, options: { redirectTo: `${SITE_URL}/definir-senha` } });
         if (linkErr) {
           console.error("[create_user_from_vinculo] Erro ao gerar link de recuperação:", linkErr);
           avisos.push("Link de primeiro acesso não foi gerado.");
@@ -1093,10 +1086,7 @@ Deno.serve(async (req) => {
       // 3. Gerar novo link de recovery
       let linkPrimeiroAcesso: string | null = null;
       try {
-        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({
-          type: "recovery",
-          email: targetEmail,
-        });
+        const { data: linkData, error: linkErr } = await adminClient.auth.admin.generateLink({ type: "recovery", email: targetEmail, options: { redirectTo: `${SITE_URL}/definir-senha` } });
         if (linkErr) {
           console.error("[reenviar_link_acesso] Erro ao gerar link:", linkErr);
           return new Response(JSON.stringify({ error: "Falha ao gerar link. Tente novamente." }), {
