@@ -1,8 +1,8 @@
 project_id = "vaxzorhqzvsnkutrlvfr"
 
 [auth]
-site_url = "https://people-fetely.lovable.app"
-additional_redirect_urls = ["https://people-fetely.lovable.app/**"]
+site_url = "https://sncf.lovable.app"
+additional_redirect_urls = ["https://sncf.lovable.app/**", "https://id-preview--11784988-62f9-4cd1-8be6-369fc74dc5cb.lovable.app/**"]
 
 [functions]
   [functions.auth-email-hook]

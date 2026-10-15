@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(nextSession);
           setUser(nextSession?.user ?? null);
           setLoading(false);
-          window.location.replace("/reset-password");
+          window.location.replace("/definir-senha");
           return;
         }
 
@@ -141,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setSession(nextSession);
           setUser(nextSession?.user ?? null);
           setLoading(false);
-          window.location.replace("/reset-password");
+          window.location.replace("/definir-senha");
           return;
         }
 
