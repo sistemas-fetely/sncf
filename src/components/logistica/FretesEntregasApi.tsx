@@ -17,7 +17,7 @@ interface Props {
   transportadoraNome: string;
 }
 
-export function FretesEntregasBraspress({ transportadoraId, transportadoraNome }: Props) {
+export function FretesEntregasApi({ transportadoraId, transportadoraNome }: Props) {
   const { data: entregas = [], isLoading } = useEntregasTransportadora(transportadoraId);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busca, setBusca] = useState("");

@@ -3,19 +3,19 @@ import { nomeExibicao } from "@/lib/parceiros/nome";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2 } from "lucide-react";
-import { FretesEntregas } from "./FretesEntregas";
+import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2, Upload } from "lucide-react";
+import { FretesEntregasPadrao } from "./FretesEntregas";
 import { FretesEntregasB2C } from "./FretesEntregasB2C";
-import { FaturasConciliacao } from "./FaturasConciliacao";
-import { TabelaPreco } from "./TabelaPreco";
-import { GestaoTabelasPreco } from "./GestaoTabelasPreco";
-import { ConteudoTabelaPreco } from "./ConteudoTabelaPreco";
+import { FretesEntregasApi } from "./FretesEntregasApi";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
-import { OcorrenciasDepara } from "./OcorrenciasDepara";
-import { PainelLogistica } from "./PainelLogistica";
-import { CotacaoApiCorreios } from "./CotacaoApiCorreios";
+import { ImportarFretesDialog } from "./ImportarFretesDialog";
+import { PainelRemessas } from "./PainelRemessas";
+import { CustosFaturasTransportadora, TabelasCotacaoTransportadora } from "./ConteudoPorPerfil";
 import { useUltimaSincronizacao } from "@/hooks/logistica/useUltimaSincronizacao";
-import { useTranspCotacaoApi } from "@/hooks/pedidos/useCotacaoCorreios";
+import { useTransportadoraPerfis, PERFIL_SEM_CADASTRO } from "@/hooks/logistica/useTransportadoraPerfil";
+import { ROTULO_MODO_CUSTO, ROTULO_MODO_RASTREIO } from "@/lib/logistica/perfilRotulos";
+import { useAbaUrl } from "@/hooks/useAbaUrl";
+import { Badge } from "@/components/ui/badge";
 import type { TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 
 function fmtCnpj(cnpj: string | null): string {
@@ -53,7 +53,7 @@ function horaSaoPaulo(): number {
 }
 
 function deveSinalizarAtraso(atualizadoEm: string | null): boolean {
-  // O cron de sincronização da Braspress roda apenas entre 9h e 22h59.
+  // O cron de sincronização por API roda apenas entre 9h e 22h59.
   // Fora dessa janela (especialmente a madrugada) o intervalo maior é normal,
   // então não devemos pintar o indicador de alerta.
   const horaLocal = horaSaoPaulo();
@@ -112,17 +112,23 @@ function IndicadorSincronizacao({ transportadoraId }: { transportadoraId: string
   );
 }
 
+export const ABAS_LOGISTICA = [
+  { value: "painel", label: "Painel" },
+  { value: "entregas", label: "Entregas" },
+  { value: "custos", label: "Custos & Faturas" },
+  { value: "tabelas", label: "Tabelas & Cotação" },
+] as const;
+
+// PERFIL-É-DIMENSÃO: tudo que muda entre transportadoras vem de transportadora_perfil.
 export function AbaTransportadora({ transportadora }: { transportadora: TransportadoraLogistica }) {
   const nome = nomeExibicao(transportadora.razao_social, transportadora.nome_fantasia);
-  const nomeUpper =
-    (transportadora.razao_social || "").toUpperCase() + " " + (transportadora.nome_fantasia || "").toUpperCase();
-  const ehBraspress = nomeUpper.includes("BRASPRESS");
-  const ehCorreios = nomeUpper.includes("CORREIOS") || nomeUpper.includes("EMPRESA BRASILEIRA DE CORREIOS");
-  const ehFrenet = nomeUpper.includes("FRENET");
-  const carrierB2C: "Correios" | "Frenet" | null = ehCorreios ? "Correios" : ehFrenet ? "Frenet" : null;
+  const { data: perfis, isLoading: carregandoPerfil } = useTransportadoraPerfis();
+  const cadastrado = perfis?.[transportadora.id] ?? null;
+  const perfil = cadastrado ?? { transportadora_id: transportadora.id, ...PERFIL_SEM_CADASTRO };
+  const [aba, setAba] = useAbaUrl("painel");
   const [abrirRastreio, setAbrirRastreio] = useState(false);
-  const { data: transportadorasApi = [] } = useTranspCotacaoApi();
-  const isApi = transportadorasApi.some((item) => item.transportadora_id === transportadora.id);
+  const [abrirFatura, setAbrirFatura] = useState(false);
+  const abaValida = ABAS_LOGISTICA.some((a) => a.value === aba) ? aba : "painel";
 
   return (
     <div className="space-y-4">
@@ -136,71 +142,66 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
               {transportadora.cidade ? ` · ${transportadora.cidade}` : ""}
               {transportadora.uf ? `/${transportadora.uf}` : ""}
             </div>
+            {cadastrado && (
+              <div className="text-xs text-muted-foreground">
+                Custo por {ROTULO_MODO_CUSTO[perfil.modo_custo]} · Rastreio por {ROTULO_MODO_RASTREIO[perfil.modo_rastreio]}
+                {perfil.canais.length ? ` · Canais ${perfil.canais.join(", ").toUpperCase()}` : ""}
+              </div>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {ehBraspress ? (
-            <IndicadorSincronizacao transportadoraId={transportadora.id} />
+          {carregandoPerfil ? null : !cadastrado ? (
+            <Badge variant="outline" className="border-warning/50 text-warning">transportadora sem perfil cadastrado</Badge>
           ) : (
-            <Button variant="outline" onClick={() => setAbrirRastreio(true)} className="gap-2">
-              <Truck className="h-4 w-4" /> Importar rastreio (NF)
-            </Button>
+            <>
+              {perfil.modo_rastreio === "api" && <IndicadorSincronizacao transportadoraId={transportadora.id} />}
+              {perfil.importa_rastreio && (
+                <Button variant="outline" onClick={() => setAbrirRastreio(true)} className="gap-2">
+                  <Truck className="h-4 w-4" /> Importar rastreio (NF)
+                </Button>
+              )}
+              {perfil.importa_fatura && (
+                <Button onClick={() => setAbrirFatura(true)} className="gap-2">
+                  <Upload className="h-4 w-4" /> Importar fatura
+                </Button>
+              )}
+            </>
           )}
         </div>
       </div>
 
-      <Tabs defaultValue="visao" className="w-full">
+      <Tabs value={abaValida} onValueChange={setAba} className="w-full">
         <TabsList>
-          <TabsTrigger value="visao">Visão Geral</TabsTrigger>
-          <TabsTrigger value="fretes">Fretes &amp; entregas</TabsTrigger>
-          <TabsTrigger value="faturas">Faturas</TabsTrigger>
-          <TabsTrigger value="tabela">Tabela de preço</TabsTrigger>
-          {!isApi ? <TabsTrigger value="ocorrencias">Ocorrências</TabsTrigger> : null}
+          {ABAS_LOGISTICA.map((a) => <TabsTrigger key={a.value} value={a.value}>{a.label}</TabsTrigger>)}
         </TabsList>
-        <TabsContent value="visao" className="mt-4">
-          <PainelLogistica escopo={{ tipo: "transportadora", transportadoraId: transportadora.id, transportadoraNome: nome }} />
+        <TabsContent value="painel" className="mt-4">
+          <PainelRemessas escopo={{ canal: "total", transportadoraId: transportadora.id }} mostrarPorTransportadora={false} />
         </TabsContent>
-        <TabsContent value="fretes" className="mt-4">
-          {carrierB2C ? (
+        <TabsContent value="entregas" className="mt-4">
+          {perfil.modo_custo === "lancamento_postagem" ? (
             <FretesEntregasB2C transportadoraId={transportadora.id} transportadoraNome={nome} />
+          ) : perfil.modo_rastreio === "api" ? (
+            <FretesEntregasApi transportadoraId={transportadora.id} transportadoraNome={nome} />
           ) : (
-            <FretesEntregas
-              transportadoraId={transportadora.id}
-              transportadoraNome={nome}
-              hideImport={ehBraspress}
-            />
+            <FretesEntregasPadrao transportadoraId={transportadora.id} transportadoraNome={nome} />
           )}
         </TabsContent>
-        <TabsContent value="faturas" className="mt-4">
-          <FaturasConciliacao
-            transportadoraId={transportadora.id}
-            transportadoraNome={nome}
-            carrierB2C={carrierB2C}
-          />
+        <TabsContent value="custos" className="mt-4">
+          <CustosFaturasTransportadora id={transportadora.id} nome={nome} />
         </TabsContent>
-        <TabsContent value="tabela" className="mt-4 space-y-4">
-          {isApi ? <CotacaoApiCorreios /> : (
-            <>
-              <GestaoTabelasPreco transportadoraId={transportadora.id} />
-              <ConteudoTabelaPreco transportadoraId={transportadora.id} />
-              <TabelaPreco transportadoraId={transportadora.id} />
-            </>
-          )}
+        <TabsContent value="tabelas" className="mt-4">
+          <TabelasCotacaoTransportadora id={transportadora.id} />
         </TabsContent>
-        {!isApi ? (
-          <TabsContent value="ocorrencias" className="mt-4">
-            <OcorrenciasDepara transportadoraId={transportadora.id} />
-          </TabsContent>
-        ) : null}
       </Tabs>
 
       {abrirRastreio && (
-        <ImportarRastreioDialog
-          open={abrirRastreio}
-          onOpenChange={setAbrirRastreio}
-          transportadoraId={transportadora.id}
-          transportadoraNome={nome}
-        />
+        <ImportarRastreioDialog open={abrirRastreio} onOpenChange={setAbrirRastreio}
+          transportadoraId={transportadora.id} transportadoraNome={nome} />
+      )}
+      {abrirFatura && (
+        <ImportarFretesDialog open={abrirFatura} onOpenChange={setAbrirFatura}
+          transportadoraId={transportadora.id} transportadoraNome={nome} />
       )}
     </div>
   );
