@@ -4,9 +4,7 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2, Upload } from "lucide-react";
-import { FretesEntregasPadrao } from "./FretesEntregas";
-import { FretesEntregasB2C } from "./FretesEntregasB2C";
-import { FretesEntregasApi } from "./FretesEntregasApi";
+import { EntregasRemessas } from "./EntregasRemessas";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { ImportarFretesDialog } from "./ImportarFretesDialog";
 import { PainelRemessas } from "./PainelRemessas";
@@ -179,13 +177,7 @@ export function AbaTransportadora({ transportadora }: { transportadora: Transpor
           <PainelRemessas escopo={{ canal: "total", transportadoraId: transportadora.id }} mostrarPorTransportadora={false} />
         </TabsContent>
         <TabsContent value="entregas" className="mt-4">
-          {perfil.modo_custo === "lancamento_postagem" ? (
-            <FretesEntregasB2C transportadoraId={transportadora.id} transportadoraNome={nome} />
-          ) : perfil.modo_rastreio === "api" ? (
-            <FretesEntregasApi transportadoraId={transportadora.id} transportadoraNome={nome} />
-          ) : (
-            <FretesEntregasPadrao transportadoraId={transportadora.id} transportadoraNome={nome} />
-          )}
+          <EntregasRemessas transportadoraId={transportadora.id} />
         </TabsContent>
         <TabsContent value="custos" className="mt-4">
           <CustosFaturasTransportadora id={transportadora.id} nome={nome} />
