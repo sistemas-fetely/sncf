@@ -11,7 +11,7 @@ interface Evento { data: string | null; texto: string }
 function eventoLivre(e: unknown): Evento {
   if (e && typeof e === "object") {
     const o = e as Record<string, unknown>;
-    const data = (o.data ?? o.dataHora ?? o.dtHrCriado ?? null) as string | null;
+    const data = (o.data ?? o.data_hora ?? o.dataHora ?? o.dtHrCriado ?? o.em ?? o.quando ?? null) as string | null;
     const partes = [o.descricao, o.local].filter((v) => typeof v === "string" && v.trim()) as string[];
     if (data || partes.length) return { data, texto: partes.join(" · ") || JSON.stringify(o) };
     return { data: null, texto: JSON.stringify(o) };
@@ -25,7 +25,7 @@ function Timeline({ eventos }: { eventos: Evento[] }) {
   return (
     <ul className="space-y-1 text-xs border-l pl-3">
       {ord.map((e, i) => (
-        <li key={i}><span className="tabular-nums text-muted-foreground">{ddmmHora(e.data)}</span> — {e.texto}</li>
+        <li key={i}>{e.data && <><span className="tabular-nums text-muted-foreground">{ddmmHora(e.data)}</span> — </>}{e.texto}</li>
       ))}
     </ul>
   );
@@ -101,7 +101,7 @@ export function RemessaDetalheDrawer({ pedidoId, onClose }: { pedidoId: string |
                       </div>
                       {c.ultimo_evento && <div className="text-xs text-muted-foreground">Último: {ddmmHora(c.ultimo_evento_em)} — {c.ultimo_evento}</div>}
                       {c.sync_erro && <div className="text-xs text-destructive">{c.sync_erro}</div>}
-                      <Timeline eventos={(c.timeline ?? []).map((t) => ({ data: t.data, texto: t.descricao ?? "" }))} />
+                      <Timeline eventos={(c.timeline ?? []).map(eventoLivre)} />
                     </div>
                   ))}
                   {data.rastreio_postal?.map((p) => (
