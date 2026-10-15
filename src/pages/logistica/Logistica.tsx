@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Truck, Loader2, Plus, LayoutGrid, Package, Receipt, Table2, ChevronDown, ChevronRight } from "lucide-react";
-import { useTransportadorasLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
+import { useTransportadorasLogistica, type TransportadoraLogistica } from "@/hooks/logistica/useTransportadorasLogistica";
 import { AbaTransportadora, ABAS_LOGISTICA } from "@/components/logistica/AbaTransportadora";
 import { PainelRemessas } from "@/components/logistica/PainelRemessas";
 import { EntregasControle } from "@/components/logistica/EntregasControle";
@@ -122,7 +122,7 @@ function EscopoGeral({
   aba: string;
   canal: CanalPainel;
   setCanal: (c: CanalPainel) => void;
-  transportadoras: ReturnType<typeof useTransportadorasLogistica>["data"] & object;
+  transportadoras: TransportadoraLogistica[];
   filaTotal: number | null;
 }) {
   const [escolhida, setEscolhida] = useState<string | null>(null);
