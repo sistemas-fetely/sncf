@@ -19,7 +19,7 @@ interface Props {
   transportadoraNome: string;
 }
 
-export function FretesEntregasPadrao({ transportadoraNome }: Props) {
+export function FretesEntregasPadrao({ transportadoraId, transportadoraNome }: Props) {
   const { data: fretes = [], isLoading } = useFretesTransportadora(transportadoraId);
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [busca, setBusca] = useState("");
