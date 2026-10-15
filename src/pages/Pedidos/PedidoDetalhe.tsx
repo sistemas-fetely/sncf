@@ -7,6 +7,7 @@ import { AplicarHaverPedidoDialog } from "@/components/credito/AplicarHaverPedid
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
+import { podeAcionarPagamento } from "@/lib/pedidos/acoesPagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
@@ -97,7 +98,7 @@ import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useAuth } from "@/contexts/AuthContext";
 
 
-import { AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
+import { ESTAGIO_LABELS, AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
 import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo, useSugestaoTransportadora } from "@/hooks/pedidos/useFreteComparativo";
@@ -852,7 +853,7 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
   const coberturaEmpenhada =
     valorPedidoNum > 0 && Number(cobConta?.empenho_deste_pedido ?? 0) >= valorPedidoNum;
   const mostraUsarSaldo =
-    !!portaoAtual && coberturaEmpenhada && (permDinheiro.permitido || permReceber.permitido);
+    podeAcionarPagamento(pedido.estagio, pedido.cancelado_em) && !!portaoAtual && coberturaEmpenhada && (permDinheiro.permitido || permReceber.permitido);
 
   const cartao = (plano ?? []).filter((l) => (l.tipo_pagamento ?? "").toLowerCase() === "cartao");
   const linhaALinha = (plano ?? []).filter((l) =>
@@ -869,6 +870,8 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
       .map(([m, n]) => `${n} parcela(s) de ${rotuloMeio(m)}`)
       .join(", ");
   };
+
+  if (!podeAcionarPagamento(pedido.estagio, pedido.cancelado_em)) return null;
 
   // REFERENCIA-SEMPRE, ANEXO-CONFORME-QUEM-E: uma só tela, modo SOPS.
   return (
@@ -3123,7 +3126,13 @@ export default function PedidoDetalhe() {
                     estagio={pedido.estagio}
                   />
 
-                  <LinkPagamentoCard pedidoId={pedido.id} />
+                  {podeAcionarPagamento(pedido.estagio, pedido.cancelado_em) ? (
+                    <LinkPagamentoCard pedidoId={pedido.id} />
+                  ) : (
+                    <p className="text-xs text-muted-foreground" role="status">
+                      {pedido.cancelado_em || estagio === "cancelado" ? "Pagamento indisponível" : ["pre_separacao", "aguardando_estoque", "em_separacao", "pre_faturamento", "faturado", "em_transporte", "entregue"].includes(estagio) ? "Pagamento resolvido" : "Pagamento indisponível neste estágio"} — pedido em {(ESTAGIO_LABELS[estagio] ?? estagio).toLocaleLowerCase("pt-BR")}
+                    </p>
+                  )}
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground italic px-1">

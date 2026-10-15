@@ -208,7 +208,7 @@ export function useEnviarEmailPedidoCobranca() {
 
       return { email: emails[0], id_externo: pedido.id_externo, duplicate: false as const };
     },
-    onSuccess: (data, vars) => {
+    onSuccess: async (data, vars) => {
       if (data.duplicate) {
         toast({
           title: "Cobrança já enviada",
@@ -220,10 +220,11 @@ export function useEnviarEmailPedidoCobranca() {
           description: `Enviado para ${data.email} · ${data.id_externo}`,
         });
       }
-      invalidarPedido(qc, vars.pedido_id);
+      await invalidarPedido(qc, vars.pedido_id);
     },
-    onError: (e: Error) => {
+    onError: async (e: Error, vars) => {
       toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });
+      await invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

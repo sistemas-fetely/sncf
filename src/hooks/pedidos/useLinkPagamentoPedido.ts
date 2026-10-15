@@ -1,3 +1,4 @@
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -77,11 +78,12 @@ export function useRegistrarLinkPagamento() {
       if (error) throw new Error(formatError(error));
       return data as any;
     },
-    onSuccess: (data, vars) => {
+    onSuccess: async (data, vars) => {
       toast({
         title: "Link renovado",
         description: `Válido até ${fmtDataBR(data?.expira_em)} · ${data?.titulos_atualizados ?? 0} título(s) e ${data?.portoes_atualizados ?? 0} portão(ões) atualizados`,
       });
+      await invalidarPedido(qc, vars.pedido_id);
       for (const key of [
         "link-pagamento",
         "portao-links",
@@ -93,8 +95,9 @@ export function useRegistrarLinkPagamento() {
         qc.invalidateQueries({ queryKey: [key, vars.pedido_id] });
       }
     },
-    onError: (e: unknown) => {
+    onError: async (e: unknown, vars) => {
       toast({ title: "Erro ao registrar link", description: formatError(e), variant: "destructive" });
+      await invalidarPedido(qc, vars.pedido_id);
     },
   });
 }

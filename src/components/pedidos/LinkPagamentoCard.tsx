@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { chamarEdge } from "@/components/venda-direta/LinkCartao";
+import { chamarEdge } from "@/lib/pedidos/edgePagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -122,8 +122,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
     },
   });
   const atualizar = async () => {
-    invalidarPedido(qc, pedidoId);
-    await Promise.all([linksApiQ.refetch(), linkQ.refetch(), provisoesQ.refetch()]);
+    await invalidarPedido(qc, pedidoId);
   };
   const gerar = async (meio: "cartao" | "pix") => {
     setOcupado(meio);
@@ -131,23 +130,21 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
       await chamarEdge(meio === "cartao" ? "safrapay-link" : "safrapay-pix", {
         pedido_id: pedidoId, ...(meio === "cartao" ? { meio } : {}),
       });
-      await atualizar();
       toast.success(meio === "cartao" ? "Link de cartão gerado" : "PIX gerado");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
-    } finally { setOcupado(null); }
+    } finally { await atualizar(); setOcupado(null); }
   };
   const sincronizar = async () => {
     setOcupado("sync");
     try {
       const r = await chamarEdge<{ detalhes?: { erro?: string }[] }>("safrapay-link-sync", { pedido_id: pedidoId });
       const erros = r.detalhes?.filter((d) => d.erro).map((d) => d.erro) ?? [];
-      await atualizar();
       if (erros.length) throw new Error(erros.join("\n"));
       toast.success("Links sincronizados");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
-    } finally { setOcupado(null); }
+    } finally { await atualizar(); setOcupado(null); }
   };
   const linkQ = useLinkPagamentoPedido(pedidoId);
   const registrar = useRegistrarLinkPagamento();

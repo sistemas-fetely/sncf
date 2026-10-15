@@ -1,3 +1,4 @@
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,13 +59,13 @@ export function AplicarHaverPedidoDialog({ open, onOpenChange, pedidoId, idExter
       if (error) throw error;
       return data;
     },
-    onSuccess: (data: any) => {
+    onSuccess: async (data: any) => {
       if (data?.caso === "haver_cobre_pedido") {
         toast.success("Crédito aplicado — pedido avançou para pré-faturamento");
       } else {
         toast.success(`Crédito de ${fmtBRL.format(Number(data?.valor_aplicado ?? 0))} aplicado — pedido voltou para cobrança`);
       }
-      qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedidoId] });
+      await invalidarPedido(qc, pedidoId);
       qc.invalidateQueries({ queryKey: ["credito-clientes-haveres"] });
       qc.invalidateQueries({ queryKey: ["haveres-parceiro", parceiroId] });
       qc.invalidateQueries({ queryKey: ["haver-disponivel", parceiroId] });
@@ -72,7 +73,10 @@ export function AplicarHaverPedidoDialog({ open, onOpenChange, pedidoId, idExter
       qc.invalidateQueries({ queryKey: ["pedido-titulos", pedidoId] });
       onOpenChange(false);
     },
-    onError: (err: any) => toast.error(err.message ?? "Erro ao aplicar crédito"),
+    onError: async (err: any) => {
+      toast.error(err.message ?? "Erro ao aplicar crédito");
+      await invalidarPedido(qc, pedidoId);
+    },
   });
 
   return (

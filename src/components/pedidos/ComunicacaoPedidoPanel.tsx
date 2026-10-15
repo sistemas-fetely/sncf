@@ -308,9 +308,12 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
         estagio_pedido: estagio,
       });
 
-      invalidarPedido(qc, pedido_id);
+      await invalidarPedido(qc, pedido_id);
       setDialogOpen(false);
       setDialogTipo(null);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+      await invalidarPedido(qc, pedido_id);
     } finally {
       setSending(false);
     }
@@ -410,6 +413,7 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
 
   const salvarLinkNovo = async () => {
     if (!novoLink.trim()) return;
+    try {
     await registrarLink.mutateAsync({
       pedido_id,
       link: novoLink.trim(),
@@ -421,6 +425,11 @@ export function ComunicacaoPedidoPanel({ pedido_id, parceiro_id, estagio, exige_
     setNovoLink("");
     setExpiraEm("");
     await linkQ.refetch();
+    } catch {
+      // O hook já exibe a mensagem real do registro.
+    } finally {
+      await invalidarPedido(qc, pedido_id);
+    }
   };
 
   const historico = (logQ.data ?? []).slice(0, 5);

@@ -13,7 +13,8 @@
  * `confirmar_portao_pago` nao e chamada em lugar nenhum: esta aposentada.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Paperclip } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,7 @@ export function ConfirmarPagamentoDialog({
 
   // O plano aberto carrega sempre que o dialog abre — mesmo com provisaoId fixo,
   // porque o tipo de prova nasce do MEIO da linha (MEIO-DITA-PROVA).
+  const qc = useQueryClient();
   const planoQ = usePlanoAbertoPedido(pedidoId, aberto);
   const bancosQ = useBancosRecebimento(aberto);
   const adquirentesQ = useAdquirentes(aberto && provaTipo === "cartao_nsu");
@@ -384,8 +386,9 @@ export function ConfirmarPagamentoDialog({
           banco_recebimento_id: bancoId,
         });
       } else if (provaTipo === "ofx" || provaTipo === "boleto_cnab") {
+        if (!provisaoEfetiva) return;
         await confirmarLinha.mutateAsync({
-          provisao_id: provisaoEfetiva!,
+          provisao_id: provisaoEfetiva,
           prova_tipo: provaTipo,
           prova_ref: referencia.trim(),
           data_pagamento: dataPagamento,
@@ -397,6 +400,8 @@ export function ConfirmarPagamentoDialog({
     } catch {
       // FAIL-LOUD: o toast com a mensagem do banco já saiu no hook. Mantém aberto.
       return;
+    } finally {
+      await invalidarPedido(qc, pedidoId);
     }
     aoFechar();
   }
