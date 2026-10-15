@@ -211,7 +211,6 @@ export function useCriarGrupo() {
           pre_cadastrado: false,
           ativo: true,
           tipo_colaborador: "ambos",
-          // role_automatico fica com default do banco (legado, não usado)
         })
         .select()
         .single();
