@@ -10,6 +10,7 @@ import {
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
 import { ConfirmarEnvioEmailDialog } from "@/components/credito/ConfirmarEnvioEmailDialog";
+import { EnviarBoletosAcordoBotao } from "@/components/credito/EnviarBoletosAcordoBotao";
 import { useEnviosBoletoTitulo, useHistoricoInstrumento } from "@/hooks/credito/useHistoricoTitulo";
 import {
   Sheet,
