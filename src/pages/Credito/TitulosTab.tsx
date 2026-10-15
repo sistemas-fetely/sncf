@@ -10,6 +10,7 @@ import {
 import { useEnviarEmailBoleto } from "@/hooks/credito/useEnviarEmailBoleto";
 import { useEnviarEmailCobranca } from "@/hooks/credito/useEnviarEmailCobranca";
 import { ConfirmarEnvioEmailDialog } from "@/components/credito/ConfirmarEnvioEmailDialog";
+import { EnviarBoletosAcordoBotao } from "@/components/credito/EnviarBoletosAcordoBotao";
 import { useEnviosBoletoTitulo, useHistoricoInstrumento } from "@/hooks/credito/useHistoricoTitulo";
 import {
   Sheet,
@@ -1472,6 +1473,10 @@ export default function TitulosTab() {
                         codigoBarras={detalhe.boleto_vigente?.codigo_barras ?? null}
                         enviando={enviarBoleto.isPending}
                         onEnviar={() => setConfirmarEnvioBoleto(detalhe)}
+                      />
+                      <EnviarBoletosAcordoBotao
+                        tituloId={detalhe.id}
+                        emailPadrao={detalhe.parceiro_email_cobranca ?? detalhe.parceiro_email ?? null}
                       />
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}
