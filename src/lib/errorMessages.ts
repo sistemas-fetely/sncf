@@ -1,3 +1,4 @@
+import { REGRA_SENHA_TEXTO } from "@/components/auth/ForcaSenhaIndicator";
 /**
  * Converte mensagens de erro técnicas em mensagens amigáveis para o usuário.
  * Use sempre que for exibir error.message diretamente em toast/UI.
