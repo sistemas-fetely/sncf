@@ -7,6 +7,29 @@ const fmtBRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BR
 const fmtDate = (s?: string | null) =>
   s ? new Date(s + "T12:00:00").toLocaleDateString("pt-BR") : "";
 
+/** Parte da idempotencyKey que diferencia destinatários (mesmo título p/ outro e-mail = envio novo). */
+function chaveDestinatarios(destinatarios: string[]): string {
+  return destinatarios.map((e) => e.trim().toLowerCase()).sort().join(",");
+}
+
+/**
+ * send-transactional-email repassa o idempotencyKey ao Resend: chave repetida em até 24h
+ * devolve `{ success: true, duplicate: true }` e NADA é reenviado. Nesse caso não marcar
+ * `boleto_enviado_em` — o envio precisa ser tratado como falha, não como sucesso.
+ */
+function validarRespostaEmail(resp: any, email: string, plural: boolean): void {
+  if (resp?.duplicate) {
+    throw new Error(
+      plural
+        ? `Estes boletos já foram enviados para ${email} nas últimas 24h — nada foi reenviado.`
+        : `Este boleto já foi enviado para ${email} nas últimas 24h — nada foi reenviado.`,
+    );
+  }
+  if (resp && resp.success === false) {
+    throw new Error(`E-mail ${email} está bloqueado para envio (descadastrado).`);
+  }
+}
+
 export function useEnviarEmailBoleto() {
   const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
