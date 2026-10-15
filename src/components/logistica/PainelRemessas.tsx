@@ -70,18 +70,20 @@ export function PainelRemessas({ escopo, mostrarPorTransportadora }: Props) {
 
   const cabecalho = (
     <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex flex-wrap gap-1.5">
+      <h3 className="text-sm font-medium">Resultado do frete</h3>
+      <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-1.5">
         {PERIODOS.map((p) => (
-          <button
+          <Button variant="outline"
             key={p.v}
             onClick={() => setPeriodo(p.v)}
             className={cn(
-              "rounded-full px-3 py-1 text-xs border transition",
+              "h-auto rounded-full px-3 py-1 text-xs border transition",
               periodo === p.v ? "bg-primary text-primary-foreground border-primary" : "bg-card hover:bg-muted border-border",
             )}
           >
             {p.l}
-          </button>
+          </Button>
         ))}
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -89,6 +91,7 @@ export function PainelRemessas({ escopo, mostrarPorTransportadora }: Props) {
         <Button size="sm" variant="ghost" onClick={() => refetch()} disabled={isFetching} aria-label="Atualizar painel">
           <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
         </Button>
+      </div>
       </div>
     </div>
   );
@@ -141,10 +144,8 @@ export function PainelRemessas({ escopo, mostrarPorTransportadora }: Props) {
 
   return (
     <div className="space-y-6">
-      {cabecalho}
-
       <section className="space-y-2">
-        <h3 className="text-sm font-medium">Resultado do frete</h3>
+        {cabecalho}
         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
           <StatCard title="Frete cobrado" value={brl(k.receita_frete)} icon={Receipt}
             subtitle={`${NUM.format(k.remessas_com_frete_cobrado)} de ${NUM.format(k.pedidos)} remessas cobram frete`} />
@@ -262,7 +263,7 @@ function PorTransportadora({ linhas }: { linhas: PainelTransportadora[] }) {
     setParams((p) => {
       const n = new URLSearchParams(p);
       n.set("transportadora", id);
-      n.delete("aba");
+      n.delete("canal");
       return n;
     });
   };

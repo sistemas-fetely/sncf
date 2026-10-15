@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] M3: reunir abas e seletor de escopo da Logística, alinhar período e validar links e mobile sem banco/publicação.
+
 - [x] Impedir que liquidação do CNAB regrade pedido já expedido: transição só com estágio aguardando_pagamento/cobranca, erro de transição logado sem abortar o arquivo; função publicada, Deno check passou.
 
 
