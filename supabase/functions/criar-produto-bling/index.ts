@@ -5,6 +5,7 @@
 // Nunca assume origem fiscal: é decisão humana/contador.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra } from "../_shared/bling/montar-valores-produto.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
@@ -179,6 +180,7 @@ serve(async (req) => {
     const criar: { sku: string; payload: any }[] = [];
 
 
+    const faseDestino = await carregarFaseDestino(supabase, "Bling");
     for (const sku of skus) {
       const f = porSku.get(sku);
       if (!f) {
@@ -216,13 +218,19 @@ serve(async (req) => {
         continue;
       }
 
+      let situacaoCard: string;
+      try { situacaoCard = situacaoPelaFase(faseDestino, f.fase); } catch (e) {
+        if (!(e instanceof FaseSemRegra)) throw e;
+        recusados.push({ sku, motivo: e.message });
+        continue;
+      }
       const pesoKg = num(f.peso_g) !== null ? Number(f.peso_g) / 1000 : null;
       const payload: any = {
         nome,
         codigo: sku,
         tipo: "P",
         formato: "S",
-        situacao: f.fase === "ativo" ? "A" : "I", // card nasce na situação da fase (28/09)
+        situacao: situacaoCard, // situação da fase via produto_fase_destino (15/10)
         unidade: "UN",
         preco: num(f.preco_varejo),
         pesoLiquido: pesoKg,

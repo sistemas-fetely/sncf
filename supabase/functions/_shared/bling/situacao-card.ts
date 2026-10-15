@@ -1,14 +1,17 @@
 // Situação do card do Bling acompanha a FASE do produto (28/09/2026).
-// Regra: fase "ativo" → card Ativo ("A"); qualquer outra fase → Inativo ("I").
+// Regra: valor vem de produto_fase_destino (sistema Bling); fase sem regra = erro.
 // Card-alvo = o canônico (vw_bling_card_360.e_canonico). O PUT do Bling SUBSTITUI o cadastro
 // inteiro: sempre GET antes e reenvia o objeto trocando só `situacao` (mesmo padrão do corrigir-produto-bling).
+import { carregarFaseDestino, situacaoPelaFase } from "./montar-valores-produto.ts";
 import { ensureFreshToken, makeBlingClient, BlingHttpError } from "./bling-client.ts";
 
 export type ResultadoSituacao = { ok: boolean; acao: string; bling_id?: string; erro?: string };
 
 // deno-lint-ignore no-explicit-any
 export async function sincronizarSituacaoCardBling(supabase: any, sku: string, fase: string): Promise<ResultadoSituacao> {
-  const alvo = fase === "ativo" ? "A" : "I";
+  let alvo: string;
+  try { alvo = situacaoPelaFase(await carregarFaseDestino(supabase, "Bling"), fase); }
+  catch (e) { return { ok: false, acao: "erro", erro: e instanceof Error ? e.message : String(e) }; }
   const { data: card, error } = await supabase
     .from("vw_bling_card_360").select("bling_id, card_ativo").eq("sku", sku).eq("e_canonico", true).maybeSingle();
   if (error) return { ok: false, acao: "erro", erro: `vw_bling_card_360: ${error.message}` };

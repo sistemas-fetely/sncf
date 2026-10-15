@@ -18,11 +18,31 @@ export const pesoGParaKg = (pesoG: unknown): number | null => {
   const g = num(pesoG);
   return g === null ? null : Math.round((g / 1000) * 100000) / 100000;
 };
-/** ativo = A; demais = I. */
-export const situacaoPelaFase = (fase: unknown) => (txt(fase) === "ativo" ? "A" : "I");
+// FASE → SITUAÇÃO VIA DIMENSÃO (15/10/2026): a regra mora em produto_fase_destino
+// (sistema, fase, valor, ativo). Fase sem linha = FAIL-LOUD, nunca inventar "I".
+export type MapaFaseDestino = Map<string, string>;
+export class FaseSemRegra extends Error {
+  constructor(fase: unknown) {
+    super(`fase sem regra em produto_fase_destino: ${txt(fase) || "(vazia)"}`);
+    this.name = "FaseSemRegra";
+  }
+}
+/** Carrega uma vez por execução. Erro de leitura lança. */
+export async function carregarFaseDestino(sb: any, sistema = "Bling"): Promise<MapaFaseDestino> {
+  const { data, error } = await sb.from("produto_fase_destino").select("fase, valor")
+    .eq("sistema", sistema).eq("ativo", true);
+  if (error) throw new Error(`produto_fase_destino: ${error.message}`);
+  return new Map((data ?? []).map((r: any) => [txt(r.fase), txt(r.valor)]));
+}
+/** Valor de destino da fase; lança FaseSemRegra se não houver linha. */
+export function situacaoPelaFase(mapa: MapaFaseDestino, fase: unknown): string {
+  const v = mapa.get(txt(fase));
+  if (!v) throw new FaseSemRegra(fase);
+  return v;
+}
 
 /** Contexto do produto no SNCF: ficha de sncf_produtos + fase + inner do cartório. */
-export type ContextoSncf = { ficha: any; fase: string | null; inner: number | null };
+export type ContextoSncf = { ficha: any; fase: string | null; inner: number | null; faseDestino: MapaFaseDestino };
 
 export type Extrator = {
   tipo: "txt" | "num";
@@ -46,7 +66,7 @@ export const EXTRATORES_BLING: Record<string, Extrator[]> = {
   inner_qtd: [{ tipo: "num", sncf: (c) => c.inner, bling: (a) => a.itensPorCaixa }],
   ncm: [{ tipo: "txt", sncf: (c) => soDig(c.ficha.ncm), bling: (a) => soDig(a.tributacao?.ncm) }],
   cest: [{ tipo: "txt", sncf: (c) => soDig(c.ficha.cest), bling: (a) => soDig(a.tributacao?.cest) }],
-  fase: [{ tipo: "txt", sncf: (c) => situacaoPelaFase(c.fase), bling: (a) => a.situacao }],
+  fase: [{ tipo: "txt", sncf: (c) => situacaoPelaFase(c.faseDestino, c.fase), bling: (a) => a.situacao }],
   origem_fisc: [{ tipo: "txt", sncf: (c) => c.ficha.origem_fisc, bling: (a) => a.tributacao?.origem }],
   sku: [{ tipo: "txt", sncf: (c) => txt(c.ficha.sku).toUpperCase() || null, bling: (a) => txt(a.codigo).toUpperCase() || null }],
 };
