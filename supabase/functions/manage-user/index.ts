@@ -874,6 +874,72 @@ Deno.serve(async (req) => {
     }
 
 
+    if (action === "alterar_email") {
+      const jh = { ...corsHeaders, "Content-Type": "application/json" };
+      const resp = (obj: unknown, status = 200) => new Response(JSON.stringify(obj), { status, headers: jh });
+      const { user_id, novo_email, motivo } = body;
+      if (!user_id || typeof novo_email !== "string") return resp({ error: "user_id e novo_email são obrigatórios" }, 400);
+      const emailNovo = novo_email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNovo)) return resp({ error: "Formato de e-mail inválido" }, 400);
+
+      const { data: validacao, error: errVal } = await adminClient.rpc("validar_email_corporativo", { _email: emailNovo });
+      if (errVal) {
+        if (!emailNovo.endsWith("@fetely.com.br")) return resp({ error: "Só são aceitos e-mails @fetely.com.br" }, 400);
+      } else if (!(validacao as any)?.valido) {
+        return resp({ error: `E-mail corporativo inválido: ${(validacao as any)?.motivo || "domínio não permitido"}` }, 400);
+      }
+
+      const { data: alvo, error: errAlvo } = await adminClient.auth.admin.getUserById(user_id);
+      if (errAlvo || !alvo?.user) return resp({ error: "Usuário não encontrado" }, 404);
+      const emailAntigo = (alvo.user.email || "").toLowerCase();
+      if (emailAntigo === emailNovo) return resp({ error: "O novo e-mail é igual ao atual" }, 400);
+
+      // Conflito em auth.users
+      for (let page = 1; page < 50; page++) {
+        const { data: lista, error: errLista } = await adminClient.auth.admin.listUsers({ page, perPage: 1000 });
+        if (errLista) return resp({ error: `Falha ao verificar e-mails: ${errLista.message}` }, 500);
+        if (lista.users.some((u) => u.id !== user_id && (u.email || "").toLowerCase() === emailNovo)) {
+          return resp({ error: "Este e-mail já está em uso" }, 409);
+        }
+        if (lista.users.length < 1000) break;
+      }
+      // Conflito em vínculos
+      const { data: vincConf, error: errVinc } = await adminClient
+        .from("vinculos").select("id, usuario_id").ilike("email_corporativo", emailNovo);
+      if (errVinc) return resp({ error: `Falha ao verificar vínculos: ${errVinc.message}` }, 500);
+      if ((vincConf || []).some((v: any) => v.usuario_id !== user_id)) return resp({ error: "Este e-mail já está em uso" }, 409);
+
+      const { error: errUpd } = await adminClient.auth.admin.updateUserById(user_id, { email: emailNovo, email_confirm: true });
+      if (errUpd) {
+        const m = errUpd.message || "";
+        if (/already|registered|exists/i.test(m)) return resp({ error: "Este e-mail já está em uso" }, 409);
+        return resp({ error: `Falha ao alterar e-mail: ${m}` }, 500);
+      }
+
+      const { error: errVUpd } = await adminClient.from("vinculos").update({ email_corporativo: emailNovo }).eq("usuario_id", user_id);
+      if (errVUpd) return resp({ error: `E-mail de login alterado, mas falhou ao atualizar o vínculo: ${errVUpd.message}` }, 500);
+
+      const { data: perfil } = await adminClient.from("profiles").select("full_name, acesso_ativado_em").eq("user_id", user_id).maybeSingle();
+      const { data: actor } = await adminClient.from("profiles").select("full_name").eq("user_id", callerId).maybeSingle();
+      const { error: errLog } = await adminClient.from("acesso_dados_log").insert({
+        user_id: callerId,
+        user_nome: (actor as any)?.full_name || null,
+        alvo_user_id: user_id,
+        alvo_nome: (perfil as any)?.full_name || null,
+        tipo_dado: "alteracao_email",
+        tabela_origem: "auth",
+        contexto: `de ${emailAntigo} para ${emailNovo}`,
+        justificativa: motivo || null,
+      });
+      if (errLog) console.error("[alterar_email] falha no log:", errLog.message);
+
+      return resp({
+        success: true,
+        email_antigo: emailAntigo,
+        email_novo: emailNovo,
+        acesso_ativado: !!(perfil as any)?.acesso_ativado_em,
+      });
+    }
 
     if (action === "toggle_ban") {
       const { user_id, ban } = body;
