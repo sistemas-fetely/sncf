@@ -128,6 +128,8 @@ export default function AcoesInlineConta({ conta, onAbrirEditandoBanco }: Props)
       qc.invalidateQueries({ queryKey: ["contas-pagar"] });
       qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", conta.id] });
       qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+      // Numerador do badge "Parcial (n/N)" no NFsStage.
+      qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
     } catch (e) {
       toast.error("Erro: " + extractMsg(e));
     } finally {

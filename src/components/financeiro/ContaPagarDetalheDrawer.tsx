@@ -954,7 +954,49 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
   });
 
   async function desanexarNF(nfId: string) {
-    // Desanexa uma NF específica zerando seu conta_pagar_id
+    // O vínculo NF↔CPR tem DOIS lados e eles não são simétricos:
+    //
+    //   nfs_stage.conta_pagar_id        -> o que esta lista exibe
+    //   contas_pagar_receber.nf_stage_id -> o que o STATUS da NF enxerga
+    //
+    // `recalcular_status_nf_stage` conta CPRs por `nf_stage_id`, e o gatilho que a
+    // dispara (`trg_cpr_recalc_stage_status`) é AFTER UPDATE OF nf_stage_id ON
+    // contas_pagar_receber. Antes, esta função só zerava `conta_pagar_id`: o
+    // gatilho não disparava, a NF continuava "vinculada" depois de desanexada, e
+    // o `nf_stage_id` órfão fazia `vincular_nf_a_conta` recusar qualquer outra NF
+    // nesta conta ("Conta já possui outra NF vinculada").
+    //
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: cpr, error: erroCpr } = await (supabase as any)
+      .from("contas_pagar_receber")
+      .select("nf_stage_id")
+      .eq("id", contaId)
+      .maybeSingle();
+    if (erroCpr) {
+      toast.error("Erro ao desanexar: " + erroCpr.message);
+      return;
+    }
+
+    // Quando esta é a NF que a conta aponta, o lado da CPR vai PRIMEIRO: é esse
+    // UPDATE que dispara o gatilho e recalcula o status da NF. Quando não é, nenhuma
+    // CPR aponta para ela e o status não muda — só o lado da NF precisa ser solto.
+    //
+    // Existe nas migrations uma RPC `desvincular_nf_de_conta` que faria os dois
+    // lados de uma vez, mas ela NÃO está no schema vivo (ausente de types.ts,
+    // enquanto todas as funções vizinhas estão lá) — chamá-la quebraria em runtime.
+    // Até ela ser aplicada, os dois UPDATEs ficam aqui.
+    if (cpr?.nf_stage_id === nfId) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any)
+        .from("contas_pagar_receber")
+        .update({ nf_stage_id: null })
+        .eq("id", contaId);
+      if (error) {
+        toast.error("Erro ao desanexar: " + error.message);
+        return;
+      }
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any)
       .from("nfs_stage")
@@ -964,10 +1006,12 @@ function NFsAnexadasSecao({ contaId }: { contaId: string }) {
       toast.error("Erro ao desanexar: " + error.message);
       return;
     }
+
     toast.success("NF desanexada");
     qc.invalidateQueries({ queryKey: ["nfs-anexadas-cpr", contaId] });
     qc.invalidateQueries({ queryKey: ["conta-pagar-detalhe", contaId] });
     qc.invalidateQueries({ queryKey: ["nfs-stage"] });
+    qc.invalidateQueries({ queryKey: ["despesas-por-stage"] });
     qc.invalidateQueries({ queryKey: ["contas-pagar"] });
   }
 
