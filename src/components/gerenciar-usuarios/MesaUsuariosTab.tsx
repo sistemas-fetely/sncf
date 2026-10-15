@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { ConfirmacaoDupla } from "@/components/ConfirmacaoDupla";
 import { ReenviarLinkAcessoButton } from "@/components/auth/ReenviarLinkAcessoButton";
 import { DefinirSenhaButton } from "@/components/gerenciar-usuarios/DefinirSenhaButton";
+import { AlterarEmailButton } from "@/components/gerenciar-usuarios/AlterarEmailButton";
 import {
   useAdicionarUsuarioAoGrupo,
   useRemoverUsuarioDoGrupo,
@@ -523,6 +524,7 @@ export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario
                           <Link2 className="h-3.5 w-3.5" /> Vincular
                         </Button>
                       )}
+                      <AlterarEmailButton userId={l.userId} nome={l.nome} emailAtual={l.email} />
                       <ReenviarLinkAcessoButton variant="icon" userId={l.userId} nome={l.nome} />
                       <DefinirSenhaButton userId={l.userId} nome={l.nome} />
                       {l.banned ? (

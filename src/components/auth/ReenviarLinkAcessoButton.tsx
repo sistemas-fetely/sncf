@@ -14,6 +14,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 
 interface Props {
@@ -71,14 +72,19 @@ export function ReenviarLinkAcessoButton({ userId, nome, variant = "button", onS
           <Key className="h-4 w-4" /> Link
         </Button>
       ) : variant === "icon" ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setOpen(true)}
-          className="h-8 w-8 text-muted-foreground hover:text-gold hover:bg-gold/10"
-        >
-          <Key className="h-3.5 w-3.5" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setOpen(true)}
+              className="h-8 w-8 text-muted-foreground hover:text-gold hover:bg-gold/10"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Enviar link de acesso por e-mail</TooltipContent>
+        </Tooltip>
       ) : (
         <button
           type="button"
