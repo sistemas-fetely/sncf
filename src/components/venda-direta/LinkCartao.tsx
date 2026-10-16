@@ -221,6 +221,8 @@ const COR_STATUS: Record<string, "default" | "secondary" | "destructive" | "outl
 };
 
 /** Dialog da Gestão: link mais recente + gerar novo + verificar pagamento. */
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
   const qc = useQueryClient();
   const [ocupado, setOcupado] = useState<null | "gerar" | "verificar">(null);
@@ -229,7 +231,25 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const cfgQ = useCfgParcelas();
   const meioDlg: MeioLink = linha?.pagamento === "pix" ? "pix" : "cartao";
 
-  useEffect(() => { setResultado(null); setParcelas(null); }, [linha?.id]);
+  const [emailNovo, setEmailNovo] = useState("");
+  useEffect(() => { setResultado(null); setParcelas(null); setEmailNovo(""); }, [linha?.id]);
+
+  // Safrapay exige email do comprador: lê o cadastro do cliente da venda.
+  const clienteQ = useQuery({
+    queryKey: ["venda-direta-cliente-email", linha?.id],
+    enabled: !!linha?.id,
+    queryFn: async (): Promise<{ parceiro_id: string | null; email: string | null }> => {
+      const { data: ped, error } = await supabase.from("pedidos").select("parceiro_id").eq("id", linha?.id as string).single();
+      if (error) throw error;
+      const pid = (ped as { parceiro_id: string | null }).parceiro_id;
+      if (!pid) return { parceiro_id: null, email: null };
+      const { data: pc, error: e2 } = await supabase.from("parceiros_comerciais").select("email").eq("id", pid).maybeSingle();
+      if (e2) throw e2;
+      return { parceiro_id: pid, email: ((pc as { email: string | null } | null)?.email ?? "").trim() || null };
+    },
+  });
+  const semEmail = clienteQ.isSuccess && !clienteQ.data.email;
+  const emailValido = EMAIL_RE.test(emailNovo.trim());
 
   const q = useQuery({
     queryKey: ["venda-direta-pagamento-link", linha?.id],
@@ -255,6 +275,15 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
     if (!linha) return;
     setOcupado("gerar"); setResultado(null);
     try {
+      if (semEmail) {
+        const pid = clienteQ.data?.parceiro_id;
+        if (!pid) throw new Error("Pedido sem cliente vinculado — não há onde gravar o email.");
+        const { data: upd, error: eUp } = await supabase.from("parceiros_comerciais")
+          .update({ email: emailNovo.trim().toLowerCase() }).eq("id", pid).is("email", null).select("id");
+        if (eUp) throw new Error(`Gravar email do cliente: ${eUp.message}`);
+        if (!upd?.length) throw new Error("Email do cliente não foi gravado (sem permissão ou já preenchido). Recarregue o modal.");
+        await clienteQ.refetch();
+      }
       const r = await chamarEdge<LinkCartaoOk>("safrapay-link", { pedido_id: linha.id, forcar_novo: true, ...(meioDlg === "cartao" ? { max_parcelas: parcelasEfetivas } : {}) });
       toast.success(meioDlg === "pix" ? "Novo link PIX gerado" : `Novo link gerado · ${textoParcelas(r.max_parcelas)}`);
       setParcelas(null);
@@ -325,6 +354,15 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
             ) : null}
           </div>
         )}
+        {clienteQ.isError && <p className="text-sm text-destructive">Cadastro do cliente: {rawMessage(clienteQ.error)}</p>}
+        {semEmail && (
+          <div className="space-y-1 rounded-md border border-warning/40 bg-warning/10 p-3">
+            <label htmlFor="vd-email-cliente" className="text-sm font-medium">Email do cliente</label>
+            <Input id="vd-email-cliente" type="email" required value={emailNovo} onChange={(e) => setEmailNovo(e.target.value)} placeholder="cliente@exemplo.com" disabled={!!ocupado} />
+            <p className="text-xs text-muted-foreground">Necessário para gerar o link de pagamento.</p>
+            {emailNovo.trim() !== "" && !emailValido && <p className="text-xs text-destructive">Email inválido.</p>}
+          </div>
+        )}
         {resultado && <p className="text-sm">{resultado}</p>}
         {cfgQ.isError && <p className="text-sm text-destructive">Regras de parcelamento: {rawMessage(cfgQ.error)}</p>}
         <DialogFooter className="flex-wrap gap-2">
@@ -337,7 +375,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
               <SelectParcelas value={parcelasEfetivas} onChange={setParcelas} disabled={!!ocupado} />
             </div>
           )}
-          <Button variant="outline" disabled={!!ocupado} onClick={gerarNovo}>
+          <Button variant="outline" disabled={!!ocupado || clienteQ.isLoading || (semEmail && !emailValido)} onClick={gerarNovo}>
             {ocupado === "gerar" && <Loader2 className="h-4 w-4 animate-spin" />} Gerar novo link
           </Button>
           <Button variant="outline" onClick={onClose}>Fechar</Button>
