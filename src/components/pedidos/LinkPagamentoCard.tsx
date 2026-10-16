@@ -260,7 +260,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
               <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
               <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
             </div>
-            {l.url && <UrlCopiavel url={l.url} />}
+            {l.url && l.url !== linha?.link && <UrlCopiavel url={l.url} />}
             {l.pix_copia_cola && <UrlCopiavel url={l.pix_copia_cola} />}
             {l.erro && <p className="text-xs text-destructive">{l.erro}</p>}
           </div>
@@ -281,7 +281,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
               <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
               <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
             </div>
-            {l.url && <UrlCopiavel url={l.url} />}
+            {l.url && l.url !== linha?.link && <UrlCopiavel url={l.url} />}
             {l.pix_copia_cola && <UrlCopiavel url={l.pix_copia_cola} />}
             {l.erro && <p className="text-xs text-destructive">{l.erro}</p>}
           </div>

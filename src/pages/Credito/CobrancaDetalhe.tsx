@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -386,7 +386,6 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
   const linhasQ = useLinhasCobrancaPedido(pedido.id);
   const haverQ = useHaverAplicadoPedido(pedido.id);
-  const linkCardRef = useRef<HTMLDivElement>(null);
   const comunicacaoAcaoRef = useRef<{ abrirEnvio: (tipo: any) => void } | null>(null);
 
   const emailLogQ = useQuery({
@@ -428,14 +427,10 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
 
   const emCobranca = pedido.estagio === "cobranca";
 
-  function scrollPara(ref: RefObject<HTMLDivElement>) {
-    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }
-
-  const acaoPrimaria: { label: string; onClick: () => void } = linhas.length === 0
+  const acaoPrimaria: { label: string; onClick: () => void } | null = linhas.length === 0
     ? { label: "Montar plano", onClick: () => navigate(`/recebimento/cobranca/${pedido.id}?refazer=1`) }
     : !temInstrumento
-      ? { label: "Cadastrar link de pagamento", onClick: () => scrollPara(linkCardRef) }
+      ? null // o próprio card de link já oferece as ações
       : !enviadoAoCliente
         ? { label: "Enviar cobrança", onClick: () => comunicacaoAcaoRef.current?.abrirEnvio("cobranca") }
         : { label: "Reenviar cobrança", onClick: () => comunicacaoAcaoRef.current?.abrirEnvio("cobranca") };
@@ -546,7 +541,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
       {!linhasQ.isLoading && <PortaoLinksPanel pedidoId={pedido.id} />}
 
       {/* (e) LINK DE PAGAMENTO DO PEDIDO */}
-      <div ref={linkCardRef}>
+      <div>
         <LinkPagamentoCard pedidoId={pedido.id} />
       </div>
 
@@ -574,7 +569,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             <Ticket className="h-4 w-4" />
             Abrir chamado
           </Button>
-          <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>
+          {acaoPrimaria && <Button onClick={acaoPrimaria.onClick}>{acaoPrimaria.label}</Button>}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="Mais ações">
