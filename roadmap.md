@@ -50,3 +50,5 @@
 - [x] Tirar a proteção de aba da planilha de cadastro (aba "cadastro" e "Banco GS1"), mantendo cinza, listas, freeze e filtro.
 - [x] Datas do ciclo no painel do consignado: "Fechamento dia X · Pagamento dia Y", com fechamento nulo mostrando só o pagamento; WeConnect e Utilplast conferidos no navegador, typecheck e build ok.
 - [ ] Campo "Dia de fechamento" no cadastro do parceiro (bloqueado: consignado_dia_acerto não é editável em nenhuma tela hoje; definir onde os dois campos devem ficar).
+
+- [x] Um botão por estado em aguardando_pagamento: confirmar só com linha em aberto, descer só sem portão aberto; PED-2338 conferido no navegador nos dois estados, sem banco/publicação.
