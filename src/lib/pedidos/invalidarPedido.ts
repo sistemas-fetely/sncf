@@ -102,6 +102,8 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   // Cobrança: chaves ["cobranca-*", pedidoId] não são alcançadas pelo prefixo
   // ["pedido"] (o TanStack casa prefixo elemento a elemento) e usam staleTime alto.
   "cobranca-pedido-minimo",
+  // parcelas/instrumento_pronto da tela de cobrança (useLinhasCobrancaPedido)
+  "linhas-cobranca-pedido",
   "cobranca-plano-existente",
   "cobranca-proposta",
   // PreFaturamentoCard — some depois de enviar/declarar âncora.
