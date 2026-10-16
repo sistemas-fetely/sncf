@@ -274,6 +274,9 @@ Deno.serve(async (req) => {
       parceiro = pc;
     }
     const customer = montarCustomer(parceiro, pedido, avisos);
+    // Safrapay recusa (HTTP 400 "Propriedade 'Email' está ausente") sem email do comprador.
+    const emailCli = txt(parceiro?.email);
+    if (!emailCli || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailCli)) return await falhar("Cliente sem email cadastrado", 422);
 
     const payloadBase: any = {
       amount,
