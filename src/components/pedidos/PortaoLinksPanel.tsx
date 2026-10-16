@@ -5,7 +5,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PixQrCode } from "@/components/pedidos/PixQrCode";
 import { Fragment, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
@@ -276,16 +275,6 @@ export function PortaoLinksPanel({ pedidoId }: { pedidoId: string }) {
                 </div>
               </div>
 
-              {p.tipo_pagamento === "pix" && !pago && (
-                <PixQrCode
-                  provisaoId={p.id}
-                  pedidoId={p.pedido_id}
-                  tipoPagamento={p.tipo_pagamento}
-                  linkPagamento={p.link_pagamento}
-                  pixTxid={p.pix_txid}
-                  valor={Number(p.valor ?? 0)}
-                />
-              )}
             </div>
           );
         })}
