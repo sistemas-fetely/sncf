@@ -230,12 +230,21 @@ export default function Parceiros() {
   const { data, isLoading } = useQuery({
     queryKey: ["parceiros"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parceiros_comerciais")
-        .select("*")
-        .order("razao_social");
-      if (error) throw error;
-      return data as Parceiro[];
+      // O banco devolve no máximo 1.000 linhas por chamada: carrega em lotes.
+      const LOTE = 1000;
+      const todos: Parceiro[] = [];
+      for (let de = 0; ; de += LOTE) {
+        const { data, error } = await supabase
+          .from("parceiros_comerciais")
+          .select("*")
+          .order("razao_social")
+          .order("id")
+          .range(de, de + LOTE - 1);
+        if (error) throw error;
+        todos.push(...((data ?? []) as Parceiro[]));
+        if (!data || data.length < LOTE) break;
+      }
+      return todos;
     },
   });
 
