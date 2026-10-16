@@ -700,6 +700,18 @@ function AcaoDescerPreSeparacao({ pedido, estagio }: { pedido: any; estagio: Est
   const faltaFin = transicionar.faltaLastroFinanceiro;
   const { permitido: podeForcarFinanceiro } = usePermissaoAcao("acao.pedido_forcar_prazo_credito");
   const reabrir = useReabrirAnalisePedido();
+  // UM-BOTÃO-POR-ESTADO (16/10/2026): em aguardando_pagamento a descida só é
+  // ação quando não falta pagamento — com portão em aberto a ação única é
+  // confirmar o pagamento. Mesma query do painel de ações (nada novo no ar).
+  const { data: planoAberto, isPending: planoCarregando } = usePlanoAbertoPedido(
+    pedido.id,
+    estagio === "aguardando_pagamento",
+  );
+  if (
+    estagio === "aguardando_pagamento" &&
+    (planoCarregando || (planoAberto ?? []).some((l) => l.eh_portao === true))
+  )
+    return null;
 
   return (
     <>
@@ -859,6 +871,8 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
   const linhaALinha = (plano ?? []).filter((l) =>
     ["pix", "boleto"].includes((l.tipo_pagamento ?? "").toLowerCase()),
   );
+  // UM-BOTÃO-POR-ESTADO: sem linha em aberto não há o que confirmar.
+  const temLinhaAberta = cartao.length + linhaALinha.length > 0;
 
   const resumoMeios = (linhas: typeof linhaALinha) => {
     const porMeio = new Map<string, number>();
@@ -878,11 +892,13 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
     <div className="flex flex-col gap-2 w-full">
       {temNivel(3) && (
         <>
-          <Button size="sm" onClick={() => setConfirmarAberto(true)}>
-            {cartao.length > 0 && linhaALinha.length === 0
-              ? "Confirmar captura"
-              : "Confirmar pagamento"}
-          </Button>
+          {temLinhaAberta && (
+            <Button size="sm" onClick={() => setConfirmarAberto(true)}>
+              {cartao.length > 0 && linhaALinha.length === 0
+                ? "Confirmar captura"
+                : "Confirmar pagamento"}
+            </Button>
+          )}
           {mostraUsarSaldo && (
             <Button size="sm" variant="outline" onClick={usarSaldo.iniciar} disabled={usarSaldo.simulando}>
               Usar saldo da conta
@@ -893,13 +909,15 @@ function AcoesAguardandoPagamento({ pedido }: { pedido: any; geraTituloReceber?:
               Cartão em aberto: {resumoMeios(cartao)} — fecha pela captura (NSU).
             </p>
           )}
-          <ConfirmarPagamentoDialog
-            pedidoId={pedido.id}
-            aberto={confirmarAberto}
-            aoFechar={() => setConfirmarAberto(false)}
-            modo="sops"
-            aoUsarSaldoConta={usarSaldo.iniciar}
-          />
+          {temLinhaAberta && (
+            <ConfirmarPagamentoDialog
+              pedidoId={pedido.id}
+              aberto={confirmarAberto}
+              aoFechar={() => setConfirmarAberto(false)}
+              modo="sops"
+              aoUsarSaldoConta={usarSaldo.iniciar}
+            />
+          )}
           {usarSaldo.dialogo}
         </>
       )}
