@@ -567,12 +567,6 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               </Badge>
                             )}
                           </div>
-                          {r.data_entrega_prevista && (
-                            <div className="text-[10px] text-muted-foreground mt-0.5">
-                              entrega {formatDateBR(r.data_entrega_prevista)}
-                              {r.meta_provisoria ? " (provisória)" : ""}
-                            </div>
-                          )}
                           <div className="mt-1">
                             <BadgeLinkFila linha={linksFila?.[r.pedido_id]} />
                           </div>
