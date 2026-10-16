@@ -128,9 +128,11 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
   const pixAtivoQ = usePixSafrapayAtivo();
   const pixAtivo = pixAtivoQ.data === true;
   const abertas = provisoesQ.data ?? [];
+  // PIX só tem QR enquanto a provisão está "prevista". "consumida" já virou título
+  // depois da NF — a cobrança mora no título, não aqui.
+  const linhasPix = abertas.filter((p) => p.tipo_pagamento === "pix" && p.status === "prevista");
   const temCartao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "cartao");
-  const linhasPix = abertas.filter((p) => p.tipo_pagamento === "pix");
-  const temPixPortao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "pix");
+  const temPixPortao = linhasPix.some((p) => p.eh_portao === true);
   const linksVisiveis = (linksApiQ.data ?? []).filter((l) => l.status === "aberto" || l.status === "pago");
   const tentativas = (linksApiQ.data ?? []).filter((l) => l.status === "erro" || l.status === "cancelado");
   const temLinkAberto = (linksApiQ.data ?? []).some((l) => l.status === "aberto");
