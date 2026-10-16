@@ -16,6 +16,9 @@ import {
 } from "@/components/ui/collapsible";
 import { Check, ChevronDown, Copy, CreditCard, Link2, Loader2, RefreshCw, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatBRL } from "@/lib/format-currency";
+import { PixQrCode } from "@/components/pedidos/PixQrCode";
+import { usePixSafrapayAtivo } from "@/hooks/pagamentos/usePixSafrapayAtivo";
 import { hojeISO } from "@/lib/data";
 import {
   fmtDataBR,
@@ -106,7 +109,8 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
     queryKey: ["provisoes-pedido", pedidoId, "links"],
     queryFn: async () => {
       const { data, error } = await supabase.from("provisao_recebimento")
-        .select("tipo_pagamento, status, pago_em").eq("pedido_id", pedidoId).eq("eh_portao", true).is("pago_em", null);
+        .select("id, pedido_id, valor, link_pagamento, pix_txid, numero_parcela, eh_portao, tipo_pagamento, status, pago_em")
+        .eq("pedido_id", pedidoId).is("pago_em", null).order("numero_parcela", { ascending: true });
       if (error) throw error;
       return (data ?? []).filter((p) => !["pago", "cancelado", "cancelada"].includes(String(p.status)));
     },
@@ -121,6 +125,16 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
       return data ?? [];
     },
   });
+  const pixAtivoQ = usePixSafrapayAtivo();
+  const pixAtivo = pixAtivoQ.data === true;
+  const abertas = provisoesQ.data ?? [];
+  const temCartao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "cartao");
+  const linhasPix = abertas.filter((p) => p.tipo_pagamento === "pix");
+  const temPixPortao = abertas.some((p) => p.eh_portao === true && p.tipo_pagamento === "pix");
+  const linksVisiveis = (linksApiQ.data ?? []).filter((l) => l.status === "aberto" || l.status === "pago");
+  const tentativas = (linksApiQ.data ?? []).filter((l) => l.status === "erro" || l.status === "cancelado");
+  const temLinkAberto = (linksApiQ.data ?? []).some((l) => l.status === "aberto");
+  const [tentAberto, setTentAberto] = useState(false);
   const atualizar = async () => {
     await invalidarPedido(qc, pedidoId);
   };
@@ -169,7 +183,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
         link: url,
         gerado_em: geradoEm || hojeISO(),
         expira_em: expiraEm || null,
-        tipo_pagamento: linha?.tipo_pagamento ?? null,
+        tipo_pagamento: "cartao",
         motivo: motivo.trim() || null,
       });
       setNovoLink("");
@@ -206,7 +220,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
                   </p>
                 )}
               </>
-            ) : linksApiQ.data?.length ? null : (
+            ) : linksVisiveis.length || (!pixAtivo && linhasPix.length) ? null : (
               <p className="text-sm text-muted-foreground">Nenhum link cadastrado</p>
             )}
           </div>
@@ -220,7 +234,7 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
           <p role="alert" className="text-xs text-destructive">{(provisoesQ.error ?? linksApiQ.error)?.message}</p>
         )}
         <div className="flex flex-wrap gap-2">
-          {(["cartao", "pix"] as const).map((meio) => provisoesQ.data?.some((p) => p.tipo_pagamento === meio) && (
+          {(["cartao", "pix"] as const).map((meio) => (meio === "cartao" ? temCartao : pixAtivo && temPixPortao) && (
             <BotaoGuardado key={meio} slug="acao.cobranca_gerar_link" rotuloAcao="Gerar link de pagamento"
               contexto={{ pedido_id: pedidoId }} size="sm" variant="outline" disabled={ocupado !== null}
               className="gap-1.5" onClick={() => void gerar(meio)}>
@@ -230,7 +244,16 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
           ))}
         </div>
         {linksApiQ.isLoading && <Skeleton className="h-12 w-full" />}
-        {linksApiQ.data?.map((l) => (
+        {!pixAtivo && linhasPix.map((p) => (
+          <div key={p.id} className="border-t pt-2 space-y-1">
+            {linhasPix.length > 1 && (
+              <p className="text-xs font-medium">PIX · parcela {p.numero_parcela ?? "—"} · {formatBRL(Number(p.valor ?? 0))}</p>
+            )}
+            <PixQrCode provisaoId={p.id} pedidoId={p.pedido_id} tipoPagamento="pix"
+              linkPagamento={p.link_pagamento} pixTxid={p.pix_txid} valor={Number(p.valor ?? 0)} />
+          </div>
+        ))}
+        {linksVisiveis.map((l) => (
           <div key={l.id} className="border-t pt-2 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs font-medium">{l.meio === "pix" ? "PIX" : "Cartão"}</span>
@@ -242,21 +265,47 @@ export function LinkPagamentoCard({ pedidoId, className }: { pedidoId: string; c
             {l.erro && <p className="text-xs text-destructive">{l.erro}</p>}
           </div>
         ))}
-        {!!linksApiQ.data?.length && (
+        {tentativas.length > 0 && (
+          <Collapsible open={tentAberto} onOpenChange={setTentAberto}>
+            <CollapsibleTrigger asChild>
+              <button type="button" className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", tentAberto && "rotate-180")} />
+                Tentativas anteriores ({tentativas.length})
+              </button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              {tentativas.map((l) => (
+                    <div key={l.id} className="border-t pt-2 space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium">{l.meio === "pix" ? "PIX" : "Cartão"}</span>
+              <Badge variant="secondary" className="text-[10px]">{l.status}</Badge>
+              <span className="text-[11px] text-muted-foreground">Válido até {fmtDataBR(l.expira_em)}</span>
+            </div>
+            {l.url && <UrlCopiavel url={l.url} />}
+            {l.pix_copia_cola && <UrlCopiavel url={l.pix_copia_cola} />}
+            {l.erro && <p className="text-xs text-destructive">{l.erro}</p>}
+          </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+        {temLinkAberto && (
           <BotaoGuardado slug="acao.cobranca_gerar_link" rotuloAcao="Gerar link de pagamento" contexto={{ pedido_id: pedidoId }}
             size="sm" variant="outline" disabled={ocupado !== null} className="gap-1.5" onClick={() => void sincronizar()}>
             {ocupado === "sync" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Sincronizar agora
           </BotaoGuardado>
         )}
+        {temCartao && (
         <Button size="sm" variant="outline" className="gap-1.5 h-auto py-2 max-w-full whitespace-normal text-left" onClick={() => setForm((v) => !v)}>
           <RefreshCw className="h-3.5 w-3.5" />
-          Cadastrar link manual (failover)
+          Cadastrar link de cartão manual (failover)
         </Button>
-        {form && (
+        )}
+        {form && temCartao && (
           <div className="rounded-md border bg-muted/40 p-3 space-y-3">
             <div className="space-y-1.5">
-              <Label htmlFor="lp-url" className="text-xs">Link novo do SafraPay</Label>
+              <Label htmlFor="lp-url" className="text-xs">Link de cartão do SafraPay</Label>
               <Input
                 id="lp-url"
                 type="url"
