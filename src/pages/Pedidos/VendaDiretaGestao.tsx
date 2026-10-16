@@ -519,9 +519,22 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                         <TableCell>
-                          <Selo estado={situacaoEstado}>
-                            {situacaoRotulo}
-                          </Selo>
+                          {reembolsoAtivo && !cancelNfAberto ? (
+                            <Link
+                              to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
+                              title="Abrir reembolso em Devoluções › Cancelamento sem NF"
+                              aria-label="Abrir reembolso em Devoluções › Cancelamento sem NF"
+                              className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
+                            >
+                              <Selo estado={situacaoEstado}>
+                                {situacaoRotulo}
+                              </Selo>
+                            </Link>
+                          ) : (
+                            <Selo estado={situacaoEstado}>
+                              {situacaoRotulo}
+                            </Selo>
+                          )}
                           {cancelNfAberto && <div className="mt-1 text-xs text-muted-foreground">{cancelNfAberto.etapa}</div>}
                           {!cancelNfAberto && reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
