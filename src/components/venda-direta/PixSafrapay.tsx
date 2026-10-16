@@ -8,6 +8,7 @@ import { formatBRL } from "@/lib/format-currency";
 import { Button } from "@/components/ui/button";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
+import { usePixSafrapayAtivo } from "@/hooks/pagamentos/usePixSafrapayAtivo";
 
 export const QK_VD_PIX_SAFRA = "venda-direta-pix-safrapay";
 
@@ -29,18 +30,7 @@ export function usePixSafrapay(pedidoId: string | null | undefined) {
   });
 }
 
-/** safrapay_config.pix_ativo — false = PIX local é o oficial. */
-export function usePixSafrapayAtivo() {
-  return useQuery({
-    queryKey: ["safrapay-config-pix-ativo"],
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("safrapay_config" as never).select("pix_ativo").eq("id", 1).maybeSingle();
-      if (error) throw error;
-      return (data as unknown as { pix_ativo: boolean | null } | null)?.pix_ativo === true;
-    },
-  });
-}
+export { usePixSafrapayAtivo };
 
 export function SeloConfirmacaoAutomatica() {
   return (
