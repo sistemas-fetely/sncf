@@ -1147,10 +1147,18 @@ export default function PedidoDetalhe() {
   const registrarEvento = useRegistrarEventoPedido();
   const [obsSop, setObsSop] = useState("");
   const [transportadoraId, setTransportadoraId] = useState("");
+  // "Definida pelo cliente (a confirmar)": estado DEDUZIDO (sem transportadora +
+  // frete_tipo em que a Fetely não paga a transportadora, lido de frete_tipos).
+  const [transpCliente, setTranspCliente] = useState(false);
   const [pesoBruto, setPesoBruto] = useState("");
   const [recalculandoPeso, setRecalculandoPeso] = useState(false);
   const [freteTipo, setFreteTipo] = useState("");
   const { tipos: freteTiposAtivos } = useFreteTipos();
+  // Tipo de frete em que a Fetely não paga a transportadora (hoje FOB_CLIENTE) — da dimensão.
+  const freteTipoCliente =
+    freteTiposAtivos.find((t) => t.codigo === "FOB_CLIENTE" && t.fetely_paga_transportadora === false)?.codigo ??
+    freteTiposAtivos.find((t) => t.fetely_paga_transportadora === false)?.codigo ??
+    null;
   const [valorFrete, setValorFrete] = useState("");
   const [confirmarFreteOpen, setConfirmarFreteOpen] = useState(false);
   
@@ -1391,6 +1399,7 @@ export default function PedidoDetalhe() {
     data?.pedido?.peso_bruto_total ?? "",
     data?.pedido?.frete_tipo ?? "",
     data?.pedido?.valor_frete ?? "",
+    freteTiposAtivos.length,
   ].join("|");
   const envioServidorRef = useRef<string | null>(null);
 
@@ -1401,6 +1410,10 @@ export default function PedidoDetalhe() {
 
     envioServidorRef.current = envioServidor;
     setTransportadoraId(pedidoAtual.transportadora_id ?? "");
+    setTranspCliente(
+      !pedidoAtual.transportadora_id &&
+        freteTiposAtivos.find((t) => t.codigo === pedidoAtual.frete_tipo)?.fetely_paga_transportadora === false,
+    );
     setPesoBruto(String(pedidoAtual.peso_bruto_total ?? ""));
     setFreteTipo(pedidoAtual.frete_tipo ?? "");
     setValorFrete(String(pedidoAtual.valor_frete ?? ""));
@@ -1467,6 +1480,8 @@ export default function PedidoDetalhe() {
     salvarDadosEnvio.mutate({
       pedidoId: id,
       transportadoraId: transportadoraId || null,
+      // "Nenhuma" e "Definida pelo cliente" tiram a transportadora de verdade.
+      limparTransportadora: !transportadoraId,
       pesoBrutoTotal: pesoBrutoAlterado ? parseFloat(pesoBruto) : null,
       freteTipo: freteTipoAlterado ? freteTipo : null,
       valorFrete: valorFreteAlterado && valorFreteNum !== null ? valorFreteNum : null,
@@ -2209,10 +2224,26 @@ export default function PedidoDetalhe() {
                 <CardContent className="space-y-3">
                   <div className="space-y-1.5">
                     <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Transportadora</label>
-                    <Select value={transportadoraId || "__none__"} onValueChange={(v) => setTransportadoraId(v === "__none__" ? "" : v)} disabled={!temNivel(2)}>
+                    <Select
+                      value={transpCliente ? "__cliente__" : (transportadoraId || "__none__")}
+                      onValueChange={(v) => {
+                        if (v === "__cliente__") {
+                          setTransportadoraId("");
+                          setTranspCliente(true);
+                          if (freteTipoCliente) setFreteTipo(freteTipoCliente);
+                          return;
+                        }
+                        setTranspCliente(false);
+                        setTransportadoraId(v === "__none__" ? "" : v);
+                      }}
+                      disabled={!temNivel(2)}
+                    >
                       <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="__none__">— Nenhuma —</SelectItem>
+                        {freteTipoCliente && (
+                          <SelectItem value="__cliente__">Definida pelo cliente (a confirmar)</SelectItem>
+                        )}
                         {(transportadoras.data ?? []).map((t) => (
                           <SelectItem key={t.id} value={t.id}>
                             {t.razao_social}

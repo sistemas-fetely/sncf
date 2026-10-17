@@ -6,6 +6,7 @@ import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 interface DadosEnvio {
   pedidoId: string;
   transportadoraId: string | null;
+  limparTransportadora?: boolean;
   pesoBrutoTotal?: number | null;
   freteTipo?: string | null;
   valorFrete?: number | null;
@@ -22,6 +23,7 @@ export function useSalvarDadosEnvio() {
     mutationFn: async ({
       pedidoId,
       transportadoraId,
+      limparTransportadora,
       pesoBrutoTotal,
       freteTipo,
       valorFrete,
@@ -36,6 +38,7 @@ export function useSalvarDadosEnvio() {
         p_valor_frete:       valorFrete ?? null,
         p_estimativa_valor:  estimativaValor ?? null,
         p_estimativa_json:   estimativaJson ?? null,
+        p_limpar_transportadora: !!limparTransportadora,
       });
       if (error) throw error;
       return data as { ok: boolean; novo_liquido: number; valor_frete: number };
