@@ -100,7 +100,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 import { ESTAGIO_LABELS, AREA_LABELS, STATUS_TITULO_LABELS, URGENCIA_LABELS } from "@/types/pedido";
 import type { AreaPedido, EstagioPedido, StatusTitulo, TipoTituloPagamento, TituloAReceber, UrgenciaDeclarada } from "@/types/pedido";
-import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, Bell, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
+import { ArrowLeft, AlertCircle, ExternalLink, Receipt, Loader2, Sparkles, Clock, CheckCircle2, ArrowRight, Package, PackageSearch, Copy, Truck, RefreshCw, Scissors, Mail, MailCheck, ShieldAlert, MessageCircle, Link2, Wallet, PauseCircle, XCircle, History, RotateCcw, Scale, PackageX, Link2Off } from "lucide-react";
 import { useFreteComparativo, useSugestaoTransportadora } from "@/hooks/pedidos/useFreteComparativo";
 import { useCotacaoCorreios, useTranspCotacaoApi, persistirCotacaoCorreiosB2B, type OpcaoCorreios } from "@/hooks/pedidos/useCotacaoCorreios";
 import { CompararTransportadorasDialog } from "@/components/pedidos/dialogs/CompararTransportadorasDialog";
@@ -1726,16 +1726,24 @@ export default function PedidoDetalhe() {
           "mx-6 mb-3 flex items-start gap-3 rounded-lg border p-3",
           (pedido as any).atencao_nivel === 'pausa'
             ? "border-destructive/40 bg-destructive/10 text-destructive"
-            : "border-warning/40 bg-warning/10 text-warning"
+            // AVISO é instrução operacional: âmbar cheio + tarja lateral, nunca vermelho.
+            : "border-warning/50 border-l-4 border-l-warning-strong bg-warning/20 text-warning-strong"
         )}>
           {(pedido as any).atencao_nivel === 'pausa'
             ? <PauseCircle className="h-5 w-5 mt-0.5 shrink-0" />
-            : <Bell className="h-5 w-5 mt-0.5 shrink-0" />}
+            : <AlertTriangle className="h-6 w-6 mt-0.5 shrink-0 text-warning-strong" />}
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium uppercase tracking-wide">
+            <p className={cn(
+              "text-xs uppercase",
+              (pedido as any).atencao_nivel === 'pausa'
+                ? "font-medium tracking-wide"
+                : "font-bold tracking-wider"
+            )}>
               {(pedido as any).atencao_nivel === 'pausa' ? 'PEDIDO PAUSADO' : 'AVISO'}
             </p>
-            <p className="text-sm">{(pedido as any).atencao_motivo}</p>
+            <p className={cn("text-sm", (pedido as any).atencao_nivel === 'pausa' ? "" : "font-medium")}>
+              {(pedido as any).atencao_motivo}
+            </p>
           </div>
           {!estagioFinal && (
             <Button
