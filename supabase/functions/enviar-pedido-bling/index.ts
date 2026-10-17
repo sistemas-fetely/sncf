@@ -1440,6 +1440,32 @@ if (itensSemProdutoBling.length > 0) {
         }
       }
 
+      // TRANSPORTADORA-APRENDE-BLING-ID (17/10/2026): transportadora sem bling_id desce
+      // por nome (transporte.contato.nome) e o checklist do pré-faturamento acusa aviso
+      // ("sem bling_id") em todo envio. Depois de um envio OK, relê o pedido no Bling e
+      // grava o id do contato que o Bling RESOLVEU — 200 não prova que o campo foi
+      // entendido, então só vale o id lido de volta. Nunca sobrescreve bling_id existente.
+      // Falha aqui não derruba o envio (o pedido já existe no Bling) — só loga.
+      if (pedido.transportadora_id && !blingTransportadoraId && transpNome) {
+        try {
+          const resT = await client.get(`/pedidos/vendas/${blingId}`);
+          const contatoId = Number(resT?.data?.transporte?.contato?.id ?? 0);
+          if (contatoId > 0) {
+            const { error: eT } = await supabase
+              .from("parceiros_comerciais")
+              .update({ bling_id: String(contatoId) })
+              .eq("id", pedido.transportadora_id)
+              .is("bling_id", null);
+            if (eT) console.warn("[enviar-pedido-bling] gravar bling_id da transportadora falhou", { pedido_id, erro: eT.message });
+            else console.log("[enviar-pedido-bling] bling_id da transportadora aprendido", { pedido_id, transportadora_id: pedido.transportadora_id, contato_id: contatoId });
+          } else {
+            console.warn("[enviar-pedido-bling] Bling não resolveu contato da transportadora", { pedido_id, bling_id: blingId, transportadora: transpNome });
+          }
+        } catch (eT) {
+          console.warn("[enviar-pedido-bling] leitura de volta da transportadora falhou", { pedido_id, erro: (eT as Error).message });
+        }
+      }
+
       const { error: eEvBling } = await supabase.from("pedido_eventos").insert({
         pedido_id,
         tipo_evento: "bling_enviado",
