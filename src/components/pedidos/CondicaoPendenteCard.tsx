@@ -13,7 +13,6 @@ import {
   rotuloProposto,
   validarDias,
 } from "@/lib/pedidos/condicaoPendente";
-import { formatDateBR } from "@/lib/format-currency";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -334,7 +333,7 @@ export function CondicaoPendenteCard({ pedido }: { pedido: any }) {
                 <div className="text-sm space-y-0.5">
                   <p>Será criada: <strong>{rotuloProposto(forma, dias)}</strong></p>
                   <p className="text-muted-foreground">
-                    {previa.map((p) => `${brl(p.valor)} em ${formatDateBR(p.data.toISOString()).slice(0, 5)}`).join(" · ")}
+                    {previa.map((p) => `${brl(p.valor)} em ${p.data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`).join(" · ")}
                   </p>
                 </div>
               )}
