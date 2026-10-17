@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Selo } from "@/components/ui/selo";
 import { usePedidosFila } from "@/hooks/pedidos/usePedidosFila";
 import { usePortaoCandidato } from "@/hooks/pedidos/usePortaoCandidato";
+import { useCondicaoPendenteLote } from "@/hooks/pedidos/useCondicaoPendenteLote";
 import { BadgePortaoCandidato } from "@/components/pedidos/BadgePortaoCandidato";
 import { Switch } from "@/components/ui/switch";
 import { usePedidoRisco, usePedidoRiscoFaixas, RISCO_COR_TOKEN } from "@/hooks/pedidos/usePedidoRisco";
@@ -832,6 +833,9 @@ export function FilaPedidosPorArea({
     paginaAtual * pageSize,
   );
   const { data: candidatoMap, error: candidatoError } = usePortaoCandidato(pageItems.map((p) => p.id));
+  const { data: condicaoPendenteSet } = useCondicaoPendenteLote(
+    pageItems.filter((p) => p.estagio === "recebido" && p.recebido_via === "api").map((p) => p.id),
+  );
 
   if (isError) {
     return (
@@ -1050,6 +1054,11 @@ export function FilaPedidosPorArea({
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <p className="text-sm font-mono font-medium text-foreground flex items-center gap-1 min-w-0">
                       <span className="truncate" title={p.id_externo}>{p.id_externo}</span>
+                      {condicaoPendenteSet?.has(p.id) && (
+                        <span title="Condição a confirmar" aria-label="Condição a confirmar" className="shrink-0">
+                          <AlertTriangle className="h-3.5 w-3.5 text-warning-strong" />
+                        </span>
+                      )}
                       {(() => {
                         const motivos = risco?.risco_motivos ?? [];
                         const critico = motivos.some((m) => m.codigo === "urgencia_critica_declarada");

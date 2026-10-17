@@ -11,6 +11,7 @@ import { useTransicionarPedido } from "@/hooks/pedidos/useTransicionarPedido";
 import { ForcarSemLastroDialog } from "@/components/pedidos/dialogs/ForcarSemLastroDialog";
 import { useRegistrarOperacaoPedido } from "@/hooks/pedidos/useRegistrarOperacaoPedido";
 import { useRotearPedido } from "@/hooks/pedidos/useRotearPedido";
+import { EVENTO_DESTACAR_CONDICAO, ehMotivoCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
 import { useToast } from "@/hooks/use-toast";
 import type { EstagioPedido } from "@/types/pedido";
 
@@ -66,6 +67,15 @@ export function TriarPedidoDialog({
     if (acao === "pular") {
       // Liberar: a RPC decide o destino pela regra de forma/condição.
       const res = await rotear.mutateAsync({ p_pedido_id: pedido_id });
+      if (!res?.ok && ehMotivoCondicaoPendente(res?.motivo)) {
+        // Pendência de cadastro, não erro: leva o operador ao card de condição.
+        setOpen(false);
+        setAcao(null);
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent(EVENTO_DESTACAR_CONDICAO, { detail: { pedidoId: pedido_id } }));
+        }, 150);
+        return;
+      }
       if (!res?.ok) {
         toast({
           title: "Não foi possível liberar o pedido",

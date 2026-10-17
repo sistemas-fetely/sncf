@@ -9,6 +9,8 @@ import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTitulo
 import { usePedidoDetalhe } from "@/hooks/pedidos/usePedidoDetalhe";
 import { podeAcionarPagamento } from "@/lib/pedidos/acoesPagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
+import { temCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
+import { CondicaoPendenteCard } from "@/components/pedidos/CondicaoPendenteCard";
 import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
@@ -1710,6 +1712,11 @@ export default function PedidoDetalhe() {
           )}
         </div>
       </div>
+
+      {/* CONDICAO-E-VINCULO — condição do FOP sem vínculo no SNCF trava a saída de Recebido */}
+      {temCondicaoPendente(pedido as any, geraTituloReceber) && (
+        <CondicaoPendenteCard pedido={pedido} />
+      )}
 
       {/* Prova de pagamento — só aparece quando existe algum recebimento registrado */}
       {prova && prova.valor_recebido > 0 && (
