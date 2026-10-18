@@ -52,3 +52,5 @@
 - [ ] Campo "Dia de fechamento" no cadastro do parceiro (bloqueado: consignado_dia_acerto não é editável em nenhuma tela hoje; definir onde os dois campos devem ficar).
 
 - [x] Um botão por estado em aguardando_pagamento: confirmar só com linha em aberto, descer só sem portão aberto; PED-2338 conferido no navegador nos dois estados, sem banco/publicação.
+
+- [x] Esconder venda fora (Casa 22) do painel de Transferências, com chip para trazê-las de volta e selo "Remessa 5904: NF ..." na coluna NF; PED-2283/PED-2193 conferidos no navegador, sem banco/publicação.
