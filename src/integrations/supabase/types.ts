@@ -11190,6 +11190,7 @@ export type Database = {
           cfop: string
           classe: string | null
           condicao: string | null
+          condicao_entrada: string | null
           created_at: string
           descricao: string
           destino_por_parceiro: boolean
@@ -11216,6 +11217,7 @@ export type Database = {
           cfop: string
           classe?: string | null
           condicao?: string | null
+          condicao_entrada?: string | null
           created_at?: string
           descricao: string
           destino_por_parceiro?: boolean
@@ -11242,6 +11244,7 @@ export type Database = {
           cfop?: string
           classe?: string | null
           condicao?: string | null
+          condicao_entrada?: string | null
           created_at?: string
           descricao?: string
           destino_por_parceiro?: boolean
@@ -11314,6 +11317,13 @@ export type Database = {
             columns: ["classe"]
             isOneToOne: false
             referencedRelation: "estoque_classe"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_condicao_entrada_fkey"
+            columns: ["condicao_entrada"]
+            isOneToOne: false
+            referencedRelation: "estoque_condicao"
             referencedColumns: ["codigo"]
           },
           {
@@ -88327,6 +88337,15 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      vw_codigo_barras: {
+        Row: {
+          codigo: string | null
+          sku: string | null
+          tipo: string | null
+          unidades: number | null
+        }
+        Relationships: []
       }
       vw_colunas_sem_grant: {
         Row: {
