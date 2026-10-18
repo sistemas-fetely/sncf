@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -285,8 +285,29 @@ const schemaRemessa = schema.extend({ destino: z.string() });
 export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa }) {
   const qc = useQueryClient();
 
+  // Regras dinâmicas (regularização / finalidade) lidas por ref no resolver.
+  const regrasRef = useRef<{ regularizacao: boolean; finalidades: FinalidadeTransferencia[] }>({
+    regularizacao: false,
+    finalidades: [],
+  });
+
   const form = useForm<FormValues>({
-    resolver: zodResolver(remessa ? schemaRemessa : schema),
+    resolver: (valores, ctx, opts) => {
+      const base = remessa ? schemaRemessa : schema;
+      const { regularizacao: reg, finalidades } = regrasRef.current;
+      const dinamico = base.superRefine((v, c) => {
+        if (remessa || reg) return;
+        if (!v.finalidade) {
+          c.addIssue({ code: z.ZodIssueCode.custom, path: ["finalidade"], message: "Escolha a finalidade" });
+          return;
+        }
+        const f = finalidades.find((x) => x.codigo === v.finalidade);
+        if (f?.exige_descricao && !v.observacao.trim()) {
+          c.addIssue({ code: z.ZodIssueCode.custom, path: ["observacao"], message: "Descreva a transferência" });
+        }
+      });
+      return zodResolver(dinamico)(valores, ctx, opts);
+    },
     defaultValues: { ...VAZIO },
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
@@ -301,6 +322,28 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
   // Regularização: mercadoria já está fisicamente no destino — pedido nasce em
   // Pré-faturamento (natureza transferencia_regularizacao), sem passar pelo XPM.
   const [regularizacao, setRegularizacao] = useState(false);
+
+  const finalidadesQ = useQuery({
+    queryKey: ["transferencia-finalidades-manuais"],
+    enabled: !remessa,
+    queryFn: async (): Promise<FinalidadeTransferencia[]> => {
+      const { data, error } = await supabase
+        .from("transferencia_finalidade")
+        .select("codigo, rotulo, descricao, exige_descricao")
+        .eq("ativo", true)
+        .eq("automatica", false)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as FinalidadeTransferencia[];
+    },
+  });
+  useEffect(() => {
+    if (finalidadesQ.isError) toast.error(formatError(finalidadesQ.error));
+  }, [finalidadesQ.isError, finalidadesQ.error]);
+  regrasRef.current = { regularizacao, finalidades: finalidadesQ.data ?? [] };
+  const finalidadeAtual = form.watch("finalidade");
+  const exigeDescricao =
+    !remessa && !regularizacao && !!(finalidadesQ.data ?? []).find((f) => f.codigo === finalidadeAtual)?.exige_descricao;
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
