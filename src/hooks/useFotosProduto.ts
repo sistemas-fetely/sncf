@@ -210,3 +210,24 @@ export async function enviarFoto(params: {
   });
   if (erroInsert) throw new Error(rawMessage(erroInsert));
 }
+
+/** Foto principal por cod_cadastro, em lote (miniaturas de listas). */
+export function useFotosPrincipais(codigos: (string | null | undefined)[]) {
+  const cods = Array.from(new Set(codigos.filter((c): c is string => !!c))).sort();
+  return useQuery({
+    queryKey: ["produto-fotos", "principais", cods],
+    enabled: cods.length > 0,
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const m = new Map<string, string>();
+      for (let i = 0; i < cods.length; i += 300) {
+        const { data, error } = await supabase
+          .from("produto_foto").select("cod_cadastro, url")
+          .eq("principal", true).in("cod_cadastro", cods.slice(i, i + 300));
+        if (error) throw new Error(rawMessage(error));
+        (data ?? []).forEach((f) => { if (f.url) m.set(f.cod_cadastro, f.url); });
+      }
+      return m;
+    },
+  });
+}

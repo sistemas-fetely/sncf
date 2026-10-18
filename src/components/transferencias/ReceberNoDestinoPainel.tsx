@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransferenciaDialog";
 import { Link } from "react-router-dom";
+import { GavetaTransferencia } from "@/components/transferencias/GavetaTransferencia";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
@@ -26,6 +27,10 @@ interface Linha {
   itens: number;
   pecas: number;
   destinoCodigo: string | null;
+  destinoRotulo: string | null;
+  nf_numero: string | null;
+  nf_data_emissao: string | null;
+  finalidade: string | null;
 }
 interface Recebida {
   pedido_id: string;
@@ -45,6 +50,7 @@ function SeloEstagio({ estagio }: { estagio: string | null }) {
 export function ReceberNoDestinoPainel() {
   const qc = useQueryClient();
   const [receber, setReceber] = useState<Linha | null>(null);
+  const [gaveta, setGaveta] = useState<{ id: string; linha?: Linha; rec?: Recebida } | null>(null);
 
   const pendentesQ = useQuery({
     queryKey: ["recebimento-loja", "pendentes"],
@@ -75,11 +81,13 @@ export function ReceberNoDestinoPainel() {
       // Inclusão: centros ativos de chegada física Fetely (armazém/showroom), fora do XPM-SC (contado pelo próprio XPM).
       const centroIds = [...new Set(abertos.map((p) => p.destino_centro_id).filter(Boolean))];
       const codigos = new Map<string, string>();
+      const rotulos = new Map<string, string>();
       if (centroIds.length) {
         const { data: cs, error: eC } = await (supabase as any)
-          .from("centro_distribuicao").select("id, codigo, ativo, tipo").in("id", centroIds);
+          .from("centro_distribuicao").select("id, codigo, ativo, tipo, rotulo_curto, nome").in("id", centroIds);
         if (eC) throw eC;
-        ((cs ?? []) as { id: string; codigo: string; ativo: boolean; tipo: string | null }[]).forEach((c) => {
+        ((cs ?? []) as { id: string; codigo: string; ativo: boolean; tipo: string | null; rotulo_curto: string | null; nome: string | null }[]).forEach((c) => {
+          rotulos.set(c.id, c.rotulo_curto ?? c.nome ?? c.codigo);
           if (c.ativo === true && (c.tipo === "armazem" || c.tipo === "showroom") && c.codigo !== "XPM-SC") codigos.set(c.id, c.codigo);
         });
       }
@@ -95,7 +103,15 @@ export function ReceberNoDestinoPainel() {
         a.pecas += Number(i.quantidade ?? 0);
         agg.set(i.pedido_id, a);
       });
+      const { data: vs, error: eV } = await (supabase as any)
+        .from("v_transferencias_internas").select("id, nf_numero, nf_data_emissao, finalidade_rotulo").in("id", alvo.map((p) => p.id));
+      if (eV) throw eV;
+      const vm = new Map(((vs ?? []) as any[]).map((x) => [x.id, x]));
       return alvo.map((p) => ({
+        nf_numero: vm.get(p.id)?.nf_numero ?? null,
+        nf_data_emissao: vm.get(p.id)?.nf_data_emissao ?? null,
+        finalidade: vm.get(p.id)?.finalidade_rotulo ?? null,
+        destinoRotulo: p.destino_centro_id ? rotulos.get(p.destino_centro_id) ?? null : null,
         id: p.id,
         id_externo: p.id_externo,
         data_pedido: p.data_pedido,
@@ -157,6 +173,9 @@ export function ReceberNoDestinoPainel() {
                 <TableRow>
                   <TableHead>Pedido</TableHead>
                   <TableHead>Data</TableHead>
+                  <TableHead>NF</TableHead>
+                  <TableHead>Emissão NF</TableHead>
+                  <TableHead>Finalidade</TableHead>
                   <TableHead>Estágio</TableHead>
                   <TableHead className="text-right">Itens</TableHead>
                   <TableHead className="text-right">Peças</TableHead>
@@ -166,14 +185,17 @@ export function ReceberNoDestinoPainel() {
               </TableHeader>
               <TableBody>
                 {pendentes.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium tabular-nums">{p.id_externo ?? p.id.slice(0, 8)}</TableCell>
+                  <TableRow key={p.id} className="cursor-pointer" onClick={() => setGaveta({ id: p.id, linha: p })}>
+                    <TableCell className="font-medium tabular-nums"><button type="button" className="underline-offset-2 hover:underline">{p.id_externo ?? p.id.slice(0, 8)}</button></TableCell>
                     <TableCell className="text-sm">{fmtData(p.data_pedido)}</TableCell>
+                    <TableCell className="tabular-nums">{p.nf_numero ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{p.nf_data_emissao ? fmtData(p.nf_data_emissao) : "—"}</TableCell>
+                    <TableCell className="text-sm">{p.finalidade ?? "—"}</TableCell>
                     <TableCell><SeloEstagio estagio={p.estagio} /></TableCell>
                     <TableCell className="text-right tabular-nums">{p.itens}</TableCell>
                     <TableCell className="text-right tabular-nums">{p.pecas}</TableCell>
-                    <TableCell>{p.destinoCodigo ?? "—"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell>{p.destinoRotulo ?? p.destinoCodigo ?? "—"}</TableCell>
+                    <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <BotaoGuardado slug="acao.trs_receber_destino" rotuloAcao="Receber transferência no centro de destino" size="sm" onClick={() => setReceber(p)}>Receber</BotaoGuardado>
                     </TableCell>
                   </TableRow>
@@ -206,7 +228,7 @@ export function ReceberNoDestinoPainel() {
                     {recebidas.map((r) => {
                       const n = Array.isArray(r.divergencias) ? r.divergencias.length : 0;
                       return (
-                        <TableRow key={r.pedido_id}>
+                        <TableRow key={r.pedido_id} className="cursor-pointer" onClick={() => setGaveta({ id: r.pedido_id, rec: r })}>
                           <TableCell className="tabular-nums">{r.id_externo ?? r.pedido_id.slice(0, 8)}</TableCell>
                           <TableCell>{fmtData(r.data_recebimento)}</TableCell>
                           <TableCell className={n > 0 ? "font-medium text-destructive" : "text-muted-foreground"}>
@@ -226,6 +248,13 @@ export function ReceberNoDestinoPainel() {
       <div className="text-right">
         <Link to="/vendas/produto/estoque/inventario" className="text-sm text-muted-foreground hover:text-foreground hover:underline">Fazer inventário →</Link>
       </div>
+
+      <GavetaTransferencia
+        pedidoId={gaveta?.id ?? null}
+        onClose={() => setGaveta(null)}
+        recebimento={gaveta?.rec ?? null}
+        onReceber={gaveta?.linha ? () => { const l = gaveta.linha!; setGaveta(null); setReceber(l); } : undefined}
+      />
 
       {receber && (
         <ReceberTransferenciaDialog
