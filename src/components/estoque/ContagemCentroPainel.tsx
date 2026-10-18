@@ -13,6 +13,9 @@ import { formatError } from "@/lib/format-error";
 import { hojeISO, fmtData } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useFotosPrincipais } from "@/hooks/useFotosProduto";
+import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
+import { ImportarContagemDialog, type ModoImportacao } from "@/components/estoque/ImportarContagemDialog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +135,20 @@ export function ContagemCentroPainel() {
     somarContado(l.sku, l.unidades);
     setDestaque({ sku: l.sku, t: Date.now() });
   }
+  function aoImportar(itens: { sku: string; qtd: number }[], modo: ModoImportacao) {
+    setBusca(""); setColecoes([]);
+    setContados((c) => {
+      const base = modo === "substituir" ? {} : { ...c };
+      itens.forEach(({ sku, qtd }) => {
+        const atual = base[sku] === undefined || base[sku] === "" || isNaN(Number(base[sku])) ? 0 : Number(base[sku]);
+        base[sku] = String(atual + qtd);
+      });
+      return base;
+    });
+    itens.filter((i) => !linhas.some((l) => l.sku === i.sku)).forEach((i) => void incluirAchado(i.sku));
+  }
+  const fotosQ = useFotosPrincipais(visiveis.map((l) => l.cod_cadastro));
+
   function aoDesfazer(l: LeituraCodigo) {
     somarContado(l.sku, -l.unidades);
     setDestaque({ sku: l.sku, t: Date.now() });
@@ -250,7 +267,10 @@ export function ContagemCentroPainel() {
         ))}
       </div>
 
-      <LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} />
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="min-w-0 flex-1"><LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} /></div>
+        <ImportarContagemDialog onAplicar={aoImportar} />
+      </div>
 
       {linhasQ.isLoading ? (
         <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
@@ -260,7 +280,8 @@ export function ContagemCentroPainel() {
         <div className="rounded-md border" ref={tabelaRef}>
           <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
             <TableHeader className="sticky top-0 z-10 bg-card"><TableRow>
-              <TableHead className="w-[90px]">Cód.</TableHead>
+              <TableHead className="w-[70px]">Cód.</TableHead>
+              <TableHead className="w-[170px]">SKU</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
               <TableHead className="w-[130px] text-right">Última contagem</TableHead>
@@ -273,10 +294,16 @@ export function ContagemCentroPainel() {
                 const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
                 return (
                   <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", destaque?.sku === l.sku && "bg-primary/15")}>
-                    <TableCell className="font-mono">{l.cod_cadastro ?? l.sku}</TableCell>
+                    <TableCell className="font-mono">{l.cod_cadastro ?? "—"}</TableCell>
+                    <TableCell className="font-mono text-[11px] text-muted-foreground">{l.sku}</TableCell>
                     <TableCell>
+                      <div className="flex items-center gap-2">
+                      <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />
+                      <div className="min-w-0">
                       <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
                       {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}
+                      </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
                     <TableCell className="text-right tabular-nums">{l.fisico ?? "—"}</TableCell>
