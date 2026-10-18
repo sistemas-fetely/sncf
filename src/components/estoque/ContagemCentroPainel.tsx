@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +12,7 @@ import { FiltroColecao } from "@/components/acervo/BlingCardPainel";
 import { formatError } from "@/lib/format-error";
 import { hojeISO, fmtData } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface Linha {
@@ -37,6 +38,8 @@ export function ContagemCentroPainel() {
   const [contados, setContados] = useState<Record<string, string>>({});
   const [confirmar, setConfirmar] = useState(false);
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [destaque, setDestaque] = useState<{ sku: string; t: number } | null>(null);
+  const tabelaRef = useRef<HTMLDivElement>(null);
 
   const centrosQ = useQuery({
     queryKey: ["contagem-centros"],
@@ -75,6 +78,33 @@ export function ContagemCentroPainel() {
       .filter((l) => !t || [l.cod_cadastro, l.sku, l.nome_comercial].some((v) => (v ?? "").toLowerCase().includes(t)))
       .sort((a, b) => (a.cod_cadastro ?? a.sku).localeCompare(b.cod_cadastro ?? b.sku));
   }, [linhas, busca, colecoes]);
+
+  useEffect(() => {
+    if (!destaque) return;
+    const el = tabelaRef.current?.querySelector(`[data-sku="${CSS.escape(destaque.sku)}"]`);
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+    const t = setTimeout(() => setDestaque((d) => (d?.t === destaque.t ? null : d)), 1500);
+    return () => clearTimeout(t);
+  }, [destaque]);
+
+  const somarContado = (sku: string, delta: number) =>
+    setContados((c) => {
+      const atual = c[sku] === undefined || c[sku] === "" || isNaN(Number(c[sku])) ? 0 : Number(c[sku]);
+      const novo = Math.max(0, atual + delta);
+      return { ...c, [sku]: String(novo) };
+    });
+
+  function aoLer(l: LeituraCodigo) {
+    if (!visiveis.some((v) => v.sku === l.sku)) { setBusca(""); setColecoes([]); }
+    somarContado(l.sku, l.unidades);
+    setDestaque({ sku: l.sku, t: Date.now() });
+  }
+  function aoDesfazer(l: LeituraCodigo) {
+    somarContado(l.sku, -l.unidades);
+    setDestaque({ sku: l.sku, t: Date.now() });
+  }
+  const validarSku = (sku: string) =>
+    linhas.some((l) => l.sku === sku) ? null : `SKU ${sku} não está na lista deste centro`;
 
   const preenchidos = Object.entries(contados).filter(([, v]) => v !== "" && Number(v) >= 0 && !isNaN(Number(v)));
   const n = preenchidos.length;
@@ -162,12 +192,14 @@ export function ContagemCentroPainel() {
         </div>
       )}
 
+      <LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} validarSku={validarSku} />
+
       {linhasQ.isLoading ? (
         <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
       ) : visiveis.length === 0 ? (
         <div className="py-8 text-center text-sm text-muted-foreground">Nenhum produto neste recorte</div>
       ) : (
-        <div className="rounded-md border">
+        <div className="rounded-md border" ref={tabelaRef}>
           <Table className="text-[12px]" containerClassName="max-h-[min(60vh,44rem)]">
             <TableHeader><TableRow>
               <TableHead className="w-[90px]">Cód.</TableHead>
@@ -182,7 +214,7 @@ export function ContagemCentroPainel() {
                 const v = contados[l.sku] ?? "";
                 const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
                 return (
-                  <TableRow key={l.sku}>
+                  <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", destaque?.sku === l.sku && "bg-primary/15")}>
                     <TableCell className="font-mono">{l.cod_cadastro ?? l.sku}</TableCell>
                     <TableCell>
                       <div className="truncate">{l.nome_comercial ?? "—"}</div>

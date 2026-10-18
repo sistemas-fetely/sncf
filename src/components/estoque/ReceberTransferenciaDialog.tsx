@@ -12,6 +12,8 @@ import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { formatError } from "@/lib/format-error";
 import { hojeISO } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { Switch } from "@/components/ui/switch";
+import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const CENTRO_XPM = "XPM-SC";
@@ -46,6 +48,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   const [recebido, setRecebido] = useState<Record<string, string>>({});
   const [avariado, setAvariado] = useState<Record<string, string>>({});
   const [resultado, setResultado] = useState<Resultado | null>(null);
+  const [bipando, setBipando] = useState(false);
 
   const itensQ = useQuery({
     queryKey: ["receber-trs-itens", pedidoId],
@@ -100,6 +103,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   useEffect(() => {
     if (!aberto) return;
     setResultado(null);
+    setBipando(false);
     setData(hojeISO());
   }, [aberto, pedidoId]);
   useEffect(() => {
@@ -118,6 +122,22 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
 
   const num = (v: string | undefined) => (v === undefined || v === "" || isNaN(Number(v)) ? 0 : Number(v));
 
+  function alternarBipando(v: boolean) {
+    setBipando(v);
+    if (v) {
+      const r: Record<string, string> = {};
+      itens.forEach((i) => { r[i.sku] = "0"; });
+      setRecebido(r);
+    } else {
+      tudoConforme();
+    }
+  }
+  const somarRecebido = (sku: string, delta: number) =>
+    setRecebido((s) => ({ ...s, [sku]: String(Math.max(0, num(s[sku]) + delta)) }));
+  const validarSku = (sku: string) => (itens.some((i) => i.sku === sku) ? null : "Item fora desta transferência");
+  const totalEnviado = itens.reduce((s, i) => s + i.enviado, 0);
+  const totalRecebido = itens.reduce((s, i) => s + num(recebido[i.sku]), 0);
+
   const alterados = useMemo(
     () => itens.filter((i) => num(recebido[i.sku]) !== i.enviado || num(avariado[i.sku]) > 0),
     [itens, recebido, avariado],
@@ -128,7 +148,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
       const { data: r, error } = await (supabase as any).rpc("fn_trs_receber_destino", {
         p_pedido_id: pedidoId,
         p_data: data,
-        p_itens: alterados.map((i) => ({ sku: i.sku, recebido: num(recebido[i.sku]), avariado: num(avariado[i.sku]) })),
+        p_itens: (bipando ? itens : alterados).map((i) => ({ sku: i.sku, recebido: num(recebido[i.sku]), avariado: num(avariado[i.sku]) })),
         p_centro_destino: destinoCodigo ? null : centro,
       });
       if (error) throw error;
@@ -215,6 +235,23 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Switch checked={bipando} onCheckedChange={alternarBipando} disabled={itens.length === 0} />
+                Conferir bipando
+              </label>
+              {bipando && (
+                <>
+                  <LeitorCodigoBarras
+                    onLeitura={(l: LeituraCodigo) => somarRecebido(l.sku, l.unidades)}
+                    onDesfazer={(l: LeituraCodigo) => somarRecebido(l.sku, -l.unidades)}
+                    validarSku={validarSku}
+                  />
+                  <p className="text-sm text-muted-foreground tabular-nums">Bipado {totalRecebido} de {totalEnviado} peças</p>
+                </>
+              )}
+            </div>
+
             {itensQ.isLoading ? (
               <div className="flex justify-center p-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
             ) : itensQ.isError ? (
@@ -236,7 +273,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                     {itens.map((i) => {
                       const dif = num(recebido[i.sku]) + num(avariado[i.sku]) - i.enviado;
                       return (
-                        <TableRow key={i.sku}>
+                        <TableRow key={i.sku} className={cn(num(recebido[i.sku]) !== i.enviado && "bg-warning/10")}>
                           <TableCell className="font-mono text-xs">{i.cod ?? i.sku}</TableCell>
                           <TableCell className="text-sm">{i.nome ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{i.enviado}</TableCell>
@@ -264,7 +301,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
             )}
 
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={tudoConforme}>Tudo conforme</Button>
+              <Button type="button" variant="outline" onClick={() => { setBipando(false); tudoConforme(); }}>Tudo conforme</Button>
               <Button type="button" variant="ghost" onClick={onFechar}>Cancelar</Button>
               <BotaoGuardado
                 slug="acao.estoque_contagem_registrar"
