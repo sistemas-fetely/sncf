@@ -61,6 +61,7 @@ interface CentroDestino {
 
 const schema = z.object({
   destino: z.string().trim().min(1, "Informe o destino da transferência"),
+  finalidade: z.string(),
   observacao: z.string().trim(),
   itens: z
     .array(
@@ -75,7 +76,14 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", nome: "", quantidade: 1 }] };
+const VAZIO: FormValues = { destino: "", finalidade: "", observacao: "", itens: [{ sku: "", nome: "", quantidade: 1 }] };
+
+interface FinalidadeTransferencia {
+  codigo: string;
+  rotulo: string;
+  descricao: string | null;
+  exige_descricao: boolean;
+}
 
 interface ProdutoCatalogo {
   sku: string;
