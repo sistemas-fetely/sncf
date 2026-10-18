@@ -433,6 +433,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
 
   const usarSugestao = () => {
     if (marcadas.length === 0) return;
+    if (!form.getValues("finalidade")) form.setValue("finalidade", "reposicao_site_sp", { shouldValidate: true });
     replace(
       marcadas.map((l) => ({
         sku: l.sku,
@@ -546,6 +547,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
         p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
         p_regularizacao: regularizacao,
+        p_finalidade_codigo: regularizacao ? undefined : valores.finalidade,
       });
       if (error) throw error;
       return data as { ok: boolean; id_externo: string; valor_bruto: number };
@@ -665,16 +667,50 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                   </p>
                 )}
               </div>}
+              {!remessa && !regularizacao && <div className="space-y-1.5">
+                <label htmlFor="finalidade" className="text-sm font-medium">
+                  Finalidade
+                </label>
+                <Controller
+                  control={form.control}
+                  name="finalidade"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.clearErrors("finalidade"); }}>
+                      <SelectTrigger
+                        id="finalidade"
+                        className={form.formState.errors.finalidade ? "border-destructive" : ""}
+                      >
+                        <SelectValue placeholder={finalidadesQ.isLoading ? "Carregando finalidades…" : "Selecione a finalidade"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(finalidadesQ.data ?? []).map((f) => (
+                          <SelectItem key={f.codigo} value={f.codigo}>
+                            {f.rotulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.finalidade && (
+                  <p className="text-xs text-destructive">{form.formState.errors.finalidade.message}</p>
+                )}
+              </div>}
               <div className="space-y-1.5">
                 <label htmlFor="observacao" className="text-sm font-medium">
-                  Observação <span className="font-normal text-muted-foreground">(opcional)</span>
+                  {remessa || regularizacao ? "Observação" : "Descrição"}
+                  {!exigeDescricao && <span className="font-normal text-muted-foreground"> (opcional)</span>}
                 </label>
                 <Textarea
                   id="observacao"
                   placeholder="Ex.: reposição para campanha de outono"
                   rows={2}
+                  className={form.formState.errors.observacao ? "border-destructive" : ""}
                   {...form.register("observacao")}
                 />
+                {form.formState.errors.observacao && (
+                  <p className="text-xs text-destructive">{form.formState.errors.observacao.message}</p>
+                )}
               </div>
             </div>
 
