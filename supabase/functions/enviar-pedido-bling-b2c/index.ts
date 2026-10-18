@@ -724,6 +724,23 @@ Deno.serve(async (req) => {
             continue;
           }
 
+          // Município x UF contra `municipio_ibge` ANTES de qualquer chamada de contato.
+          {
+            const cidadeNormVd = String(endVd.municipio ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+            const { data: munVd, error: eMunVd } = await supabase
+              .from("municipio_ibge").select("nome").eq("nome_normalizado", cidadeNormVd).eq("uf", endVd.uf).limit(1);
+            if (eMunVd) {
+              await falharVd(`ler municipio_ibge: ${eMunVd.message}`);
+              continue;
+            }
+            if (!munVd || munVd.length === 0) {
+              await falharVd(
+                `Endereço incoerente: cidade "${endVd.municipio}" não existe na UF ${endVd.uf} (CEP ${endVd.cep}). Corrija o endereço no pedido do SNCF e reprocesse. Nada foi enviado ao Bling.`,
+              );
+              continue;
+            }
+          }
+
           // Contato — MESMA lógica: GET por documento, POST tipo F/J, PUT do endereço se existir.
           await dormir(ESPERA_ENTRE_CHAMADAS_MS);
           let contatoVd: number | null = null;
@@ -1242,6 +1259,26 @@ Deno.serve(async (req) => {
               ". Nada foi criado no Bling.",
           );
           continue;
+        }
+
+        // 4b. Municipio x UF contra `municipio_ibge` ANTES de qualquer chamada de contato.
+        {
+          const cidadeOrig = limparTexto(ender?.city) || limparTexto(pedido.shipping_city);
+          const ufVal = (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().trim().slice(0, 2).toUpperCase();
+          const cepVal = soDigitos(ender?.zip ?? pedido.shipping_zip);
+          const cidadeNorm = String(cidadeOrig ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+          const { data: mun, error: eMun } = await supabase
+            .from("municipio_ibge").select("nome").eq("nome_normalizado", cidadeNorm).eq("uf", ufVal).limit(1);
+          if (eMun) {
+            await falhar(`ler municipio_ibge: ${eMun.message}`);
+            continue;
+          }
+          if (!mun || mun.length === 0) {
+            await falhar(
+              `Endereço incoerente: cidade "${cidadeOrig}" não existe na UF ${ufVal} (CEP ${cepVal}). Corrija o endereço no Shopify e reprocesse. Nada foi enviado ao Bling.`,
+            );
+            continue;
+          }
         }
 
         // 5. Contato no Bling: procura por documento, cria se nao houver.
