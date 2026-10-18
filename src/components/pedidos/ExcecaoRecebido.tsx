@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -215,6 +214,3 @@ export function ExcecaoRecebidoPainel({ pedidoId }: { pedidoId: string }) {
   );
 }
 
-export function useIrParaPedido() {
-  return useNavigate();
-}
