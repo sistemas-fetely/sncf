@@ -15,6 +15,13 @@
       "when": 1792326874455,
       "tag": "0001_receber_pedido_externo_roteamento_automatico",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792326929057,
+      "tag": "0002_receber_pedido_externo_roteamento_automatico",
+      "breakpoints": true
     }
   ]
 }
