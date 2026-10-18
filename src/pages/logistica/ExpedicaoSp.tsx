@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Inbox, Loader2, PackageCheck } from "lucide-react";
+import { AlertTriangle, Inbox, Loader2, PackageCheck, Undo2 } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
@@ -21,10 +25,10 @@ import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
   ESTACOES, ESTACOES_B2B_POS_EMBALAGEM, ESTAGIO_FILA, ROTULO_ESTACAO, pedidoEhB2B,
   embalagemDoPedido, estacaoBase, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
-  type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
+  type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useCaixasSugeridas, useChecklistEmbalagem, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
+  useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
   usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
@@ -55,6 +59,13 @@ export default function ExpedicaoSp() {
   const modaisQ = useModaisEntrega();
   const regrasQ = useRegrasModal();
   const vdModosQ = useVdModosModal();
+  const cancelamentosQ = useCancelamentosMesaSp(pedidos.map((p) => p.id));
+  const cancelamentos = useMemo(
+    () => cancelamentosQ.data ?? new Map<string, CancelamentoMesa>(),
+    [cancelamentosQ.data],
+  );
+  const [devolverAberto, setDevolverAberto] = useState(false);
+  const [motivoDevolver, setMotivoDevolver] = useState("");
 
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   /**
@@ -85,6 +96,8 @@ export default function ExpedicaoSp() {
   }, [pedidos, eventosPorPedido, emConferencia]);
 
   const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
+  /** "Puxar próximo" pula pedido com cancelamento solicitado. */
+  const proximoDaFila = fila.find((p) => !cancelamentos.has(p.id)) ?? null;
   const naMesa = pedidos.filter((p) => {
     const estacao = estacaoDe.get(p.id);
     return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem";
@@ -128,6 +141,10 @@ export default function ExpedicaoSp() {
   const modalVdSelecionado = modoEntregaSelecionado
     ? vdModosQ.data?.find((item) => item.modo.toLowerCase() === modoEntregaSelecionado)?.modal_codigo ?? null
     : null;
+  const cancelamentoSelecionado = selecionado ? cancelamentos.get(selecionado.id) ?? null : null;
+  const bloqueado = cancelamentoSelecionado != null;
+  const podeDevolver =
+    estacaoSelecionada === "separacao" || estacaoSelecionada === "conferencia" || estacaoSelecionada === "embalagem";
   const selecionadoAguardandoRetirada = selecionado
     ? aguardandoRetirada.some((pedido) => pedido.id === selecionado.id)
     : false;
@@ -146,6 +163,7 @@ export default function ExpedicaoSp() {
   const embalar = useEmbalar();
   const despachar = useDespachar();
   const despacharLote = useDespacharLote();
+  const devolver = useDevolverFila();
   const checklistQ = useChecklistEmbalagem();
   // Marcação da rotina é ato gravado: a lista vem do banco DESTE pedido, então
   // trocar de pedido já traz a rotina dele — não há estado de tela para zerar.
@@ -175,7 +193,7 @@ export default function ExpedicaoSp() {
       grupo.caixas.push({
         pedido_id: p.id,
         id_externo: p.id_externo,
-        cliente: p.cliente_nome_snapshot ?? "cliente sem nome",
+        cliente: p.cliente_nome ?? "cliente sem nome",
         volumes: emb.volumes,
         peso_kg: emb.peso_kg,
         embaladoEm: emb.criado_em,
@@ -217,7 +235,7 @@ export default function ExpedicaoSp() {
     );
   }
 
-  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? vdModosQ.error;
+  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
 
   return (
     <PageShell variant="dados">
@@ -273,6 +291,7 @@ export default function ExpedicaoSp() {
                       <li key={p.id}>
                         <LinhaPedido
                           pedido={p}
+ cancelamento={cancelamentos.get(p.id)}
                           ativo={p.id === selecionadoId}
                           rotulo="na fila"
                           onSelecionar={() => setSelecionadoId(p.id)}
@@ -282,8 +301,8 @@ export default function ExpedicaoSp() {
                   </ul>
                   <Button
                     className="w-full"
-                    onClick={() => puxar.mutate({ p_pedido_id: fila[0].id })}
-                    disabled={puxar.isPending}
+                    onClick={() => proximoDaFila && puxar.mutate({ p_pedido_id: proximoDaFila.id })}
+                    disabled={puxar.isPending || !proximoDaFila}
                   >
                     {puxar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                     Puxar próximo
@@ -312,6 +331,7 @@ export default function ExpedicaoSp() {
                           <li key={p.id}>
                             <LinhaPedido
                               pedido={p}
+ cancelamento={cancelamentos.get(p.id)}
                               ativo={p.id === selecionadoId}
                               onSelecionar={() => setSelecionadoId(p.id)}
                             />
@@ -331,7 +351,7 @@ export default function ExpedicaoSp() {
               <ul className="space-y-2">
                 {aguardandoRetirada.map((p) => (
                   <li key={p.id}>
-                    <LinhaPedido pedido={p} ativo={p.id === selecionadoId} rotulo="balcão" onSelecionar={() => setSelecionadoId(p.id)} />
+                    <LinhaPedido pedido={p} cancelamento={cancelamentos.get(p.id)} ativo={p.id === selecionadoId} rotulo="balcão" onSelecionar={() => setSelecionadoId(p.id)} />
                   </li>
                 ))}
               </ul>
@@ -355,6 +375,7 @@ export default function ExpedicaoSp() {
                           <li key={p.id}>
                             <LinhaPedido
                               pedido={p}
+ cancelamento={cancelamentos.get(p.id)}
                               ativo={p.id === selecionadoId}
                               rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
                               onSelecionar={() => setSelecionadoId(p.id)}
@@ -383,6 +404,7 @@ export default function ExpedicaoSp() {
                       <li key={p.id}>
                         <LinhaPedido
                           pedido={p}
+ cancelamento={cancelamentos.get(p.id)}
                           ativo={p.id === selecionadoId}
                           rotulo={`${nf ? `NF ${nf} · ` : ""}${medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}`}
                           onSelecionar={() => setSelecionadoId(p.id)}
@@ -446,7 +468,7 @@ export default function ExpedicaoSp() {
                 <CardContent className="flex flex-wrap items-center justify-between gap-2 p-4">
                     <div className="min-w-0 space-y-1">
                     <p className="truncate text-sm font-medium">
-                       {selecionado.cliente_nome_snapshot ?? "cliente sem nome"}
+                       {selecionado.cliente_nome ?? "cliente sem nome"}
                     </p>
                      <IdentidadesPedido
                        sncf={selecionado.id_externo}
@@ -458,7 +480,7 @@ export default function ExpedicaoSp() {
                        <div className="flex flex-wrap items-center gap-2">
                          <Selo estado="info">B2B</Selo>
                          <span className="text-xs text-muted-foreground">
-                           {selecionado.cliente_nome_snapshot ?? "razão social não informada"}
+                           {selecionado.cliente_nome ?? "razão social não informada"}
                          </span>
                        </div>
                      )}
@@ -473,10 +495,78 @@ export default function ExpedicaoSp() {
                     <p className="text-xs text-muted-foreground">
                       {formatBRL(selecionado.valor_liquido)} · recebido {fmtDataHora(selecionado.recebido_em)}
                     </p>
+                    {cancelamentoSelecionado && (
+                      <div className="space-y-0.5">
+                        <Selo estado="destructive">Cancelamento solicitado · {cancelamentoSelecionado.numero}</Selo>
+                        {cancelamentoSelecionado.motivo && (
+                          <p className="text-xs text-muted-foreground">Motivo: {cancelamentoSelecionado.motivo}</p>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <Selo estado="info">{ROTULO_ESTACAO[estacaoSelecionada]}</Selo>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {podeDevolver && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { setMotivoDevolver(""); setDevolverAberto(true); }}
+                        disabled={devolver.isPending}
+                      >
+                        <Undo2 aria-hidden="true" />
+                        Devolver p/ fila
+                      </Button>
+                    )}
+                    <Selo estado="info">{ROTULO_ESTACAO[estacaoSelecionada]}</Selo>
+                  </div>
                 </CardContent>
               </Card>
+
+              {cancelamentoSelecionado && (
+                <div className="flex items-start gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  Cliente pediu cancelamento ({cancelamentoSelecionado.numero}). Não siga com este pedido — devolva os itens à prateleira.
+                </div>
+              )}
+
+              <Dialog open={devolverAberto} onOpenChange={setDevolverAberto}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Devolver {selecionado.id_externo} para a fila</DialogTitle>
+                    <DialogDescription>
+                      O pedido volta para pré-separação. Informe o motivo — ele fica na trilha do pedido.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <Textarea
+                    value={motivoDevolver}
+                    onChange={(e) => setMotivoDevolver(e.target.value)}
+                    placeholder="Motivo da devolução"
+                    rows={3}
+                  />
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDevolverAberto(false)} disabled={devolver.isPending}>
+                      Voltar
+                    </Button>
+                    <Button
+                      disabled={motivoDevolver.trim() === "" || devolver.isPending}
+                      onClick={() => {
+                        const pedidoId = selecionado.id;
+                        devolver.mutate(
+                          { p_pedido_id: pedidoId, p_motivo: motivoDevolver.trim() },
+                          {
+                            onSuccess: () => {
+                              marcarEmConferencia(pedidoId, false);
+                              setDevolverAberto(false);
+                            },
+                          },
+                        );
+                      }}
+                    >
+                      {devolver.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+                      Devolver p/ fila
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               {estacaoSelecionada === "nf_emitida" && (() => {
                 const emb = embalagemDoPedido(eventosSelecionado);
@@ -487,6 +577,7 @@ export default function ExpedicaoSp() {
                     medidas={`Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`}
                     nfRotulo={nf ? `NF ${nf}` : null}
                     despachando={despachar.isPending}
+                    bloqueado={bloqueado}
                     onDespachar={(modal, referencia) =>
                       despachar.mutate({
                         p_pedido_id: selecionado.id,
@@ -523,7 +614,7 @@ export default function ExpedicaoSp() {
                     </p>
                     <Button
                       onClick={() => puxar.mutate({ p_pedido_id: selecionado.id })}
-                      disabled={puxar.isPending}
+                      disabled={puxar.isPending || bloqueado}
                     >
                       {puxar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
                       Puxar este pedido
@@ -539,6 +630,8 @@ export default function ExpedicaoSp() {
                   pedido={selecionado}
                    identidades={identidadesSelecionado}
                   onConcluir={() => marcarEmConferencia(selecionado.id, true)}
+                  imagens={imagensQ.data ?? new Map()}
+                  bloqueado={bloqueado}
                 />
               )}
 
@@ -551,6 +644,7 @@ export default function ExpedicaoSp() {
                   registrando={conferir.isPending}
                   onRegistrar={registrarConferencia}
                   onVoltarSeparacao={() => marcarEmConferencia(selecionado.id, false)}
+                  bloqueado={bloqueado}
                 />
               )}
 
@@ -578,6 +672,7 @@ export default function ExpedicaoSp() {
                   carregandoCaixas={caixasQ.isLoading}
                   erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
                   salvando={embalar.isPending}
+                  bloqueado={bloqueado}
                   onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo) =>
                     embalar.mutate({
                       p_pedido_id: selecionado.id,
@@ -606,8 +701,12 @@ export default function ExpedicaoSp() {
                   }
                   gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}
                   despachandoLote={despacharLote.isPending}
+                  bloqueado={bloqueado}
                   onDespacharLote={(modalCodigo, pedidoIds) =>
-                    despacharLote.mutate({ p_modal: modalCodigo, p_pedido_ids: pedidoIds })
+                    {
+                      const ids = pedidoIds.filter((id) => !cancelamentos.has(id));
+                      if (ids.length > 0) despacharLote.mutate({ p_modal: modalCodigo, p_pedido_ids: ids });
+                    }
                   }
                 />
               )}
@@ -666,9 +765,10 @@ function medidasColeta(volumes: number | null, pesoKg: number | null): string {
 }
 
 function LinhaPedido({
-  pedido, ativo, rotulo, onSelecionar,
+  pedido, ativo, rotulo, onSelecionar, cancelamento,
 }: {
   pedido: PedidoMesa;
+  cancelamento?: CancelamentoMesa;
   ativo: boolean;
   /** Opcional: quando a linha já vive num grupo de estação, o rótulo é o grupo. */
   rotulo?: string;
@@ -687,9 +787,10 @@ function LinhaPedido({
         <span className="truncate">{pedido.id_externo}</span>
         {pedidoEhVendaDireta(pedido.id_externo) && <Selo estado="info">Site SP · venda direta</Selo>}
         {pedidoEhB2B(pedido.canal) && <Selo estado="info">B2B</Selo>}
+        {cancelamento && <Selo estado="destructive">Cancelamento solicitado · {cancelamento.numero}</Selo>}
       </span>
       <span className="block truncate text-xs text-muted-foreground">
-        {pedido.cliente_nome_snapshot ?? "cliente sem nome"}
+        {pedido.cliente_nome ?? "cliente sem nome"}
         {rotulo ? ` · ${rotulo}` : ""}
       </span>
       {pedidoEhVendaDireta(pedido.id_externo) && (
