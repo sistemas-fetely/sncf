@@ -53,7 +53,7 @@ export function usePedidosMesaSp() {
       const { data: pedidos, error } = await supabaseMesa
         .from("pedidos")
         .select(
-          "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais(razao_social, nome_fantasia)",
+          "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social, nome_fantasia)",
         )
         .eq("canal", "B2C")
         .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA])
@@ -94,7 +94,7 @@ async function lerB2bSiteSp(): Promise<PedidoMesa[]> {
   const { data, error } = await supabaseMesa
     .from("pedidos")
     .select(
-      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais(razao_social, nome_fantasia)",
+      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social, nome_fantasia)",
     )
     .eq("canal", "B2B")
     .eq("origem_centro_id", (centro as { id: string }).id)
