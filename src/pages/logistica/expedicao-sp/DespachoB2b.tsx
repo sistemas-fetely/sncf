@@ -24,11 +24,12 @@ interface Props {
   nfRotulo: string | null;
   despachando: boolean;
   onDespachar: (modal: string, referencia: string) => void;
+  bloqueado?: boolean;
 }
 
 const MODAL_PADRAO = "TRANSPORTADORA";
 
-export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespachar }: Props) {
+export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false }: Props) {
   const [aberto, setAberto] = useState(false);
   const [modal, setModal] = useState(MODAL_PADRAO);
   const [referencia, setReferencia] = useState("");

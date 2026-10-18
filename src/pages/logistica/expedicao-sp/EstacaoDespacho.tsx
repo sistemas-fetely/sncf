@@ -54,6 +54,8 @@ interface Props {
   gruposColeta: GrupoColeta[];
   despachandoLote: boolean;
   onDespacharLote: (modalCodigo: string, pedidoIds: string[]) => void;
+  /** Cancelamento solicitado no pedido selecionado: não despacha. */
+  bloqueado?: boolean;
 }
 
 /** Espera em linguagem de bancada: minutos até 1h, depois horas, depois dias. */
@@ -75,7 +77,7 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 
 export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
-  gruposColeta, despachandoLote, onDespacharLote,
+  gruposColeta, despachandoLote, onDespacharLote, bloqueado = false,
 }: Props) {
   const [modal, setModal] = useState<string>(modalEmbalado ?? "");
   const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
@@ -220,7 +222,7 @@ export function EstacaoDespacho({
               Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify.
             </p>
 
-            <BotaoGuardado slug="acao.expedicao_sp_operar" rotuloAcao="Despachar pedido" onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando}>
+            <BotaoGuardado slug="acao.expedicao_sp_operar" rotuloAcao="Despachar pedido" onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando || bloqueado}>
               {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
               Despachar
             </BotaoGuardado>

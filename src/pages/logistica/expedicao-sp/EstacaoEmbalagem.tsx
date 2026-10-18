@@ -52,6 +52,8 @@ interface Props {
   /** Mensagem real da RPC de sugestão, quando falhou. Não trava o registro. */
   erroCaixas: string | null;
   salvando: boolean;
+  /** Cancelamento solicitado: não embala. */
+  bloqueado?: boolean;
   onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null) => void;
 }
 
@@ -59,7 +61,7 @@ interface Props {
 export function EstacaoEmbalagem({
   pedidoId, enderecoEntrega, modoVendaDireta, modalVendaDireta, modalPreferido = null, itens, modais, regras, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
-  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [volumes, setVolumes] = useState("1");
@@ -308,7 +310,7 @@ export function EstacaoEmbalagem({
         <div className="flex flex-wrap items-center gap-3">
           <Button
             onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa)}
-            disabled={!podeSalvar || salvando}
+            disabled={!podeSalvar || salvando || bloqueado}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
             Registrar embalagem

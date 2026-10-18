@@ -32,6 +32,8 @@ export const EVENTO_CONFERENCIA_OK = "mesa_conferencia_ok";
 export const EVENTO_CONFERENCIA_DIVERGENCIA = "mesa_conferencia_divergencia";
 export const EVENTO_EMBALADO = "mesa_embalado";
 export const EVENTO_DESPACHADO = "mesa_despachado";
+/** `fn_mesa_sp_devolver_fila`: pedido volta para pre_separacao (cai na fila pelo estágio). */
+export const EVENTO_DEVOLVIDO_FILA = "mesa_devolvido_fila";
 
 /** Estágios macro que a mesa opera. Fora destes, o pedido não é dela. */
 export const ESTAGIO_FILA = "pre_separacao";
@@ -49,6 +51,8 @@ export interface PedidoMesa {
   estagio: string;
   canal: string;
   cliente_nome_snapshot: string | null;
+  /** Derivado no hook: coalesce(snapshot, parceiro.nome_fantasia, parceiro.razao_social). */
+  cliente_nome: string | null;
   valor_liquido: number;
   recebido_em: string;
   /** Json cru do pedido — o CEP sai daqui para sugerir o modal. */
@@ -79,6 +83,15 @@ export interface ItemPedidoMesa {
   quantidade: number;
   /** Vem do espelho `sncf_produtos` pelo SKU. Nulo = item sem EAN cadastrado. */
   ean: string | null;
+  /** Código de cadastro do produto (`sncf_produtos.cod_cadastro`). */
+  cod_cadastro: string | null;
+}
+
+/** Linha de `fn_mesa_sp_cancelamentos`: pedido com cancelamento solicitado pelo cliente. */
+export interface CancelamentoMesa {
+  pedido_id: string;
+  numero: string;
+  motivo: string | null;
 }
 
 /**
