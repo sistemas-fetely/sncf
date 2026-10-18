@@ -39,7 +39,7 @@ export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespacha
   }, [aberto]);
 
   const opcoes = modais.filter((m) => !m.sem_despacho);
-  const pode = modal !== "" && referencia.trim() !== "" && !despachando;
+  const pode = modal !== "" && referencia.trim() !== "" && !despachando && !bloqueado;
 
   return (
     <>
