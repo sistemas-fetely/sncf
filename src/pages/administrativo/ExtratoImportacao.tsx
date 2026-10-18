@@ -1675,6 +1675,20 @@ export default function ExtratoImportacao() {
       } catch (e) {
         toast.error("Falha ao aplicar regras: " + formatError(e));
       }
+
+      // Baixa imediata de PIX/portão: o inequívoco anda já na importação. O cron :15 segue como rede de segurança.
+      try {
+        const { data: port, error: errPort } = await sb.rpc("fn_portao_conciliar_automatico", {
+          p_dry_run: false,
+          p_corte: "2026-09-01",
+        });
+        if (errPort) throw errPort;
+        const n = Number((port as any)?.liberados ?? 0);
+        if (n > 0) toast.success(`${n} pedido(s) com pagamento confirmado na importação`);
+      } catch (e) {
+        toast.warning("Baixa automática adiada para o próximo ciclo: " + formatError(e));
+      }
+
       qc.invalidateQueries({ queryKey: ["movimentacoes-bancarias"] });
       qc.invalidateQueries({ queryKey: ["extrato-inbox"] });
       refetch();
