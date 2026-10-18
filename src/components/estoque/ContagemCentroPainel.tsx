@@ -281,7 +281,7 @@ export function ContagemCentroPainel() {
           <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
             <TableHeader className="sticky top-0 z-10 bg-card"><TableRow>
               <TableHead className="w-[70px]">Cód.</TableHead>
-              <TableHead className="w-[170px]">SKU</TableHead>
+              <TableHead className="w-[120px]">SKU</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
               <TableHead className="w-[130px] text-right">Última contagem</TableHead>
@@ -299,7 +299,7 @@ export function ContagemCentroPainel() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                       <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />
-                      <div className="min-w-0">
+                      <div className="min-w-0 max-w-[360px]">
                       <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
                       {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}
                       </div>
