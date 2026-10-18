@@ -8,6 +8,13 @@
       "when": 1792247167315,
       "tag": "0000_atualizar_frete_pedido_limpar_transportadora",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792326874455,
+      "tag": "0001_receber_pedido_externo_roteamento_automatico",
+      "breakpoints": true
     }
   ]
 }
