@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   CENTRO_SITE_SP, ESTAGIO_FATURADO, ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, EVENTO_ROTEADO,
-  type CaixaSugerida, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type CaixaSugerida, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
 
@@ -28,6 +28,7 @@ export const CHAVE_PEDIDOS_MESA = ["mesa-sp", "pedidos"] as const;
 export const CHAVE_EVENTOS_MESA = ["mesa-sp", "eventos"] as const;
 export const CHAVE_IDENTIDADES_MESA = ["mesa-sp", "identidades"] as const;
 export const CHAVE_MARCACOES_MESA = ["mesa-sp", "marcacoes-embalagem"] as const;
+export const CHAVE_CANCELAMENTOS_MESA = ["mesa-sp", "cancelamentos"] as const;
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -52,14 +53,14 @@ export function usePedidosMesaSp() {
       const { data: pedidos, error } = await supabaseMesa
         .from("pedidos")
         .select(
-          "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega",
+          "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais(razao_social, nome_fantasia)",
         )
         .eq("canal", "B2C")
         .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA])
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler pedidos da mesa: ${mensagemErro(error)}`);
 
-      const linhas = (pedidos ?? []) as PedidoMesa[];
+      const linhas = comClienteNome(pedidos);
       if (linhas.length === 0) return lerB2bSiteSp();
 
       const { data: roteados, error: eRot } = await supabaseMesa
@@ -93,14 +94,30 @@ async function lerB2bSiteSp(): Promise<PedidoMesa[]> {
   const { data, error } = await supabaseMesa
     .from("pedidos")
     .select(
-      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega",
+      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais(razao_social, nome_fantasia)",
     )
     .eq("canal", "B2B")
     .eq("origem_centro_id", (centro as { id: string }).id)
     .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, ESTAGIO_FATURADO])
     .order("recebido_em", { ascending: true });
   if (error) throw new Error(`ler pedidos B2B do Site SP: ${mensagemErro(error)}`);
-  return (data ?? []) as PedidoMesa[];
+  return comClienteNome(data);
+}
+
+type ParceiroEmbutido = { razao_social: string | null; nome_fantasia: string | null } | null;
+
+/** Nome do cliente: snapshot, senão nome fantasia, senão razão social do parceiro. */
+function comClienteNome(linhas: unknown): PedidoMesa[] {
+  const txt = (v: string | null | undefined) => (v && v.trim() !== "" ? v.trim() : null);
+  return ((linhas ?? []) as (Omit<PedidoMesa, "cliente_nome"> & { parceiro?: ParceiroEmbutido | ParceiroEmbutido[] })[]).map(
+    ({ parceiro, ...p }) => {
+      const par = Array.isArray(parceiro) ? parceiro[0] ?? null : parceiro ?? null;
+      return {
+        ...p,
+        cliente_nome: txt(p.cliente_nome_snapshot) ?? txt(par?.nome_fantasia) ?? txt(par?.razao_social),
+      };
+    },
+  );
 }
 
 /** Eventos `mesa_*` (+ o roteamento) dos pedidos listados — alimenta trilha e sub-estação. */
@@ -171,13 +188,15 @@ export function useItensPedidoMesa(pedidoId: string | null) {
       const skus = [...new Set(itens.map((i) => i.sku).filter((s): s is string => !!s))];
 
       const eanPorSku = new Map<string, string>();
+      const codPorSku = new Map<string, string>();
       if (skus.length > 0) {
         const { data: prods, error: eProd } = await supabaseMesa
           .from("sncf_produtos")
-          .select("sku, ean")
+          .select("sku, ean, cod_cadastro")
           .in("sku", skus);
         if (eProd) throw new Error(`ler EAN dos produtos: ${mensagemErro(eProd)}`);
-        for (const p of (prods ?? []) as { sku: string; ean: string | null }[]) {
+        for (const p of (prods ?? []) as { sku: string; ean: string | null; cod_cadastro: string | null }[]) {
+          if (p.cod_cadastro && p.cod_cadastro.trim() !== "") codPorSku.set(p.sku, p.cod_cadastro.trim());
           if (p.ean && p.ean.trim() !== "") eanPorSku.set(p.sku, p.ean.trim());
         }
       }
@@ -188,6 +207,7 @@ export function useItensPedidoMesa(pedidoId: string | null) {
         descricao: i.descricao,
         quantidade: i.quantidade,
         ean: i.sku ? eanPorSku.get(i.sku) ?? null : null,
+        cod_cadastro: i.sku ? codPorSku.get(i.sku) ?? null : null,
       }));
     },
   });
@@ -380,6 +400,7 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       // mostrando a estação anterior até o staleTime vencer.
       void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_CANCELAMENTOS_MESA });
       // A embalagem apaga as marcações no próprio banco: a tela só relê.
       void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
     },
@@ -479,4 +500,30 @@ export function useDespachar() {
     p_modal: string;
     p_referencia: string | null;
   }>("fn_mesa_sp_despachar", () => "Pedido despachado — saiu da mesa.");
+}
+
+/** Cancelamentos solicitados pelos clientes dos pedidos listados (`fn_mesa_sp_cancelamentos`). */
+export function useCancelamentosMesaSp(pedidoIds: string[]) {
+  const ids = [...new Set(pedidoIds)].sort();
+  return useQuery({
+    queryKey: [...CHAVE_CANCELAMENTOS_MESA, ids],
+    enabled: ids.length > 0,
+    staleTime: 15 * 1000,
+    queryFn: async (): Promise<Map<string, CancelamentoMesa>> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_cancelamentos", { p_pedido_ids: ids });
+      if (error) throw new Error(`ler cancelamentos solicitados: ${mensagemErro(error)}`);
+      const mapa = new Map<string, CancelamentoMesa>();
+      for (const linha of (data ?? []) as CancelamentoMesa[]) {
+        if (linha.pedido_id) mapa.set(linha.pedido_id, linha);
+      }
+      return mapa;
+    },
+  });
+}
+
+export function useDevolverFila() {
+  return useRpcMesa<{ p_pedido_id: string; p_motivo: string }>(
+    "fn_mesa_sp_devolver_fila",
+    () => "Pedido devolvido para a fila.",
+  );
 }

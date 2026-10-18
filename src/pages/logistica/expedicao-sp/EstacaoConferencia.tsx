@@ -216,10 +216,12 @@ interface Props {
   registrando: boolean;
   onRegistrar: (itens: ItemConferido[], ok: boolean, motivo: string | null) => void;
   onVoltarSeparacao: () => void;
+  /** Cancelamento solicitado: não registra conferência. */
+  bloqueado?: boolean;
 }
 
 export function EstacaoConferencia({
-  pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao,
+  pedidoId, itens, imagens, carregando, registrando, onRegistrar, onVoltarSeparacao, bloqueado = false,
 }: Props) {
   const [bipados, setBipados] = useState<Record<string, number>>({});
   const [buffer, setBuffer] = useState("");
@@ -291,10 +293,10 @@ export function EstacaoConferencia({
   // Todos os itens completos → registra sozinho. É o gesto que o briefing pede:
   // o último bipe fecha a conferência, sem pedir mais nada ao operador.
   useEffect(() => {
-    if (!completo || jaRegistrou.current || registrando) return;
+    if (!completo || jaRegistrou.current || registrando || bloqueado) return;
     jaRegistrou.current = true;
     onRegistrar(paraRpc(), true, null);
-  }, [completo, registrando, onRegistrar, paraRpc]);
+  }, [completo, registrando, bloqueado, onRegistrar, paraRpc]);
 
   function processar(codigoBruto: string) {
     const codigo = normalizarCodigo(codigoBruto);
@@ -502,7 +504,7 @@ export function EstacaoConferencia({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={() => setDialogDivergencia(true)} disabled={registrando}>
+          <Button variant="outline" onClick={() => setDialogDivergencia(true)} disabled={registrando || bloqueado}>
             Registrar divergência
           </Button>
           {registrando && (

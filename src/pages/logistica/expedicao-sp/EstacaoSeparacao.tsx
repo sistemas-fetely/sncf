@@ -1,4 +1,4 @@
-import { ArrowRight, Loader2, PackageSearch, Printer } from "lucide-react";
+import { ArrowRight, ImageOff, Loader2, PackageSearch, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
@@ -6,7 +6,7 @@ import { Selo } from "@/components/ui/selo";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import type { IdentidadesPedidoMesa, ItemPedidoMesa, PedidoMesa } from "./tipos";
+import type { IdentidadesPedidoMesa, ImagemProdutoMesa, ItemPedidoMesa, PedidoMesa } from "./tipos";
 
 /**
  * Estação 2 — Separação. Picking list puro: o que pegar da prateleira.
@@ -23,6 +23,9 @@ interface Props {
   pedido: PedidoMesa | null;
   identidades?: IdentidadesPedidoMesa;
   onConcluir: () => void;
+  imagens: Map<string, ImagemProdutoMesa>;
+  /** Cancelamento solicitado: não conclui separação. */
+  bloqueado?: boolean;
 }
 
 /**
@@ -48,7 +51,7 @@ function hojePtBr(): string {
   }).format(new Date());
 }
 
-export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onConcluir }: Props) {
+export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onConcluir, imagens, bloqueado = false }: Props) {
   const totalPecas = itens.reduce((s, i) => s + i.quantidade, 0);
   const identidadesPapel = [
     identidades?.bling_pedido_numero ? `Bling ${identidades.bling_pedido_numero}` : null,
@@ -101,7 +104,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
         {/* ── Faixa de identificação da caixa (recorte) ── */}
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: "12pt", letterSpacing: "0.05em" }}>
-            {[pedido?.cliente_nome_snapshot ?? "cliente sem nome", cidadeUf(pedido?.endereco_entrega), hojePtBr()]
+            {[pedido?.cliente_nome ?? "cliente sem nome", cidadeUf(pedido?.endereco_entrega), hojePtBr()]
               .filter(Boolean)
               .join("  ·  ")}
           </p>
@@ -128,7 +131,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "11pt" }}>
           <thead>
             <tr>
-              {["", "SKU", "Descrição", "EAN", "Qtd"].map((h, idx) => (
+              {["", "Foto", "Cód.", "SKU", "Descrição", "EAN", "Qtd"].map((h, idx) => (
                 <th
                   key={idx}
                   style={{
@@ -151,6 +154,19 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
                 <td style={{ padding: "3mm 2mm", borderBottom: "1px solid #000", width: "10mm" }}>
                   {/* Quadradinho para marcar à caneta na prateleira. */}
                   <span style={{ display: "inline-block", width: "4.5mm", height: "4.5mm", border: "1.5px solid #000" }} />
+                </td>
+                <td style={{ padding: "2mm 2mm", borderBottom: "1px solid #000", width: "12mm" }}>
+                  {(() => {
+                    const url = i.sku ? imagens.get(i.sku)?.imagem_url : undefined;
+                    return url ? (
+                      <img src={url} alt="" style={{ width: "32px", height: "32px", objectFit: "cover", display: "block" }} />
+                    ) : (
+                      <span style={{ display: "inline-block", width: "32px", height: "32px", border: "1px solid #999" }} />
+                    );
+                  })()}
+                </td>
+                <td style={{ padding: "3mm 2mm", borderBottom: "1px solid #000", fontFamily: "monospace", fontSize: "10pt" }}>
+                  {i.cod_cadastro ?? "—"}
                 </td>
                 <td style={{ padding: "3mm 2mm", borderBottom: "1px solid #000", fontFamily: "monospace", fontSize: "10pt" }}>
                   {i.sku ?? "—"}
@@ -182,7 +198,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
               <Printer aria-hidden="true" />
               Imprimir folha
             </Button>
-            <Button onClick={onConcluir}>
+            <Button onClick={onConcluir} disabled={bloqueado}>
               Concluir separação
               <ArrowRight aria-hidden="true" />
             </Button>
@@ -192,6 +208,8 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[4.5rem]">Foto</TableHead>
+              <TableHead className="w-[6rem]">Cód.</TableHead>
               <TableHead className="w-[9rem]">SKU</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="w-[10rem]">EAN</TableHead>
@@ -201,6 +219,10 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
           <TableBody>
             {itens.map((i) => (
               <TableRow key={i.id}>
+                <TableCell>
+                  <FotoItem url={i.sku ? imagens.get(i.sku)?.imagem_url : undefined} />
+                </TableCell>
+                <TableCell className="font-mono text-xs">{i.cod_cadastro ?? "—"}</TableCell>
                 <TableCell className="font-mono text-xs">{i.sku ?? "—"}</TableCell>
                 <TableCell className="text-sm">{i.descricao}</TableCell>
                 <TableCell className="font-mono text-xs">
@@ -218,4 +240,15 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
       </CardContent>
     </Card>
   );
+}
+
+function FotoItem({ url }: { url?: string }) {
+  if (!url) {
+    return (
+      <div className="flex h-12 w-12 items-center justify-center rounded-md border bg-muted text-muted-foreground">
+        <ImageOff className="h-4 w-4" aria-hidden="true" />
+      </div>
+    );
+  }
+  return <img src={url} alt="" loading="lazy" className="h-12 w-12 rounded-md border object-cover" />;
 }
