@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +61,7 @@ interface CentroDestino {
 
 const schema = z.object({
   destino: z.string().trim().min(1, "Informe o destino da transferência"),
+  finalidade: z.string(),
   observacao: z.string().trim(),
   itens: z
     .array(
@@ -75,7 +76,14 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-const VAZIO: FormValues = { destino: "", observacao: "", itens: [{ sku: "", nome: "", quantidade: 1 }] };
+const VAZIO: FormValues = { destino: "", finalidade: "", observacao: "", itens: [{ sku: "", nome: "", quantidade: 1 }] };
+
+interface FinalidadeTransferencia {
+  codigo: string;
+  rotulo: string;
+  descricao: string | null;
+  exige_descricao: boolean;
+}
 
 interface ProdutoCatalogo {
   sku: string;
@@ -277,8 +285,29 @@ const schemaRemessa = schema.extend({ destino: z.string() });
 export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa }) {
   const qc = useQueryClient();
 
+  // Regras dinâmicas (regularização / finalidade) lidas por ref no resolver.
+  const regrasRef = useRef<{ regularizacao: boolean; finalidades: FinalidadeTransferencia[] }>({
+    regularizacao: false,
+    finalidades: [],
+  });
+
   const form = useForm<FormValues>({
-    resolver: zodResolver(remessa ? schemaRemessa : schema),
+    resolver: (valores, ctx, opts) => {
+      const base = remessa ? schemaRemessa : schema;
+      const { regularizacao: reg, finalidades } = regrasRef.current;
+      const dinamico = base.superRefine((v, c) => {
+        if (remessa || reg) return;
+        if (!v.finalidade) {
+          c.addIssue({ code: z.ZodIssueCode.custom, path: ["finalidade"], message: "Escolha a finalidade" });
+          return;
+        }
+        const f = finalidades.find((x) => x.codigo === v.finalidade);
+        if (f?.exige_descricao && !v.observacao.trim()) {
+          c.addIssue({ code: z.ZodIssueCode.custom, path: ["observacao"], message: "Descreva a transferência" });
+        }
+      });
+      return zodResolver(dinamico)(valores, ctx, opts);
+    },
     defaultValues: { ...VAZIO },
   });
   const { fields, append, remove, replace } = useFieldArray({ control: form.control, name: "itens" });
@@ -293,6 +322,28 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
   // Regularização: mercadoria já está fisicamente no destino — pedido nasce em
   // Pré-faturamento (natureza transferencia_regularizacao), sem passar pelo XPM.
   const [regularizacao, setRegularizacao] = useState(false);
+
+  const finalidadesQ = useQuery({
+    queryKey: ["transferencia-finalidades-manuais"],
+    enabled: !remessa,
+    queryFn: async (): Promise<FinalidadeTransferencia[]> => {
+      const { data, error } = await supabase
+        .from("transferencia_finalidade")
+        .select("codigo, rotulo, descricao, exige_descricao")
+        .eq("ativo", true)
+        .eq("automatica", false)
+        .order("ordem");
+      if (error) throw error;
+      return (data ?? []) as FinalidadeTransferencia[];
+    },
+  });
+  useEffect(() => {
+    if (finalidadesQ.isError) toast.error(formatError(finalidadesQ.error));
+  }, [finalidadesQ.isError, finalidadesQ.error]);
+  regrasRef.current = { regularizacao, finalidades: finalidadesQ.data ?? [] };
+  const finalidadeAtual = form.watch("finalidade");
+  const exigeDescricao =
+    !remessa && !regularizacao && !!(finalidadesQ.data ?? []).find((f) => f.codigo === finalidadeAtual)?.exige_descricao;
 
   // Modo "Sugestão do motor": seleção por SKU (marcado + quantidade editável).
   const [sugSelecao, setSugSelecao] = useState<Record<string, { marcado: boolean; qtd: number }>>({});
@@ -382,6 +433,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
 
   const usarSugestao = () => {
     if (marcadas.length === 0) return;
+    if (!form.getValues("finalidade")) form.setValue("finalidade", "reposicao_site_sp", { shouldValidate: true });
     replace(
       marcadas.map((l) => ({
         sku: l.sku,
@@ -495,6 +547,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
         p_destino_codigo: valores.destino,
         p_observacao: valores.observacao.trim() ? valores.observacao.trim() : null,
         p_regularizacao: regularizacao,
+        p_finalidade_codigo: regularizacao ? undefined : valores.finalidade,
       });
       if (error) throw error;
       return data as { ok: boolean; id_externo: string; valor_bruto: number };
@@ -614,16 +667,50 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                   </p>
                 )}
               </div>}
+              {!remessa && !regularizacao && <div className="space-y-1.5">
+                <label htmlFor="finalidade" className="text-sm font-medium">
+                  Finalidade
+                </label>
+                <Controller
+                  control={form.control}
+                  name="finalidade"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={(v) => { field.onChange(v); form.clearErrors("finalidade"); }}>
+                      <SelectTrigger
+                        id="finalidade"
+                        className={form.formState.errors.finalidade ? "border-destructive" : ""}
+                      >
+                        <SelectValue placeholder={finalidadesQ.isLoading ? "Carregando finalidades…" : "Selecione a finalidade"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {(finalidadesQ.data ?? []).map((f) => (
+                          <SelectItem key={f.codigo} value={f.codigo}>
+                            {f.rotulo}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {form.formState.errors.finalidade && (
+                  <p className="text-xs text-destructive">{form.formState.errors.finalidade.message}</p>
+                )}
+              </div>}
               <div className="space-y-1.5">
                 <label htmlFor="observacao" className="text-sm font-medium">
-                  Observação <span className="font-normal text-muted-foreground">(opcional)</span>
+                  {remessa || regularizacao ? "Observação" : "Descrição"}
+                  {!exigeDescricao && <span className="font-normal text-muted-foreground"> (opcional)</span>}
                 </label>
                 <Textarea
                   id="observacao"
                   placeholder="Ex.: reposição para campanha de outono"
                   rows={2}
+                  className={form.formState.errors.observacao ? "border-destructive" : ""}
                   {...form.register("observacao")}
                 />
+                {form.formState.errors.observacao && (
+                  <p className="text-xs text-destructive">{form.formState.errors.observacao.message}</p>
+                )}
               </div>
             </div>
 

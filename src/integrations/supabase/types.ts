@@ -51681,6 +51681,7 @@ export type Database = {
           status_comercial_por: string | null
           status_comercial_slug: string | null
           tipo_pagamento: string | null
+          transferencia_finalidade_id: string | null
           transportadora_id: string | null
           transportadora_origem: string | null
           triado_em: string | null
@@ -51806,6 +51807,7 @@ export type Database = {
           status_comercial_por?: string | null
           status_comercial_slug?: string | null
           tipo_pagamento?: string | null
+          transferencia_finalidade_id?: string | null
           transportadora_id?: string | null
           transportadora_origem?: string | null
           triado_em?: string | null
@@ -51931,6 +51933,7 @@ export type Database = {
           status_comercial_por?: string | null
           status_comercial_slug?: string | null
           tipo_pagamento?: string | null
+          transferencia_finalidade_id?: string | null
           transportadora_id?: string | null
           transportadora_origem?: string | null
           triado_em?: string | null
@@ -53270,6 +53273,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_xpm_risco_atraso"
             referencedColumns: ["pedido_id"]
+          },
+          {
+            foreignKeyName: "pedidos_transferencia_finalidade_id_fkey"
+            columns: ["transferencia_finalidade_id"]
+            isOneToOne: false
+            referencedRelation: "transferencia_finalidade"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "pedidos_transportadora_id_fkey"
@@ -73126,6 +73136,42 @@ export type Database = {
         }
         Relationships: []
       }
+      transferencia_finalidade: {
+        Row: {
+          ativo: boolean
+          automatica: boolean
+          codigo: string
+          criado_em: string
+          descricao: string | null
+          exige_descricao: boolean
+          id: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          automatica?: boolean
+          codigo: string
+          criado_em?: string
+          descricao?: string | null
+          exige_descricao?: boolean
+          id?: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          automatica?: boolean
+          codigo?: string
+          criado_em?: string
+          descricao?: string | null
+          exige_descricao?: boolean
+          id?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       transp_cotacao_api: {
         Row: {
           ativo: boolean
@@ -82935,6 +82981,8 @@ export type Database = {
           destino_interno: string | null
           entregue_em: string | null
           estagio: string | null
+          finalidade_codigo: string | null
+          finalidade_rotulo: string | null
           id: string | null
           id_externo: string | null
           natureza_codigo: string | null
@@ -110804,14 +110852,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -122612,14 +122660,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -128949,6 +128997,7 @@ export type Database = {
       criar_pedido_transferencia: {
         Args: {
           p_destino_codigo: string
+          p_finalidade_codigo?: string
           p_itens: Json
           p_observacao?: string
           p_regularizacao?: boolean
