@@ -9,7 +9,7 @@ import {
 import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send, MinusCircle } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
 import { useNivel } from "@/hooks/useNivel";
 
@@ -54,13 +54,19 @@ interface Checklist {
   itens: ItemChecklist[];
 }
 
-function IconeEstado({ item }: { item: ItemChecklist }) {
+/** Itens físicos que não se aplicam quando a natureza não exige expedição. */
+const ITENS_FISICOS = new Set(["frete", "transportadora", "volumes", "peso"]);
+
+function IconeEstado({ item }: { item: ItemChecklist & { naoSeAplica?: boolean } }) {
+  if (item.naoSeAplica) return <MinusCircle className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />;
   if (item.ok) return <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0 text-success" />;
   if (item.bloqueia) return <XCircle className="h-4 w-4 mt-0.5 shrink-0 text-destructive" />;
   return <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0 text-warning" />;
 }
 
-export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
+export function PreFaturamentoCard({
+  pedidoId, exigeExpedicao = true, blingIdDestino = null,
+}: { pedidoId: string; exigeExpedicao?: boolean; blingIdDestino?: string | number | null }) {
   const { temNivel } = useNivel();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
@@ -98,12 +104,23 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
     );
   }
 
-  const itens = data.itens ?? [];
+  const itens = (data.itens ?? []).map((i) =>
+    !exigeExpedicao && ITENS_FISICOS.has(i.codigo)
+      ? { ...i, ok: true, naoSeAplica: true, detalhe: "Não se aplica — natureza sem movimento físico" }
+      : { ...i, naoSeAplica: false },
+  );
   const bloqueadores = itens.filter((i) => i.bloqueia && !i.ok);
+  const jaEnviado = blingIdDestino != null && String(blingIdDestino) !== "";
+  // Itens físicos "não se aplica" não contam como aviso.
+  const exigeMotivo = exigeExpedicao
+    ? data.exige_motivo
+    : data.exige_motivo && itens.some((i) => !i.ok && !i.bloqueia);
+  const podeEnviar = data.pode_enviar && !jaEnviado;
   const podeEscrever = temNivel(2);
   const motivoValido = motivo.trim().length >= MIN_MOTIVO;
 
   const disparar = async (comMotivo?: string) => {
+    if (jaEnviado) return;
     try {
       await enviar.mutateAsync({ pedido_id: pedidoId, motivo: comMotivo });
       setDialogOpen(false);
@@ -114,7 +131,8 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
   };
 
   const onClickEnviar = () => {
-    if (data.exige_motivo) {
+    if (jaEnviado) return;
+    if (exigeMotivo) {
       setDialogOpen(true);
       return;
     }
@@ -125,7 +143,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
     <Button
       size="sm"
       className="w-full gap-1.5"
-      disabled={!data.pode_enviar || enviar.isPending}
+      disabled={!podeEnviar || enviar.isPending}
       onClick={onClickEnviar}
     >
       {enviar.isPending
@@ -144,7 +162,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
           <li key={item.codigo} className="flex gap-2 text-sm">
             <IconeEstado item={item} />
             <div className="min-w-0">
-              <div className={item.ok ? "" : item.bloqueia ? "text-destructive" : "text-warning"}>
+              <div className={item.naoSeAplica ? "text-muted-foreground" : item.ok ? "" : item.bloqueia ? "text-destructive" : "text-warning"}>
                 {item.rotulo}
               </div>
               {item.detalhe && (
@@ -156,14 +174,16 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
       </ul>
 
       {podeEscrever && (
-        !data.pode_enviar ? (
+        !podeEnviar ? (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="block w-full">{botao}</span>
               </TooltipTrigger>
               <TooltipContent>
-                {bloqueadores.length > 0
+                {jaEnviado
+                  ? `Já enviado ao Bling (id ${blingIdDestino}) — emitir a NF lá`
+                  : bloqueadores.length > 0
                   ? `Bloqueado por: ${bloqueadores.map((b) => b.rotulo).join(", ")}`
                   : "Envio bloqueado pela conferência."}
               </TooltipContent>
@@ -174,12 +194,14 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
 
       {podeEscrever && (
         <p className="text-xs text-muted-foreground leading-snug">
-          A NF é emitida no Bling. O pedido vira Faturado sozinho quando ela for ingerida.
+          {exigeExpedicao
+            ? "A NF é emitida no Bling. O pedido vira Faturado sozinho quando ela for ingerida."
+            : "A NF é emitida no Bling (modalidade de frete: sem frete). O pedido vira Entregue sozinho quando ela for ingerida."}
         </p>
       )}
 
       <Dialog
-        open={dialogOpen}
+        open={dialogOpen && !jaEnviado}
         onOpenChange={(v) => {
           if (enviar.isPending) return;
           setDialogOpen(v);
@@ -209,7 +231,7 @@ export function PreFaturamentoCard({ pedidoId }: { pedidoId: string }) {
               Cancelar
             </Button>
             <Button
-              disabled={!motivoValido || enviar.isPending}
+              disabled={!motivoValido || enviar.isPending || jaEnviado}
               onClick={() => void disparar(motivo.trim())}
               className="gap-1.5"
             >
