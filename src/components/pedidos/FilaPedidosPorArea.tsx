@@ -44,7 +44,7 @@ import {
   TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
 import { formatDateBR } from "@/lib/format-currency";
-import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
+import { ExcecaoRecebidoLinha } from "@/components/pedidos/ExcecaoRecebido";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
@@ -1557,16 +1557,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
   return (
     <div className="flex justify-end items-center gap-0.5">
       {/* Ação primária do estágio */}
-      {p.estagio === "recebido" && (
-        <TriarPedidoDialog
-          pedido_id={p.id}
-          perfil_credito={null}
-          estagio_atual={p.estagio}
-          forma_solicitada={p.forma_solicitada}
-          triggerLabel="Triar"
-          triggerVariant="ghost"
-        />
-      )}
+      {p.estagio === "recebido" && <ExcecaoRecebidoLinha pedidoId={p.id} />}
       {p.estagio === "cobranca" && (
         <Button
           variant="ghost"

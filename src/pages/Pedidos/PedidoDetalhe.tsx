@@ -68,7 +68,7 @@ import { ChipNfPedido } from "@/components/pedidos/ChipNfPedido";
 import { CardAnalisePedido } from "@/components/pedidos/CardAnalisePedido";
 import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
-import { TriarPedidoDialog } from "@/components/pedidos/dialogs/TriarPedidoDialog";
+import { ExcecaoRecebidoPainel } from "@/components/pedidos/ExcecaoRecebido";
 import { CancelarPedidoDialog } from "@/components/pedidos/dialogs/CancelarPedidoDialog";
 import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
 import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
@@ -817,7 +817,7 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
   const navigate = useNavigate();
   const { temNivel } = useNivel();
   if (estagio === "recebido") return temNivel(3) ? (
-    <TriarPedidoDialog pedido_id={pedido.id} perfil_credito={parceiro?.perfil_credito} estagio_atual={estagio} forma_solicitada={pedido.forma_solicitada} triggerLabel="Encaminhar pedido" triggerVariant="default" />
+    <ExcecaoRecebidoPainel pedidoId={pedido.id} />
   ) : null;
   if (estagio === "cobranca") return (
     <AcoesPedidoCobranca pedido={pedido} parceiro={parceiro} />
