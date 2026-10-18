@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransferenciaDialog";
-import { ContagemCentroPainel } from "@/components/estoque/ContagemCentroPainel";
+import { Link } from "react-router-dom";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
 import { EstagioBadge } from "@/components/pedidos/BadgesPedido";
@@ -223,10 +223,9 @@ export function ReceberNoDestinoPainel() {
         </Collapsible>
       </section>
 
-      <section className="space-y-3">
-        <h3 className="text-base font-semibold">Contagem da prateleira</h3>
-        <ContagemCentroPainel />
-      </section>
+      <div className="text-right">
+        <Link to="/vendas/produto/estoque/inventario" className="text-sm text-muted-foreground hover:text-foreground hover:underline">Fazer inventário →</Link>
+      </div>
 
       {receber && (
         <ReceberTransferenciaDialog

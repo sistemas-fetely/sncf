@@ -12,6 +12,10 @@ import { FiltroColecao } from "@/components/acervo/BlingCardPainel";
 import { formatError } from "@/lib/format-error";
 import { hojeISO, fmtData } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -23,6 +27,7 @@ interface Linha {
   colecao: string | null;
   contabil: number | null;
   fisico: number | null;
+  achado?: boolean;
 }
 interface Divergencia { sku: string; contabil: number; contado: number; diferenca: number }
 interface Resultado { ok?: boolean; itens?: number; divergencias?: Divergencia[]; erro?: string }
@@ -31,6 +36,9 @@ const CENTRO_XPM = "XPM-SC";
 
 export function ContagemCentroPainel() {
   const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [soDiv, setSoDiv] = useState(false);
+  const [achados, setAchados] = useState<Linha[]>([]);
   const [centro, setCentro] = useState("SITE-SP");
   const [data, setData] = useState(hojeISO());
   const [busca, setBusca] = useState("");
@@ -45,7 +53,7 @@ export function ContagemCentroPainel() {
     queryKey: ["contagem-centros"],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from("centro_distribuicao").select("codigo,nome,rotulo_curto").eq("ativo", true).neq("codigo", CENTRO_XPM).order("codigo");
+        .from("centro_distribuicao").select("codigo,nome,rotulo_curto").eq("ativo", true).in("tipo", ["armazem", "showroom"]).neq("codigo", CENTRO_XPM).order("codigo");
       if (error) throw error;
       return (data ?? []) as { codigo: string; nome: string | null; rotulo_curto: string | null }[];
     },
@@ -64,7 +72,11 @@ export function ContagemCentroPainel() {
     },
   });
 
-  const linhas = linhasQ.data ?? [];
+  const linhas = useMemo(() => {
+    const base = linhasQ.data ?? [];
+    const ja = new Set(base.map((l) => l.sku));
+    return [...base, ...achados.filter((a) => !ja.has(a.sku))];
+  }, [linhasQ.data, achados]);
   const colecoesLista = useMemo(() => {
     const m = new Map<string, number>();
     linhas.forEach((l) => { if (l.colecao) m.set(l.colecao, (m.get(l.colecao) ?? 0) + 1); });
@@ -75,9 +87,14 @@ export function ContagemCentroPainel() {
     const t = busca.trim().toLowerCase();
     return linhas
       .filter((l) => colecoes.length === 0 || (l.colecao != null && colecoes.includes(l.colecao)))
+      .filter((l) => {
+        if (!soDiv) return true;
+        const v = contados[l.sku];
+        return v !== undefined && v !== "" && !isNaN(Number(v)) && Number(v) - (l.contabil ?? 0) !== 0;
+      })
       .filter((l) => !t || [l.cod_cadastro, l.sku, l.nome_comercial].some((v) => (v ?? "").toLowerCase().includes(t)))
       .sort((a, b) => (a.cod_cadastro ?? a.sku).localeCompare(b.cod_cadastro ?? b.sku));
-  }, [linhas, busca, colecoes]);
+  }, [linhas, busca, colecoes, soDiv, contados]);
 
   useEffect(() => {
     if (!destaque) return;
@@ -94,8 +111,24 @@ export function ContagemCentroPainel() {
       return { ...c, [sku]: String(novo) };
     });
 
+  async function incluirAchado(sku: string) {
+    const { data: p, error } = await (supabase as any)
+      .from("sncf_produtos").select("sku,cod_cadastro,nome_comercial").eq("sku", sku).maybeSingle();
+    if (error || !p) {
+      toast.error(error ? `Falha ao buscar produto ${sku}: ${formatError(error)}` : `SKU ${sku} não encontrado no catálogo`);
+      setContados((c) => { const n = { ...c }; delete n[sku]; return n; });
+      return;
+    }
+    setAchados((a) => a.some((x) => x.sku === sku) ? a : [...a, {
+      sku: p.sku, cod_cadastro: p.cod_cadastro, nome_comercial: p.nome_comercial,
+      cor_nome: null, colecao: null, contabil: 0, fisico: null, achado: true,
+    }]);
+    setDestaque({ sku, t: Date.now() });
+  }
+
   function aoLer(l: LeituraCodigo) {
-    if (!visiveis.some((v) => v.sku === l.sku)) { setBusca(""); setColecoes([]); }
+    if (!visiveis.some((v) => v.sku === l.sku)) { setBusca(""); setColecoes([]); setSoDiv(false); }
+    if (!linhas.some((v) => v.sku === l.sku)) void incluirAchado(l.sku);
     somarContado(l.sku, l.unidades);
     setDestaque({ sku: l.sku, t: Date.now() });
   }
@@ -103,11 +136,19 @@ export function ContagemCentroPainel() {
     somarContado(l.sku, -l.unidades);
     setDestaque({ sku: l.sku, t: Date.now() });
   }
-  const validarSku = (sku: string) =>
-    linhas.some((l) => l.sku === sku) ? null : `SKU ${sku} não está na lista deste centro`;
 
   const preenchidos = Object.entries(contados).filter(([, v]) => v !== "" && Number(v) >= 0 && !isNaN(Number(v)));
   const n = preenchidos.length;
+  const resumo = useMemo(() => {
+    const contabil = new Map(linhas.map((l) => [l.sku, l.contabil ?? 0]));
+    let pecas = 0, sobras = 0, faltas = 0;
+    preenchidos.forEach(([sku, v]) => {
+      const q = Number(v); pecas += q;
+      const d = q - (contabil.get(sku) ?? 0);
+      if (d > 0) sobras++; else if (d < 0) faltas++;
+    });
+    return { pecas, sobras, faltas };
+  }, [preenchidos, linhas]);
 
   const registrar = useMutation({
     mutationFn: async () => {
@@ -123,7 +164,10 @@ export function ContagemCentroPainel() {
     onSuccess: async (res) => {
       setResultado(res);
       setContados({});
-      toast.success(`${res.itens ?? n} contagens registradas`);
+      setAchados([]);
+      toast.success(`${res.itens ?? n} contagens registradas · ${(res.divergencias ?? []).length} com diferença`, {
+        action: { label: "Ver na Conciliação", onClick: () => navigate("/vendas/produto/estoque/conciliacao") },
+      });
       await qc.invalidateQueries({ queryKey: ["vw_estoque_cockpit"] });
       await qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes("estoque") });
       await linhasQ.refetch();
@@ -135,16 +179,13 @@ export function ContagemCentroPainel() {
   const centroRotulo = centrosQ.data?.find((c) => c.codigo === centro)?.rotulo_curto ?? centro;
 
   return (
-    <section className="space-y-4 rounded-md border bg-card p-4">
-      <div>
-        <h2 className="text-base font-medium">Contagem física</h2>
-        <p className="text-sm text-muted-foreground">
-          Registre o que foi contado na prateleira. A contagem não altera o saldo contábil — a diferença aparece como divergência para decisão.
-        </p>
-      </div>
+    <section className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Registre o que foi contado na prateleira. A contagem não altera o saldo contábil — a diferença aparece como divergência para decisão.
+      </p>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Select value={centro} onValueChange={(v) => { setCentro(v); setContados({}); setResultado(null); }}>
+        <Select value={centro} onValueChange={(v) => { setCentro(v); setContados({}); setAchados([]); setResultado(null); }}>
           <SelectTrigger className="w-[200px]"><SelectValue placeholder="Centro" /></SelectTrigger>
           <SelectContent>
             {(centrosQ.data ?? []).map((c) => (
@@ -155,8 +196,11 @@ export function ContagemCentroPainel() {
         <Input type="date" value={data} max={hojeISO()} onChange={(e) => setData(e.target.value > hojeISO() ? hojeISO() : e.target.value)} className="w-[160px]" aria-label="Data da contagem" />
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por código, SKU ou nome" className="w-[280px]" />
         <FiltroColecao colecoes={colecoesLista} selecionadas={colecoes} onChange={setColecoes} />
+        <div className="flex items-center gap-2">
+          <Switch id="so-div" checked={soDiv} onCheckedChange={setSoDiv} />
+          <Label htmlFor="so-div" className="text-sm">Só divergências</Label>
+        </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-sm text-muted-foreground tabular-nums">{n} itens contados</span>
           <BotaoGuardado slug="acao.estoque_contagem_registrar" rotuloAcao="Registrar contagem" disabled={n === 0 || registrar.isPending || preenchidos.some(([, v]) => numeroInvalido(v)) || !data} onClick={() => setConfirmar(true)}>
             Registrar contagem ({n})
           </BotaoGuardado>
@@ -192,7 +236,21 @@ export function ContagemCentroPainel() {
         </div>
       )}
 
-      <LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} validarSku={validarSku} />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {[
+          ["Itens contados", n, ""],
+          ["Peças contadas", resumo.pecas, ""],
+          ["Sobras", resumo.sobras, resumo.sobras > 0 ? "text-warning" : ""],
+          ["Faltas", resumo.faltas, resumo.faltas > 0 ? "text-destructive" : ""],
+        ].map(([r, v, c]) => (
+          <div key={r as string} className="rounded-md border bg-card px-3 py-2">
+            <div className="text-xs text-muted-foreground">{r}</div>
+            <div className={cn("text-lg font-medium tabular-nums", c as string)}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <LeitorCodigoBarras onLeitura={aoLer} onDesfazer={aoDesfazer} />
 
       {linhasQ.isLoading ? (
         <div className="py-8 text-center text-sm text-muted-foreground">Carregando…</div>
@@ -200,8 +258,8 @@ export function ContagemCentroPainel() {
         <div className="py-8 text-center text-sm text-muted-foreground">Nenhum produto neste recorte</div>
       ) : (
         <div className="rounded-md border" ref={tabelaRef}>
-          <Table className="text-[12px]" containerClassName="max-h-[min(60vh,44rem)]">
-            <TableHeader><TableRow>
+          <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
+            <TableHeader className="sticky top-0 z-10 bg-card"><TableRow>
               <TableHead className="w-[90px]">Cód.</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
@@ -217,7 +275,7 @@ export function ContagemCentroPainel() {
                   <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", destaque?.sku === l.sku && "bg-primary/15")}>
                     <TableCell className="font-mono">{l.cod_cadastro ?? l.sku}</TableCell>
                     <TableCell>
-                      <div className="truncate">{l.nome_comercial ?? "—"}</div>
+                      <div className="flex items-center gap-2 truncate">{l.nome_comercial ?? "—"}{l.achado && <Badge variant="outline" className="border-warning text-warning">Achado</Badge>}</div>
                       {l.cor_nome && <div className="text-[11px] text-muted-foreground">{l.cor_nome}</div>}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{l.contabil ?? 0}</TableCell>
