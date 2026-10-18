@@ -813,7 +813,7 @@ function AcoesPedidoFaturado({ pedido }: { pedido: any }) {
   );
 }
 
-function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido: any; parceiro: any; estagio: EstagioPedido; geraTituloReceber: boolean }) {
+function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber, exigeExpedicao = true }: { pedido: any; parceiro: any; estagio: EstagioPedido; geraTituloReceber: boolean; exigeExpedicao?: boolean }) {
   const navigate = useNavigate();
   const { temNivel } = useNivel();
   if (estagio === "recebido") return temNivel(3) ? (
@@ -836,7 +836,11 @@ function AcaoPrimaria({ pedido, parceiro, estagio, geraTituloReceber }: { pedido
   // conferido pela RPC e desce ao Bling tarde e completo, depois que a XPM
   // devolve peso e volume reais.
   if (estagio === "pre_faturamento") return (
-    <PreFaturamentoCard pedidoId={pedido.id} />
+    <PreFaturamentoCard
+      pedidoId={pedido.id}
+      exigeExpedicao={exigeExpedicao}
+      blingIdDestino={pedido.bling_id_destino ?? null}
+    />
   );
   if (estagio === "faturado") return (
     <AcoesPedidoFaturado pedido={pedido} />
@@ -2213,7 +2217,13 @@ export default function PedidoDetalhe() {
             )}
 
             {/* Card — Dados de envio */}
-            {estagio !== "cancelado" && (
+            {estagio !== "cancelado" && natureza?.exige_expedicao === false && (
+              <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/40 p-3 text-sm text-muted-foreground">
+                <Truck className="h-4 w-4 shrink-0 mt-0.5" />
+                <p>Sem movimento físico — natureza não exige expedição (sem frete, sem XPM).</p>
+              </div>
+            )}
+            {estagio !== "cancelado" && natureza?.exige_expedicao !== false && (
               <Card className="border-border/60 h-full flex flex-col">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -3143,7 +3153,7 @@ export default function PedidoDetalhe() {
               {temNivel(2) && <BotaoEditarPedido pedido={pedido} itens={itens} />}
               <div className="border-t border-border/40" />
               {!estagioFinal && (
-                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} />
+                <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} exigeExpedicao={natureza?.exige_expedicao !== false} />
               )}
               {!estagioFinal && (
                 <AcoesRemessa

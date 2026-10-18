@@ -40,11 +40,14 @@ export function useEnviarBling() {
         let msg = error.message;
         try {
           const b = await (error as any).context?.json?.();
-          if (b?.erro) msg = b.erro;
+          if (b?.erro) msg = typeof b.erro === "string" ? b.erro : JSON.stringify(b.erro);
         } catch { /* mantém mensagem genérica */ }
         throw new Error(msg);
       }
-      if (!data?.sucesso) throw new Error(data?.erro || "Falha ao enviar pro Bling");
+      if (!data?.sucesso) {
+        const e = data?.erro;
+        throw new Error(typeof e === "string" && e ? e : e ? JSON.stringify(e) : "Falha ao enviar pro Bling");
+      }
       return data;
     },
     onSuccess: (data, vars) => {
@@ -60,12 +63,13 @@ export function useEnviarBling() {
         description: data.proximo_passo ? `${desc} · ${data.proximo_passo}` : desc,
       });
 
-      invalidarPedido(qc, vars.pedido_id);
+      void invalidarPedido(qc, vars.pedido_id).catch(() => undefined);
     },
     onError: (e: Error, vars) => {
-      toast({ title: "Erro ao enviar pro Bling", description: e.message, variant: "destructive" });
+      toast({ title: "Erro ao enviar pro Bling", description: String(e?.message ?? e), variant: "destructive" });
       // A edge cria a remessa antes do POST: mesmo com falha, o estado pode ter mudado.
-      invalidarPedido(qc, vars.pedido_id);
+      // Falha da rebusca não pode virar erro não tratado e derrubar a tela.
+      void invalidarPedido(qc, vars.pedido_id).catch(() => undefined);
     },
   });
 }
