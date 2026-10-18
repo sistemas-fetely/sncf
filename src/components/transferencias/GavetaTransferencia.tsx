@@ -11,7 +11,7 @@ import { MiniaturaProduto } from "@/components/estoque/MiniaturaProduto";
 import { useFotosPrincipais } from "@/hooks/useFotosProduto";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
-import { formatCurrency } from "@/lib/format-currency";
+import { formatBRL as formatCurrency } from "@/lib/format-currency";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface RecebimentoInfo { data_recebimento: string; divergencias: unknown[] | null }
@@ -58,13 +58,20 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
         if (e4) throw e4;
         (ps ?? []).forEach((p: any) => prods.set(p.sku, p));
       }
-      return { v, obs: ped?.observacao_pedido as string | null, nf, itens: itens.map((i) => ({ ...i, prod: prods.get(i.sku) ?? null })) };
+      const codsC = [v?.origem_codigo, v?.destino_codigo].filter(Boolean);
+      const rotulos = new Map<string, string>();
+      if (codsC.length) {
+        const { data: cs, error: e5 } = await (supabase as any).from("centro_distribuicao").select("codigo,rotulo_curto,nome").in("codigo", codsC);
+        if (e5) throw e5;
+        (cs ?? []).forEach((c: any) => rotulos.set(c.codigo, c.rotulo_curto ?? c.nome ?? c.codigo));
+      }
+      return { v, rotulos, obs: ped?.observacao_pedido as string | null, nf, itens: itens.map((i) => ({ ...i, prod: prods.get(i.sku) ?? null })) };
     },
   });
   const d = q.data;
   const fotos = useFotosPrincipais((d?.itens ?? []).map((i: any) => i.prod?.cod_cadastro));
   const v = d?.v;
-  const rot = (c: string | null) => c === "SITE-SP" ? "Site SP" : c === "FET-SP-SR" ? "Show Room" : c;
+  const rot = (c: string | null) => (c ? d?.rotulos.get(c) ?? c : null);
   const pecas = (d?.itens ?? []).reduce((s: number, i: any) => s + Number(i.quantidade ?? 0), 0);
   const valor = (d?.itens ?? []).reduce((s: number, i: any) => s + Number(i.subtotal ?? Number(i.quantidade ?? 0) * Number(i.valor_unitario ?? 0)), 0);
   const divs = Array.isArray(recebimento?.divergencias) ? recebimento!.divergencias! : [];
