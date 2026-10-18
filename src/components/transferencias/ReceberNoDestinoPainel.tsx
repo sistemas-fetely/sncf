@@ -91,7 +91,14 @@ export function ReceberNoDestinoPainel() {
           if (c.ativo === true && (c.tipo === "armazem" || c.tipo === "showroom") && c.codigo !== "XPM-SC") codigos.set(c.id, c.codigo);
         });
       }
-      const alvo = abertos.filter((p) => p.destino_centro_id && codigos.has(p.destino_centro_id));
+      const alvoBruto = abertos.filter((p) => p.destino_centro_id && codigos.has(p.destino_centro_id));
+      if (!alvoBruto.length) return [];
+      // Venda fora (Casa 22) segue pela remessa 5904 e nunca é recebida aqui — mesma regra do Painel.
+      const { data: vs, error: eV } = await (supabase as any)
+        .from("v_transferencias_internas").select("id, nf_numero, nf_data_emissao, finalidade_codigo, finalidade_rotulo").in("id", alvoBruto.map((p) => p.id));
+      if (eV) throw eV;
+      const vm = new Map(((vs ?? []) as any[]).map((x) => [x.id, x]));
+      const alvo = alvoBruto.filter((p) => vm.get(p.id)?.finalidade_codigo !== "venda_fora");
       if (!alvo.length) return [];
       const { data: its, error: eI } = await (supabase as any)
         .from("pedido_itens").select("pedido_id, quantidade").in("pedido_id", alvo.map((p) => p.id));
@@ -103,10 +110,6 @@ export function ReceberNoDestinoPainel() {
         a.pecas += Number(i.quantidade ?? 0);
         agg.set(i.pedido_id, a);
       });
-      const { data: vs, error: eV } = await (supabase as any)
-        .from("v_transferencias_internas").select("id, nf_numero, nf_data_emissao, finalidade_rotulo").in("id", alvo.map((p) => p.id));
-      if (eV) throw eV;
-      const vm = new Map(((vs ?? []) as any[]).map((x) => [x.id, x]));
       return alvo.map((p) => ({
         nf_numero: vm.get(p.id)?.nf_numero ?? null,
         nf_data_emissao: vm.get(p.id)?.nf_data_emissao ?? null,
@@ -134,8 +137,19 @@ export function ReceberNoDestinoPainel() {
       if (error) throw error;
       const rs = (data ?? []) as Recebida[];
       if (!rs.length) return [];
+      // Venda fora (Casa 22) não é recebida nesta aba — mesma regra do Painel.
+      const { data: vs, error: eV } = await (supabase as any)
+        .from("v_transferencias_internas").select("id, finalidade_codigo").in("id", rs.map((r) => r.pedido_id));
+      if (eV) throw eV;
+      const vendaFora = new Set(
+        ((vs ?? []) as { id: string; finalidade_codigo: string | null }[])
+          .filter((x) => x.finalidade_codigo === "venda_fora")
+          .map((x) => x.id)
+      );
+      const proprios = rs.filter((r) => !vendaFora.has(r.pedido_id));
+      if (!proprios.length) return [];
       const { data: peds, error: e2 } = await (supabase as any)
-        .from("pedidos").select("id, id_externo").in("id", rs.map((r) => r.pedido_id));
+        .from("pedidos").select("id, id_externo").in("id", proprios.map((r) => r.pedido_id));
       if (e2) throw e2;
       const m = new Map(((peds ?? []) as { id: string; id_externo: string | null }[]).map((p) => [p.id, p.id_externo]));
       return rs.map((r) => ({ ...r, id_externo: m.get(r.pedido_id) ?? null }));
