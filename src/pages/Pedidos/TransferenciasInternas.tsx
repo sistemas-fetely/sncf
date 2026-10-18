@@ -49,7 +49,7 @@ import { ESTAGIO_LABELS, type EstagioPedido } from "@/types/pedido";
 import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
-import { Loader2, PackageCheck } from "lucide-react";
+import { Eye, Loader2, PackageCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
@@ -71,6 +71,7 @@ interface TransferenciaRow {
   observacao_pedido: string | null;
   finalidade_codigo: string | null;
   finalidade_rotulo: string | null;
+  remessa_venda_fora_nf: string | null;
   data_pedido: string | null;
   valor_bruto: number | null;
   qtd_itens: number | null;
@@ -128,6 +129,9 @@ export default function TransferenciasInternas() {
     : abaUrl === "retorno" && permRetorno.podeVer ? "retorno"
     : "transferencias";
   const [soOrfaos, setSoOrfaos] = useState(false);
+  // Venda fora (Casa 22) é operação de consignado: fica fora da lista e dos
+  // contadores da tela até o chip "Mostrar venda fora" ser ligado.
+  const [mostrarVendaFora, setMostrarVendaFora] = useState(false);
   const semBaixaRef = useRef<HTMLDivElement>(null);
 
   const [filtroFinalidade, setFiltroFinalidade] = useState("todas");
@@ -153,16 +157,23 @@ export default function TransferenciasInternas() {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal, finalidade_codigo, finalidade_rotulo"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal, finalidade_codigo, finalidade_rotulo, remessa_venda_fora_nf"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
       return (data ?? []) as TransferenciaRow[];
     },
   });
-  const nOrfaos = (listaQ.data ?? []).filter((t) => t.orfao === true).length;
+  // Lista visível = tudo que a tela mostra e conta. Venda fora só entra quando o
+  // chip está ligado; os contadores abaixo usam esta lista, não a consulta crua.
+  const linhas = listaQ.data ?? [];
+  const visiveis = mostrarVendaFora
+    ? linhas
+    : linhas.filter((t) => t.finalidade_codigo !== "venda_fora");
+  const nVendaFora = linhas.length - visiveis.length;
+  const nOrfaos = visiveis.filter((t) => t.orfao === true).length;
 
-  const idsLista = (listaQ.data ?? []).map((t) => t.id);
+  const idsLista = linhas.map((t) => t.id);
   const recebQ = useQuery({
     queryKey: ["trs-recebimento", idsLista.join("|")],
     enabled: idsLista.length > 0,
@@ -199,7 +210,7 @@ export default function TransferenciasInternas() {
     if (semBaixaQ.isError) toast.error(formatError(semBaixaQ.error));
   }, [semBaixaQ.isError, semBaixaQ.error]);
   const nSemBaixa = semBaixaQ.data?.length ?? 0;
-  const nAReceber = (listaQ.data ?? []).filter(
+  const nAReceber = visiveis.filter(
     (t) =>
       t.sem_destino !== true &&
       (t.estagio === "em_transito" || t.estagio === "em_transporte" || t.estagio === "entregue") &&
@@ -288,17 +299,34 @@ export default function TransferenciasInternas() {
               </span>
             )}
           </CardTitle>
-          <Select value={filtroFinalidade} onValueChange={setFiltroFinalidade}>
-            <SelectTrigger className="h-8 w-[220px]" aria-label="Filtrar por finalidade">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as finalidades</SelectItem>
-              {(finalidadesFiltroQ.data ?? []).map((f) => (
-                <SelectItem key={f.codigo} value={f.codigo}>{f.rotulo}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              aria-pressed={mostrarVendaFora}
+              onClick={() => setMostrarVendaFora((v) => !v)}
+              className={cn(
+                "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-md border px-2.5 text-xs hover:bg-muted/50",
+                mostrarVendaFora
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "bg-card text-muted-foreground",
+              )}
+            >
+              <Eye className="h-3.5 w-3.5" aria-hidden />
+              Mostrar venda fora (Casa 22)
+              {nVendaFora > 0 && <span className="tabular-nums">({nVendaFora})</span>}
+            </button>
+            <Select value={filtroFinalidade} onValueChange={setFiltroFinalidade}>
+              <SelectTrigger className="h-8 w-[220px]" aria-label="Filtrar por finalidade">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas as finalidades</SelectItem>
+                {(finalidadesFiltroQ.data ?? []).map((f) => (
+                  <SelectItem key={f.codigo} value={f.codigo}>{f.rotulo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {listaQ.isLoading ? (
@@ -309,7 +337,7 @@ export default function TransferenciasInternas() {
             <p className="p-6 text-sm text-destructive">
               Falha ao carregar transferências: {(listaQ.error as Error).message}
             </p>
-          ) : (listaQ.data ?? []).length === 0 ? (
+          ) : visiveis.length === 0 ? (
             <p className="p-10 text-center text-sm text-muted-foreground">
               Nenhuma transferência interna registrada ainda.
             </p>
@@ -336,7 +364,7 @@ export default function TransferenciasInternas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(listaQ.data ?? []).filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
+                {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
                   const abrir = () => navigate(`/pedidos/${t.id}`);
                   return (
                     <TableRow
@@ -417,15 +445,28 @@ export default function TransferenciasInternas() {
                       </TableCell>
                       <TableCell>
                         {(() => {
-                          if (!t.nf_numero) return <span className="text-muted-foreground">—</span>;
+                          if (!t.nf_numero && !t.remessa_venda_fora_nf) return <span className="text-muted-foreground">—</span>;
                           const alerta = t.nf_situacao && t.nf_situacao !== "autorizada";
                           return (
-                            <span
-                              className={cn("tabular-nums", alerta && "text-warning")}
-                              title={`NF ${t.nf_numero}/${t.nf_serie} · emitida em ${formatDateBR(t.nf_data_emissao)} · ${t.nf_situacao}`}
-                            >
-                              {t.nf_numero}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              {t.nf_numero && (
+                                <span
+                                  className={cn("tabular-nums", alerta && "text-warning")}
+                                  title={`NF ${t.nf_numero}/${t.nf_serie} · emitida em ${formatDateBR(t.nf_data_emissao)} · ${t.nf_situacao}`}
+                                >
+                                  {t.nf_numero}
+                                </span>
+                              )}
+                              {t.remessa_venda_fora_nf && (
+                                <Badge
+                                  variant="outline"
+                                  className="whitespace-nowrap text-xs font-normal text-muted-foreground"
+                                  title="NF de remessa para venda fora do estabelecimento (CFOP 5904) que esta transferência abasteceu."
+                                >
+                                  Remessa 5904: NF {t.remessa_venda_fora_nf}
+                                </Badge>
+                              )}
+                            </div>
                           );
                         })()}
                       </TableCell>
