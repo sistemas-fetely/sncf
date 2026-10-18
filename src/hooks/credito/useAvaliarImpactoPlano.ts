@@ -39,6 +39,8 @@ export interface ImpactoPlano {
   trava?: string | null;
   /** Veredito do envelope de crédito — usar como título do painel de impacto. */
   envelope_rotulo?: string | null;
+  /** Retorno bruto de fn_avaliar_envelope_plano (fonte única do limite disponível). */
+  envelope?: import("@/components/pedidos/EnvelopeCreditoBanner").EnvelopePlano | null;
 }
 
 interface Args {

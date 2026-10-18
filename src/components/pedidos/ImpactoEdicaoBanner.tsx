@@ -3,6 +3,7 @@ import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
 import { formatBRL } from "@/lib/format-currency";
 import { useAvaliarImpactoEdicao } from "@/hooks/credito/useAvaliarImpactoEdicao";
 import { useAvaliarImpactoPlano, type LinhaImpacto } from "@/hooks/credito/useAvaliarImpactoPlano";
+import { EnvelopeCreditoBanner } from "@/components/pedidos/EnvelopeCreditoBanner";
 
 /** Rótulos curtos das travas duras devolvidas pela RPC (a regra fica no banco). */
 export const TRAVA_ROTULO: Record<string, string> = {
@@ -98,6 +99,16 @@ export function ImpactoEdicaoBanner({
         {vencMaisLongo && <> · última em {fmtData(vencMaisLongo)}</>}
       </div>
     ) : null;
+
+  // Envelope de linhas: a cor vem do limite DISPONÍVEL (fn_avaliar_envelope_plano),
+  // nunca de cabe_no_limite. Prazo estourado e travas seguem os ramos antigos.
+  const env = usarPlano ? qPlano.data?.envelope ?? null : null;
+  if (
+    env && pedidoId && !trava && env.cabe_no_prazo !== false &&
+    caminho !== "financeiro" && caminho !== "bloqueado" && caminho !== "condicao_invalida" && caminho !== "erro"
+  ) {
+    return <EnvelopeCreditoBanner pedidoId={pedidoId} env={env} className={className} />;
+  }
 
   if (caminho === "reconcilia_no_lugar") {
     return (
