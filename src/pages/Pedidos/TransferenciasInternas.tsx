@@ -50,6 +50,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { parseDataPura } from "@/lib/data";
 import { Loader2, PackageCheck } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
@@ -68,6 +69,8 @@ interface TransferenciaRow {
   estagio: string | null;
   destino_interno: string | null;
   observacao_pedido: string | null;
+  finalidade_codigo: string | null;
+  finalidade_rotulo: string | null;
   data_pedido: string | null;
   valor_bruto: number | null;
   qtd_itens: number | null;
@@ -127,13 +130,30 @@ export default function TransferenciasInternas() {
   const [soOrfaos, setSoOrfaos] = useState(false);
   const semBaixaRef = useRef<HTMLDivElement>(null);
 
+  const [filtroFinalidade, setFiltroFinalidade] = useState("todas");
+  const finalidadesFiltroQ = useQuery({
+    queryKey: ["transferencia-finalidades-todas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("transferencia_finalidade")
+        .select("codigo, rotulo")
+        .eq("ativo", true)
+        .order("ordem");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  useEffect(() => {
+    if (finalidadesFiltroQ.isError) toast.error(formatError(finalidadesFiltroQ.error));
+  }, [finalidadesFiltroQ.isError, finalidadesFiltroQ.error]);
+
   const listaQ = useQuery({
     queryKey: ["transferencias-internas"],
     queryFn: async (): Promise<TransferenciaRow[]> => {
       const { data, error } = await supabase
         .from("v_transferencias_internas")
         .select(
-          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal"
+          "id, id_externo, estagio, destino_interno, observacao_pedido, data_pedido, valor_bruto, qtd_itens, qtd_total_pecas, tipo_transferencia, regularizacao_lote_id, regularizacao_lote_codigo, origem_codigo, destino_codigo, orfao, sem_origem, sem_destino, nf_numero, nf_serie, nf_situacao, nf_data_emissao, nf_chave, data_entrega_prevista, entregue_em, canal, finalidade_codigo, finalidade_rotulo"
         )
         .order("data_pedido", { ascending: false });
       if (error) throw error;
@@ -259,7 +279,7 @@ export default function TransferenciasInternas() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="flex items-center gap-2 text-base">
             Transferências
             {nOrfaos > 0 && (
@@ -268,6 +288,17 @@ export default function TransferenciasInternas() {
               </span>
             )}
           </CardTitle>
+          <Select value={filtroFinalidade} onValueChange={setFiltroFinalidade}>
+            <SelectTrigger className="h-8 w-[220px]" aria-label="Filtrar por finalidade">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as finalidades</SelectItem>
+              {(finalidadesFiltroQ.data ?? []).map((f) => (
+                <SelectItem key={f.codigo} value={f.codigo}>{f.rotulo}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent className="p-0">
           {listaQ.isLoading ? (
@@ -288,6 +319,8 @@ export default function TransferenciasInternas() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Número</TableHead>
+                  <TableHead>Finalidade</TableHead>
+                  <TableHead>Descrição</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Origem</TableHead>
                   <TableHead>Destino</TableHead>
@@ -303,7 +336,7 @@ export default function TransferenciasInternas() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(listaQ.data ?? []).filter((t) => !soOrfaos || t.orfao === true).map((t) => {
+                {(listaQ.data ?? []).filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
                   const abrir = () => navigate(`/pedidos/${t.id}`);
                   return (
                     <TableRow
@@ -334,6 +367,25 @@ export default function TransferenciasInternas() {
                         >
                           {t.id_externo ?? "—"}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {t.finalidade_rotulo ? (
+                          <Badge variant="secondary" className="whitespace-nowrap">{t.finalidade_rotulo}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {t.observacao_pedido?.trim() ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="block max-w-[40ch] truncate">{t.observacao_pedido}</span>
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-sm whitespace-pre-wrap">{t.observacao_pedido}</TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
                       </TableCell>
                       <TableCell onKeyDown={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1.5 flex-wrap">
