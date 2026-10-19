@@ -528,10 +528,60 @@ export default function ExpedicaoSp() {
               </Card>
 
               {cancelamentoSelecionado && (
-                <div className="flex items-start gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                  Cliente pediu cancelamento ({cancelamentoSelecionado.numero}). Não siga com este pedido — devolva os itens à prateleira.
+                <div className="flex items-start justify-between gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>
+                      Cliente pediu cancelamento ({cancelamentoSelecionado.numero}). Não siga com este pedido — devolva os itens à prateleira.
+                    </span>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => setEncerrarAberto(true)}
+                    className="shrink-0"
+                  >
+                    Itens na prateleira · encerrar pedido
+                  </Button>
                 </div>
+              )}
+
+              {cancelamentoSelecionado && (
+                <AlertDialog open={encerrarAberto} onOpenChange={setEncerrarAberto}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Encerrar {selecionado.id_externo}?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Confirme que os itens já voltaram à prateleira. O pedido sai da mesa como cancelado.
+                        O reembolso e a NF seguem no funil de devolução ({cancelamentoSelecionado.numero}).
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={encerrar.isPending}>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        disabled={encerrar.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          const pedidoId = selecionado.id;
+                          encerrar.mutate(
+                            { p_pedido_id: pedidoId },
+                            {
+                              onSuccess: () => {
+                                marcarEmConferencia(pedidoId, false);
+                                setSelecionadoId(null);
+                                setEncerrarAberto(false);
+                              },
+                            },
+                          );
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {encerrar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />}
+                        Confirmar e encerrar
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
 
               <Dialog open={devolverAberto} onOpenChange={setDevolverAberto}>
