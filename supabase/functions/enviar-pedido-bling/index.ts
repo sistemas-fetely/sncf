@@ -306,17 +306,25 @@ serve(async (req) => {
       if (!pedido.natureza_operacao_id) {
         return await recusarCd(`Pedido sem natureza de operação — obrigatória para expedir pelo CD ${cdCodigo}.`);
       }
+    }
+    // NATUREZA-POR-CANAL-E-CD (19/10/2026): de-para canal B2B × CD × natureza, para todo CD.
+    if (pedido.natureza_operacao_id) {
       const { data: natCd, error: natCdErr } = await supabase
         .from("naturezas_operacao_cd")
         .select("bling_natureza_id")
+        .eq("canal", "B2B")
         .eq("natureza_operacao_id", pedido.natureza_operacao_id)
         .eq("centro_codigo", cdCodigo)
         .maybeSingle();
       if (natCdErr) return err(`Falha ao ler naturezas_operacao_cd: ${natCdErr.message}`, 500);
-      if (!natCd) {
-        return await recusarCd(`Natureza "${naturezaNome}" sem de-para para o CD ${cdCodigo} (naturezas_operacao_cd). Nada foi enviado ao Bling.`);
+      if (natCd) {
+        blingNaturezaId = natCd.bling_natureza_id != null ? Number(natCd.bling_natureza_id) : null;
+      } else if (cdCodigo !== "XPM-SC") {
+        const msg = `Natureza "${naturezaNome}" sem de-para para o CD ${cdCodigo} (naturezas_operacao_cd). Nada foi enviado ao Bling.`;
+        const { error: upErr } = await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
+        if (upErr) return err(`${msg} (e falhou ao gravar o erro no pedido: ${upErr.message})`, 409);
+        return err(msg, 409);
       }
-      blingNaturezaId = natCd.bling_natureza_id != null ? Number(natCd.bling_natureza_id) : null;
     }
 
     // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
