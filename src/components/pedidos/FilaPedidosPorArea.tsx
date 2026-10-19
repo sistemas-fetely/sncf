@@ -995,7 +995,7 @@ export function FilaPedidosPorArea({
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
               <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px] whitespace-nowrap" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[96px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
+              <TableHead className="w-[136px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
