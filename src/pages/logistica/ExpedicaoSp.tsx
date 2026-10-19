@@ -169,6 +169,7 @@ export default function ExpedicaoSp() {
   const despachar = useDespachar();
   const despacharLote = useDespacharLote();
   const devolver = useDevolverFila();
+  const encerrar = useEncerrarCancelado();
   const checklistQ = useChecklistEmbalagem();
   // Marcação da rotina é ato gravado: a lista vem do banco DESTE pedido, então
   // trocar de pedido já traz a rotina dele — não há estado de tela para zerar.
