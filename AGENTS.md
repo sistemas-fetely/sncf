@@ -19,3 +19,4 @@
 - Persist live Correios B2B quotes to `frete_cotacao` (one per order, update-then-insert because the unique index is partial) so the DB suggestion can read them; the front only highlights the DB winner and never re-implements eligibility rules.
 - CNAB settlement only advances an order that is still in the collection queue: the return processor reads the current stage and skips the transition otherwise, and a failed transition is logged without aborting the file, because recording the bank fact must never depend on stage changes.
 - Every Bling API call goes through `_shared/bling/bling-client.ts` (`blingHeaders` adds `enable-jwt: 1`); call-sites never fetch the Bling API directly, so JWT/auth changes live in one place.
+- Every Bling sync that finds or creates a partner goes through `_shared/bling/parceiro-resolver.ts` (bling_id → CPF → CNPJ, oldest row, lookup errors throw), because `.maybeSingle()` on duplicate rows silently returned null and spawned new copies.

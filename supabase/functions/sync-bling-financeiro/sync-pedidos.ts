@@ -1,4 +1,5 @@
 import type { BlingClient } from "../_shared/bling/bling-client.ts";
+import { resolverParceiroBling } from "../_shared/bling/parceiro-resolver.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -10,39 +11,9 @@ function safeDate(v: any): string | null {
   return m ? m[0] : null;
 }
 
-// CLIENTE-NAO-SE-PERDE-EM-SILENCIO (14/09/2026): quando o INSERT do parceiro
-// falhava (ex.: "Could not query the database for the schema cache"), a funcao
-// devolvia null e a NF/pedido era gravado SEM cliente. Agora tenta 2x com pausa
-// curta e, se ainda falhar, LANCA — o item cai no catch do laco, conta como erro
-// e aparece em integracoes_sync_log. Nada entra sem cliente em silencio.
-async function inserirParceiroComRetry(supabase: any, registro: Record<string, unknown>) {
-  let ultimoErro = "";
-  for (let tentativa = 1; tentativa <= 3; tentativa++) {
-    const { data, error } = await supabase
-      .from("parceiros_comerciais").insert(registro).select("id").maybeSingle();
-    if (!error) return data?.id ?? null;
-    ultimoErro = error.message;
-    if (tentativa < 3) await new Promise((r) => setTimeout(r, 400 * tentativa));
-  }
-  throw new Error(
-    `parceiro nao cadastrado [bling_id=${registro.bling_id}]: ${ultimoErro}`,
-  );
-}
-
+// Busca/criação do parceiro: fonte única em parceiro-resolver.ts (sem duplicar).
 async function resolveParceiroId(supabase: any, contato: any): Promise<string | null> {
-  if (!contato?.id) return null;
-  const blingId = String(contato.id);
-  const { data: found } = await supabase
-    .from("parceiros_comerciais").select("id").eq("bling_id", blingId).maybeSingle();
-  if (found) return found.id;
-  if (!contato.nome) return null;
-  return await inserirParceiroComRetry(supabase, {
-    razao_social: contato.nome,
-    tipo: "pj",
-    tipos: ["cliente"],
-    origem: "api_bling",
-    bling_id: blingId,
-  });
+  return await resolverParceiroBling(supabase, contato, "api_bling");
 }
 
 export async function syncPedidos(
