@@ -274,6 +274,51 @@ serve(async (req) => {
       }
     }
 
+    // 1d. CD de expedição — DESCIDA-B2B-POR-CD (19/10/2026).
+    // origem_centro_id NULL = XPM-SC (padrão, comportamento idêntico ao anterior).
+    let cdCodigo = "XPM-SC";
+    if (pedido.origem_centro_id) {
+      const { data: cdRow, error: cdErr } = await supabase
+        .from("centro_distribuicao")
+        .select("codigo")
+        .eq("id", pedido.origem_centro_id)
+        .maybeSingle();
+      if (cdErr) return err(`Falha ao ler o CD de expedição do pedido: ${cdErr.message}`, 500);
+      if (!cdRow?.codigo) return err("CD de expedição do pedido não encontrado (origem_centro_id).", 500);
+      cdCodigo = cdRow.codigo;
+    }
+    const { data: expCd, error: expCdErr } = await supabase
+      .from("expedicao_b2b_cd")
+      .select("loja_bling_id, habilitado")
+      .eq("centro_codigo", cdCodigo)
+      .maybeSingle();
+    if (expCdErr) return err(`Falha ao ler expedicao_b2b_cd para ${cdCodigo}: ${expCdErr.message}`, 500);
+    const lojaDoCd: number | null = expCd?.loja_bling_id != null ? Number(expCd.loja_bling_id) : null;
+    if (cdCodigo !== "XPM-SC") {
+      const recusarCd = async (msg: string) => {
+        const { error: upErr } = await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
+        if (upErr) return err(`${msg} (e falhou ao gravar o erro no pedido: ${upErr.message})`, 409);
+        return err(msg, 409);
+      };
+      if (lojaDoCd == null) {
+        return await recusarCd(`CD de expedição ${cdCodigo} sem loja do Bling configurada (expedicao_b2b_cd.loja_bling_id). Nada foi enviado ao Bling.`);
+      }
+      if (!pedido.natureza_operacao_id) {
+        return await recusarCd(`Pedido sem natureza de operação — obrigatória para expedir pelo CD ${cdCodigo}.`);
+      }
+      const { data: natCd, error: natCdErr } = await supabase
+        .from("naturezas_operacao_cd")
+        .select("bling_natureza_id")
+        .eq("natureza_operacao_id", pedido.natureza_operacao_id)
+        .eq("centro_codigo", cdCodigo)
+        .maybeSingle();
+      if (natCdErr) return err(`Falha ao ler naturezas_operacao_cd: ${natCdErr.message}`, 500);
+      if (!natCd) {
+        return await recusarCd(`Natureza "${naturezaNome}" sem de-para para o CD ${cdCodigo} (naturezas_operacao_cd). Nada foi enviado ao Bling.`);
+      }
+      blingNaturezaId = natCd.bling_natureza_id != null ? Number(natCd.bling_natureza_id) : null;
+    }
+
     // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
     //   pre_separacao   — envio inicial (comportamento atual, será aposentado).
     //   em_separacao    — envio de remessa adicional (/02+) em split.
@@ -826,8 +871,9 @@ serve(async (req) => {
 
 
     // 7.5 Canal/Loja Fetely
-    let blingLojaId: number | null = (cfg.config as any)?.loja_bling_id ?? null;
-    if (!blingLojaId) {
+    // DESCIDA-B2B-POR-CD: loja do CD (expedicao_b2b_cd) vence; sem ela (só XPM-SC), comportamento antigo.
+    let blingLojaId: number | null = lojaDoCd != null ? lojaDoCd : ((cfg.config as any)?.loja_bling_id ?? null);
+    if (lojaDoCd == null && !blingLojaId) {
       for (const endpoint of ["/canais-venda", "/lojas"]) {
         try {
           const resp = await client.get(endpoint);
@@ -1208,6 +1254,13 @@ if (itensSemProdutoBling.length > 0) {
     }];
 
     const obsPartes: string[] = [];
+    if (cdCodigo !== "XPM-SC") {
+      obsPartes.push(
+        cdCodigo === "SITE-SP"
+          ? "EXPEDIÇÃO SITE SP — emitir NF pela MATRIZ 63.591.078/0001-48"
+          : `EXPEDIÇÃO ${cdCodigo} — conferir unidade emitente`,
+      );
+    }
     if (transpNome) obsPartes.push(`Transportadora: ${transpNome}${transpCnpj ? ` | CNPJ: ${transpCnpj}` : ""}`);
     if (valorFrete > 0) obsPartes.push(`Frete ${pedido.frete_tipo || ""}${pedido.frete_tipo ? ":" : ""} R$ ${valorFrete.toFixed(2)}`);
     const obsInternas = obsPartes.length > 0 ? obsPartes.join(" | ") : undefined;
@@ -1350,7 +1403,12 @@ if (itensSemProdutoBling.length > 0) {
       enviado_por: userId,
       // CARD-CANÔNICO: o log guarda o payload exato do POST + por qual degrau cada SKU
       // resolveu (canonico | cache | api). A chave extra NÃO vai no POST ao Bling.
-      payload_enviado: { ...payload, _resolucao_produto: fonteResolucao },
+      payload_enviado: {
+        ...payload,
+        _resolucao_produto: fonteResolucao,
+        _cd_expedicao: cdCodigo,
+        _loja_bling_id: blingLojaId,
+      },
 
       resposta_status: respStatus,
       resposta_body: respBody,
