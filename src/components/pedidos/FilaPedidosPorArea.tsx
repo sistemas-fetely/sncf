@@ -987,15 +987,15 @@ export function FilaPedidosPorArea({
           <TableHeader>
             <TableRow className={LINHA_CABECALHO_COLADO}>
               <CabecalhoOrdenavel rotulo="Risco" className="w-[56px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "risco" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("risco")} />
-              <CabecalhoOrdenavel rotulo="Pedido" className="w-[220px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("pedido")} />
-              <CabecalhoOrdenavel rotulo="Valor" className="w-[150px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("valor")} />
+              <CabecalhoOrdenavel rotulo="Pedido" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "pedido" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("pedido")} />
+              <CabecalhoOrdenavel rotulo="Valor" className="w-[110px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "valor" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("valor")} />
               <TableHead className="w-[130px]">Pagamento</TableHead>
               <CabecalhoOrdenavel rotulo="Estoque" className="w-[100px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estoque" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estoque")} />
               <CabecalhoOrdenavel rotulo="Cobrança" className="w-[130px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "cobranca" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("cobranca")} />
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
-              <CabecalhoOrdenavel rotulo="Entrega" className="w-[200px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
-              <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[56px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
+              <CabecalhoOrdenavel rotulo="Entrega" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
+              <CabecalhoOrdenavel rotulo="Na fase" className="w-[80px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
+              <TableHead className="w-[150px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
