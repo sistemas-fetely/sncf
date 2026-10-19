@@ -313,3 +313,10 @@ export function modalSugerido(cep: string | null, regras: ModalRegra[]): string 
 export function normalizarCodigo(v: string): string {
   return v.trim().replace(/\s+/g, "").toUpperCase();
 }
+
+/** Chave de comparação de código de barras: se for só dígitos (EAN/UPC/GTIN), ignora zeros à esquerda — UPC-A (12) e EAN-13 com 0 na frente são o mesmo código. Alfanumérico (SKU) fica como está. */
+export function chaveCodigo(v: string | null | undefined): string {
+  const n = normalizarCodigo(v ?? "");
+  return /^\d+$/.test(n) ? n.replace(/^0+/, "") : n;
+}
+
