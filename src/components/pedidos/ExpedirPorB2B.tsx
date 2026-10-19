@@ -17,6 +17,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { QUERY_KEY_MESA_SP_STATUS } from "@/hooks/pedidos/useMesaSpStatus";
 
 type Cd = "XPM-SC" | "SITE-SP";
 
@@ -99,6 +100,7 @@ export function ExpedirPorB2B({ pedido_id }: { pedido_id: string }) {
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["pedido-cd-expedicao", pedido_id] }),
         qc.invalidateQueries({ queryKey: ["b2b-sugestao-cd", pedido_id] }),
+        qc.invalidateQueries({ queryKey: [QUERY_KEY_MESA_SP_STATUS, pedido_id] }),
         qc.invalidateQueries({ queryKey: ["pedido-xpm", pedido_id] }),
         qc.invalidateQueries({ queryKey: ["pedido", pedido_id] }),
         qc.invalidateQueries({ queryKey: ["pedido-detalhe", pedido_id] }),

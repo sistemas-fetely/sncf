@@ -11,6 +11,7 @@ import { podeAcionarPagamento } from "@/lib/pedidos/acoesPagamento";
 import { invalidarPedido } from "@/lib/pedidos/invalidarPedido";
 import { temCondicaoPendente } from "@/lib/pedidos/condicaoPendente";
 import { CondicaoPendenteCard } from "@/components/pedidos/CondicaoPendenteCard";
+import { FaixaMesaSp } from "@/components/pedidos/FaixaMesaSp";
 import { prefixarProximaAcao } from "@/lib/pedidos/donoProximaAcao";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { usePedidoEmbalagem } from "@/hooks/pedidos/usePedidoEmbalagem";
@@ -1731,6 +1732,9 @@ export default function PedidoDetalhe() {
           )}
         </div>
       </div>
+
+      {/* BANCADA-SP-TRAVA — pedido B2B na Mesa da Expedição SP: etapa e trava visíveis no topo */}
+      <FaixaMesaSp pedidoId={pedido.id} />
 
       {/* CONDICAO-E-VINCULO — condição do FOP sem vínculo no SNCF trava a saída de Recebido */}
       {temCondicaoPendente(pedido as any, geraTituloReceber) && (
