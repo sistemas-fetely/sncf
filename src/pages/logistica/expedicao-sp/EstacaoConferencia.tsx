@@ -1,3 +1,4 @@
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Check, Loader2, Package, ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -182,7 +183,7 @@ function LinhaItem({
         <div className="min-w-0">
           <p className={cn("truncate", modo === "conferido" ? "text-xs" : "text-sm")}>{item.descricao}</p>
           <p className="font-mono text-xs text-muted-foreground">
-            {item.sku ?? "sem SKU"} · {item.ean ?? "sem EAN"}
+            <CodProduto chave={item.sku ?? item.cod_cadastro} variant="compacto" /> · {item.ean ?? "sem EAN"}
           </p>
         </div>
       </div>
@@ -306,7 +307,8 @@ export function EstacaoConferencia({
     // Casa por EAN (o que o leitor lê). SKU é aceito como segunda chave para o
     // item sem EAN cadastrado, que só pode entrar digitado à mão.
     const candidatos = itens.filter(
-      (i) => normalizarCodigo(i.ean ?? "") === codigo || normalizarCodigo(i.sku ?? "") === codigo,
+      (i) => normalizarCodigo(i.ean ?? "") === codigo || normalizarCodigo(i.sku ?? "") === codigo ||
+        normalizarCodigo(i.cod_cadastro ?? "") === codigo,
     );
 
     if (candidatos.length === 0) {
@@ -434,9 +436,7 @@ export function EstacaoConferencia({
             />
             <div className="min-w-0">
               <p className="text-base font-medium leading-snug">{ultimoBipe.descricao}</p>
-              <p className="font-mono text-sm text-muted-foreground">
-                {ultimoBipe.sku ?? "sem SKU"}
-              </p>
+              <CodProduto chave={ultimoBipe.sku} />
               <p className="mt-1 text-xs text-muted-foreground">
                 Confira cor e estampa com a peça na mão.
               </p>

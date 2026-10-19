@@ -1,3 +1,4 @@
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useEffect, useMemo, useState } from "react";
 import { Box, Loader2, PackageOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -142,8 +143,8 @@ export function EstacaoEmbalagem({
                       <span className="shrink-0 font-medium tabular-nums">{item.quantidade} ×</span>
                       <span className="min-w-0 truncate">{item.descricao}</span>
                       {item.sku && (
-                        <span className="ml-auto shrink-0 font-mono text-xs text-muted-foreground">
-                          {item.sku}
+                        <span className="ml-auto shrink-0">
+                          <CodProduto chave={item.sku} variant="compacto" />
                         </span>
                       )}
                     </li>
