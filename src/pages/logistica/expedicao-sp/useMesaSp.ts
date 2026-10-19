@@ -527,3 +527,11 @@ export function useDevolverFila() {
     () => "Pedido devolvido para a fila.",
   );
 }
+
+/** Encerra pedido com cancelamento solicitado: itens voltaram à prateleira e o pedido sai da mesa como cancelado. */
+export function useEncerrarCancelado() {
+  return useRpcMesa<{ p_pedido_id: string }>(
+    "fn_mesa_sp_encerrar_cancelado",
+    () => "Pedido encerrado — itens de volta à prateleira.",
+  );
+}
