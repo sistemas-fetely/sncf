@@ -70,6 +70,7 @@ export default function ExpedicaoSp() {
   );
   const [devolverAberto, setDevolverAberto] = useState(false);
   const [motivoDevolver, setMotivoDevolver] = useState("");
+  const [encerrarAberto, setEncerrarAberto] = useState(false);
 
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   /**
