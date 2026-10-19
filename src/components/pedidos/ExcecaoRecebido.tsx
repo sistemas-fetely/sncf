@@ -77,22 +77,31 @@ function SeloPendencia({ p }: { p: PendenciaRoteamento | null | undefined }) {
   );
 }
 
-/** Selo compacto + "Tentar rotear de novo" para a fila. */
-export function ExcecaoRecebidoLinha({ pedidoId }: { pedidoId: string }) {
+/** Selo do motivo para a coluna Estágio da fila. */
+export function ExcecaoRecebidoSelo({ pedidoId }: { pedidoId: string }) {
   const { data } = usePendenciaRoteamento(pedidoId);
+  return (
+    <span title={data?.mensagem ?? undefined} className="inline-flex max-w-full">
+      <Selo estado={data?.erro ? "destructive" : "warning"} className="whitespace-normal text-left gap-1">
+        <AlertTriangle className="h-3 w-3 shrink-0" />
+        {rotuloPendencia(data)}
+      </Selo>
+    </span>
+  );
+}
+
+/** Botão "Tentar rotear de novo" (só ícone) para a coluna Ações da fila. */
+export function ExcecaoRecebidoBotao({ pedidoId }: { pedidoId: string }) {
   const tentar = useTentarRotear(pedidoId);
   return (
-    <div className="flex items-center gap-1">
-      <SeloPendencia p={data} />
-      <Button
-        variant="ghost" size="icon" className="h-8 w-8"
-        title="Tentar rotear de novo" aria-label="Tentar rotear de novo"
-        disabled={tentar.pending}
-        onClick={tentar.run}
-      >
-        <RefreshCw className={`h-4 w-4 ${tentar.pending ? "animate-spin" : ""}`} />
-      </Button>
-    </div>
+    <Button
+      variant="ghost" size="icon" className="h-8 w-8"
+      title="Tentar rotear de novo" aria-label="Tentar rotear de novo"
+      disabled={tentar.pending}
+      onClick={tentar.run}
+    >
+      <RefreshCw className={`h-4 w-4 ${tentar.pending ? "animate-spin" : ""}`} />
+    </Button>
   );
 }
 

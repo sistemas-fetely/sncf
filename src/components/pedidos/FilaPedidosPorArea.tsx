@@ -44,7 +44,7 @@ import {
   TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
 import { formatDateBR } from "@/lib/format-currency";
-import { ExcecaoRecebidoLinha } from "@/components/pedidos/ExcecaoRecebido";
+import { ExcecaoRecebidoSelo, ExcecaoRecebidoBotao } from "@/components/pedidos/ExcecaoRecebido";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
@@ -994,8 +994,8 @@ export function FilaPedidosPorArea({
               <CabecalhoOrdenavel rotulo="Cobrança" className="w-[130px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "cobranca" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("cobranca")} />
               <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
-              <CabecalhoOrdenavel rotulo="Na fase" className="w-[80px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
-              <TableHead className="w-[150px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
+              <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
+              <TableHead className="w-[96px] text-right text-[11px] text-muted-foreground">Ações</TableHead>
 
             </TableRow>
           </TableHeader>
@@ -1128,6 +1128,7 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
+                      {p.estagio === "recebido" && <ExcecaoRecebidoSelo pedidoId={p.id} />}
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
                         <span title="Pedido criado no Bling — aguardando emissão da NF">
                           {/* info = processando (aguarda NF). Verde seria mentira: concluído é Faturado, e Faturado exige NF. */}
@@ -1557,7 +1558,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
   return (
     <div className="flex justify-end items-center gap-0.5">
       {/* Ação primária do estágio */}
-      {p.estagio === "recebido" && <ExcecaoRecebidoLinha pedidoId={p.id} />}
+      {p.estagio === "recebido" && <ExcecaoRecebidoBotao pedidoId={p.id} />}
       {p.estagio === "cobranca" && (
         <Button
           variant="ghost"
