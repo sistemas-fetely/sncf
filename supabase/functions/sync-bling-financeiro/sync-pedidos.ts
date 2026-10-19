@@ -1,4 +1,5 @@
 import type { BlingClient } from "../_shared/bling/bling-client.ts";
+import { resolverParceiroBling } from "../_shared/bling/parceiro-resolver.ts";
 
 function sleep(ms: number) { return new Promise((r) => setTimeout(r, ms)); }
 

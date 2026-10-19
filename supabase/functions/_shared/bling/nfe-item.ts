@@ -1,4 +1,5 @@
 import type { BlingClient } from "./bling-client.ts";
+import { resolverParceiroBling } from "./parceiro-resolver.ts";
 import {
   alertarDevolucaoSemReferencia,
   extrairFinNFeDoXml,
