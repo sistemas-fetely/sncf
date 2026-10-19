@@ -1,3 +1,4 @@
+import { CodProduto } from "@/components/produto/CodProduto";
 import { ArrowRight, ImageOff, Loader2, PackageSearch, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -209,8 +210,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
           <TableHeader>
             <TableRow>
               <TableHead className="w-[4.5rem]">Foto</TableHead>
-              <TableHead className="w-[6rem]">Cód.</TableHead>
-              <TableHead className="w-[9rem]">SKU</TableHead>
+              <TableHead className="w-[11rem]">Código</TableHead>
               <TableHead>Descrição</TableHead>
               <TableHead className="w-[10rem]">EAN</TableHead>
               <TableHead className="w-[5rem] text-right">Qtd</TableHead>
@@ -222,8 +222,7 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
                 <TableCell>
                   <FotoItem url={i.sku ? imagens.get(i.sku)?.imagem_url : undefined} />
                 </TableCell>
-                <TableCell className="font-mono text-xs">{i.cod_cadastro ?? "—"}</TableCell>
-                <TableCell className="font-mono text-xs">{i.sku ?? "—"}</TableCell>
+                <TableCell><CodProduto chave={i.sku ?? i.cod_cadastro} /></TableCell>
                 <TableCell className="text-sm">{i.descricao}</TableCell>
                 <TableCell className="font-mono text-xs">
                   {i.ean ?? (

@@ -1,3 +1,4 @@
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useNavigate } from "react-router-dom";
 import { ExternalLink, ArrowRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
@@ -107,7 +108,7 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead className="text-right">Qtd</TableHead>
                     <TableHead className="text-right">Unit.</TableHead>
@@ -130,7 +131,7 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                   ) : (
                     itensVigentes.map((it) => (
                       <TableRow key={it.id}>
-                        <TableCell className="font-mono text-xs">{txt(it.sku)}</TableCell>
+                        <TableCell><CodProduto chave={it.sku} /></TableCell>
                         <TableCell className="text-xs">{txt(it.product_name)}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">{qtdVigente(it)}</TableCell>
                         <TableCell className="text-right text-xs tabular-nums">
