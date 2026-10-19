@@ -307,6 +307,7 @@ export function EstacaoConferencia({
     // O cadastro guarda EAN-13 com zero à esquerda e o leitor manda o UPC-A sem
     // ele: a chave de comparação ignora zeros à esquerda quando é só dígito.
     const chave = chaveCodigo(codigoBruto);
+    if (chave === "") return; // código todo zeros não é código de barras: ignora
 
     // Casa por EAN (o que o leitor lê). SKU é aceito como segunda chave para o
     // item sem EAN cadastrado, que só pode entrar digitado à mão.
