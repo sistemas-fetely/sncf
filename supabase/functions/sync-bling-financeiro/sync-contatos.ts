@@ -58,11 +58,8 @@ export async function syncContatos(
           updated_at: new Date().toISOString(),
         };
 
-        const { data: existing } = await supabase
-          .from("parceiros_comerciais")
-          .select("id")
-          .eq("bling_id", blingId)
-          .maybeSingle();
+        const existingId = await encontrarParceiroBling(supabase, blingId, c.numeroDocumento);
+        const existing = existingId ? { id: existingId } : null;
 
         if (existing) {
           // PAPEL-NAO-SE-SOBRESCREVE: `tipos` de cadastro existente e verdade do
