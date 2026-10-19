@@ -32,7 +32,7 @@ import {
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEventosMesaSp,
+  useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
   usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
