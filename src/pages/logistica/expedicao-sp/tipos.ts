@@ -34,6 +34,8 @@ export const EVENTO_EMBALADO = "mesa_embalado";
 export const EVENTO_DESPACHADO = "mesa_despachado";
 /** `fn_mesa_sp_devolver_fila`: pedido volta para pre_separacao (cai na fila pelo estágio). */
 export const EVENTO_DEVOLVIDO_FILA = "mesa_devolvido_fila";
+/** `fn_mesa_sp_encerrar_cancelado`: pedido sai da mesa como cancelado (itens devolvidos à prateleira). */
+export const EVENTO_ENCERRADO_CANCELAMENTO = "mesa_encerrado_cancelamento";
 
 /** Estágios macro que a mesa opera. Fora destes, o pedido não é dela. */
 export const ESTAGIO_FILA = "pre_separacao";
