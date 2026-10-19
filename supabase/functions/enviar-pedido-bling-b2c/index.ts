@@ -225,6 +225,31 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
+  // NATUREZA-POR-CANAL-E-CD (19/10/2026): natureza do Bling por canal B2C × CD.
+  // Sem linha → null (payload igual ao de antes). Erro de leitura → lança.
+  async function resolverNaturezaB2C(centroId: string | null, naturezaOperacaoId: string | null): Promise<number | null> {
+    if (!centroId) return null;
+    const { data: cd, error: eCd } = await supabase.from("centro_distribuicao").select("codigo").eq("id", centroId).maybeSingle();
+    if (eCd) throw new Error(`ler centro_distribuicao: ${eCd.message}`);
+    if (!cd?.codigo) return null;
+    let natId = naturezaOperacaoId;
+    if (!natId) {
+      const { data: nat, error: eNat } = await supabase.from("naturezas_operacao").select("id").eq("codigo", "venda").maybeSingle();
+      if (eNat) throw new Error(`ler naturezas_operacao: ${eNat.message}`);
+      natId = nat?.id ?? null;
+    }
+    if (!natId) return null;
+    const { data: linha, error: eLinha } = await supabase
+      .from("naturezas_operacao_cd")
+      .select("bling_natureza_id")
+      .eq("canal", "B2C")
+      .eq("centro_codigo", cd.codigo)
+      .eq("natureza_operacao_id", natId)
+      .maybeSingle();
+    if (eLinha) throw new Error(`ler naturezas_operacao_cd: ${eLinha.message}`);
+    return linha?.bling_natureza_id != null ? Number(linha.bling_natureza_id) : null;
+  }
+
   // ── Auth: cron (x-cron-secret) ou usuario autenticado ─────────────────────
   const cronSecret = req.headers.get("x-cron-secret");
   let autorizado = false;
@@ -461,7 +486,7 @@ Deno.serve(async (req) => {
           const { data: ped, error: ePedVd } = await supabase
             .from("pedidos")
             .select(
-              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem",
+              "id, id_externo, valor_bruto, valor_frete, valor_liquido, frete_tipo, endereco_entrega, observacao_pedido, parceiro_id, origem, natureza_operacao_id",
             )
             .eq("id", pedidoIdVd)
             .maybeSingle();
@@ -860,6 +885,13 @@ Deno.serve(async (req) => {
             );
             continue;
           }
+          let naturezaBlingVd: number | null;
+          try {
+            naturezaBlingVd = await resolverNaturezaB2C(item.centro_id_resolvido, ped.natureza_operacao_id ?? null);
+          } catch (e) {
+            await falharVd(`Natureza B2C: ${(e as Error).message}`);
+            continue;
+          }
           const blingItensVd = itensVd.map((it) => ({
             codigo: it.sku,
             descricao: it.nome || it.sku,
@@ -883,6 +915,7 @@ Deno.serve(async (req) => {
             data: hojeVd,
             dataSaida: hojeVd,
             loja: { id: lojaId },
+            ...(naturezaBlingVd != null ? { naturezaOperacao: { id: naturezaBlingVd } } : {}),
             contato: contatoVd ? { id: contatoVd } : null,
             itens: blingItensVd,
             // Já pago pelo portão — mesma premissa do ramo Shopify.
@@ -988,6 +1021,7 @@ Deno.serve(async (req) => {
             pedido_id: pedidoIdVd,
             id_externo: idExterno,
             loja_bling_id: lojaId,
+            natureza_bling_id: naturezaBlingVd,
             centro_id: item.centro_id_resolvido,
             contato_id: contatoVd,
             bling_pedido_id: blingIdVd,
@@ -1020,7 +1054,7 @@ Deno.serve(async (req) => {
           const eEvOk = await registrarEvento(
             "outro",
             `Pedido criado no Bling (loja Site SP) nº ${blingNumeroVd ?? blingIdVd}`,
-            { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId },
+            { bling_pedido_id: String(blingIdVd), bling_pedido_numero: blingNumeroVd, loja_bling_id: lojaId, natureza_bling_id: naturezaBlingVd },
           );
           if (eEvOk) errosPos.push(eEvOk);
 
@@ -1469,6 +1503,13 @@ Deno.serve(async (req) => {
         // `dataSaida` nunca retroativa (regra do B2B: Bling recusa/gera parcelamento errado).
         const hojeISO = new Date().toISOString().slice(0, 10);
 
+        let naturezaBling: number | null;
+        try {
+          naturezaBling = await resolverNaturezaB2C(item.centro_id_resolvido, null);
+        } catch (e) {
+          await falhar(`Natureza B2C: ${(e as Error).message}`);
+          continue;
+        }
         const payload: Record<string, unknown> = {
           // CHAVE DE CONTINUIDADE: o trigger de NF do SNCF casa o pedido interno por
           // `numeroLoja`. Errar aqui quebra o nascimento do pedido no SNCF inteiro.
@@ -1478,6 +1519,7 @@ Deno.serve(async (req) => {
           // DIMENSAO-VIA-TABELA: a loja vem RESOLVIDA da fila (split por CEP feito no
           // trigger). Zero id de loja hardcoded nesta edge.
           loja: { id: lojaId },
+          ...(naturezaBling != null ? { naturezaOperacao: { id: naturezaBling } } : {}),
           contato: contatoId ? { id: contatoId } : null,
           itens: blingItens,
           // Pedido JA PAGO na origem (a fila e paid-only). Duplicata no Bling que
@@ -1586,6 +1628,7 @@ Deno.serve(async (req) => {
             shopify_pedido_id: item.shopify_pedido_id,
             order_name: item.order_name,
             loja_bling_id: lojaId,
+            natureza_bling_id: naturezaBling,
             centro_id: item.centro_id_resolvido,
             regra_id: item.regra_id,
             contato_id: contatoId,
