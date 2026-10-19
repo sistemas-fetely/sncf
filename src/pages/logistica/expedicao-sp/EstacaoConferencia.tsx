@@ -13,7 +13,7 @@ import { Selo } from "@/components/ui/selo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
+import { chaveCodigo, normalizarCodigo, type ImagemProdutoMesa, type ItemConferido, type ItemPedidoMesa } from "./tipos";
 
 /**
  * Estação 3 — Conferência por bipagem.
@@ -304,11 +304,15 @@ export function EstacaoConferencia({
     if (codigo === "") return;
     setBuffer("");
 
+    // O cadastro guarda EAN-13 com zero à esquerda e o leitor manda o UPC-A sem
+    // ele: a chave de comparação ignora zeros à esquerda quando é só dígito.
+    const chave = chaveCodigo(codigoBruto);
+
     // Casa por EAN (o que o leitor lê). SKU é aceito como segunda chave para o
     // item sem EAN cadastrado, que só pode entrar digitado à mão.
     const candidatos = itens.filter(
-      (i) => normalizarCodigo(i.ean ?? "") === codigo || normalizarCodigo(i.sku ?? "") === codigo ||
-        normalizarCodigo(i.cod_cadastro ?? "") === codigo,
+      (i) => chaveCodigo(i.ean) === chave || chaveCodigo(i.sku) === chave ||
+        chaveCodigo(i.cod_cadastro) === chave,
     );
 
     if (candidatos.length === 0) {
