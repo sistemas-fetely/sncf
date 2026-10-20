@@ -126,6 +126,14 @@ export function AcoesRemessa({
     return podeEnviar || podeDividir;
   });
 
+  // ULTIMA-TENTATIVA-NAO-FICA-ORFA (20/10/2026, caso TRS-0004): existe tentativa
+  // irmã VIVA já enviada ao Bling (quebra em várias NFs). Nesse caso o envio da
+  // tentativa restante acontece aqui, com remessa_id.
+  const temTentativaIrmaEnviada = (remessas ?? []).some(
+    (r: any) => r.status !== "cancelada" && !!r.bling_pedido_id
+  );
+
+
   // A expedicao XPM e do PEDIDO. `pedido_remessa` e tentativa de envio ao Bling;
   // derivar /NN dali colidiria com id_externo de pedidos-filho (split) reais.
   // Ver `decisao-remessa-e-tentativa-envio`.
@@ -373,10 +381,15 @@ export function AcoesRemessa({
 
         return (
           <div key={rem.id} className="space-y-2">
-            {/* Com remessa única o caminho oficial é o "Enviar ao Bling e faturar"
-                do PreFaturamentoCard (passa pela conferência) — o botão de
-                tentativa só aparece quando existe mais de uma elegível. */}
-            {podeEnviar && elegiveis.length > 1 && (
+            {/* Com remessa única E nenhuma tentativa irmã viva já enviada, o
+                caminho oficial continua sendo o "Enviar ao Bling e faturar" do
+                PreFaturamentoCard (passa pela conferência). Quando já existe
+                tentativa irmã enviada (quebra em várias NFs), o envio da
+                tentativa restante acontece aqui, com remessa_id — senão a última
+                tentativa da quebra ficaria sem botão de envio.
+                ULTIMA-TENTATIVA-NAO-FICA-ORFA (20/10/2026, caso TRS-0004). */}
+            {podeEnviar && (elegiveis.length > 1 || temTentativaIrmaEnviada) && (
+
               <>
                 {!podeEnviarBling && (
                   <Alert variant="default" className="bg-muted/60 border-border">
