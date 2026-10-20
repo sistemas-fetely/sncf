@@ -140,6 +140,11 @@ export function AcoesRemessa({
   const temBloqueio = !!previa && !previa.ok;
   const temFaltaEstoque = (previaEstoque?.itens?.length ?? 0) > 0;
   const soEstoqueBloqueia = (previa?.bloqueios?.length ?? 0) === 1;
+  // BOTAO-ABRE-EXCECAO (19/10/2026): com estoque como único bloqueio, o botão
+  // principal abre a liberação em vez de ficar cinza. Caso PED-2356.
+  const excecaoEstoque =
+    !precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temBloqueio &&
+    temFaltaEstoque && soEstoqueBloqueia && !!previaEstoque?.override_codigo;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remSplit = (remessas ?? []).find((rem: any) => {
     const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
