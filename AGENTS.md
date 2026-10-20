@@ -21,3 +21,4 @@
 - Every Bling API call goes through `_shared/bling/bling-client.ts` (`blingHeaders` adds `enable-jwt: 1`); call-sites never fetch the Bling API directly, so JWT/auth changes live in one place.
 - Every Bling sync that finds or creates a partner goes through `_shared/bling/parceiro-resolver.ts` (bling_id → CPF → CNPJ, oldest row, lookup errors throw), because `.maybeSingle()` on duplicate rows silently returned null and spawned new copies.
 - Render product identifiers through `CodProduto` (cod_cadastro primary, sku secondary, resolved by `useCodigoProdutoMap`), so every screen shows the same code and unmapped SKUs are flagged visibly.
+- Each external system (Bling, XPM, Shopify) has its own `varrer-divergencia-<sistema>` edge with the same lote/chain/detectar/corrigir shape, reading the destination from the system API; `produto_campo_destino` (ativo, sobrescreve) is the only source of what is compared and written, so a new field never needs a code-side list.
