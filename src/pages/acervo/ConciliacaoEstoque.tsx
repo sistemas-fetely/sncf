@@ -1,4 +1,6 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AbaConciliacaoXpm } from "@/components/estoque/AbaConciliacaoXpm";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -129,7 +131,47 @@ function FiltroMulti({ label, opcoes, selecionados, onChange }: { label: string;
       {selecionados.length > 0 && <Button variant="ghost" size="sm" className="mt-1 w-full" onClick={() => onChange([])}>Limpar seleção</Button>}</PopoverContent></Popover>;
 }
 
+// ABAS (20/10/2026): rótulos e ordem vêm de sncf_navegacao (filhos de sops.estoque.conc).
+// ?aba=xpm abre a Conciliação XPM × Sistema; as demais seguem com a tríade.
+const PAI_ABAS = "sops.estoque.conc";
+function useAbasConciliacao() {
+  return useQuery({
+    queryKey: ["sncf-navegacao", "abas", PAI_ABAS],
+    queryFn: async (): Promise<{ chave: string; label: string; aba: string }[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).from("sncf_navegacao").select("chave, label, rota, ordem")
+        .eq("pai_chave", PAI_ABAS).eq("nivel", "aba").eq("ativo", true).order("ordem");
+      if (error) throw error;
+      return (data ?? []).map((n: { chave: string; label: string; rota: string }) => ({
+        chave: n.chave, label: n.label, aba: new URLSearchParams(n.rota.split("?")[1] ?? "").get("aba") ?? "",
+      })).filter((a: { aba: string }) => a.aba);
+    },
+  });
+}
+function BarraAbas({ ativa, onTrocar }: { ativa: string; onTrocar: (a: string) => void }) {
+  const abas = useAbasConciliacao();
+  if (abas.error) return <p className="mb-4 text-sm text-destructive">Erro ao carregar as abas: {formatError(abas.error)}</p>;
+  if (!abas.data?.length) return null;
+  return <Tabs value={ativa} onValueChange={onTrocar} className="mb-4"><TabsList>
+    {abas.data.map(a => <TabsTrigger key={a.chave} value={a.aba}>{a.label}</TabsTrigger>)}
+  </TabsList></Tabs>;
+}
+
 export default function ConciliacaoEstoque() {
+  const [sp, setSp] = useSearchParams();
+  const abas = useAbasConciliacao();
+  const aba = sp.get("aba") ?? abas.data?.[0]?.aba ?? "";
+  const trocar = (a: string) => setSp(p => { const n = new URLSearchParams(p); n.set("aba", a); return n; });
+  const barra = <BarraAbas ativa={aba} onTrocar={trocar} />;
+  if (aba === "xpm") return <PageShell variant="dados">
+    <PageHeader titulo="Conciliação de Estoque" icone={Warehouse} />
+    {barra}
+    <AbaConciliacaoXpm />
+  </PageShell>;
+  return <ConciliacaoTriade barra={barra} />;
+}
+
+function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   const [sp, setSp] = useSearchParams();
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -317,6 +359,7 @@ export default function ConciliacaoEstoque() {
         <Button size="sm" onClick={refetch} disabled={atualizando}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
+    {barra}
 
     {erro && <Alert variant="destructive" className="mb-4"><AlertTriangle className="h-4 w-4" /><AlertDescription>Erro ao carregar a conciliação: {formatError(erro)}</AlertDescription></Alert>}
 
