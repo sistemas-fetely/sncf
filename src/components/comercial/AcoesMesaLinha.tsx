@@ -5,7 +5,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Copy, FileText, FileCode2, Receipt, MoreHorizontal, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
