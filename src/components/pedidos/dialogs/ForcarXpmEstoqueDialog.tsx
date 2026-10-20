@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader,
   DialogTitle, DialogTrigger,
@@ -33,6 +33,8 @@ interface Props {
   previa: PreviaEstoqueXpm;
   /** Split existente desta página — caminho PADRÃO, não construímos outro. */
   split?: { remessaId: string; codigo: string; itens: ItemRemessaSplit[] };
+  /** Gatilho customizado (BOTAO-ABRE-EXCECAO). Sem ele, o botão ghost de sempre. */
+  trigger?: ReactNode;
 }
 
 /**
@@ -41,7 +43,7 @@ interface Props {
  * Em falta real, dividir o pedido vem primeiro; em fila disputada a peça existe,
  * então o split perde o destaque.
  */
-export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split }: Props) {
+export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split, trigger }: Props) {
   const [open, setOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const empurrar = useEmpurrarXpm();
@@ -59,16 +61,18 @@ export function ForcarXpmEstoqueDialog({ pedidoId, idExterno, previa, split }: P
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setMotivo(""); }}>
       <DialogTrigger asChild>
-        <Button
-          size="sm"
-          variant="ghost"
-          className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2 text-muted-foreground"
-        >
-          <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
-          {previa.veredito_rotulo
-            ? `${previa.veredito_rotulo} — ver opções`
-            : "Falta estoque — ver opções"}
-        </Button>
+        {trigger ?? (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-full gap-1.5 whitespace-normal h-auto text-xs leading-tight py-2 text-muted-foreground"
+          >
+            <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+            {previa.veredito_rotulo
+              ? `${previa.veredito_rotulo} — ver opções`
+              : "Falta estoque — ver opções"}
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-lg">

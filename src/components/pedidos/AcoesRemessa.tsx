@@ -140,6 +140,11 @@ export function AcoesRemessa({
   const temBloqueio = !!previa && !previa.ok;
   const temFaltaEstoque = (previaEstoque?.itens?.length ?? 0) > 0;
   const soEstoqueBloqueia = (previa?.bloqueios?.length ?? 0) === 1;
+  // BOTAO-ABRE-EXCECAO (19/10/2026): com estoque como único bloqueio, o botão
+  // principal abre a liberação em vez de ficar cinza. Caso PED-2356.
+  const excecaoEstoque =
+    !precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temBloqueio &&
+    temFaltaEstoque && soEstoqueBloqueia && !!previaEstoque?.override_codigo;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const remSplit = (remessas ?? []).find((rem: any) => {
     const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
@@ -250,7 +255,38 @@ export function AcoesRemessa({
         </Alert>
       )}
 
-      {!precisaSincronizar && podeEmpurrarXpm && (
+      {/* BOTAO-ABRE-EXCECAO: estoque é o único bloqueio e o banco oferece override
+          — o botão principal vira o gatilho da liberação, não um cinza que
+          parece travado. O envio sem motivo continua só dentro do diálogo. */}
+      {excecaoEstoque && (
+        <ForcarXpmEstoqueDialog
+          pedidoId={pedido_id}
+          idExterno={id_externo}
+          previa={previaEstoque!}
+          split={remessaSplit}
+          trigger={
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full whitespace-normal h-auto text-xs leading-tight py-2"
+              title="Único bloqueio é de estoque — abre a liberação com motivo"
+              disabled={ocupado || !podeEmpurrarXpmAcao}
+            >
+              <span className="flex flex-col items-start gap-0.5">
+                <span className="flex items-center gap-1.5">
+                  <Warehouse className="h-4 w-4 shrink-0" />
+                  Empurrar pra XPM
+                </span>
+                <span className="text-[10px] font-normal text-muted-foreground">
+                  liberar exceção de estoque
+                </span>
+              </span>
+            </Button>
+          }
+        />
+      )}
+
+      {!excecaoEstoque && !precisaSincronizar && podeEmpurrarXpm && (
         <Button
           size="sm"
           variant="outline"
@@ -273,7 +309,7 @@ export function AcoesRemessa({
         </Button>
       )}
 
-      {!precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
+      {!excecaoEstoque && !precisaSincronizar && exige_expedicao && podeEmpurrarXpm && temFaltaEstoque && soEstoqueBloqueia && (
         <ForcarXpmEstoqueDialog
           pedidoId={pedido_id}
           idExterno={id_externo}
