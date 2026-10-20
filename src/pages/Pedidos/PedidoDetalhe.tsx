@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
 import { useState, useEffect, useRef } from "react";
@@ -299,7 +300,7 @@ function ListaItensComEstoque({ itens, pedidoId, estagio }: { itens: any[]; pedi
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {item.sku && `SKU ${item.sku} · `}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
+                    {item.sku && <><CodProduto chave={item.sku} variant="compacto" /> · </>}{item.quantidade} × {fmtBRL.format(item.valor_unitario)}{item.desconto_pct > 0 && ` · ${item.desconto_pct}% desc`}
                   </p>
                 </div>
                 <p className="text-sm font-medium shrink-0">{fmtBRL.format(item.subtotal || 0)}</p>
@@ -3011,6 +3012,7 @@ export default function PedidoDetalhe() {
                           {snap.itens_json.map((item, idx) => (
                             <div key={idx} className="flex justify-between text-xs">
                               <div className="flex items-center gap-2 min-w-0">
+                                {item.sku && <CodProduto chave={item.sku} variant="compacto" className="shrink-0" />}
                                 <span className="truncate">{item.produto?.nomeComercial ?? item.sku}</span>
                                 <span className="text-muted-foreground shrink-0">×{item.quantidade}</span>
                               </div>

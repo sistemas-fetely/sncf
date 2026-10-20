@@ -1,4 +1,5 @@
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
@@ -556,7 +557,7 @@ export default function VendaDiretaGestao() {
                                   {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
                                   {l.faltando_site_sp!.map((f) => {
                                     const p = prodFalta.data?.get(f.sku);
-                                    return <div key={f.sku} className="tabular-nums">{p?.cod_cadastro ?? f.sku}{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
+                                    return <div key={f.sku} className="tabular-nums"><CodProduto chave={f.sku} variant="compacto" />{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
                                   })}
                                 </TooltipContent>
                               </Tooltip>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger,
@@ -24,6 +25,7 @@ interface Item {
 
 interface Produto {
   sku: string;
+  cod_cadastro: string | null;
   nome_comercial: string;
   preco_atacado: number;
   multiplos: number;
@@ -45,10 +47,10 @@ function useProdutos(busca: string) {
       const termo = busca.trim().replace(/[,()"]/g, "");
       let q = (supabase as any)
         .from("sncf_produtos")
-        .select("sku,nome_comercial,preco_atacado,multiplos")
+        .select("sku,cod_cadastro,nome_comercial,preco_atacado,multiplos")
         .eq("ativo", true);
       if (termo) {
-        q = q.or(`nome_comercial.ilike."%${termo}%",sku.ilike."%${termo}%"`);
+        q = q.or(`nome_comercial.ilike."%${termo}%",sku.ilike."%${termo}%",cod_cadastro.ilike."%${termo}%"`);
       }
       const { data, error } = await q.order("nome_comercial").limit(30);
       if (error) throw error;
@@ -225,7 +227,8 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                     <div className="min-w-0 flex-1">
                       <p className="text-sm truncate">{p.nome_comercial}</p>
                       <p className="text-xs text-muted-foreground">
-                        {p.sku} · mín {p.multiplos} un
+                        {p.cod_cadastro && <span className="font-mono font-medium text-foreground">{p.cod_cadastro}</span>}
+                        {p.cod_cadastro ? " · " : ""}<span className="font-mono">{p.sku}</span> · mín {p.multiplos} un
                       </p>
                     </div>
                     <span className="text-sm font-medium shrink-0 ml-2 flex items-center">
@@ -389,7 +392,7 @@ export function EditarItensDialog({ pedidoId, estagioAtual, itensAtuais, onSalvo
                           )}
                         </div>
 
-                        {item.sku && <p className="text-xs text-muted-foreground">{item.sku}</p>}
+                        {item.sku && <CodProduto chave={item.sku} variant="compacto" />}
                       </div>
 
                       <div className="flex items-center gap-1 shrink-0">

@@ -128,7 +128,8 @@ export default function ImpressaoPedidoVD() {
           <thead>
             <tr className="border-b text-left text-xs text-muted-foreground">
               <th className="py-1 pr-2" />
-              <th className="py-1 pr-2">SKU / código</th>
+              <th className="py-1 pr-2">Código</th>
+              <th className="py-1 pr-2">SKU</th>
               <th className="py-1 pr-2">Descrição</th>
               <th className="py-1 pr-2 text-right">Qtd</th>
               <th className="py-1 pr-2 text-right">Unitário</th>
@@ -142,7 +143,8 @@ export default function ImpressaoPedidoVD() {
               return (
                 <tr key={i.sku} className="border-b align-middle">
                   <td className="py-1.5 pr-2"><ProdutoMiniatura img={mapaImg?.get(i.sku)} tamanho={36} /></td>
-                  <td className="py-1.5 pr-2 tabular-nums">{i.sku}{n?.cod && n.cod !== i.sku ? ` · ${n.cod}` : ""}</td>
+                  <td className="py-1.5 pr-2 tabular-nums font-medium">{n?.cod ?? i.sku}</td>
+                  <td className="py-1.5 pr-2 tabular-nums text-muted-foreground">{i.sku}</td>
                   <td className="py-1.5 pr-2">{n?.nome ?? i.descricao ?? "—"}</td>
                   <td className="py-1.5 pr-2 text-right tabular-nums">{i.quantidade}</td>
                   <td className="py-1.5 pr-2 text-right tabular-nums">{formatBRL(un)}</td>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CreditCard, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
@@ -535,7 +536,7 @@ export default function VendaDiretaNovo() {
             )}
             {r.avisos && r.avisos.length > 0 && (
               <p className="text-sm text-warning">
-                Itens sem saldo no Site SP: {r.avisos.map((a) => a.sku).join(", ")}
+                Itens sem saldo no Site SP: {r.avisos.map((a, k) => <span key={a.sku}>{k > 0 && ", "}<CodProduto chave={a.sku} variant="compacto" /></span>)}
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -630,7 +631,7 @@ export default function VendaDiretaNovo() {
           {itens.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 rounded-md border border-dashed py-10 text-muted-foreground">
               <PackageSearch className="h-8 w-8" />
-              <p className="text-sm">Busque um produto pelo SKU ou nome</p>
+              <p className="text-sm">Busque um produto pelo código, SKU ou nome</p>
             </div>
           ) : (
             <ul className="divide-y divide-border/60">
@@ -644,7 +645,7 @@ export default function VendaDiretaNovo() {
                     <ProdutoMiniatura img={imgsQ.data?.get(i.sku)} tamanho={64} />
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <p className="line-clamp-2 text-base font-medium">{i.nome ?? i.sku}</p>
-                      <p className="text-xs tabular-nums text-muted-foreground">{i.sku}</p>
+                      <CodProduto chave={i.sku} />
                       {semSaldo ? (
                         <Badge variant="outline" className="border-warning/50 text-warning">Sem saldo no Site SP</Badge>
                       ) : (
@@ -752,7 +753,7 @@ export default function VendaDiretaNovo() {
                     <li key={i.sku} className="flex items-center gap-3 text-sm">
                       <ProdutoMiniatura img={imgsQ.data?.get(i.sku)} tamanho={40} />
                       <span className="min-w-0 flex-1 truncate">
-                        <span className="tabular-nums text-muted-foreground">{i.quantidade}×</span> {i.nome ?? i.sku}
+                        <span className="tabular-nums text-muted-foreground">{i.quantidade}×</span> <CodProduto chave={i.sku} variant="compacto" /> {i.nome ?? i.sku}
                       </span>
                       <span className="tabular-nums">{formatBRL(i.preco * i.quantidade)}</span>
                     </li>

@@ -105,7 +105,7 @@ export function ProdutoVarejoCombobox({
                       <ProdutoMiniatura img={imgsQ.data?.get(p.sku)} tamanho={32} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{p.nome_completo ?? p.sku}</span>
-                        <span className="block text-xs tabular-nums text-muted-foreground">{p.sku}{p.cod_cadastro ? ` · cód. ${p.cod_cadastro}` : ""}{p.ean ? ` · EAN ${p.ean}` : ""}</span>
+                        <span className="block text-xs tabular-nums text-muted-foreground">{p.cod_cadastro && <span className="font-mono font-medium text-foreground">{p.cod_cadastro} · </span>}<span className="font-mono">{p.sku}</span>{p.ean ? ` · EAN ${p.ean}` : ""}</span>
                       </span>
                       <span className="text-sm font-medium tabular-nums">{formatBRL(p.preco_varejo)}</span>
                     </CommandItem>
