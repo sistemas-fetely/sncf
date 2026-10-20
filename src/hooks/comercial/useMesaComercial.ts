@@ -45,6 +45,12 @@ export interface MesaComercialRow {
   situacao_financeira: string | null;
   alerta_operacional: string | null;
   link_pagamento: string | null;
+  /**
+   * PIX: `link_pagamento` guarda o código copia-e-cola (EMV), não uma URL.
+   * `pix_token` é o token da página pública `/pagar/:token` (QR + copia-e-cola
+   * + valor) — é ela que se copia para o cliente.
+   */
+  pix_token: string | null;
   data_entrega_prevista: string | null;
   meta_original: string | null;
   meta_provisoria: boolean | null;
