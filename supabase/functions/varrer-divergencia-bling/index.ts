@@ -1,3 +1,4 @@
+// 20/10/2026 (Flavio): na_correcao decide o que a varredura compara; sobrescreve decide o que escreve
 // VARREDURA DE DIVERGÊNCIA SNCF × BLING (05/10/2026, F5 passos 1 e 2).
 // modo "detectar" (padrão): só GET /produtos/{card canônico}, nenhuma escrita no Bling.
 // modo "corrigir": parte do GET do próprio card, troca SÓ os campos com
@@ -116,7 +117,7 @@ Deno.serve(async (req) => {
 
     // ---- de-para (interruptor sobrescreve vem do banco) ----
     const { data: dePara, error: dpErr } = await sb.from("produto_campo_destino")
-      .select("campo, campo_destino, sobrescreve").eq("sistema", SISTEMA);
+      .select("campo, campo_destino, sobrescreve, na_correcao").eq("sistema", SISTEMA).eq("ativo", true).eq("na_correcao", true);
     if (dpErr) throw new Error(`produto_campo_destino: ${dpErr.message}`);
     const detalheErros: Any[] = [];
     const campos = (dePara ?? []).filter((d: Any) => {
