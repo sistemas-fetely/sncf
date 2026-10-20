@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { chamarFuncao, motivoDaFalha } from "@/components/acervo/promocaoFase";
-import { calcularPrevia, lerPlanilha, montarNascimentos, validarFormatoPrevia, type ItemPrevia, type LinhaPlanilha, type MontagemNascimentos, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
+import { agruparErros, calcularPrevia, lerPlanilha, montarNascimentos, validarFormatoPrevia, type ItemPrevia, type LinhaPlanilha, type MontagemNascimentos, type Previa } from "@/lib/acervo/importar-planilha-cadastro";
 import { supabase } from "@/integrations/supabase/client";
 import { gerarPlanilhaCadastro, nomeArquivoCadastro, type RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
@@ -31,6 +31,28 @@ async function nascerLote(produtos: Record<string, unknown>[], dry: boolean): Pr
 }
 
 const fmt = (v: unknown) => (v === null || v === undefined || v === "" ? "—" : typeof v === "boolean" ? (v ? "Sim" : "Não") : String(v));
+/** Erros agrupados por mensagem: "msg — N linhas (73, 74, 75… +120)", detalhe por linha ao expandir. */
+function ErrosAgrupados({ itens, rotuloLinha }: { itens: { linha: number; erros: string[] }[]; rotuloLinha?: (linha: number) => string }) {
+  const grupos = agruparErros(itens);
+  if (!grupos.length) return null;
+  return (
+    <div className="space-y-1">
+      {grupos.map((g) => (
+        <details key={g.mensagem} className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs">
+          <summary className="cursor-pointer text-destructive">
+            <strong>{g.mensagem}</strong> — {g.linhas.length} linha(s) ({g.linhas.slice(0, 3).join(", ")}{g.linhas.length > 3 ? `… +${g.linhas.length - 3}` : ""})
+          </summary>
+          <ul className="mt-1 space-y-0.5 pl-4">
+            {itens.filter((i) => g.linhas.includes(i.linha)).map((i) => (
+              <li key={i.linha}>Linha {i.linha}{rotuloLinha ? ` · ${rotuloLinha(i.linha)}` : ""}: {i.erros.join("; ")}</li>
+            ))}
+          </ul>
+        </details>
+      ))}
+    </div>
+  );
+}
+
 const legivel = (s: string | null) => (s ? s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()) : "");
 
 export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido }: Props) {
@@ -47,6 +69,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   const [erroNascer, setErroNascer] = useState<string | null>(null);
   const [baixando, setBaixando] = useState(false);
   const [codsMatriz, setCodsMatriz] = useState<Set<string>>(new Set());
+  const [codsLivres, setCodsLivres] = useState<Set<string>>(new Set());
 
   const reset = () => { setMontagem(null); setDryNascer(null); setErroNascer(null); setLinhasLidas([]); setPrevia(null); setErro(null); setProgresso(null); setResultado(null); setConfirmarSug(false); };
   const fechar = (v: boolean) => { if (progresso && !resultado) return; if (!v) reset(); onOpenChange(v); };
@@ -64,8 +87,9 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         catch (e) { throw new Error(`Leitura do FOP falhou: ${motivoDaFalha(e)}`); }
       }
       const matriz = new Set(r.produtos.map((p) => String(p.cod_cadastro ?? "").trim()).filter(Boolean));
-      setCodsMatriz(matriz);
-      const m = montarNascimentos(linhas, motivo, matriz);
+      const livres = new Set((r.codigos_livres ?? []).map((c) => String(c).trim()));
+      setCodsMatriz(matriz); setCodsLivres(livres);
+      const m = montarNascimentos(linhas, motivo, matriz, livres);
       setMontagem(m);
       if (m.nascimentos.length) {
         try { setDryNascer(await nascerLote(m.nascimentos.map((n) => n.payload), true)); }
@@ -103,7 +127,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
     if (nascimentos.length) {
       setProgresso({ feito: 0, total: validos.length + 1 });
       try {
-        const payloads = montarNascimentos(linhasLidas, motivo, codsMatriz).nascimentos.map((n) => n.payload);
+        const payloads = montarNascimentos(linhasLidas, motivo, codsMatriz, codsLivres).nascimentos.map((n) => n.payload);
         const r = await nascerLote(payloads, false);
         res.nasceram = (r.produtos ?? [])
           .map((p) => { const cod = String(p.cod_cadastro ?? "").trim(); return p.ean ? `${cod} · ${p.ean}` : cod; })
@@ -156,6 +180,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
   }
 
   const comErro = (previa?.itens ?? []).filter((i) => i.erros.length);
+  const ignoradas = (previa?.invalidas.length ?? 0) + comErro.length + (montagem?.sem_nome.length ?? 0);
   const semMudanca = semErro.filter((i) => !efetivas(i).length && !i.liberar);
 
   // Mesmo export do botão "Exportar planilha de cadastro" da Mesa (catálogo inteiro).
@@ -188,7 +213,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
         <DialogHeader>
           <DialogTitle>Importar planilha de cadastro</DialogTitle>
           <DialogDescription>
-            Use a planilha exportada pela Mesa. Linha com código enriquece (só o que mudou; vazio não apaga). Linha sem código nasce pela porta única.
+            Use a planilha exportada pela Conciliação de Cadastro (menu Planilha). Linha com código enriquece (só o que mudou; vazio não apaga). Linha sem código nasce pela porta única.
           </DialogDescription>
         </DialogHeader>
 
@@ -201,6 +226,23 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
+            <div className="flex flex-wrap gap-2 text-xs" aria-label="Resumo por classe">
+              <span className="rounded border px-2 py-1">Edição: <strong>{previa.resumo.edicao}</strong></span>
+              <span className="rounded border px-2 py-1">Nascimento: <strong>{previa.resumo.nascimento}</strong></span>
+              <span className="rounded border px-2 py-1">Nascimento pinado: <strong>{previa.resumo.nascimento_pinado}</strong></span>
+              <span className="rounded border border-destructive/50 px-2 py-1 text-destructive">Inválida: <strong>{previa.resumo.invalida}</strong></span>
+            </div>
+            {previa.invalidas.length > 0 && (
+              <details className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs">
+                <summary className="cursor-pointer text-destructive"><strong>{previa.invalidas.length} linha(s) ignorada(s)</strong> — código não existe na matriz nem está livre no banco GS1</summary>
+                <ul className="mt-1 space-y-0.5 pl-4">{previa.invalidas.map((i) => <li key={i.linha}>Linha {i.linha}: {i.erro}</li>)}</ul>
+              </details>
+            )}
+            {(montagem?.sem_nome.length ?? 0) > 0 && (
+              <Alert className="border-warning/50 bg-warning/10"><AlertDescription className="text-xs">
+                {montagem!.sem_nome.length} linha(s) de nascimento sem nome comercial — a planilha do bloco 1 não tem essa coluna; nascimento pela planilha está bloqueado até decisão.
+              </AlertDescription></Alert>
+            )}
             {!!previa.avisos?.length && <Alert><AlertDescription><ul className="list-disc pl-4">{previa.avisos.map((a) => <li key={a}>{a}</li>)}</ul></AlertDescription></Alert>}
             <div className="font-medium">✏️ Enriquecem: {validos.length} linha(s)</div>
             <p className="text-muted-foreground">
@@ -228,11 +270,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 ))}
               </div>
             ))}
-            {comErro.map((i) => (
-              <div key={`e${i.linha}`} className="rounded-md border border-destructive/50 p-2 text-xs">
-                <strong>Linha {i.linha} · {i.cod}</strong> — pulada: {i.erros.join("; ")}
-              </div>
-            ))}
+            <ErrosAgrupados itens={comErro} rotuloLinha={(ln) => comErro.find((i) => i.linha === ln)?.cod ?? ""} />
             {(nascimentos.length > 0 || (montagem?.erros.length ?? 0) > 0) && (
               <div className="space-y-2 rounded-md border p-2">
                 <div className="font-medium">
@@ -262,9 +300,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 {avisosNascer.map((p, k) => (
                   <div key={`a${k}`} className="rounded border border-warning/50 bg-warning/10 p-1.5 text-xs">Linha {p.linha}: {p.aviso}</div>
                 ))}
-                {errosNascer.map((p, k) => (
-                  <div key={`n${k}`} className="rounded border border-destructive/50 bg-destructive/10 p-1.5 text-xs text-destructive">Linha {p.linha}: {p.erro}</div>
-                ))}
+                <ErrosAgrupados itens={errosNascer.map((p) => ({ linha: p.linha, erros: [p.erro] }))} />
               </div>
             )}
             <div className="space-y-1">
@@ -307,7 +343,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
                 <Button variant="outline" onClick={() => fechar(false)} disabled={!!progresso}>Cancelar</Button>
                 <Button onClick={() => void confirmar()} disabled={(!validos.length && !nascimentos.length) || bloqueado || !!progresso || !motivo.trim()}>
                   {progresso ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  Confirmar ({nascimentos.length + validos.length})
+                  Confirmar ({nascimentos.length + validos.length}){ignoradas > 0 && <> · {ignoradas} ignoradas</>}
                 </Button>
               </>}
         </DialogFooter>
