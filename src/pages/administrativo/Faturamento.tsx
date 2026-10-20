@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -862,6 +863,7 @@ function AbaProduto({
   mes: string;
 }) {
   const { temNivel } = useNivel();
+  const { resolver: resolverCod } = useCodigoProdutoMap();
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
   const [sortCol, setSortCol] = useState<ProdCol>("resultado");
@@ -911,6 +913,7 @@ function AbaProduto({
 
   function exportar() {
     const linhas = lista.map(({ r, d }) => ({
+      "Código": resolverCod(r.sku).cod ?? r.sku ?? "",
       SKU: r.sku ?? "",
       Produto: r.produto ?? "",
       Coleção: r.colecao ?? "",

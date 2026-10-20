@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { invalidarCompras } from "@/lib/compras/invalidar";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -318,7 +319,7 @@ function PainelMapeamento({
         .from("sncf_produtos")
         .select("sku, nome_comercial")
         .eq("ativo", true)
-        .or(`sku.ilike.%${t}%,nome_comercial.ilike.%${t}%`)
+        .or(`sku.ilike.%${t}%,cod_cadastro.ilike.%${t}%,nome_comercial.ilike.%${t}%`)
         .limit(20);
       if (error) throw error;
       return (data ?? []) as { sku: string; nome_comercial: string | null }[];
@@ -479,7 +480,7 @@ function PainelMapeamento({
                 >
                   <div className="min-w-0 space-y-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{s.sku}</span>
+                      <CodProduto chave={s.sku} variant="compacto" />
                       {s.no_pedido && <Selo estado="success">No pedido</Selo>}
                       {s.score != null && (
                         <span className="text-[11px] text-muted-foreground tabular-nums">
@@ -547,7 +548,7 @@ function PainelMapeamento({
                 className="flex w-full items-center justify-between gap-3 p-2 text-left hover:bg-muted"
                 onClick={() => adicionar(p.sku, p.nome_comercial)}
               >
-                <span className="text-sm">{p.sku}</span>
+                <CodProduto chave={p.sku} />
                 <span className="truncate text-[11px] text-muted-foreground">
                   {p.nome_comercial ?? "—"}
                 </span>
@@ -569,7 +570,7 @@ function PainelMapeamento({
             {selecionados.map((s, i) => (
               <div key={s.sku} className="flex items-center gap-3 p-2">
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm">{s.sku}</div>
+                  <CodProduto chave={s.sku} variant="compacto" />
                   <div className="truncate text-[11px] text-muted-foreground">
                     {s.nome_comercial ?? "—"}
                   </div>
@@ -719,10 +720,7 @@ function FiltroDuplo({
 
 function CodCadastro({ cod, sku }: { cod: string | null; sku: string | null }) {
   return (
-    <div>
-      <div className="font-mono text-xs">{cod ?? sku ?? "—"}</div>
-      {cod && sku && <div className="text-xs text-muted-foreground">{sku}</div>}
-    </div>
+    <CodProduto chave={sku ?? cod} />
   );
 }
 
@@ -734,7 +732,7 @@ function BlocoDepara({ depara }: { depara: RateioDepara[] }) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Cód. cadastro</TableHead>
+            <TableHead>Código</TableHead>
             <TableHead>Produto</TableHead>
             <TableHead className="text-right">% rateio</TableHead>
             <TableHead />
@@ -797,7 +795,7 @@ function LinhaExpandida({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cód. cadastro</TableHead>
+                <TableHead>Código</TableHead>
                 <TableHead>Produto</TableHead>
                 <TableHead className="text-right">Qtd</TableHead>
                 <TableHead className="text-right">Valor (R$)</TableHead>

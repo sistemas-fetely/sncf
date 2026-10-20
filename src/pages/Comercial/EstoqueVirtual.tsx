@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 
@@ -1034,7 +1035,7 @@ export default function EstoqueVirtual() {
                 <h3 className="text-sm font-medium mb-2">Cadastro e posição</h3>
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
                   <dt className="text-muted-foreground">Código</dt>
-                  <dd className="font-mono">{detalheLinha.cod_cadastro ?? "—"}</dd>
+                  <dd><CodProduto chave={detalheLinha.sku ?? detalheLinha.cod_cadastro} /></dd>
                   <dt className="text-muted-foreground">SKU</dt>
                   <dd className="font-mono">{detalheLinha.sku ?? "—"}</dd>
                   <dt className="text-muted-foreground">Cor</dt>

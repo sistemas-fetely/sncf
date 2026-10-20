@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,7 +145,7 @@ export function DashB2c({ pedidos, isLoading }: { pedidos: PedidoB2cRow[]; isLoa
               (topSkus ?? []).map((s) => (
                 <div key={s.sku} className="flex items-center justify-between gap-2 text-xs">
                   <span className="truncate">
-                    <span className="font-mono">{s.sku}</span>{" "}
+                    <CodProduto chave={s.sku} variant="compacto" />{" "}
                     <span className="text-muted-foreground">{s.nome ?? ""}</span>
                   </span>
                   <span className="tabular-nums">{s.qtd}</span>

@@ -4,6 +4,7 @@
  * `fn_consignado_venda_fora_fechar_ciclo` (prévia dry_run → confirmação).
  */
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -171,10 +172,10 @@ export function FecharCicloVendaForaPainel({ parceiroId, vigenciaInicio }: { par
             <div className="flex-1 min-h-0 overflow-y-auto border-t pt-3">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead className={TH}>SKU</TableHead><TableHead className={TH}>Produto</TableHead><TableHead className={`${TH} text-right`}>Qtd vendida</TableHead>
+                  <TableHead className={TH}>Código</TableHead><TableHead className={TH}>Produto</TableHead><TableHead className={`${TH} text-right`}>Qtd vendida</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>{previa.previa!.map((l, i) => (
-                  <TableRow key={i}><TableCell className="font-mono">{l.sku}</TableCell><TableCell>{l.nome ?? "—"}</TableCell><TableCell className="text-right">{l.qtd}</TableCell></TableRow>
+                  <TableRow key={i}><TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell><TableCell>{l.nome ?? "—"}</TableCell><TableCell className="text-right">{l.qtd}</TableCell></TableRow>
                 ))}</TableBody>
               </Table>
             </div>

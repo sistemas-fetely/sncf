@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -344,7 +345,7 @@ export default function PainelMargem() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Grupo</TableHead>
                     <TableHead>Coleção</TableHead>
@@ -377,7 +378,7 @@ export default function PainelMargem() {
                         key={r.sku}
                         className={cn(alerta && "bg-destructive/5 hover:bg-destructive/10")}
                       >
-                        <TableCell className="font-mono text-xs">{r.sku}</TableCell>
+                        <TableCell><CodProduto chave={r.sku} variant="compacto" /></TableCell>
                         <TableCell className="max-w-[260px] truncate">{r.nome_comercial || "—"}</TableCell>
                         <TableCell className="text-xs">{r.grupo || "—"}</TableCell>
                         <TableCell className="text-xs">{r.colecao || "—"}</TableCell>

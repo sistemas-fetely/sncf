@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -157,6 +158,7 @@ export function SincronizacaoEstoqueShopify() {
                 <table className="w-full text-xs min-w-[520px]">
                   <thead className="bg-muted/50">
                     <tr className="text-left">
+                      <th className="px-3 py-2 font-medium">Código</th>
                       <th className="px-3 py-2 font-medium">SKU</th>
                       <th className="px-3 py-2 font-medium text-right">Shopify atual</th>
                       <th className="px-3 py-2 font-medium text-right">SNCF virtual</th>
@@ -166,6 +168,7 @@ export function SincronizacaoEstoqueShopify() {
                   <tbody>
                     {dryRun.exemplos.map((e) => (
                       <tr key={e.sku} className="border-t">
+                        <td className="px-3 py-1.5"><CodProduto chave={e.sku} variant="compacto" /></td>
                         <td className="px-3 py-1.5 font-mono">{e.sku}</td>
                         <td className="px-3 py-1.5 text-right tabular-nums">{e.shopify_atual}</td>
                         <td className="px-3 py-1.5 text-right tabular-nums">{e.sncf_virtual}</td>

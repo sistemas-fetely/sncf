@@ -5,6 +5,7 @@
  * Concessão nova pela RPC conceder_bonificacao (ConcederBonificacaoDialog).
  */
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, Gift, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -193,7 +194,7 @@ export function BonificacoesTab({ parceiroId }: { parceiroId: string }) {
                         : "—"}
                   </TableCell>
                   <TableCell className="text-sm">
-                    {l.sku ? <><span className="font-mono">{l.sku}</span>{l.quantidade != null ? ` · ${Number(l.quantidade)}` : ""}</> : "—"}
+                    {l.sku ? <><CodProduto chave={l.sku} variant="compacto" />{l.quantidade != null ? ` · ${Number(l.quantidade)}` : ""}</> : "—"}
                   </TableCell>
                   <TableCell className="text-right text-sm font-medium tabular-nums">
                     {l.valor_bonificado != null ? formatBRL(Number(l.valor_bonificado)) : "—"}

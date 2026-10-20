@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AlertTriangle, Download } from "lucide-react";
@@ -527,7 +528,7 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
               <Table containerClassName="overflow-visible">
               <TableHeader className="sticky top-0 z-10 bg-background">
                 <TableRow>
-                  <TableHead>Cód. cadastro</TableHead>
+                  <TableHead>Código</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead className="text-right">Pedido</TableHead>
                   <TableHead className="text-right">Declarado (NF)</TableHead>
@@ -554,11 +555,10 @@ export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
                       <TableCell>
                         {l.cod_cadastro ? (
                           <>
-                            <div className="font-mono text-xs">{l.cod_cadastro}</div>
-                            <div className="text-xs text-muted-foreground">{l.sku ?? "—"}</div>
+                            <CodProduto chave={l.sku ?? l.cod_cadastro} />
                           </>
                         ) : (
-                          <span className="font-mono text-xs">{l.sku ?? "—"}</span>
+                          <CodProduto chave={l.sku} />
                         )}
                       </TableCell>
                       <TableCell>{l.nome_comercial ?? "—"}</TableCell>
