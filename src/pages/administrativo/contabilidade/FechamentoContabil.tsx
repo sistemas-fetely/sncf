@@ -9,6 +9,7 @@
  * com a mensagem real em portugues e o estado local volta ao que era.
  */
 import { useMemo, useState, useEffect } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
@@ -796,12 +797,12 @@ export default function FechamentoContabil() {
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full text-sm">
                 <thead className="border-b bg-muted/40"><tr>
-                  <th className="px-3 py-2 text-left font-medium">NF</th><th className="px-3 py-2 text-left font-medium">SKU</th>
+                  <th className="px-3 py-2 text-left font-medium">NF</th><th className="px-3 py-2 text-left font-medium">Código</th>
                   <th className="px-3 py-2 text-right font-medium">Presumido</th><th className="px-3 py-2 text-right font-medium">Real</th>
                   <th className="px-3 py-2 text-right font-medium">Δ qtd</th><th className="px-3 py-2 text-right font-medium">Δ R$</th>
                 </tr></thead>
                 <tbody className="divide-y">{linhasDelta.map((l, i) => <tr key={`${l.nf_id}-${l.sku}-${i}`}>
-                  <td className="px-3 py-2">{l.nf}</td><td className="px-3 py-2">{l.sku}</td>
+                  <td className="px-3 py-2">{l.nf}</td><td className="px-3 py-2"><CodProduto chave={l.sku} variant="compacto" /></td>
                   <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_presumida)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.qtd_real)}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{fmtUn(l.delta_qtd)}</td>

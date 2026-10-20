@@ -3,6 +3,7 @@
  * `fn_consignado_retorno_lancar` (prévia dry_run → confirmação).
  */
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -151,9 +152,9 @@ export function RetornosALancarPainel({ parceiroId, parceiroNome }: { parceiroId
                     <AlertDescription>
                       <div className="max-h-48 overflow-y-auto">
                         <Table>
-                          <TableHeader><TableRow><TableHead className={TH}>SKU</TableHead><TableHead className={`${TH} text-right`}>Qtd</TableHead><TableHead className={TH}>Porque</TableHead></TableRow></TableHeader>
+                          <TableHeader><TableRow><TableHead className={TH}>Código</TableHead><TableHead className={`${TH} text-right`}>Qtd</TableHead><TableHead className={TH}>Porque</TableHead></TableRow></TableHeader>
                           <TableBody>{travados.map((t, i) => (
-                            <TableRow key={i}><TableCell className="font-mono">{t.sku}</TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
+                            <TableRow key={i}><TableCell><CodProduto chave={t.sku} variant="compacto" /></TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
                           ))}</TableBody>
                         </Table>
                       </div>
@@ -168,11 +169,11 @@ export function RetornosALancarPainel({ parceiroId, parceiroNome }: { parceiroId
             <div className="flex-1 min-h-0 overflow-y-auto border-t pt-3">
               <Table>
                 <TableHeader><TableRow>
-                  <TableHead className={TH}>SKU</TableHead><TableHead className={`${TH} text-right`}>Qtd</TableHead>
+                  <TableHead className={TH}>Código</TableHead><TableHead className={`${TH} text-right`}>Qtd</TableHead>
                   <TableHead className={TH}>Origem → destino</TableHead><TableHead className={`${TH} text-right`}>Saldo antes</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>{previa.previa!.map((l, i) => (
-                  <TableRow key={i}><TableCell className="font-mono">{l.sku}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell><TableCell className="text-right">{l.saldo_antes ?? "—"}</TableCell></TableRow>
+                  <TableRow key={i}><TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell><TableCell className="text-right">{l.saldo_antes ?? "—"}</TableCell></TableRow>
                 ))}</TableBody>
               </Table>
             </div>

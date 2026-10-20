@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -134,7 +135,7 @@ export default function DeclararForaControleDialog({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead className="text-right">A confirmar</TableHead>
                     <TableHead className="w-32 text-right">Quantidade</TableHead>
                   </TableRow>
@@ -142,7 +143,7 @@ export default function DeclararForaControleDialog({
                 <TableBody>
                   {linhas.map((l) => (
                     <TableRow key={l.sku}>
-                      <TableCell className="font-mono text-xs">{l.sku}</TableCell>
+                      <TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell>
                       <TableCell className="text-right">{fmt(l.a_confirmar)}</TableCell>
                       <TableCell>
                         <Input type="number" min={0} max={Number(l.a_confirmar)} step="any"
@@ -168,7 +169,7 @@ export default function DeclararForaControleDialog({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>SKU</TableHead>
+                      <TableHead>Código</TableHead>
                       <TableHead className="text-right">Qtd</TableHead>
                       <TableHead className="text-right">A confirmar antes</TableHead>
                       <TableHead className="text-right">A confirmar depois</TableHead>
@@ -177,7 +178,7 @@ export default function DeclararForaControleDialog({
                   <TableBody>
                     {((previa.itens ?? []) as Obj[]).map((i) => (
                       <TableRow key={i.sku}>
-                        <TableCell className="font-mono text-xs">{i.sku}</TableCell>
+                        <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                         <TableCell className="text-right">{fmt(i.qtd)}</TableCell>
                         <TableCell className="text-right">{fmt(i.a_confirmar_antes)}</TableCell>
                         <TableCell className="text-right">{fmt(i.a_confirmar_depois)}</TableCell>

@@ -1,4 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from "react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -778,7 +779,7 @@ export default function Produtos() {
                       className="cursor-pointer"
                       onClick={() => setSkuAberto(p.sku)}
                     >
-                      <TableCell className="font-mono text-xs">{p.cod_cadastro ?? p.sku}</TableCell>
+                      <TableCell><CodProduto chave={p.sku} variant="compacto" /></TableCell>
                       <TableCell className="w-[52px]">
                         {p.foto_url ? (
                           <img
@@ -1321,7 +1322,7 @@ Solicitado por: SNCF · Cockpit de Produto · ${hoje}`;
         {sku && (
           <>
             <SheetHeader>
-              <SheetTitle className="font-mono text-sm">{sku}</SheetTitle>
+              <SheetTitle className="text-sm"><CodProduto chave={sku} /></SheetTitle>
               <SheetDescription>{row?.nome_comercial ?? ""}</SheetDescription>
             </SheetHeader>
             {row?.foto_url && (

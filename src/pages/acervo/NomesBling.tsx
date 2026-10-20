@@ -3,6 +3,7 @@
 // Conciliação de Cadastro → "Corrigir no Bling"; esta tela vira só consulta.
 // A edge atualizar-nomes-bling segue publicada, fora da tela.
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,6 +106,7 @@ export default function NomesBling() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Quando</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>SKU</TableHead>
                     <TableHead>Nome antes</TableHead>
                     <TableHead>Nome depois</TableHead>
@@ -116,7 +118,7 @@ export default function NomesBling() {
                 <TableBody>
                   {(historico.data ?? []).length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={8} className="text-center text-sm text-muted-foreground">
                         {historico.isLoading ? "Carregando…" : "Sem registros."}
                       </TableCell>
                     </TableRow>
@@ -124,6 +126,7 @@ export default function NomesBling() {
                     historico.data!.map((l, i) => (
                       <TableRow key={`${l.sku}-${l.tentativa_em}-${i}`}>
                         <TableCell className="whitespace-nowrap text-xs">{fmtQuando(l.tentativa_em)}</TableCell>
+                        <TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell>
                         <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
                         <TableCell className="text-sm">{l.nome_antes ?? "—"}</TableCell>
                         <TableCell className="text-sm">{l.nome_depois ?? "—"}</TableCell>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
 } from "@/components/ui/sheet";
@@ -394,7 +395,7 @@ export function PedidoOportunidadeDialog({
                 <Table>
                   <TableHeader>
                     <TableRow className="sticky top-0 bg-background z-10">
-                      <TableHead>SKU</TableHead>
+                      <TableHead>Código</TableHead>
                       <TableHead>Descrição</TableHead>
                       <TableHead className="text-right">Qtd</TableHead>
                       <TableHead className="text-right">Valor unitário</TableHead>
@@ -404,7 +405,7 @@ export function PedidoOportunidadeDialog({
                   <TableBody>
                     {(itens.data ?? []).map((i) => (
                       <TableRow key={i.id}>
-                        <TableCell className="font-mono text-xs">{i.sku || "—"}</TableCell>
+                        <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                         <TableCell className="text-sm">{i.descricao || "—"}</TableCell>
                         <TableCell className="text-right text-sm">
                           {Number(i.quantidade ?? 0)}

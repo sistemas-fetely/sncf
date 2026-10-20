@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -297,7 +298,7 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
+                  <TableHead>Código</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="text-right">Declarado na NF</TableHead>
                   <TableHead className="text-right w-28">Recebido</TableHead>
@@ -309,7 +310,7 @@ export default function ReceberForaXpmDialog({ open, onOpenChange, nfId, nfNumer
                   const v = valorDe(l.sku, l.declarado);
                   return (
                     <TableRow key={l.sku}>
-                      <TableCell className="font-mono text-xs">{l.sku}</TableCell>
+                      <TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell>
                       <TableCell className="text-sm">{l.descricao ?? "—"}</TableCell>
                       <TableCell className="text-right">{l.declarado}</TableCell>
                       <TableCell className="text-right">
