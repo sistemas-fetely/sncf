@@ -163,7 +163,19 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ ok: true, ficha, opcoes, destinos_planilha, produtos, campos_bloco2 });
+    // 20/10/2026 (Flavio): códigos livres no banco GS1 (cartorio_codigo.estado='estoque'),
+    // para a importação distinguir nascimento pinado de código inválido.
+    const codigos_livres: string[] = [];
+    if (cods && cods.size) {
+      const lista = [...cods];
+      for (let i = 0; i < lista.length; i += 500) {
+        const { data: lv, error: lErr } = await sb.from("cartorio_codigo").select("cod_cadastro")
+          .eq("estado", "estoque").in("cod_cadastro", lista.slice(i, i + 500));
+        if (lErr) throw new Error(`Falha ao ler cartorio_codigo (livres): ${msg(lErr)}`);
+        for (const c of lv ?? []) if (c.cod_cadastro) codigos_livres.push(String(c.cod_cadastro).trim());
+      }
+    }
+    return json({ ok: true, ficha, opcoes, destinos_planilha, produtos, campos_bloco2, codigos_livres });
   } catch (e) {
     const m = msg(e);
     console.error("[exportar-planilha-produto] ERRO:", m);

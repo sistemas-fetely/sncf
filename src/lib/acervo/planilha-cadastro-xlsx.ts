@@ -32,6 +32,8 @@ export interface RespostaExport {
   ficha: CampoFicha[]; opcoes: Record<string, string[]>; destinos?: CampoDestinoExport[]; destinos_planilha?: Record<string, string>; produtos: ProdutoExport[];
   /** Campos do bloco 2 (dono thomer): não saem na planilha; só servem para avisar na importação. */
   campos_bloco2?: { campo: string; rotulo: string | null }[];
+  /** Dos `cods` pedidos, os que estão livres no banco GS1 (cartorio_codigo.estado = estoque). */
+  codigos_livres?: string[];
 }
 
 // Ordem visual dos blocos na planilha (blocos desconhecidos vão no fim, em ordem alfabética).
