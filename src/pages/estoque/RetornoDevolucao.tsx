@@ -28,6 +28,7 @@ import { QuarentenaEstoquePainel, buscarQuarentenaFila } from "@/components/esto
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronRight, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
 import { fmtDataHora } from "@/lib/data";
@@ -491,7 +492,7 @@ export default function RetornoDevolucao() {
                               {p && (
                                 <ul className="text-xs text-muted-foreground space-y-0.5">
                                   {p.itens.map((i) => (
-                                    <li key={i.sku}><span className="font-mono">{i.sku}</span> {i.nome_comercial ?? ""} — saiu {formatNum(i.qtd_saiu)}, voltou {formatNum(i.qtd_ja_retornada)}, pendente {formatNum(i.qtd_pendente)}</li>
+                                    <li key={i.sku}><CodProduto chave={i.sku} variant="compacto" /> {i.nome_comercial ?? ""} — saiu {formatNum(i.qtd_saiu)}, voltou {formatNum(i.qtd_ja_retornada)}, pendente {formatNum(i.qtd_pendente)}</li>
                                   ))}
                                 </ul>
                               )}
