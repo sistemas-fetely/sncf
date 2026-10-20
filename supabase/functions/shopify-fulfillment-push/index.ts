@@ -18,7 +18,9 @@
 //      correios > mesa_sp > entrega_sncf. Dedup por PEDIDO. MANUAL/RETIRADA nao
 //      notificam o cliente (ja esta com o produto). So gera mutation real com
 //      `integracoes_config.config.b2c_fulfillment_entrega_sncf_ativo = 'true'`;
-//      sem a chave, sai como `dry`.
+//      sem a chave, sai como `dry`. So pedidos criados nos ultimos
+//      `JANELA_ADMIN_API_DIAS` dias — a Admin API sem `read_all_orders` nao devolve
+//      os mais velhos, entao eles nao viram erro eterno.
 // A ponte para o Shopify e a mesma nas tres; o que muda e o `trackingInfo`.
 //
 // Ligacao pedido interno -> pedido Shopify:
@@ -77,6 +79,9 @@ const TRANSPORTADORA_POR_MODAL: Record<ModalMultimodal, string> = {
 
 /** Modais da Mesa SP tratados pela fonte entrega_sncf (3c). */
 const MODAIS_ENTREGA_SNCF = ["RETIRADA", "TRANSPORTADORA"] as const;
+// A Admin API sem o escopo `read_all_orders` nao devolve pedidos com mais de 60
+// dias. Sem o corte, pedido antigo vira erro eterno a cada ciclo.
+const JANELA_ADMIN_API_DIAS = 60;
 const COMPANY_FETELY = "Fetély";
 const COMPANY_TRANSPORTADORA = "Transportadora";
 
@@ -220,7 +225,7 @@ Deno.serve(async (req) => {
     // decisao final e sempre da API do Shopify, mais abaixo.
     const { data: pedidosLoja, error: ePed } = await supabase
       .from("shopify_pedidos")
-      .select("shopify_id, order_name, fulfillment_status, cancelled_at")
+      .select("shopify_id, order_name, fulfillment_status, cancelled_at, created_at_shopify")
       .is("cancelled_at", null)
       .or("fulfillment_status.is.null,fulfillment_status.neq.fulfilled")
       .order("created_at_shopify", { ascending: false })
@@ -230,7 +235,14 @@ Deno.serve(async (req) => {
     if (ePed) throw new Error(`ler shopify_pedidos: ${ePed.message}`);
 
     const abertos = new Map<string, string | null>();
-    for (const p of pedidosLoja ?? []) abertos.set(String(p.shopify_id), p.order_name ?? null);
+    // Mapa proprio da data de criacao no Shopify: so a fonte 3c le (janela da
+    // Admin API). Correios e mesa_sp seguem sem olhar para ela.
+    const criadoEmShopify = new Map<string, string | null>();
+    for (const p of pedidosLoja ?? []) {
+      const loja = String(p.shopify_id);
+      abertos.set(loja, p.order_name ?? null);
+      criadoEmShopify.set(loja, p.created_at_shopify ?? null);
+    }
     if (abertos.size === 0) return json({ sucesso: true, ...resultado });
 
     // ── 2. NFs que carregam o numero do pedido da loja ──────────────────────
@@ -361,7 +373,22 @@ Deno.serve(async (req) => {
     // Precedencia: so o lote que sobrou de 3a/3b, so pedido ainda nao visto.
     const restante3c = lote - candidatos.length;
     if (restante3c > 0) {
-      const idsLivres = [...pedidoParaShopify.keys()].filter((id) => !vistos.has(id));
+      const idsSemVisto = [...pedidoParaShopify.keys()].filter((id) => !vistos.has(id));
+      // Corte pela janela da Admin API (ver `JANELA_ADMIN_API_DIAS`): pedido mais
+      // velho que a janela nao e candidato. Data ilegivel conta como fora da
+      // janela — mesmo efeito de nao repetir o erro em todo ciclo.
+      const corteJanela = Date.now() - JANELA_ADMIN_API_DIAS * 86_400_000;
+      const idsLivres = idsSemVisto.filter((id) => {
+        const criado = criadoEmShopify.get(pedidoParaShopify.get(id) ?? "");
+        const t = criado ? Date.parse(String(criado)) : NaN;
+        return !Number.isNaN(t) && t >= corteJanela;
+      });
+      if (idsLivres.length < idsSemVisto.length) {
+        console.log("[fulfillment-push][entrega_sncf] ignorados pedidos fora da janela", {
+          ignorados: idsSemVisto.length - idsLivres.length,
+          janela_dias: JANELA_ADMIN_API_DIAS,
+        });
+      }
       if (idsLivres.length > 0) {
         // (b) ultimo `mesa_despachado` com modal RETIRADA/TRANSPORTADORA.
         const { data: despachos3c, error: eD3c } = await supabase
