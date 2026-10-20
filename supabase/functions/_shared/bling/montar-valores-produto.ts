@@ -81,6 +81,26 @@ export function grupoTributarioEsperado(origem: unknown): string | null {
   if (["0", "3", "4", "5", "8"].includes(o)) return GRUPO_L2;
   return null;
 }
+/** 20/10/2026: grupo tributário é campo próprio (sncf_produtos.grupo_tributario_bling); origem só como fallback. */
+export function grupoTributarioDaFicha(grupoFicha: unknown, origem: unknown): string | null {
+  return vazio(grupoFicha) ? grupoTributarioEsperado(origem) : txt(grupoFicha);
+}
+/** Lê /grupos-produtos do Bling (paginado): id → nome e nome (minúsculo) → id. */
+export async function carregarGruposBling(client: any, pausaMs = 350) {
+  const nomePorId = new Map<number, string>();
+  const idPorNome = new Map<string, number>();
+  for (let p = 1; p <= 20; p++) {
+    if (p > 1) await new Promise((r) => setTimeout(r, pausaMs));
+    const r = await client.get(`/grupos-produtos?pagina=${p}&limite=100`);
+    const itens: any[] = r?.data ?? [];
+    for (const g of itens) {
+      const id = Number(g?.id), nome = txt(g?.nome);
+      if (id > 0 && nome) { nomePorId.set(id, nome); idPorNome.set(nome.toLowerCase(), id); }
+    }
+    if (itens.length < 100) break;
+  }
+  return { nomePorId, idPorNome };
+}
 export const grupoIdDoCard = (atual: any): number | null => {
   const id = num(atual?.tributacao?.grupoProduto?.id);
   return id && id > 0 ? id : null;

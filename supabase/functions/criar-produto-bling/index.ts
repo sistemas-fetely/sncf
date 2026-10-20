@@ -5,7 +5,7 @@
 // Nunca assume origem fiscal: é decisão humana/contador.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra } from "../_shared/bling/montar-valores-produto.ts";
+import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra, grupoTributarioDaFicha, carregarGruposBling } from "../_shared/bling/montar-valores-produto.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 
@@ -177,7 +177,7 @@ serve(async (req) => {
     }
 
     const recusados: { sku: string; motivo: string }[] = [];
-    const criar: { sku: string; payload: any }[] = [];
+    const criar: { sku: string; payload: any; grupo: string }[] = [];
 
 
     const faseDestino = await carregarFaseDestino(supabase, "Bling");
@@ -224,6 +224,12 @@ serve(async (req) => {
         recusados.push({ sku, motivo: e.message });
         continue;
       }
+      // 20/10/2026: grupo tributário é campo próprio (bloco 1), não derivado
+      const grupo = grupoTributarioDaFicha(f.grupo_tributario_bling, origemFiscal ?? f.origem_fisc);
+      if (!grupo) {
+        recusados.push({ sku, motivo: "sem grupo tributário (grupo_tributario_bling e origem vazios)" });
+        continue;
+      }
       const pesoKg = num(f.peso_g) !== null ? Number(f.peso_g) / 1000 : null;
       const payload: any = {
         nome,
@@ -248,7 +254,7 @@ serve(async (req) => {
           cest: texto(f.cest),
         },
       };
-      criar.push({ sku, payload });
+      criar.push({ sku, payload, grupo });
     }
 
     if (!executar) {
@@ -256,7 +262,7 @@ serve(async (req) => {
       return json({
         ok: true,
         dry_run: true,
-        criar: criar.map((c) => c.payload),
+        criar: criar.map((c) => ({ ...c.payload, grupo_tributario: c.grupo })),
         recusados,
       });
     }
@@ -279,6 +285,20 @@ serve(async (req) => {
       client = makeBlingClient(supabase, cfg as any, fresh);
     } catch (e) {
       return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 401);
+    }
+
+    let gruposBling: Map<string, number>;
+    try {
+      gruposBling = (await carregarGruposBling(client, THROTTLE_MS)).idPorNome;
+    } catch (e) {
+      return json({ ok: false, erro: `Falha ao ler /grupos-produtos do Bling: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    }
+    const semGrupo = [...new Set(criar.map((c) => c.grupo).filter((g) => !gruposBling.has(g.toLowerCase())))];
+    if (semGrupo.length) {
+      return json({ ok: false, erro: `Grupo tributário não existe no Bling: ${semGrupo.join(", ")}. Nenhum card criado.`, recusados }, 409);
+    }
+    for (const c of criar) {
+      c.payload.tributacao = { ...c.payload.tributacao, grupoProduto: { id: gruposBling.get(c.grupo.toLowerCase()) } };
     }
 
     const criados: { sku: string; bling_id: string }[] = [];
