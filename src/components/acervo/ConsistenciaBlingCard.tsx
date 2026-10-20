@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, ScanSearch, Wrench } from "lucide-react";
 import { toast } from "sonner";
@@ -27,7 +30,7 @@ type Lote = {
 };
 
 /** Card "Consistência Bling": última varredura, divergências por campo e disparo detectar/corrigir. */
-export function ConsistenciaBlingCard() {
+export function ConsistenciaBlingCard({ titulo = "Consistência Bling", colapsavel = false }: { titulo?: string; colapsavel?: boolean } = {}) {
   const { permitido } = usePermissaoAcaoOuSuperAdmin(SLUG);
   const qc = useQueryClient();
   const [confirmar, setConfirmar] = useState(false);
@@ -47,6 +50,9 @@ export function ConsistenciaBlingCard() {
   });
   const rodando = emAndamento(lote.data);
   const interrompido = !!lote.data && !lote.data.concluido_em && !rodando;
+  // Colapsável: fechado por padrão, abre sozinho quando há varredura em andamento.
+  const [aberto, setAberto] = useState(false);
+  useEffect(() => { if (rodando) setAberto(true); }, [rodando]);
 
   const porCampo = useQuery({
     queryKey: ["consistencia-bling", "por-campo", lote.data?.lote_id, lote.data?.concluido_em],
@@ -100,10 +106,15 @@ export function ConsistenciaBlingCard() {
   const ocupado = disparando || rodando;
 
   return (
-    <section className="rounded-lg border bg-card p-4 space-y-3" aria-label="Consistência Bling">
+    <Collapsible open={!colapsavel || aberto} onOpenChange={setAberto} asChild>
+    <section className="rounded-lg border bg-card p-4 space-y-3" aria-label={titulo}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold">Consistência Bling</h2>
+          {colapsavel ? (
+            <CollapsibleTrigger className="flex items-center gap-1 text-sm font-semibold">
+              <ChevronDown className={cn("h-4 w-4 transition-transform", !aberto && "-rotate-90")} />{titulo}
+            </CollapsibleTrigger>
+          ) : <h2 className="text-sm font-semibold">{titulo}</h2>}
           {rodando && <Badge variant="secondary" className="gap-1"><RefreshCw className="h-3 w-3 animate-spin" />Em andamento</Badge>}
           {interrompido && <Badge variant="destructive">Interrompido</Badge>}
         </div>
@@ -117,6 +128,7 @@ export function ConsistenciaBlingCard() {
         </div>
       </div>
 
+      <CollapsibleContent className="space-y-3">
       {lote.error && <p className="text-sm text-destructive">{formatError(lote.error)}</p>}
       {!lote.isLoading && !l && <p className="text-sm text-muted-foreground">Nenhuma varredura.</p>}
       {l && (
@@ -135,6 +147,8 @@ export function ConsistenciaBlingCard() {
           {porCampo.data.map(([campo, n]) => <Badge key={campo} variant="outline" className="tabular-nums">{campo}: {n}</Badge>)}
         </div>
       )}
+
+      </CollapsibleContent>
 
       <AlertDialog open={confirmar} onOpenChange={(o) => !disparando && setConfirmar(o)}>
         <AlertDialogContent>
@@ -157,6 +171,7 @@ export function ConsistenciaBlingCard() {
         </AlertDialogContent>
       </AlertDialog>
     </section>
+    </Collapsible>
   );
 }
 
