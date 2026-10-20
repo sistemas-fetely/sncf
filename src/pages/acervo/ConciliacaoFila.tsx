@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
-  Download, GitCompare, RefreshCw, Search, X,
+  Download, FileSpreadsheet, GitCompare, Plus, RefreshCw, Search, Upload, X,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { fmtData } from "@/lib/data";
 import { temValor } from "@/components/acervo/DeParaConciliacao";
+// 20/10/2026: aposentado — porta única é a planilha de cadastro
 import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
@@ -29,6 +30,12 @@ import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
 // 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
 import { ConsistenciaBlingCard } from "@/components/acervo/ConsistenciaBlingCard";
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
+// 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
+import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { NascerProdutoNacionalDialog } from "@/components/acervo/NascerProdutoNacionalDialog";
+import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
+import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlanilhaCadastroDialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
 const REGRA_INCOMPLETO = "sncf_ativo_incompleto";
@@ -118,6 +125,9 @@ function BlocoProblema({ l }: { l: FilaLinha }) {
 }
 
 export default function ConciliacaoFila() {
+  const [nascerAberto, setNascerAberto] = useState(false);
+  const [exportCad, setExportCad] = useState(false);
+  const [importCad, setImportCad] = useState(false);
   const [sp, setSp] = useSearchParams();
   const [pagina, setPagina] = useState(1);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
@@ -407,13 +417,26 @@ export default function ConciliacaoFila() {
   }
 
   return <TooltipProvider delayDuration={200}><PageShell>
+    <NascerProdutoNacionalDialog open={nascerAberto} onOpenChange={setNascerAberto} onNasceu={() => { void fila.refetch(); }} />
+    <ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} />
+    <ImportarPlanilhaCadastroDialog open={importCad} onOpenChange={setImportCad} onConcluido={() => { void fila.refetch(); }} />
     <PageHeader
       titulo="Conciliação de Cadastro"
       icone={GitCompare}
       estado={estado}
       acoes={<>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="mr-2 h-4 w-4" />Planilha<ChevronDown className="ml-1 h-3.5 w-3.5 opacity-60" /></Button></DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="flex w-64 flex-col gap-1 p-1">
+            <BotaoGuardado slug="acao.produto_nascer_nacional" rotuloAcao="Nascer produto" variant="ghost" size="sm" className="justify-start" onClick={() => setNascerAberto(true)}><Plus className="mr-2 h-4 w-4" />Nascer produto</BotaoGuardado>
+            <Button variant="ghost" size="sm" className="justify-start" onClick={() => setExportCad(true)}><Download className="mr-2 h-4 w-4" />Exportar planilha de cadastro</Button>
+            <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="ghost" size="sm" className="justify-start" onClick={() => setImportCad(true)}><Upload className="mr-2 h-4 w-4" />Importar planilha de cadastro</BotaoGuardado>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <span className="mx-1 h-6 w-px bg-border" aria-hidden />
         <Button variant="outline" size="sm" onClick={exportar} disabled={!recorte.length}><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-        <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />
+        {/* 20/10/2026: aposentado — porta única é a planilha de cadastro */}
+        {false && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
         <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel />
         <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel sugerirCard={sugerirCardBling} />
