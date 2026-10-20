@@ -49,11 +49,12 @@ interface Props {
   /** PIX atual (do criar_pedido_venda_direta / provisão) — usado quando não há cobrança Safrapay. */
   fallbackPayload: string | null;
   fallbackLink: string | null;
+  pixToken?: string | null;
   /** Gera a cobrança Safrapay automaticamente se não houver nenhuma aberta. */
   auto?: boolean;
 }
 
-export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, telefone, fallbackPayload, fallbackLink, auto }: Props) {
+export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, telefone, fallbackPayload, fallbackLink, auto, pixToken }: Props) {
   const qc = useQueryClient();
   const pixQ = usePixSafrapay(pedidoId);
   const ativoQ = usePixSafrapayAtivo();
@@ -104,7 +105,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
   if (!pixAtivo && !safra) {
     const m = `Olá ${nome}! Seu pedido ${idExterno ?? ""} na Fetely ficou em ${formatBRL(total)}. Pague pelo PIX neste link: ${fallbackLink ?? ""}`;
     const w = fallbackLink && tel0.length >= 10 ? `https://wa.me/${telWa}?text=${encodeURIComponent(m)}` : null;
-    return <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={w} email={{ pedidoId, idExterno, total, clienteNome }} />;
+    return <PixPagamento payload={fallbackPayload} link={fallbackLink} pixToken={pixToken} whatsappUrl={w} email={{ pedidoId, idExterno, total, clienteNome }} />;
   }
 
   const botaoNovo = (
@@ -138,7 +139,7 @@ export function PixSafrapayPainel({ pedidoId, idExterno, total, clienteNome, tel
         </div>
       )}
       <div className="flex justify-end">{botaoNovo}</div>
-      <PixPagamento payload={fallbackPayload} link={fallbackLink} whatsappUrl={waFb} email={{ pedidoId, idExterno, total, clienteNome }} />
+      <PixPagamento payload={fallbackPayload} link={fallbackLink} pixToken={pixToken} whatsappUrl={waFb} email={{ pedidoId, idExterno, total, clienteNome }} />
     </div>
   );
 }

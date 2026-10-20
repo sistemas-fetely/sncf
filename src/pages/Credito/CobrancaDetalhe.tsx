@@ -1,3 +1,4 @@
+import { urlPaginaPix } from "@/lib/pagamento/linkPix";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -374,11 +375,7 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
               valor={l.link_pagamento}
               // 20/10/2026 (PIX): `link_pagamento` do PIX é o copia-e-cola (EMV).
               // Com `pix_token`, o botão copia a página pública /pagar/:token.
-              copiar={
-                l.pix_token
-                  ? `${window.location.origin}/pagar/${l.pix_token}`
-                  : undefined
-              }
+              copiar={l.pix_token ? urlPaginaPix(l.pix_token) : undefined}
             />
           )}
           {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
