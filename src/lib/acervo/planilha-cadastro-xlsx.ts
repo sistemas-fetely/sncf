@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface CampoFicha {
   campo: string; bloco: string; dono: string | null; ordem: number;
   rotulo: string | null; importavel_planilha: boolean | null; dim_tabela: string | null;
+  /** nome_comercial (bloco 2): só batiza o nascimento; em produto existente é referência. */
+  so_nascimento?: boolean;
 }
 export interface ProdutoExport {
   sku: string;
@@ -141,7 +143,9 @@ export async function gerarPlanilhaCadastro(r: RespostaExport): Promise<Blob> {
     c2.fill = { type: "pattern", pattern: "solid", fgColor: { argb: cor } };
     c2.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Arial", size: 9 };
     const c6 = r6.getCell(c);
-    c6.value = `${rotuloCampo.get(f.campo)} · ${f.dono ?? "—"}`;
+    c6.value = f.so_nascimento
+      ? `${rotuloCampo.get(f.campo)} · ${f.dono ?? "thomer"} · só nascimento`
+      : `${rotuloCampo.get(f.campo)} · ${f.dono ?? "—"}`;
     c6.font = { bold: true, name: "Arial", size: 10 };
     c6.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFD9D9D9" } };
     c6.alignment = { wrapText: true, vertical: "middle" };

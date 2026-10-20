@@ -1,3 +1,4 @@
+// 20/10/2026 (Flavio): na_correcao decide o que a varredura compara; sobrescreve decide o que escreve
 // 20/10/2026 (Flavio): varredura própria no molde do Bling; produto_campo_destino decide o que compara e sobrescreve decide o que escreve
 // VARREDURA DE DIVERGÊNCIA SNCF × SHOPIFY (Admin API GraphQL).
 // modo "detectar" (padrão): só leitura (produto + variante pelo SKU, metafields), nada escrito.
@@ -175,7 +176,7 @@ Deno.serve(async (req) => {
     }
 
     const { data: dePara, error: dpErr } = await sb.from("produto_campo_destino")
-      .select("campo, campo_destino, sobrescreve, na_correcao, conversao").eq("sistema", SISTEMA).eq("ativo", true);
+      .select("campo, campo_destino, sobrescreve, na_correcao, conversao").eq("sistema", SISTEMA).eq("ativo", true).eq("na_correcao", true);
     if (dpErr) throw new Error(`produto_campo_destino: ${dpErr.message}`);
     const campos = (dePara ?? []).filter((d: Any) => {
       if (EXTRATORES[d.campo]) return true;

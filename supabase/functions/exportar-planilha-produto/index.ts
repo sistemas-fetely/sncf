@@ -21,6 +21,7 @@ const CAMPOS_FORA = new Set(["foto"]);
 const DONOS_PLANILHA = new Set(["fetely", "sistema"]);
 // Campos gravados direto em sncf_produtos (não existem no FOP).
 const CAMPOS_SNCF = new Set(["nome_operacional", "preco_site", "grupo_tributario_bling"]);
+const SO_NASCIMENTO = new Set(["nome_comercial"]);
 const GRUPOS_BLING = ["L1 - Produto Nacional Importado", "L2 - Produto Nacional"];
 
 function msg(e: unknown): string {
@@ -87,9 +88,15 @@ Deno.serve(async (req) => {
       .select("campo,bloco,dono,ordem,rotulo,importavel_planilha,dim_tabela")
       .order("bloco").order("ordem");
     if (fiErr) throw new Error(`Falha ao ler produto_ficha_nascimento: ${msg(fiErr)}`);
-    const campos_bloco2 = (fichaRaw ?? []).filter((f) => String(f.dono ?? "").trim().toLowerCase() === "thomer")
+    // 20/10/2026 (Flavio): nome_comercial é bloco 2, mas entra na planilha só para batizar o nascimento; Thomer renomeia no FOP
+    const campos_bloco2 = (fichaRaw ?? []).filter((f) => String(f.dono ?? "").trim().toLowerCase() === "thomer" && !SO_NASCIMENTO.has(f.campo))
       .map((f) => ({ campo: f.campo, rotulo: f.rotulo }));
-    const ficha = (fichaRaw ?? []).filter((f) => !BLOCOS_FORA.has(f.bloco) && !CAMPOS_FORA.has(f.campo) && DONOS_PLANILHA.has(String(f.dono ?? "").trim().toLowerCase()));
+    const ficha: (NonNullable<typeof fichaRaw>[number] & { so_nascimento?: boolean })[] = (fichaRaw ?? [])
+      .filter((f) => !BLOCOS_FORA.has(f.bloco) && !CAMPOS_FORA.has(f.campo)
+        && (DONOS_PLANILHA.has(String(f.dono ?? "").trim().toLowerCase()) || SO_NASCIMENTO.has(f.campo)))
+      .map((f) => SO_NASCIMENTO.has(f.campo)
+        ? { ...f, rotulo: "Nome comercial (só para nascimento)", importavel_planilha: false, so_nascimento: true }
+        : f);
 
     const { data: opRaw, error: oErr } = await sb.rpc("fn_ficha_opcoes");
     if (oErr) throw new Error(`Falha em fn_ficha_opcoes: ${msg(oErr)}`);

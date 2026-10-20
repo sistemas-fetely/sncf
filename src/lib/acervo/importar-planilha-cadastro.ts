@@ -65,7 +65,7 @@ export type OrigemProduto = "nacional" | "importado";
 export interface Nascimento { linha: number; pinado: boolean; payload: Record<string, unknown>; nome: string; origem: OrigemProduto; inner_qtd: number | null }
 export interface MontagemNascimentos {
   nascimentos: Nascimento[]; erros: { linha: number; erro: string }[];
-  /** Linhas de nascimento sem nome_comercial (bloco 2, fora da planilha): bloqueadas, não vão à RPC. */
+  /** Linhas de nascimento sem nome_comercial: erro "nome comercial obrigatório para nascer"; não vão à RPC. */
   sem_nome: number[];
 }
 
@@ -263,6 +263,8 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     for (const [campo, cel] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo) || bloco2.has(campo)) continue;
       const f = ficha.get(campo);
+      // 20/10/2026 (Flavio): nome_comercial é bloco 2, mas entra na planilha só para batizar o nascimento; Thomer renomeia no FOP
+      if (campo === "nome_comercial" || f?.so_nascimento) continue; // em edição é só referência
       if (CAMPOS_SNCF.has(campo)) {
         const atualS = p.valores[campo];
         if (igual(cel, atualS)) continue;
