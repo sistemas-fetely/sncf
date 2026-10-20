@@ -239,9 +239,10 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
               </details>
             )}
             {(montagem?.sem_nome.length ?? 0) > 0 && (
-              <Alert className="border-warning/50 bg-warning/10"><AlertDescription className="text-xs">
-                {montagem!.sem_nome.length} linha(s) de nascimento sem nome comercial — a planilha do bloco 1 não tem essa coluna; nascimento pela planilha está bloqueado até decisão.
-              </AlertDescription></Alert>
+              <details className="rounded-md border border-destructive/50 bg-destructive/5 p-2 text-xs">
+                <summary className="cursor-pointer text-destructive"><strong>nome comercial obrigatório para nascer — {montagem!.sem_nome.length} linha(s)</strong> ({montagem!.sem_nome.slice(0, 3).join(", ")}{montagem!.sem_nome.length > 3 ? `… +${montagem!.sem_nome.length - 3}` : ""})</summary>
+                <p className="mt-1 pl-4">Linhas: {montagem!.sem_nome.join(", ")}</p>
+              </details>
             )}
             {!!previa.avisos?.length && <Alert><AlertDescription><ul className="list-disc pl-4">{previa.avisos.map((a) => <li key={a}>{a}</li>)}</ul></AlertDescription></Alert>}
             <div className="font-medium">✏️ Enriquecem: {validos.length} linha(s)</div>
