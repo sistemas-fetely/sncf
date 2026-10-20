@@ -87,6 +87,8 @@ Deno.serve(async (req) => {
       .select("campo,bloco,dono,ordem,rotulo,importavel_planilha,dim_tabela")
       .order("bloco").order("ordem");
     if (fiErr) throw new Error(`Falha ao ler produto_ficha_nascimento: ${msg(fiErr)}`);
+    const campos_bloco2 = (fichaRaw ?? []).filter((f) => String(f.dono ?? "").trim().toLowerCase() === "thomer")
+      .map((f) => ({ campo: f.campo, rotulo: f.rotulo }));
     const ficha = (fichaRaw ?? []).filter((f) => !BLOCOS_FORA.has(f.bloco) && !CAMPOS_FORA.has(f.campo) && DONOS_PLANILHA.has(String(f.dono ?? "").trim().toLowerCase()));
 
     const { data: opRaw, error: oErr } = await sb.rpc("fn_ficha_opcoes");
@@ -161,7 +163,7 @@ Deno.serve(async (req) => {
       };
     });
 
-    return json({ ok: true, ficha, opcoes, destinos_planilha, produtos });
+    return json({ ok: true, ficha, opcoes, destinos_planilha, produtos, campos_bloco2 });
   } catch (e) {
     const m = msg(e);
     console.error("[exportar-planilha-produto] ERRO:", m);

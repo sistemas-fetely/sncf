@@ -134,7 +134,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
       }
       if (mudsSncf.length && gravouOk) {
         const { data: upd, error: uErr } = await supabase.from("sncf_produtos")
-          .update(Object.fromEntries(mudsSncf.map((m) => [m.campo, m.para])) as { nome_operacional?: string; preco_site?: number })
+          .update(Object.fromEntries(mudsSncf.map((m) => [m.campo, m.para])) as never) // nome_operacional / preco_site / grupo_tributario_bling
           .eq("cod_cadastro", it.cod).select("cod_cadastro");
         if (uErr) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: `SNCF: ${uErr.message}` }); }
         else if (!upd?.length) { gravouOk = false; res.recusas.push({ cod: it.cod, motivo: "SNCF: nenhum produto com esse código em sncf_produtos" }); }
@@ -201,6 +201,7 @@ export function ImportarPlanilhaCadastroDialog({ open, onOpenChange, onConcluido
 
         {previa && !resultado && (
           <div className="max-h-[50vh] space-y-3 overflow-auto text-sm">
+            {!!previa.avisos?.length && <Alert><AlertDescription><ul className="list-disc pl-4">{previa.avisos.map((a) => <li key={a}>{a}</li>)}</ul></AlertDescription></Alert>}
             <div className="font-medium">✏️ Enriquecem: {validos.length} linha(s)</div>
             <p className="text-muted-foreground">
               {semMudanca.length} sem mudança · {comErro.length} com erro

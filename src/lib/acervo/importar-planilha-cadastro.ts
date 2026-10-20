@@ -6,7 +6,9 @@ import type { CampoFicha, ProdutoExport, RespostaExport } from "@/lib/acervo/pla
  * Localiza slugs e cabeçalho; aceita os layouts antigo e novo. Célula vazia = não mexe.
  */
 /** Gravados direto em sncf_produtos (por cod_cadastro), não pelo FOP. */
-export const CAMPOS_SNCF = new Set(["nome_operacional", "preco_site"]);
+export const CAMPOS_SNCF = new Set(["nome_operacional", "preco_site", "grupo_tributario_bling"]);
+/** Lista fixa por ora (fn_ficha_opcoes não cobre): nomes dos grupos tributários do Bling. */
+export const GRUPOS_TRIBUTARIOS_BLING = ["L1 - Produto Nacional Importado", "L2 - Produto Nacional"];
 export const IDENTIDADE = new Set(["cod_cadastro", "sku", "ean", "dun", "fase"]);
 const SLUGS_CONHECIDOS = new Set([...IDENTIDADE, "_sistema", "_fase_atual", "_pendencias_proxima", "_pendencias_medicao", "_liberar", "origem", "inner_qtd"]);
 
@@ -21,7 +23,7 @@ export interface ItemPrevia {
   /** Sugestões amarelas deixadas como vieram — só gravadas se o usuário confirmar na prévia. */
   sugestoes_mantidas: Mudanca[];
 }
-export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number }
+export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number; avisos?: string[] }
 
 export type OrigemProduto = "nacional" | "importado";
 export interface Nascimento { linha: number; pinado: boolean; payload: Record<string, unknown>; nome: string; origem: OrigemProduto; inner_qtd: number | null }
@@ -188,6 +190,11 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
   const novos: number[] = [];
   const itens: ItemPrevia[] = [];
   const vistos = new Set<string>();
+  // 20/10/2026: planilha = só bloco 1. Coluna de dono thomer (bloco comercial) é ignorada com aviso.
+  const bloco2 = new Map((r.campos_bloco2 ?? []).map((c) => [c.campo, c.rotulo || c.campo]));
+  const avisos: string[] = [];
+  const colunas = new Set(linhas.flatMap((l) => Object.keys(l.celulas)));
+  for (const c of colunas) if (bloco2.has(c)) avisos.push(`coluna ${bloco2.get(c)} é do bloco comercial e não é importada aqui`);
 
   for (const l of linhas) {
     if (!l.cod) { novos.push(l.linha); continue; }
@@ -200,7 +207,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
     const mantidas: Mudanca[] = [];
     let sugeridas = 0;
     for (const [campo, cel] of Object.entries(l.celulas)) {
-      if (campo.startsWith("_") || IDENTIDADE.has(campo)) continue;
+      if (campo.startsWith("_") || IDENTIDADE.has(campo) || bloco2.has(campo)) continue;
       const f = ficha.get(campo);
       if (CAMPOS_SNCF.has(campo)) {
         const atualS = p.valores[campo];
@@ -210,10 +217,12 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
           const n = numero(cel);
           if (n === null) { erros.push(`${rot}: "${String(cel)}" não é número`); continue; }
           mudancas.push({ campo, rotulo: rot, de: atualS ?? null, para: n, sncf: true });
+        } else if (campo === "grupo_tributario_bling" && !GRUPOS_TRIBUTARIOS_BLING.includes(String(cel).trim())) {
+          erros.push(`${rot}: "${String(cel)}" fora da lista válida`); continue;
         } else mudancas.push({ campo, rotulo: rot, de: atualS ?? null, para: String(cel).trim(), sncf: true });
         continue;
       }
-      if (!f || f.importavel_planilha !== true) continue;
+      if (!f || f.importavel_planilha !== true || String(f.dono ?? "").trim().toLowerCase() !== "fetely") continue;
       const atual = p.valores[campo];
       if (igual(cel, atual)) continue;
       // Sugestão amarela do SNCF deixada como veio = não confirmada: não grava.
@@ -236,7 +245,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
       liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros, sugestoes_ignoradas: sugeridas, sugestoes_mantidas: mantidas,
     });
   }
-  return { itens, novos, total_linhas: linhas.length };
+  return { itens, novos, total_linhas: linhas.length, avisos };
 }
 
 /**
