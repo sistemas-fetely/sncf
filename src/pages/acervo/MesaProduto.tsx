@@ -5,15 +5,12 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check,
   ChevronDown, Columns3, Download, GripVertical,
   ImageOff, PackageX, RefreshCw, Search, X,
-  Upload, Plus,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { ExportarPlanilhaCadastroDialog } from "@/components/acervo/ExportarPlanilhaCadastroDialog";
 import { FormatoInvalidoDialog, type AlertaFormato } from "@/components/acervo/FormatoInvalidoDialog";
-// gate do botão "Nascer produto" usa BotaoGuardado (padrão da casa)
-import { NascerProdutoNacionalDialog } from "@/components/acervo/NascerProdutoNacionalDialog";
-import { ImportarPlanilhaCadastroDialog } from "@/components/acervo/ImportarPlanilhaCadastroDialog";
+// 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -31,7 +28,6 @@ import { normalizarBusca } from "@/lib/normalizar-busca";
 import { cn } from "@/lib/utils";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from "@/components/tabela/RodapePaginacao";
 import { usePreferenciaTela } from "@/hooks/usePreferenciaTela";
-import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 // 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
 const MOSTRAR_CARDS_FASE = false as boolean;
 import { fmtDataHora } from "@/lib/data";
@@ -146,7 +142,6 @@ function FiltroFacetado({ label, opcoes, selecionados, onChange }: { label:strin
 export default function MesaProduto() {
   const [busca,setBusca]=useState(""); const [situacoes,setSituacoes]=useState<string[]>([]); const [fasesSel,setFasesSel]=useState<string[]>([]);
   const [exportCad,setExportCad]=useState(false);
-  const [importCad,setImportCad]=useState(false);
   const [exportSoMedicao,setExportSoMedicao]=useState(false);
   const [exportCods,setExportCods]=useState<string[]|null>(null);
   const [formatoAberto,setFormatoAberto]=useState(false);
@@ -165,7 +160,6 @@ export default function MesaProduto() {
   const [fotoAberta,setFotoAberta]=useState<{url:string;nome:string}|null>(null);
   // Seleção em lote (por SKU). Limpa quando o recorte de filtros muda.
   const qc=useQueryClient();
-  const [nascerAberto,setNascerAberto]=useState(false);
   const recarregarMesa=()=>{for(const k of ["mesa-produto-lista","mesa-produto-conciliacao-360","mesa-produto-sugestoes","conciliacao-contagem-produto"])void qc.invalidateQueries({queryKey:[k]});};
   // A regressão em lote (mutirão) mora na tela Conciliação de Cadastro.
 
@@ -244,7 +238,7 @@ export default function MesaProduto() {
   function celula(l:LinhaUnida,c:ColDef){const v=l[c.key];if(c.tipo==="foto")return <MiniFoto url={l.foto_url??null} origem={l.foto_origem??null} nome={l.nome_comercial??l.sku} onAmpliar={(url,nome)=>setFotoAberta({url,nome})}/>;if(c.key==="foto_origem")return <span className={cn(!l.foto_origem&&"text-muted-foreground")}>{rotuloFotoOrigem(l.foto_origem)}</span>;if(c.tipo==="selos")return selos(l);if(c.tipo==="fase")return <Badge>{String(v??l.fase??"—")}</Badge>;if(c.tipo==="chips"){if(c.key==="falta_proxima_fase"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;const campoFaltante=c.key==="falta_proxima_fase"||c.key==="falta_separada";return chips(Array.isArray(v)?v.map(String):null,campoFaltante);}if(c.tipo==="divergencias")return chipsDivergencia(l.divergencias);if(c.tipo==="bool")return v==null?<span className="text-muted-foreground">—</span>:v?<Check className="h-4 w-4 text-success"/>:<X className="h-4 w-4 text-destructive"/>;if(c.tipo==="datahora")return <span className="text-muted-foreground">{fmtDataHora(typeof v==="string"?v:null)}</span>;if(c.key==="pendencias"){const p=l.cod_cadastro?pendenciaPorCod.get(l.cod_cadastro):undefined;if(!p||!p.pendencias)return <span className="text-muted-foreground">—</span>;return <Link to={`/vendas/produto/conciliacao?q=${l.cod_cadastro}`} className="tabular-nums text-muted-foreground hover:text-foreground hover:underline">{p.pendencias}{(p.sistemas??[]).length>0&&<span className="text-[11px] lowercase"> · {(p.sistemas??[]).join(", ").toLowerCase()}</span>}</Link>;}if(c.key==="sugestao"){if(!l.sugestao)return <span className="text-muted-foreground">—</span>;const s=situacaoPorSlug.get(l.sugestao);return <Badge variant="outline" className={cn("font-normal",s?.tom?TOM_SITUACAO[s.tom]:undefined)}>{rotuloSituacao(l.sugestao)}</Badge>;}if(c.tipo==="num"){if(c.key==="qtd_falta_proxima"&&ultima(l))return <Tooltip><TooltipTrigger>—</TooltipTrigger><TooltipContent>produto já está na última fase — descontinuar é ação, não promoção</TooltipContent></Tooltip>;return v==null?<span className="text-muted-foreground">—</span>:<span className={cn("tabular-nums",c.key==="qtd_falta_proxima"&&Number(v)===0&&"text-success-strong")}>{fmtNum(Number(v))}</span>;}if(!temValor(v)){const nome=c.key==="cod_bling"?"Bling":c.key==="cod_shopify"?"Shopify":c.key==="cod_xpm"?"XPM":null;return nome?<Tooltip><TooltipTrigger><span className="text-muted-foreground">—</span></TooltipTrigger><TooltipContent>não encontrado no {nome}</TooltipContent></Tooltip>:<span className="text-muted-foreground">—</span>;}const texto=String(v);if(c.key==="cod_cadastro")return <span className="inline-flex flex-col leading-tight"><Link to={`/vendas/produto/ficha/${encodeURIComponent(texto)}`} className="font-mono font-medium hover:underline">{texto}</Link>{l.sku&&<span className="font-mono text-[11px] text-muted-foreground">{l.sku}</span>}</span>;if(c.key==="cod_bling")return <span className="block min-w-56 whitespace-normal">{texto}</span>;if(c.key==="cod_shopify"||c.key==="cod_xpm")return <span className={cn("block max-w-44 truncate",c.key==="cod_shopify"&&l.shopify_sku_diverge&&"text-warning-strong")}>{texto}</span>;return <span>{texto}</span>;}
 
   const fixa=(key:string,cab=false)=>key==="foto_url"?cn("sticky left-0 w-14 bg-muted",cab?"z-50":"z-20"):key==="cod_cadastro"?cn("sticky left-14 w-28 border-r bg-muted",cab?"z-50":"z-20"):"";
-  return <TooltipProvider delayDuration={200}><PageShell><ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} inicialSoMedicao={exportSoMedicao} cods={exportCods}/><FormatoInvalidoDialog open={formatoAberto} onOpenChange={setFormatoAberto} alertas={formato.data??[]} erro={formato.error?(formato.error as Error).message:null} onExportar={(c)=>{setFormatoAberto(false);setExportSoMedicao(false);setExportCods(c);setExportCad(true);}}/><ImportarPlanilhaCadastroDialog open={importCad} onOpenChange={setImportCad} onConcluido={recarregarMesa}/><NascerProdutoNacionalDialog open={nascerAberto} onOpenChange={setNascerAberto} onNasceu={recarregarMesa}/><PageHeader titulo="Mesa do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><BotaoGuardado slug="acao.produto_nascer_nacional" rotuloAcao="Nascer produto" variant="outline" size="sm" onClick={()=>setNascerAberto(true)}><Plus className="mr-2 h-4 w-4"/>Nascer produto</BotaoGuardado><Button variant="outline" size="sm" onClick={()=>{setExportSoMedicao(false);setExportCods(null);setExportCad(true);}}><Download className="mr-2 h-4 w-4"/>Exportar planilha de cadastro</Button><BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="outline" size="sm" onClick={()=>setImportCad(true)}><Upload className="mr-2 h-4 w-4"/>Importar planilha de cadastro</BotaoGuardado><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch(),regrasDim.refetch(),camposDim.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
+  return <TooltipProvider delayDuration={200}><PageShell><ExportarPlanilhaCadastroDialog open={exportCad} onOpenChange={setExportCad} inicialSoMedicao={exportSoMedicao} cods={exportCods}/><FormatoInvalidoDialog open={formatoAberto} onOpenChange={setFormatoAberto} alertas={formato.data??[]} erro={formato.error?(formato.error as Error).message:null} onExportar={(c)=>{setFormatoAberto(false);setExportSoMedicao(false);setExportCods(c);setExportCad(true);}}/><PageHeader titulo="Mesa do Produto" icone={PackageX} estado={carregando?"Carregando produtos…":estado} acoes={<><Button size="sm" onClick={async()=>{await Promise.all([lista.refetch(),conc.refetch(),sugestoes.refetch(),regrasDim.refetch(),camposDim.refetch()]);}} disabled={lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching}><RefreshCw className={cn("mr-2 h-4 w-4",(lista.isFetching||conc.isFetching||sugestoes.isFetching||regrasDim.isFetching||camposDim.isFetching)&&"animate-spin")}/>Atualizar</Button></>}/>
   {erro&&<Alert variant="destructive"><AlertTriangle className="h-4 w-4"/><AlertDescription>Não foi possível carregar os produtos. Atualize a página para tentar novamente. Detalhe: {(erro as Error).message}</AlertDescription></Alert>}
   {/* 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro */}
   {/* 20/10/2026: cards de fase saíram da Mesa; Mesa é área de trabalho */}

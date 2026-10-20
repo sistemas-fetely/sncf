@@ -135,6 +135,11 @@ serve(async (req) => {
           console.error("[gravar-produto-fop] recusa: não importável", { codCadastro, campo });
           return json({ ok: false, campo, erro: `campo \`${campo}\` não é importável pela planilha (importavel_planilha = false)` }, 403);
         }
+        // 20/10/2026 (Processo de Produto v2): planilha = só bloco 1; campo de outro dono é recusado.
+        if (dono !== "fetely") {
+          console.error("[gravar-produto-fop] recusa: dono (planilha)", { codCadastro, campo, dono });
+          return json({ ok: false, campo, dono, erro: `campo \`${campo}\` pertence a \`${dono}\` e não é importado pela planilha de cadastro` }, 403);
+        }
         continue;
       }
       if (dono !== "fetely") {

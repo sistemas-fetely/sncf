@@ -30,6 +30,8 @@ export interface CampoDestinoExport {
 export interface RespostaExport {
   ok: boolean; erro?: string;
   ficha: CampoFicha[]; opcoes: Record<string, string[]>; destinos?: CampoDestinoExport[]; destinos_planilha?: Record<string, string>; produtos: ProdutoExport[];
+  /** Campos do bloco 2 (dono thomer): não saem na planilha; só servem para avisar na importação. */
+  campos_bloco2?: { campo: string; rotulo: string | null }[];
 }
 
 // Ordem visual dos blocos na planilha (blocos desconhecidos vão no fim, em ordem alfabética).
