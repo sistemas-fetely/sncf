@@ -492,7 +492,7 @@ export default function FichaProduto() {
             produtoQ.isLoading
               ? "Carregando ficha…"
               : produto
-                ? `Código ${cod} · atualizado ${fmtDataHora(produto.atualizado_em)}`
+                ? `Código ${cod}${produto.sku ? ` · SKU ${produto.sku}` : ""} · atualizado ${fmtDataHora(produto.atualizado_em)}`
                 : "Produto não encontrado"
           }
           acoes={

@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -143,7 +144,7 @@ export function XpmCadastroPainel() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>SKU</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Nome comercial</TableHead>
                     <TableHead className="text-right">Peso SNCF</TableHead>
                     <TableHead className="text-right">Peso XPM</TableHead>
@@ -156,7 +157,7 @@ export function XpmCadastroPainel() {
                 <TableBody>
                   {saude.map((l) => (
                     <TableRow key={l.sku ?? l.cod_cadastro}>
-                      <TableCell className="font-mono text-xs">{l.sku ?? "—"}</TableCell>
+                      <TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell>
                       <TableCell className="text-xs">{l.nome_comercial ?? "—"}</TableCell>
                       <TableCell className="text-right text-xs">{num(l.peso_kg_sncf)}</TableCell>
                       <TableCell className="text-right text-xs">{num(l.peso_kg_xpm)}</TableCell>

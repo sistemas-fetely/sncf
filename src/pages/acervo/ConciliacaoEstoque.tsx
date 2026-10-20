@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight, Download, RefreshCw, Search, Warehouse } from "lucide-react";
@@ -352,7 +353,7 @@ export default function ConciliacaoEstoque() {
         <Table className="text-xs">
           <TableHeader className="sticky top-0 z-20"><TableRow className="bg-muted">
             <TableHead className="w-8">{isSuperAdmin && ajustaveisVisiveis.length > 0 && <Checkbox checked={todosSel} onCheckedChange={alternarTodos} aria-label="Selecionar todos os visíveis ajustáveis" title="Selecionar todos os visíveis ajustáveis" />}</TableHead>
-            <TableHead>Cód.</TableHead><TableHead>SKU</TableHead><TableHead>Nome</TableHead>
+            <TableHead>Código</TableHead><TableHead>SKU</TableHead><TableHead>Nome</TableHead>
             <TableHead className="text-right"><Ordenar col="fiscal" rotulo="Fiscal" /></TableHead>
             <TableHead className="text-right"><Ordenar col="real" rotulo="Real" /></TableHead>
             <TableHead className="text-right">Virtual</TableHead>
@@ -371,7 +372,7 @@ export default function ConciliacaoEstoque() {
               return <Fragment key={p.sku}>
                 <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : p.sku)}>
                   <TableCell>{aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</TableCell>
-                  <TableCell className="font-medium">{p.cod_cadastro ?? "—"}</TableCell>
+                  <TableCell><CodProduto chave={p.sku} variant="compacto" /></TableCell>
                   <TableCell>{p.sku}</TableCell>
                   <TableCell className="max-w-60"><div className="truncate">{p.nome_comercial ?? "—"}</div>{p.colecao && <div className="text-[10px] text-muted-foreground">{p.colecao}</div>}</TableCell>
                   <TableCell className="text-right tabular-nums">{n0(p.fiscal)}</TableCell>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -561,7 +562,7 @@ export function BlingCardPainel() {
               <div className="max-h-40 overflow-auto space-y-0.5 text-destructive">
                 {previa.recusados.map((r) => (
                   <div key={r.sku} className="flex gap-2">
-                    <span className="font-mono shrink-0">{r.sku}</span>
+                    <CodProduto chave={r.sku} variant="compacto" className="shrink-0" />
                     <span>{r.motivo}</span>
                   </div>
                 ))}
@@ -578,12 +579,12 @@ export function BlingCardPainel() {
             </p>
             {final.falhas.map((f) => (
               <div key={f.sku} className="text-destructive break-words">
-                <span className="font-mono">{f.sku}</span> ({f.status ?? "—"}): {f.corpo}
+                <CodProduto chave={f.sku} variant="compacto" /> ({f.status ?? "—"}): {f.corpo}
               </div>
             ))}
             {final.recusados.map((r) => (
               <div key={r.sku} className="text-destructive">
-                <span className="font-mono">{r.sku}</span>: {r.motivo}
+                <CodProduto chave={r.sku} variant="compacto" />: {r.motivo}
               </div>
             ))}
           </div>
@@ -611,7 +612,7 @@ export function BlingCardPainel() {
                         aria-label="Selecionar todos os prontos"
                       />
                     </TableHead>
-                    <TableHead>Cód.</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Nome no Bling</TableHead>
                     <TableHead>Grupo</TableHead>
                     <TableHead>Nasce como</TableHead>
@@ -642,8 +643,7 @@ export function BlingCardPainel() {
                           />
                         </TableCell>
                         <TableCell>
-                          <div className="font-mono text-xs">{l.cod_cadastro ?? l.sku}</div>
-                          <div className="font-mono text-[11px] text-muted-foreground">{l.sku}</div>
+                          <CodProduto chave={l.sku} />
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">{l.nome_operacional ?? "—"}</div>
@@ -761,7 +761,7 @@ export function BlingCardPainel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs">Cód.</TableHead>
+                  <TableHead className="text-xs">Código</TableHead>
                   <TableHead className="text-xs">NCM</TableHead>
                   <TableHead className="text-xs">NF</TableHead>
                 </TableRow>
@@ -769,7 +769,7 @@ export function BlingCardPainel() {
               <TableBody>
                 {(ncmDialog?.itens ?? []).map((i) => (
                   <TableRow key={i.sku}>
-                    <TableCell className="font-mono text-xs">{i.cod_cadastro ?? i.sku}</TableCell>
+                    <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                     <TableCell className="font-mono text-xs">{i.para}</TableCell>
                     <TableCell className="text-xs">{i.nf ?? "—"}</TableCell>
                   </TableRow>
