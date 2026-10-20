@@ -381,10 +381,15 @@ export function AcoesRemessa({
 
         return (
           <div key={rem.id} className="space-y-2">
-            {/* Com remessa única o caminho oficial é o "Enviar ao Bling e faturar"
-                do PreFaturamentoCard (passa pela conferência) — o botão de
-                tentativa só aparece quando existe mais de uma elegível. */}
-            {podeEnviar && elegiveis.length > 1 && (
+            {/* Com remessa única E nenhuma tentativa irmã viva já enviada, o
+                caminho oficial continua sendo o "Enviar ao Bling e faturar" do
+                PreFaturamentoCard (passa pela conferência). Quando já existe
+                tentativa irmã enviada (quebra em várias NFs), o envio da
+                tentativa restante acontece aqui, com remessa_id — senão a última
+                tentativa da quebra ficaria sem botão de envio.
+                ULTIMA-TENTATIVA-NAO-FICA-ORFA (20/10/2026, caso TRS-0004). */}
+            {podeEnviar && (elegiveis.length > 1 || temTentativaIrmaEnviada) && (
+
               <>
                 {!podeEnviarBling && (
                   <Alert variant="default" className="bg-muted/60 border-border">
