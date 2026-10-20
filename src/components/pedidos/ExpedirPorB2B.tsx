@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -174,7 +175,7 @@ export function ExpedirPorB2B({ pedido_id }: { pedido_id: string }) {
             <ul className="mt-1 space-y-0.5 pl-2">
               {faltas.map((f) => (
                 <li key={f.sku} className="tabular-nums">
-                  <span className="font-mono">{f.sku}</span>: pedido {f.pedido} · SP {f.disponivel_sp}
+                  <CodProduto chave={f.sku} variant="compacto" />: pedido {f.pedido} · SP {f.disponivel_sp}
                 </li>
               ))}
             </ul>

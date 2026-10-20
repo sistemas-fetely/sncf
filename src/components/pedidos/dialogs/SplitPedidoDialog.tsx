@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -192,7 +193,7 @@ export function SplitPedidoDialog({ open, onOpenChange, pedido_id, id_externo, v
                               {descoberto && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
                               {it.descricao}
                             </div>
-                            <div className="text-xs text-muted-foreground">{it.sku}</div>
+                            <CodProduto chave={it.sku} variant="compacto" />
                           </td>
                           <td className="p-2 text-right">{it.quantidade}</td>
                           <td className={cn("p-2 text-right", lastroClass)}>

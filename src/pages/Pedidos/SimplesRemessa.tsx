@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
+import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -115,6 +117,7 @@ function ConsumoShowroom() {
   const [de, setDe] = useState(mesISO(-5));
   const [ate, setAte] = useState(mesISO(0));
   const [busca, setBusca] = useState("");
+  const { resolver: resolverCod } = useCodigoProdutoMap();
   const q = useQuery({
     queryKey: ["consumo-showroom", de, ate],
     enabled: !!de && !!ate,
@@ -146,17 +149,17 @@ function ConsumoShowroom() {
     }
     const t = busca.trim().toLowerCase();
     return [...m.values()]
-      .filter((g) => !t || g.sku.toLowerCase().includes(t) || g.descricao.toLowerCase().includes(t))
+      .filter((g) => !t || g.sku.toLowerCase().includes(t) || (resolverCod(g.sku).cod ?? "").toLowerCase().includes(t) || g.descricao.toLowerCase().includes(t))
       .sort((a, b) => b.pecas - a.pecas || a.sku.localeCompare(b.sku));
-  }, [q.data, busca]);
+  }, [q.data, busca, resolverCod]);
   const totalPecas = agregado.reduce((s, g) => s + g.pecas, 0);
   const totalValor = agregado.reduce((s, g) => s + g.valor, 0);
 
   const exportar = () => {
     try {
-      const ws = XLSX.utils.json_to_sheet(agregado.map((g) => ({ SKU: g.sku, "Descrição": g.descricao, "Peças consumidas": g.pecas, "Valor a custo": Math.round(g.valor * 100) / 100 })));
-      XLSX.utils.sheet_add_json(ws, [{ SKU: "Total", "Descrição": "", "Peças consumidas": totalPecas, "Valor a custo": Math.round(totalValor * 100) / 100 }], { skipHeader: true, origin: -1 });
-      ws["!cols"] = [{ wch: 18 }, { wch: 50 }, { wch: 16 }, { wch: 16 }];
+      const ws = XLSX.utils.json_to_sheet(agregado.map((g) => ({ "Código": resolverCod(g.sku).cod ?? g.sku, SKU: g.sku, "Descrição": g.descricao, "Peças consumidas": g.pecas, "Valor a custo": Math.round(g.valor * 100) / 100 })));
+      XLSX.utils.sheet_add_json(ws, [{ "Código": "Total", SKU: "", "Descrição": "", "Peças consumidas": totalPecas, "Valor a custo": Math.round(totalValor * 100) / 100 }], { skipHeader: true, origin: -1 });
+      ws["!cols"] = [{ wch: 12 }, { wch: 18 }, { wch: 50 }, { wch: 16 }, { wch: 16 }];
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Consumo Show Room");
       XLSX.writeFile(wb, `consumo-showroom_${de}_a_${ate}.xlsx`);
@@ -175,7 +178,7 @@ function ConsumoShowroom() {
         <div className="flex flex-wrap items-end gap-3">
           <label className="space-y-1 text-sm"><span className="block text-muted-foreground">Mês inicial</span><Input type="month" value={de} onChange={(e) => setDe(e.target.value)} className="w-40" aria-label="Mês inicial" /></label>
           <label className="space-y-1 text-sm"><span className="block text-muted-foreground">Mês final</span><Input type="month" value={ate} onChange={(e) => setAte(e.target.value)} className="w-40" aria-label="Mês final" /></label>
-          <Input placeholder="Buscar SKU ou descrição" value={busca} onChange={(e) => setBusca(e.target.value)} className="w-64" aria-label="Buscar SKU ou descrição" />
+          <Input placeholder="Buscar código, SKU ou descrição" value={busca} onChange={(e) => setBusca(e.target.value)} className="w-64" aria-label="Buscar SKU ou descrição" />
         </div>
         {q.isLoading ? <div className="flex justify-center p-6"><Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /></div>
         : q.isError ? <p className="text-sm text-destructive">Falha ao carregar consumo: {formatError(q.error)}</p>
@@ -184,12 +187,12 @@ function ConsumoShowroom() {
           <div className="max-h-[520px] overflow-auto rounded-md border">
             <Table>
               <TableHeader className="sticky top-0 z-10 bg-background"><TableRow>
-                <TableHead>SKU</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Peças consumidas</TableHead><TableHead className="text-right">Valor a custo</TableHead>
+                <TableHead>Código</TableHead><TableHead>Descrição</TableHead><TableHead className="text-right">Peças consumidas</TableHead><TableHead className="text-right">Valor a custo</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {agregado.map((g) => (
                   <TableRow key={g.sku}>
-                    <TableCell className="font-mono text-xs">{g.sku}</TableCell>
+                    <TableCell><CodProduto chave={g.sku} variant="compacto" /></TableCell>
                     <TableCell className="text-sm">{g.descricao || "—"}</TableCell>
                     <TableCell className="text-right tabular-nums">{g.pecas}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatBRL(g.valor)}</TableCell>

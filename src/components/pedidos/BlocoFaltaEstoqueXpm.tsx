@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Selo } from "@/components/ui/selo";
 import type { ItemPreviaEstoqueXpm } from "@/hooks/pedidos/usePreviaEstoqueXpm";
 
@@ -64,7 +65,7 @@ export function BlocoFaltaEstoqueXpm({ itens, fotoEm }: Props) {
           <div key={it.sku} className="rounded-md border border-border p-2.5 space-y-2">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-xs font-medium tabular-nums">{it.sku}</p>
+                <CodProduto chave={it.sku} />
                 <p className="text-xs text-muted-foreground truncate">{it.nome}</p>
               </div>
               <Selo estado={vered === "falta_real" ? "destructive" : "warning"}>{rotulo}</Selo>

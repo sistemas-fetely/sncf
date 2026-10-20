@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -101,6 +102,7 @@ export function DividirRemessaDialog({ remessaId, pedidoId, codigo, itens, trigg
                 <p className="text-sm font-medium truncate">
                   {it.descricao ?? it.sku ?? "Item"}
                 </p>
+                {it.sku && <CodProduto chave={it.sku} variant="compacto" />}
                 <p className="text-xs text-muted-foreground">
                   de {it.quantidade} · {fmtBRL.format(it.valor_unitario ?? 0)}/un
                 </p>

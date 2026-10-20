@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SeloConfirmacaoAutomatica, usePixSafrapay } from "@/components/venda-direta/PixSafrapay";
@@ -153,7 +154,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
                       <div key={i.id} className="space-y-1 p-2">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <div className="font-medium">{p?.cod_cadastro ?? i.sku}</div>
+                            <CodProduto chave={i.sku} />
                             <div className="text-xs text-muted-foreground">{p?.nome_comercial ?? i.descricao ?? "—"}</div>
                           </div>
                           {falta && <span className="shrink-0 text-xs text-destructive-strong">Sem saldo no Site SP</span>}
