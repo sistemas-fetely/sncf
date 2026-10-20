@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { BlingHttpError, ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
 import {
   EXTRATORES_BLING, FaseSemRegra, GRUPO_L1, GRUPO_L2, carregarFaseDestino, difere, grupoIdDoCard,
-  grupoTributarioEsperado, num, txt,
+  grupoTributarioEsperado, grupoTributarioDaFicha, carregarGruposBling, num, txt,
 } from "../_shared/bling/montar-valores-produto.ts";
 const CAMPO_GRUPO = "grupo_tributario";
 
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
     if (linhas.length) {
       const lista = linhas.map((l: Any) => l.sku);
       const { data: fichas, error: fErr } = await sb.from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest, origem_fisc")
+        .select("sku, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest, origem_fisc, grupo_tributario_bling")
         .in("sku", lista);
       if (fErr) throw new Error(`sncf_produtos: ${fErr.message}`);
       const fichaPorSku = new Map((fichas ?? []).map((f: Any) => [f.sku, f]));
@@ -165,18 +165,7 @@ Deno.serve(async (req) => {
       const client = makeBlingClient(sb, cfg as Any, await ensureFreshToken(sb, cfg as Any));
 
       // Tabela de grupos de produtos, uma vez por execução (id ↔ nome).
-      const grupoNome = new Map<number, string>();
-      const grupoId = new Map<string, number>();
-      for (let p = 1; p <= 20; p++) {
-        if (p > 1) await sleep(THROTTLE_MS);
-        const r = await client.get(`/grupos-produtos?pagina=${p}&limite=100`);
-        const itens: Any[] = r?.data ?? [];
-        for (const g of itens) {
-          const id = Number(g?.id), nome = txt(g?.nome);
-          if (id > 0 && nome) { grupoNome.set(id, nome); grupoId.set(nome.toLowerCase(), id); }
-        }
-        if (itens.length < 100) break;
-      }
+      const { nomePorId: grupoNome, idPorNome: grupoId } = await carregarGruposBling(client, THROTTLE_MS);
       for (const n of [GRUPO_L1, GRUPO_L2]) {
         if (!grupoId.has(n.toLowerCase())) {
           throw new Error(`grupo "${n}" não encontrado em /grupos-produtos do Bling (lidos: ${[...grupoNome.values()].join(" | ") || "nenhum"})`);
@@ -239,7 +228,11 @@ Deno.serve(async (req) => {
             });
           }
           {
-            const esperado = grupoTributarioEsperado(ficha.origem_fisc);
+            // 20/10/2026: grupo tributário é campo próprio (bloco 1), não derivado
+            const esperado = grupoTributarioDaFicha(ficha.grupo_tributario_bling, ficha.origem_fisc);
+            if (esperado !== null && !grupoId.has(esperado.toLowerCase())) {
+              throw new Error(`grupo tributário "${esperado}" não existe em /grupos-produtos do Bling`);
+            }
             const idCard = grupoIdDoCard(atual);
             const nomeCard = idCard === null ? null : (grupoNome.get(idCard) ?? `id ${idCard}`);
             if (difere("txt", esperado, nomeCard)) {
