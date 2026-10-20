@@ -2214,7 +2214,7 @@ export default function ConsignadoDetalhe() {
                     <TableBody>
                       {(itensAcertoQ.data ?? []).map((it) => (
                         <TableRow key={it.id}>
-                          <TableCell className="font-mono text-xs">{it.sku ?? "—"}</TableCell>
+                          <TableCell><CodProduto chave={it.sku} variant="compacto" /></TableCell>
                           <TableCell className="text-sm">{it.descricao ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{num(it.quantidade)}</TableCell>
                           <TableCell className="text-right tabular-nums">{formatBRL(it.valor_unitario)}</TableCell>
