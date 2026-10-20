@@ -26,6 +26,8 @@ import { PlanilhaPendencias } from "@/components/acervo/PlanilhaPendencias";
 import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFaseLote";
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
+// 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
+import { ConsistenciaBlingCard } from "@/components/acervo/ConsistenciaBlingCard";
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 
 /** Regra de cadastro incompleto — única que o ciclo de planilha resolve. */
@@ -445,6 +447,7 @@ export default function ConciliacaoFila() {
         return <Tooltip key={c.onde}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
       })}
     </section>
+    <ConsistenciaBlingCard titulo="Varredura Bling" colapsavel />
 
     <section className="flex flex-wrap items-center gap-2 border-y py-3">
       <div className="relative min-w-64 flex-1">
