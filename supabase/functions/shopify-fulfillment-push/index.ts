@@ -303,18 +303,24 @@ Deno.serve(async (req) => {
             .order("criado_em", { ascending: false });
           if (eDesp) throw new Error(`ler despachos da Mesa SP: ${eDesp.message}`);
 
+          // Conjunto LOCAL do "so o ultimo despacho vale": um pedido cujo ultimo
+          // despacho nao e multimodal nao vira candidato aqui, mas continua livre
+          // para a fonte 3c (RETIRADA/TRANSPORTADORA). Candidatos aceitos entram
+          // em `vistos` normalmente.
+          const ultimoDespachoVisto = new Set<string>();
           for (const d of despachos ?? []) {
             const interno = String(d.pedido_id);
-            if (vistos.has(interno)) continue;
+            if (vistos.has(interno) || ultimoDespachoVisto.has(interno)) continue;
             // MARCA ANTES DE DECIDIR: a lista vem do mais novo para o mais
             // velho e SO O ULTIMO DESPACHO VALE. Sem esta linha aqui, um pedido
             // redespachado por Correios cairia no `mesa_despachado` anterior de
             // Lalamove e criaria fulfillment com a transportadora errada.
-            vistos.add(interno);
+            ultimoDespachoVisto.add(interno);
 
             const meta = (d.metadata ?? {}) as Record<string, unknown>;
             const modal = String(meta.modal ?? "").trim().toUpperCase();
             if (!(MODAIS_MULTIMODAIS as readonly string[]).includes(modal)) continue;
+            vistos.add(interno);
 
             const referencia = String(meta.referencia ?? "").trim();
             // A RPC ja exige referencia para modal sem rastreio automatico; se
@@ -332,6 +338,75 @@ Deno.serve(async (req) => {
             });
             if (candidatos.length >= lote) break;
           }
+        }
+      }
+    }
+
+    // ── 3c. Entrega sem despacho rastreavel (fonte entrega_sncf) ────────────
+    // Retirada no balcao, entrega declarada a mao (`fn_b2c_declarar_entrega`) ou
+    // transportadora avulsa da Mesa SP. Sem esta perna o pedido fica
+    // "Nao processado" no Shopify para sempre (#1457, #1148).
+    // Precedencia: so o lote que sobrou de 3a/3b, so pedido ainda nao visto.
+    const restante3c = lote - candidatos.length;
+    if (restante3c > 0) {
+      const idsLivres = [...pedidoParaShopify.keys()].filter((id) => !vistos.has(id));
+      if (idsLivres.length > 0) {
+        // (b) ultimo `mesa_despachado` com modal RETIRADA/TRANSPORTADORA.
+        const { data: despachos3c, error: eD3c } = await supabase
+          .from("pedido_eventos")
+          .select("pedido_id, metadata, criado_em")
+          .eq("tipo_evento", EVENTO_MESA_DESPACHADO)
+          .in("pedido_id", idsLivres)
+          .order("criado_em", { ascending: false });
+        if (eD3c) throw new Error(`ler despachos (entrega_sncf): ${eD3c.message}`);
+
+        const porDespacho = new Map<string, { modal: string; referencia: string }>();
+        const ultimo3c = new Set<string>();
+        for (const d of despachos3c ?? []) {
+          const interno = String(d.pedido_id);
+          if (ultimo3c.has(interno)) continue;
+          ultimo3c.add(interno); // so o ultimo despacho vale
+          const meta = (d.metadata ?? {}) as Record<string, unknown>;
+          const modal = String(meta.modal ?? "").trim().toUpperCase();
+          if (!(MODAIS_ENTREGA_SNCF as readonly string[]).includes(modal)) continue;
+          porDespacho.set(interno, { modal, referencia: String(meta.referencia ?? "").trim() });
+        }
+
+        // (a) B2C entregue manualmente, nao cancelado.
+        const { data: manuais, error: eMan } = await supabase
+          .from("pedidos")
+          .select("id")
+          .in("id", idsLivres)
+          .eq("canal", "B2C")
+          .eq("entregue_metodo", "manual")
+          .not("entregue_em", "is", null)
+          .is("cancelado_em", null);
+        if (eMan) throw new Error(`ler pedidos entregues manualmente: ${eMan.message}`);
+        const manualSet = new Set((manuais ?? []).map((p: { id: string }) => String(p.id)));
+
+        for (const interno of idsLivres) {
+          if (candidatos.length >= lote) break;
+          if (vistos.has(interno)) continue;
+          const desp = porDespacho.get(interno);
+          let modal: string;
+          let codigo = "";
+          if (manualSet.has(interno)) {
+            modal = "MANUAL";
+          } else if (desp) {
+            modal = desp.modal;
+            if (modal === "TRANSPORTADORA") codigo = desp.referencia;
+          } else continue;
+          vistos.add(interno);
+          const shopifyId = pedidoParaShopify.get(interno)!;
+          candidatos.push({
+            pedido_id: interno,
+            shopify_pedido_id: shopifyId,
+            order_name: abertos.get(shopifyId) ?? null,
+            fonte: "entrega_sncf",
+            modal,
+            codigo_rastreio: codigo,
+            servico: null,
+          });
         }
       }
     }
