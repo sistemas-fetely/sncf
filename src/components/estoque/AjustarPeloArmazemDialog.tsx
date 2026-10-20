@@ -5,6 +5,7 @@
  * obrigatório → dry_run=false (FAIL-LOUD: erro nunca fecha o diálogo).
  */
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AlertTriangle, ChevronDown, ChevronRight } from "lucide-react";
@@ -145,7 +146,7 @@ export function AjustarPeloArmazemDialog({ aberto, onFechar, skus, onAjustado }:
               <div className="overflow-hidden rounded-md border">
                 <Table className="text-xs">
                   <TableHeader><TableRow className="bg-muted">
-                    <TableHead>Cód.</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="text-right">Contábil SNCF</TableHead>
                     <TableHead className="text-right">Real XPM</TableHead>
@@ -154,7 +155,7 @@ export function AjustarPeloArmazemDialog({ aberto, onFechar, skus, onAjustado }:
                   <TableBody>
                     {ordenados.map(i => (
                       <TableRow key={i.sku}>
-                        <TableCell className="font-medium">{i.cod_cadastro ?? "—"}</TableCell>
+                        <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                         <TableCell className="max-w-56 truncate">{i.nome ?? i.sku}</TableCell>
                         <TableCell className="text-right tabular-nums">{i.contabil}</TableCell>
                         <TableCell className="text-right tabular-nums">{i.real_xpm}</TableCell>
@@ -178,13 +179,13 @@ export function AjustarPeloArmazemDialog({ aberto, onFechar, skus, onAjustado }:
                   <div className="mt-2 rounded-md border p-2">
                     <Table className="text-xs">
                       <TableHeader><TableRow>
-                        <TableHead>Cód.</TableHead>
+                        <TableHead>Código</TableHead>
                         <TableHead>Motivo</TableHead>
                       </TableRow></TableHeader>
                       <TableBody>
                         {bloqueados.map(b => (
                           <TableRow key={b.sku}>
-                            <TableCell className="font-medium">{b.cod_cadastro ?? "—"}</TableCell>
+                            <TableCell><CodProduto chave={b.sku} variant="compacto" /></TableCell>
                             <TableCell>{b.motivo}</TableCell>
                           </TableRow>
                         ))}
