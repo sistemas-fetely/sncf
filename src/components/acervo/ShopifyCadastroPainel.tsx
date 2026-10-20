@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -453,7 +454,7 @@ export function ShopifyCadastroPainel() {
               </p>
               {resultados.filter((r) => r.status !== "ok").map((r, i) => (
                 <div key={`${r.sku}-${i}`} className={r.status === "ja_existe" ? "text-muted-foreground" : "text-destructive"}>
-                  <span className="font-mono">{r.sku ?? "—"}</span> ({r.status ?? "erro"}): {detalheResultado(r)}
+                  <CodProduto chave={r.sku} variant="compacto" /> ({r.status ?? "erro"}): {detalheResultado(r)}
                 </div>
               ))}
             </div>
@@ -477,7 +478,7 @@ export function ShopifyCadastroPainel() {
                       />
                     </TableHead>
                     <TableHead>Foto</TableHead>
-                    <TableHead>Cód.</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Nome</TableHead>
                     <TableHead>Grupo</TableHead>
                     <TableHead>Modo</TableHead>
@@ -511,10 +512,7 @@ export function ShopifyCadastroPainel() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {linha.cod_cadastro ?? "—"}
-                          <div className="text-[11px] text-muted-foreground">{linha.sku ?? "—"}</div>
-                        </TableCell>
+                        <TableCell><CodProduto chave={linha.sku ?? linha.cod_cadastro} /></TableCell>
                         <TableCell className="text-sm">{linha.nome_comercial ?? "—"}</TableCell>
                         <TableCell className="text-xs">{linha.grupo ?? "—"}</TableCell>
                         <TableCell>
@@ -574,7 +572,7 @@ export function ShopifyCadastroPainel() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cód.</TableHead>
+                  <TableHead>Código</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Coleções</TableHead>
                   <TableHead>Situação</TableHead>
@@ -586,10 +584,7 @@ export function ShopifyCadastroPainel() {
                   const situacao = statusPrevia(item);
                   return (
                     <TableRow key={`${item.sku}-${i}`}>
-                      <TableCell className="font-mono text-xs align-top">
-                        {linha?.cod_cadastro ?? "—"}
-                        <div className="text-[11px] text-muted-foreground">{item.sku ?? "—"}</div>
-                      </TableCell>
+                      <TableCell className="align-top"><CodProduto chave={item.sku} /></TableCell>
                       <TableCell className="text-xs align-top">
                         {linha?.nome_comercial ?? "—"}
                         <Collapsible>

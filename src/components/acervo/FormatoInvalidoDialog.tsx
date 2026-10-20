@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { FileSpreadsheet } from "lucide-react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -33,7 +34,7 @@ export function FormatoInvalidoDialog({ open, onOpenChange, alertas, erro, onExp
               {linhas.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Nenhum produto com formato inválido.</TableCell></TableRow>}
               {linhas.map((a, i) => (
                 <TableRow key={`${a.cod_cadastro}-${a.campo}-${i}`}>
-                  <TableCell><div className="font-mono text-xs">{a.cod_cadastro}</div><div className="text-xs text-muted-foreground">{a.sku ?? "—"} · {a.colecao ?? "—"} · {a.fase ?? "—"}</div></TableCell>
+                  <TableCell><CodProduto chave={a.sku ?? a.cod_cadastro} variant="compacto" /><div className="text-xs text-muted-foreground">{a.colecao ?? "—"} · {a.fase ?? "—"}</div></TableCell>
                   <TableCell className="text-sm">{a.campo}</TableCell>
                   <TableCell className="font-mono text-xs">{a.valor ?? "—"}</TableCell>
                   <TableCell className="text-sm">{a.motivo}</TableCell>

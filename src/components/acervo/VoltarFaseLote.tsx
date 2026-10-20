@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowDownCircle, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -93,7 +94,7 @@ export function VoltarFaseLote({ produtos, onFeito, sempreVisivel = false }: { p
           <DialogDescription>Os produtos saem do faturamento enquanto estiverem fora de Ativo.</DialogDescription>
         </DialogHeader>
         {!resultado && <>
-          <ScrollArea className="h-32 rounded-md border"><div className="flex flex-wrap gap-1 p-2">{produtos.map(p => <Badge key={p.sku} variant="outline" className="font-normal">{p.cod_cadastro ?? p.sku}</Badge>)}</div></ScrollArea>
+          <ScrollArea className="h-32 rounded-md border"><div className="flex flex-wrap gap-1 p-2">{produtos.map(p => <Badge key={p.sku} variant="outline" className="font-normal"><CodProduto chave={p.sku} variant="compacto" /></Badge>)}</div></ScrollArea>
           <div className="space-y-1.5">
             <Label htmlFor="motivo-lote-conciliacao">Motivo (obrigatório)</Label>
             <Textarea id="motivo-lote-conciliacao" value={motivo} onChange={e => setMotivo(e.target.value)} placeholder="Ex.: coleção ativada antes do cadastro completo" rows={3} disabled={rodando} />

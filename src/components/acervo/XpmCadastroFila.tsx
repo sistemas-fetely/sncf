@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -426,7 +427,7 @@ export function XpmCadastroFila() {
               .filter((r) => r.status !== "ok" && r.status !== "PRODUTO_SEM_SKU")
               .map((r, i) => (
                 <div key={`${r.sku}-${i}`} className="text-destructive break-words">
-                  <span className="font-mono">{r.sku ?? "—"}</span> ({r.status ?? "—"}):{" "}
+                  <CodProduto chave={r.sku} variant="compacto" /> ({r.status ?? "—"}):{" "}
                   {r.erro ?? (listaBloqueios(r.bloqueios).join("; ") || "sem detalhe")}
                 </div>
               ))}
@@ -457,7 +458,7 @@ export function XpmCadastroFila() {
                         aria-label="Selecionar todos os prontos"
                       />
                     </TableHead>
-                    <TableHead>Cód.</TableHead>
+                    <TableHead>Código</TableHead>
                     <TableHead>Descrição no XPM</TableHead>
                     <TableHead>Grupo → Categoria</TableHead>
                     <TableHead>Tipo</TableHead>
@@ -490,10 +491,7 @@ export function XpmCadastroFila() {
                             aria-label={`Selecionar ${l.sku ?? ""}`}
                           />
                         </TableCell>
-                        <TableCell className="font-mono text-xs">
-                          {l.cod_cadastro ?? "—"}
-                          <div className="text-[11px] text-muted-foreground">{l.sku ?? "—"}</div>
-                        </TableCell>
+                        <TableCell><CodProduto chave={l.sku ?? l.cod_cadastro} /></TableCell>
                         <TableCell className="text-xs">
                           <div className="flex items-start gap-1">
                             <span>{l.descricao_xpm ?? "—"}</span>
@@ -591,7 +589,7 @@ export function XpmCadastroFila() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Cód.</TableHead>
+                  <TableHead>Código</TableHead>
                   <TableHead>Descrição no XPM</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>EAN</TableHead>
@@ -608,10 +606,7 @@ export function XpmCadastroFila() {
                   const med = l ? medidasTxt(l) : null;
                   return (
                     <TableRow key={`${p.sku}-${i}`}>
-                      <TableCell className="font-mono text-xs align-top">
-                        {l?.cod_cadastro ?? "—"}
-                        <div className="text-[11px] text-muted-foreground">{p.sku}</div>
-                      </TableCell>
+                      <TableCell className="align-top"><CodProduto chave={p.sku} /></TableCell>
                       <TableCell className="text-xs align-top">
                         {l?.descricao_xpm ?? "—"}
                         {p.aviso_corte && <div className="text-[11px] text-warning">{p.aviso_corte}</div>}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -817,7 +818,7 @@ export default function ChegadaMercadoriaDetalhe() {
                       <Table containerClassName="overflow-visible">
                         <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
-                            <TableHead>Cód. cadastro</TableHead>
+                            <TableHead>Código</TableHead>
                             <TableHead>Produto</TableHead>
                             <TableHead>Cód. fornecedor</TableHead>
                             {exigeEmbarque && <TableHead className="text-right">Kits</TableHead>}
@@ -845,16 +846,7 @@ export default function ChegadaMercadoriaDetalhe() {
                             return (
                               <TableRow key={r.linha_id}>
                                 <TableCell>
-                                  {r.cod_cadastro ? (
-                                    <>
-                                      <div className="font-mono text-xs">{r.cod_cadastro}</div>
-                                      <div className="text-xs text-muted-foreground">
-                                        {r.sku ?? "—"}
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <span className="font-mono text-xs">{r.sku ?? "—"}</span>
-                                  )}
+                                  <CodProduto chave={r.sku ?? r.cod_cadastro} />
                                 </TableCell>
                                 <TableCell
                                   className="max-w-[320px] truncate"

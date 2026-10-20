@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -168,7 +169,7 @@ export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { 
           <div className="space-y-4">
             {comDiferenca.length === 0 && <p className="text-sm text-muted-foreground">Nenhum produto selecionado tem diferença para corrigir.</p>}
             {comDiferenca.map(r => <div key={r.sku} className="space-y-1 rounded-md border p-2">
-              <p className="text-sm font-medium">{cod(r.sku)}</p>
+              <p className="text-sm font-medium"><CodProduto chave={r.sku} variant="compacto" /></p>
               {(r.de_para ?? []).map(d => <p key={d.campo} className="text-xs text-muted-foreground">
                 <span className="font-medium text-foreground">{rotulos[d.campo] ?? d.campo}</span>: {mostrar(d.xpm)} → <span className="text-foreground">{mostrar(d.novo)}</span>
               </p>)}
@@ -176,29 +177,29 @@ export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { 
 
             {semDiferenca.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Já iguais ao XPM ({semDiferenca.length})</p>
-              <div className="flex flex-wrap gap-1">{semDiferenca.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1">{semDiferenca.map(r => <Badge key={r.sku} variant="outline" className="font-normal"><CodProduto chave={r.sku} variant="compacto" /></Badge>)}</div>
             </div>}
 
             {foraDoXpm.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Não estão no XPM ({foraDoXpm.length})</p>
-              <div className="flex flex-wrap gap-1">{foraDoXpm.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1">{foraDoXpm.map(r => <Badge key={r.sku} variant="outline" className="font-normal"><CodProduto chave={r.sku} variant="compacto" /></Badge>)}</div>
             </div>}
 
             {incompletos.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Matriz incompleta — não podem ser enviados ({incompletos.length})</p>
-              {incompletos.map(r => <p key={r.sku} className="text-xs"><span className="font-medium">{cod(r.sku)}</span><span className="text-muted-foreground"> — {(r.bloqueios ?? []).join(" · ") || "sem detalhe"}</span></p>)}
+              {incompletos.map(r => <p key={r.sku} className="text-xs"><span className="font-medium"><CodProduto chave={r.sku} variant="compacto" /></span><span className="text-muted-foreground"> — {(r.bloqueios ?? []).join(" · ") || "sem detalhe"}</span></p>)}
             </div>}
 
             {outros.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Outros avisos ({outros.length})</p>
-              {outros.map(r => <p key={r.sku} className="text-xs"><span className="font-medium">{cod(r.sku)}</span><span className="text-muted-foreground"> — {r.status}{r.erro ? `: ${r.erro}` : ""}</span></p>)}
+              {outros.map(r => <p key={r.sku} className="text-xs"><span className="font-medium"><CodProduto chave={r.sku} variant="compacto" /></span><span className="text-muted-foreground"> — {r.status}{r.erro ? `: ${r.erro}` : ""}</span></p>)}
             </div>}
           </div>
         </ScrollArea>}
 
         {final && <div className="space-y-2">
           <p className="text-sm">{final.filter(r => r.status === "ok").length} corrigidos no XPM{final.some(r => r.status !== "ok") && ` · ${final.filter(r => r.status !== "ok").length} falharam`}.</p>
-          {final.some(r => r.status !== "ok") && <ScrollArea className="h-40 rounded-md border"><div className="space-y-2 p-2">{final.filter(r => r.status !== "ok").map(r => <div key={r.sku} className="text-xs"><span className="font-medium">{cod(r.sku)}</span><span className="text-muted-foreground"> — {r.erro ?? r.status}</span></div>)}</div></ScrollArea>}
+          {final.some(r => r.status !== "ok") && <ScrollArea className="h-40 rounded-md border"><div className="space-y-2 p-2">{final.filter(r => r.status !== "ok").map(r => <div key={r.sku} className="text-xs"><span className="font-medium"><CodProduto chave={r.sku} variant="compacto" /></span><span className="text-muted-foreground"> — {r.erro ?? r.status}</span></div>)}</div></ScrollArea>}
         </div>}
 
         <DialogFooter>

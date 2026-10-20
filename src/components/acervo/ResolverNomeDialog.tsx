@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -231,8 +232,7 @@ export function ResolverNomeDialog({ aberto, onFechar, linhas, onResolvido }: Pr
                     <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded border border-dashed text-[10px] text-muted-foreground">sem foto</div>
                   )}
                   <div className="min-w-0 text-xs space-y-0.5">
-                    <div>Cód. <span className="font-mono">{l.cod_cadastro ?? "—"}</span></div>
-                    <div>SKU <span className="font-mono">{l.sku}</span></div>
+                    <CodProduto chave={l.sku} />
                     <div>EAN <span className="font-mono">{ex?.ean ?? "—"}</span></div>
                     <div className="text-sm">{ex?.nome_comercial ?? l.nome_comercial ?? "—"}</div>
                     {l.conflito_nome && <div className="text-destructive">igual a: {l.conflito_nome}</div>}

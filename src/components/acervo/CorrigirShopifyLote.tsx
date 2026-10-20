@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
@@ -169,7 +170,7 @@ export function CorrigirShopifyLote({ produtos, onFeito, sempreVisivel = false }
             {vaiMudar.length === 0 && <p className="text-sm text-muted-foreground">Nenhum produto selecionado tem diferença para corrigir.</p>}
             {vaiMudar.map(r => <div key={r.sku} className="space-y-1 rounded-md border p-2">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">{cod(r.sku)}</p>
+                <p className="text-sm font-medium"><CodProduto chave={r.sku} variant="compacto" /></p>
                 <Badge variant="secondary" className="font-normal">vai mudar</Badge>
               </div>
               {r.produto && <p className="text-xs text-muted-foreground">{r.produto}</p>}
@@ -180,29 +181,29 @@ export function CorrigirShopifyLote({ produtos, onFeito, sempreVisivel = false }
 
             {semMudanca.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Já iguais ao Shopify ({semMudanca.length})</p>
-              <div className="flex flex-wrap gap-1">{semMudanca.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1">{semMudanca.map(r => <Badge key={r.sku} variant="outline" className="font-normal"><CodProduto chave={r.sku} variant="compacto" /></Badge>)}</div>
             </div>}
 
             {semAnuncio.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Sem anúncio no Shopify — cadastre em Destinos de Cadastro ({semAnuncio.length})</p>
-              <div className="flex flex-wrap gap-1">{semAnuncio.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1">{semAnuncio.map(r => <Badge key={r.sku} variant="outline" className="font-normal"><CodProduto chave={r.sku} variant="compacto" /></Badge>)}</div>
             </div>}
 
             {semFicha.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Sem ficha no SNCF ({semFicha.length})</p>
-              <div className="flex flex-wrap gap-1">{semFicha.map(r => <Badge key={r.sku} variant="outline" className="font-normal">{cod(r.sku)}</Badge>)}</div>
+              <div className="flex flex-wrap gap-1">{semFicha.map(r => <Badge key={r.sku} variant="outline" className="font-normal"><CodProduto chave={r.sku} variant="compacto" /></Badge>)}</div>
             </div>}
 
             {outros.length > 0 && <div className="space-y-1">
               <p className="text-xs font-medium">Erros ({outros.length})</p>
-              {outros.map(r => <p key={r.sku} className="text-xs"><Badge variant="destructive" className="mr-1 font-normal">{r.status}</Badge><span className="font-medium">{cod(r.sku)}</span><span className="text-muted-foreground">{r.erro ? ` — ${r.erro}` : ""}</span></p>)}
+              {outros.map(r => <p key={r.sku} className="text-xs"><Badge variant="destructive" className="mr-1 font-normal">{r.status}</Badge><span className="font-medium"><CodProduto chave={r.sku} variant="compacto" /></span><span className="text-muted-foreground">{r.erro ? ` — ${r.erro}` : ""}</span></p>)}
             </div>}
           </div>
         </ScrollArea>}
 
         {final && <div className="space-y-2">
           <p className="text-sm">{final.filter(okFinal).length} corrigidos no Shopify{final.some(r => !okFinal(r)) && ` · ${final.filter(r => !okFinal(r)).length} falharam`}.</p>
-          {final.some(r => !okFinal(r)) && <ScrollArea className="h-40 rounded-md border"><div className="space-y-2 p-2">{final.filter(r => !okFinal(r)).map(r => <div key={r.sku} className="text-xs"><Badge variant="destructive" className="mr-1 font-normal">{r.status}</Badge><span className="font-medium">{cod(r.sku)}</span><span className="text-muted-foreground"> — {r.erro ?? r.status}</span></div>)}</div></ScrollArea>}
+          {final.some(r => !okFinal(r)) && <ScrollArea className="h-40 rounded-md border"><div className="space-y-2 p-2">{final.filter(r => !okFinal(r)).map(r => <div key={r.sku} className="text-xs"><Badge variant="destructive" className="mr-1 font-normal">{r.status}</Badge><span className="font-medium"><CodProduto chave={r.sku} variant="compacto" /></span><span className="text-muted-foreground"> — {r.erro ?? r.status}</span></div>)}</div></ScrollArea>}
         </div>}
 
         <DialogFooter>
