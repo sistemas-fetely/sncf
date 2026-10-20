@@ -1,9 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Scale } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { PageShell } from "@/components/layout/PageShell";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { CardIndicador } from "@/components/ui/card-indicador";
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
@@ -38,7 +35,8 @@ const comSinal = (n: number | null) => (n == null ? "—" : n > 0 ? `+${fmt(n)}`
 const corSentido = (s: string | null) =>
   s === "XPM tem mais" ? "text-info-strong" : s === "Sistema tem mais" ? "text-destructive" : "text-muted-foreground";
 
-export default function ConciliacaoXpm() {
+/** Aba "XPM" da Conciliação de Estoque (?aba=xpm). */
+export function AbaConciliacaoXpm() {
   const [busca, setBusca] = useState("");
   const [filtro, setFiltro] = useState<Status | "todos">("persistente");
   const [pagina, setPagina] = useState(1);
@@ -94,8 +92,7 @@ export default function ConciliacaoXpm() {
   const chips = [...STATUS.map((s) => ({ v: s.valor as Status | "todos", r: s.rotulo })), { v: "todos" as const, r: "Todos" }];
 
   return (
-    <PageShell variant="dados">
-      <PageHeader titulo="Conciliação XPM × Sistema" icone={Scale} />
+    <>
       <div className="space-y-4">
         <ParaQueServe>
           Compara todo dia o estoque físico da XPM com o saldo do sistema. Diferença de até 2 dias costuma ser NF emitida
@@ -200,6 +197,8 @@ export default function ConciliacaoXpm() {
           </div>
         </SheetContent>
       </Sheet>
-    </PageShell>
+    </>
   );
 }
+
+export default AbaConciliacaoXpm;
