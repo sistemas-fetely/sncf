@@ -126,6 +126,14 @@ export function AcoesRemessa({
     return podeEnviar || podeDividir;
   });
 
+  // ULTIMA-TENTATIVA-NAO-FICA-ORFA (20/10/2026, caso TRS-0004): existe tentativa
+  // irmã VIVA já enviada ao Bling (quebra em várias NFs). Nesse caso o envio da
+  // tentativa restante acontece aqui, com remessa_id.
+  const temTentativaIrmaEnviada = (remessas ?? []).some(
+    (r: any) => r.status !== "cancelada" && !!r.bling_pedido_id
+  );
+
+
   // A expedicao XPM e do PEDIDO. `pedido_remessa` e tentativa de envio ao Bling;
   // derivar /NN dali colidiria com id_externo de pedidos-filho (split) reais.
   // Ver `decisao-remessa-e-tentativa-envio`.
