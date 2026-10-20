@@ -28,7 +28,7 @@ import { VoltarFaseLote, type ProdutoLote } from "@/components/acervo/VoltarFase
 import { CorrigirXpmLote, type ProdutoXpm } from "@/components/acervo/CorrigirXpmLote";
 import { CorrigirBlingLote } from "@/components/acervo/CorrigirBlingLote";
 // 20/10/2026 (Flavio): Mesa = área de trabalho (só tabela); todo processo de consistência/correção vive na Conciliação de Cadastro
-import { ConsistenciaBlingCard } from "@/components/acervo/ConsistenciaBlingCard";
+import { SecaoVarredura } from "@/components/acervo/ConsistenciaBlingCard";
 import { CorrigirShopifyLote } from "@/components/acervo/CorrigirShopifyLote";
 // 20/10/2026 (Flavio): porta única de ajuste de cadastro = Conciliação; Mesa = só tabela
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -357,6 +357,13 @@ export default function ConciliacaoFila() {
   );
   const selecionadosForaDeAtivo = selecionados.size - selecionadosAtivos.length;
   const selecionadosForaDoRecorte = [...selecionados].filter(s => !skusRecorte.has(s)).length;
+  // Varredura · Corrigir (XPM/Shopify): seleciona todos os produtos da regra e abre o MESMO diálogo da barra.
+  const [sinalXpm, setSinalXpm] = useState(0);
+  const [sinalShopify, setSinalShopify] = useState(0);
+  const corrigirPorRegra = (regra: string, abrir: () => void) => {
+    setSelecionados(new Set(linhas.filter(l => l.regra === regra && temValor(l.sku)).map(l => String(l.sku))));
+    abrir();
+  };
   const alternarProduto = (sku: string) => setSelecionados(prev => {
     const novo = new Set(prev);
     if (novo.has(sku)) novo.delete(sku); else novo.add(sku);
@@ -439,9 +446,9 @@ export default function ConciliacaoFila() {
         {/* 20/10/2026: aposentado — porta única é a planilha de cadastro */}
         {false && <PlanilhaPendencias cods={codsIncompletos} onGravado={() => { void fila.refetch(); }} sempreVisivel />}
         <VoltarFaseLote produtos={selecionadosAtivos} onFeito={() => { setSelecionados(new Set()); void fila.refetch(); }} sempreVisivel />
-        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel />
+        <CorrigirXpmLote produtos={selecionadosProdutosXpm} onFeito={() => { void fila.refetch(); }} sempreVisivel abrirSinal={sinalXpm} />
         <CorrigirBlingLote produtos={selecionadosProdutosBling} onFeito={() => { void fila.refetch(); }} sempreVisivel sugerirCard={sugerirCardBling} />
-        <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} sempreVisivel />
+        <CorrigirShopifyLote produtos={selecionadosProdutosShopify} onFeito={() => { void fila.refetch(); }} sempreVisivel abrirSinal={sinalShopify} />
         <Button size="sm" disabled={atualizando} onClick={async () => { await fila.refetch(); }}><RefreshCw className={cn("mr-2 h-4 w-4", atualizando && "animate-spin")} />Atualizar</Button>
       </>}
     />
@@ -471,7 +478,10 @@ export default function ConciliacaoFila() {
         return <Tooltip key={c.onde}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
       })}
     </section>
-    <ConsistenciaBlingCard titulo="Varredura Bling" colapsavel />
+    <SecaoVarredura
+      onCorrigirXpm={() => corrigirPorRegra("xpm_cadastro_difere", () => setSinalXpm(n => n + 1))}
+      onCorrigirShopify={() => corrigirPorRegra("shopify_cadastro_difere", () => setSinalShopify(n => n + 1))}
+    />
 
     <section className="flex flex-wrap items-center gap-2 border-y py-3">
       <div className="relative min-w-64 flex-1">

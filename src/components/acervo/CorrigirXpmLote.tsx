@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Loader2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
@@ -59,7 +59,7 @@ async function chamar(skus: string[], dry_run: boolean, onProgresso?: (p: Progre
   return { resultados, levaFalha: null, erroLeva: null };
 }
 
-export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { produtos: ProdutoXpm[]; onFeito: () => void; sempreVisivel?: boolean }) {
+export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false, abrirSinal = 0 }: { produtos: ProdutoXpm[]; onFeito: () => void; sempreVisivel?: boolean; abrirSinal?: number }) {
   const perm = usePermissaoAcaoOuSuperAdmin("acao.produto_corrigir_externo");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.produto_corrigir_externo" : undefined;
@@ -118,6 +118,9 @@ export function CorrigirXpmLote({ produtos, onFeito, sempreVisivel = false }: { 
       setProgresso(null);
     }
   }
+
+  // Disparo externo (linha da Varredura): mesma abertura do botão, com a seleção já aplicada.
+  useEffect(() => { if (abrirSinal > 0 && produtos.length > 0 && !semPerm) void abrir(); }, [abrirSinal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!produtos.length && !sempreVisivel) return null;
 
