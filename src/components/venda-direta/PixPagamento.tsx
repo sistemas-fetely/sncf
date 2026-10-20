@@ -1,3 +1,4 @@
+import { copiarLinkPagamento } from "@/lib/pagamento/linkPix";
 import { useRef } from "react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { Copy, Download, MessageCircle } from "lucide-react";
@@ -14,6 +15,8 @@ interface PixPagamentoProps {
   link: string | null;
   whatsappUrl?: string | null;
   email?: EmailPagamentoCtx;
+  /** 20/10/2026 (PIX): com token, o botão da página copia /pagar/:token; a exibição não muda. */
+  pixToken?: string | null;
 }
 
 async function copiar(texto: string, rotulo: string) {
@@ -25,7 +28,7 @@ async function copiar(texto: string, rotulo: string) {
   }
 }
 
-export function PixPagamento({ payload, link, whatsappUrl, email }: PixPagamentoProps) {
+export function PixPagamento({ payload, link, whatsappUrl, email, pixToken }: PixPagamentoProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const baixar = () => {
@@ -66,7 +69,7 @@ export function PixPagamento({ payload, link, whatsappUrl, email }: PixPagamento
           <Label>Página do PIX (QR na chave da Fetely)</Label>
           <div className="flex gap-2">
             <Input readOnly value={link ?? "—"} />
-            <Button variant="outline" size="icon" disabled={!link} onClick={() => link && copiar(link, "Página do PIX")} aria-label="Copiar página do PIX">
+            <Button variant="outline" size="icon" disabled={!link && !pixToken} onClick={() => pixToken ? void copiarLinkPagamento({ pixToken, link }) : link && copiar(link, "Página do PIX")} aria-label="Copiar página do PIX">
               <Copy className="h-4 w-4" />
             </Button>
           </div>

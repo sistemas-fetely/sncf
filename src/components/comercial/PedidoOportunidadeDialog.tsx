@@ -1,3 +1,4 @@
+import { copiarLinkPagamento } from "@/lib/pagamento/linkPix";
 import { useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import {
@@ -337,13 +338,9 @@ export function PedidoOportunidadeDialog({
   };
 
   const copiarLink = async () => {
-    if (!linkPortao) return;
-    try {
-      await navigator.clipboard.writeText(linkPortao);
-      toast.success("Link de pagamento copiado");
-    } catch {
-      toast.error("Não foi possível copiar o link");
-    }
+    // 20/10/2026 (PIX): com pix_token do portão, copia a página pública /pagar/:token.
+    if (!linkPortao && !portao?.pixToken) return;
+    await copiarLinkPagamento({ pixToken: portao?.pixToken, link: linkPortao });
   };
 
   return (
@@ -516,8 +513,8 @@ export function PedidoOportunidadeDialog({
                     <Button
                       variant="outline"
                       className="gap-1.5"
-                      disabled={!linkPortao}
-                      title={!linkPortao ? "Sem link de pagamento" : undefined}
+                      disabled={!linkPortao && !portao?.pixToken}
+                      title={!linkPortao && !portao?.pixToken ? "Sem link de pagamento" : undefined}
                       onClick={copiarLink}
                     >
                       <Copy className="h-4 w-4" />

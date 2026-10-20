@@ -1,10 +1,10 @@
+import { copiarLinkPagamento } from "@/lib/pagamento/linkPix";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Copy, FileText, FileCode2, Receipt, MoreHorizontal, Loader2 } from "lucide-react";
-import { toast } from "sonner";
 import { SolicitarSopsAcao } from "@/components/comercial/SolicitarSopsAcao";
 import { usePermissoesMesa } from "@/hooks/comercial/usePermissoesMesa";
 import { useDownloadNfPdf } from "@/hooks/nf/useDownloadNfPdf";
@@ -26,16 +26,6 @@ import type { MesaComercialRow } from "@/hooks/comercial/useMesaComercial";
  * e o XML volta como `text/xml`, que o navegador renderiza em vez de baixar. O servidor
  * resolve link fresco pelo `bling_id` e devolve `attachment`. Nada de `window.open`.
  */
-async function copiarLink(link: string, rotulo = "Link de pagamento copiado") {
-  try {
-    await navigator.clipboard.writeText(link);
-    toast.success(rotulo);
-  } catch (e) {
-    toast.error("Não foi possível copiar o link", {
-      description: e instanceof Error ? e.message : undefined,
-    });
-  }
-}
 
 interface AcaoItem {
   chave: string;
@@ -72,20 +62,12 @@ export function AcoesMesaLinha({
   // não uma URL. Com `pix_token` na linha, o que se copia é a página pública
   // `/pagar/:token` (QR + copia-e-cola + valor). Sem `pix_token`, segue copiando
   // `link_pagamento` exatamente como antes.
-  const linkPix = linha.pix_token
-    ? `${window.location.origin}/pagar/${linha.pix_token}`
-    : null;
-
-  if (podeCopiarLink && (linkPix || linha.link_pagamento)) {
+  if (podeCopiarLink && (linha.pix_token || linha.link_pagamento)) {
     acoes.push({
       chave: "link",
       rotulo: "Copiar link de pagamento",
       icone: <Copy className="h-4 w-4" />,
-      executar: () =>
-        void copiarLink(
-          linkPix ?? linha.link_pagamento!,
-          linkPix ? "Link de pagamento PIX copiado" : undefined,
-        ),
+      executar: () => void copiarLinkPagamento({ pixToken: linha.pix_token, link: linha.link_pagamento }),
     });
   }
   if (podeBaixarNf && linha.tem_pdf && linha.nf_id) {

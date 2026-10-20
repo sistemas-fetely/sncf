@@ -41,11 +41,11 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
     queryFn: async () => {
       const { data, error } = await supabase
         .from("provisao_recebimento" as never)
-        .select("link_pagamento")
+        .select("link_pagamento, pix_token")
         .eq("id", linha?.provisao_id as string)
         .maybeSingle();
       if (error) throw error;
-      return (data ?? null) as unknown as { link_pagamento: string | null } | null;
+      return (data ?? null) as unknown as { link_pagamento: string | null; pix_token: string | null } | null;
     },
   });
   const telefone = (linha?.cliente_telefone ?? "").replace(/\D/g, "");
@@ -76,6 +76,7 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
             telefone={linha.cliente_telefone ?? null}
             fallbackPayload={pixQ.data?.link_pagamento ?? null}
             fallbackLink={linha.link_pagamento ?? null}
+            pixToken={pixQ.data?.pix_token ?? null}
           />
         ) : null}
         <DialogFooter><Button variant="outline" onClick={onClose}>Fechar</Button></DialogFooter>

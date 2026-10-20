@@ -1,3 +1,4 @@
+import { ROTULO_LINK_PIX_COPIADO, urlPaginaPix } from "@/lib/pagamento/linkPix";
 import React, { Fragment, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -933,6 +934,34 @@ export default function TitulosTab() {
   const gruposPagina = gruposOrdenados.slice(inicio, inicio + tamanhoPagina);
   const titulosPagina = titulosOrdenados.slice(inicio, inicio + tamanhoPagina);
 
+  // 20/10/2026 (PIX): vw_titulos_cobranca não traz pix_token; busca numa única query
+  // para os títulos PIX listados e copia a página pública /pagar/:token quando houver.
+  const idsPix = universo.filter((t) => t.tipo_pagamento === "pix").map((t) => t.id).sort();
+  const pixTokensQ = useQuery({
+    queryKey: ["titulos-pix-token", idsPix],
+    enabled: idsPix.length > 0,
+    queryFn: async () => {
+      const mapa = new Map<string, string>();
+      for (let i = 0; i < idsPix.length; i += 300) {
+        const { data, error } = await supabase.from("titulo_a_receber")
+          .select("id, pix_token").in("id", idsPix.slice(i, i + 300)).not("pix_token", "is", null);
+        if (error) throw error;
+        for (const r of data ?? []) if (r.pix_token) mapa.set(r.id, r.pix_token);
+      }
+      return mapa;
+    },
+  });
+  async function copiarLinkPix(tituloId: string, link: string) {
+    const token = pixTokensQ.data?.get(tituloId);
+    if (!token) return copiar(link);
+    try {
+      await navigator.clipboard.writeText(urlPaginaPix(token));
+      toast({ title: ROTULO_LINK_PIX_COPIADO });
+    } catch {
+      toast({ title: "Falha ao copiar", variant: "destructive" });
+    }
+  }
+
   async function copiar(txt: string) {
     try {
       await navigator.clipboard.writeText(txt);
@@ -1579,7 +1608,7 @@ export default function TitulosTab() {
                           variant="ghost"
                           size="icon"
                           className="h-7 w-7"
-                          onClick={() => copiar(detalhe.link_pagamento!)}
+                          onClick={() => copiarLinkPix(detalhe.id, detalhe.link_pagamento!)}
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </Button>

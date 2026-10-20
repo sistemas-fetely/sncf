@@ -13,6 +13,8 @@ export interface PortaoAtual {
   valor: number;
   vencimento: string | null;
   linkPagamento: string | null;
+  /** Token da página pública /pagar/:token (PIX), quando existir. */
+  pixToken: string | null;
 }
 
 export function usePedidoPortaoAtual(pedidoId: string | undefined, enabled = true) {
@@ -22,7 +24,7 @@ export function usePedidoPortaoAtual(pedidoId: string | undefined, enabled = tru
     queryFn: async (): Promise<PortaoAtual | null> => {
       const { data, error } = await supabase
         .from("pedido_portao")
-        .select("id, sequencia, tipo_pagamento, valor, data_vencimento, link_pagamento")
+        .select("id, sequencia, tipo_pagamento, valor, data_vencimento, link_pagamento, pix_token")
         .eq("pedido_id", pedidoId!)
         .eq("status", "provisorio")
         .order("sequencia", { ascending: true });
@@ -37,6 +39,7 @@ export function usePedidoPortaoAtual(pedidoId: string | undefined, enabled = tru
         valor: linhas.reduce((s, l) => s + Number(l.valor || 0), 0),
         vencimento: primeira.data_vencimento ?? null,
         linkPagamento: linhas.find((l) => l.link_pagamento)?.link_pagamento ?? null,
+        pixToken: linhas.find((l) => l.pix_token)?.pix_token ?? null,
       };
     },
   });
