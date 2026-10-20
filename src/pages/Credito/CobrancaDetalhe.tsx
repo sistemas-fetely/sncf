@@ -234,7 +234,7 @@ function CopiavelInline({
       <span className="text-xs break-all min-w-0">{valor}</span>
       <button
         type="button"
-        title="Copiar"
+        title={copiar ? "Copiar página pública de pagamento" : "Copiar"}
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         onClick={() => {
           navigator.clipboard.writeText(alvo).then(() => {
