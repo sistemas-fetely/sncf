@@ -170,16 +170,23 @@ Deno.serve(async (req) => {
       };
     });
 
-    // 20/10/2026 (Flavio): códigos livres no banco GS1 (cartorio_codigo.estado='estoque'),
-    // para a importação distinguir nascimento pinado de código inválido.
+    // 20/10/2026 (Flavio): código alocado no cartório é pinável; EAN do pinado vem do cartório.
+    // Livre = existe em cartorio_codigo com estado in (estoque, alocado, condicionado) E não é sncf_produtos.
     const codigos_livres: string[] = [];
     if (cods && cods.size) {
       const lista = [...cods];
       for (let i = 0; i < lista.length; i += 500) {
         const { data: lv, error: lErr } = await sb.from("cartorio_codigo").select("cod_cadastro")
-          .eq("estado", "estoque").in("cod_cadastro", lista.slice(i, i + 500));
+          .in("estado", ["estoque", "alocado", "condicionado"]).in("cod_cadastro", lista.slice(i, i + 500));
         if (lErr) throw new Error(`Falha ao ler cartorio_codigo (livres): ${msg(lErr)}`);
-        for (const c of lv ?? []) if (c.cod_cadastro) codigos_livres.push(String(c.cod_cadastro).trim());
+        const { data: jp, error: pErr } = await sb.from("sncf_produtos").select("cod_cadastro")
+          .in("cod_cadastro", lista.slice(i, i + 500));
+        if (pErr) throw new Error(`Falha ao ler sncf_produtos (livres): ${msg(pErr)}`);
+        const ja = new Set((jp ?? []).map((x) => String(x.cod_cadastro ?? "").trim()));
+        for (const c of lv ?? []) {
+          const k = String(c.cod_cadastro ?? "").trim();
+          if (k && !ja.has(k)) codigos_livres.push(k);
+        }
       }
     }
     return json({ ok: true, ficha, opcoes, destinos_planilha, produtos, campos_bloco2, codigos_livres });
