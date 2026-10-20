@@ -216,8 +216,18 @@ function fmtDataBR(v?: string | null): string {
   return d.toLocaleDateString("pt-BR");
 }
 
-function CopiavelInline({ label, valor }: { label: string; valor: string }) {
+function CopiavelInline({
+  label,
+  valor,
+  copiar,
+}: {
+  label: string;
+  valor: string;
+  /** O que vai para a área de transferência; quando ausente, é o próprio `valor`. */
+  copiar?: string;
+}) {
   const [copiado, setCopiado] = useState(false);
+  const alvo = copiar ?? valor;
   return (
     <div className="flex items-start gap-2 min-w-0">
       <span className="text-xs text-muted-foreground shrink-0 w-32">{label}</span>
@@ -227,7 +237,7 @@ function CopiavelInline({ label, valor }: { label: string; valor: string }) {
         title="Copiar"
         className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
         onClick={() => {
-          navigator.clipboard.writeText(valor).then(() => {
+          navigator.clipboard.writeText(alvo).then(() => {
             setCopiado(true);
             setTimeout(() => setCopiado(false), 1400);
           });
@@ -358,7 +368,19 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
 
       {aberto && (
         <div className="pl-11 pr-4 pb-3 space-y-1.5">
-          {l.link_pagamento && <CopiavelInline label="Link" valor={l.link_pagamento} />}
+          {l.link_pagamento && (
+            <CopiavelInline
+              label="Link"
+              valor={l.link_pagamento}
+              // 20/10/2026 (PIX): `link_pagamento` do PIX é o copia-e-cola (EMV).
+              // Com `pix_token`, o botão copia a página pública /pagar/:token.
+              copiar={
+                l.pix_token
+                  ? `${window.location.origin}/pagar/${l.pix_token}`
+                  : undefined
+              }
+            />
+          )}
           {l.linha_digitavel && <CopiavelInline label="Linha digitável" valor={l.linha_digitavel} />}
           {l.nosso_numero && (
             <p className="text-xs text-muted-foreground">Nosso número: {l.nosso_numero}</p>
