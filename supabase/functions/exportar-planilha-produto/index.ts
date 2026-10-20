@@ -16,6 +16,12 @@ const FOP_URL = "https://onalegxugtuxpfhonayq.supabase.co";
 const FOP_ANON_KEY = "sb_publishable_LKB5TwMha9KGj8v_YZkquA_Zz8NyriO";
 const BLOCOS_FORA = new Set(["estado", "foto"]);
 const CAMPOS_FORA = new Set(["foto"]);
+// 20/10/2026 (Processo de Produto v2): a planilha é só bloco 1 — dono fetely/sistema.
+// Bloco 2 (dono thomer) vive no FOP/Shopify e nunca sai aqui.
+const DONOS_PLANILHA = new Set(["fetely", "sistema"]);
+// Campos gravados direto em sncf_produtos (não existem no FOP).
+const CAMPOS_SNCF = new Set(["nome_operacional", "preco_site", "grupo_tributario_bling"]);
+const GRUPOS_BLING = ["L1 - Produto Nacional Importado", "L2 - Produto Nacional"];
 
 function msg(e: unknown): string {
   if (!e) return "Erro desconhecido";
@@ -81,7 +87,7 @@ Deno.serve(async (req) => {
       .select("campo,bloco,dono,ordem,rotulo,importavel_planilha,dim_tabela")
       .order("bloco").order("ordem");
     if (fiErr) throw new Error(`Falha ao ler produto_ficha_nascimento: ${msg(fiErr)}`);
-    const ficha = (fichaRaw ?? []).filter((f) => !BLOCOS_FORA.has(f.bloco) && !CAMPOS_FORA.has(f.campo));
+    const ficha = (fichaRaw ?? []).filter((f) => !BLOCOS_FORA.has(f.bloco) && !CAMPOS_FORA.has(f.campo) && DONOS_PLANILHA.has(String(f.dono ?? "").trim().toLowerCase()));
 
     const { data: opRaw, error: oErr } = await sb.rpc("fn_ficha_opcoes");
     if (oErr) throw new Error(`Falha em fn_ficha_opcoes: ${msg(oErr)}`);
@@ -90,6 +96,7 @@ Deno.serve(async (req) => {
       .slice().sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))) {
       (opcoes[o.campo] ??= []).push(o.valor);
     }
+    if (ficha.some((f) => f.campo === "grupo_tributario_bling")) opcoes.grupo_tributario_bling = [...GRUPOS_BLING];
 
     const { data: destinosRaw, error: dErr } = await sb
       .from("vw_produto_campo_destino_planilha")
@@ -131,8 +138,8 @@ Deno.serve(async (req) => {
       const valores: Record<string, unknown> = {};
       const sugestoes: Record<string, unknown> = {};
       for (const f of ficha) {
-        // nome_operacional e preco_site: a fonte é sncf_produtos.
-        if (f.campo === "nome_operacional" || f.campo === "preco_site") {
+        // nome_operacional, preco_site e grupo_tributario_bling: a fonte é sncf_produtos.
+        if (CAMPOS_SNCF.has(f.campo)) {
           if (!vazio(esp[f.campo])) valores[f.campo] = esp[f.campo];
           continue;
         }
