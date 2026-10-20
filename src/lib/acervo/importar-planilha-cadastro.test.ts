@@ -53,3 +53,20 @@ describe("classificação da prévia (20/10/2026)", () => {
     expect(g).toEqual([{ mensagem: "nome_comercial obrigatório", linhas: [73, 74] }]);
   });
 });
+
+describe("nome_comercial só para nascimento (20/10/2026)", () => {
+  it("em edição é ignorado: não vira mudança nem aviso", async () => {
+    const { calcularPrevia } = await import("./importar-planilha-cadastro");
+    const r = {
+      ok: true, opcoes: {}, campos_bloco2: [],
+      ficha: [{ campo: "nome_comercial", bloco: "identidade", dono: "thomer", ordem: 1, rotulo: "Nome comercial (só para nascimento)", importavel_planilha: false, dim_tabela: null, so_nascimento: true }],
+      produtos: [{ sku: "S1", cod_cadastro: "01000", valores: { nome_comercial: "Velho" }, sugestoes: {}, fase_atual: null, proxima_fase: null, pendencias: [] }],
+    };
+    const p = calcularPrevia([l(5, "01000", { nome_comercial: "Novo" })], r);
+    expect(p.itens[0].mudancas).toHaveLength(0);
+    expect(p.avisos).toHaveLength(0);
+  });
+  it("em nascimento vai no payload", () => {
+    expect(montarNascimentos([l(8, null, { nome_comercial: "Vela X" })], "").nascimentos[0].payload.nome_comercial).toBe("Vela X");
+  });
+});
