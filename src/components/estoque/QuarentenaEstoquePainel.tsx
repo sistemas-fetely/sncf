@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, Loader2, MoreHorizontal } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -361,7 +362,7 @@ export function QuarentenaEstoquePainel() {
                             aria-label={`Selecionar todas as linhas de ${grupo.devolucaoNumero ?? "sem devolução"}`}
                           />
                         </TableHead>
-                        <TableHead className="w-[150px]">SKU</TableHead>
+                        <TableHead className="w-[150px]">Código</TableHead>
                         <TableHead>Produto</TableHead>
                         <TableHead className="w-[130px]">Centro</TableHead>
                         <TableHead className="w-[100px] text-right">Saldo</TableHead>
@@ -382,7 +383,7 @@ export function QuarentenaEstoquePainel() {
                                 aria-label={`Selecionar SKU ${linha.sku}`}
                               />
                             </TableCell>
-                            <TableCell className="font-mono text-xs">{linha.sku}</TableCell>
+                            <TableCell><CodProduto chave={linha.sku} variant="compacto" /></TableCell>
                             <TableCell className="text-sm">{linha.produto ?? "—"}</TableCell>
                             <TableCell className="text-sm">{linha.centro}</TableCell>
                             <TableCell className="text-right font-medium tabular-nums">{fmt(linha.saldo)}</TableCell>

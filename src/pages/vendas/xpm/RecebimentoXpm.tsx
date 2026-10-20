@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -557,7 +558,7 @@ export default function RecebimentoXpm() {
               {previa.amostra?.length > 0 && (
                 <div className="rounded border bg-background">
                   <div className="grid grid-cols-[1fr_100px_100px_140px] gap-2 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
-                    <span>SKU</span>
+                    <span>Código</span>
                     <span className="text-right">De</span>
                     <span className="text-right">Para</span>
                     <span>Classe</span>
@@ -569,7 +570,7 @@ export default function RecebimentoXpm() {
                         key={`${a.sku}-${i}`}
                         className={`grid grid-cols-[1fr_100px_100px_140px] gap-2 px-3 py-1.5 text-sm border-b last:border-b-0 ${err ? "text-destructive" : ""}`}
                       >
-                        <span className="font-mono">{a.sku}</span>
+                        <span><CodProduto chave={a.sku} variant="compacto" /></span>
                         <span className="text-right tabular-nums">{a.de ?? "—"}</span>
                         <span className="text-right tabular-nums">{a.para ?? "—"}</span>
                         <span className="text-xs">{a.classe}</span>

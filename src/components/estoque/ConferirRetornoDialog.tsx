@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -651,7 +652,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[72px]">Cód.</TableHead>
+                    <TableHead className="w-[72px]">Código</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="w-[140px]">Condição</TableHead>
                     <TableHead className="w-[80px] text-center">Qtd</TableHead>
@@ -671,7 +672,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
                     const fora = !itensPorSku.has(c.sku);
                     return (
                       <TableRow key={k} className={ultimoChave === k ? "bg-primary/10 transition-colors" : "transition-colors"}>
-                        <TableCell className="px-2 font-mono text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={c.cod ? undefined : `SKU — ${c.nome ?? c.sku}`}>{codExibicao(c.sku, c.cod)}</TableCell>
+                        <TableCell className="px-2 whitespace-nowrap overflow-hidden"><CodProduto chave={c.sku} variant="compacto" /></TableCell>
                         <TableCell className="px-2 text-sm min-w-0">
                           <span className="block truncate" title={c.nome ?? undefined}>{c.nome ?? "—"}</span>
                           <span className="block text-[11px] text-muted-foreground font-mono truncate" title={`SKU — ${c.nome ?? c.sku}`}>{c.sku}</span>
@@ -825,7 +826,7 @@ export function ConferirRetornoDialog({ open, onOpenChange, devolucao }: Props) 
               <Table className="w-full table-fixed min-w-[560px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[72px]">Cód.</TableHead>
+                    <TableHead className="w-[72px]">Código</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead className="w-[76px] text-center">Pendente</TableHead>
                     <TableHead className="w-[76px] text-center">Contado</TableHead>

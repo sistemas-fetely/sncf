@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ScanBarcode, Undo2, Loader2 } from "lucide-react";
@@ -48,6 +49,7 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
   const [caixa, setCaixa] = useState<{ sku: string; codigo: string; mult: number } | null>(null);
   const [pecasCaixa, setPecasCaixa] = useState("");
   const ref = useRef<HTMLInputElement>(null);
+  const { resolver: resolverCod } = useCodigoProdutoMap();
 
   const codigosQ = useQuery({
     queryKey: ["vw_codigo_barras"],
@@ -96,7 +98,9 @@ export function LeitorCodigoBarras({ onLeitura, onDesfazer, validarSku, autoFocu
     setQtd("1");
     if (!k) { focar(); return; }
     const mapa = codigosQ.data;
-    const c = mapa?.get(k);
+    // Fallback: cod_cadastro ou SKU digitado (sem código de barras) resolve para o SKU, 1 peça.
+    const viaCadastro = resolverCod(bruto);
+    const c = mapa?.get(k) ?? (viaCadastro.cadastrado && viaCadastro.sku ? { sku: viaCadastro.sku, unidades: 1, tipo: "sku" } : undefined);
     if (!c) {
       toast.error(`Código ${bruto.trim()} não cadastrado`);
       bip(false); focar(); return;

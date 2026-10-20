@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -188,7 +189,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Cód.</TableHead>
+                      <TableHead>Código</TableHead>
                       <TableHead className="text-right">Enviado</TableHead>
                       <TableHead className="text-right">Recebido</TableHead>
                       <TableHead className="text-right">Avariado</TableHead>
@@ -198,7 +199,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                   <TableBody>
                     {(resultado.divergencias ?? []).map((d) => (
                       <TableRow key={d.sku}>
-                        <TableCell className="font-mono text-xs">{d.sku}</TableCell>
+                        <TableCell><CodProduto chave={d.sku} variant="compacto" /></TableCell>
                         <TableCell className="text-right tabular-nums">{d.enviado}</TableCell>
                         <TableCell className="text-right tabular-nums">{d.recebido}</TableCell>
                         <TableCell className="text-right tabular-nums">{d.avariado}</TableCell>
@@ -261,7 +262,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                 <Table>
                   <TableHeader className="sticky top-0 z-10 bg-background">
                     <TableRow>
-                      <TableHead>Cód.</TableHead>
+                      <TableHead>Código</TableHead>
                       <TableHead>Produto</TableHead>
                       <TableHead className="text-right">Enviado</TableHead>
                       <TableHead className="w-28 text-right">Recebido</TableHead>
@@ -274,7 +275,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                       const dif = num(recebido[i.sku]) + num(avariado[i.sku]) - i.enviado;
                       return (
                         <TableRow key={i.sku} className={cn(num(recebido[i.sku]) !== i.enviado && "bg-warning/10")}>
-                          <TableCell className="font-mono text-xs">{i.cod ?? i.sku}</TableCell>
+                          <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                           <TableCell className="text-sm">{i.nome ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{i.enviado}</TableCell>
                           <TableCell className="text-right">

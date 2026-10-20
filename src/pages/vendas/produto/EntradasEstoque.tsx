@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
@@ -550,7 +551,7 @@ export default function EntradasEstoque() {
                             <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead>SKU</TableHead>
+                                  <TableHead>Código</TableHead>
                                   <TableHead>Produto</TableHead>
                                   <TableHead>Condição</TableHead>
                                   <TableHead className="text-right">Quantidade</TableHead>
@@ -561,7 +562,7 @@ export default function EntradasEstoque() {
                               <TableBody>
                                 {lote.linhas.map((l) => (
                                   <TableRow key={l.id}>
-                                    <TableCell className="font-medium">{l.sku ?? "—"}</TableCell>
+                                    <TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell>
                                     <TableCell className="max-w-[320px] truncate">
                                       {l.nome_comercial ?? "—"}
                                     </TableCell>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -235,13 +236,13 @@ export function ContagemCentroPainel() {
           {(resultado.divergencias ?? []).length > 0 && (
             <Table className="text-[12px]">
               <TableHeader><TableRow>
-                <TableHead>Cód.</TableHead><TableHead className="text-right">Contábil</TableHead>
+                <TableHead>Código</TableHead><TableHead className="text-right">Contábil</TableHead>
                 <TableHead className="text-right">Contado</TableHead><TableHead className="text-right">Diferença</TableHead>
               </TableRow></TableHeader>
               <TableBody>
                 {(resultado.divergencias ?? []).map((d) => (
                   <TableRow key={d.sku}>
-                    <TableCell className="font-mono">{d.sku}</TableCell>
+                    <TableCell><CodProduto chave={d.sku} variant="compacto" /></TableCell>
                     <TableCell className="text-right tabular-nums">{d.contabil}</TableCell>
                     <TableCell className="text-right tabular-nums">{d.contado}</TableCell>
                     <TableCell className="text-right tabular-nums text-destructive">{d.diferenca > 0 ? `+${d.diferenca}` : d.diferenca}</TableCell>
@@ -280,8 +281,7 @@ export function ContagemCentroPainel() {
         <div className="rounded-md border" ref={tabelaRef}>
           <Table className="text-[12px]" containerClassName="max-h-[calc(100vh-22rem)] min-h-[20rem]">
             <TableHeader className="sticky top-0 z-10 bg-card"><TableRow>
-              <TableHead className="w-[70px]">Cód.</TableHead>
-              <TableHead className="w-[120px]">SKU</TableHead>
+              <TableHead className="w-[150px]">Código</TableHead>
               <TableHead>Produto</TableHead>
               <TableHead className="w-[90px] text-right">Contábil</TableHead>
               <TableHead className="w-[130px] text-right">Última contagem</TableHead>
@@ -294,8 +294,7 @@ export function ContagemCentroPainel() {
                 const dif = v !== "" && !numeroInvalido(v) ? Number(v) - (l.contabil ?? 0) : null;
                 return (
                   <TableRow key={l.sku} data-sku={l.sku} className={cn("transition-colors", destaque?.sku === l.sku && "bg-primary/15")}>
-                    <TableCell className="font-mono">{l.cod_cadastro ?? "—"}</TableCell>
-                    <TableCell className="font-mono text-[11px] text-muted-foreground">{l.sku}</TableCell>
+                    <TableCell><CodProduto chave={l.sku} /></TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                       <MiniaturaProduto url={l.cod_cadastro ? fotosQ.data?.get(l.cod_cadastro) : null} nome={l.nome_comercial} />

@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -664,7 +665,7 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
                   const corte = at != null && Number(at) < sol;
                   return (
                     <TableRow key={`${it.codigo_produto}-${it.numero_item}-${i}`}>
-                      <TableCell className="font-mono text-xs">{it.codigo_produto ?? "—"}</TableCell>
+                      <TableCell><CodProduto chave={it.codigo_produto} variant="compacto" /></TableCell>
                       <TableCell className="text-right tabular-nums">
                         {it.quantidade_solicitada != null ? nf.format(sol) : "—"}
                       </TableCell>

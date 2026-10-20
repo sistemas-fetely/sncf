@@ -1,4 +1,5 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { Link } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -127,8 +128,8 @@ function SkuCombobox({
       const t = debounced.replace(/[,()%*]/g, " ").trim();
       const { data, error } = await supabase
         .from("sncf_produtos")
-        .select("sku, nome_completo, preco_custo")
-        .or(`sku.ilike.%${t}%,nome_completo.ilike.%${t}%`)
+        .select("sku, cod_cadastro, nome_completo, preco_custo")
+        .or(`sku.ilike.%${t}%,cod_cadastro.ilike.%${t}%,nome_completo.ilike.%${t}%`)
         .order("sku")
         .limit(20);
       if (error) throw error;
@@ -184,7 +185,8 @@ function SkuCombobox({
                       }}
                     >
                       <Check className={cn("h-4 w-4", value === p.sku ? "opacity-100" : "opacity-0")} />
-                      <span className="font-medium tabular-nums">{p.sku}</span>
+                      <span className="font-mono font-medium tabular-nums">{(p as any).cod_cadastro ?? p.sku}</span>
+                      {(p as any).cod_cadastro && <span className="font-mono text-xs text-muted-foreground">{p.sku}</span>}
                       <span className="truncate text-muted-foreground">{p.nome_completo ?? ""}</span>
                     </CommandItem>
                   ))}
@@ -792,7 +794,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                           <TableHeader className="sticky top-0 z-10 bg-background">
                             <TableRow>
                               <TableHead className="w-8" />
-                              <TableHead>SKU</TableHead>
+                              <TableHead>Código</TableHead>
                               <TableHead>Nome</TableHead>
                               <TableHead>Situação</TableHead>
                               <TableHead className="text-right">Vendas 90d</TableHead>
@@ -826,7 +828,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                                     />
                                   </TableCell>
                                   <TableCell className="font-mono text-xs tabular-nums">
-                                    {l.sku}
+                                    <CodProduto chave={l.sku} variant="compacto" />
                                     {l.cauda && (
                                       <Badge variant="outline" className="ml-1 text-[10px]">
                                         cauda
@@ -1005,7 +1007,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                       <Table>
                         <TableHeader className="sticky top-0 z-10 bg-background">
                           <TableRow>
-                            <TableHead>SKU</TableHead>
+                            <TableHead>Código</TableHead>
                             <TableHead>Nome</TableHead>
                             <TableHead className="text-right">Quantidade</TableHead>
                             <TableHead className="text-right">Custo unitário</TableHead>
@@ -1015,7 +1017,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                         <TableBody>
                           {previa.map((r, i) => (
                             <TableRow key={`${r.sku}-${i}`} className={!r.produto || !r.qtdValida ? "bg-destructive/5" : ""}>
-                              <TableCell className="font-medium tabular-nums">{r.sku}</TableCell>
+                              <TableCell><CodProduto chave={r.sku} variant="compacto" /></TableCell>
                               <TableCell className="text-sm">
                                 {r.produto ? (
                                   r.produto.nome_completo ?? "—"
