@@ -1,4 +1,4 @@
-// 20/10/2026 (Flavio): uma Varredura para os três sistemas; XPM/Shopify ainda por espelho — edges próprias no molde do Bling ficam para a fase de validação
+// 20/10/2026 (Flavio): uma Varredura para os três sistemas, cada um com edge própria no molde do Bling (varrer-divergencia-bling / -xpm / -shopify)
 import { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,7 +19,12 @@ import { formatError } from "@/lib/format-error";
 
 export type SistemaVarredura = "Bling" | "XPM" | "Shopify";
 
-const SLUG = "acao.varrer_bling";
+const SLUG_POR_SISTEMA: Record<SistemaVarredura, string> = {
+  Bling: "acao.varrer_bling", XPM: "acao.varrer_xpm", Shopify: "acao.varrer_shopify",
+};
+const EDGE_POR_SISTEMA: Record<SistemaVarredura, string> = {
+  Bling: "varrer-divergencia-bling", XPM: "varrer-divergencia-xpm", Shopify: "varrer-divergencia-shopify",
+};
 /** Lote sem conclusão há mais que isto = cadeia interrompida; não trava os botões. */
 const LIMITE_LOTE_MS = 30 * 60 * 1000;
 const emAndamento = (l: { concluido_em: string | null; iniciado_em: string } | null | undefined) =>
@@ -46,15 +51,15 @@ async function invocar(fn: string, body: Record<string, unknown>) {
 
 /**
  * Uma linha da Varredura: última leitura, divergências, chips por campo, Detectar e Corrigir.
- * Bling: varrer-divergencia-bling (detectar/corrigir). XPM/Shopify: Detectar = varrer-divergencia-espelho
- * (sync do espelho + contagem da fila); Corrigir = `onCorrigir` (mesmo diálogo da barra).
+ * Cada sistema chama a sua edge (detectar/corrigir); chips por campo vêm de produto_destino_divergencia.
  */
 export function VarreduraSistemaCard({
-  sistema = "Bling", titulo, colapsavel = false, compacto = false, onCorrigir, onRodando,
+  sistema = "Bling", titulo, colapsavel = false, compacto = false, onRodando,
 }: {
   sistema?: SistemaVarredura; titulo?: string; colapsavel?: boolean; compacto?: boolean;
-  onCorrigir?: () => void; onRodando?: (rodando: boolean) => void;
+  onRodando?: (rodando: boolean) => void;
 } = {}) {
+  const SLUG = SLUG_POR_SISTEMA[sistema];
   const { permitido } = usePermissaoAcaoOuSuperAdmin(SLUG);
   const qc = useQueryClient();
   const [confirmar, setConfirmar] = useState(false);
@@ -84,12 +89,6 @@ export function VarreduraSistemaCard({
     queryKey: ["consistencia-bling", "por-campo", sistema, lote.data?.lote_id, lote.data?.concluido_em],
     enabled: permitido && !!lote.data?.lote_id && !rodando,
     queryFn: async (): Promise<[string, number][]> => {
-      if (!ehBling) {
-        const pc = lote.data?.detalhe_erros?.por_campo;
-        if (pc && Object.keys(pc).length) return Object.entries(pc).sort((a, b) => b[1] - a[1]);
-        const n = lote.data?.produtos_com_divergencia ?? 0;
-        return n ? [["cadastro difere", n]] : [];
-      }
       const cont = new Map<string, number>();
       for (let de = 0; ; de += 1000) {
         const { data, error } = await sb.from("produto_destino_divergencia").select("campo")
@@ -103,11 +102,11 @@ export function VarreduraSistemaCard({
   });
 
   const sobrescreve = useQuery({
-    queryKey: ["consistencia-bling", "sobrescreve"],
-    enabled: confirmar && ehBling,
+    queryKey: ["consistencia-bling", "sobrescreve", sistema],
+    enabled: confirmar,
     queryFn: async (): Promise<string[]> => {
       const { data, error } = await sb.from("produto_campo_destino").select("campo, campo_destino")
-        .eq("sistema", "Bling").eq("sobrescreve", true).order("campo");
+        .eq("sistema", sistema).eq("ativo", true).eq("sobrescreve", true).order("campo");
       if (error) throw error;
       return (data ?? []).map((d: { campo: string; campo_destino: string }) => `${d.campo} → ${d.campo_destino}`);
     },
@@ -116,9 +115,7 @@ export function VarreduraSistemaCard({
   async function disparar(modo: "detectar" | "corrigir") {
     setDisparando(true);
     try {
-      const data = ehBling
-        ? await invocar("varrer-divergencia-bling", { modo })
-        : await invocar("varrer-divergencia-espelho", { sistema });
+      const data = await invocar(EDGE_POR_SISTEMA[sistema], { modo });
       toast.success(`Varredura ${sistema} (${modo}) iniciada — lote ${String(data.lote_id).slice(0, 8)}`);
       setConfirmar(false);
       await qc.invalidateQueries({ queryKey: ["consistencia-bling"] });
@@ -141,14 +138,9 @@ export function VarreduraSistemaCard({
     <BotaoGuardado slug={SLUG} rotuloAcao={`Detectar divergências no ${sistema}`} variant="outline" size="sm" disabled={ocupado} onClick={() => disparar("detectar")}>
       <ScanSearch className="mr-2 h-4 w-4" />Detectar
     </BotaoGuardado>
-    {ehBling
-      ? <BotaoGuardado slug={SLUG} rotuloAcao="Corrigir divergências no Bling" variant="outline" size="sm" disabled={ocupado} onClick={() => setConfirmar(true)}>
-          <Wrench className="mr-2 h-4 w-4" />Corrigir
-        </BotaoGuardado>
-      : <BotaoGuardado slug="acao.produto_corrigir_externo" rotuloAcao={`Corrigir no ${sistema}`} variant="outline" size="sm"
-          disabled={ocupado || !onCorrigir} onClick={() => onCorrigir?.()}>
-          <Wrench className="mr-2 h-4 w-4" />Corrigir
-        </BotaoGuardado>}
+    <BotaoGuardado slug={SLUG} rotuloAcao={`Corrigir divergências no ${sistema}`} variant="outline" size="sm" disabled={ocupado} onClick={() => setConfirmar(true)}>
+      <Wrench className="mr-2 h-4 w-4" />Corrigir
+    </BotaoGuardado>
   </div>;
   const chips = <>
     {porCampo.error && <p className="text-sm text-destructive">{formatError(porCampo.error)}</p>}
@@ -159,11 +151,11 @@ export function VarreduraSistemaCard({
     )}
   </>;
 
-  const dialogo = ehBling && (
+  const dialogo = (
     <AlertDialog open={confirmar} onOpenChange={(o) => !disparando && setConfirmar(o)}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Corrigir no Bling</AlertDialogTitle>
+          <AlertDialogTitle>Corrigir no {sistema}</AlertDialogTitle>
           <AlertDialogDescription>Campos com sobrescrita ligada:</AlertDialogDescription>
         </AlertDialogHeader>
         {sobrescreve.isLoading && <p className="text-sm text-muted-foreground">Carregando…</p>}
@@ -240,8 +232,11 @@ export function VarreduraSistemaCard({
 }
 
 /** Seção "Varredura": uma linha compacta por sistema; abre sozinha se qualquer um estiver em andamento. */
-export function SecaoVarredura({ onCorrigirXpm, onCorrigirShopify }: { onCorrigirXpm: () => void; onCorrigirShopify: () => void }) {
-  const { permitido } = usePermissaoAcaoOuSuperAdmin(SLUG);
+export function SecaoVarredura() {
+  const bling = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.Bling).permitido;
+  const xpm = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.XPM).permitido;
+  const shopify = usePermissaoAcaoOuSuperAdmin(SLUG_POR_SISTEMA.Shopify).permitido;
+  const permitido = bling || xpm || shopify;
   const [aberto, setAberto] = useState(false);
   const [rodando, setRodando] = useState<Record<string, boolean>>({});
   const algum = Object.values(rodando).some(Boolean);
@@ -260,8 +255,8 @@ export function SecaoVarredura({ onCorrigirXpm, onCorrigirShopify }: { onCorrigi
         {/* forceMount: as linhas precisam montar fechadas para o "abre sozinha" enxergar o andamento */}
         <CollapsibleContent forceMount className={cn("divide-y", !aberto && "hidden")}>
           <VarreduraSistemaCard sistema="Bling" compacto onRodando={marca("Bling")} />
-          <VarreduraSistemaCard sistema="XPM" compacto onCorrigir={onCorrigirXpm} onRodando={marca("XPM")} />
-          <VarreduraSistemaCard sistema="Shopify" compacto onCorrigir={onCorrigirShopify} onRodando={marca("Shopify")} />
+          <VarreduraSistemaCard sistema="XPM" compacto onRodando={marca("XPM")} />
+          <VarreduraSistemaCard sistema="Shopify" compacto onRodando={marca("Shopify")} />
         </CollapsibleContent>
       </section>
     </Collapsible>

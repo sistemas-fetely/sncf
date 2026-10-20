@@ -478,10 +478,8 @@ export default function ConciliacaoFila() {
         return <Tooltip key={c.onde}><TooltipTrigger asChild>{botao}</TooltipTrigger><TooltipContent className="max-w-xs">{c.quebra || "Nenhuma divergência neste recorte."}</TooltipContent></Tooltip>;
       })}
     </section>
-    <SecaoVarredura
-      onCorrigirXpm={() => corrigirPorRegra("xpm_cadastro_difere", () => setSinalXpm(n => n + 1))}
-      onCorrigirShopify={() => corrigirPorRegra("shopify_cadastro_difere", () => setSinalShopify(n => n + 1))}
-    />
+    {/* 20/10/2026 (Flavio): Corrigir da Varredura usa a edge própria de cada sistema; o diálogo da barra segue para correção por seleção */}
+    <SecaoVarredura />
 
     <section className="flex flex-wrap items-center gap-2 border-y py-3">
       <div className="relative min-w-64 flex-1">
