@@ -6,13 +6,20 @@
 // desligada. O Shopify nao acompanha Correios sozinho: quem sabe o rastreio e o
 // SNCF (`pedido_rastreamento`), e e dele que o cliente self-service e notificado.
 //
-// DUAS FONTES (F3, multimodal):
+// TRES FONTES (F3, multimodal):
 //   1. Correios — `pedido_rastreamento.codigo_rastreio` (a original, intocada).
 //   2. Mesa SP  — evento `mesa_despachado` com `metadata->>'modal'` em
 //      (LALAMOVE, MOTOBOY). Esses pedidos NUNCA terao SRO, entao sem esta
 //      segunda perna o Shopify nunca saberia que sairam e o cliente nunca
 //      receberia o e-mail de envio.
-// A ponte para o Shopify e a mesma nas duas; o que muda e o `trackingInfo`.
+//   3. Entrega SNCF — pedido B2C entregue sem despacho rastreavel: entrega
+//      declarada a mao (`entregue_metodo='manual'`, modal MANUAL) ou ultimo
+//      `mesa_despachado` com modal RETIRADA/TRANSPORTADORA. Precedencia:
+//      correios > mesa_sp > entrega_sncf. Dedup por PEDIDO. MANUAL/RETIRADA nao
+//      notificam o cliente (ja esta com o produto). So gera mutation real com
+//      `integracoes_config.config.b2c_fulfillment_entrega_sncf_ativo = 'true'`;
+//      sem a chave, sai como `dry`.
+// A ponte para o Shopify e a mesma nas tres; o que muda e o `trackingInfo`.
 //
 // Ligacao pedido interno -> pedido Shopify:
 //   pedido_rastreamento.pedido_id -> nfs_emitidas.pedido_venda_id
@@ -68,6 +75,11 @@ const TRANSPORTADORA_POR_MODAL: Record<ModalMultimodal, string> = {
   MOTOBOY: "Entrega Fetély",
 };
 
+/** Modais da Mesa SP tratados pela fonte entrega_sncf (3c). */
+const MODAIS_ENTREGA_SNCF = ["RETIRADA", "TRANSPORTADORA"] as const;
+const COMPANY_FETELY = "Fetély";
+const COMPANY_TRANSPORTADORA = "Transportadora";
+
 const EVENTO_MESA_DESPACHADO = "mesa_despachado";
 const ESTAGIO_EM_TRANSPORTE = "em_transporte";
 
@@ -77,7 +89,7 @@ const dormir = (ms: number) => new Promise((r) => setTimeout(r, ms));
 type Supa = any;
 
 /** De onde o candidato veio — decide dedup e formato do `trackingInfo`. */
-type Fonte = "correios" | "mesa_sp";
+type Fonte = "correios" | "mesa_sp" | "entrega_sncf";
 
 type Candidato = {
   pedido_id: string;
@@ -447,6 +459,8 @@ Deno.serve(async (req) => {
     // Template de URL configuravel: quando o portal self-service do SNCF virar a
     // pagina oficial de rastreio, basta trocar a chave — sem mexer nesta edge.
     const templateUrl = String(cfg.b2c_rastreio_url_template ?? "").trim() || URL_RASTREIO_PADRAO;
+    // TRAVA DE ATIVACAO da fonte entrega_sncf: so a string 'true' libera mutation.
+    const entregaSncfAtiva = String(cfg.b2c_fulfillment_entrega_sncf_ativo ?? "") === "true";
 
     /** `trackingInfo` de cada fonte. Correios permanece exatamente como estava. */
     const trackingDe = (c: Candidato): TrackingInfo => {
@@ -456,6 +470,13 @@ Deno.serve(async (req) => {
           company: transportadora,
           url: templateUrl.replace("{codigo}", encodeURIComponent(c.codigo_rastreio)),
         };
+      }
+      if (c.fonte === "entrega_sncf") {
+        if (c.modal !== "TRANSPORTADORA") return { company: COMPANY_FETELY };
+        if (!c.codigo_rastreio) return { company: COMPANY_TRANSPORTADORA };
+        return ehLink(c.codigo_rastreio)
+          ? { company: COMPANY_TRANSPORTADORA, number: c.codigo_rastreio, url: c.codigo_rastreio }
+          : { company: COMPANY_TRANSPORTADORA, number: c.codigo_rastreio };
       }
       const company = TRANSPORTADORA_POR_MODAL[c.modal as ModalMultimodal];
       // Motoboy: fulfillment simples de "enviado" — sem number, sem URL.
@@ -543,10 +564,12 @@ Deno.serve(async (req) => {
           trackingInfo: trackingDe(c),
           // O cliente e self-service: o e-mail do Shopify com o rastreio e a
           // notificacao que a nativa fazia e que precisa continuar existindo.
-          notifyCustomer: true,
+          // entrega_sncf: MANUAL/RETIRADA nao notificam (e-mail de "enviado" apos
+          // a entrega e ruido); TRANSPORTADORA notifica.
+          notifyCustomer: c.fonte === "entrega_sncf" ? c.modal === "TRANSPORTADORA" : true,
         };
 
-        if (dry) {
+        if (dry || (c.fonte === "entrega_sncf" && !entregaSncfAtiva)) {
           console.log("[fulfillment-push][dry] criaria fulfillment (NENHUMA mutation enviada)", {
             ...c,
             fulfillment_orders: fos.map((f) => f.id),
