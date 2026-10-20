@@ -513,8 +513,8 @@ export function PedidoOportunidadeDialog({
                     <Button
                       variant="outline"
                       className="gap-1.5"
-                      disabled={!linkPortao}
-                      title={!linkPortao ? "Sem link de pagamento" : undefined}
+                      disabled={!linkPortao && !portao?.pixToken}
+                      title={!linkPortao && !portao?.pixToken ? "Sem link de pagamento" : undefined}
                       onClick={copiarLink}
                     >
                       <Copy className="h-4 w-4" />
