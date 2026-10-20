@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import { FileSpreadsheet, Loader2 } from "lucide-react";
@@ -130,7 +131,7 @@ export function ImportarContagemDialog({ onAplicar }: { onAplicar: (itens: { sku
                         <TableCell className="tabular-nums">{p.linha}</TableCell>
                         <TableCell className="font-mono">{p.codigo || "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{p.qtd ?? p.quantidade}</TableCell>
-                        <TableCell className={p.erro ? "text-destructive" : ""}>{p.erro ?? `${p.sku} · ${p.via}`}</TableCell>
+                        <TableCell className={p.erro ? "text-destructive" : ""}>{p.erro ?? <span className="inline-flex items-center gap-1"><CodProduto chave={p.sku} variant="compacto" /> · {p.via}</span>}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

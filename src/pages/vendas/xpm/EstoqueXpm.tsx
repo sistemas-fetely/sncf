@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -499,7 +500,7 @@ export default function EstoqueXpm() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[140px]">SKU</TableHead>
+                    <TableHead className="w-[140px]">Código</TableHead>
                     <TableHead>Nome comercial</TableHead>
                     <TableHead>Grupo</TableHead>
                     <TableHead className="text-right">XPM</TableHead>
@@ -535,7 +536,7 @@ export default function EstoqueXpm() {
                                   aria-label="SKU não existe no cadastro SNCF"
                                 />
                               )}
-                              {r.sku}
+                              <CodProduto chave={r.sku} variant="compacto" />
                             </div>
                           </TableCell>
                           <TableCell className="max-w-[280px] truncate">
@@ -634,7 +635,7 @@ export default function EstoqueXpm() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[140px]">SKU</TableHead>
+                        <TableHead className="w-[140px]">Código</TableHead>
                         <TableHead>Descrição</TableHead>
                         <TableHead>Situação</TableHead>
                         <TableHead>Lote</TableHead>
@@ -651,7 +652,7 @@ export default function EstoqueXpm() {
                       ) : (
                         (historicoQ.data ?? []).slice(0, 500).map((r, i) => (
                           <TableRow key={`${r.sku}-${r.lote ?? ""}-${i}`}>
-                            <TableCell className="font-mono text-xs">{r.sku}</TableCell>
+                            <TableCell><CodProduto chave={r.sku} variant="compacto" /></TableCell>
                             <TableCell className="max-w-[320px] truncate">
                               {r.descricao ?? "—"}
                             </TableCell>

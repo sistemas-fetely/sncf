@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { ArrowRight, FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -147,15 +148,14 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
               <div className="rounded-md border">
                 <Table className="text-[12px]">
                   <TableHeader><TableRow>
-                    <TableHead className="w-[52px]" /><TableHead>Cód.</TableHead><TableHead>SKU</TableHead><TableHead>Produto</TableHead>
+                    <TableHead className="w-[52px]" /><TableHead>Código</TableHead><TableHead>Produto</TableHead>
                     <TableHead className="text-right">Qtd.</TableHead><TableHead className="text-right">Valor (custo)</TableHead>
                   </TableRow></TableHeader>
                   <TableBody>
                     {d.itens.map((i: any) => (
                       <TableRow key={i.id}>
                         <TableCell><MiniaturaProduto url={i.prod?.cod_cadastro ? fotos.data?.get(i.prod.cod_cadastro) : null} nome={i.prod?.nome_comercial ?? i.descricao} /></TableCell>
-                        <TableCell className="font-mono">{i.prod?.cod_cadastro ?? "—"}</TableCell>
-                        <TableCell className="font-mono text-[11px] text-muted-foreground">{i.sku}</TableCell>
+                        <TableCell><CodProduto chave={i.sku} /></TableCell>
                         <TableCell>{i.prod?.nome_comercial ?? i.descricao ?? "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">{Number(i.quantidade ?? 0)}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatCurrency(Number(i.subtotal ?? Number(i.quantidade ?? 0) * Number(i.valor_unitario ?? 0)))}</TableCell>

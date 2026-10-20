@@ -6,6 +6,7 @@
  * lugar sem controle de estoque (ex.: Show Room) — só sai da origem.
  */
 import { useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -199,12 +200,12 @@ export function TransferenciasSemBaixaPainel({ onLancado }: { onLancado?: () => 
                         <Table>
                           <TableHeader><TableRow>
                             <TableHead className="sticky top-0 bg-background z-10">NF</TableHead>
-                            <TableHead className="sticky top-0 bg-background z-10">SKU</TableHead>
+                            <TableHead className="sticky top-0 bg-background z-10">Código</TableHead>
                             <TableHead className="sticky top-0 bg-background z-10 text-right">Qtd</TableHead>
                             <TableHead className="sticky top-0 bg-background z-10">Porque</TableHead>
                           </TableRow></TableHeader>
                           <TableBody>{travados.map((t, i) => (
-                            <TableRow key={i}><TableCell className="font-mono">{t.nf}</TableCell><TableCell className="font-mono">{t.sku}</TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
+                            <TableRow key={i}><TableCell className="font-mono">{t.nf}</TableCell><TableCell><CodProduto chave={t.sku} variant="compacto" /></TableCell><TableCell className="text-right">{t.qtd}</TableCell><TableCell>{t.porque}</TableCell></TableRow>
                           ))}</TableBody>
                         </Table>
                       </div>
@@ -220,12 +221,12 @@ export function TransferenciasSemBaixaPainel({ onLancado }: { onLancado?: () => 
               <Table>
                 <TableHeader><TableRow>
                   <TableHead className="sticky top-0 bg-background z-10">NF</TableHead>
-                  <TableHead className="sticky top-0 bg-background z-10">SKU</TableHead>
+                  <TableHead className="sticky top-0 bg-background z-10">Código</TableHead>
                   <TableHead className="sticky top-0 bg-background z-10 text-right">Qtd</TableHead>
                   <TableHead className="sticky top-0 bg-background z-10">Origem → destino</TableHead>
                 </TableRow></TableHeader>
                 <TableBody>{previa.previa!.map((l, i) => (
-                  <TableRow key={i}><TableCell className="font-mono">{l.nf}</TableCell><TableCell className="font-mono">{l.sku}</TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell></TableRow>
+                  <TableRow key={i}><TableCell className="font-mono">{l.nf}</TableCell><TableCell><CodProduto chave={l.sku} variant="compacto" /></TableCell><TableCell className="text-right">{l.qtd}</TableCell><TableCell>{l.origem} → {l.destino}</TableCell></TableRow>
                 ))}</TableBody>
               </Table>
             </div>

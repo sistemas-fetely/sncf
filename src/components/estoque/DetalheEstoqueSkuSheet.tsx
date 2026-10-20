@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { CodProduto } from "@/components/produto/CodProduto";
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -88,7 +89,7 @@ export function DetalheEstoqueSkuSheet({ sku, nome, onClose, extra }: Props) {
     <Sheet open={aberto} onOpenChange={(v) => { if (!v) onClose(); }}>
       <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="font-mono text-base">{sku}</SheetTitle>
+          <SheetTitle className="text-base"><CodProduto chave={sku} /></SheetTitle>
           <SheetDescription>{nome ?? "—"}</SheetDescription>
         </SheetHeader>
 
