@@ -5,7 +5,6 @@ import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check,
   ChevronDown, Columns3, Download, GripVertical,
   ImageOff, PackageX, RefreshCw, Search, X,
-  Upload, Plus,
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";

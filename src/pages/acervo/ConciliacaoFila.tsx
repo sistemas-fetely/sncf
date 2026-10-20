@@ -126,6 +126,7 @@ function BlocoProblema({ l }: { l: FilaLinha }) {
 
 export default function ConciliacaoFila() {
   const [nascerAberto, setNascerAberto] = useState(false);
+  const [menuPlanilha, setMenuPlanilha] = useState(false);
   const [exportCad, setExportCad] = useState(false);
   const [importCad, setImportCad] = useState(false);
   const [sp, setSp] = useSearchParams();
@@ -425,12 +426,12 @@ export default function ConciliacaoFila() {
       icone={GitCompare}
       estado={estado}
       acoes={<>
-        <DropdownMenu>
+        <DropdownMenu open={menuPlanilha} onOpenChange={setMenuPlanilha}>
           <DropdownMenuTrigger asChild><Button variant="outline" size="sm"><FileSpreadsheet className="mr-2 h-4 w-4" />Planilha<ChevronDown className="ml-1 h-3.5 w-3.5 opacity-60" /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="flex w-64 flex-col gap-1 p-1">
-            <BotaoGuardado slug="acao.produto_nascer_nacional" rotuloAcao="Nascer produto" variant="ghost" size="sm" className="justify-start" onClick={() => setNascerAberto(true)}><Plus className="mr-2 h-4 w-4" />Nascer produto</BotaoGuardado>
-            <Button variant="ghost" size="sm" className="justify-start" onClick={() => setExportCad(true)}><Download className="mr-2 h-4 w-4" />Exportar planilha de cadastro</Button>
-            <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="ghost" size="sm" className="justify-start" onClick={() => setImportCad(true)}><Upload className="mr-2 h-4 w-4" />Importar planilha de cadastro</BotaoGuardado>
+            <BotaoGuardado slug="acao.produto_nascer_nacional" rotuloAcao="Nascer produto" variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setNascerAberto(true); }}><Plus className="mr-2 h-4 w-4" />Nascer produto</BotaoGuardado>
+            <Button variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setExportCad(true); }}><Download className="mr-2 h-4 w-4" />Exportar planilha de cadastro</Button>
+            <BotaoGuardado slug="acao.produto_importar_planilha_cadastro" rotuloAcao="Importar planilha de cadastro" variant="ghost" size="sm" className="justify-start" onClick={() => { setMenuPlanilha(false); setImportCad(true); }}><Upload className="mr-2 h-4 w-4" />Importar planilha de cadastro</BotaoGuardado>
           </DropdownMenuContent>
         </DropdownMenu>
         <span className="mx-1 h-6 w-px bg-border" aria-hidden />
