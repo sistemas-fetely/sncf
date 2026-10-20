@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { montarNascimentos, type LinhaPlanilha } from "./importar-planilha-cadastro";
+import { agruparErros, classificarLinha, montarNascimentos, normalizarCod, type LinhaPlanilha } from "./importar-planilha-cadastro";
 
 const l = (linha: number, cod: string | null, celulas: Record<string, unknown>): LinhaPlanilha => ({ linha, cod, celulas, liberar: false });
 
@@ -23,5 +23,33 @@ describe("montarNascimentos", () => {
   });
   it("origem inválida vira erro", () => {
     expect(montarNascimentos([l(8, null, { nome_comercial: "B", origem: "china" })], "").erros).toHaveLength(1);
+  });
+});
+
+describe("classificação da prévia (20/10/2026)", () => {
+  it("código que o Excel virou número volta a ter 5 casas", () => {
+    expect(normalizarCod(1000)).toBe("01000");
+    expect(normalizarCod("1000")).toBe("01000");
+    expect(normalizarCod("02025")).toBe("02025");
+  });
+  it("classifica edição, nascimento, pinado e inválida", () => {
+    const m = new Set(["01000"]), lv = new Set(["02300"]);
+    expect(classificarLinha(l(1, "01000", {}), m, lv)).toBe("edicao");
+    expect(classificarLinha(l(2, null, {}), m, lv)).toBe("nascimento");
+    expect(classificarLinha(l(3, "02300", {}), m, lv)).toBe("nascimento_pinado");
+    expect(classificarLinha(l(4, "09999", {}), m, lv)).toBe("invalida");
+  });
+  it("linha inválida nunca vira nascimento", () => {
+    const r = montarNascimentos([l(4, "09999", { nome_comercial: "X" })], "", new Set(), new Set(["02300"]));
+    expect(r.nascimentos).toHaveLength(0);
+  });
+  it("nascimento sem nome comercial fica bloqueado, sem ir à RPC", () => {
+    const r = montarNascimentos([l(5, null, { ncm: "1" })], "");
+    expect(r.nascimentos).toHaveLength(0);
+    expect(r.sem_nome).toEqual([5]);
+  });
+  it("erros iguais são agrupados por mensagem", () => {
+    const g = agruparErros([{ linha: 73, erros: ["nome_comercial obrigatório"] }, { linha: 74, erros: ["nome_comercial obrigatório"] }]);
+    expect(g).toEqual([{ mensagem: "nome_comercial obrigatório", linhas: [73, 74] }]);
   });
 });
