@@ -70,3 +70,12 @@ describe("nome_comercial só para nascimento (20/10/2026)", () => {
     expect(montarNascimentos([l(8, null, { nome_comercial: "Vela X" })], "").nascimentos[0].payload.nome_comercial).toBe("Vela X");
   });
 });
+
+describe("pinado de código alocado (20/10/2026)", () => {
+  it("não manda ean/sku/dun no payload do pinado", () => {
+    const r = montarNascimentos([l(9, "02058", { nome_comercial: "C", ean: "789", sku: "X", dun: "1789" })], "", new Set(), new Set(["02058"]));
+    expect(r.nascimentos[0].payload).not.toHaveProperty("ean");
+    expect(r.nascimentos[0].payload).not.toHaveProperty("sku");
+    expect(r.nascimentos[0].payload).not.toHaveProperty("dun");
+  });
+});

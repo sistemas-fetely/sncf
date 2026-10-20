@@ -86,6 +86,8 @@ export function montarNascimentos(
     if (vazio(l.celulas.nome_comercial)) { sem_nome.push(l.linha); continue; }
     const payload: Record<string, unknown> = {};
     if (l.cod) payload.cod_cadastro = l.cod;
+    // 20/10/2026 (Flavio): código alocado no cartório é pinável; EAN do pinado vem do cartório.
+    // Identidade (sku/ean/dun) nunca vai no payload: todo pinado aceito está no cartório (codsLivres).
     for (const [campo, v] of Object.entries(l.celulas)) {
       if (campo.startsWith("_") || IDENTIDADE.has(campo) || campo === "origem" || campo === "inner_qtd") continue;
       payload[campo] = v;
