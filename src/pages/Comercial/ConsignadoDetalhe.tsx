@@ -1425,7 +1425,7 @@ export default function ConsignadoDetalhe() {
                         <Table>
                           <TableHeader>
                             <TableRow>
-                              <TableHead>SKU</TableHead>
+                              <TableHead>Código</TableHead>
                               <TableHead>Descrição</TableHead>
                               <TableHead className="text-right">Qtd</TableHead>
                               <TableHead className="text-right">Unitário</TableHead>
@@ -1435,7 +1435,7 @@ export default function ConsignadoDetalhe() {
                           <TableBody>
                             {(itensRascunhoQ.data ?? []).map((it) => (
                               <TableRow key={it.id}>
-                                <TableCell className="text-xs font-mono">{it.sku ?? "—"}</TableCell>
+                                <TableCell><CodProduto chave={it.sku} variant="compacto" /></TableCell>
                                 <TableCell className="text-xs">{it.descricao ?? "—"}</TableCell>
                                 <TableCell className="text-right text-sm tabular-nums">{num(it.quantidade)}</TableCell>
                                 <TableCell className="text-right text-sm tabular-nums">{formatBRL(it.valor_unitario)}</TableCell>
@@ -2204,7 +2204,7 @@ export default function ConsignadoDetalhe() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>SKU</TableHead>
+                        <TableHead>Código</TableHead>
                         <TableHead>Descrição</TableHead>
                         <TableHead className="text-right">Qtd</TableHead>
                         <TableHead className="text-right">Preço</TableHead>
@@ -2214,7 +2214,7 @@ export default function ConsignadoDetalhe() {
                     <TableBody>
                       {(itensAcertoQ.data ?? []).map((it) => (
                         <TableRow key={it.id}>
-                          <TableCell className="font-mono text-xs">{it.sku ?? "—"}</TableCell>
+                          <TableCell><CodProduto chave={it.sku} variant="compacto" /></TableCell>
                           <TableCell className="text-sm">{it.descricao ?? "—"}</TableCell>
                           <TableCell className="text-right tabular-nums">{num(it.quantidade)}</TableCell>
                           <TableCell className="text-right tabular-nums">{formatBRL(it.valor_unitario)}</TableCell>

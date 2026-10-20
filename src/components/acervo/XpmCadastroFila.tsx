@@ -416,7 +416,7 @@ export function XpmCadastroFila() {
                 <AlertDescription className="space-y-1 text-xs">
                   {semSkuRes.map((r, i) => (
                     <div key={`${r.sku}-${i}`}>
-                      <strong>{r.sku}</strong> — produtoId {String(r.xpm_produto_id ?? "?")}: {r.acao ?? ""}
+                      <CodProduto chave={r.sku} variant="compacto" /> — produtoId {String(r.xpm_produto_id ?? "?")}: {r.acao ?? ""}
                       {r.erro ? ` (${r.erro})` : ""}
                     </div>
                   ))}
