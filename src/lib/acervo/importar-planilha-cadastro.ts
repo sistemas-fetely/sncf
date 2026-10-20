@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import type { CampoFicha, ProdutoExport, RespostaExport } from "@/lib/acervo/planilha-cadastro-xlsx";
 
+// 20/10/2026 (Flavio): a prévia classifica a linha antes de agir; linha inválida nunca vira nascimento; erros agrupados
 /**
  * F2a — leitura da planilha de cadastro e cálculo da diferença contra o FOP (mestre).
  * Localiza slugs e cabeçalho; aceita os layouts antigo e novo. Célula vazia = não mexe.
@@ -23,22 +24,66 @@ export interface ItemPrevia {
   /** Sugestões amarelas deixadas como vieram — só gravadas se o usuário confirmar na prévia. */
   sugestoes_mantidas: Mudanca[];
 }
-export interface Previa { itens: ItemPrevia[]; novos: number[]; total_linhas: number; avisos?: string[] }
+export type ClasseLinha = "edicao" | "nascimento" | "nascimento_pinado" | "invalida";
+export interface LinhaInvalida { linha: number; cod: string; erro: string }
+export interface Previa {
+  itens: ItemPrevia[]; novos: number[]; total_linhas: number; avisos?: string[];
+  /** Contagem por classe, calculada antes de qualquer ação. */
+  resumo: Record<ClasseLinha, number>;
+  invalidas: LinhaInvalida[];
+}
+
+/** Excel transforma "01000" em 1000: código só de dígitos volta a ter 5 casas. */
+export function normalizarCod(v: unknown): string | null {
+  if (vazio(v)) return null;
+  const t = typeof v === "number" ? String(Math.trunc(v)) : String(v).trim();
+  return /^\d+$/.test(t) && t.length < 5 ? t.padStart(5, "0") : t;
+}
+
+export const erroCodInvalido = (cod: string) =>
+  `código ${cod} não existe na matriz nem está livre no banco GS1; corrija o código ou deixe vazio para nascer`;
+
+/** Classe da linha: edição (cod na matriz), nascimento (sem cod), pinado (cod livre no GS1) ou inválida. */
+export function classificarLinha(l: LinhaPlanilha, matriz: Set<string>, livres: Set<string>): ClasseLinha {
+  if (!l.cod) return "nascimento";
+  if (matriz.has(l.cod)) return "edicao";
+  return livres.has(l.cod) ? "nascimento_pinado" : "invalida";
+}
+
+/** Agrupa erros iguais (o valor entre aspas não separa grupos): "mensagem — N linhas (73, 74…)". */
+export function agruparErros(itens: { linha: number; erros: string[] }[]): { mensagem: string; linhas: number[] }[] {
+  const g = new Map<string, number[]>();
+  for (const i of itens) for (const e of i.erros) {
+    const chave = e.replace(/"[^"]*"/g, "…").replace(/código \S+ repetido/, "código repetido");
+    g.set(chave, [...(g.get(chave) ?? []), i.linha]);
+  }
+  return [...g].map(([mensagem, linhas]) => ({ mensagem, linhas: [...new Set(linhas)].sort((a, b) => a - b) }))
+    .sort((a, b) => b.linhas.length - a.linhas.length);
+}
 
 export type OrigemProduto = "nacional" | "importado";
 export interface Nascimento { linha: number; pinado: boolean; payload: Record<string, unknown>; nome: string; origem: OrigemProduto; inner_qtd: number | null }
-export interface MontagemNascimentos { nascimentos: Nascimento[]; erros: { linha: number; erro: string }[] }
+export interface MontagemNascimentos {
+  nascimentos: Nascimento[]; erros: { linha: number; erro: string }[];
+  /** Linhas de nascimento sem nome_comercial (bloco 2, fora da planilha): bloqueadas, não vão à RPC. */
+  sem_nome: number[];
+}
 
 /**
  * Linhas sem cod_cadastro = nascimento pela porta única (fn_nascer_produtos_lote).
  * Só monta o payload: origem vazia = nacional; validação de negócio é do banco.
  */
-export function montarNascimentos(linhas: LinhaPlanilha[], motivo: string, codsMatriz: Set<string> = new Set()): MontagemNascimentos {
+export function montarNascimentos(
+  linhas: LinhaPlanilha[], motivo: string, codsMatriz: Set<string> = new Set(), codsLivres: Set<string> | null = null,
+): MontagemNascimentos {
   const nascimentos: Nascimento[] = [];
   const erros: { linha: number; erro: string }[] = [];
+  const sem_nome: number[] = [];
   for (const l of linhas) {
-    // cod existente na matriz = enriquecimento; cod inexistente = nascimento PINADO (a RPC valida contra o cartório).
+    // cod na matriz = edição; cod inexistente só nasce PINADO se estiver livre no GS1 (inválida nunca nasce).
     if (l.cod && codsMatriz.has(l.cod)) continue;
+    if (l.cod && codsLivres && !codsLivres.has(l.cod)) continue;
+    if (vazio(l.celulas.nome_comercial)) { sem_nome.push(l.linha); continue; }
     const payload: Record<string, unknown> = {};
     if (l.cod) payload.cod_cadastro = l.cod;
     for (const [campo, v] of Object.entries(l.celulas)) {
@@ -57,7 +102,7 @@ export function montarNascimentos(linhas: LinhaPlanilha[], motivo: string, codsM
     if (motivo.trim()) payload.motivo = motivo.trim();
     nascimentos.push({ linha: l.linha, pinado: !!l.cod, payload, nome: String(payload.nome_comercial ?? ""), origem: o, inner_qtd: inner });
   }
-  return { nascimentos, erros };
+  return { nascimentos, erros, sem_nome };
 }
 
 function textoCelula(v: ExcelJS.CellValue): unknown {
@@ -95,7 +140,7 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
     if (achouCod && conhecidos >= 2) { linhaSlugs = r; break; }
   }
   if (!linhaSlugs) {
-    throw new Error("Não foi encontrada uma linha de slugs com cod_cadastro — use a planilha exportada pela Mesa do Produto.");
+    throw new Error("Não foi encontrada uma linha de slugs com cod_cadastro — use a planilha exportada pela Conciliação de Cadastro (menu Planilha).");
   }
   const slugs = new Map<number, string>();
   ws.getRow(linhaSlugs).eachCell({ includeEmpty: false }, (c, col) => {
@@ -104,7 +149,7 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
   });
   const colCod = [...slugs].find(([, slug]) => slug === "cod_cadastro")?.[0];
   if (!colCod) {
-    throw new Error("A linha de slugs não contém cod_cadastro — use a planilha exportada pela Mesa do Produto.");
+    throw new Error("A linha de slugs não contém cod_cadastro — use a planilha exportada pela Conciliação de Cadastro (menu Planilha).");
   }
 
   const colFase = [...slugs].find(([, slug]) => slug === "_fase_atual")?.[0];
@@ -122,16 +167,16 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
 
   const colSistema = [...slugs].find(([, slug]) => slug === "_sistema")?.[0];
   const sistemas = new Set(["bling", "shopify", "xpm"]);
-  const colNome = [...slugs].find(([, slug]) => slug === "nome_comercial")?.[0];
   const out: LinhaPlanilha[] = [];
   for (let r = primeiraLinhaDados; r <= ws.rowCount; r++) {
     const row = ws.getRow(r);
     const sistema = colSistema ? String(textoCelula(row.getCell(colSistema).value) ?? "").trim().toLowerCase() : "";
     if (sistemas.has(sistema)) continue;
-    // Linha "→ para onde vai": nome_comercial começa com "→" (ou vazio) e cod_cadastro vazio.
-    const nomeCel = colNome ? String(textoCelula(row.getCell(colNome).value) ?? "").trim() : "";
+    // Linha "→ para onde vai": _sistema começa com "→", ou cod vazio e alguma célula começa com "→"
+    // (nome_comercial saiu da planilha do bloco 1; não depender dela).
     const codCel = String(textoCelula(row.getCell(colCod).value) ?? "").trim();
-    if (sistema.startsWith("→") || (!codCel && nomeCel.startsWith("→"))) continue;
+    if (sistema.startsWith("→")) continue;
+    if (!codCel && [...slugs.keys()].some((col) => String(textoCelula(row.getCell(col).value) ?? "").trim().startsWith("→"))) continue;
     const celulas: Record<string, unknown> = {};
     let algum = false;
     for (const [col, slug] of slugs) {
@@ -140,7 +185,8 @@ export async function lerPlanilha(arquivo: File): Promise<LinhaPlanilha[]> {
     }
     const liberar = String(celulas._liberar ?? "").trim().toLowerCase() === "sim";
     if (!algum && !liberar) continue;
-    const cod = vazio(celulas.cod_cadastro) ? null : String(celulas.cod_cadastro).trim();
+    const cod = normalizarCod(celulas.cod_cadastro);
+    if (cod) celulas.cod_cadastro = cod;
     out.push({ linha: r, cod, celulas, liberar });
   }
   return out;
@@ -186,7 +232,11 @@ function igual(a: unknown, b: unknown) {
 export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Previa {
   const ficha = new Map<string, CampoFicha>(r.ficha.map((f) => [f.campo, f]));
   const porCod = new Map<string, ProdutoExport>();
-  for (const p of r.produtos) if (p.cod_cadastro) porCod.set(String(p.cod_cadastro).trim(), p);
+  for (const p of r.produtos) { const c = normalizarCod(p.cod_cadastro); if (c) porCod.set(c, p); }
+  const livres = new Set((r.codigos_livres ?? []).map((c) => normalizarCod(c)).filter(Boolean) as string[]);
+  const matriz = new Set(porCod.keys());
+  const resumo: Record<ClasseLinha, number> = { edicao: 0, nascimento: 0, nascimento_pinado: 0, invalida: 0 };
+  const invalidas: LinhaInvalida[] = [];
   const novos: number[] = [];
   const itens: ItemPrevia[] = [];
   const vistos = new Set<string>();
@@ -197,10 +247,14 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
   for (const c of colunas) if (bloco2.has(c)) avisos.push(`coluna ${bloco2.get(c)} é do bloco comercial e não é importada aqui`);
 
   for (const l of linhas) {
-    if (!l.cod) { novos.push(l.linha); continue; }
-    const p = porCod.get(l.cod);
+    const classe = classificarLinha(l, matriz, livres);
+    resumo[classe]++;
+    if (classe === "nascimento") { novos.push(l.linha); continue; }
+    if (classe === "nascimento_pinado") continue; // vai para montarNascimentos
+    if (classe === "invalida") { invalidas.push({ linha: l.linha, cod: l.cod!, erro: erroCodInvalido(l.cod!) }); continue; }
+    const p = porCod.get(l.cod!)!;
     const erros: string[] = [];
-    if (!p) continue; // nascimento pinado — vai para montarNascimentos
+    if (!l.cod) continue;
     if (vistos.has(l.cod)) erros.push(`código ${l.cod} repetido na planilha`);
     vistos.add(l.cod);
     const mudancas: Mudanca[] = [];
@@ -245,7 +299,7 @@ export function calcularPrevia(linhas: LinhaPlanilha[], r: RespostaExport): Prev
       liberar: l.liberar && !!p.proxima_fase, fase_destino: p.proxima_fase ?? null, erros, sugestoes_ignoradas: sugeridas, sugestoes_mantidas: mantidas,
     });
   }
-  return { itens, novos, total_linhas: linhas.length, avisos };
+  return { itens, novos, total_linhas: linhas.length, avisos, resumo, invalidas };
 }
 
 /**
