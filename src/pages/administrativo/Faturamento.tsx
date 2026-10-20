@@ -863,6 +863,7 @@ function AbaProduto({
   mes: string;
 }) {
   const { temNivel } = useNivel();
+  const { resolver: resolverCod } = useCodigoProdutoMap();
   const [busca, setBusca] = useState("");
   const [colecao, setColecao] = useState("todas");
   const [sortCol, setSortCol] = useState<ProdCol>("resultado");
