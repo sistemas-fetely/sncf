@@ -100,11 +100,17 @@ Deno.serve(async (req) => {
     const url = Deno.env.get("SUPABASE_URL")!;
     const auth = req.headers.get("Authorization");
     if (!auth) return fail("não autorizado", 401);
-    const authClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: auth } },
-    });
-    const { data: u, error: uErr } = await authClient.auth.getUser();
-    if (uErr || !u?.user) return fail("não autorizado", 401);
+    // Chamada interna da porta do FOP (Balcão B2C).
+    const interna = auth.slice(7).trim() === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") && req.headers.get("x-chamador") === "recebe-pedido-balcao";
+    let criadoPor: string | null = null;
+    if (!interna) {
+      const authClient = createClient(url, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: auth } },
+      });
+      const { data: u, error: uErr } = await authClient.auth.getUser();
+      if (uErr || !u?.user) return fail("não autorizado", 401);
+      criadoPor = u.user.id;
+    }
 
     let body: Record<string, any>;
     try { body = await req.json(); } catch { return fail("corpo não é JSON válido", 400); }
