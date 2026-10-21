@@ -94,7 +94,7 @@ function fimDoDiaBRT(data: string): Date {
 
 async function gerarLinkTitulo(ctx: {
   sb: any; cfg: any; amb: string; apiBase: string; portal: string; segredo: string; merchantId: string;
-  userId: string; tituloId: string; maxParcelas: number; forcarNovo: boolean;
+  userId: string | null; tituloId: string; maxParcelas: number; forcarNovo: boolean;
 }): Promise<Response> {
   const { sb, cfg, amb, apiBase, portal, segredo, merchantId, userId, tituloId, maxParcelas, forcarNovo } = ctx;
   const { data: tit, error: eT } = await sb.from("titulo_a_receber")
@@ -228,17 +228,25 @@ Deno.serve(async (req) => {
 
   const auth = req.headers.get("Authorization");
   if (!auth?.startsWith("Bearer ")) return json({ ok: false, erro: "Não autorizado: token ausente." }, 401);
-  const { data: u, error: eU } = await sb.auth.getUser(auth.slice(7).trim());
-  if (eU || !u?.user) return json({ ok: false, erro: "Não autorizado: sessão inválida." }, 401);
-  const userId = u.user.id;
-
-  const sbUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+  // Chamada interna da porta do FOP (Balcão B2C): só Venda Direta.
+  const interna = auth?.slice(7).trim() === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") && req.headers.get("x-chamador") === "recebe-pedido-balcao";
+  let userId: string | null = null;
   let slugOk: string | null = null;
-  const slugsPermitidos = new Set<string>();
-  for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao", "acao.cobranca_gerar_link"]) {
-    const { data, error } = await sbUser.rpc("tem_permissao", { p_slug: slug });
-    if (error) return json({ ok: false, erro: `Falha ao avaliar permissão ${slug}: ${error.message}` }, 500);
-    if (data === true) { slugsPermitidos.add(slug); slugOk ??= slug; }
+  let slugsPermitidos = new Set<string>();
+  if (interna) {
+    slugsPermitidos = new Set(["tela.venda_direta_novo"]);
+    slugOk = "tela.venda_direta_novo";
+  } else {
+    const { data: u, error: eU } = await sb.auth.getUser(auth.slice(7).trim());
+    if (eU || !u?.user) return json({ ok: false, erro: "Não autorizado: sessão inválida." }, 401);
+    userId = u.user.id;
+
+    const sbUser = createClient(url, anon, { global: { headers: { Authorization: auth } } });
+    for (const slug of ["tela.venda_direta_novo", "tela.venda_direta_gestao", "acao.cobranca_gerar_link"]) {
+      const { data, error } = await sbUser.rpc("tem_permissao", { p_slug: slug });
+      if (error) return json({ ok: false, erro: `Falha ao avaliar permissão ${slug}: ${error.message}` }, 500);
+      if (data === true) { slugsPermitidos.add(slug); slugOk ??= slug; }
+    }
   }
 
   let body: any;
