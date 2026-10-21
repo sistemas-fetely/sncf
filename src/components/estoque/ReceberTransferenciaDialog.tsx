@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import * as XLSX from "xlsx";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Download, Loader2, Upload, X } from "lucide-react";
+import { gerarPlanilhaConferencia, validarPlanilhaConferencia } from "@/components/estoque/conferenciaPlanilha";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,6 +52,8 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   const [avariado, setAvariado] = useState<Record<string, string>>({});
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [bipando, setBipando] = useState(false);
+  const [errosPlanilha, setErrosPlanilha] = useState<string[]>([]);
+  const arquivoRef = useRef<HTMLInputElement>(null);
 
   const itensQ = useQuery({
     queryKey: ["receber-trs-itens", pedidoId],
@@ -102,11 +106,49 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
 
   // Reinicia ao abrir / ao chegar os itens.
   useEffect(() => {
+    setErrosPlanilha([]);
     if (!aberto) return;
     setResultado(null);
     setBipando(false);
     setData(hojeISO());
   }, [aberto, pedidoId]);
+
+  async function baixarPlanilha() {
+    try {
+      const blob = await gerarPlanilhaConferencia(itens, { titulo, pedidoId, destino: destinoCodigo ?? centro ?? "" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `conferencia_${titulo}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(formatError(e));
+    }
+  }
+
+  async function importarPlanilha(input: HTMLInputElement) {
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    try {
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      const matriz = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: null }) as unknown[][];
+      const r = validarPlanilhaConferencia(matriz, itens, pedidoId);
+      if (r.erros.length) {
+        setErrosPlanilha(r.erros);
+        return;
+      }
+      setBipando(false);
+      setRecebido(r.recebido);
+      setAvariado(r.avariado);
+      setErrosPlanilha([]);
+      const comDif = itens.filter((i) => Number(r.recebido[i.sku]) + Number(r.avariado[i.sku]) !== i.enviado || Number(r.avariado[i.sku]) > 0).length;
+      toast.success(`Planilha importada — ${comDif} itens com diferença. Revise e confirme.`);
+    } catch (e) {
+      toast.error(formatError(e));
+    }
+  }
   useEffect(() => {
     if (!aberto) return;
     tudoConforme();
@@ -237,10 +279,35 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
             </div>
 
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-medium">
-                <Switch checked={bipando} onCheckedChange={alternarBipando} disabled={itens.length === 0} />
-                Conferir bipando
-              </label>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Switch checked={bipando} onCheckedChange={alternarBipando} disabled={itens.length === 0} />
+                  Conferir bipando
+                </label>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarPlanilha()}>
+                    <Download className="mr-2 h-4 w-4" />Baixar planilha
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => arquivoRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" />Importar planilha
+                  </Button>
+                  <input ref={arquivoRef} type="file" accept=".xlsx" className="hidden"
+                    onChange={(e) => void importarPlanilha(e.target)} />
+                </div>
+              </div>
+              {errosPlanilha.length > 0 && (
+                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                  <div className="mb-1 flex items-start justify-between gap-2">
+                    <p className="font-medium">Planilha não importada — {errosPlanilha.length} erro(s). Nada foi alterado na grade.</p>
+                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6" aria-label="Fechar erros" onClick={() => setErrosPlanilha([])}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <ul className="max-h-40 list-disc space-y-0.5 overflow-auto pl-5">
+                    {errosPlanilha.map((e, k) => <li key={k}>{e}</li>)}
+                  </ul>
+                </div>
+              )}
               {bipando && (
                 <>
                   <LeitorCodigoBarras
