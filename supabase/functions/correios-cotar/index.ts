@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
       const validaAte = new Date(Date.now() + min * 60_000).toISOString();
       const { data: ins, error: insErr } = await sb.from("frete_cotacao").insert({
         contexto, cep_origem: cepO, cep_destino: cepD, peso_g: pesoTotal, itens_hash: itensHash,
-        cotacoes, criado_por: u.user.id, valida_ate: validaAte,
+        cotacoes, criado_por: criadoPor, valida_ate: validaAte,
       }).select("id, valida_ate").single();
       if (insErr || !ins) return fail(`gravar frete_cotacao: ${insErr?.message ?? "sem retorno"}`, 500);
       registro = { cotacao_id: ins.id, valida_ate: ins.valida_ate, peso_incompleto: pesoIncompleto };
