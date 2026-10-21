@@ -87,6 +87,137 @@ function deleteToleravel(status: number, corpo: any): boolean {
   return /expir|cancel|paid|pago|already|j[aá] /.test(m);
 }
 
+/** Fim do dia (23:59:59 BRT) da data de vencimento do título = validade do link. */
+function fimDoDiaBRT(data: string): Date {
+  return new Date(`${data}T23:59:59-03:00`);
+}
+
+async function gerarLinkTitulo(ctx: {
+  sb: any; cfg: any; amb: string; apiBase: string; portal: string; segredo: string; merchantId: string;
+  userId: string; tituloId: string; maxParcelas: number; forcarNovo: boolean;
+}): Promise<Response> {
+  const { sb, cfg, amb, apiBase, portal, segredo, merchantId, userId, tituloId, maxParcelas, forcarNovo } = ctx;
+  const { data: tit, error: eT } = await sb.from("titulo_a_receber")
+    .select("id, numero_titulo, pedido_id, parceiro_id, status, tipo_pagamento, valor_atual, data_vencimento_atual")
+    .eq("id", tituloId).maybeSingle();
+  if (eT) return json({ ok: false, erro: `Ler título: ${eT.message}` }, 500);
+  if (!tit) return json({ ok: false, erro: "Título não encontrado." }, 404);
+  if (tit.status !== "aberto") return json({ ok: false, erro: `Título não está aberto (status ${tit.status}).` }, 409);
+  if (tit.tipo_pagamento !== "cartao") return json({ ok: false, erro: `Título não é de cartão (${tit.tipo_pagamento}).` }, 409);
+  const valor = Math.round(Number(tit.valor_atual ?? 0) * 100) / 100;
+  const amount = Math.round(valor * 100);
+  if (!(amount > 0)) return json({ ok: false, erro: "Título sem valor a cobrar." }, 409);
+  const expira = fimDoDiaBRT(String(tit.data_vencimento_atual));
+  const agora = Date.now();
+  if (!(expira.getTime() > agora)) return json({ ok: false, erro: "Vencimento do título já passou — o link nasceria vencido." }, 409);
+
+  const { data: pedido, error: eP } = await sb.from("pedidos")
+    .select("id, id_externo, parceiro_id, endereco_entrega, cliente_nome_snapshot").eq("id", tit.pedido_id).maybeSingle();
+  if (eP) return json({ ok: false, erro: `Ler pedido: ${eP.message}` }, 500);
+
+  const { data: vig, error: eV } = await sb.from("pagamento_link").select("*")
+    .eq("titulo_id", tituloId).in("status", ["criando", "aberto"]);
+  if (eV) return json({ ok: false, erro: `Ler links: ${eV.message}` }, 500);
+  const anteriores: any[] = [];
+  for (const l of vig ?? []) {
+    const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
+    if (valido && !forcarNovo && Number(l.max_parcelas) === maxParcelas && Number(l.valor) === valor) {
+      return json({ ok: true, url: l.url, expira_em: l.expira_em, max_parcelas: l.max_parcelas, pagamento_link_id: l.id, reaproveitado: true });
+    }
+    if (l.status === "criando" && !forcarNovo && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
+      return json({ ok: false, erro: "Já há um link sendo criado para este título. Tente em instantes." }, 409);
+    }
+    anteriores.push(l);
+  }
+
+  let linha: { id: string } | null = null;
+  const falhar = async (erro: string, status = 502) => {
+    if (linha) await sb.from("pagamento_link").update({ status: "erro", erro }).eq("id", linha.id);
+    console.error("[safrapay-link] titulo erro", { titulo_id: tituloId, erro });
+    return json(linha ? { ok: false, erro, pagamento_link_id: linha.id } : { ok: false, erro }, status);
+  };
+
+  try {
+    let parceiro: any = null;
+    const parceiroId = tit.parceiro_id ?? pedido?.parceiro_id ?? null;
+    if (parceiroId) {
+      const { data: pc, error: ePc } = await sb.from("parceiros_comerciais")
+        .select("razao_social, nome_fantasia, cpf, cnpj, email, telefone, cep, logradouro, numero, bairro, cidade, uf, endereco_complemento")
+        .eq("id", parceiroId).maybeSingle();
+      if (ePc) return await falhar(`Ler cliente: ${ePc.message}`, 500);
+      parceiro = pc;
+    }
+    const emailCli = txt(parceiro?.email);
+    if (!emailCli || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailCli)) return await falhar("Cliente sem email cadastrado", 422);
+
+    const { data: merchantToken, error: eTok } = await sb.rpc("get_vault_secret", { p_name: segredo });
+    if (eTok || !merchantToken) return await falhar(`MerchantToken indisponível (${segredo}).`, 500);
+    const rAuth = await fetch(`${apiBase}/v2/merchant/auth`, { method: "POST", headers: { Authorization: String(merchantToken), "Content-Type": "application/json" } });
+    const cAuth = await lerCorpo(rAuth);
+    const accessToken = cAuth?.accessToken ?? cAuth?.data?.accessToken;
+    if (!rAuth.ok || !accessToken) return await falhar(`Autenticação: ${msgApi(cAuth, rAuth.status)}`);
+    const h = { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" };
+
+    const avisos: string[] = [];
+    const rT = await fetch(`${apiBase}/v2/paymentlink/paymentTypes`, { headers: h });
+    const cT = await lerCorpo(rT);
+    if (!rT.ok) return await falhar(`Consultar tipos de pagamento: ${msgApi(cT, rT.status)}`);
+    if (!temCredito(cT)) return await falhar("Tipo Credit não disponível para este estabelecimento");
+
+    // Nunca dois links pagáveis para o mesmo título.
+    for (const ant of anteriores) {
+      let statusAnt = "cancelado";
+      if (ant.status === "aberto" && ant.gateway_link_id) {
+        if (!merchantId) return await falhar(`merchant_id_${amb} ausente em safrapay_config — não dá para cancelar o link anterior.`, 500);
+        const rD = await fetch(`${apiBase}/v2/smartcheckout/${encodeURIComponent(String(ant.gateway_link_id))}`, {
+          method: "DELETE", headers: { Authorization: `Bearer ${accessToken}`, MerchantId: merchantId },
+        });
+        const cD = await lerCorpo(rD);
+        if (!rD.ok) {
+          if (!deleteToleravel(rD.status, cD)) return await falhar(`Cancelar link anterior no Safra (${ant.gateway_link_id}): ${msgApi(cD, rD.status)}`);
+          statusAnt = "expirado";
+          avisos.push(`Link anterior ${ant.gateway_link_id} já não estava ativo no Safra.`);
+        }
+      }
+      const { error } = await sb.from("pagamento_link").update({ status: statusAnt }).eq("id", ant.id);
+      if (error) return await falhar(`Encerrar link anterior: ${error.message}`, 500);
+    }
+
+    const { data: linhaNova, error: eIns } = await sb.from("pagamento_link").insert({
+      criado_por: userId, pedido_id: tit.pedido_id, provisao_id: null, titulo_id: tituloId, gateway: "safrapay", ambiente: amb,
+      valor, max_parcelas: maxParcelas, expira_em: expira.toISOString(), status: "criando",
+    }).select("id").single();
+    if (eIns) return await falhar(`Registrar link: ${eIns.message}`, 409);
+    linha = linhaNova;
+
+    const customer = montarCustomer(parceiro, pedido, avisos);
+    const codigo = String(tit.numero_titulo ?? pedido?.id_externo ?? tituloId);
+    const r = await fetch(`${apiBase}/v2/paymentlink`, {
+      method: "POST", headers: h,
+      body: JSON.stringify({
+        amount, description: `Fetely · ${codigo}`, orderCode: codigo, expiration: expira.toISOString(),
+        maxInstallmentNumber: maxParcelas, paymentSupportedTypes: ["Credit"], ...(customer ? { customer } : {}),
+      }),
+    });
+    const c = await lerCorpo(r);
+    const d = c?.data ?? c;
+    const linkId = d?.id ?? d?.paymentLinkId;
+    const rel = d?.smartCheckoutUrl;
+    if (!r.ok || c?.success === false || !linkId || !rel) return await falhar(`Criar link: ${msgApi(c, r.status)}`);
+
+    const urlFinal = /^https?:\/\//.test(String(rel)) ? String(rel) : `${portal}${String(rel).startsWith("/") ? "" : "/"}${rel}`;
+    const expiraFinal = d?.expiration ? new Date(d.expiration).toISOString() : expira.toISOString();
+    const { error: eUp } = await sb.from("pagamento_link").update({
+      status: "aberto", gateway_link_id: String(linkId), url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, erro: null,
+      resposta_criacao: { id: linkId, smartCheckoutUrl: rel, expiration: d?.expiration ?? null, status: d?.status ?? null, meio_pedido: "cartao", origem: "titulo", avisos },
+    }).eq("id", linha!.id);
+    if (eUp) return json({ ok: false, erro: `Link criado na Safrapay mas não gravado: ${eUp.message}` }, 500);
+    return json({ ok: true, url: urlFinal, expira_em: expiraFinal, max_parcelas: maxParcelas, valor, meio: "cartao", pagamento_link_id: linha!.id, titulo_id: tituloId, avisos });
+  } catch (e) {
+    return await falhar(e instanceof Error ? e.message : String(e));
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, erro: "Método não permitido." }, 405);
@@ -114,7 +245,9 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ ok: false, erro: "Corpo JSON inválido." }, 400); }
   const pedidoId = String(body?.pedido_id ?? "");
   const forcarNovo = body?.forcar_novo === true;
-  if (!/^[0-9a-f-]{36}$/i.test(pedidoId)) return json({ ok: false, erro: "pedido_id inválido." }, 400);
+  const tituloId = body?.titulo_id != null ? String(body.titulo_id) : null;
+  if (tituloId !== null && !/^[0-9a-f-]{36}$/i.test(tituloId)) return json({ ok: false, erro: "titulo_id inválido." }, 400);
+  if (tituloId === null && !/^[0-9a-f-]{36}$/i.test(pedidoId)) return json({ ok: false, erro: "pedido_id inválido." }, 400);
   let parcelasEscolhidas: number | null = null;
   if (body?.max_parcelas !== undefined && body?.max_parcelas !== null) {
     const n = Number(body.max_parcelas);
@@ -132,6 +265,13 @@ Deno.serve(async (req) => {
   const segredo = cfg[`segredo_token_${amb}`];
   if (!apiBase || !portal || !segredo) return json({ ok: false, erro: `Configuração Safrapay incompleta para ${amb}.` }, 500);
   const merchantId = String(cfg[`merchant_id_${amb}`] ?? "").trim();
+
+  // 21/10/2026 (Flavio): link de um TÍTULO (renegociação por cartão). Caminho próprio — o fluxo do pedido abaixo não muda.
+  if (tituloId) {
+    if (!slugsPermitidos.has("acao.cobranca_gerar_link")) return json({ ok: false, erro: "Sem permissão para gerar link de pagamento (acao.cobranca_gerar_link)" }, 403);
+    if (parcelasEscolhidas === null) return json({ ok: false, erro: "max_parcelas é obrigatório para link de título." }, 400);
+    return await gerarLinkTitulo({ sb, cfg, amb, apiBase, portal, segredo, merchantId, userId, tituloId, maxParcelas: parcelasEscolhidas, forcarNovo });
+  }
 
   const { data: pedido, error: eP } = await sb
     .from("pedidos")
