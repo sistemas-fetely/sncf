@@ -21,6 +21,8 @@ import { formatBRL } from "@/lib/format-currency";
 import { estaVencido } from "@/lib/data";
 
 type Desfecho = "haver" | "troca" | "reembolso" | "abater_divida";
+type FiscalAcao = "nenhum" | "nota_credito" | "nf_devolucao";
+type ItemNf = { codigo: string; descricao: string; quantidade: number; valor: number };
 
 interface Props {
   pedidoId: string;
@@ -80,6 +82,48 @@ export function DevolucaoParcialDialog({
   const [desfecho, setDesfecho] = useState<Desfecho>("haver");
   const [tituloAbater, setTituloAbater] = useState<string>("");
   const [novaData, setNovaData] = useState<string>("");
+  const [fiscal, setFiscal] = useState<FiscalAcao>("nenhum");
+  const [qtdFaltou, setQtdFaltou] = useState<Record<number, number>>({});
+  const [buscaItem, setBuscaItem] = useState("");
+
+  const nfQ = useQuery({
+    queryKey: ["nf-saida-devolucao-parcial", pedidoId],
+    enabled: open && fiscal === "nota_credito",
+    staleTime: 0,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("nfs_emitidas")
+        .select("id, numero, itens_json")
+        .eq("pedido_venda_id", pedidoId)
+        .eq("tipo", "saida")
+        .eq("situacao", "autorizada")
+        .order("emitida_em", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      if (!data) return null;
+      const itens: ItemNf[] = (Array.isArray(data.itens_json) ? data.itens_json : []).map((i: Record<string, unknown>) => ({
+        codigo: String(i.codigo ?? ""),
+        descricao: String(i.descricao ?? ""),
+        quantidade: Number(i.quantidade ?? 0),
+        valor: Number(i.valor ?? 0),
+      }));
+      return { id: data.id as string, numero: data.numero as string | null, itens };
+    },
+  });
+  const itensNf = nfQ.data?.itens ?? [];
+  const valorItens = useMemo(
+    () => Math.round(itensNf.reduce((s, it, idx) => s + Math.round((qtdFaltou[idx] ?? 0) * it.valor * 100) / 100, 0) * 100) / 100,
+    [itensNf, qtdFaltou],
+  );
+  const itensComFalta = itensNf.filter((_, idx) => (qtdFaltou[idx] ?? 0) > 0).length;
+  const itensFiltrados = useMemo(() => {
+    const t = buscaItem.trim().toLowerCase();
+    return itensNf.map((it, idx) => ({ it, idx }))
+      .filter(({ it }) => !t || it.codigo.toLowerCase().includes(t) || it.descricao.toLowerCase().includes(t));
+  }, [itensNf, buscaItem]);
+  const modoCredito = fiscal === "nota_credito";
 
   const parcelasQ = useQuery({
     queryKey: ["parcelas-abertas-devolucao-parcial", pedidoId],
@@ -88,7 +132,7 @@ export function DevolucaoParcialDialog({
     queryFn: async (): Promise<Parcela[]> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data, error } = await (supabase as any)
-        .from("titulos_a_receber")
+        .from("titulo_a_receber")
         .select("id, numero_titulo, numero_parcela, total_parcelas, data_vencimento_atual, valor_atual, valor_bruto, status, boleto_status")
         .eq("pedido_id", pedidoId)
         .order("numero_parcela", { ascending: true });
@@ -117,9 +161,10 @@ export function DevolucaoParcialDialog({
   );
 
   const valorNum = useMemo(() => {
+    if (modoCredito) return valorItens;
     const n = Number(valorStr.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
-  }, [valorStr]);
+  }, [valorStr, modoCredito, valorItens]);
 
   const excedeTotal = total > 0 && valorNum > total + 0.005;
 
@@ -140,6 +185,8 @@ export function DevolucaoParcialDialog({
     if (!(valorNum > 0) || excedeTotal) return false;
     if (motivo.trim().length < 5) return false;
     if (!desfecho) return false;
+    if (parcelasQ.isError) return false;
+    if (modoCredito && (!nfQ.data || itensComFalta === 0)) return false;
     if (desfecho === "abater_divida") {
       if (!parcelaSelecionada) return false;
       if (abaterZera) return false;
@@ -156,6 +203,12 @@ export function DevolucaoParcialDialog({
         p_nf_devolucao: nfDevolucao.trim() || null,
         p_motivo: motivo.trim(),
         p_desfecho: desfecho,
+        p_fiscal_acao: fiscal === "nenhum" ? null : fiscal,
+        p_itens: modoCredito
+          ? itensNf
+            .map((it, idx) => ({ sku: it.codigo, descricao: it.descricao, quantidade: qtdFaltou[idx] ?? 0, valor_unitario: it.valor }))
+            .filter((i) => i.quantidade > 0)
+          : null,
       };
       if (desfecho === "abater_divida") {
         params.p_titulo_abater = tituloAbater;
@@ -175,6 +228,7 @@ export function DevolucaoParcialDialog({
         nf_devolucao: string | null;
         reembolso: boolean;
         aviso?: string;
+        aviso_itens?: string;
         abate?: {
           aplicado_agora: boolean;
           modo: "desconto_aplicado_direto" | "baixa_e_reemissao";
@@ -189,6 +243,8 @@ export function DevolucaoParcialDialog({
         `Devolução parcial de ${formatBRL(data.valor_devolvido)} registrada`,
         { description: `Desfecho: ${DESFECHO_LABEL[data.desfecho]}` },
       );
+      if (data.aviso) toast.info(data.aviso, { duration: 12000 });
+      if (data.aviso_itens) toast.info(data.aviso_itens, { duration: 12000 });
       if (data.desfecho === "troca") {
         toast(`Crédito de ${formatBRL(data.valor_devolvido)} gerado — use ao criar o novo pedido do cliente`, {
           duration: 12000,
@@ -240,10 +296,17 @@ export function DevolucaoParcialDialog({
               step="0.01"
               min="0"
               inputMode="decimal"
-              value={valorStr}
+              value={modoCredito ? valorItens.toFixed(2) : valorStr}
+              readOnly={modoCredito}
               onChange={(e) => setValorStr(e.target.value)}
               placeholder="0,00"
             />
+            {modoCredito && (
+              <p className="text-xs text-muted-foreground">valor fiscal = valor dos itens pela NF</p>
+            )}
+            {parcelasQ.isError && (
+              <p className="text-xs text-destructive">Erro ao carregar parcelas: {(parcelasQ.error as Error).message}</p>
+            )}
             {excedeTotal && (
               <p className="text-xs text-destructive">
                 Valor não pode exceder o total do pedido ({formatBRL(total)}).
@@ -269,6 +332,99 @@ export function DevolucaoParcialDialog({
               rows={3}
             />
           </div>
+
+          <div className="space-y-2">
+            <Label>Caminho fiscal</Label>
+            <RadioGroup value={fiscal} onValueChange={(v) => setFiscal(v as FiscalAcao)}>
+              <div className="flex items-start gap-2 p-2 rounded border">
+                <RadioGroupItem id="fisc-nenhum" value="nenhum" className="mt-0.5" />
+                <Label htmlFor="fisc-nenhum" className="font-normal text-xs cursor-pointer leading-relaxed">
+                  <strong>Sem documento fiscal</strong> — desconto financeiro puro.
+                </Label>
+              </div>
+              <div className="flex items-start gap-2 p-2 rounded border">
+                <RadioGroupItem id="fisc-credito" value="nota_credito" className="mt-0.5" />
+                <Label htmlFor="fisc-credito" className="font-normal text-xs cursor-pointer leading-relaxed">
+                  <strong>Nota de crédito — produto faltou na expedição</strong> — NF-e de entrada, finalidade Crédito, só os itens que faltaram. SNCF gera o rascunho no Bling; estoque é estornado no ato.
+                </Label>
+              </div>
+              <div className="flex items-start gap-2 p-2 rounded border">
+                <RadioGroupItem id="fisc-devolucao" value="nf_devolucao" className="mt-0.5" />
+                <Label htmlFor="fisc-devolucao" className="font-normal text-xs cursor-pointer leading-relaxed">
+                  <strong>NF de devolução — mercadoria vai voltar</strong>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {modoCredito && (
+            <div className="space-y-2 rounded border p-3 bg-muted/30">
+              {nfQ.isLoading ? (
+                <p className="text-xs text-muted-foreground">Carregando NF de saída...</p>
+              ) : nfQ.isError ? (
+                <p className="text-xs text-destructive">Erro ao carregar NF: {(nfQ.error as Error).message}</p>
+              ) : !nfQ.data ? (
+                <Alert variant="destructive">
+                  <AlertDescription className="text-xs">
+                    Pedido sem NF de saída autorizada — não é possível emitir nota de crédito.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between text-xs">
+                    <span>NF nº <strong>{nfQ.data.numero ?? "?"}</strong> · {itensNf.length} itens</span>
+                    <span>{itensComFalta} item(ns) · <strong>{formatBRL(valorItens)}</strong></span>
+                  </div>
+                  <Input
+                    value={buscaItem}
+                    onChange={(e) => setBuscaItem(e.target.value)}
+                    placeholder="Buscar por SKU ou descrição"
+                    className="h-8 text-xs"
+                  />
+                  <div className="max-h-64 overflow-y-auto rounded border bg-background">
+                    <table className="w-full text-xs">
+                      <thead className="sticky top-0 bg-muted">
+                        <tr>
+                          <th className="p-1 text-left">SKU</th>
+                          <th className="p-1 text-left">Descrição</th>
+                          <th className="p-1 text-right">Qtd NF</th>
+                          <th className="p-1 text-right">Valor</th>
+                          <th className="p-1 text-right">Qtd faltou</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {itensFiltrados.map(({ it, idx }) => (
+                          <tr key={idx} className="border-t">
+                            <td className="p-1 font-mono">{it.codigo}</td>
+                            <td className="p-1">{it.descricao}</td>
+                            <td className="p-1 text-right">{it.quantidade}</td>
+                            <td className="p-1 text-right">{formatBRL(it.valor)}</td>
+                            <td className="p-1 text-right">
+                              <Input
+                                type="number"
+                                min={0}
+                                max={it.quantidade}
+                                step={1}
+                                className="h-7 w-16 text-xs text-right ml-auto"
+                                value={qtdFaltou[idx] ?? 0}
+                                onChange={(e) => {
+                                  const n = Math.max(0, Math.min(it.quantidade, Math.floor(Number(e.target.value) || 0)));
+                                  setQtdFaltou((m) => ({ ...m, [idx]: n }));
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    As peças que faltaram voltam ao estoque do CD de origem (estorno de saída), sem quarentena.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Desfecho</Label>
