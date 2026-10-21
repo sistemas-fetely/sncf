@@ -5960,6 +5960,24 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_funcdef_20261020: {
+        Row: {
+          criado_em: string | null
+          def: string | null
+          proname: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          def?: string | null
+          proname?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          def?: string | null
+          proname?: string | null
+        }
+        Relationships: []
+      }
       backup_migracao_boleto_ancora_ofx_20260909: {
         Row: {
           congelado_em: string | null
@@ -6845,6 +6863,24 @@ export type Database = {
           mov_nova?: string | null
           registro_id?: string | null
           tabela?: string | null
+        }
+        Relationships: []
+      }
+      backup_viewdef_20261020: {
+        Row: {
+          criado_em: string | null
+          def: string | null
+          relname: string | null
+        }
+        Insert: {
+          criado_em?: string | null
+          def?: string | null
+          relname?: string | null
+        }
+        Update: {
+          criado_em?: string | null
+          def?: string | null
+          relname?: string | null
         }
         Relationships: []
       }
@@ -44724,6 +44760,7 @@ export type Database = {
           resposta_ultimo_sync: Json | null
           status: string
           tentativas_sync: number
+          titulo_id: string | null
           ultimo_sync_em: string | null
           url: string | null
           valor: number
@@ -44750,6 +44787,7 @@ export type Database = {
           resposta_ultimo_sync?: Json | null
           status?: string
           tentativas_sync?: number
+          titulo_id?: string | null
           ultimo_sync_em?: string | null
           url?: string | null
           valor: number
@@ -44776,6 +44814,7 @@ export type Database = {
           resposta_ultimo_sync?: Json | null
           status?: string
           tentativas_sync?: number
+          titulo_id?: string | null
           ultimo_sync_em?: string | null
           url?: string | null
           valor?: number
@@ -45208,6 +45247,160 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_venda_direta_gestao"
             referencedColumns: ["provisao_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "titulo_a_receber"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_acordo_ajuste_reconhecido"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_instrumento_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_boleto_vencimento_conferencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_kanban"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cobranca_mesa"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_manuais_sem_batimento"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_baixas_pendentes"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebimento_pedido_nivel"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_gestao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_safra_titulos"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_safra_carteira_divergencia"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_boleto_vigente"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_espera_retorno"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_estado"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_para_vinculo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_saldo"
+            referencedColumns: ["titulo_id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulo_vivo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pagamento_link_titulo_id_fkey"
+            columns: ["titulo_id"]
+            isOneToOne: false
+            referencedRelation: "vw_titulos_cobranca"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -64743,6 +64936,27 @@ export type Database = {
           },
         ]
       }
+      safrapay_taxa_parcelamento: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          parcelas: number
+          taxa_percentual: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          parcelas: number
+          taxa_percentual: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          parcelas?: number
+          taxa_percentual?: number
+        }
+        Relationships: []
+      }
       safrapay_venda: {
         Row: {
           anomes: string | null
@@ -67022,7 +67236,7 @@ export type Database = {
           meta_descricao: string | null
           multiplos: number
           ncm: string | null
-          nome_comercial: string
+          nome_comercial: string | null
           nome_completo: string | null
           nome_operacional: string | null
           numero_vela: number | null
@@ -67075,7 +67289,7 @@ export type Database = {
           meta_descricao?: string | null
           multiplos?: number
           ncm?: string | null
-          nome_comercial: string
+          nome_comercial?: string | null
           nome_completo?: string | null
           nome_operacional?: string | null
           numero_vela?: number | null
@@ -67128,7 +67342,7 @@ export type Database = {
           meta_descricao?: string | null
           multiplos?: number
           ncm?: string | null
-          nome_comercial?: string
+          nome_comercial?: string | null
           nome_completo?: string | null
           nome_operacional?: string | null
           numero_vela?: number | null
@@ -71013,6 +71227,7 @@ export type Database = {
           valor_correcao: number
           valor_desconto: number
           valor_juros: number
+          valor_juros_cartao: number
           valor_multa: number
           valor_taxa_adquirente: number | null
           vip_relacionamento: boolean
@@ -71095,6 +71310,7 @@ export type Database = {
           valor_correcao?: number
           valor_desconto?: number
           valor_juros?: number
+          valor_juros_cartao?: number
           valor_multa?: number
           valor_taxa_adquirente?: number | null
           vip_relacionamento?: boolean
@@ -71177,6 +71393,7 @@ export type Database = {
           valor_correcao?: number
           valor_desconto?: number
           valor_juros?: number
+          valor_juros_cartao?: number
           valor_multa?: number
           valor_taxa_adquirente?: number | null
           vip_relacionamento?: boolean
@@ -135233,6 +135450,18 @@ export type Database = {
           p_parcelas: Json
           p_plano_contas_ajuste_id?: string
           p_titulo_id: string
+        }
+        Returns: Json
+      }
+      renegociar_titulo_cartao: {
+        Args: {
+          p_data_vencimento: string
+          p_juros_por: string
+          p_justificativa: string
+          p_max_parcelas: number
+          p_plano_contas_ajuste_id?: string
+          p_titulo_id: string
+          p_valor: number
         }
         Returns: Json
       }

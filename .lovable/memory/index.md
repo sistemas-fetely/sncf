@@ -13,3 +13,4 @@ All monetary values in BRL (R$). Brazilian labor law compliance (CLT, Lei 13.467
 - [Onboarding checklist](mem://features/onboarding-checklist) — Auto-created checklist on activation with role-based views
 - [Fala Fetely favoritas](mem://features/fala-fetely-favoritas) — Conversas fixáveis (favorita), tom de marca nas frases/sugestões
 - [Sistema reportes imagem](mem://features/sistema-reportes-imagem) — Upload opcional de print no botão Reportar (bucket sistema-reportes)
+- [Renegociação por cartão](mem://features/renegociacao-cartao) — Juros calculados pelo SNCF, padrão Cliente, nada de juros na API SafraPay

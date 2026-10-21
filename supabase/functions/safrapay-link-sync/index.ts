@@ -217,8 +217,18 @@ Deno.serve(async (req) => {
     if (ePv) return json({ ok: false, erro: `Ler provisões: ${ePv.message}` }, 500);
     for (const p of pvs ?? []) if (["cancelada", "cancelado"].includes(String(p.status))) provCancelada.add(p.id);
   }
+  // 21/10/2026 (Flavio): link de título (renegociação por cartão) não tem portão; fica obsoleto se o título deixou de estar aberto.
+  const titIds = [...new Set((links ?? []).filter((l: any) => l.status === "aberto" && l.titulo_id).map((l: any) => l.titulo_id))];
+  const titFechado = new Set<string>();
+  const titStatus = new Map<string, string>();
+  if (titIds.length) {
+    const { data: ts, error: eTs } = await sb.from("titulo_a_receber").select("id, status").in("id", titIds);
+    if (eTs) return json({ ok: false, erro: `Ler títulos: ${eTs.message}` }, 500);
+    for (const t of ts ?? []) { titStatus.set(t.id, String(t.status)); if (!["aberto", "pago"].includes(String(t.status))) titFechado.add(t.id); }
+  }
   for (const l of links ?? []) {
     if (cancelados.has(l.pedido_id) || l.status !== "aberto") continue;
+    if (l.titulo_id) { if (titFechado.has(l.titulo_id)) obsoletos.add(l.id); continue; }
     if (!l.provisao_id || provCancelada.has(l.provisao_id)) obsoletos.add(l.id);
   }
   for (const l of (links ?? []).filter((x: any) => cancelados.has(x.pedido_id) || obsoletos.has(x.id))) {
@@ -359,7 +369,7 @@ Deno.serve(async (req) => {
       const paga = charges.find((ch: any) => ch.status === 1);
       const pre = charges.find((ch: any) => ch.status === 2);
 
-      const pedidoPix = formaPedido.get(l.pedido_id) === "pix";
+      const pedidoPix = !l.titulo_id && formaPedido.get(l.pedido_id) === "pix";
       if (paga && pedidoPix) {
         // Pedido PIX → link só com Pix: confirma a linha de portão com a prova PIX.
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
@@ -399,6 +409,26 @@ Deno.serve(async (req) => {
         const valorPago = paga.valorCentavos != null ? paga.valorCentavos / 100 : Number(l.valor);
         const { data: atual } = await sb.from("pagamento_link").select("status").eq("id", l.id).maybeSingle();
         if (atual?.status === "pago") { resumo.detalhes.push({ pedido_id: l.pedido_id, resultado: "já pago" }); continue; }
+        if (l.titulo_id) {
+          // 21/10/2026 (Flavio): baixa cai no título filho da renegociação, nunca no portão do pedido.
+          if (Math.abs(valorPago - Number(l.valor)) > 0.01) throw new Error(`Valor pago ${valorPago} difere do link ${l.valor} — conferir manualmente.`);
+          const obs = `Safrapay link ${l.gateway_link_id} · charge ${paga.id} · aut ${paga.aut ?? "—"} · ${paga.bandeira ?? "—"} ****${paga.final ?? "—"} · ${paga.parcelas ?? "—"}x`;
+          const { data: rT, error: eT } = await sb.rpc("marcar_titulo_pago", {
+            p_titulo_id: l.titulo_id, p_data_pagamento: paga.data, p_observacao: obs, p_autorizacao_cartao: paga.nsu,
+          });
+          if (eT || rT?.ok === false) {
+            const erro = `Pago na Safrapay, mas a baixa do título falhou: ${eT?.message ?? rT?.erro}`;
+            await sb.from("pagamento_link").update({ ...base, erro, charge_id: paga.id, nsu: paga.nsu, valor_pago: valorPago, pago_em: paga.data }).eq("id", l.id);
+            resumo.erros++; resumo.detalhes.push({ pedido_id: l.pedido_id, titulo_id: l.titulo_id, erro });
+            continue;
+          }
+          const { error: eUpT } = await sb.from("pagamento_link").update({
+            ...base, status: "pago", erro: null, charge_id: paga.id, nsu: paga.nsu, valor_pago: valorPago, pago_em: paga.data,
+          }).eq("id", l.id);
+          if (eUpT) throw new Error(`Gravar pagamento: ${eUpT.message}`);
+          resumo.pagos++; resumo.detalhes.push({ pedido_id: l.pedido_id, titulo_id: l.titulo_id, resultado: "título pago" });
+          continue;
+        }
         const { error: eRpc } = await sb.rpc("confirmar_cartao_capturado", {
           p_pedido_id: l.pedido_id,
           p_nsu: paga.nsu,
