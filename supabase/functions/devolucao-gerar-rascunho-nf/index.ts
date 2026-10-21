@@ -13,6 +13,7 @@ type ItemDados = { sku: string; descricao: string; quantidade: number; valor: nu
 type Dados = {
   devolucao_numero: string; natureza_bling_id: number | null; nf_origem_numero: string | null; nf_origem_chave: string | null;
   destinatario: { nome: string; numeroDocumento: string; tipoPessoa: string } | null; itens: ItemDados[]; valor: number;
+  fiscal_acao: "nf_devolucao" | "nota_credito" | null; finalidade: number | null; tipo_credito: string | null; justificativa: string | null;
 };
 
 /** Conferidor local: NF de ENTRADA pendente que bate com a devolução. null = bate. */
@@ -112,24 +113,49 @@ serve(async (req) => {
     if (dadosError) throw dadosError;
     const d = dadosRaw as Dados;
     if (!d?.itens?.length) throw new Error("Devolução sem itens para a NF.");
-    if (!d.natureza_bling_id) throw new Error("Canal sem natureza de devolução configurada no Bling.");
+    const ehCredito = d.fiscal_acao === "nota_credito";
+    const rotulo = ehCredito ? "Nota de crédito" : "NF de devolução";
+    if (!d.natureza_bling_id) throw new Error(`Canal sem natureza de ${ehCredito ? "nota de crédito" : "devolução"} configurada no Bling.`);
     if (!d.destinatario?.numeroDocumento) throw new Error("Devolução sem destinatário com documento.");
     if (!d.nf_origem_chave) throw new Error("NF original sem chave de acesso.");
     const bling = await blingCliente();
     const agora = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()).replace(",", "");
-    const payload = {
-      tipo: 0, finalidade: 4, dataOperacao: agora, contato: d.destinatario,
+    const payload: Record<string, any> = {
+      tipo: 0, finalidade: d.finalidade ?? 4, dataOperacao: agora, contato: d.destinatario,
       naturezaOperacao: { id: d.natureza_bling_id },
       documentoReferenciado: { modelo: "55", chaveAcesso: d.nf_origem_chave },
       itens: d.itens.map((i) => ({ codigo: i.sku, descricao: i.descricao, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P", classificacaoFiscal: i.ncm, origem: i.origem })),
       parcelas: [], transporte: { fretePorConta: 9 },
-      observacoes: `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
+      observacoes: ehCredito
+        ? `Nota de crédito (redução de valores ou quantidades) referente à NF-e ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). Justificativa: ${d.justificativa}. ${d.devolucao_numero} — SNCF.`
+        : `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
     };
+    if (ehCredito) {
+      // Nome do campo não documentado na API v3: envia nas duas formas; se o Bling recusar, o corpo do erro é registrado inteiro.
+      const tipoCredito = d.tipo_credito ?? "04";
+      payload.tipoNotaCredito = tipoCredito;
+      payload.notaCredito = { tipo: tipoCredito };
+      payload.informacoesAdicionaisFisco = `Justificativa: ${d.justificativa}`;
+    }
     // Criação de NF não é idempotente: nunca repetir o POST.
     let resposta: any;
     try {
-      resposta = await bling.post("/nfe", payload, { retry: false });
+      try {
+        resposta = await bling.post("/nfe", payload, { retry: false });
+      } catch (e1) {
+        // 4xx = Bling recusou sem criar; reenvio único sem informacoesAdicionaisFisco se for esse o campo recusado.
+        if (ehCredito && e1 instanceof BlingHttpError && e1.status >= 400 && e1.status < 500 && e1.corpo.includes("informacoesAdicionaisFisco")) {
+          delete payload.informacoesAdicionaisFisco;
+          resposta = await bling.post("/nfe", payload, { retry: false });
+        } else throw e1;
+      }
     } catch (postErro) {
+      if (ehCredito && postErro instanceof BlingHttpError && postErro.status >= 400 && postErro.status < 500 && postErro.status !== 429
+        && !mensagem(postErro).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes("ja existe uma nota fiscal cadastrada")) {
+        const corpoErro = JSON.stringify(postErro.corpo);
+        try { await registrar("erro", null, null, corpoErro); } catch (re) { return json({ ok: false, erro: `${corpoErro} · Falha ao registrar o erro: ${mensagem(re)}` }, 502); }
+        return json({ ok: false, erro: `Bling recusou a Nota de crédito (${postErro.status}): ${postErro.corpo}` }, 502);
+      }
       const txt = mensagem(postErro).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
       const duplicidade = txt.includes("ja existe uma nota fiscal cadastrada");
       const incerto = !(postErro instanceof BlingHttpError) || postErro.status >= 500 || postErro.status === 429;
@@ -152,16 +178,16 @@ serve(async (req) => {
         if (lista.length < 100) break;
       }
       if (candidatas.length !== 1) {
-        throw new Error(`Bling não confirmou a criação e não foi possível identificar a NF de devolução — confira as NFs de entrada pendentes no Bling. (${candidatas.length} candidata(s); erro original: ${mensagem(postErro)})`);
+        throw new Error(`Bling não confirmou a criação e não foi possível identificar a ${rotulo} — confira as NFs de entrada pendentes no Bling. (${candidatas.length} candidata(s); erro original: ${mensagem(postErro)})`);
       }
       const achada = candidatas[0];
       await registrar("rascunho", achada.id, achada.numero);
-      return json({ ok: true, numero: achada.numero, bling_nfe_id: achada.id, recuperado: true }, 201);
+      return json({ ok: true, numero: achada.numero, bling_nfe_id: achada.id, recuperado: true, documento: rotulo }, 201);
     }
     const blingId = Number(resposta?.data?.id); const numero = String(resposta?.data?.numero ?? "");
     if (!Number.isFinite(blingId)) throw new Error(`Bling retornou sucesso sem data.id: ${JSON.stringify(resposta).slice(0, 500)}`);
     await registrar("rascunho", blingId, numero || null);
-    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, alertas: resposta?.data?.alertas ?? [] }, 201);
+    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, documento: rotulo, alertas: resposta?.data?.alertas ?? [] }, 201);
   } catch (e) {
     const erro = mensagem(e);
     try { await registrar("erro", null, null, erro); } catch (re) { return json({ ok: false, erro: `${erro} · Falha ao registrar o erro: ${mensagem(re)}` }, 502); }
