@@ -38,12 +38,13 @@ import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
-import { BlocoFiscalSiteSp } from "@/components/devolucao/FiscalSiteSp";
+import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { useSearchParams } from "react-router-dom";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
   id: string; numero: string | null; canal: string | null; status: string | null; status_efetivo: string | null;
+  fiscal_acao: string | null;
   pedido_ref: string | null; cliente: string | null; motivo_rotulo: string | null; motivo_exibicao: string | null; culpa: string | null;
   dias_desde: number | null; valor_credito: number | null; skus: number | null;
   qtd_declarada: number | null; qtd_retornada: number | null; qtd_pendente: number | null;
@@ -498,16 +499,20 @@ export default function RetornoDevolucao() {
                               )}
                             </div>
                           </div>
-                          {d.canal === "site_sp" && (
+                          {(d.fiscal_acao || d.canal === "site_sp") && (
                             <div className="mx-2 mb-2 grid gap-3 md:grid-cols-2">
-                              <div className="space-y-2 rounded-md border bg-card p-3">
-                                <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
-                                <BlocoFiscalSiteSp devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} />
-                              </div>
-                              <div className="space-y-2 rounded-md border bg-card p-3">
-                                <div className="text-xs font-medium text-muted-foreground">Ressarcimento</div>
-                                <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />
-                              </div>
+                              {d.fiscal_acao && (
+                                <div className="space-y-2 rounded-md border bg-card p-3">
+                                  <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
+                                  <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} />
+                                </div>
+                              )}
+                              {d.canal === "site_sp" && (
+                                <div className="space-y-2 rounded-md border bg-card p-3">
+                                  <div className="text-xs font-medium text-muted-foreground">Ressarcimento</div>
+                                  <CancelamentoReembolsoPainel devolucaoId={d.id} aguardandoConferencia={!d.sem_retorno_fisico && !d.e4_conferida} />
+                                </div>
+                              )}
                             </div>
                           )}
                           {ehAberta(d) && (

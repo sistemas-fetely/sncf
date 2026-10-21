@@ -200,7 +200,7 @@ export function DevolucaoParcialDialog({
       const params: Record<string, unknown> = {
         p_pedido_id: pedidoId,
         p_valor: valorNum,
-        p_nf_devolucao: nfDevolucao.trim() || null,
+        p_nf_devolucao: modoCredito ? null : (nfDevolucao.trim() || null),
         p_motivo: motivo.trim(),
         p_desfecho: desfecho,
         p_fiscal_acao: fiscal === "nenhum" ? null : fiscal,
@@ -314,14 +314,20 @@ export function DevolucaoParcialDialog({
             )}
           </div>
 
-          <div className="space-y-1">
-            <Label>NF de retorno (opcional)</Label>
-            <Input
-              value={nfDevolucao}
-              onChange={(e) => setNfDevolucao(e.target.value)}
-              placeholder="número da NF de devolução — pode preencher depois"
-            />
-          </div>
+          {modoCredito ? (
+            <p className="text-xs text-muted-foreground">
+              A nota de crédito é gerada pelo SNCF na Mesa de Devoluções após o registro.
+            </p>
+          ) : (
+            <div className="space-y-1">
+              <Label>NF de retorno (opcional)</Label>
+              <Input
+                value={nfDevolucao}
+                onChange={(e) => setNfDevolucao(e.target.value)}
+                placeholder="número da NF de devolução — pode preencher depois"
+              />
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label>Motivo (obrigatório)</Label>

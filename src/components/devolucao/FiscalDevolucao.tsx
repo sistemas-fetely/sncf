@@ -7,18 +7,19 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 
-type FiscalSP = {
-  id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | null; pedido_ref: string | null;
+type FiscalDevolucao = {
+  id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | "nota_credito" | null; pedido_ref: string | null;
   nf_numero: string | null; nf_situacao: string | null; prazo: string | null;
 };
 
 const sb = supabase as any;
 const ddMMHHmm = (v: string) => new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
-export function useFiscalSiteSp(devolucaoId: string) {
+// 21/10/2026 (Flavio): o caminho fiscal vale para qualquer canal — a view expõe fiscal_acao.
+export function useFiscalDevolucao(devolucaoId: string) {
   return useQuery({
-    queryKey: ["devolucao-fiscal-site-sp", devolucaoId],
-    queryFn: async (): Promise<FiscalSP> => {
+    queryKey: ["devolucao-fiscal", devolucaoId],
+    queryFn: async (): Promise<FiscalDevolucao> => {
       const { data: d, error } = await sb.from("devolucao").select("id,fiscal_acao,nf_original_id,pedido_id").eq("id", devolucaoId).maybeSingle();
       if (error) throw error;
       if (!d) throw new Error("Devolução não encontrada.");
@@ -36,8 +37,8 @@ export function useFiscalSiteSp(devolucaoId: string) {
   });
 }
 
-export function BlocoFiscalSiteSp({ devolucaoId, nfResolvida }: { devolucaoId: string; nfResolvida: boolean }) {
-  const q = useFiscalSiteSp(devolucaoId);
+export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida }: { devolucaoId: string; nfResolvida: boolean }) {
+  const q = useFiscalDevolucao(devolucaoId);
   if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
   const f = q.data!;
@@ -62,6 +63,9 @@ export function BlocoFiscalSiteSp({ devolucaoId, nfResolvida }: { devolucaoId: s
   }
   if (f.fiscal_acao === "nf_devolucao") {
     return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} />;
+  }
+  if (f.fiscal_acao === "nota_credito") {
+    return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} documento="nota_credito" />;
   }
   return <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
 }
