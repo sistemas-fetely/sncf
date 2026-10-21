@@ -66,6 +66,180 @@ Deno.serve(async (req) => {
       return jsonResponse(401, { error: "Senha inválida" });
     }
 
+    // ── Branches: balcao_* — Balcão B2C (venda B2C do comercial pelo FOP) ──
+    // Autenticação já validada acima via FOP_INBOUND_TOKEN
+    if (typeof body?.tipo === "string" && body.tipo.startsWith("balcao_")) {
+      const chamarInterna = async (fn: string, payload: unknown): Promise<{ status: number; json: any }> => {
+        const r = await fetch(`${supabaseUrl}/functions/v1/${fn}`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey,
+            "Content-Type": "application/json", "x-chamador": "recebe-pedido-balcao",
+          },
+          body: JSON.stringify(payload),
+        });
+        let j: any;
+        try { j = await r.json(); } catch { j = { erro: "Resposta sem JSON" }; }
+        return { status: r.status, json: j ?? { erro: "Resposta sem JSON" } };
+      };
+      const erroRpc = (error: any) => {
+        console.error(`[recebe-pedido] ${body.tipo}:`, error);
+        if (error?.code === "22023" || error?.code === "P0001") {
+          return jsonResponse(400, { ok: false, error: error.message });
+        }
+        return jsonResponse(500, { ok: false, error: error?.message ?? String(error) });
+      };
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const exigeUuid = (v: unknown, nome: string) =>
+        typeof v === "string" && UUID_RE.test(v)
+          ? null
+          : jsonResponse(400, { ok: false, error: `${nome} inválido (uuid esperado).` });
+
+      if (body.tipo === "balcao_cliente_buscar") {
+        const { data, error } = await supabase.rpc("fn_balcao_cliente_buscar", { p_termo: body.termo ?? "" });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, clientes: data ?? [] });
+      }
+
+      if (body.tipo === "balcao_produto_buscar") {
+        const { data, error } = await supabase.rpc("fn_balcao_produto_buscar", { p_termo: body.termo ?? "" });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, produtos: data ?? [] });
+      }
+
+      if (body.tipo === "balcao_calcular") {
+        const itens = Array.isArray(body.itens) ? body.itens : [];
+        const endereco = body.endereco ?? null;
+        const cepDestino = String(endereco?.cep ?? "").replace(/\D/g, "");
+        const cepValido = cepDestino.length === 8;
+        let cotacao_id: string | null = null;
+        let valida_ate: string | null = null;
+        let correios_erro: string | null = null;
+
+        if (cepValido) {
+          const { data: cd, error: eCd } = await supabase
+            .from("centro_distribuicao").select("cep").eq("codigo", "SITE-SP").maybeSingle();
+          if (eCd) return erroRpc(eCd);
+          const cepOrigem = String(cd?.cep ?? "").replace(/\D/g, "");
+          if (cepOrigem.length !== 8) {
+            correios_erro = "CEP de origem do SITE-SP não cadastrado em centro_distribuicao.";
+          } else {
+            const r = await chamarInterna("correios-cotar", {
+              cep_origem: cepOrigem, cep_destino: cepDestino, itens, registrar: true, contexto: "venda_direta",
+            });
+            if (r.json?.ok === true) {
+              cotacao_id = r.json.cotacao_id ?? null;
+              valida_ate = r.json.valida_ate ?? null;
+            } else {
+              correios_erro = r.json?.erro ?? r.json?.error ?? `correios-cotar HTTP ${r.status}`;
+            }
+          }
+        }
+
+        const modos = cepValido ? ["retirada", "sedex", "pac", "frete_fetely"] : ["retirada"];
+        const opcoes: unknown[] = [];
+        for (const modo of modos) {
+          const { data, error } = await supabase.rpc("fn_vd_calcular", {
+            p_cliente: body.cliente ?? {},
+            p_itens: itens,
+            p_entrega: { modo, cotacao_id, endereco, beneficio: body.beneficio ?? null },
+          });
+          if (error) { opcoes.push({ modo, ok: false, erro: error.message }); continue; }
+          const d: any = data ?? {};
+          const frete = d.endereco_entrega?.frete;
+          opcoes.push({
+            modo, ok: true,
+            valor_itens: d.valor_itens, desconto_pedido: d.desconto_pedido,
+            frete_cobrado: d.frete_cobrado, valor_total: d.valor_total,
+            prazo_dias: frete?.prazo_dias ?? null, gratis: frete?.gratis ?? false,
+            fonte: frete?.fonte ?? null, avisos: d.avisos,
+          });
+        }
+        return jsonResponse(200, { ok: true, cotacao_id, valida_ate, correios_erro, opcoes });
+      }
+
+      if (body.tipo === "balcao_criar") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_vd_criar", {
+          p_fop_profile_id: body.fop_profile_id,
+          p_vendedor_nome: body.vendedor_nome,
+          p_vendedor_email: body.vendedor_email,
+          p_cliente: body.cliente,
+          p_itens: body.itens,
+          p_entrega: body.entrega,
+          p_pagamento: body.pagamento,
+          p_observacao: body.observacao ?? null,
+        });
+        if (error) return erroRpc(error);
+        const res: any = data ?? {};
+        let link_pagamento: string | null = res.link_pagamento ?? null;
+        let link_erro: string | null = null;
+        let link_expira_em: string | null = null;
+        let max_parcelas: number | null = null;
+        if (body.pagamento === "cartao") {
+          const r = await chamarInterna("safrapay-link", {
+            pedido_id: res.pedido_id, forcar_novo: false,
+            ...(body.max_parcelas ? { max_parcelas: body.max_parcelas } : {}),
+          });
+          if (r.json?.ok) {
+            link_pagamento = r.json.url ?? null;
+            link_expira_em = r.json.expira_em ?? null;
+            max_parcelas = r.json.max_parcelas ?? null;
+          } else {
+            // Não desfaz o pedido: o vendedor gera de novo por balcao_link.
+            link_erro = r.json?.erro ?? r.json?.error ?? `safrapay-link HTTP ${r.status}`;
+            console.error("[recebe-pedido] balcao_criar: link falhou", res.pedido_id, link_erro);
+          }
+        }
+        return jsonResponse(200, {
+          ok: true, ...res, link_pagamento, link_erro,
+          ...(body.pagamento === "cartao" ? { link_expira_em, max_parcelas } : {}),
+        });
+      }
+
+      if (body.tipo === "balcao_meus_pedidos") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_meus_pedidos", {
+          p_fop_profile_id: body.fop_profile_id, p_dias: body.dias ?? 90,
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, pedidos: data ?? [] });
+      }
+
+      if (body.tipo === "balcao_link") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data: vend, error: eV } = await supabase
+          .from("vendedores").select("id").eq("fop_profile_id", body.fop_profile_id);
+        if (eV) return erroRpc(eV);
+        const vendIds = (vend ?? []).map((v: any) => v.id);
+        if (vendIds.length === 0) return jsonResponse(403, { ok: false, error: "Pedido não é deste vendedor." });
+        const { data: ped, error: eP } = await supabase
+          .from("pedidos").select("id, forma_solicitada")
+          .eq("id", body.pedido_id).eq("origem", "venda_direta").in("vendedor_id", vendIds).maybeSingle();
+        if (eP) return erroRpc(eP);
+        if (!ped) return jsonResponse(403, { ok: false, error: "Pedido não é deste vendedor." });
+
+        if ((ped as any).forma_solicitada === "pix") {
+          const { data: g, error: eG } = await supabase
+            .from("vw_venda_direta_gestao").select("link_pagamento").eq("id", body.pedido_id).maybeSingle();
+          if (eG) return erroRpc(eG);
+          return jsonResponse(200, { ok: true, meio: "pix", url: (g as any)?.link_pagamento ?? null });
+        }
+
+        const r = await chamarInterna("safrapay-link", {
+          pedido_id: body.pedido_id, forcar_novo: body.forcar_novo === true,
+          ...(body.max_parcelas ? { max_parcelas: body.max_parcelas } : {}),
+        });
+        return jsonResponse(r.status, r.json);
+      }
+
+      return jsonResponse(400, { ok: false, error: `tipo '${body.tipo}' desconhecido.` });
+    }
+    // ── fim branches balcao_* ──
+
     // ── Branch: leitura do Farol de Pedidos (chamado pelo FOP) ──
     // Autenticação já validada acima via FOP_INBOUND_TOKEN
     if (body.tipo === "farol") {
