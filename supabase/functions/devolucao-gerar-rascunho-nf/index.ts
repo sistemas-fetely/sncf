@@ -131,6 +131,9 @@ serve(async (req) => {
         ? `Nota de crédito (redução de valores ou quantidades) referente à NF-e ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). Justificativa: ${d.justificativa}. ${d.devolucao_numero} — SNCF.`
         : `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
     };
+    // Frete da venda original: quando existe, entra na NF de devolução (frete por conta do emitente) para o total bater.
+    const frete = Number(d.valor_frete ?? 0);
+    if (frete > 0) payload.valorFrete = frete;
     if (ehCredito) {
       // Campo validado em 22/10/2026 contra a API v3: `tipoNota` string ("04" criou a NF 000044 da DEV-2142).
       payload.tipoNota = d.tipo_credito ?? "04";
