@@ -40,6 +40,7 @@ type Ocorrencia = {
   numero_titulo: string | null;
   valor_titulo: number | null;
   tratado: boolean | null;
+  classificacao_rejeicao: string | null;
 };
 
 function ehRejeicaoDeBaixa(o: Ocorrencia): boolean {
@@ -65,7 +66,8 @@ export function AlertaBaixaRejeitadaReemissao() {
   });
 
   const rejeicoes = useMemo(
-    () => ocorrencias.filter((o) => !o.tratado && ehRejeicaoDeBaixa(o)),
+    // Classificação vem da view: rejeição em boleto substituído não é "dois boletos vivos".
+    () => ocorrencias.filter((o) => !o.tratado && o.classificacao_rejeicao !== "duplicada_boleto_substituido" && ehRejeicaoDeBaixa(o)),
     [ocorrencias],
   );
 
