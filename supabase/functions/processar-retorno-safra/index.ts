@@ -537,6 +537,63 @@ serve(async (req) => {
         const parceiro = t.conta?.parceiro;
 
         // ═══════════════════════════════════════════════════════════════════
+        // BOLETO SUBSTITUÍDO (22/10/2026): baixa (09/10/40) ou rejeição (03) de
+        // um nosso número que NÃO é o vigente do título, e cujo boleto é mais
+        // antigo que o vigente. O título descreve o boleto novo — não pode ser
+        // tocado. Atualiza só titulo_boleto + titulo_instrumento_log. Idempotente
+        // e independente da ordem: o vigente vem do título (a reemissão única
+        // grava o novo em nosso_numero_seq ao gerar a remessa R).
+        if (categoria === "baixa" || categoria === "rejeicao") {
+          const nnVigente = String(t.nosso_numero_seq ?? t.nosso_numero_safra ?? "");
+          if (nnVigente && nnVigente !== linha.nossoNumero) {
+            const { data: bols, error: errBols } = await sb
+              .from("titulo_boleto")
+              .select("nosso_numero, emitido_em, situacao, remessa_baixa_id")
+              .in("nosso_numero", [nnVigente, linha.nossoNumero]);
+            if (errBols) {
+              erros.push({ linha: linha.numeroLinha, nosso_numero: linha.nossoNumero, erro: `boleto vigente: ${errBols.message}` });
+              marcarDesfecho(linha.numeroLinha, false, "erro ao checar boleto vigente");
+              continue;
+            }
+            // deno-lint-ignore no-explicit-any
+            const bv = (bols ?? []).find((b: any) => b.nosso_numero === nnVigente) as any;
+            // deno-lint-ignore no-explicit-any
+            const bo = (bols ?? []).find((b: any) => b.nosso_numero === linha.nossoNumero) as any;
+            const substituido = !!bv && (!bo?.emitido_em || bv.emitido_em > bo.emitido_em);
+            if (substituido) {
+              if (categoria === "baixa") {
+                if (bo?.situacao !== "baixado") {
+                  await marcarBoleto(linha.nossoNumero, "baixado", "baixado_em");
+                  await sb.from("titulo_instrumento_log").insert({
+                    titulo_id: t.id,
+                    evento: "baixa_boleto_substituido",
+                    detalhe: `Baixa ${linha.ocorrencia} do boleto substituído ${linha.nossoNumero}; vigente ${nnVigente} intacto`,
+                    origem: "retorno_safra",
+                    nosso_numero_anterior: linha.nossoNumero,
+                    nosso_numero_novo: nnVigente,
+                  } as any);
+                }
+                if (bo?.remessa_baixa_id) remessasInstrucaoTocadas.add(bo.remessa_baixa_id);
+                contadores.baixas++;
+                marcarDesfecho(linha.numeroLinha, true, "boleto substituido: so titulo_boleto atualizado");
+              } else {
+                await sb.from("titulo_instrumento_log").insert({
+                  titulo_id: t.id,
+                  evento: "instrucao_rejeitada_boleto_substituido",
+                  detalhe: `Ocorrência 03 motivo ${linha.motivoRejeicao} (${descricaoRejeicao(linha.motivoRejeicao)}) no boleto substituído ${linha.nossoNumero}; vigente ${nnVigente} intacto — sem ação`,
+                  origem: "retorno_safra",
+                  nosso_numero_anterior: linha.nossoNumero,
+                  nosso_numero_novo: nnVigente,
+                } as any);
+                contadores.informativos++;
+                marcarDesfecho(linha.numeroLinha, true, "rejeicao em boleto substituido: titulo nao alterado");
+              }
+              continue;
+            }
+          }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
         // REGISTRO (02)  — banco é a autoridade para o nosso número confirmado
         // ═══════════════════════════════════════════════════════════════════
         if (categoria === "registro") {
