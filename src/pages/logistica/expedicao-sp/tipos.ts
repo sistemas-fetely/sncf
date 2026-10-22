@@ -15,6 +15,25 @@ export const ESTACOES = [
 export const EVENTO_DOCUMENTOS_OK = "mesa_documentos_ok";
 /** `fn_mesa_sp_registrar_rastreio`: código de rastreio gravado. */
 export const EVENTO_RASTREIO_REGISTRADO = "mesa_rastreio_registrado";
+/** `fn_mesa_sp_solicitar_nf`: NF do B2B solicitada ao Fiscal (pode repetir = reenvio). */
+export const EVENTO_NF_SOLICITADA = "mesa_nf_solicitada";
+
+/** Linha de `vw_fila_mesa_sp_aguardando_nf` — fonte única do estado da solicitação. */
+export interface AguardandoNfMesa {
+  pedido_id: string;
+  id_externo: string | null;
+  parceiro_nome: string | null;
+  parceiro_cnpj: string | null;
+  valor_liquido: number | null;
+  volumes: number | null;
+  peso_kg: number | null;
+  embalado_em: string | null;
+  solicitado_em: string | null;
+  observacao: string | null;
+  solicitado_por: string | null;
+  horas_aguardando: number | null;
+  exige_acao_nossa: boolean | null;
+}
 
 /** Linha de `fn_mesa_sp_documentos` — fonte única do estado de cada documento. */
 export interface DocumentoMesa {

@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   EVENTO_ROTEADO,
-  type CaixaSugerida, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type AguardandoNfMesa, type CaixaSugerida, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
 
@@ -30,6 +30,7 @@ export const CHAVE_IDENTIDADES_MESA = ["mesa-sp", "identidades"] as const;
 export const CHAVE_MARCACOES_MESA = ["mesa-sp", "marcacoes-embalagem"] as const;
 export const CHAVE_CANCELAMENTOS_MESA = ["mesa-sp", "cancelamentos"] as const;
 export const CHAVE_DOCUMENTOS_MESA = ["mesa-sp", "documentos"] as const;
+export const CHAVE_AGUARDANDO_NF_MESA = ["mesa-sp", "aguardando-nf"] as const;
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -415,6 +416,46 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       // A embalagem apaga as marcações no próprio banco: a tela só relê.
       void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
       void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_AGUARDANDO_NF_MESA });
+    },
+    onError: (e: unknown) => {
+      toast.error(mensagemErro(e));
+    },
+  });
+}
+
+/** B2B embalados aguardando NF, com o estado da solicitação ao Fiscal (`vw_fila_mesa_sp_aguardando_nf`). */
+export function useAguardandoNfMesa() {
+  return useQuery({
+    queryKey: CHAVE_AGUARDANDO_NF_MESA,
+    staleTime: 15 * 1000,
+    queryFn: async (): Promise<AguardandoNfMesa[]> => {
+      const { data, error } = await supabaseMesa.from("vw_fila_mesa_sp_aguardando_nf").select("*");
+      if (error) throw new Error(`ler B2B aguardando NF: ${mensagemErro(error)}`);
+      return (data ?? []) as AguardandoNfMesa[];
+    },
+  });
+}
+
+/** `fn_mesa_sp_solicitar_nf` — grava o evento e avisa o Fiscal; repetir = reenviar o aviso. */
+export function useSolicitarNf() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: { p_pedido_id: string; p_observacao: string | null }) => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_solicitar_nf", args);
+      if (error) throw new Error(mensagemErro(error));
+      return (data ?? {}) as { ok?: boolean; notificados?: number };
+    },
+    onSuccess: async (r) => {
+      if (r.notificados === 0) {
+        toast.warning("Solicitação registrada, mas ninguém do Fiscal está cadastrado para receber o aviso.");
+      } else {
+        toast.success(`NF solicitada ao Fiscal — ${r.notificados ?? "?"} pessoa(s) avisada(s).`);
+      }
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: CHAVE_AGUARDANDO_NF_MESA }),
+        qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA }),
+      ]);
     },
     onError: (e: unknown) => {
       toast.error(mensagemErro(e));
