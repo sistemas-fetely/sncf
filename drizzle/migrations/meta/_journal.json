@@ -29,6 +29,13 @@
       "when": 1792597391756,
       "tag": "0003_renegociacao_cartao_safrapay",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792632126541,
+      "tag": "0004_renegociar_acordo_meio_por_parcela",
+      "breakpoints": true
     }
   ]
 }
