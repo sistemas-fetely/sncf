@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Switch } from "@/components/ui/switch";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
@@ -69,6 +70,7 @@ interface Item { sku: string; nome: string | null; preco: number; quantidade: nu
 interface Resultado {
   pedido_id: string; id_externo: string; valor_itens: number; frete_cobrado: number; valor_total: number; pagamento: string;
   link_pagamento: string | null; pix_copia_cola: string | null; avisos: { sku: string; aviso: string }[] | null; estagio: string;
+  valor_haver?: number | null; valor_a_pagar?: number | null;
   pagamento_refeito?: boolean | null; meio_trocado?: boolean | null; valor_anterior?: number | null;
   frete?: { servico: string | null; custo: number | null; cobrado: number | null; fonte: string | null; gratis: boolean | null; prazo_dias: number | null; faixa: string | null; motivo: string | null } | null;
 }
@@ -324,6 +326,26 @@ export default function VendaDiretaNovo() {
   const cfgParcelasQ = useCfgParcelas();
   const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
     const [parcelasManual, setParcelasManual] = useState<number | null>(null);
+  // Haver Site SP: crédito do cliente (só o maior haver é aplicado por pedido nesta versão).
+  const parceiroId = !edicao ? cliente?.id ?? null : null;
+  const haverQ = useQuery({
+    queryKey: ["haver-disponivel-parceiro", parceiroId],
+    enabled: !!parceiroId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_haver_disponivel_parceiro", { p_parceiro_id: parceiroId });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as { haver_id: string; saldo: number; origem: string | null; descricao: string | null; expira_em: string | null }[];
+    },
+  });
+  useEffect(() => { if (haverQ.error) toast.error("Não foi possível ler o crédito do cliente", { description: (haverQ.error as Error).message }); }, [haverQ.error]);
+  const haveres = parceiroId ? haverQ.data ?? [] : [];
+  const haverSaldoTotal = haveres.reduce((a, h) => a + Number(h.saldo ?? 0), 0);
+  const haverEscolhido = haveres.length ? [...haveres].sort((a, b) => Number(b.saldo) - Number(a.saldo))[0] : null;
+  const [usarHaver, setUsarHaver] = useState(true);
+  const haverAtivo = !!haverEscolhido && usarHaver;
+  const haverAplicado = haverAtivo ? Math.min(Number(haverEscolhido!.saldo), total) : 0;
+  const aPagarComHaver = Math.max(total - haverAplicado, 0);
+  const haverCobreTudo = haverAtivo && aPagarComHaver <= 0.009;
   const parcelasLink = parcelasManual ?? (cfgParcelasQ.data ? parcelasPadrao(cfgParcelasQ.data, total) : 1);
   const rotPag = rotulosOpcaoPagamento(cfgPixNoLink, parcelasLink);
 
@@ -392,6 +414,7 @@ export default function VendaDiretaNovo() {
         p_entrega,
         p_pagamento: pagamento,
         p_observacao: observacao.trim() || null,
+        ...(haverAtivo ? { p_haver_id: haverEscolhido!.haver_id } : {}),
       });
       if (error) throw error;
       if (!data) throw new Error("A criação do pedido não devolveu resultado.");
@@ -481,8 +504,14 @@ export default function VendaDiretaNovo() {
         {cabecalho}
         <Card>
           <CardHeader>
-            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — aguardando pagamento</CardTitle>
+            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — {r.pagamento === "haver" ? "coberto pelo crédito do cliente" : "aguardando pagamento"}</CardTitle>
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
+            {Number(r.valor_haver ?? 0) > 0 && (
+              <p className="text-sm text-muted-foreground">
+                Crédito <span className="font-medium tabular-nums text-foreground">{formatBRL(r.valor_haver ?? 0)}</span>
+                {" · "}A pagar <span className="font-medium tabular-nums text-foreground">{formatBRL(r.valor_a_pagar ?? 0)}</span>
+              </p>
+            )}
             {edicao && (
               <p className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm font-medium">
                 {Math.abs(Number(r.valor_anterior ?? 0) - Number(r.valor_total ?? 0)) > 0.009
@@ -502,12 +531,14 @@ export default function VendaDiretaNovo() {
                 {r.frete.motivo && <> · {r.frete.motivo}</>}
               </p>
             )}
-            {r.pagamento === "pix" && cfgPixNoLink ? (
+            {r.pagamento === "haver" ? (
+              <p className="rounded-md border bg-muted/40 p-3 text-sm">Pedido coberto pelo crédito — sem cobrança.</p>
+            ) : r.pagamento === "pix" && cfgPixNoLink ? (
               <LinkCartaoPainel
                 meio="pix"
                 pedidoId={r.pedido_id}
                 idExterno={r.id_externo}
-                total={r.valor_total}
+                total={Number(r.valor_haver ?? 0) > 0 ? Number(r.valor_a_pagar ?? 0) : r.valor_total}
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
                 pixLocal={{ payload: r.pix_copia_cola, link: r.link_pagamento }}
@@ -517,7 +548,7 @@ export default function VendaDiretaNovo() {
                 auto
                 pedidoId={r.pedido_id}
                 idExterno={r.id_externo}
-                total={r.valor_total}
+                total={Number(r.valor_haver ?? 0) > 0 ? Number(r.valor_a_pagar ?? 0) : r.valor_total}
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
                 fallbackPayload={r.pix_copia_cola}
@@ -527,7 +558,7 @@ export default function VendaDiretaNovo() {
               <LinkCartaoPainel
                 pedidoId={r.pedido_id}
                 idExterno={r.id_externo}
-                total={r.valor_total}
+                total={Number(r.valor_haver ?? 0) > 0 ? Number(r.valor_a_pagar ?? 0) : r.valor_total}
                 clienteNome={cliente?.razao_social ?? novo?.nome ?? null}
                 telefone={telefoneCliente}
                 maxParcelas={parcelasLink}
@@ -704,7 +735,19 @@ export default function VendaDiretaNovo() {
       <Card>
         <CardHeader><CardTitle className="text-base">Pagamento</CardTitle></CardHeader>
         <CardContent className="space-y-2">
-          <RadioGroup value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
+          {haverEscolhido && (
+            <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">Crédito do cliente · <span className="tabular-nums">{formatBRL(haverSaldoTotal)}</span></span>
+                <label className="flex items-center gap-2 text-sm"><Switch checked={usarHaver} onCheckedChange={setUsarHaver} />Usar crédito neste pedido</label>
+              </div>
+              {haverAtivo && (
+                <p className="tabular-nums text-muted-foreground">Crédito {formatBRL(haverAplicado)} · A pagar {formatBRL(aPagarComHaver)}</p>
+              )}
+              {haverCobreTudo && <p className="text-muted-foreground">Pedido coberto pelo crédito — sem cobrança</p>}
+            </div>
+          )}
+          <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
