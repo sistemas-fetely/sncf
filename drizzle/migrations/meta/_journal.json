@@ -43,6 +43,13 @@
       "when": 1792666636916,
       "tag": "0005_pix_titulo_qr_e_pagina_publica",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792679434523,
+      "tag": "0006_retorno_safra_classifica_rejeicao_boleto_substituido",
+      "breakpoints": true
     }
   ]
 }
