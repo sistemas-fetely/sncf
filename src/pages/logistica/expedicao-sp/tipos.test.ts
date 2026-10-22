@@ -1,45 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
-  EVENTO_CONFERENCIA_DIVERGENCIA, EVENTO_CONFERENCIA_OK, EVENTO_DESPACHADO,
-  EVENTO_EMBALADO, EVENTO_SEPARACAO_INICIADA,
-  cepDoEndereco, estacaoBase, modalSugerido, modoEntregaVendaDireta,
-  pedidoEhVendaDireta, rotuloEntregaVendaDireta,
-  type EventoMesa, type ModalRegra,
+  cepDoEndereco, colunasQuadro, modalSugerido, modoEntregaVendaDireta,
+  pedidoEhVendaDireta, rotuloEntregaVendaDireta, tempoParado,
+  type ModalRegra,
 } from "./tipos";
 
-/** Fabrica um evento com só o que a derivação lê. */
-function ev(tipo: string, criado_em: string): EventoMesa {
-  return { id: `${tipo}-${criado_em}`, pedido_id: "p1", tipo_evento: tipo, descricao: null, criado_em, metadata: null };
-}
 
-describe("estacaoBase", () => {
-  it("pré-separação é fila, qualquer que seja a trilha", () => {
-    expect(estacaoBase("pre_separacao", [ev(EVENTO_EMBALADO, "2026-01-01T10:00:00Z")])).toBe("fila");
+describe("colunasQuadro", () => {
+  it("une comuns por código e põe exclusivas do B2B depois de despacho", () => {
+    const e = (canal: string, codigo: string, ordem: number) => ({ canal, codigo, ordem, rotulo: codigo, limite_min: null });
+    const cols = colunasQuadro([
+      e("B2B", "fila", 10), e("B2B", "aguardando_nf", 50), e("B2B", "nf_emitida", 70),
+      e("B2C", "fila", 10), e("B2C", "separacao", 20), e("B2C", "despacho", 60),
+    ]).map((c) => c.codigo);
+    expect(cols).toEqual(["fila", "separacao", "despacho", "aguardando_nf", "nf_emitida"]);
   });
+});
 
-  it("vale o ÚLTIMO evento mesa_*, não o primeiro", () => {
-    const eventos = [
-      ev(EVENTO_SEPARACAO_INICIADA, "2026-01-01T10:00:00Z"),
-      ev(EVENTO_CONFERENCIA_OK, "2026-01-01T10:30:00Z"),
-      ev(EVENTO_EMBALADO, "2026-01-01T11:00:00Z"),
-    ];
-    expect(estacaoBase("em_separacao", eventos)).toBe("despacho");
-  });
-
-  it("divergência devolve para separação (retrabalho), sem mexer no estágio", () => {
-    const eventos = [
-      ev(EVENTO_SEPARACAO_INICIADA, "2026-01-01T10:00:00Z"),
-      ev(EVENTO_CONFERENCIA_DIVERGENCIA, "2026-01-01T10:30:00Z"),
-    ];
-    expect(estacaoBase("em_separacao", eventos)).toBe("separacao");
-  });
-
-  it("despachado sai da mesa", () => {
-    expect(estacaoBase("em_transporte", [ev(EVENTO_DESPACHADO, "2026-01-01T12:00:00Z")])).toBe("despachado");
-  });
-
-  it("em separação sem nenhum evento da mesa aparece em separação, não some", () => {
-    expect(estacaoBase("em_separacao", [])).toBe("separacao");
+describe("tempoParado", () => {
+  it("formata minutos, horas e dias", () => {
+    expect(tempoParado(12)).toBe("há 12 min");
+    expect(tempoParado(180)).toBe("há 3h");
+    expect(tempoParado(2 * 24 * 60)).toBe("há 2d");
   });
 });
 

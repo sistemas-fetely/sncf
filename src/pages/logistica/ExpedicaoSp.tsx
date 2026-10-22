@@ -27,14 +27,14 @@ import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
-  ESTACOES, ESTACOES_B2B_POS_EMBALAGEM, ESTAGIO_FILA, ROTULO_ESTACAO, pedidoEhB2B,
-  embalagemDoPedido, estacaoBase, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
+  pedidoEhB2B, colunasQuadro, tempoParado,
+  embalagemDoPedido, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
   useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
-  usePedidosMesaSp, usePuxarPedido, useRegistrarConferencia, useRegrasModal, useVdModosModal,
+  useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
 
 /**
@@ -45,9 +45,8 @@ import {
  * Despacho. Nada de navegar entre telas com a caixa na mão.
  *
  * FONTE-ÚNICA: estágio macro é `pedidos.estagio`; a sub-estação é derivada do
- * último evento `mesa_*` que as RPCs gravaram. A tela não guarda status próprio
- * — o único estado local é a navegação Separação → Conferência, que não existe
- * no banco porque não é transição, é gesto de tela.
+ * etapa vem PRONTA de `vw_mesa_sp_quadro`. A tela não deriva estação nenhuma —
+ * até a entrada em conferência é transição gravada (`fn_mesa_sp_iniciar_conferencia`).
  */
 
 /** Qual modal a embalagem registrou — o despacho começa por ele. */
@@ -73,12 +72,6 @@ export default function ExpedicaoSp() {
   const [encerrarAberto, setEncerrarAberto] = useState(false);
 
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
-  /**
-   * Pedidos que o operador levou da Separação para a Conferência. Vive só aqui:
-   * a conferência não tem evento de entrada, e inventar um seria inventar status.
-   */
-  const [emConferencia, setEmConferencia] = useState<Set<string>>(new Set());
-
   const eventosPorPedido = useMemo(() => {
     const mapa = new Map<string, EventoMesa[]>();
     for (const e of eventosQ.data ?? []) {
@@ -89,18 +82,15 @@ export default function ExpedicaoSp() {
     return mapa;
   }, [eventosQ.data]);
 
-  /** Estação de cada pedido: base do banco + o avanço local para conferência. */
-  const estacaoDe = useMemo(() => {
-    const mapa = new Map<string, Estacao>();
-    for (const p of pedidos) {
-      const base = estacaoBase(p.estagio, eventosPorPedido.get(p.id) ?? []);
-      if (base === "despachado") continue; // saiu da mesa
-      mapa.set(p.id, base === "separacao" && emConferencia.has(p.id) ? "conferencia" : base);
-    }
-    return mapa;
-  }, [pedidos, eventosPorPedido, emConferencia]);
+  const etapasQ = useEtapasMesaSp();
+  const colunas = useMemo(() => colunasQuadro(etapasQ.data ?? []), [etapasQ.data]);
+  /** Etapa de cada pedido: só o que a view devolveu. */
+  const estacaoDe = useMemo(
+    () => new Map(pedidos.map((p) => [p.id, p.etapa as Estacao])),
+    [pedidos],
+  );
 
-  const fila = pedidos.filter((p) => p.estagio === ESTAGIO_FILA);
+  const fila = pedidos.filter((p) => p.etapa === "fila");
   /** "Puxar próximo" pula pedido com cancelamento solicitado. */
   const proximoDaFila = fila.find((p) => !cancelamentos.has(p.id)) ?? null;
   const naMesa = pedidos.filter((p) => {
@@ -123,11 +113,11 @@ export default function ExpedicaoSp() {
   /** Pedidos da mesa agrupados por estação, na ordem da bancada. */
   const gruposMesa = useMemo(
     () =>
-      ESTACOES
-        .filter((estacao) => estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem")
-        .map((estacao) => ({ estacao, doGrupo: naMesa.filter((p) => estacaoDe.get(p.id) === estacao) }))
+      colunas
+        .filter((c) => c.codigo === "separacao" || c.codigo === "conferencia" || c.codigo === "embalagem")
+        .map((c) => ({ estacao: c.codigo, rotulo: c.rotulo, doGrupo: naMesa.filter((p) => p.etapa === c.codigo) }))
         .filter(({ doGrupo }) => doGrupo.length > 0),
-    [naMesa, estacaoDe],
+    [naMesa, colunas],
   );
 
   // Seleção segue a bancada: o pedido que está na mesa é o pedido da tela.
@@ -212,36 +202,18 @@ export default function ExpedicaoSp() {
     return grupos.sort((a, b) => a.caixas[0].embaladoEm.localeCompare(b.caixas[0].embaladoEm));
   }, [prontosDespacho, eventosPorPedido, modaisQ.data]);
 
-  /** Contadores do cabeçalho — uma leitura só da bancada inteira. */
-  const contadores = useMemo(() => {
-    const base: Record<Estacao, number> = {
-      fila: 0, separacao: 0, conferencia: 0, embalagem: 0, despacho: 0, aguardando_nf: 0, nf_emitida: 0,
-    };
-    for (const estacao of estacaoDe.values()) base[estacao] += 1;
-    return base;
-  }, [estacaoDe]);
-
-  function marcarEmConferencia(pedidoId: string, entrar: boolean) {
-    setEmConferencia((atual) => {
-      const proximo = new Set(atual);
-      if (entrar) proximo.add(pedidoId);
-      else proximo.delete(pedidoId);
-      return proximo;
-    });
-  }
+  const iniciarConferencia = useIniciarConferencia();
+  const voltarSeparacao = useVoltarSeparacao();
 
   function registrarConferencia(itens: ItemConferido[], ok: boolean, motivo: string | null) {
     if (!selecionado) return;
     const pedidoId = selecionado.id;
     conferir.mutate(
       { p_pedido_id: pedidoId, p_itens: itens, p_ok: ok, p_motivo: motivo },
-      // Conferência OK leva o pedido para a Embalagem (evento novo manda). O
-      // avanço local sai de cena nos dois casos: quem responde agora é o banco.
-      { onSuccess: () => marcarEmConferencia(pedidoId, false) },
     );
   }
 
-  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
+  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? etapasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
 
   return (
     <PageShell variant="dados">
@@ -255,20 +227,14 @@ export default function ExpedicaoSp() {
         }
       />
 
-      {/* Contadores por estação: o operador vê a bancada inteira de um olhar. */}
-      <div className="flex flex-wrap gap-2">
-        {ESTACOES.filter((e) => e !== "despacho" && e !== "nf_emitida").map((e) => (
-          <Selo key={e} estado={contadores[e] > 0 ? "info" : "muted"}>
-            {ROTULO_ESTACAO[e]} · {contadores[e]}
-          </Selo>
-        ))}
-        <Selo estado={prontosDespacho.length > 0 ? "info" : "muted"}>
-          Prontos p/ despacho · {prontosDespacho.length + nfEmitida.length}
-        </Selo>
-        <Selo estado={aguardandoRetirada.length > 0 ? "info" : "muted"}>
-          Aguardando retirada · {aguardandoRetirada.length}
-        </Selo>
-      </div>
+      {/* Quadro da bancada: uma coluna por etapa ativa de `mesa_sp_etapa`. */}
+      <QuadroBancada
+        colunas={colunas}
+        pedidos={pedidos}
+        cancelamentos={cancelamentos}
+        selecionadoId={selecionadoId}
+        onSelecionar={setSelecionadoId}
+      />
 
       {erro && (
         <div className="flex items-start gap-2 rounded-md bg-destructive/15 px-3 py-2 text-sm text-destructive-strong">
@@ -327,10 +293,10 @@ export default function ExpedicaoSp() {
                 </p>
               ) : (
                 <div className="space-y-3">
-                  {gruposMesa.map(({ estacao, doGrupo }) => (
+                  {gruposMesa.map(({ estacao, rotulo, doGrupo }) => (
                     <div key={estacao} className="space-y-2">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {ROTULO_ESTACAO[estacao]} · {doGrupo.length}
+                        {rotulo} · {doGrupo.length}
                       </p>
                       <ul className="space-y-2">
                         {doGrupo.map((p) => (
@@ -364,37 +330,33 @@ export default function ExpedicaoSp() {
             </CardContent>
           </Card>}
 
-          {ESTACOES_B2B_POS_EMBALAGEM.map((estacao) => {
-            const lista = estacao === "aguardando_nf" ? aguardandoNf : nfEmitida;
-            if (estacao === "nf_emitida") return null; // B2B faturado vive em "Prontos p/ despacho"
-            return (
-              <Card key={estacao}>
-                <CardContent className="space-y-3 p-4">
-                  <p className="text-sm font-medium">{ROTULO_ESTACAO[estacao]} · {lista.length}</p>
-                  {lista.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum B2B embalado aguardando NF.</p>
-                  ) : (
-                    <ul className="space-y-2">
-                      {lista.map((p) => {
-                        const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
-                        return (
-                          <li key={p.id}>
-                            <LinhaPedido
-                              pedido={p}
- cancelamento={cancelamentos.get(p.id)}
-                              ativo={p.id === selecionadoId}
-                              rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
-                              onSelecionar={() => setSelecionadoId(p.id)}
-                            />
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
+          <Card>
+            <CardContent className="space-y-3 p-4">
+              <p className="text-sm font-medium">
+                {colunas.find((c) => c.codigo === "aguardando_nf")?.rotulo ?? "aguardando_nf"} · {aguardandoNf.length}
+              </p>
+              {aguardandoNf.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum B2B embalado aguardando NF.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {aguardandoNf.map((p) => {
+                    const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
+                    return (
+                      <li key={p.id}>
+                        <LinhaPedido
+                          pedido={p}
+                          cancelamento={cancelamentos.get(p.id)}
+                          ativo={p.id === selecionadoId}
+                          rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
+                          onSelecionar={() => setSelecionadoId(p.id)}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
 
           <Card>
             <CardContent className="space-y-3 p-4">
@@ -522,7 +484,9 @@ export default function ExpedicaoSp() {
                         Devolver p/ fila
                       </Button>
                     )}
-                    <Selo estado="info">{ROTULO_ESTACAO[estacaoSelecionada]}</Selo>
+                    <Selo estado={selecionado.estourou_limite ? "warning" : "info"}>
+                      {selecionado.etapa_rotulo ?? selecionado.etapa} · {tempoParado(selecionado.minutos_parado)}
+                    </Selo>
                   </div>
                 </CardContent>
               </Card>
@@ -567,7 +531,6 @@ export default function ExpedicaoSp() {
                             { p_pedido_id: pedidoId },
                             {
                               onSuccess: () => {
-                                marcarEmConferencia(pedidoId, false);
                                 setSelecionadoId(null);
                                 setEncerrarAberto(false);
                               },
@@ -610,7 +573,6 @@ export default function ExpedicaoSp() {
                           { p_pedido_id: pedidoId, p_motivo: motivoDevolver.trim() },
                           {
                             onSuccess: () => {
-                              marcarEmConferencia(pedidoId, false);
                               setDevolverAberto(false);
                             },
                           },
@@ -685,7 +647,7 @@ export default function ExpedicaoSp() {
                   carregando={itensQ.isLoading}
                   pedido={selecionado}
                    identidades={identidadesSelecionado}
-                  onConcluir={() => marcarEmConferencia(selecionado.id, true)}
+                  onConcluir={() => iniciarConferencia.mutate({ p_pedido_id: selecionado.id })}
                   imagens={imagensQ.data ?? new Map()}
                   bloqueado={bloqueado}
                 />
@@ -699,7 +661,7 @@ export default function ExpedicaoSp() {
                   carregando={itensQ.isLoading}
                   registrando={conferir.isPending}
                   onRegistrar={registrarConferencia}
-                  onVoltarSeparacao={() => marcarEmConferencia(selecionado.id, false)}
+                  onVoltarSeparacao={() => voltarSeparacao.mutate({ p_pedido_id: selecionado.id })}
                   bloqueado={bloqueado}
                 />
               )}
@@ -849,11 +811,73 @@ function LinhaPedido({
         {pedido.cliente_nome ?? "cliente sem nome"}
         {rotulo ? ` · ${rotulo}` : ""}
       </span>
+      <span className={cn("block truncate text-xs", pedido.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
+        {pedido.etapa_rotulo ?? pedido.etapa} · {tempoParado(pedido.minutos_parado)}
+      </span>
       {pedidoEhVendaDireta(pedido.id_externo) && (
         <span className="block truncate text-xs text-muted-foreground">
           Entrega: {rotuloEntregaVendaDireta(modoEntregaVendaDireta(pedido.endereco_entrega))}
         </span>
       )}
     </button>
+  );
+}
+
+function QuadroBancada({
+  colunas, pedidos, cancelamentos, selecionadoId, onSelecionar,
+}: {
+  colunas: { codigo: string; rotulo: string }[];
+  pedidos: PedidoMesa[];
+  cancelamentos: Map<string, CancelamentoMesa>;
+  selecionadoId: string | null;
+  onSelecionar: (id: string) => void;
+}) {
+  if (colunas.length === 0) return null;
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1">
+      {colunas.map((c) => {
+        const doGrupo = pedidos.filter((p) => p.etapa === c.codigo);
+        return (
+          <div
+            key={c.codigo}
+            className={cn(
+              "min-w-[150px] flex-1 rounded-md border p-2",
+              doGrupo.length === 0 ? "bg-muted/40 text-muted-foreground" : "bg-card",
+            )}
+          >
+            <p className="mb-1.5 flex items-center justify-between text-xs font-medium">
+              <span className="truncate">{c.rotulo}</span>
+              <span>{doGrupo.length}</span>
+            </p>
+            <ul className="space-y-1">
+              {doGrupo.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelecionar(p.id)}
+                    className={cn(
+                      "w-full rounded border px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:bg-accent",
+                      p.estourou_limite && "border-warning/60 bg-warning/10",
+                      p.id === selecionadoId && "border-primary bg-accent",
+                    )}
+                  >
+                    <span className="flex flex-wrap items-center gap-1">
+                      <span className="font-medium">{p.id_externo}</span>
+                      {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
+                      {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
+                      {cancelamentos.has(p.id) && <Selo estado="destructive">Cancel.</Selo>}
+                    </span>
+                    <span className="block truncate text-muted-foreground">{p.cliente_nome ?? "cliente sem nome"}</span>
+                    <span className={cn("block", p.estourou_limite ? "text-warning-strong" : "text-muted-foreground")}>
+                      {tempoParado(p.minutos_parado)}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
   );
 }
