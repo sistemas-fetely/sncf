@@ -1,3 +1,4 @@
+import { urlPaginaPix } from "@/lib/pagamento/linkPix";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -157,7 +158,7 @@ export function useEnviarEmailPedidoCobranca() {
         // Imagem hospedada do QR (bucket público) — no e-mail não existe canvas.
         if (pix_qr_url) templateData.qr_code_pix = pix_qr_url;
         // Página pública de pagamento: caminho principal no e-mail (origem de produção).
-        if (pix_token) templateData.link_pagina_pagamento = `https://sncf.lovable.app/pagar/${pix_token}`;
+        if (pix_token) templateData.link_pagina_pagamento = urlPaginaPix(pix_token);
       }
 
       const idempotencyKey = reenvio
