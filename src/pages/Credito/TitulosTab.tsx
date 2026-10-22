@@ -75,6 +75,7 @@ import { useAcordosTitulos } from "@/hooks/credito/useAcordosTitulos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TituloTarefasBloco } from "@/components/credito/TituloTarefasBloco";
 import { PixTituloBloco } from "@/components/credito/PixTituloBloco";
+import { CartaoTituloBloco } from "@/components/credito/CartaoTituloBloco";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -1594,6 +1595,13 @@ export default function TitulosTab() {
                     <dd className="font-mono font-medium">{formatBRL(detalhe.valor_efetivo)}</dd>
                   </dl>
                 </section>
+
+                {detalhe.tipo_pagamento === "cartao" && detalhe.status === "aberto" && (
+                  <section>
+                    <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Link de cartão</h4>
+                    <CartaoTituloBloco tituloId={detalhe.id} />
+                  </section>
+                )}
 
                 {detalhe.tipo_pagamento === "pix" && (
                   <section>

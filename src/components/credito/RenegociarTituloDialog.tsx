@@ -72,7 +72,7 @@ export interface CartaoResultado {
   link?: { url: string; expira_em: string | null } | null; erroLink?: string | null;
 }
 
-function LinkCartaoBloco({ c, onRetentar, retentando }: {
+export function LinkCartaoBloco({ c, onRetentar, retentando }: {
   c: CartaoResultado; onRetentar: () => void; retentando: boolean;
 }) {
   const copiar = async () => {
