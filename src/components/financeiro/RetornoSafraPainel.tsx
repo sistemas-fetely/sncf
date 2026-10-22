@@ -88,6 +88,10 @@ const SITUACAO_ROTULO: Record<string, { label: string; cls: string }> = {
   sem_titulo: { label: "Ocorrência órfã (sem título)", cls: "bg-warning/10 text-warning" },
   liquidado_sem_baixa: { label: "Liquidado sem baixa", cls: "bg-warning/10 text-warning" },
   tratado: { label: "Tratado", cls: "bg-success/10 text-success" },
+  duplicada_substituido: {
+    label: "Instrução duplicada em boleto substituído — sem ação",
+    cls: "bg-muted text-muted-foreground",
+  },
   processado: { label: "Processado", cls: "bg-muted text-muted-foreground" },
 };
 
