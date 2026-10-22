@@ -577,7 +577,11 @@ serve(async (req) => {
                 contadores.baixas++;
                 marcarDesfecho(linha.numeroLinha, true, "boleto substituido: so titulo_boleto atualizado");
               } else {
-                await sb.from("titulo_instrumento_log").insert({
+                const { count: jaLogado } = await sb.from("titulo_instrumento_log")
+                  .select("id", { count: "exact", head: true })
+                  .eq("titulo_id", t.id).eq("evento", "instrucao_rejeitada_boleto_substituido")
+                  .eq("nosso_numero_anterior", linha.nossoNumero);
+                if (!jaLogado) await sb.from("titulo_instrumento_log").insert({
                   titulo_id: t.id,
                   evento: "instrucao_rejeitada_boleto_substituido",
                   detalhe: `Ocorrência 03 motivo ${linha.motivoRejeicao} (${descricaoRejeicao(linha.motivoRejeicao)}) no boleto substituído ${linha.nossoNumero}; vigente ${nnVigente} intacto — sem ação`,
