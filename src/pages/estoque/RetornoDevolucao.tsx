@@ -58,12 +58,18 @@ type Funil = {
   e1_aberta: boolean; e2_reversa: boolean; e3_recebida: boolean; e4_conferida: boolean;
   e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
   nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
+  nf_vinculo_sugerido_id: string | null; grau_sugerido?: string | null;
+  desfecho: string | null; e_decisao_comercial: boolean | null;
   refund_ok: boolean | null; refund_valor: number | null;
   recebido_em: string | null; criado_em: string | null; encerrado_em: string | null;
 };
 type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
+const DESFECHO_ROTULO: Record<string, string> = { reenvio: "Reenvio ao cliente", reembolso: "Reembolso", haver: "Haver", troca: "Troca", nenhum: "Sem decisão" };
+const DESFECHO_BOTOES: { codigo: string; rotulo: string }[] = [
+  { codigo: "reenvio", rotulo: "Reenviar" }, { codigo: "reembolso", rotulo: "Reembolsar" }, { codigo: "haver", rotulo: "Gerar haver" }, { codigo: "troca", rotulo: "Troca" },
+];
 const QK_QUARENTENA = ["vw_quarentena_fila"] as const;
 const ETAPA_CAMPO: Record<number, keyof Funil> = {
   1: "e1_aberta", 2: "e2_reversa", 3: "e3_recebida", 4: "e4_conferida", 5: "e5_nf_resolvida", 6: "e6_ressarcida", 7: "e7_encerrada",
@@ -182,6 +188,7 @@ export default function RetornoDevolucao() {
   const [receber, setReceber] = useState<Funil | null>(null);
   const [reversa, setReversa] = useState<Funil | null>(null);
   const [estornar, setEstornar] = useState<Funil | null>(null);
+  const [decidir, setDecidir] = useState<{ d: Funil; desfecho: string } | null>(null);
   const [vincular, setVincular] = useState<Funil | null>(null);
   const [acaoId, setAcaoId] = useState<string | null>(null);
   const acaoLinha = async (id: string, nome: string, args: Record<string, unknown>, msg: string) => {
@@ -454,6 +461,17 @@ export default function RetornoDevolucao() {
                                   <div className="text-muted-foreground">Desfecho: {d.e6_ressarcida ? "ressarcida" : "pendente"} · {rotuloStatus(d)}</div>
                                 </>
                               )}
+                              {d.desfecho && d.desfecho !== "nenhum" && <div className="text-xs text-muted-foreground">Desfecho: {DESFECHO_ROTULO[d.desfecho] ?? d.desfecho}</div>}
+                              {d.desfecho === "nenhum" && !["encerrada", "cancelada"].includes(d.status_efetivo ?? d.status ?? "") && (
+                                <div className="space-y-1 pt-1">
+                                  <div className="text-xs font-medium">Decidir desfecho</div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {DESFECHO_BOTOES.map((b) => (
+                                      <Button key={b.codigo} size="sm" variant="outline" onClick={() => setDecidir({ d, desfecho: b.codigo })}>{b.rotulo}</Button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Recebimento</div>
@@ -504,7 +522,7 @@ export default function RetornoDevolucao() {
                               {d.fiscal_acao && (
                                 <div className="space-y-2 rounded-md border bg-card p-3">
                                   <div className="text-xs font-medium text-muted-foreground">Fiscal</div>
-                                  <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} />
+                                  <BlocoFiscalDevolucao devolucaoId={d.id} nfResolvida={d.e5_nf_resolvida} vinculoSugeridoId={d.nf_vinculo_sugerido_id} nfRetornoSugerida={d.nf_retorno_sugerida} grauSugerido={d.grau_sugerido ?? null} onMudou={invalidar} />
                                 </div>
                               )}
                               {d.canal === "site_sp" && (
@@ -565,6 +583,7 @@ export default function RetornoDevolucao() {
       <ConferirRetornoDialog open={!!conferir} onOpenChange={(v) => { if (!v) { setConferirId(null); void invalidar(); } }} devolucao={conferir} />
       <ReceberDialog d={receber} onFechar={() => setReceber(null)} onOk={invalidar} />
       <ReversaDialog d={reversa} onFechar={() => setReversa(null)} onOk={invalidar} />
+      <DecidirDesfechoDialog alvo={decidir} onFechar={() => setDecidir(null)} onOk={invalidar} />
       <EstornarDialog d={estornar} onFechar={() => setEstornar(null)} onOk={invalidar} />
       <VincularTransferenciaDialog d={vincular} onFechar={() => setVincular(null)} onOk={invalidar} />
     </PageShell>
@@ -589,6 +608,29 @@ function useAcao(onOk: () => Promise<void>, onFechar: () => void) {
     }
   };
   return { rodando, run };
+}
+
+function DecidirDesfechoDialog({ alvo, onFechar, onOk }: { alvo: { d: Funil; desfecho: string } | null; onFechar: () => void; onOk: () => Promise<void> }) {
+  const [motivo, setMotivo] = useState("");
+  const { rodando, run } = useAcao(onOk, onFechar);
+  useEffect(() => { if (alvo) setMotivo(""); }, [alvo]);
+  const rotulo = alvo ? DESFECHO_ROTULO[alvo.desfecho] ?? alvo.desfecho : "";
+  return (
+    <Dialog open={!!alvo} onOpenChange={(o) => { if (!o && !rodando) onFechar(); }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{rotulo} — {alvo?.d.numero ?? ""}</DialogTitle><DialogDescription>Registra a decisão comercial desta devolução.</DialogDescription></DialogHeader>
+        <div className="space-y-1"><Label>Motivo (opcional)</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onFechar} disabled={rodando}>Cancelar</Button>
+          <Button disabled={rodando} onClick={() => alvo && run("decidir_desfecho_devolucao",
+            { p_devolucao_id: alvo.d.id, p_desfecho: alvo.desfecho, p_motivo: motivo.trim() || null },
+            `Devolução ${alvo.d.numero ?? ""}: ${rotulo}`)}>
+            {rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function ReceberDialog({ d, onFechar, onOk }: DlgProps) {

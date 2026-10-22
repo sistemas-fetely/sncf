@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -5,6 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 
 type FiscalDevolucao = {
@@ -37,8 +42,60 @@ export function useFiscalDevolucao(devolucaoId: string) {
   });
 }
 
-export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida }: { devolucaoId: string; nfResolvida: boolean }) {
+type PropsBloco = {
+  devolucaoId: string; nfResolvida: boolean;
+  vinculoSugeridoId?: string | null; nfRetornoSugerida?: string | null; grauSugerido?: string | null;
+  onMudou?: () => Promise<void> | void;
+};
+
+function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinculoId: string; nfNumero: string | null; grauSugerido: string | null; onMudou?: () => Promise<void> | void }) {
+  const inicial = grauSugerido === "parcial" ? "parcial" : "total";
+  const [aberto, setAberto] = useState(false);
+  const [grau, setGrau] = useState(inicial);
+  const [motivo, setMotivo] = useState("");
+  const [rodando, setRodando] = useState(false);
+  const confirmar = async () => {
+    setRodando(true);
+    try {
+      const { data, error } = await sb.rpc("fn_devolucao_confirmar_vinculo", { p_vinculo_id: vinculoId, p_grau: grau, p_motivo: motivo.trim() || null });
+      if (error) throw error;
+      if (data?.ok === false) { toast.error(data.erro ?? "O banco recusou a confirmação."); return; }
+      toast.success(`NF de retorno ${nfNumero ?? ""} confirmada (${grau})`);
+      setAberto(false);
+      await onMudou?.();
+    } catch (e) { toast.error(rawMessage(e)); } finally { setRodando(false); }
+  };
+  return (
+    <div className="space-y-2 rounded-md border bg-muted/30 p-2 text-sm">
+      <div>NF de retorno <span className="font-semibold">{nfNumero ?? "?"}</span> capturada do Bling — aguardando confirmação</div>
+      <Button size="sm" onClick={() => { setGrau(inicial); setMotivo(""); setAberto(true); }}>Confirmar NF de retorno</Button>
+      <Dialog open={aberto} onOpenChange={(o) => { if (!o && !rodando) setAberto(false); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Confirmar NF de retorno {nfNumero ?? ""}</DialogTitle><DialogDescription>Vincula a NF capturada do Bling a esta devolução.</DialogDescription></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1"><Label>Grau</Label>
+              <RadioGroup value={grau} onValueChange={setGrau} className="flex gap-4">
+                <label className="flex items-center gap-2"><RadioGroupItem value="total" />Total</label>
+                <label className="flex items-center gap-2"><RadioGroupItem value="parcial" />Parcial</label>
+              </RadioGroup>
+            </div>
+            <div className="space-y-1"><Label>Motivo (opcional)</Label><Textarea rows={2} value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAberto(false)} disabled={rodando}>Cancelar</Button>
+            <Button onClick={confirmar} disabled={rodando}>{rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugeridoId, nfRetornoSugerida, grauSugerido, onMudou }: PropsBloco) {
   const q = useFiscalDevolucao(devolucaoId);
+  const temCapturada = !!vinculoSugeridoId && !nfResolvida;
+  const confirmar = temCapturada ? <ConfirmarVinculo vinculoId={vinculoSugeridoId!} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={onMudou} /> : null;
+  const mudou = () => { void q.refetch(); void onMudou?.(); };
   if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
   const f = q.data!;
@@ -62,10 +119,10 @@ export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida }: { devolucaoId
     );
   }
   if (f.fiscal_acao === "nf_devolucao") {
-    return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} />;
+    return <div className="space-y-2">{confirmar}<NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={mudou} ocultarGerar={temCapturada} /></div>;
   }
   if (f.fiscal_acao === "nota_credito") {
-    return <NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={() => q.refetch()} documento="nota_credito" />;
+    return <div className="space-y-2">{confirmar}<NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={mudou} documento="nota_credito" ocultarGerar={temCapturada} /></div>;
   }
-  return <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
+  return confirmar ?? <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
 }
