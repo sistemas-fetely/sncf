@@ -1596,7 +1596,7 @@ export default function TitulosTab() {
                   </dl>
                 </section>
 
-                {detalhe.tipo_pagamento === "cartao" && detalhe.status === "aberto" && (
+                {detalhe.tipo_pagamento === "cartao" && detalhe.status_real === "aberto" && (
                   <section>
                     <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Link de cartão</h4>
                     <CartaoTituloBloco tituloId={detalhe.id} />
