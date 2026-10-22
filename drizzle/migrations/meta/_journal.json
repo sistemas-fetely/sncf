@@ -50,6 +50,13 @@
       "when": 1792679434523,
       "tag": "0006_retorno_safra_classifica_rejeicao_boleto_substituido",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792679697714,
+      "tag": "0007_fix_haver_record_nao_atribuido",
+      "breakpoints": true
     }
   ]
 }
