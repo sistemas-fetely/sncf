@@ -522,10 +522,20 @@ export default function RetornoDevolucao() {
                               {(d.pendencias_encerramento ?? []).map((pz) => (
                                 <Badge key={pz} variant="outline" className="bg-warning/10 text-warning border-warning/20 font-normal">{pz}</Badge>
                               ))}
-                              <Button size="sm" variant="outline" className="ml-auto h-7" disabled={acaoId === d.id}
-                                onClick={() => void acaoLinha(d.id, "encerrar_devolucao", { p_devolucao_id: d.id }, "Devolução encerrada.")}>
-                                {acaoId === d.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Encerrar
-                              </Button>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="ml-auto inline-flex">
+                                    <Button size="sm" variant="outline" className="h-7"
+                                      disabled={acaoId === d.id || (d.pendencias_encerramento ?? []).length > 0}
+                                      onClick={() => void acaoLinha(d.id, "encerrar_devolucao", { p_devolucao_id: d.id }, "Devolução encerrada.")}>
+                                      {acaoId === d.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}Encerrar
+                                    </Button>
+                                  </span>
+                                </TooltipTrigger>
+                                {(d.pendencias_encerramento ?? []).length > 0 && (
+                                  <TooltipContent>Falta: {(d.pendencias_encerramento ?? []).join(" · ")}</TooltipContent>
+                                )}
+                              </Tooltip>
                             </div>
                           )}
                         </TableCell>
