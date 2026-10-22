@@ -62,15 +62,18 @@ export interface RenegociarResultado {
   instrumentos?: InstrumentoRenegociado[];
   /** UI apenas: havia boleto vivo no Safra quando o original foi encerrado. */
   boletoABaixar?: boolean;
-  /** 21/10/2026 (Flavio): troca para cartão — título filho e link SafraPay. */
-  cartao?: {
-    tituloId: string; principal: number; juros: number; total: number; maxParcelas: number; jurosPor: JurosPor;
-    link?: { url: string; expira_em: string | null } | null; erroLink?: string | null;
-  };
+  /** 21/10/2026 (Flavio): títulos de cartão (troca ou parcelas cartão do parcelamento) e seus links SafraPay. */
+  cartoes?: CartaoResultado[];
+}
+
+export interface CartaoResultado {
+  tituloId: string; principal: number; juros: number; total: number; maxParcelas: number; jurosPor: JurosPor;
+  vencimento?: string | null;
+  link?: { url: string; expira_em: string | null } | null; erroLink?: string | null;
 }
 
 function LinkCartaoBloco({ c, onRetentar, retentando }: {
-  c: NonNullable<RenegociarResultado["cartao"]>; onRetentar: () => void; retentando: boolean;
+  c: CartaoResultado; onRetentar: () => void; retentando: boolean;
 }) {
   const copiar = async () => {
     if (!c.link) return;
@@ -80,7 +83,7 @@ function LinkCartaoBloco({ c, onRetentar, retentando }: {
   return (
     <div className="rounded-md border p-3 space-y-3">
       <div>
-        <p className="text-sm font-medium">Cartão · link SafraPay · até {c.maxParcelas}x</p>
+        <p className="text-sm font-medium">Cartão · link SafraPay · até {c.maxParcelas}x{c.vencimento && <> · vence {formatDateBR(c.vencimento)}</>}</p>
         <p className="text-xs text-muted-foreground">
           Principal {formatBRL(c.principal)} + Juros {formatBRL(c.juros)} = Total <b>{formatBRL(c.total)}</b>
           {c.jurosPor === "fetely" && " · juros por conta da Fetely"}
@@ -111,9 +114,15 @@ function LinkCartaoBloco({ c, onRetentar, retentando }: {
   );
 }
 
+type MeioParcela = "boleto" | "pix" | "cartao";
+
 interface Parcela {
   valor: string;
   data_vencimento: string;
+  /** 22/10/2026 (Flavio): meio por parcela na modalidade 2. */
+  meio: MeioParcela;
+  maxParcelas: number;
+  jurosPor: JurosPor;
 }
 
 
@@ -208,9 +217,9 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   const navigate = useNavigate();
   const [modalidade, setModalidade] = useState<Modalidade>(2);
   const [justificativa, setJustificativa] = useState("");
-  const [parcelas, setParcelas] = useState<Parcela[]>([
-    { valor: String(titulo.valor_efetivo ?? 0), data_vencimento: amanhaISO() },
-  ]);
+  const meioPadrao: MeioParcela = titulo.tipo_pagamento === "pix" ? "pix" : "boleto";
+  const novaParcela = (valor: string): Parcela => ({ valor, data_vencimento: amanhaISO(), meio: meioPadrao, maxParcelas: 1, jurosPor: "cliente" });
+  const [parcelas, setParcelas] = useState<Parcela[]>([novaParcela(String(titulo.valor_efetivo ?? 0))]);
   const [novoInstrumento, setNovoInstrumento] = useState<NovoInstrumento>("pix");
   const [cartaoParcelas, setCartaoParcelas] = useState(1);
   const [jurosPor, setJurosPor] = useState<JurosPor>("cliente");
@@ -272,17 +281,27 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
 
   const ehCartao = modalidade === 3 && novoInstrumento === "cartao";
   const contaCartao = calcularJurosCartao(somaParcelas, taxasQ.data?.get(cartaoParcelas), jurosPor);
+  // Modalidade 2: conta de juros por parcela cartão (mesma regra da troca de instrumento).
+  const contasLinha = parcelas.map((p) =>
+    modalidade === 2 && p.meio === "cartao"
+      ? calcularJurosCartao(parseFloat(p.valor.replace(",", ".")) || 0, taxasQ.data?.get(p.maxParcelas), p.jurosPor)
+      : null,
+  );
+  const temCartaoMod2 = modalidade === 2 && parcelas.some((p) => p.meio === "cartao");
+  const linhaSemTaxa = contasLinha.some((c) => c?.semTaxa);
+  const totalComJuros = Math.round(contasLinha.reduce((acc, c, i) => acc + (c ? c.total : parseFloat(parcelas[i].valor.replace(",", ".")) || 0), 0) * 100) / 100;
+  const precisaEmail = ehCartao || temCartaoMod2;
   // Regra de email da Venda Direta: SafraPay exige email; pede no modal e grava só se o cadastro estiver vazio.
   const clienteQ = useQuery({
     queryKey: ["renegociar-cliente-email", titulo.parceiro_id],
-    enabled: ehCartao && !!titulo.parceiro_id,
+    enabled: precisaEmail && !!titulo.parceiro_id,
     queryFn: async () => {
       const { data, error } = await supabase.from("parceiros_comerciais").select("email").eq("id", titulo.parceiro_id as string).maybeSingle();
       if (error) throw error;
       return ((data as { email: string | null } | null)?.email ?? "").trim() || null;
     },
   });
-  const semEmail = ehCartao && clienteQ.isSuccess && !clienteQ.data;
+  const semEmail = precisaEmail && clienteQ.isSuccess && !clienteQ.data;
   const emailValido = EMAIL_RE.test(emailNovo.trim());
 
   const gerarLinkTitulo = async (tituloId: string, maxParcelas: number) => {
@@ -295,7 +314,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
   };
 
   const addParcela = () =>
-    setParcelas((p) => [...p, { valor: "0", data_vencimento: amanhaISO() }]);
+    setParcelas((p) => [...p, novaParcela("0")]);
   const removeParcela = (i: number) =>
     setParcelas((p) => (p.length > 1 ? p.filter((_, idx) => idx !== i) : p));
   const updateParcela = (i: number, patch: Partial<Parcela>) =>
@@ -337,8 +356,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         if (!p.data_vencimento) throw new Error("Toda parcela precisa de data de vencimento.");
       }
 
-      if (modalidade === 3 && novoInstrumento === "cartao") {
-        if (contaCartao.semTaxa) throw new Error(`Taxa de ${cartaoParcelas}x não cadastrada — cadastre a taxa ou escolha juros por conta da Fetely.`);
+      const garantirEmail = async () => {
         if (!titulo.parceiro_id) throw new Error("Título sem cliente vinculado — não há email para o link SafraPay.");
         if (clienteQ.isLoading) throw new Error("Aguarde a leitura do email do cliente.");
         if (clienteQ.isError) throw new Error(`Ler email do cliente: ${rawMessage(clienteQ.error)}`);
@@ -349,6 +367,18 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
           if (eUp) throw new Error(`Gravar email do cliente: ${eUp.message}`);
           if (!upd?.length) throw new Error("O cadastro do cliente já tem email — recarregue o modal.");
         }
+      };
+
+      if (modalidade === 2 && temCartaoMod2) {
+        parcelas.forEach((p, i) => {
+          if (contasLinha[i]?.semTaxa) throw new Error(`Parcela ${i + 1}: taxa de ${p.maxParcelas}x não cadastrada — cadastre a taxa ou escolha juros por conta da Fetely.`);
+        });
+        await garantirEmail();
+      }
+
+      if (modalidade === 3 && novoInstrumento === "cartao") {
+        if (contaCartao.semTaxa) throw new Error(`Taxa de ${cartaoParcelas}x não cadastrada — cadastre a taxa ou escolha juros por conta da Fetely.`);
+        await garantirEmail();
         const p0 = payloadParcelas[0];
         const { data, error } = await (supabase as any).rpc("renegociar_titulo_cartao", {
           p_titulo_id: titulo.id, p_justificativa: justificativa.trim(), p_valor: p0.valor,
@@ -362,10 +392,10 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         const l = await gerarLinkTitulo(tituloId, cartaoParcelas);
         return {
           ...data,
-          cartao: {
+          cartoes: [{
             tituloId, principal: Number(data.principal), juros: Number(data.juros_cartao), total: Number(data.total_link),
             maxParcelas: cartaoParcelas, jurosPor, ...l,
-          },
+          }],
         };
       }
 
@@ -373,7 +403,14 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
         p_titulo_id: titulo.id,
         p_modalidade: modalidade,
         p_justificativa: justificativa.trim(),
-        p_parcelas: payloadParcelas,
+        p_parcelas: modalidade === 2
+          ? payloadParcelas.map((pp, i) => {
+              const p = parcelas[i];
+              return p.meio === "cartao"
+                ? { ...pp, tipo_pagamento: "cartao", max_parcelas: p.maxParcelas, juros_por: p.jurosPor }
+                : { ...pp, tipo_pagamento: p.meio };
+            })
+          : payloadParcelas,
       };
       if (modalidade === 3) args.p_novo_tipo_pagamento = novoInstrumento;
       if (temAjuste) {
@@ -384,7 +421,17 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
       const { data, error } = await (supabase as any).rpc("renegociar_titulo", args);
       if (error) throw new Error(error.message);
       if (data && data.ok === false) throw new Error(data.erro ?? "Erro ao renegociar.");
-      return data;
+      const cs = (data?.cartoes ?? []) as Array<{ titulo_id: string; principal: number; juros_cartao: number; total_link: number; max_parcelas: number; juros_por: JurosPor; vencimento: string | null }>;
+      if (cs.length === 0) return data;
+      const cartoes: CartaoResultado[] = [];
+      for (const c of cs) {
+        const l = await gerarLinkTitulo(String(c.titulo_id), Number(c.max_parcelas));
+        cartoes.push({
+          tituloId: String(c.titulo_id), principal: Number(c.principal), juros: Number(c.juros_cartao), total: Number(c.total_link),
+          maxParcelas: Number(c.max_parcelas), jurosPor: c.juros_por, vencimento: c.vencimento, ...l,
+        });
+      }
+      return { ...data, cartoes };
     },
     onSuccess: async (data) => {
       await registrarAcaoRegua();
@@ -393,10 +440,10 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
 
       const instrumentos = (res?.instrumentos ?? []).filter((i) => i?.payload);
 
-      if (res?.cartao) {
-        setResultado({ ...res, instrumentos: [], boletoABaixar: boletoVivo });
-        if (res.cartao.erroLink) toast.error(`Renegociado — acordo ${res?.numero_acordo ?? "—"}, mas o link não foi gerado.`);
-        else toast.success(`Renegociado — acordo ${res?.numero_acordo ?? "—"}. Envie o link ao cliente.`);
+      if (res?.cartoes?.length) {
+        setResultado({ ...res, instrumentos, boletoABaixar: boletoVivo });
+        if (res.cartoes.some((c) => c.erroLink)) toast.error(`Renegociado — acordo ${res?.numero_acordo ?? "—"}, mas há link de cartão não gerado.`);
+        else toast.success(`Renegociado — acordo ${res?.numero_acordo ?? "—"}. Envie ${instrumentos.length ? "o PIX e o link" : "o link"} ao cliente.`);
         return;
       }
 
@@ -469,7 +516,7 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
             </DialogTitle>
             <DialogDescription>
               {resultado.filhos?.length ?? 0} título(s) criado(s)
-              {temPix ? " · envie o PIX abaixo ao cliente." : resultado.cartao ? " · envie o link de cartão abaixo ao cliente." : "."}
+              {temPix && resultado.cartoes?.length ? " · envie o PIX e o link de cartão abaixo ao cliente." : temPix ? " · envie o PIX abaixo ao cliente." : resultado.cartoes?.length ? " · envie o link de cartão abaixo ao cliente." : "."}
             </DialogDescription>
           </DialogHeader>
 
@@ -507,16 +554,15 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
               </Alert>
             )}
 
-            {resultado.cartao && (
-              <LinkCartaoBloco c={resultado.cartao} retentando={retentando} onRetentar={async () => {
-                const c = resultado.cartao!;
+            {(resultado.cartoes ?? []).map((c) => (
+              <LinkCartaoBloco key={c.tituloId} c={c} retentando={retentando} onRetentar={async () => {
                 setRetentando(true);
                 const l = await gerarLinkTitulo(c.tituloId, c.maxParcelas);
                 setRetentando(false);
                 if (l.erroLink) toast.error(l.erroLink);
-                setResultado({ ...resultado, cartao: { ...c, ...l } });
+                setResultado((r) => r && { ...r, cartoes: (r.cartoes ?? []).map((x) => (x.tituloId === c.tituloId ? { ...x, ...l } : x)) });
               }} />
-            )}
+            ))}
 
             {(resultado.instrumentos ?? []).map((inst, i) => (
               <InstrumentoPixBloco key={inst.token ?? inst.txid ?? i} inst={inst} />
@@ -726,17 +772,17 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                         </span>
                       </>
                     )}
-                    {ehCartao && boletoVivo && (
+                    {(ehCartao || temCartaoMod2) && boletoVivo && (
                       <span className="block mt-1">
                         <b>Risco de pagamento em dobro:</b> se a cliente pagar o boleto antigo e o link, a Fetely recebe duas vezes. Gere a remessa de baixa no Safra o quanto antes.
                       </span>
                     )}
-                    {ehCartao && (
+                    {(ehCartao || temCartaoMod2) && (
                       <span className="block mt-1">
                         O link SafraPay será gerado e aparecerá aqui para você enviar ao cliente.
                       </span>
                     )}
-                    {modalidade === 3 && novoInstrumento === "pix" && (
+                    {((modalidade === 3 && novoInstrumento === "pix") || (modalidade === 2 && parcelas.some((p) => p.meio === "pix"))) && (
                       <span className="block mt-1">
                         O QR PIX será gerado e aparecerá aqui para você enviar ao cliente.
                       </span>
@@ -829,7 +875,18 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                     )}
                   </div>
                   {parcelas.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2">
+                    <div key={i} className={modalidade === 2 ? "space-y-2 rounded-md border p-2" : ""}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {modalidade === 2 && (
+                        <Select value={p.meio} onValueChange={(v) => updateParcela(i, { meio: v as MeioParcela })}>
+                          <SelectTrigger className="w-28" aria-label={`Meio da parcela ${i + 1}`}><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="boleto">Boleto</SelectItem>
+                            <SelectItem value="pix">PIX</SelectItem>
+                            <SelectItem value="cartao">Cartão</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
                       <Input
                         type="number"
                         step="0.01"
@@ -856,12 +913,64 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                         </Button>
                       )}
                     </div>
+                    {modalidade === 2 && p.meio === "cartao" && contasLinha[i] && (
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Select value={String(p.maxParcelas)} onValueChange={(v) => updateParcela(i, { maxParcelas: Number(v) })}>
+                            <SelectTrigger className="w-24" aria-label="Nº de parcelas"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 12 }, (_, k) => k + 1).map((n) => (
+                                <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <Select value={p.jurosPor} onValueChange={(v) => updateParcela(i, { jurosPor: v as JurosPor })}>
+                            <SelectTrigger className="w-40" aria-label="Juros por conta de"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cliente">Juros: Cliente</SelectItem>
+                              <SelectItem value="fetely">Juros: Fetely</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {permTaxas.permitido && (
+                            <Button size="sm" variant="ghost" onClick={() => setShowTaxas(true)}>
+                              <Settings2 className="h-3.5 w-3.5 mr-1" /> Taxas
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-xs">
+                          Principal <b>{formatBRL(contasLinha[i]!.principal)}</b> + Juros <b>{formatBRL(contasLinha[i]!.juros)}</b> = Total <b>{formatBRL(contasLinha[i]!.total)}</b>
+                          {p.jurosPor === "cliente" && !contasLinha[i]!.semTaxa && (
+                            <span className="text-muted-foreground"> · taxa {taxasQ.data?.get(p.maxParcelas)}% em {p.maxParcelas}x</span>
+                          )}
+                        </p>
+                        {contasLinha[i]!.semTaxa && (
+                          <p className="text-xs text-destructive">Taxa de {p.maxParcelas}x não cadastrada. Cadastre a taxa ou escolha juros por conta da Fetely.</p>
+                        )}
+                        {p.jurosPor === "cliente" && p.maxParcelas > 1 && (
+                          <p className="text-xs text-muted-foreground">Se a cliente escolher menos parcelas, paga o mesmo valor total com juros.</p>
+                        )}
+                      </div>
+                    )}
+                    </div>
                   ))}
+                  {temCartaoMod2 && semEmail && (
+                    <div className="space-y-1">
+                      <Label htmlFor="reneg-email-m2" className="text-xs">Email do cliente <span className="text-destructive">*</span></Label>
+                      <Input id="reneg-email-m2" type="email" value={emailNovo} onChange={(e) => setEmailNovo(e.target.value)} placeholder="cliente@exemplo.com" />
+                      <p className="text-[11px] text-muted-foreground">O SafraPay exige email. Será gravado no cadastro do cliente.</p>
+                      {emailNovo.trim() !== "" && !emailValido && <p className="text-xs text-destructive">Email inválido.</p>}
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Soma parcelas: <b>{formatBRL(somaParcelas)}</b> · Em aberto:{" "}
                     <b>{saldoPronto ? formatBRL(emAberto) : "…"}</b>
                     {temAjuste && <> · {natureza} <b>{formatBRL(Math.abs(ajuste.valor))}</b></>}
                   </p>
+                  {temCartaoMod2 && (
+                    <p className="text-xs text-muted-foreground">
+                      Total a cobrar com juros de cartão: <b>{formatBRL(totalComJuros)}</b>
+                    </p>
+                  )}
                 </div>
 
                 {temAjuste && (
@@ -906,7 +1015,8 @@ export function RenegociarTituloDialog({ titulo, etapa, open, onClose }: Props) 
                   !saldoPronto ||
                   justificativa.trim().length < 10 ||
                   (temAjuste && !contaAjuste) ||
-                  (ehCartao && (contaCartao.semTaxa || clienteQ.isLoading || (semEmail && !emailValido)))
+                  (ehCartao && (contaCartao.semTaxa || clienteQ.isLoading || (semEmail && !emailValido))) ||
+                  (temCartaoMod2 && (linhaSemTaxa || clienteQ.isLoading || (semEmail && !emailValido)))
                 }
               >
                 {mutation.isPending ? "Renegociando..." : "Confirmar renegociação"}
