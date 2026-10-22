@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/urls";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -72,7 +73,7 @@ export function SolicitarDevolucaoDialog({ linha, onClose }: { linha: LinhaVD | 
 export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
   if (devolucao.status !== "concluida") return null;
   if (!devolucao.comprovante_token) return <div className="text-xs text-muted-foreground">Comprovante ainda não disponível.</div>;
-  const url = `https://sncf.lovable.app/reembolso/${devolucao.comprovante_token}`;
+  const url = publicUrl(`/reembolso/${devolucao.comprovante_token}`);
   const primeiro = (devolucao.pedido?.cliente_nome_snapshot ?? "").trim().split(/\s+/)[0] || "cliente";
   const msg = `Olá ${primeiro}! O reembolso do seu pedido ${devolucao.pedido?.id_externo ?? ""} na Fetely, de ${formatBRL(devolucao.valor)}, foi realizado. Seu comprovante: ${url}`;
   return <div className="flex flex-wrap gap-2 pt-1">
