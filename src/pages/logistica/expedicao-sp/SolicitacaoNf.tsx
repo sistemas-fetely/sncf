@@ -46,7 +46,7 @@ export function SolicitacaoNf({ linha, compacto = false, bloqueado = false }: {
       </p>
       {reenviar ? (
         <div className="space-y-1">
-          <Selo variant="info">
+          <Selo estado="info">
             NF solicitada {tempoParado(minutosDesde(linha.solicitado_em))}
             {linha.solicitado_por ? ` por ${linha.solicitado_por}` : ""}
           </Selo>

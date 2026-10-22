@@ -26,6 +26,7 @@ import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
 import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
+import { SolicitacaoNf } from "./expedicao-sp/SolicitacaoNf";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
   pedidoEhB2B, colunasQuadro, tempoParado,
@@ -33,7 +34,7 @@ import {
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
-  useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
+  useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
   useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
   useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
@@ -63,6 +64,11 @@ export default function ExpedicaoSp() {
   const modaisQ = useModaisEntrega();
   const regrasQ = useRegrasModal();
   const vdModosQ = useVdModosModal();
+  const aguardandoNfQ = useAguardandoNfMesa();
+  const aguardandoNfPorPedido = useMemo(
+    () => new Map((aguardandoNfQ.data ?? []).map((l) => [l.pedido_id, l])),
+    [aguardandoNfQ.data],
+  );
   const cancelamentosQ = useCancelamentosMesaSp(pedidos.map((p) => p.id));
   const cancelamentos = useMemo(
     () => cancelamentosQ.data ?? new Map<string, CancelamentoMesa>(),
@@ -336,6 +342,9 @@ export default function ExpedicaoSp() {
               <p className="text-sm font-medium">
                 {colunas.find((c) => c.codigo === "aguardando_nf")?.rotulo ?? "aguardando_nf"} · {aguardandoNf.length}
               </p>
+              {aguardandoNfQ.isError && (
+                <p className="text-xs text-destructive">{formatError(aguardandoNfQ.error)}</p>
+              )}
               {aguardandoNf.length === 0 ? (
                 <p className="text-sm text-muted-foreground">Nenhum B2B embalado aguardando NF.</p>
               ) : (
@@ -343,7 +352,7 @@ export default function ExpedicaoSp() {
                   {aguardandoNf.map((p) => {
                     const emb = embalagemDoPedido(eventosPorPedido.get(p.id) ?? []);
                     return (
-                      <li key={p.id}>
+                      <li key={p.id} className="space-y-1.5">
                         <LinhaPedido
                           pedido={p}
                           cancelamento={cancelamentos.get(p.id)}
@@ -351,6 +360,9 @@ export default function ExpedicaoSp() {
                           rotulo={medidasColeta(emb?.volumes ?? null, emb?.peso_kg ?? null)}
                           onSelecionar={() => setSelecionadoId(p.id)}
                         />
+                        <div className="pl-2">
+                          <SolicitacaoNf linha={aguardandoNfPorPedido.get(p.id)} compacto />
+                        </div>
                       </li>
                     );
                   })}
@@ -615,7 +627,10 @@ export default function ExpedicaoSp() {
                       const emb = embalagemDoPedido(eventosSelecionado);
                       const medidas = `Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`;
                       return estacaoSelecionada === "aguardando_nf" ? (
-                        <p className="text-sm">{medidas} — aguardando a Eva emitir a NF (matriz SP).</p>
+                        <div className="space-y-2">
+                          <p className="text-sm">{medidas} — aguardando a NF do Fiscal (matriz SP).</p>
+                          <SolicitacaoNf linha={aguardandoNfPorPedido.get(selecionado.id)} bloqueado={bloqueado} />
+                        </div>
                       ) : (
                         <p className="text-sm">{medidas} — NF emitida, despacho em breve.</p>
                       );
