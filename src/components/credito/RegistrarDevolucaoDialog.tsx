@@ -147,6 +147,9 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
         nf_devolucao: string | null;
         haver_gerado_id?: string | null;
         haver_valor?: number | null;
+        nf_original_id?: string | null;
+        fiscal_acao?: string | null;
+        aviso_fiscal?: string | null;
       };
     },
     onSuccess: async (data) => {
@@ -163,6 +166,9 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
       }
       if (data.haver_gerado_id) {
         partes.push(`Haver de ${formatBRL(data.haver_valor ?? 0)} gerado para o cliente.`);
+      }
+      if (data.aviso_fiscal) {
+        partes.push(data.aviso_fiscal);
       }
       toast.success("Devolução registrada", { description: partes.join(" · ") });
 
@@ -336,6 +342,9 @@ export function RegistrarDevolucaoDialog({ pedidoId, pedidoIdExterno, open, onCl
                   onChange={(e) => setNfDevolucao(e.target.value)}
                   placeholder="número da NF de retorno — pode preencher depois"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Se deixar vazio, o SNCF gera a NF de devolução (rascunho no Bling) na Mesa de Devoluções após o recebimento.
+                </p>
               </div>
               {previewOk.havers_a_revisar > 0 && (
                 <div className="flex items-start gap-2 p-3 rounded-md border bg-warning/10 border-warning/40">

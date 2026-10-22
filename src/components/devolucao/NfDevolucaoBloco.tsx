@@ -51,7 +51,12 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
 
   return (
     <div className="space-y-2 text-sm">
-      <div><span className="font-medium">Eva:</span> NF de devolução (entrada) referenciando a NF nº {nf}</div>
+      <div>
+        <span className="font-medium">Eva:</span>{" "}
+        {credito
+          ? `Nota de crédito (entrada, finalidade 5) referenciando a NF nº ${nf}`
+          : `NF de devolução (entrada) referenciando a NF nº ${nf}`}
+      </div>
       {s.nf_dev_status === "autorizada" ? (
         <div className="text-success">{credito ? "Nota de crédito" : "NF de devolução"} {s.nf_dev_numero ?? "?"} autorizada ✓</div>
       ) : s.nf_dev_status === "rascunho" ? (
