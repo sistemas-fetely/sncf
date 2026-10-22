@@ -229,6 +229,27 @@ const PREFIXO_REMESSA: Record<string, string> = {
   reemissao:   "SAFRAR",
 };
 
+// TRAVA DE BAIXA EM DOBRO (22/10/2026): nosso número cujo boleto já está amarrado a
+// uma remessa de baixa (B ou R) ainda sem retorno processado. Gerar outra baixa
+// para ele faz o Safra rejeitar a segunda com 03/065.
+// deno-lint-ignore no-explicit-any
+async function nossosNumerosComBaixaPendente(sb: any, nns: string[]): Promise<Set<string>> {
+  const out = new Set<string>();
+  if (nns.length === 0) return out;
+  const { data, error } = await sb
+    .from("titulo_boleto")
+    .select("nosso_numero, situacao, remessa:remessas_safra!titulo_boleto_remessa_baixa_id_fkey(retorno_processado_em, status)")
+    .in("nosso_numero", nns)
+    .not("remessa_baixa_id", "is", null);
+  if (error) throw new Error(`Erro ao checar baixa pendente: ${error.message}`);
+  // deno-lint-ignore no-explicit-any
+  for (const b of (data ?? []) as any[]) {
+    if (b.situacao === "baixado" || b.situacao === "liquidado") continue;
+    if (b.remessa && !b.remessa.retorno_processado_em && b.remessa.status !== "cancelada") out.add(String(b.nosso_numero));
+  }
+  return out;
+}
+
 function nomeArquivoRemessa(tipo: string, nroSeq: number): string {
   const prefixo = PREFIXO_REMESSA[tipo];
   if (!prefixo) throw new Error(`Tipo de remessa sem prefixo definido: ${tipo}`);
@@ -301,7 +322,7 @@ serve(async (req) => {
         .from("titulo_a_receber")
         .select(`
           id, numero_titulo, numero_parcela, total_parcelas,
-          valor_bruto, data_vencimento_atual, nosso_numero_seq,
+          valor_bruto, data_vencimento_atual, nosso_numero_seq, reemissao_nova_data,
           conta:contas_pagar_receber(
             parceiro:parceiros_comerciais(
               id, razao_social, cnpj, cpf,
@@ -326,21 +347,33 @@ serve(async (req) => {
       // remessa dos demais. Um item ruim travava a baixa de todos — boleto seguia
       // vivo no Safra contra cliente que já pagou.
       // deno-lint-ignore no-explicit-any
-      const aptos = (titulos as any[]).filter((t: any) => t.nosso_numero_seq);
+      // Reemissão vai pela remessa R (02+01 no mesmo arquivo): nunca gera B avulsa.
+      // E nunca repete baixa de nosso número com baixa pendente (B ou R sem retorno).
+      // deno-lint-ignore no-explicit-any
+      const pendentesBaixa = await nossosNumerosComBaixaPendente(sb, (titulos as any[]).map((t: any) => String(t.nosso_numero_seq ?? "")).filter(Boolean));
+      // deno-lint-ignore no-explicit-any
+      const motivoPulo = (t: any): string | null => {
+        if (!t.nosso_numero_seq) return "Sem nosso_numero_seq — nunca foi registrado no banco";
+        if (t.reemissao_nova_data) return "Reemissão pendente — a baixa vai na remessa de reemissão (R), não em B avulsa";
+        if (pendentesBaixa.has(String(t.nosso_numero_seq))) return "Baixa já enviada ao banco e sem retorno — não repetir";
+        return null;
+      };
+      // deno-lint-ignore no-explicit-any
+      const aptos = (titulos as any[]).filter((t: any) => !motivoPulo(t));
       // deno-lint-ignore no-explicit-any
       const pulados = (titulos as any[])
-        .filter((t: any) => !t.nosso_numero_seq)
+        .filter((t: any) => !!motivoPulo(t))
         .map((t: any) => ({
           titulo_id: t.id,
           numero_titulo: t.numero_titulo,
-          motivo: "Sem nosso_numero_seq — nunca foi registrado no banco",
+          motivo: motivoPulo(t) as string,
         }));
 
       if (aptos.length === 0) {
         return new Response(
           JSON.stringify({
             ok: false,
-            erro: "Nenhum título apto para baixa: todos sem nosso_numero_seq",
+            erro: "Nenhum título apto para baixa: " + [...new Set(pulados.map((p) => p.motivo))].join(" · "),
             pulados,
           }),
           { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -505,19 +538,25 @@ serve(async (req) => {
       }> = [];
 
       // deno-lint-ignore no-explicit-any
+      const baixaJaPendenteRe = await nossosNumerosComBaixaPendente(sb, (titulosRe as any[]).map((t: any) => String(t.nosso_numero_seq)));
+
+      // deno-lint-ignore no-explicit-any
       for (const t of titulosRe as any[]) {
         const parceiro = t.conta.parceiro;
         const nossoAntigo = String(t.nosso_numero_seq);
 
-        // 1º registro: BAIXA do boleto antigo (dados do boleto que morre).
-        linhasRe.push(gerarDetalhe(
-          { ...t, parceiro },
-          nossoAntigo,
-          params, nroSeqRe, nroRegRe,
-          "02"
-        ));
-        valorArquivo += Number(t.valor_bruto);
-        nroRegRe++;
+        // 1º registro: BAIXA do boleto antigo (dados do boleto que morre) — só se
+        // ainda não houver baixa pendente dele (trava de baixa em dobro).
+        if (!baixaJaPendenteRe.has(nossoAntigo)) {
+          linhasRe.push(gerarDetalhe(
+            { ...t, parceiro },
+            nossoAntigo,
+            params, nroSeqRe, nroRegRe,
+            "02"
+          ));
+          valorArquivo += Number(t.valor_bruto);
+          nroRegRe++;
+        }
 
         // 2º registro: ENTRADA do boleto novo.
         const nossoNovo = await alocarNossoNumero(sb);
@@ -568,10 +607,12 @@ serve(async (req) => {
 
       for (const p of paresRe) {
         // Boleto antigo: amarra à remessa que pediu a baixa.
-        const { error: bolAntigoErr } = await sb
-          .from("titulo_boleto")
-          .update({ remessa_baixa_id: remessaReId })
-          .eq("nosso_numero", p.nossoNumeroAntigo);
+        const { error: bolAntigoErr } = baixaJaPendenteRe.has(p.nossoNumeroAntigo)
+          ? { error: null }
+          : await sb
+            .from("titulo_boleto")
+            .update({ remessa_baixa_id: remessaReId })
+            .eq("nosso_numero", p.nossoNumeroAntigo);
         if (bolAntigoErr) console.error(`[gerar-remessa/reemissao] vincular baixa ${p.nossoNumeroAntigo}:`, bolAntigoErr);
 
         // Boleto novo no histórico — FAIL-LOUD: boleto sem registro é buraco.
