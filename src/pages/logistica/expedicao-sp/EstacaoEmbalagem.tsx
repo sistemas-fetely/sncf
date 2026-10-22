@@ -266,17 +266,14 @@ export function EstacaoEmbalagem({
             : "Pedido sem CEP legível no endereço de entrega — a sugestão caiu na regra default."}
         </p>
 
-        {modal !== "" && (
+        {/* Documentos (DANFE, etiqueta, romaneio) saíram daqui: são a estação seguinte. Sem rotina, sem bloco. */}
+        {modal !== "" && itensDoModal.length > 0 && (
           <div className="space-y-2 rounded-md border border-border p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               Rotina de {modais.find((m) => m.codigo === modal)?.nome ?? modal}
             </p>
 
-            {itensDoModal.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Este modal não tem rotina cadastrada — nada a marcar antes de registrar.
-              </p>
-            ) : (
+            {(
               <ul className="space-y-2">
                 {itensDoModal.map((item) => {
                   const id = `mesa-sp-check-${item.id}`;

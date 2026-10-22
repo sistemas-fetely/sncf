@@ -8,8 +8,27 @@
 
 /** Códigos das etapas ativas (`mesa_sp_etapa`). Rótulo e ordem vêm do banco. */
 export const ESTACOES = [
-  "fila", "separacao", "conferencia", "embalagem", "despacho", "aguardando_nf", "nf_emitida",
+  "fila", "separacao", "conferencia", "embalagem", "documentos", "despacho", "aguardando_nf", "nf_emitida",
 ] as const;
+
+/** `fn_mesa_sp_documentos_ok`: estação Documentos concluída. */
+export const EVENTO_DOCUMENTOS_OK = "mesa_documentos_ok";
+/** `fn_mesa_sp_registrar_rastreio`: código de rastreio gravado. */
+export const EVENTO_RASTREIO_REGISTRADO = "mesa_rastreio_registrado";
+
+/** Linha de `fn_mesa_sp_documentos` — fonte única do estado de cada documento. */
+export interface DocumentoMesa {
+  documento_id: string;
+  codigo: string;
+  tipo: "nf" | "rastreio" | "romaneio" | "etiqueta_volume" | "declaracao" | string;
+  ordem: number;
+  rotulo: string;
+  observacao: string | null;
+  obrigatorio: boolean;
+  liberado: boolean;
+  detalhe: string | null;
+  url: string | null;
+}
 export type Estacao = (typeof ESTACOES)[number];
 
 /** Estações pós-embalagem do B2B: a separação vem ANTES da NF (matriz SP emite). */

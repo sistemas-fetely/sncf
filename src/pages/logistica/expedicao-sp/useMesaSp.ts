@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   EVENTO_ROTEADO,
-  type CaixaSugerida, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type CaixaSugerida, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
 
@@ -29,6 +29,7 @@ export const CHAVE_EVENTOS_MESA = ["mesa-sp", "eventos"] as const;
 export const CHAVE_IDENTIDADES_MESA = ["mesa-sp", "identidades"] as const;
 export const CHAVE_MARCACOES_MESA = ["mesa-sp", "marcacoes-embalagem"] as const;
 export const CHAVE_CANCELAMENTOS_MESA = ["mesa-sp", "cancelamentos"] as const;
+export const CHAVE_DOCUMENTOS_MESA = ["mesa-sp", "documentos"] as const;
 
 /**
  * Mensagem de erro do Postgres/PostgREST sem engolir nada (FAIL-LOUD).
@@ -323,6 +324,55 @@ export function useMarcarRotina() {
   });
 }
 
+/** Estado de cada documento do pedido — vem PRONTO de `fn_mesa_sp_documentos`; a tela não calcula nada. */
+export function useDocumentosMesa(pedidoId: string | null) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, pedidoId],
+    enabled: !!pedidoId,
+    staleTime: 0,
+    queryFn: async (): Promise<DocumentoMesa[]> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_documentos", { p_pedido_id: pedidoId });
+      if (error) throw new Error(`ler documentos do pedido: ${mensagemErro(error)}`);
+      return ((data ?? []) as DocumentoMesa[]).slice().sort((a, b) => a.ordem - b.ordem);
+    },
+  });
+}
+
+/** RPC miúda de documento (marcar/rastreio): toast de erro inteiro e relê os documentos. */
+function useRpcDocumento<TArgs extends { p_pedido_id: string }>(nome: string, sucesso: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: TArgs) => {
+      const { error } = await supabaseMesa.rpc(nome, args);
+      if (error) throw new Error(mensagemErro(error));
+      return args;
+    },
+    onSuccess: async (args) => {
+      if (sucesso) toast.success(sucesso);
+      await qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, args.p_pedido_id] });
+      void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+    },
+    onError: (e: unknown) => {
+      toast.error(mensagemErro(e));
+    },
+  });
+}
+
+export function useMarcarDocumento() {
+  return useRpcDocumento<{ p_pedido_id: string; p_documento_id: string; p_marcado: boolean }>("fn_mesa_sp_marcar_documento", null);
+}
+
+export function useRegistrarRastreio() {
+  return useRpcDocumento<{ p_pedido_id: string; p_codigo: string }>("fn_mesa_sp_registrar_rastreio", "Código de rastreio registrado.");
+}
+
+export function useConcluirDocumentos() {
+  return useRpcMesa<{ p_pedido_id: string }>(
+    "fn_mesa_sp_documentos_ok",
+    () => "Documentos concluídos — pedido liberado para despacho.",
+  );
+}
+
 /** Regras de CEP → modal. A resolução (prefixo mais longo) mora em `tipos.ts`. */
 export function useRegrasModal() {
   return useQuery({
@@ -364,6 +414,7 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       void qc.invalidateQueries({ queryKey: CHAVE_CANCELAMENTOS_MESA });
       // A embalagem apaga as marcações no próprio banco: a tela só relê.
       void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
     },
     onError: (e: unknown) => {
       toast.error(mensagemErro(e));
