@@ -131,10 +131,8 @@ serve(async (req) => {
         : `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
     };
     if (ehCredito) {
-      // Nome do campo não documentado na API v3: envia nas duas formas; se o Bling recusar, o corpo do erro é registrado inteiro.
-      const tipoCredito = d.tipo_credito ?? "04";
-      payload.tipoNotaCredito = tipoCredito;
-      payload.notaCredito = { tipo: tipoCredito };
+      // Campo validado em 22/10/2026 contra a API v3: `tipoNota` string ("04" criou a NF 000044 da DEV-2142).
+      payload.tipoNota = d.tipo_credito ?? "04";
       payload.informacoesAdicionaisFisco = `Justificativa: ${d.justificativa}`;
     }
     // Criação de NF não é idempotente: nunca repetir o POST.
