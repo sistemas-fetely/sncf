@@ -4,8 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
-  CENTRO_SITE_SP, ESTAGIO_FATURADO, ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, EVENTO_ROTEADO,
-  type CaixaSugerida, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  EVENTO_ROTEADO,
+  type CaixaSugerida, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
 } from "./tipos";
 
@@ -38,86 +38,47 @@ export const CHAVE_CANCELAMENTOS_MESA = ["mesa-sp", "cancelamentos"] as const;
 const mensagemErro = formatError;
 
 /**
- * Pedidos que a Mesa SP opera: B2C, em pré-separação (fila) ou em separação
- * (já na bancada), E roteados para a mesa por evento `roteado_mesa_sp`.
- *
- * A ordem das duas consultas importa: primeiro os pedidos (conjunto pequeno,
- * limitado por canal + estágio), depois os eventos só desses ids. O contrário
- * varreria `pedido_eventos` inteiro.
+ * Pedidos da Mesa SP com a etapa JÁ DERIVADA no banco (`vw_mesa_sp_quadro`).
+ * Fonte única da etapa: a tela não calcula estação nenhuma.
  */
 export function usePedidosMesaSp() {
   return useQuery({
     queryKey: CHAVE_PEDIDOS_MESA,
     staleTime: 15 * 1000,
     queryFn: async (): Promise<PedidoMesa[]> => {
-      const { data: pedidos, error } = await supabaseMesa
-        .from("pedidos")
+      const { data, error } = await supabaseMesa
+        .from("vw_mesa_sp_quadro")
         .select(
-          "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social, nome_fantasia)",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite",
         )
-        .eq("canal", "B2C")
-        .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA])
         .order("recebido_em", { ascending: true });
-      if (error) throw new Error(`ler pedidos da mesa: ${mensagemErro(error)}`);
-
-      const linhas = comClienteNome(pedidos);
-      if (linhas.length === 0) return lerB2bSiteSp();
-
-      const { data: roteados, error: eRot } = await supabaseMesa
-        .from("pedido_eventos")
-        .select("pedido_id")
-        .eq("tipo_evento", EVENTO_ROTEADO)
-        .in("pedido_id", linhas.map((p) => p.id));
-      if (eRot) throw new Error(`ler roteamento da mesa: ${mensagemErro(eRot)}`);
-
-      const naMesa = new Set((roteados ?? []).map((r: { pedido_id: string }) => r.pedido_id));
-      const b2c = linhas.filter((p) => naMesa.has(p.id));
-      return [...b2c, ...(await lerB2bSiteSp())].sort((a, b) => a.recebido_em.localeCompare(b.recebido_em));
+      if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
+      return ((data ?? []) as (Omit<PedidoMesa, "id"> & { pedido_id: string })[]).map(({ pedido_id, ...p }) => ({
+        ...p,
+        id: pedido_id,
+        valor_liquido: Number(p.valor_liquido ?? 0),
+        minutos_parado: p.minutos_parado == null ? null : Number(p.minutos_parado),
+        estourou_limite: p.estourou_limite === true,
+      }));
     },
   });
 }
 
-/**
- * B2B que escolheu o CD SITE-SP (`b2b_escolher_cd_expedicao` grava
- * `pedidos.origem_centro_id`). Não passa por `roteado_mesa_sp`: o CD é o roteamento.
- * Inclui `pre_faturamento`/`faturado` porque no B2B a mesa embala ANTES da NF.
- */
-async function lerB2bSiteSp(): Promise<PedidoMesa[]> {
-  const { data: centro, error: eCentro } = await supabaseMesa
-    .from("centro_distribuicao")
-    .select("id")
-    .eq("codigo", CENTRO_SITE_SP)
-    .maybeSingle();
-  if (eCentro) throw new Error(`ler CD ${CENTRO_SITE_SP}: ${mensagemErro(eCentro)}`);
-  if (!centro) return [];
-
-  const { data, error } = await supabaseMesa
-    .from("pedidos")
-    .select(
-      "id, id_externo, estagio, canal, cliente_nome_snapshot, valor_liquido, recebido_em, endereco_entrega, parceiro:parceiros_comerciais!pedidos_parceiro_id_fkey(razao_social, nome_fantasia)",
-    )
-    .eq("canal", "B2B")
-    .eq("origem_centro_id", (centro as { id: string }).id)
-    .in("estagio", [ESTAGIO_FILA, ESTAGIO_NA_MESA, ESTAGIO_PRE_FATURAMENTO, ESTAGIO_FATURADO])
-    .order("recebido_em", { ascending: true });
-  if (error) throw new Error(`ler pedidos B2B do Site SP: ${mensagemErro(error)}`);
-  return comClienteNome(data);
-}
-
-type ParceiroEmbutido = { razao_social: string | null; nome_fantasia: string | null } | null;
-
-/** Nome do cliente: snapshot, senão nome fantasia, senão razão social do parceiro. */
-function comClienteNome(linhas: unknown): PedidoMesa[] {
-  const txt = (v: string | null | undefined) => (v && v.trim() !== "" ? v.trim() : null);
-  return ((linhas ?? []) as (Omit<PedidoMesa, "cliente_nome"> & { parceiro?: ParceiroEmbutido | ParceiroEmbutido[] })[]).map(
-    ({ parceiro, ...p }) => {
-      const par = Array.isArray(parceiro) ? parceiro[0] ?? null : parceiro ?? null;
-      return {
-        ...p,
-        cliente_nome: txt(p.cliente_nome_snapshot) ?? txt(par?.nome_fantasia) ?? txt(par?.razao_social),
-      };
+/** Etapas ativas por canal (`mesa_sp_etapa`) — colunas do quadro e rótulos. */
+export function useEtapasMesaSp() {
+  return useQuery({
+    queryKey: ["mesa-sp", "etapas"],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<EtapaMesa[]> => {
+      const { data, error } = await supabaseMesa
+        .from("mesa_sp_etapa")
+        .select("canal, codigo, ordem, rotulo, limite_min")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw new Error(`ler etapas da mesa: ${mensagemErro(error)}`);
+      return (data ?? []) as EtapaMesa[];
     },
-  );
+  });
 }
 
 /** Eventos `mesa_*` (+ o roteamento) dos pedidos listados — alimenta trilha e sub-estação. */
@@ -414,6 +375,20 @@ export function usePuxarPedido() {
   return useRpcMesa<{ p_pedido_id: string }>(
     "fn_mesa_sp_puxar_pedido",
     () => "Pedido puxado para separação.",
+  );
+}
+
+export function useIniciarConferencia() {
+  return useRpcMesa<{ p_pedido_id: string }>(
+    "fn_mesa_sp_iniciar_conferencia",
+    () => "Separação concluída — pedido em conferência.",
+  );
+}
+
+export function useVoltarSeparacao() {
+  return useRpcMesa<{ p_pedido_id: string }>(
+    "fn_mesa_sp_voltar_separacao",
+    () => "Pedido voltou para separação.",
   );
 }
 

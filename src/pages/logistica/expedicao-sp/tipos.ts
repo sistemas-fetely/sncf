@@ -6,21 +6,11 @@
 // escrevem. Se um dia a RPC mudar o evento, a tela acompanha sozinha — não há
 // segunda fonte de verdade para manter em dia.
 
-/** Estações da bancada, na ordem em que o pedido as atravessa. */
+/** Códigos das etapas ativas (`mesa_sp_etapa`). Rótulo e ordem vêm do banco. */
 export const ESTACOES = [
   "fila", "separacao", "conferencia", "embalagem", "despacho", "aguardando_nf", "nf_emitida",
 ] as const;
 export type Estacao = (typeof ESTACOES)[number];
-
-export const ROTULO_ESTACAO: Record<Estacao, string> = {
-  fila: "Fila",
-  separacao: "Separação",
-  conferencia: "Conferência",
-  embalagem: "Embalagem",
-  despacho: "Despacho",
-  aguardando_nf: "Aguardando NF",
-  nf_emitida: "NF emitida — despacho em breve",
-};
 
 /** Estações pós-embalagem do B2B: a separação vem ANTES da NF (matriz SP emite). */
 export const ESTACOES_B2B_POS_EMBALAGEM = ["aguardando_nf", "nf_emitida"] as const;
@@ -28,6 +18,10 @@ export const ESTACOES_B2B_POS_EMBALAGEM = ["aguardando_nf", "nf_emitida"] as con
 /** Eventos que a Mesa SP escreve. Fonte: corpo das RPCs `fn_mesa_sp_*`. */
 export const EVENTO_ROTEADO = "roteado_mesa_sp";
 export const EVENTO_SEPARACAO_INICIADA = "mesa_separacao_iniciada";
+/** `fn_mesa_sp_iniciar_conferencia`: separação concluída, pedido entra em conferência. */
+export const EVENTO_CONFERENCIA_INICIADA = "mesa_conferencia_iniciada";
+/** `fn_mesa_sp_voltar_separacao`: pedido sai da conferência e volta para separação. */
+export const EVENTO_VOLTOU_SEPARACAO = "mesa_voltou_separacao";
 export const EVENTO_CONFERENCIA_OK = "mesa_conferencia_ok";
 export const EVENTO_CONFERENCIA_DIVERGENCIA = "mesa_conferencia_divergencia";
 export const EVENTO_EMBALADO = "mesa_embalado";
@@ -52,13 +46,52 @@ export interface PedidoMesa {
   id_externo: string;
   estagio: string;
   canal: string;
-  cliente_nome_snapshot: string | null;
-  /** Derivado no hook: coalesce(snapshot, parceiro.nome_fantasia, parceiro.razao_social). */
   cliente_nome: string | null;
   valor_liquido: number;
   recebido_em: string;
   /** Json cru do pedido — o CEP sai daqui para sugerir o modal. */
   endereco_entrega: unknown;
+  /** Etapa derivada no banco (`vw_mesa_sp_quadro`) — fonte única. */
+  etapa: string;
+  etapa_ordem: number | null;
+  etapa_rotulo: string | null;
+  limite_min: number | null;
+  entrou_em: string | null;
+  minutos_parado: number | null;
+  estourou_limite: boolean;
+}
+
+/** Linha ativa de `mesa_sp_etapa`. */
+export interface EtapaMesa {
+  canal: string;
+  codigo: string;
+  ordem: number;
+  rotulo: string;
+  limite_min: number | null;
+}
+
+/** Colunas do quadro: etapas comuns unidas por código; exclusivas do B2B depois de `despacho`. */
+export function colunasQuadro(etapas: EtapaMesa[]): { codigo: string; rotulo: string }[] {
+  const b2c = etapas.filter((e) => e.canal.toUpperCase() !== "B2B").sort((a, b) => a.ordem - b.ordem);
+  const b2b = etapas.filter((e) => e.canal.toUpperCase() === "B2B").sort((a, b) => a.ordem - b.ordem);
+  const vistos = new Set<string>();
+  const out: { codigo: string; rotulo: string }[] = [];
+  for (const e of [...b2c, ...b2b]) {
+    if (vistos.has(e.codigo)) continue;
+    vistos.add(e.codigo);
+    out.push({ codigo: e.codigo, rotulo: e.rotulo });
+  }
+  return out;
+}
+
+/** "há 12 min / há 3h / há 2d". */
+export function tempoParado(minutos: number | null | undefined): string {
+  if (minutos == null || !Number.isFinite(minutos)) return "—";
+  const m = Math.max(0, Math.round(minutos));
+  if (m < 60) return `há ${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `há ${h}h`;
+  return `há ${Math.floor(h / 24)}d`;
 }
 
 /** Identidades do mesmo pedido nos sistemas usados pela operação B2C. */
@@ -234,40 +267,6 @@ export interface CaixaSugerida {
   sugerida: boolean;
   /** Quanto do volume útil o pedido ocupa, 0–100. */
   ocupacao_pct: number;
-}
-
-/**
- * Estação BASE do pedido, lida só dos fatos gravados no banco.
- *
- * A conferência não tem evento de "entrada" (a RPC só grava o desfecho), então
- * ela nunca aparece aqui: quem leva o pedido de Separação para Conferência é o
- * botão "Concluir separação", que é navegação de tela, não transição de estágio.
- * Divergência devolve o pedido para Separação — retrabalho, sem mexer no estágio.
- */
-export function estacaoBase(estagio: string, eventos: EventoMesa[]): Estacao | "despachado" {
-  if (estagio === ESTAGIO_FILA) return "fila";
-  if (estagio === ESTAGIO_PRE_FATURAMENTO) return "aguardando_nf";
-  if (estagio === ESTAGIO_FATURADO) return "nf_emitida";
-  if (estagio !== ESTAGIO_NA_MESA) return "despachado";
-
-  const ultimo = [...eventos]
-    .filter((e) => e.tipo_evento.startsWith("mesa_"))
-    .sort((a, b) => a.criado_em.localeCompare(b.criado_em))
-    .at(-1);
-
-  switch (ultimo?.tipo_evento) {
-    case EVENTO_EMBALADO:
-      return "despacho";
-    case EVENTO_CONFERENCIA_OK:
-      return "embalagem";
-    case EVENTO_CONFERENCIA_DIVERGENCIA:
-    case EVENTO_SEPARACAO_INICIADA:
-      return "separacao";
-    default:
-      // Em separação sem nenhum evento da mesa: o pedido entrou por outro
-      // caminho. Mostra em Separação em vez de sumir — FAIL-LOUD visível.
-      return "separacao";
-  }
 }
 
 /** Só dígitos; CEP brasileiro tem 8. Retorna null quando não dá para confiar. */
