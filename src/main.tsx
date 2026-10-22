@@ -3,6 +3,9 @@ import { Component, type ErrorInfo, type ReactNode } from "react";
 import App from "./App.tsx";
 import "./index.css";
 import "./styles/sidebar-fetely.css";
+import { carregarUrlPublica } from "./lib/urlPublicaBoot";
+
+void carregarUrlPublica();
 
 const isChunkLoadError = (msg: string) =>
   /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|error loading dynamically imported module/i.test(msg);

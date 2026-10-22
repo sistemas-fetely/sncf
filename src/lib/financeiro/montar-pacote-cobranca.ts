@@ -1,3 +1,4 @@
+import { urlPaginaPix } from "@/lib/pagamento/linkPix";
 /**
  * Montador ÚNICO do pacote de cobrança (NF + boletos) usado pela Mesa e pela Régua.
  *
@@ -194,7 +195,7 @@ export function montarPacoteCobranca(titulos: TituloPacote[]): PacoteCobranca {
     valor: fmtBRL.format(Number(t.valor_bruto ?? 0)),
     pix_txid: t.pix_txid ?? null,
     qr_code_pix: t.pix_qr_url ?? null,
-    link_pagina_pagamento: t.pix_token ? `https://sncf.lovable.app/pagar/${t.pix_token}` : null,
+    link_pagina_pagamento: t.pix_token ? urlPaginaPix(t.pix_token) : null,
     link_pagamento: t.link_pagamento ?? null,
   }));
 

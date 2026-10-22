@@ -1,13 +1,14 @@
 import { toast } from "sonner";
+import { publicUrl } from "@/lib/urls";
 
 // 20/10/2026 (PIX): para PIX, `link_pagamento` guarda o copia-e-cola (EMV), não uma URL.
 // Com `pix_token`, o que vai para a área de transferência é a página pública /pagar/:token.
-// Fonte única da URL: ninguém monta `/pagar/` fora daqui.
+// Fonte única da URL: ninguém monta `/pagar/` fora daqui; a origem vem de `@/lib/urls`.
 
 export const ROTULO_LINK_PIX_COPIADO = "Link de pagamento PIX copiado";
 
 export function urlPaginaPix(token: string): string {
-  return `${window.location.origin}/pagar/${token}`;
+  return publicUrl(`/pagar/${token}`);
 }
 
 /** O que copiar: página pública quando há token; senão o link de sempre. */
