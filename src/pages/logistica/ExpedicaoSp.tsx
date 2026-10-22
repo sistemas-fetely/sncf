@@ -23,6 +23,7 @@ import { EstacaoConferencia } from "./expedicao-sp/EstacaoConferencia";
 import { DespachoB2b } from "./expedicao-sp/DespachoB2b";
 import { EstacaoDespacho } from "./expedicao-sp/EstacaoDespacho";
 import { EstacaoEmbalagem } from "./expedicao-sp/EstacaoEmbalagem";
+import { EstacaoDocumentos } from "./expedicao-sp/EstacaoDocumentos";
 import { EstacaoSeparacao } from "./expedicao-sp/EstacaoSeparacao";
 import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
@@ -95,7 +96,7 @@ export default function ExpedicaoSp() {
   const proximoDaFila = fila.find((p) => !cancelamentos.has(p.id)) ?? null;
   const naMesa = pedidos.filter((p) => {
     const estacao = estacaoDe.get(p.id);
-    return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem";
+    return estacao === "separacao" || estacao === "conferencia" || estacao === "embalagem" || estacao === "documentos";
   });
   const modalPorCodigo = useMemo(
     () => new Map((modaisQ.data ?? []).map((modal) => [modal.codigo, modal])),
@@ -114,7 +115,7 @@ export default function ExpedicaoSp() {
   const gruposMesa = useMemo(
     () =>
       colunas
-        .filter((c) => c.codigo === "separacao" || c.codigo === "conferencia" || c.codigo === "embalagem")
+        .filter((c) => c.codigo === "separacao" || c.codigo === "conferencia" || c.codigo === "embalagem" || c.codigo === "documentos")
         .map((c) => ({ estacao: c.codigo, rotulo: c.rotulo, doGrupo: naMesa.filter((p) => p.etapa === c.codigo) }))
         .filter(({ doGrupo }) => doGrupo.length > 0),
     [naMesa, colunas],
@@ -703,6 +704,19 @@ export default function ExpedicaoSp() {
                   }
                 />
               )}
+
+              {estacaoSelecionada === "documentos" && (() => {
+                const emb = embalagemDoPedido(eventosSelecionado);
+                return (
+                  <EstacaoDocumentos
+                    pedido={selecionado}
+                    itens={itensQ.data ?? []}
+                    embalagem={emb}
+                    modalNome={emb?.modal ? modalPorCodigo.get(emb.modal)?.nome ?? emb.modal : null}
+                    bloqueado={bloqueado}
+                  />
+                );
+              })()}
 
               {estacaoSelecionada === "despacho" && (
                 <EstacaoDespacho
