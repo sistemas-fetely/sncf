@@ -414,6 +414,7 @@ function useRpcMesa<TArgs extends Record<string, unknown>>(
       void qc.invalidateQueries({ queryKey: CHAVE_CANCELAMENTOS_MESA });
       // A embalagem apaga as marcações no próprio banco: a tela só relê.
       void qc.invalidateQueries({ queryKey: CHAVE_MARCACOES_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_DOCUMENTOS_MESA });
     },
     onError: (e: unknown) => {
       toast.error(mensagemErro(e));
