@@ -20,13 +20,23 @@ async function chamar(devolucao_id: string, acao: "gerar" | "verificar") {
 }
 
 // 21/10/2026 (Flavio): o mesmo bloco serve NF de devolução e nota de crédito — só os textos mudam, a chamada à edge é a mesma.
-export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_devolucao" }: { devolucaoId: string; nf: string; onMudou: () => void; documento?: "nf_devolucao" | "nota_credito" }) {
+export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_devolucao", ocultarGerar = false }: { devolucaoId: string; nf: string; onMudou: () => void; documento?: "nf_devolucao" | "nota_credito"; ocultarGerar?: boolean }) {
   const qc = useQueryClient();
   const key = ["devolucao-nf-dev", devolucaoId];
   const q = useQuery({
     queryKey: key,
     queryFn: async (): Promise<Estado> => {
       const { data, error } = await sb.from("devolucao").select("nf_dev_status,nf_dev_numero,nf_dev_erro").eq("id", devolucaoId).single();
+      if (error) throw error;
+      return data;
+    },
+  });
+  const podeKey = ["pode-gerar-nf", devolucaoId];
+  const podeQ = useQuery({
+    queryKey: podeKey,
+    enabled: q.data != null && q.data.nf_dev_status == null && !ocultarGerar,
+    queryFn: async (): Promise<{ pode: boolean; motivo: string | null }> => {
+      const { data, error } = await sb.rpc("fn_devolucao_pode_gerar_nf", { p_devolucao_id: devolucaoId });
       if (error) throw error;
       return data;
     },
@@ -39,7 +49,7 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
       else toast.info(`Ainda não autorizada (situação ${d.situacao}${d.cancelada ? ", cancelada" : ""})`);
     },
     onError: (e) => toast.error(rawMessage(e)),
-    onSettled: () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["devolucoes"] }); onMudou(); },
+    onSettled: () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["devolucoes"] }); qc.invalidateQueries({ queryKey: podeKey }); onMudou(); },
   });
 
   if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
@@ -71,9 +81,11 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
           <div className="whitespace-pre-wrap break-words rounded-md border border-destructive/40 bg-destructive/5 p-2 text-xs text-destructive">{s.nf_dev_erro ?? "Erro sem mensagem"}</div>
           <Button size="sm" variant="outline" disabled={ocupado} onClick={() => mut.mutate("gerar")}>{spin}Tentar de novo</Button>
         </>
-      ) : (
+      ) : ocultarGerar ? null : (
         <div className="space-y-1">
-          <Button size="sm" disabled={ocupado} onClick={() => mut.mutate("gerar")}>{spin}{credito ? "Gerar nota de crédito (rascunho no Bling)" : "Gerar NF de devolução (rascunho no Bling)"}</Button>
+          {podeQ.isError && <div className="text-xs text-destructive">{rawMessage(podeQ.error)}</div>}
+          <Button size="sm" disabled={ocupado || podeQ.isLoading || podeQ.data?.pode !== true} onClick={() => mut.mutate("gerar")}>{spin}{credito ? "Gerar nota de crédito (rascunho no Bling)" : "Gerar NF de devolução (rascunho no Bling)"}</Button>
+          {podeQ.data?.pode === false && podeQ.data.motivo && <p className="text-xs text-muted-foreground">{podeQ.data.motivo}</p>}
           {credito && (
             <p className="text-xs text-muted-foreground">NF-e de entrada, finalidade Crédito, tipo 04 — só os itens que faltaram. Eva revisa e autoriza no Bling; depois clique em Verificar autorização.</p>
           )}
