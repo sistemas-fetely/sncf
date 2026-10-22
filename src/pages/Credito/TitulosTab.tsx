@@ -74,6 +74,7 @@ import { CriarAcordoDialog, tituloElegivelAcordo } from "@/components/credito/Cr
 import { useAcordosTitulos } from "@/hooks/credito/useAcordosTitulos";
 import { Checkbox } from "@/components/ui/checkbox";
 import { TituloTarefasBloco } from "@/components/credito/TituloTarefasBloco";
+import { PixTituloBloco } from "@/components/credito/PixTituloBloco";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -1599,28 +1600,7 @@ export default function TitulosTab() {
                     <h4 className="text-xs uppercase tracking-wide text-muted-foreground mb-2">
                       PIX
                     </h4>
-                    {detalhe.link_pagamento ? (
-                      <div className="flex items-center gap-2">
-                        <code className="text-[11px] break-all bg-muted px-2 py-1 rounded flex-1 truncate">
-                          {detalhe.link_pagamento}
-                        </code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => copiarLinkPix(detalhe.id, detalhe.link_pagamento!)}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <Alert className="border-warning/40 bg-warning/10">
-                        <AlertTriangle className="h-4 w-4 !text-warning" />
-                        <AlertDescription className="text-xs text-warning">
-                          Sem link de pagamento — informe o link no detalhe da cobrança para habilitar o envio ao cliente.
-                        </AlertDescription>
-                      </Alert>
-                    )}
+                    <PixTituloBloco tituloId={detalhe.id} />
                     <div className="mt-2">
                       <EnviosBoletoSection
                         pedidoId={detalhe.pedido_id}

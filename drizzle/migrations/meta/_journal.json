@@ -36,6 +36,13 @@
       "when": 1792632126541,
       "tag": "0004_renegociar_acordo_meio_por_parcela",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792666636916,
+      "tag": "0005_pix_titulo_qr_e_pagina_publica",
+      "breakpoints": true
     }
   ]
 }
