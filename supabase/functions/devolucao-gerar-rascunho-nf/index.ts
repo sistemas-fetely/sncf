@@ -12,7 +12,8 @@ const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", curren
 type ItemDados = { sku: string; descricao: string; quantidade: number; valor: number; unidade: string | null; ncm: string | null; origem: number | null };
 type Dados = {
   devolucao_numero: string; natureza_bling_id: number | null; nf_origem_numero: string | null; nf_origem_chave: string | null;
-  destinatario: { nome: string; numeroDocumento: string; tipoPessoa: string } | null; itens: ItemDados[]; valor: number;
+  destinatario: { id?: number | string | null; nome: string; numeroDocumento: string; tipoPessoa: string } | null; itens: ItemDados[]; valor: number;
+  valor_frete: number | string | null;
   fiscal_acao: "nf_devolucao" | "nota_credito" | null; finalidade: number | null; tipo_credito: string | null; justificativa: string | null;
 };
 
@@ -125,11 +126,14 @@ serve(async (req) => {
       naturezaOperacao: { id: d.natureza_bling_id },
       documentoReferenciado: { modelo: "55", chaveAcesso: d.nf_origem_chave },
       itens: d.itens.map((i) => ({ codigo: i.sku, descricao: i.descricao, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P", classificacaoFiscal: i.ncm, origem: i.origem })),
-      parcelas: [], transporte: { fretePorConta: 9 },
+      parcelas: [], transporte: { fretePorConta: Number(d.valor_frete ?? 0) > 0 ? 0 : 9 },
       observacoes: ehCredito
         ? `Nota de crédito (redução de valores ou quantidades) referente à NF-e ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). Justificativa: ${d.justificativa}. ${d.devolucao_numero} — SNCF.`
         : `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
     };
+    // Frete da venda original: quando existe, entra na NF de devolução (frete por conta do emitente) para o total bater.
+    const frete = Number(d.valor_frete ?? 0);
+    if (frete > 0) payload.valorFrete = frete;
     if (ehCredito) {
       // Campo validado em 22/10/2026 contra a API v3: `tipoNota` string ("04" criou a NF 000044 da DEV-2142).
       payload.tipoNota = d.tipo_credito ?? "04";
