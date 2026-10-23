@@ -261,14 +261,6 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "em_transporte" && l.modal === "frete_fetely") a.push({ k: "ent", label: "Registrar entrega", icon: Truck, onClick: () => setEntrega(l) });
     return a;
   };
-  // Fase do processo, ignorando a pausa (que, com reembolso, é consequência dele).
-  const faseDoProcesso = (l: Linha) => {
-    if (l.situacao !== "pausado") return rotuloSituacao(l);
-    if (!l.pagamento_confirmado_em) return LABEL.aguardando_pagamento;
-    if (l.nf_numero) return rotuloSeparacao(l);
-    if (l.bling_pedido_numero) return LABEL.aguardando_nf;
-    return LABEL.descendo_bling;
-  };
   const podeCancelar = (l: Linha) => podeEditar && l.situacao !== "cancelado" && !cancelNfPorPedido?.get(l.id)?.aberta && (l.situacao !== "entregue" || !!l.nf_numero);
   const rotuloCancelar = (l: Linha) => l.nf_numero ? "Solicitar cancelamento com NF" : l.pagamento_confirmado_em ? "Solicitar cancelamento com reembolso" : "Cancelar";
   const avisoDe = (l: Linha, icone: boolean) =>
@@ -296,95 +288,17 @@ export default function VendaDiretaGestao() {
       />
 
       <TooltipProvider>
-        {(() => {
-          const horas = qp.data?.alerta_sem_pagamento_horas ?? "?";
-          const na = (s: Situacao[]) => ativos.filter((l) => s.includes(l.situacao));
-          const pag = na(["aguardando_pagamento"]);
-          const a = pag.filter((l) => l.alerta_sem_pagamento).length;
-          const d = pag.filter((l) => l.pagamento_desatualizado).length;
-          const r = pag.filter((l) => !l.alerta_sem_pagamento && !l.pagamento_desatualizado).length;
-          const fat = na(["descendo_bling", "aguardando_nf"]);
-          const filaSep = na(["separacao"]).filter((l) => l.estagio === "pre_separacao");
-          const sepPuxada = na(["separacao"]).filter((l) => l.estagio !== "pre_separacao");
-          const sepEmbalado = sepPuxada.filter((l) => l.embalado).length;
-          const ret = na(["pronto_retirada", "em_transporte"]);
-          const p = porSituacao.pronto_retirada ?? 0;
-          const e = ret.filter((l) => l.situacao === "em_transporte" && l.modal === "frete_fetely").length;
-          const c = (porSituacao.em_transporte ?? 0) - e;
-          const totalFalta = contar("falta_site_sp");
-          const partes = (xs: [number, string][]) => xs.filter(([n]) => n > 0).map(([n, t]) => `${n} ${t}`).join(" · ");
-          const seloFalta = (n: number): FaseSelo[] => [{ f: "falta_site_sp", n, tom: "destructive", label: "Falta no Site SP", tip: `Falta no Site SP: ${totalFalta} no total` }];
-          const fases: FaseCard[] = [
-            { f: "pagamento", label: "Pagamento", icon: Wallet,
-              acao: partes([[a, `cobrar (+${horas}h)`], [d, "remontar pagamento"], [r, "aguardando cliente"]]),
-              equipe: a + d > 0, espera: "aguardando cliente",
-              selos: [
-                { f: "sem_pagamento", n: contar("sem_pagamento"), tom: "warning", label: `Sem pagamento +${horas}h` },
-                { f: "pagamento_desatualizado", n: contar("pagamento_desatualizado"), tom: "warning", label: "Pagamento desatualizado" },
-              ] },
-            { f: "faturamento", label: "A faturar", icon: FileText,
-              acao: partes([[porSituacao.descendo_bling ?? 0, "descendo ao Bling"], [porSituacao.aguardando_nf ?? 0, "aguardando NF"]]),
-              equipe: false, espera: "aguardando Bling", selos: seloFalta(fat.filter(temFalta).length) },
-            { f: "fila_separacao", label: "Fila de separação", icon: ListOrdered,
-              acao: partes([[filaSep.length, "puxar na Mesa SP"], [filaSep.filter(temFalta).length, "com falta no Site SP"]]),
-              equipe: true, tip: "Fila: NF emitida, aguardando ser puxado na Mesa SP",
-              selos: seloFalta(filaSep.filter(temFalta).length) },
-            { f: "em_separacao", label: "Em separação", icon: Package,
-              acao: partes([[sepPuxada.length - sepEmbalado, "separando"], [sepEmbalado, "embalado, aguardando envio"], [sepPuxada.filter(temFalta).length, "com falta no Site SP"]]),
-              equipe: true, tip: "Em separação: puxado na Mesa SP",
-              selos: seloFalta(sepPuxada.filter(temFalta).length) },
-            { f: "retirada_envio", label: "Retirada / Envio", icon: Truck,
-              acao: partes([[p, "registrar retirada"], [e, "registrar entrega"], [c, "em transporte"]]),
-              equipe: p + e > 0, espera: "com a transportadora", selos: [] },
-            { f: "entregue", label: "Entregue · 30 dias", icon: PackageCheck, acao: "últimos 30 dias", equipe: false, sucesso: true, selos: [] },
-          ];
-          const fora: { f: Filtro; label: string; tom: "warning" | "destructive" }[] = [
-            { f: "travado", label: "Travado", tom: "destructive" },
-            { f: "pausado", label: "Pausado", tom: "warning" },
-            { f: "reembolso", label: "Reembolso", tom: "warning" },
-          ];
-          const alternar = (f: Filtro) => setFiltro(filtro === f ? null : f);
-          return (
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
-              <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-stretch">
-                {fases.map((fc, i) => {
-                  const pr = PROCESSO.find((x) => x.f === fc.f)!;
-                  const n = contar(fc.f);
-                  const tip = fc.tip ?? (pr.detalhe ? Object.entries(pr.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined);
-                  return (
-                    <Fragment key={fc.f}>
-                      {i > 0 && <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground md:block" aria-hidden="true" />}
-                      <CardFase fase={fc} n={n} tooltip={tip} filtro={filtro} onFiltro={alternar} />
-                    </Fragment>
-                  );
-                })}
-              </div>
-              <div className="hidden w-px shrink-0 bg-border lg:block" aria-hidden="true" />
-              <div className="flex flex-col gap-1 lg:w-44">
-                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Fora do fluxo</div>
-                <div className="flex gap-2 lg:flex-col">
-                  {fora.map((o) => {
-                    const n = contar(o.f);
-                    const ativo = filtro === o.f;
-                    return (
-                      <button key={o.f} type="button" onClick={() => alternar(o.f)}
-                        className={cn(
-                          "flex flex-1 items-center justify-between rounded-md border bg-card px-2 py-1 text-xs transition-all gold-border-hover",
-                          ativo ? "gold-border bg-gold-soft shadow-sm"
-                            : n > 0 && o.tom === "destructive" ? "border-border border-l-4 border-l-destructive text-destructive-strong"
-                            : n > 0 ? "border-border border-l-4 border-l-warning text-warning-strong"
-                            : "border-border text-muted-foreground/60",
-                        )}>
-                        <span>{o.label}</span>
-                        <span className="text-base font-medium tabular-nums">{n}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {dimQ.data && (
+          <FunilVD
+            linhas={ativos}
+            fases={dimQ.data.fases}
+            etapas={dimQ.data.etapas}
+            responsaveis={dimQ.data.responsaveis}
+            filtro={filtro}
+            onFiltro={(f) => setFiltro(filtro && filtro.tipo === f.tipo && filtro.codigo === f.codigo ? null : f)}
+          />
+        )}
+        {dimQ.isError && <p className="text-sm text-destructive">{rawMessage(dimQ.error)}</p>}
 
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
@@ -395,6 +309,10 @@ export default function VendaDiretaGestao() {
                 <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
                 <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
               </ToggleGroup>
+              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe((v) => !v)}
+                className={cn(soAcaoEquipe && "gold-border bg-gold-soft")}>
+                Ação da equipe
+              </Button>
               <div className="flex items-center gap-2">
                 <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
                 <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
