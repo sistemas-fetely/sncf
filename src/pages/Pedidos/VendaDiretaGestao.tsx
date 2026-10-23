@@ -65,6 +65,7 @@ interface Linha extends LinhaVD {
   nf_numero: string | number | null;
   entrou_na_fase_em: string | null;
   situacao: Situacao;
+  estagio: string | null;
   horas_sem_pagamento: number | null;
   alerta_sem_pagamento: boolean | null;
   pagamento_desatualizado: boolean | null;
@@ -82,7 +83,7 @@ const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_s
 
 const PROCESSO: { f: Filtro; label: string; s: Situacao[]; detalhe?: Partial<Record<Situacao, string>> }[] = [
   { f: "pagamento", label: "Pagamento", s: ["aguardando_pagamento"] },
-  { f: "faturamento", label: "Faturamento", s: ["descendo_bling", "aguardando_nf"], detalhe: { descendo_bling: "descendo ao Bling", aguardando_nf: "aguardando NF" } },
+  { f: "faturamento", label: "A faturar", s: ["descendo_bling", "aguardando_nf"], detalhe: { descendo_bling: "descendo ao Bling", aguardando_nf: "aguardando NF" } },
   { f: "separacao", label: "Separação", s: ["separacao"] },
   { f: "retirada_envio", label: "Retirada / Envio", s: ["pronto_retirada", "em_transporte"], detalhe: { pronto_retirada: "prontos p/ retirada", em_transporte: "em transporte" } },
   { f: "entregue", label: "Entregue (30 dias)", s: ["entregue"] },
@@ -93,6 +94,12 @@ const LABEL: Record<string, string> = {
   separacao: "Separação", pronto_retirada: "Pronto p/ retirada", em_transporte: "Em transporte", travado: "Travado",
   pausado: "Pausado", entregue: "Entregue", cancelado: "Cancelado", outro: "Outro",
 };
+
+// Separação tem dois estágios: NF emitida e na fila da Mesa SP (pre_separacao) ou já puxado (em_separacao).
+const rotuloSeparacao = (l: { estagio: string | null }) =>
+  l.estagio === "em_separacao" ? "Em separação" : "Aguardando separação";
+const rotuloSituacao = (l: Linha) =>
+  l.situacao === "separacao" ? rotuloSeparacao(l) : (LABEL[l.situacao] ?? l.situacao);
 
 const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
@@ -395,9 +402,9 @@ export default function VendaDiretaGestao() {
   };
   // Fase do processo, ignorando a pausa (que, com reembolso, é consequência dele).
   const faseDoProcesso = (l: Linha) => {
-    if (l.situacao !== "pausado") return LABEL[l.situacao] ?? l.situacao;
+    if (l.situacao !== "pausado") return rotuloSituacao(l);
     if (!l.pagamento_confirmado_em) return LABEL.aguardando_pagamento;
-    if (l.nf_numero) return LABEL.separacao;
+    if (l.nf_numero) return rotuloSeparacao(l);
     if (l.bling_pedido_numero) return LABEL.aguardando_nf;
     return LABEL.descendo_bling;
   };
@@ -437,6 +444,8 @@ export default function VendaDiretaGestao() {
           const r = pag.filter((l) => !l.alerta_sem_pagamento && !l.pagamento_desatualizado).length;
           const fat = na(["descendo_bling", "aguardando_nf"]);
           const sep = na(["separacao"]);
+          const sepFila = sep.filter((l) => l.estagio === "pre_separacao").length;
+          const sepPuxado = sep.length - sepFila;
           const ret = na(["pronto_retirada", "em_transporte"]);
           const p = porSituacao.pronto_retirada ?? 0;
           const e = ret.filter((l) => l.situacao === "em_transporte" && l.modal === "frete_fetely").length;
@@ -452,12 +461,12 @@ export default function VendaDiretaGestao() {
                 { f: "sem_pagamento", n: contar("sem_pagamento"), tom: "warning", label: `Sem pagamento +${horas}h` },
                 { f: "pagamento_desatualizado", n: contar("pagamento_desatualizado"), tom: "warning", label: "Pagamento desatualizado" },
               ] },
-            { f: "faturamento", label: "Faturamento", icon: FileText,
+            { f: "faturamento", label: "A faturar", icon: FileText,
               acao: partes([[porSituacao.descendo_bling ?? 0, "descendo ao Bling"], [porSituacao.aguardando_nf ?? 0, "aguardando NF"]]),
               equipe: false, espera: "aguardando Bling", selos: seloFalta(fat.filter(temFalta).length) },
             { f: "separacao", label: "Separação", icon: Package,
-              acao: partes([[sep.length, "separar"], [sep.filter(temFalta).length, "com falta no Site SP"]]),
-              equipe: true, selos: seloFalta(sep.filter(temFalta).length) },
+              acao: partes([[sepFila, "puxar na Mesa SP"], [sepPuxado, "em separação"], [sep.filter(temFalta).length, "com falta no Site SP"]]),
+               equipe: true, selos: seloFalta(sep.filter(temFalta).length) },
             { f: "retirada_envio", label: "Retirada / Envio", icon: Truck,
               acao: partes([[p, "registrar retirada"], [e, "registrar entrega"], [c, "em transporte"]]),
               equipe: p + e > 0, espera: "com a transportadora", selos: [] },
@@ -564,7 +573,7 @@ export default function VendaDiretaGestao() {
                       ? "Cancelamento com NF"
                       : reembolsoAtivo
                       ? (reembolsoAtivo.status === "aguardando_devolucao" ? "Aguardando devolução" : `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`)
-                      : LABEL[l.situacao] ?? l.situacao;
+                      : rotuloSituacao(l);
                     const situacaoEstado: EstadoSelo = cancelNfAberto
                       ? "warning"
                       : reembolsoAtivo?.status === "falhou"
