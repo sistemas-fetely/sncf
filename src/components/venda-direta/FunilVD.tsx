@@ -85,7 +85,7 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
   const faseFora = fases.find((f) => f.codigo === FASE_FORA);
 
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
+    <div className="flex min-w-0 flex-col gap-2 2xl:flex-row 2xl:items-stretch">
       <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-stretch">
         {fluxo.map((fase, i) => {
           const daFase = linhas.filter((l) => l.fase === fase.codigo);
@@ -157,8 +157,8 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
           );
         })}
       </div>
-      <div className="hidden w-px shrink-0 bg-border lg:block" aria-hidden="true" />
-      <div className="flex flex-col gap-1 lg:w-56">
+      <div className="hidden w-px shrink-0 bg-border 2xl:block" aria-hidden="true" />
+      <div className="flex flex-col gap-1 2xl:w-56 2xl:shrink-0">
         <button type="button" onClick={() => onFiltro({ tipo: "fase", codigo: FASE_FORA })}
           className={cn("rounded-sm text-left text-[10px] font-medium uppercase tracking-wide text-muted-foreground hover:text-foreground",
             igual(filtro, { tipo: "fase", codigo: FASE_FORA }) && "gold-border bg-gold-soft px-1")}>
@@ -167,7 +167,7 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
         {fora.length === 0 ? (
           <div className="rounded-md border bg-card px-2 py-1.5 text-xs text-muted-foreground/60">Nada fora do fluxo</div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap gap-1 2xl:flex-col 2xl:flex-nowrap">
             {fora.map(({ e, n }) => {
               const ativo = igual(filtro, { tipo: "etapa", codigo: e.codigo });
               return (
