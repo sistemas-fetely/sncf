@@ -1296,10 +1296,21 @@ Deno.serve(async (req) => {
         }
 
         // 4b. Municipio x UF contra `municipio_ibge` ANTES de qualquer chamada de contato.
+        let ufFinal = (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().trim().slice(0, 2).toUpperCase();
         {
           const cidadeOrig = limparTexto(ender?.city) || limparTexto(pedido.shipping_city);
-          const ufVal = (ender?.provinceCode ?? pedido.shipping_province ?? "").toString().trim().slice(0, 2).toUpperCase();
           const cepVal = soDigitos(ender?.zip ?? pedido.shipping_zip);
+          const ufInformada = ufFinal;
+          const { data: ufCep, error: eUf } = await supabase.rpc("fn_uf_pelo_cep", { p_cidade: cidadeOrig, p_uf: ufInformada, p_cep: cepVal });
+          if (eUf) {
+            await falhar(`resolver UF pelo CEP: ${eUf.message}`);
+            continue;
+          }
+          if (typeof ufCep === "string" && ufCep.trim().length === 2 && ufCep.trim().toUpperCase() !== ufInformada) {
+            console.warn("[b2c-descida] UF corrigida pelo CEP", { de: ufInformada, para: ufCep.trim().toUpperCase(), cep: cepVal, cidade: cidadeOrig });
+            ufFinal = ufCep.trim().toUpperCase();
+          }
+          const ufVal = ufFinal;
           const cidadeNorm = String(cidadeOrig ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
           const { data: mun, error: eMun } = await supabase
             .from("municipio_ibge").select("nome").eq("nome_normalizado", cidadeNorm).eq("uf", ufVal).limit(1);
