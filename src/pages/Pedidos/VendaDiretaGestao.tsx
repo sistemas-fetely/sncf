@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
   AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, FileText, Package, PauseCircle, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
 import { toast } from "sonner";
@@ -158,6 +158,74 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
         <div className={cn("font-medium tabular-nums", pequeno ? "text-lg" : "text-2xl", destaque === "destructive" && "text-destructive", destaque === "warning" && "text-warning")}>{n}</div>
       </CardContent>
     </Card>
+  );
+  if (!tooltip) return card;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+interface FaseSelo { f: Filtro; n: number; tom: "warning" | "destructive"; label: string; tip?: string }
+interface FaseCard {
+  f: Filtro; label: string; icon: LucideIcon; acao: string; equipe: boolean;
+  espera?: string; sucesso?: boolean; selos: FaseSelo[];
+}
+
+function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
+  fase: FaseCard; n: number; tooltip?: string; filtro: Filtro | null; onFiltro: (f: Filtro) => void;
+}) {
+  const ativo = filtro === fase.f;
+  const emEspera = n > 0 && !fase.equipe && !fase.sucesso;
+  const Icon = fase.icon;
+  const card = (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onFiltro(fase.f)}
+      onKeyDown={(e) => e.key === "Enter" && onFiltro(fase.f)}
+      className={cn(
+        "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border px-3 py-2 transition-all gold-border-hover",
+        ativo ? "gold-border bg-gold-soft shadow-sm" : emEspera ? "border-border bg-muted/40" : "border-border bg-card",
+        n === 0 && !ativo && "opacity-40",
+      )}
+    >
+      <div className="flex items-center gap-1.5 pr-14 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Icon className={cn("h-4 w-4", fase.sucesso && n > 0 ? "text-success" : "text-foreground")} />
+        <span className="truncate">{fase.label}</span>
+      </div>
+      <div className={cn("text-2xl font-medium tabular-nums leading-tight",
+        emEspera ? "text-muted-foreground" : fase.sucesso && n > 0 ? "text-success-strong" : "text-foreground")}>{n}</div>
+      {n > 0 && fase.acao && <div className="text-[11px] leading-snug text-muted-foreground">{fase.acao}</div>}
+      {n > 0 && fase.equipe && <div className="text-[10px] font-medium text-primary">Ação da equipe</div>}
+      {emEspera && (
+        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+          <PauseCircle className="h-3 w-3" />{fase.espera}
+        </div>
+      )}
+      <div className="absolute right-1 top-1 flex gap-1">
+        {fase.selos.filter((s) => s.n > 0).map((s) => (
+          <Tooltip key={s.f}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onFiltro(s.f); }}
+                className={cn(
+                  "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
+                  filtro === s.f ? "gold-border bg-gold-soft"
+                    : s.tom === "destructive" ? "bg-destructive/10 text-destructive-strong" : "bg-warning/15 text-warning-strong",
+                )}
+              >
+                <AlertTriangle className="h-2.5 w-2.5" />{s.n}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>{s.tip ?? s.label}</TooltipContent>
+          </Tooltip>
+        ))}
+      </div>
+    </div>
   );
   if (!tooltip) return card;
   return (
@@ -356,34 +424,88 @@ export default function VendaDiretaGestao() {
       />
 
       <TooltipProvider>
-        <div className="space-y-2">
-          <div className="text-xs text-muted-foreground">Processo</div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-stretch">
-            {PROCESSO.map((p, i) => {
-              const n = p.s.reduce((acc, s) => acc + (porSituacao[s] ?? 0), 0);
-              const tip = p.detalhe ? Object.entries(p.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined;
-              return (
-                <Fragment key={p.f}>
-                  {i > 0 && <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground md:block" aria-hidden="true" />}
-                  <CardEtapa label={p.label} n={n} ativo={filtro === p.f} tooltip={tip} onClick={() => setFiltro(filtro === p.f ? null : p.f)} />
-                </Fragment>
-              );
-            })}
-          </div>
-          <div className="pt-2 text-xs text-muted-foreground">Atenção</div>
-           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-            {([
-              { f: "travado", label: "Travado", tom: "destructive" },
-              { f: "pausado", label: "Pausado", tom: "warning" },
-              { f: "sem_pagamento", label: `Sem pagamento +${qp.data?.alerta_sem_pagamento_horas ?? "?"}h`, tom: "warning" },
-              { f: "pagamento_desatualizado", label: "Pagamento desatualizado", tom: "warning" },
-              { f: "falta_site_sp", label: "Falta no Site SP", tom: "destructive" },
-              { f: "reembolso", label: "Reembolso", tom: "warning" },
-            ] as { f: Filtro; label: string; tom: "warning" | "destructive" }[]).map((c) => (
-              <CardEtapa key={c.f} pequeno label={c.label} n={contar(c.f)} tom={c.tom} ativo={filtro === c.f} onClick={() => setFiltro(filtro === c.f ? null : c.f)} />
-            ))}
-          </div>
-        </div>
+        {(() => {
+          const horas = qp.data?.alerta_sem_pagamento_horas ?? "?";
+          const na = (s: Situacao[]) => ativos.filter((l) => s.includes(l.situacao));
+          const pag = na(["aguardando_pagamento"]);
+          const a = pag.filter((l) => l.alerta_sem_pagamento).length;
+          const d = pag.filter((l) => l.pagamento_desatualizado).length;
+          const r = pag.filter((l) => !l.alerta_sem_pagamento && !l.pagamento_desatualizado).length;
+          const fat = na(["descendo_bling", "aguardando_nf"]);
+          const sep = na(["separacao"]);
+          const ret = na(["pronto_retirada", "em_transporte"]);
+          const p = porSituacao.pronto_retirada ?? 0;
+          const e = ret.filter((l) => l.situacao === "em_transporte" && l.modal === "frete_fetely").length;
+          const c = (porSituacao.em_transporte ?? 0) - e;
+          const totalFalta = contar("falta_site_sp");
+          const partes = (xs: [number, string][]) => xs.filter(([n]) => n > 0).map(([n, t]) => `${n} ${t}`).join(" · ");
+          const seloFalta = (n: number): FaseSelo[] => [{ f: "falta_site_sp", n, tom: "destructive", label: "Falta no Site SP", tip: `Falta no Site SP: ${totalFalta} no total` }];
+          const fases: FaseCard[] = [
+            { f: "pagamento", label: "Pagamento", icon: Wallet,
+              acao: partes([[a, `cobrar (+${horas}h)`], [d, "remontar pagamento"], [r, "aguardando cliente"]]),
+              equipe: a + d > 0, espera: "aguardando cliente",
+              selos: [
+                { f: "sem_pagamento", n: contar("sem_pagamento"), tom: "warning", label: `Sem pagamento +${horas}h` },
+                { f: "pagamento_desatualizado", n: contar("pagamento_desatualizado"), tom: "warning", label: "Pagamento desatualizado" },
+              ] },
+            { f: "faturamento", label: "Faturamento", icon: FileText,
+              acao: partes([[porSituacao.descendo_bling ?? 0, "descendo ao Bling"], [porSituacao.aguardando_nf ?? 0, "aguardando NF"]]),
+              equipe: false, espera: "aguardando Bling", selos: seloFalta(fat.filter(temFalta).length) },
+            { f: "separacao", label: "Separação", icon: Package,
+              acao: partes([[sep.length, "separar"], [sep.filter(temFalta).length, "com falta no Site SP"]]),
+              equipe: true, selos: seloFalta(sep.filter(temFalta).length) },
+            { f: "retirada_envio", label: "Retirada / Envio", icon: Truck,
+              acao: partes([[p, "registrar retirada"], [e, "registrar entrega"], [c, "em transporte"]]),
+              equipe: p + e > 0, espera: "com a transportadora", selos: [] },
+            { f: "entregue", label: "Entregue · 30 dias", icon: PackageCheck, acao: "últimos 30 dias", equipe: false, sucesso: true, selos: [] },
+          ];
+          const fora: { f: Filtro; label: string; tom: "warning" | "destructive" }[] = [
+            { f: "travado", label: "Travado", tom: "destructive" },
+            { f: "pausado", label: "Pausado", tom: "warning" },
+            { f: "reembolso", label: "Reembolso", tom: "warning" },
+          ];
+          const alternar = (f: Filtro) => setFiltro(filtro === f ? null : f);
+          return (
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
+              <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-stretch">
+                {fases.map((fc, i) => {
+                  const pr = PROCESSO.find((x) => x.f === fc.f)!;
+                  const n = pr.s.reduce((acc, s) => acc + (porSituacao[s] ?? 0), 0);
+                  const tip = pr.detalhe ? Object.entries(pr.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined;
+                  return (
+                    <Fragment key={fc.f}>
+                      {i > 0 && <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground md:block" aria-hidden="true" />}
+                      <CardFase fase={fc} n={n} tooltip={tip} filtro={filtro} onFiltro={alternar} />
+                    </Fragment>
+                  );
+                })}
+              </div>
+              <div className="hidden w-px shrink-0 bg-border lg:block" aria-hidden="true" />
+              <div className="flex flex-col gap-1 lg:w-44">
+                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Fora do fluxo</div>
+                <div className="flex gap-2 lg:flex-col">
+                  {fora.map((o) => {
+                    const n = contar(o.f);
+                    const ativo = filtro === o.f;
+                    return (
+                      <button key={o.f} type="button" onClick={() => alternar(o.f)}
+                        className={cn(
+                          "flex flex-1 items-center justify-between rounded-md border px-2 py-1 text-xs transition-all gold-border-hover",
+                          ativo ? "gold-border bg-gold-soft shadow-sm"
+                            : n > 0 && o.tom === "destructive" ? "border-destructive/50 bg-destructive/10 text-destructive-strong"
+                            : n > 0 ? "border-warning/50 bg-warning/10 text-warning-strong"
+                            : "border-border bg-card opacity-40",
+                        )}>
+                        <span>{o.label}</span>
+                        <span className="text-base font-medium tabular-nums">{n}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
