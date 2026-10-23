@@ -178,7 +178,9 @@ function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
   fase: FaseCard; n: number; tooltip?: string; filtro: Filtro | null; onFiltro: (f: Filtro) => void;
 }) {
   const ativo = filtro === fase.f;
+  const zerado = n === 0 && !ativo;
   const emEspera = n > 0 && !fase.equipe && !fase.sucesso;
+  const equipe = n > 0 && fase.equipe;
   const Icon = fase.icon;
   const card = (
     <div
@@ -187,17 +189,19 @@ function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
       onClick={() => onFiltro(fase.f)}
       onKeyDown={(e) => e.key === "Enter" && onFiltro(fase.f)}
       className={cn(
-        "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border px-3 py-2 transition-all gold-border-hover",
-        ativo ? "gold-border bg-gold-soft shadow-sm" : emEspera ? "border-border bg-muted/40" : "border-border bg-card",
-        n === 0 && !ativo && "opacity-40",
+        "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border bg-card px-3 py-2 transition-all gold-border-hover",
+        ativo ? "gold-border bg-gold-soft shadow-sm"
+          : emEspera ? "border-border border-dashed"
+          : equipe ? "border-border border-l-4 border-l-primary"
+          : "border-border",
       )}
     >
-      <div className="flex items-center gap-1.5 pr-14 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-        <Icon className={cn("h-4 w-4", fase.sucesso && n > 0 ? "text-success" : "text-foreground")} />
+      <div className={cn("flex items-center gap-1.5 pr-14 text-[10px] font-medium uppercase tracking-wide", zerado ? "text-muted-foreground/60" : "text-muted-foreground")}>
+        <Icon className={cn("h-4 w-4", zerado ? "text-muted-foreground/60" : fase.sucesso && n > 0 ? "text-success" : emEspera ? "text-muted-foreground" : "text-foreground")} />
         <span className="truncate">{fase.label}</span>
       </div>
       <div className={cn("text-2xl font-medium tabular-nums leading-tight",
-        emEspera ? "text-muted-foreground" : fase.sucesso && n > 0 ? "text-success-strong" : "text-foreground")}>{n}</div>
+        zerado ? "text-muted-foreground/60" : emEspera ? "text-muted-foreground" : fase.sucesso && n > 0 ? "text-success-strong" : "text-foreground")}>{n}</div>
       {n > 0 && fase.acao && <div className="text-[11px] leading-snug text-muted-foreground">{fase.acao}</div>}
       {n > 0 && fase.equipe && <div className="text-[10px] font-medium text-primary">Ação da equipe</div>}
       {emEspera && (
@@ -215,7 +219,7 @@ function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
                 className={cn(
                   "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
                   filtro === s.f ? "gold-border bg-gold-soft"
-                    : s.tom === "destructive" ? "bg-destructive/10 text-destructive-strong" : "bg-warning/15 text-warning-strong",
+                    : s.tom === "destructive" ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground",
                 )}
               >
                 <AlertTriangle className="h-2.5 w-2.5" />{s.n}
@@ -490,11 +494,11 @@ export default function VendaDiretaGestao() {
                     return (
                       <button key={o.f} type="button" onClick={() => alternar(o.f)}
                         className={cn(
-                          "flex flex-1 items-center justify-between rounded-md border px-2 py-1 text-xs transition-all gold-border-hover",
+                          "flex flex-1 items-center justify-between rounded-md border bg-card px-2 py-1 text-xs transition-all gold-border-hover",
                           ativo ? "gold-border bg-gold-soft shadow-sm"
-                            : n > 0 && o.tom === "destructive" ? "border-destructive/50 bg-destructive/10 text-destructive-strong"
-                            : n > 0 ? "border-warning/50 bg-warning/10 text-warning-strong"
-                            : "border-border bg-card opacity-40",
+                            : n > 0 && o.tom === "destructive" ? "border-border border-l-4 border-l-destructive text-destructive-strong"
+                            : n > 0 ? "border-border border-l-4 border-l-warning text-warning-strong"
+                            : "border-border text-muted-foreground/60",
                         )}>
                         <span>{o.label}</span>
                         <span className="text-base font-medium tabular-nums">{n}</span>
