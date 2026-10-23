@@ -26,3 +26,18 @@ it("refaz e aguarda pedido, cobertura, parcelas e links ativos após pagamento",
   removers.forEach((remove) => remove());
   qc.clear();
 });
+
+it("invalida chave fora das listas que só carrega o id do pedido em posição intermediária", async () => {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+  const queryKey = ["ancora-sugestao", "PED-2309", "2026-10-23", 0, ""];
+  const fn = vi.fn(async () => "estado atualizado");
+  qc.setQueryData(queryKey, "estado antigo");
+  const remove = new QueryObserver(qc, { queryKey, queryFn: fn }).subscribe(() => {});
+
+  await invalidarPedido(qc, "PED-2309");
+
+  expect(fn).toHaveBeenCalledTimes(1);
+  expect(qc.getQueryData(queryKey)).toBe("estado atualizado");
+  remove();
+  qc.clear();
+});
