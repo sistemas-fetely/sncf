@@ -11,6 +11,8 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { TrilhaDevolucao, type DevolucaoVD } from "./DevolucaoVendaDireta";
 import { SecaoCancelamentoNf, type CancelamentoNfSP } from "./CancelamentoComNfVD";
 import { QK_VD_GAVETA } from "./queryKeys";
+import { naoMapeada, type ClassificacaoVD, type Marcos } from "./FunilVD";
+import { cn } from "@/lib/utils";
 
 export interface LinhaGaveta {
   id: string;
@@ -74,13 +76,58 @@ export function useProdutosPorSku(skus: string[]) {
   });
 }
 
-export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, cancelamentoNf }: {
+const dm = (s: string) => {
+  const p = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(new Date(s));
+  const v = (t: Intl.DateTimeFormatPartTypes) => p.find((x) => x.type === t)?.value ?? "";
+  return `${v("day")}/${v("month")} ${v("hour")}:${v("minute")}`;
+};
+
+function LinhaDoTempo({ c }: { c: ClassificacaoVD }) {
+  const m: Marcos = c.marcos ?? {};
+  const passos: { k: string; label: string; em: string | null | undefined }[] = [
+    { k: "criado", label: "Pedido criado", em: m.criado_em },
+    { k: "pago", label: "Pago", em: m.pago_em },
+    { k: "bling", label: m.bling_numero ? `No Bling (#${m.bling_numero})` : "No Bling", em: m.bling_em },
+    { k: "nf", label: m.nf_numero ? `NF emitida (${m.nf_numero})` : "NF emitida", em: m.nf_em },
+    { k: "puxado", label: "Puxado na Mesa SP", em: m.puxado_em },
+    { k: "embalado", label: "Embalado", em: m.embalado_em },
+    ...(m.despachado_em ? [{ k: "despachado", label: "Despachado", em: m.despachado_em }] : []),
+    { k: "entregue", label: "Entregue/Retirado", em: m.entregue_em },
+    ...(m.cancelado_em ? [{ k: "cancelado", label: "Cancelado", em: m.cancelado_em }] : []),
+  ];
+  const semMapa = naoMapeada(c);
+  return (
+    <section className="space-y-3">
+      <div className="space-y-1 rounded-md border bg-card p-3 text-sm">
+        <div className="text-xs text-muted-foreground">{c.fase_rotulo ?? "—"} › <span className={cn("font-medium text-foreground", semMapa && "text-destructive-strong")}>{semMapa ? "Situação não mapeada — avisar Sistemas" : c.etapa_rotulo}</span></div>
+        {c.etapa_detalhe && <div className={cn("text-xs", c.etapa_tom === "critico" ? "text-destructive-strong" : "text-muted-foreground")}>{c.etapa_detalhe}</div>}
+        <div className="text-xs text-muted-foreground">Responsável: <span className="text-foreground">{c.responsavel_rotulo ?? "—"}</span></div>
+        {c.proxima_acao && <div className="text-xs">→ {c.proxima_acao}</div>}
+      </div>
+      <ol className="space-y-0">
+        {passos.map((p, i) => (
+          <li key={p.k} className="relative flex gap-3 pb-3 last:pb-0">
+            {i < passos.length - 1 && <span className={cn("absolute left-[5px] top-3 h-full w-px", p.em ? "bg-primary" : "bg-border")} aria-hidden="true" />}
+            <span className={cn("relative mt-1 h-[11px] w-[11px] shrink-0 rounded-full border-2", p.em ? (p.k === "cancelado" ? "border-destructive bg-destructive" : "border-primary bg-primary") : "border-border bg-card")} />
+            <div className="flex flex-1 justify-between gap-2 text-sm">
+              <span className={p.em ? "text-foreground" : "text-muted-foreground"}>{p.label}</span>
+              <span className="tabular-nums text-xs text-muted-foreground">{p.em ? dm(p.em) : "pendente"}</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, cancelamentoNf, classificacao }: {
   linha: LinhaGaveta | null;
   modalLabel: (m: string | null) => string;
   onClose: () => void;
   acoes?: ReactNode;
   devolucao?: DevolucaoVD | null;
   cancelamentoNf?: CancelamentoNfSP | null;
+  classificacao?: ClassificacaoVD | null;
 }) {
   const id = linha?.id;
   const itensQ = useQuery({
@@ -139,6 +186,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
         </SheetHeader>
         {l && (
           <div className="flex-1 space-y-5 overflow-y-auto p-4">
+            {classificacao && <LinhaDoTempo c={classificacao} />}
             <Secao titulo="Itens">
               {itensQ.isLoading ? <Skeleton className="h-16 w-full" /> : itensQ.isError ? <Erro e={itensQ.error} /> : (itensQ.data ?? []).length === 0 ? (
                 <p className="text-muted-foreground">Nenhum item.</p>
