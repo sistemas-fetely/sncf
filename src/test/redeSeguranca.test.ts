@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { QueryClient } from "@tanstack/react-query";
-import { criarMutationCacheRedeSeguranca } from "./redeSeguranca";
+import { criarMutationCacheRedeSeguranca } from "@/lib/redeSeguranca";
 
 describe("rede de segurança pós-mutation", () => {
   it("invalida só a query sem meta.pesada", async () => {
