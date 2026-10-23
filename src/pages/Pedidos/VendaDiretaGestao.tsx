@@ -21,8 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Selo, type EstadoSelo } from "@/components/ui/selo";
-import { Card, CardContent } from "@/components/ui/card";
+import { Selo } from "@/components/ui/selo";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
@@ -46,7 +45,7 @@ import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/qu
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
-import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 // `situacao` segue alimentando só as AÇÕES; exibição (fase/etapa/rótulo/quem age) vem da view + dimensões.
 type Situacao =
@@ -127,10 +126,12 @@ export default function VendaDiretaGestao() {
   const cancelNfPorPedido = cancelNfQ.data;
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
-  const [filtro, setFiltro] = useState<Filtro | null>(null);
+  const [filtro, setFiltro] = useState<FiltroVD | null>(null);
+  const [soAcaoEquipe, setSoAcaoEquipe] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [config, setConfig] = useState(false);
-  const qp = useParametrosVD();
+  const dimQ = useDimensoesVD();
+  useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
   const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const [busca, setBusca] = useState("");
   const [filtroPagamento, setFiltroPagamento] = useState<FiltroPagamento>("todos");
@@ -184,33 +185,20 @@ export default function VendaDiretaGestao() {
     onError: (e) => toast.error(rawMessage(e)),
   });
 
-  // Entregue conta só os últimos 30 dias — cartão e filtro seguem a mesma régua.
+  // Entregue conta só os últimos 30 dias (marcos.entregue_em) — cartão e filtro seguem a mesma régua.
   const visiveis = useMemo(
-    () => (q.data ?? []).filter((l) =>
-      l.situacao !== "entregue" ||
-      (l.entrou_na_fase_em && Date.now() - new Date(l.entrou_na_fase_em).getTime() <= TRINTA_DIAS)),
+    () => (q.data ?? []).filter((l) => {
+      if (l.fase !== "entregue") return true;
+      const em = l.marcos?.entregue_em;
+      return !!em && Date.now() - new Date(em).getTime() <= TRINTA_DIAS;
+    }),
     [q.data],
   );
-  const ativos = useMemo(() => visiveis.filter((l) => l.situacao !== "cancelado"), [visiveis]);
-
-  const porSituacao = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const l of ativos) c[l.situacao] = (c[l.situacao] ?? 0) + 1;
-    return c;
-  }, [ativos]);
+  const ativos = useMemo(() => visiveis.filter((l) => l.fase !== "cancelado"), [visiveis]);
   const nCancelados = visiveis.length - ativos.length;
 
-  const bate = (l: Linha, f: Filtro) => {
-    const p = PROCESSO.find((x) => x.f === f);
-    if (p) return p.s.includes(l.situacao) && (!p.est || p.est(l));
-    if (f === "pausado") return l.situacao === "pausado" && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
-    if (f === "travado") return l.situacao === f;
-    if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
-    if (f === "pagamento_desatualizado") return !!l.pagamento_desatualizado;
-    if (f === "reembolso") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
-    return temFalta(l);
-  };
-  const contar = (f: Filtro) => ativos.filter((l) => bate(l, f)).length;
+  const bate = (l: Linha, f: FiltroVD) =>
+    f.tipo === "fase" ? l.fase === f.codigo : f.tipo === "etapa" ? l.etapa === f.codigo : temAlerta(l, f.codigo);
 
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -218,6 +206,7 @@ export default function VendaDiretaGestao() {
     const base = mostrarCancelados ? visiveis : ativos;
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
+      if (soAcaoEquipe && !l.acao_equipe) return false;
       if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em) return false;
       if (filtroPagamento === "nao_pagos" && l.pagamento_confirmado_em) return false;
       if (!t) return true;
@@ -226,9 +215,9 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, devolucaoPorPedido]);
+  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
 
-  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados]);
+  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   const skusFalta = useMemo(
