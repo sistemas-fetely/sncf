@@ -64,6 +64,13 @@
       "when": 1792770385147,
       "tag": "0008_logradouro_cabe_xpm_payload_e_travado_b2c",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792779120054,
+      "tag": "0009_shopify_endereco_parse_uf_pelo_cep",
+      "breakpoints": true
     }
   ]
 }

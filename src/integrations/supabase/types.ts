@@ -5026,6 +5026,7 @@ export type Database = {
           nome: string
           observacao: string | null
           ordem: number
+          peso_g: number | null
         }
         Insert: {
           altura_cm: number
@@ -5040,6 +5041,7 @@ export type Database = {
           nome: string
           observacao?: string | null
           ordem?: number
+          peso_g?: number | null
         }
         Update: {
           altura_cm?: number
@@ -5054,6 +5056,7 @@ export type Database = {
           nome?: string
           observacao?: string | null
           ordem?: number
+          peso_g?: number | null
         }
         Relationships: []
       }
@@ -6840,6 +6843,87 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_movest_trs0002_20261023: {
+        Row: {
+          centro_custo_id: string | null
+          centro_id: string | null
+          classe: string | null
+          condicao: string | null
+          criado_em: string | null
+          criado_por: string | null
+          custo_unitario: number | null
+          data_mov: string | null
+          devolucao_id: string | null
+          doc_numero: string | null
+          doc_tipo: string | null
+          id: string | null
+          importacao_pedido_id: number | null
+          motivo: string | null
+          nf_entrada_id: number | null
+          nf_saida_id: string | null
+          obs: string | null
+          origem: string | null
+          par_transferencia_id: string | null
+          pedido_id: string | null
+          quantidade: number | null
+          referencia: string | null
+          sku: string | null
+          tipo: string | null
+        }
+        Insert: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          devolucao_id?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Update: {
+          centro_custo_id?: string | null
+          centro_id?: string | null
+          classe?: string | null
+          condicao?: string | null
+          criado_em?: string | null
+          criado_por?: string | null
+          custo_unitario?: number | null
+          data_mov?: string | null
+          devolucao_id?: string | null
+          doc_numero?: string | null
+          doc_tipo?: string | null
+          id?: string | null
+          importacao_pedido_id?: number | null
+          motivo?: string | null
+          nf_entrada_id?: number | null
+          nf_saida_id?: string | null
+          obs?: string | null
+          origem?: string | null
+          par_transferencia_id?: string | null
+          pedido_id?: string | null
+          quantidade?: number | null
+          referencia?: string | null
+          sku?: string | null
+          tipo?: string | null
+        }
+        Relationships: []
+      }
       backup_parceiros_dedup_20261019: {
         Row: {
           copia_id: string | null
@@ -6933,6 +7017,39 @@ export type Database = {
           mov_nova?: string | null
           registro_id?: string | null
           tabela?: string | null
+        }
+        Relationships: []
+      }
+      backup_trs_recebimento_trs0002_20261023: {
+        Row: {
+          centro_destino_id: string | null
+          criado_em: string | null
+          data_recebimento: string | null
+          divergencias: Json | null
+          id: string | null
+          itens: Json | null
+          pedido_id: string | null
+          recebido_por: string | null
+        }
+        Insert: {
+          centro_destino_id?: string | null
+          criado_em?: string | null
+          data_recebimento?: string | null
+          divergencias?: Json | null
+          id?: string | null
+          itens?: Json | null
+          pedido_id?: string | null
+          recebido_por?: string | null
+        }
+        Update: {
+          centro_destino_id?: string | null
+          criado_em?: string | null
+          data_recebimento?: string | null
+          divergencias?: Json | null
+          id?: string | null
+          itens?: Json | null
+          pedido_id?: string | null
+          recebido_por?: string | null
         }
         Relationships: []
       }
@@ -11537,6 +11654,30 @@ export type Database = {
           created_at?: string | null
           id?: string
           nome?: string
+        }
+        Relationships: []
+      }
+      cep_faixa_uf: {
+        Row: {
+          ativo: boolean
+          cep_fim: number
+          cep_ini: number
+          criado_em: string
+          uf: string
+        }
+        Insert: {
+          ativo?: boolean
+          cep_fim: number
+          cep_ini: number
+          criado_em?: string
+          uf: string
+        }
+        Update: {
+          ativo?: boolean
+          cep_fim?: number
+          cep_ini?: number
+          criado_em?: string
+          uf?: string
         }
         Relationships: []
       }
@@ -38811,6 +38952,30 @@ export type Database = {
           dias_limite?: number
           modo_alimentacao?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      logradouro_abreviacao_dim: {
+        Row: {
+          abreviacao: string
+          ativo: boolean
+          criado_em: string
+          ordem: number
+          termo: string
+        }
+        Insert: {
+          abreviacao: string
+          ativo?: boolean
+          criado_em?: string
+          ordem: number
+          termo: string
+        }
+        Update: {
+          abreviacao?: string
+          ativo?: boolean
+          criado_em?: string
+          ordem?: number
+          termo?: string
         }
         Relationships: []
       }
@@ -135358,6 +135523,14 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_logradouro_cabe: {
+        Args: { p_compl: string; p_max?: number; p_rua: string }
+        Returns: {
+          ajuste: string
+          compl: string
+          rua: string
+        }[]
+      }
       fn_maior_compra_parceiro: {
         Args: { p_parceiro_id: string }
         Returns: number
@@ -135523,6 +135696,10 @@ export type Database = {
       fn_mesa_sp_modal_do_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
+      }
+      fn_mesa_sp_peso_estimado: {
+        Args: { p_caixa_codigo?: string; p_pedido_id: string }
+        Returns: Json
       }
       fn_mesa_sp_puxar_pedido: { Args: { p_pedido_id: string }; Returns: Json }
       fn_mesa_sp_registrar_conferencia: {
@@ -136525,6 +136702,10 @@ export type Database = {
           p_pedido_id: string
         }
         Returns: Json
+      }
+      fn_uf_pelo_cep: {
+        Args: { p_cep: string; p_cidade: string; p_uf: string }
+        Returns: string
       }
       fn_uf_por_cep: { Args: { p_cep: string }; Returns: string }
       fn_upsert_catalogo: { Args: { p_produtos: Json }; Returns: Json }
