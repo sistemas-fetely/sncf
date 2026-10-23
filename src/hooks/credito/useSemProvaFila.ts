@@ -25,6 +25,7 @@ import type { LinhaMesa } from "@/lib/financeiro/adaptar-titulo-mesa";
 export function useSemProvaFila() {
   return useQuery({
     queryKey: ["cobranca-mesa", "sem-prova"],
+    meta: { pesada: true },
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<LinhaMesa[]> => {
@@ -51,6 +52,7 @@ export function useSemProvaFila() {
 export function useInstrumentoQuebradoFila() {
   return useQuery({
     queryKey: ["cobranca-mesa", "instrumento-quebrado"],
+    meta: { pesada: true },
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<LinhaMesa[]> => {
@@ -74,6 +76,7 @@ export function useInstrumentoQuebradoFila() {
 export function useNaoCobravelFila() {
   return useQuery({
     queryKey: ["cobranca-mesa", "nao-cobravel"],
+    meta: { pesada: true },
     staleTime: 30_000,
     refetchOnWindowFocus: true,
     queryFn: async (): Promise<LinhaMesa[]> => {

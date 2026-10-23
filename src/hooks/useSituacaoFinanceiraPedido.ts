@@ -19,6 +19,7 @@ export interface SituacaoFinanceiraPedido {
 export function useSituacaoFinanceiraPedido(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["situacao-financeira-pedido", pedidoId],
+    meta: { pesada: true },
     enabled: !!pedidoId,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<SituacaoFinanceiraPedido | null> => {

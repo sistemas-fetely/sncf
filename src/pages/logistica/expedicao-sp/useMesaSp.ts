@@ -108,6 +108,7 @@ export function useIdentidadesMesaSp(pedidoIds: string[]) {
   const chave = [...pedidoIds].sort().join(",");
   return useQuery({
     queryKey: [...CHAVE_IDENTIDADES_MESA, chave],
+    meta: { pesada: true },
     enabled: pedidoIds.length > 0,
     staleTime: 15 * 1000,
     queryFn: async (): Promise<Map<string, IdentidadesPedidoMesa>> => {

@@ -217,6 +217,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
   const qc = useQueryClient();
   const q = useQuery({
     queryKey: ["cobranca-mesa"],
+    meta: { pesada: true },
     ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async () => {
       const { data, error } = await (supabase as any)

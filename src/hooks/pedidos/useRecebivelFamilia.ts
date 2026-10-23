@@ -15,6 +15,7 @@ export function useRecebivelFamilia(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["recebivel-familia", pedidoId],
     enabled: !!pedidoId,
+    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<RecebivelFamilia | null> => {
       if (!pedidoId) return null;

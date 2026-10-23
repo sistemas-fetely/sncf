@@ -1,5 +1,6 @@
 import { lazy } from "react";
-import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { criarMutationCacheRedeSeguranca } from "@/lib/redeSeguranca";
 import { BrowserRouter, Navigate, Route, Routes, useParams, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -271,11 +272,10 @@ let queryClient: QueryClient;
 // Rede de segurança: QUALQUER mutation bem-sucedida invalida todas as queries.
 // O refetchType padrão ('active') faz rebuscar só o que está montado na tela; o
 // resto do cache apenas fica marcado sujo e rebusca quando for montado.
-const mutationCache = new MutationCache({
-  onSuccess: () => {
-    void queryClient.invalidateQueries();
-  },
-});
+// Queries com meta.pesada ficam fora da rede de segurança e dependem de
+// invalidarPedido / invalidações do próprio hook. Lista mantida pela frente
+// VELOCIDADE (Registro de Frentes).
+const mutationCache = criarMutationCacheRedeSeguranca(() => queryClient);
 
 queryClient = new QueryClient({
   mutationCache,

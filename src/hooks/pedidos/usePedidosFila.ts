@@ -27,6 +27,7 @@ interface Opts {
 export function usePedidosFila(opts: Opts = {}) {
   return useQuery({
     queryKey: ["pedidos-fila", opts],
+    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<PedidoFilaItem[]> => {
       const montarQuery = () => {
