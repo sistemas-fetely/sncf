@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import {
   EVENTO_ROTEADO,
   type AguardandoNfMesa, type CaixaSugerida, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
-  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal,
+  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal, type PesoEstimado,
 } from "./tipos";
 
 /**
@@ -256,6 +256,23 @@ export function useCaixasSugeridas(pedidoId: string | null) {
       });
       if (error) throw new Error(`sugerir caixas: ${mensagemErro(error)}`);
       return (data ?? []) as CaixaSugerida[];
+    },
+  });
+}
+
+/** Peso estimado pela ficha (itens + caixa). Só sugestão: a balança decide. */
+export function usePesoEstimado(pedidoId: string | null, caixaCodigo: string | null) {
+  return useQuery({
+    queryKey: ["mesa-sp", "peso-estimado", pedidoId, caixaCodigo],
+    enabled: !!pedidoId,
+    staleTime: 60 * 1000,
+    queryFn: async (): Promise<PesoEstimado | null> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_peso_estimado", {
+        p_pedido_id: pedidoId,
+        p_caixa_codigo: caixaCodigo,
+      });
+      if (error) throw new Error(`estimar peso: ${mensagemErro(error)}`);
+      return (data ?? null) as PesoEstimado | null;
     },
   });
 }
