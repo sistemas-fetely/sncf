@@ -3,15 +3,19 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
-  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, ListOrdered, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, FileText, Package, PauseCircle, type LucideIcon,
+  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
-import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
+import { AvisarClienteButton, ConfiguracoesVDDialog } from "@/components/venda-direta/MensagensVendaDireta";
+import {
+  ALERTA_FALTA, FunilVD, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
+  type ClassificacaoVD, type FiltroVD,
+} from "@/components/venda-direta/FunilVD";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -44,11 +48,12 @@ import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/com
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
 import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
+// `situacao` segue alimentando só as AÇÕES; exibição (fase/etapa/rótulo/quem age) vem da view + dimensões.
 type Situacao =
   | "aguardando_pagamento" | "descendo_bling" | "aguardando_nf" | "separacao"
   | "pronto_retirada" | "em_transporte" | "travado" | "pausado" | "entregue" | "cancelado" | "outro";
 
-interface Linha extends LinhaVD {
+interface Linha extends LinhaVD, ClassificacaoVD {
   recebido_em: string | null;
   cancelado_em: string | null;
   modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
@@ -65,44 +70,12 @@ interface Linha extends LinhaVD {
   nf_numero: string | number | null;
   entrou_na_fase_em: string | null;
   situacao: Situacao;
-  estagio: string | null;
-  embalado: boolean | null;
-  horas_sem_pagamento: number | null;
   alerta_sem_pagamento: boolean | null;
   pagamento_desatualizado: boolean | null;
   faltando_site_sp: { sku: string; quantidade: number; saldo_site_sp: number }[] | null;
-  codigo_rastreio: string | null;
-  rastreio_servico: string | null;
 }
 
-type Filtro =
-  | "pagamento" | "faturamento" | "fila_separacao" | "em_separacao" | "retirada_envio" | "entregue"
-  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "reembolso";
 type FiltroPagamento = "todos" | "pagos" | "nao_pagos";
-
-const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
-
-const PROCESSO: { f: Filtro; label: string; s: Situacao[]; est?: (l: { estagio: string | null }) => boolean; detalhe?: Partial<Record<Situacao, string>> }[] = [
-  { f: "pagamento", label: "Pagamento", s: ["aguardando_pagamento"] },
-  { f: "faturamento", label: "A faturar", s: ["descendo_bling", "aguardando_nf"], detalhe: { descendo_bling: "descendo ao Bling", aguardando_nf: "aguardando NF" } },
-  // Separação dividida em dois cards pela régua da Mesa SP: na fila (pre_separacao) ou já puxado.
-  { f: "fila_separacao", label: "Fila de separação", s: ["separacao"], est: (l) => l.estagio === "pre_separacao" },
-  { f: "em_separacao", label: "Em separação", s: ["separacao"], est: (l) => l.estagio !== "pre_separacao" },
-  { f: "retirada_envio", label: "Retirada / Envio", s: ["pronto_retirada", "em_transporte"], detalhe: { pronto_retirada: "prontos p/ retirada", em_transporte: "em transporte" } },
-  { f: "entregue", label: "Entregue (30 dias)", s: ["entregue"] },
-];
-
-const LABEL: Record<string, string> = {
-  aguardando_pagamento: "Aguardando pagamento", descendo_bling: "Descendo ao Bling", aguardando_nf: "Aguardando NF",
-  separacao: "Separação", pronto_retirada: "Pronto p/ retirada", em_transporte: "Em transporte", travado: "Travado",
-  pausado: "Pausado", entregue: "Entregue", cancelado: "Cancelado", outro: "Outro",
-};
-
-// Separação tem dois estágios: NF emitida e na fila da Mesa SP (pre_separacao) ou já puxado (em_separacao).
-const rotuloSeparacao = (l: { estagio: string | null }) =>
-  l.estagio === "em_separacao" ? "Em separação" : "Aguardando separação";
-const rotuloSituacao = (l: Linha) =>
-  l.situacao === "separacao" ? rotuloSeparacao(l) : (LABEL[l.situacao] ?? l.situacao);
 
 const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
@@ -142,110 +115,6 @@ function BotaoIcone({ a }: { a: Acao }) {
         </span>
       </TooltipTrigger>
       <TooltipContent>{a.label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
-  label: string; n: number; ativo: boolean; onClick: () => void; tooltip?: ReactNode; tom?: "warning" | "destructive"; pequeno?: boolean;
-}) {
-  const destaque = n > 0 ? tom : undefined;
-  const card = (
-    <Card
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
-      className={cn(
-        "flex-1 cursor-pointer bg-card transition-colors hover:bg-muted/50",
-        ativo && "ring-2 ring-primary",
-        destaque === "destructive" && "border-destructive bg-destructive/10",
-        destaque === "warning" && "border-warning bg-warning/10",
-      )}
-    >
-      <CardContent className={pequeno ? "p-2" : "p-3"}>
-        <div className={cn("text-xs text-muted-foreground", destaque === "destructive" && "text-destructive", destaque === "warning" && "text-warning")}>{label}</div>
-        <div className={cn("font-medium tabular-nums", pequeno ? "text-lg" : "text-2xl", destaque === "destructive" && "text-destructive", destaque === "warning" && "text-warning")}>{n}</div>
-      </CardContent>
-    </Card>
-  );
-  if (!tooltip) return card;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-interface FaseSelo { f: Filtro; n: number; tom: "warning" | "destructive"; label: string; tip?: string }
-interface FaseCard {
-  f: Filtro; label: string; icon: LucideIcon; acao: string; equipe: boolean;
-  espera?: string; sucesso?: boolean; tip?: string; selos: FaseSelo[];
-}
-
-function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
-  fase: FaseCard; n: number; tooltip?: string; filtro: Filtro | null; onFiltro: (f: Filtro) => void;
-}) {
-  const ativo = filtro === fase.f;
-  const zerado = n === 0 && !ativo;
-  const emEspera = n > 0 && !fase.equipe && !fase.sucesso;
-  const equipe = n > 0 && fase.equipe;
-  const Icon = fase.icon;
-  const card = (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onFiltro(fase.f)}
-      onKeyDown={(e) => e.key === "Enter" && onFiltro(fase.f)}
-      className={cn(
-        "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border bg-card px-3 py-2 transition-all gold-border-hover",
-        ativo ? "gold-border bg-gold-soft shadow-sm"
-          : emEspera ? "border-border border-dashed"
-          : equipe ? "border-border border-l-4 border-l-primary"
-          : "border-border",
-      )}
-    >
-      <div className={cn("flex items-center gap-1.5 pr-14 text-[10px] font-medium uppercase tracking-wide", zerado ? "text-muted-foreground/60" : "text-muted-foreground")}>
-        <Icon className={cn("h-4 w-4", zerado ? "text-muted-foreground/60" : fase.sucesso && n > 0 ? "text-success" : emEspera ? "text-muted-foreground" : "text-foreground")} />
-        <span className="truncate">{fase.label}</span>
-      </div>
-      <div className={cn("text-2xl font-medium tabular-nums leading-tight",
-        zerado ? "text-muted-foreground/60" : emEspera ? "text-muted-foreground" : fase.sucesso && n > 0 ? "text-success-strong" : "text-foreground")}>{n}</div>
-      {n > 0 && fase.acao && <div className="text-[11px] leading-snug text-muted-foreground">{fase.acao}</div>}
-      {n > 0 && fase.equipe && <div className="text-[10px] font-medium text-primary">Ação da equipe</div>}
-      {emEspera && (
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <PauseCircle className="h-3 w-3" />{fase.espera}
-        </div>
-      )}
-      <div className="absolute right-1 top-1 flex gap-1">
-        {fase.selos.filter((s) => s.n > 0).map((s) => (
-          <Tooltip key={s.f}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onFiltro(s.f); }}
-                className={cn(
-                  "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                  filtro === s.f ? "gold-border bg-gold-soft"
-                    : s.tom === "destructive" ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground",
-                )}
-              >
-                <AlertTriangle className="h-2.5 w-2.5" />{s.n}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{s.tip ?? s.label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-    </div>
-  );
-  if (!tooltip) return card;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
     </Tooltip>
   );
 }
