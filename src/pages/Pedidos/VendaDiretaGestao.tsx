@@ -8,7 +8,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
-  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, PackageCheck, Plus, QrCode,
+  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, ListOrdered, PackageCheck, Plus, QrCode,
   Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, FileText, Package, PauseCircle, type LucideIcon,
 } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
@@ -66,6 +66,7 @@ interface Linha extends LinhaVD {
   entrou_na_fase_em: string | null;
   situacao: Situacao;
   estagio: string | null;
+  embalado: boolean | null;
   horas_sem_pagamento: number | null;
   alerta_sem_pagamento: boolean | null;
   pagamento_desatualizado: boolean | null;
@@ -75,16 +76,18 @@ interface Linha extends LinhaVD {
 }
 
 type Filtro =
-  | "pagamento" | "faturamento" | "separacao" | "retirada_envio" | "entregue"
+  | "pagamento" | "faturamento" | "fila_separacao" | "em_separacao" | "retirada_envio" | "entregue"
   | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "reembolso";
 type FiltroPagamento = "todos" | "pagos" | "nao_pagos";
 
 const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
 
-const PROCESSO: { f: Filtro; label: string; s: Situacao[]; detalhe?: Partial<Record<Situacao, string>> }[] = [
+const PROCESSO: { f: Filtro; label: string; s: Situacao[]; est?: (l: { estagio: string | null }) => boolean; detalhe?: Partial<Record<Situacao, string>> }[] = [
   { f: "pagamento", label: "Pagamento", s: ["aguardando_pagamento"] },
   { f: "faturamento", label: "A faturar", s: ["descendo_bling", "aguardando_nf"], detalhe: { descendo_bling: "descendo ao Bling", aguardando_nf: "aguardando NF" } },
-  { f: "separacao", label: "Separação", s: ["separacao"] },
+  // Separação dividida em dois cards pela régua da Mesa SP: na fila (pre_separacao) ou já puxado.
+  { f: "fila_separacao", label: "Fila de separação", s: ["separacao"], est: (l) => l.estagio === "pre_separacao" },
+  { f: "em_separacao", label: "Em separação", s: ["separacao"], est: (l) => l.estagio !== "pre_separacao" },
   { f: "retirada_envio", label: "Retirada / Envio", s: ["pronto_retirada", "em_transporte"], detalhe: { pronto_retirada: "prontos p/ retirada", em_transporte: "em transporte" } },
   { f: "entregue", label: "Entregue (30 dias)", s: ["entregue"] },
 ];
@@ -330,7 +333,7 @@ export default function VendaDiretaGestao() {
 
   const bate = (l: Linha, f: Filtro) => {
     const p = PROCESSO.find((x) => x.f === f);
-    if (p) return p.s.includes(l.situacao);
+    if (p) return p.s.includes(l.situacao) && (!p.est || p.est(l));
     if (f === "pausado") return l.situacao === "pausado" && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
     if (f === "travado") return l.situacao === f;
     if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
