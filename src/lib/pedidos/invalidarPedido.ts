@@ -27,8 +27,14 @@ import type { QueryClient } from "@tanstack/react-query";
  * imediatamente. As entradas de outros pedidos no cache apenas ficam
  * marcadas como sujas e rebuscam quando forem montadas.
  *
- * O parâmetro `_pedidoId` é mantido só por compatibilidade e legibilidade
- * das chamadas existentes. Ele não influencia a invalidação por prefixo.
+ * O `pedidoId` deixou de ser só compatibilidade: quando vem preenchido, ele
+ * alimenta um predicate que invalida qualquer query cuja queryKey contenha esse
+ * valor em qualquer posição — cobre chaves como ["ancora-sugestao", pedidoId, ...]
+ * sem que precisem estar em CHAVES_POR_PEDIDO.
+ *
+ * A rede de segurança é a invalidação global do MutationCache (src/App.tsx): toda
+ * mutation bem-sucedida invalida tudo. Este helper continua sendo o caminho
+ * cirúrgico — mais barato e imediato —, não a única garantia.
  *
  * A invalidação é por prefixo (comportamento padrão do TanStack) e usa o
  * `refetchType` padrão: só o que está montado rebusca na hora.
@@ -121,11 +127,18 @@ const CHAVES_POR_PEDIDO: readonly string[] = [
   "portao-links",
   "comunic-portao",
   "captura-cartao-previa",
+  // Âncora do card de envio: sugestão e vigente (useAncoraSugestao/useAncoraVigente)
+  "ancora-sugestao",
+  "ancora-vigente",
 ];
 
-export async function invalidarPedido(qc: QueryClient, _pedidoId?: string | null): Promise<void> {
+export async function invalidarPedido(qc: QueryClient, pedidoId?: string | null): Promise<void> {
   await Promise.all([
     ...CHAVES_GLOBAIS.map((queryKey) => qc.invalidateQueries({ queryKey })),
     ...CHAVES_POR_PEDIDO.map((prefixo) => qc.invalidateQueries({ queryKey: [prefixo] })),
+    // Chaves fora das listas que carregam o id do pedido em qualquer posição.
+    ...(pedidoId
+      ? [qc.invalidateQueries({ predicate: (q) => q.queryKey.some((k) => k === pedidoId) })]
+      : []),
   ]);
 }

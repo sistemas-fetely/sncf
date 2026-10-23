@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useParams, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -257,28 +257,46 @@ const ChamadosCatalogo = lazy(() => import("@/pages/ChamadosCatalogo"));
 const MapaOperacao = lazy(() => import("@/pages/operacao/MapaOperacao"));
 
 
-const queryClient = new QueryClient({
+// TELA-NUNCA-FICA-VELHA (23/10/2026): a tela não pode depender de cada mutation
+// listar à mão os caches que invalida. Uma esquecida (ex.: alterar frete no card
+// de envio não invalidava `ancora-sugestao`) deixa o operador vendo dado velho até
+// F5. Decisão: confiabilidade acima de churn. As invalidações específicas das
+// mutations continuam valendo como atalho cirúrgico, mas deixam de ser a única
+// garantia — a rede de segurança é a invalidação total pós-mutation abaixo.
+//
+// Ordem de declaração obrigatória: o MutationCache referencia o queryClient, que só
+// passa a existir depois — por isso o client nasce por closure, não inline.
+let queryClient: QueryClient;
+
+// Rede de segurança: QUALQUER mutation bem-sucedida invalida todas as queries.
+// O refetchType padrão ('active') faz rebuscar só o que está montado na tela; o
+// resto do cache apenas fica marcado sujo e rebusca quando for montado.
+const mutationCache = new MutationCache({
+  onSuccess: () => {
+    void queryClient.invalidateQueries();
+  },
+});
+
+queryClient = new QueryClient({
+  mutationCache,
   defaultOptions: {
     queries: {
-      // Sem revalidação automática por tempo: atualização pós-ação deve vir de
-      // invalidações específicas das mutations, não de refresh global.
-      staleTime: Infinity,
+      // Nada é "fresco para sempre": após 30s a query é revalidada no próximo
+      // momento em que a tela a usa.
+      staleTime: 30 * 1000,
 
       // Cache em memória por 10 min após sair da tela (navegação instantânea).
       gcTime: 10 * 60 * 1000,
 
-      // Desligado: re-buscar tudo a cada volta pra aba era a maior fonte de churn
-      // e ficou redundante com a invalidação-na-escrita. Telas que precisam de
-      // atualização "ao vivo" entre usuários devem usar refetchInterval por query.
-      refetchOnWindowFocus: false,
+      // Ligado: o momento em que o operador volta pra aba é o momento em que ele
+      // vai agir sobre o dado — ali o dado precisa estar fresco.
+      refetchOnWindowFocus: true,
 
-      // Rebusca ao montar somente quando uma mutation marcou aquela query como stale.
-      // Com staleTime Infinity, navegação normal não refaz tudo; telas afetadas por
-      // ação anterior voltam atualizadas.
+      // Rebusca ao montar quando a query está stale (invalidação ou staleTime).
       refetchOnMount: true,
 
-      // Desligado: queda/volta de rede não deve recarregar a tela sozinha.
-      refetchOnReconnect: false,
+      // Ligado: volta de rede recarrega a tela em vez de deixar dado velho na tela.
+      refetchOnReconnect: true,
 
       // Limita retries em caso de erro.
       retry: 1,
