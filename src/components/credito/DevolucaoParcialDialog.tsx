@@ -88,7 +88,7 @@ export function DevolucaoParcialDialog({
 
   const nfQ = useQuery({
     queryKey: ["nf-saida-devolucao-parcial", pedidoId],
-    enabled: open && fiscal === "nota_credito",
+    enabled: open && fiscal !== "nenhum",
     staleTime: 0,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -124,6 +124,8 @@ export function DevolucaoParcialDialog({
       .filter(({ it }) => !t || it.codigo.toLowerCase().includes(t) || it.descricao.toLowerCase().includes(t));
   }, [itensNf, buscaItem]);
   const modoCredito = fiscal === "nota_credito";
+  // NF de devolução e nota de crédito: o valor nasce dos itens pela NF (banco exige)
+  const modoItens = fiscal === "nota_credito" || fiscal === "nf_devolucao";
 
   const parcelasQ = useQuery({
     queryKey: ["parcelas-abertas-devolucao-parcial", pedidoId],
@@ -161,10 +163,10 @@ export function DevolucaoParcialDialog({
   );
 
   const valorNum = useMemo(() => {
-    if (modoCredito) return valorItens;
+    if (modoItens) return valorItens;
     const n = Number(valorStr.replace(",", "."));
     return Number.isFinite(n) ? n : 0;
-  }, [valorStr, modoCredito, valorItens]);
+  }, [valorStr, modoItens, valorItens]);
 
   const excedeTotal = total > 0 && valorNum > total + 0.005;
 
@@ -186,7 +188,7 @@ export function DevolucaoParcialDialog({
     if (motivo.trim().length < 5) return false;
     if (!desfecho) return false;
     if (parcelasQ.isError) return false;
-    if (modoCredito && (!nfQ.data || itensComFalta === 0)) return false;
+    if (modoItens && (!nfQ.data || itensComFalta === 0)) return false;
     if (desfecho === "abater_divida") {
       if (!parcelaSelecionada) return false;
       if (abaterZera) return false;
@@ -204,7 +206,7 @@ export function DevolucaoParcialDialog({
         p_motivo: motivo.trim(),
         p_desfecho: desfecho,
         p_fiscal_acao: fiscal === "nenhum" ? null : fiscal,
-        p_itens: modoCredito
+        p_itens: modoItens
           ? itensNf
             .map((it, idx) => ({ sku: it.codigo, descricao: it.descricao, quantidade: qtdFaltou[idx] ?? 0, valor_unitario: it.valor }))
             .filter((i) => i.quantidade > 0)
@@ -296,12 +298,12 @@ export function DevolucaoParcialDialog({
               step="0.01"
               min="0"
               inputMode="decimal"
-              value={modoCredito ? valorItens.toFixed(2) : valorStr}
-              readOnly={modoCredito}
+              value={modoItens ? valorItens.toFixed(2) : valorStr}
+              readOnly={modoItens}
               onChange={(e) => setValorStr(e.target.value)}
               placeholder="0,00"
             />
-            {modoCredito && (
+            {modoItens && (
               <p className="text-xs text-muted-foreground">valor fiscal = valor dos itens pela NF</p>
             )}
             {parcelasQ.isError && (
@@ -363,7 +365,7 @@ export function DevolucaoParcialDialog({
             </RadioGroup>
           </div>
 
-          {modoCredito && (
+          {modoItens && (
             <div className="space-y-2 rounded border p-3 bg-muted/30">
               {nfQ.isLoading ? (
                 <p className="text-xs text-muted-foreground">Carregando NF de saída...</p>
@@ -372,7 +374,7 @@ export function DevolucaoParcialDialog({
               ) : !nfQ.data ? (
                 <Alert variant="destructive">
                   <AlertDescription className="text-xs">
-                    Pedido sem NF de saída autorizada — não é possível emitir nota de crédito.
+                    Pedido sem NF de saída autorizada — não é possível {modoCredito ? "emitir nota de crédito" : "registrar NF de devolução"}.
                   </AlertDescription>
                 </Alert>
               ) : (
@@ -395,7 +397,7 @@ export function DevolucaoParcialDialog({
                           <th className="p-1 text-left">Descrição</th>
                           <th className="p-1 text-right">Qtd NF</th>
                           <th className="p-1 text-right">Valor</th>
-                          <th className="p-1 text-right">Qtd faltou</th>
+                          <th className="p-1 text-right">{modoCredito ? "Qtd faltou" : "Qtd volta"}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -425,7 +427,9 @@ export function DevolucaoParcialDialog({
                     </table>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    As peças que faltaram voltam ao estoque do CD de origem (estorno de saída), sem quarentena.
+                    {modoCredito
+                      ? "As peças que faltaram voltam ao estoque do CD de origem (estorno de saída), sem quarentena."
+                      : "Estes itens vão para a conferência física na Mesa de Devoluções quando a mercadoria chegar."}
                   </p>
                 </>
               )}
