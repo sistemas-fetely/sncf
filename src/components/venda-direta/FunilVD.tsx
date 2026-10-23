@@ -124,7 +124,7 @@ export function FunilVD({ linhas, fases, etapas, responsaveis, filtro, onFiltro 
                   <button key={e.codigo} type="button"
                     onClick={(ev) => { ev.stopPropagation(); onFiltro({ tipo: "etapa", codigo: e.codigo }); }}
                     className={cn("rounded-sm text-left text-[11px] leading-snug text-muted-foreground hover:text-foreground hover:underline", at && "gold-border bg-gold-soft px-1 text-foreground")}>
-                    <span className="tabular-nums">{ne}</span> {e.rotulo} <span className="text-[10px] text-muted-foreground/80">· {respRotulo(e)}</span>
+                    <span className="tabular-nums">{ne}</span> {e.rotulo} {respRotulo(e) !== "—" && <span className="text-[10px] text-muted-foreground/80">· {respRotulo(e)}</span>}
                   </button>
                 );
               })}
