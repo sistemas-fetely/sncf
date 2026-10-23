@@ -4,6 +4,8 @@
 
 - Await the shared order invalidation after payment actions and handle payment edge errors through a shared response parser; stage changes must remove stale payment controls without unhandled rejections.
 
+- Screen freshness is guaranteed by the QueryClient safety net (invalidate every query after any successful mutation, 30s staleTime, refetch on focus/reconnect), never by hand-listed invalidations; per-order helpers stay as the surgical path and must pass the order id so a key-position predicate can reach caches the lists do not cover.
+
 - B2B SafraPay generation derives charges from open gate provisions; origin-specific permissions are checked after loading the order so Venda Direta access cannot authorize B2B charges.
 
 - Fetch payment-candidate details only for visible page IDs under the grid query prefix; candidate filtering scans scoped order-ID blocks before visual pagination so old delivered orders cannot be lost.
