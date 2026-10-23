@@ -357,3 +357,14 @@ export function chaveCodigo(v: string | null | undefined): string {
   return /^\d+$/.test(n) ? n.replace(/^0+/, "") : n;
 }
 
+
+/** Retorno de `fn_mesa_sp_peso_estimado`: estimativa da ficha, ponto de partida para a balança. */
+export interface PesoEstimado {
+  itens_kg: number;
+  caixa_kg: number | null;
+  caixa_sem_peso: boolean;
+  total_kg: number;
+  completo: boolean;
+  itens_sem_peso: { sku: string; descricao: string | null; quantidade: number }[];
+  qtd_itens_sem_peso: number;
+}

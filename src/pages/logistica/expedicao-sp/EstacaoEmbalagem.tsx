@@ -18,6 +18,7 @@ import {
   cepDoEndereco, modalSugerido, rotuloEntregaVendaDireta,
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
+import { usePesoEstimado } from "./useMesaSp";
 
 /**
  * Estação 4 — Embalagem. Peso REAL e volumes reais: a RPC recusa peso <= 0
@@ -65,6 +66,7 @@ export function EstacaoEmbalagem({
   caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false,
 }: Props) {
   const [peso, setPeso] = useState("");
+  const [pesoEditado, setPesoEditado] = useState(false);
   const [volumes, setVolumes] = useState("1");
   const [modal, setModal] = useState<string>("");
   const [modalPendente, setModalPendente] = useState<string | null>(null);
@@ -92,6 +94,7 @@ export function EstacaoEmbalagem({
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
   useEffect(() => {
     setPeso("");
+    setPesoEditado(false);
     setVolumes("1");
     setCaixa(null);
     setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
@@ -110,6 +113,15 @@ export function EstacaoEmbalagem({
     () => checklist.filter((i) => i.modal_codigo === modal),
     [checklist, modal],
   );
+
+  const estimativaQ = usePesoEstimado(pedidoId, caixa);
+  const est = estimativaQ.data ?? null;
+  const estTexto = est && est.total_kg > 0 ? est.total_kg.toFixed(3).replace(".", ",") : null;
+  useEffect(() => {
+    if (pesoEditado || !estTexto) return;
+    setPeso(estTexto);
+  }, [estTexto, pesoEditado]);
+  const kg = (v: number | null | undefined) => (v == null ? "—" : Number(v).toFixed(3).replace(".", ","));
 
   const pesoNum = Number(peso.replace(",", "."));
   const volumesNum = Number.parseInt(volumes, 10);
@@ -229,8 +241,37 @@ export function EstacaoEmbalagem({
               inputMode="decimal"
               placeholder="0,000"
               value={peso}
-              onChange={(e) => setPeso(e.target.value)}
+              onChange={(e) => { setPeso(e.target.value); setPesoEditado(true); }}
             />
+            {est && (
+              <div className="space-y-1 text-xs text-muted-foreground">
+                <p>
+                  Estimado pela ficha: {kg(est.total_kg)} kg (itens {kg(est.itens_kg)} + caixa {est.caixa_sem_peso ? "—" : kg(est.caixa_kg)})
+                  {pesoEditado && estTexto && peso !== estTexto && (
+                    <button
+                      type="button"
+                      className="ml-2 text-primary underline"
+                      onClick={() => { setPeso(estTexto); setPesoEditado(false); }}
+                    >
+                      usar estimativa ({estTexto} kg)
+                    </button>
+                  )}
+                </p>
+                {!est.completo && (
+                  <div className="rounded border border-warning bg-card px-2 py-1 text-warning">
+                    {est.qtd_itens_sem_peso > 0 && (
+                      <p>
+                        {est.qtd_itens_sem_peso} item(ns) sem peso na ficha: {est.itens_sem_peso.map((i) => i.sku).join(", ")} — confira na balança
+                      </p>
+                    )}
+                    {est.caixa_sem_peso && caixa && <p>caixa {caixa} sem peso cadastrado</p>}
+                  </div>
+                )}
+              </div>
+            )}
+            {estimativaQ.error && (
+              <p className="text-xs text-destructive">Sem estimativa de peso: {(estimativaQ.error as Error).message}</p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-volumes">Volumes</Label>
