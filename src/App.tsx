@@ -271,11 +271,10 @@ let queryClient: QueryClient;
 // Rede de segurança: QUALQUER mutation bem-sucedida invalida todas as queries.
 // O refetchType padrão ('active') faz rebuscar só o que está montado na tela; o
 // resto do cache apenas fica marcado sujo e rebusca quando for montado.
-const mutationCache = new MutationCache({
-  onSuccess: () => {
-    void queryClient.invalidateQueries();
-  },
-});
+// Queries com meta.pesada ficam fora da rede de segurança e dependem de
+// invalidarPedido / invalidações do próprio hook. Lista mantida pela frente
+// VELOCIDADE (Registro de Frentes).
+const mutationCache = criarMutationCacheRedeSeguranca(() => queryClient);
 
 queryClient = new QueryClient({
   mutationCache,
