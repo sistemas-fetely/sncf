@@ -3,22 +3,25 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
-  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ChevronRight, ExternalLink, List, ListOrdered, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, FileText, Package, PauseCircle, type LucideIcon,
+  AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
 } from "lucide-react";
-import { AvisarClienteButton, ConfiguracoesVDDialog, useParametrosVD } from "@/components/venda-direta/MensagensVendaDireta";
+import { AvisarClienteButton, ConfiguracoesVDDialog } from "@/components/venda-direta/MensagensVendaDireta";
+import {
+  ALERTA_FALTA, FunilVD, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
+  type ClassificacaoVD, type FiltroVD,
+} from "@/components/venda-direta/FunilVD";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Selo, type EstadoSelo } from "@/components/ui/selo";
-import { Card, CardContent } from "@/components/ui/card";
+import { Selo } from "@/components/ui/selo";
 import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
@@ -42,13 +45,14 @@ import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/qu
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
-import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, ROTULO_DEVOLUCAO, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
+// `situacao` segue alimentando só as AÇÕES; exibição (fase/etapa/rótulo/quem age) vem da view + dimensões.
 type Situacao =
   | "aguardando_pagamento" | "descendo_bling" | "aguardando_nf" | "separacao"
   | "pronto_retirada" | "em_transporte" | "travado" | "pausado" | "entregue" | "cancelado" | "outro";
 
-interface Linha extends LinhaVD {
+interface Linha extends LinhaVD, ClassificacaoVD {
   recebido_em: string | null;
   cancelado_em: string | null;
   modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
@@ -65,44 +69,12 @@ interface Linha extends LinhaVD {
   nf_numero: string | number | null;
   entrou_na_fase_em: string | null;
   situacao: Situacao;
-  estagio: string | null;
-  embalado: boolean | null;
-  horas_sem_pagamento: number | null;
   alerta_sem_pagamento: boolean | null;
   pagamento_desatualizado: boolean | null;
   faltando_site_sp: { sku: string; quantidade: number; saldo_site_sp: number }[] | null;
-  codigo_rastreio: string | null;
-  rastreio_servico: string | null;
 }
 
-type Filtro =
-  | "pagamento" | "faturamento" | "fila_separacao" | "em_separacao" | "retirada_envio" | "entregue"
-  | "travado" | "pausado" | "sem_pagamento" | "pagamento_desatualizado" | "falta_site_sp" | "reembolso";
 type FiltroPagamento = "todos" | "pagos" | "nao_pagos";
-
-const temFalta = (l: Linha) => Array.isArray(l.faltando_site_sp) && l.faltando_site_sp.length > 0;
-
-const PROCESSO: { f: Filtro; label: string; s: Situacao[]; est?: (l: { estagio: string | null }) => boolean; detalhe?: Partial<Record<Situacao, string>> }[] = [
-  { f: "pagamento", label: "Pagamento", s: ["aguardando_pagamento"] },
-  { f: "faturamento", label: "A faturar", s: ["descendo_bling", "aguardando_nf"], detalhe: { descendo_bling: "descendo ao Bling", aguardando_nf: "aguardando NF" } },
-  // Separação dividida em dois cards pela régua da Mesa SP: na fila (pre_separacao) ou já puxado.
-  { f: "fila_separacao", label: "Fila de separação", s: ["separacao"], est: (l) => l.estagio === "pre_separacao" },
-  { f: "em_separacao", label: "Em separação", s: ["separacao"], est: (l) => l.estagio !== "pre_separacao" },
-  { f: "retirada_envio", label: "Retirada / Envio", s: ["pronto_retirada", "em_transporte"], detalhe: { pronto_retirada: "prontos p/ retirada", em_transporte: "em transporte" } },
-  { f: "entregue", label: "Entregue (30 dias)", s: ["entregue"] },
-];
-
-const LABEL: Record<string, string> = {
-  aguardando_pagamento: "Aguardando pagamento", descendo_bling: "Descendo ao Bling", aguardando_nf: "Aguardando NF",
-  separacao: "Separação", pronto_retirada: "Pronto p/ retirada", em_transporte: "Em transporte", travado: "Travado",
-  pausado: "Pausado", entregue: "Entregue", cancelado: "Cancelado", outro: "Outro",
-};
-
-// Separação tem dois estágios: NF emitida e na fila da Mesa SP (pre_separacao) ou já puxado (em_separacao).
-const rotuloSeparacao = (l: { estagio: string | null }) =>
-  l.estagio === "em_separacao" ? "Em separação" : "Aguardando separação";
-const rotuloSituacao = (l: Linha) =>
-  l.situacao === "separacao" ? rotuloSeparacao(l) : (LABEL[l.situacao] ?? l.situacao);
 
 const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
@@ -146,110 +118,6 @@ function BotaoIcone({ a }: { a: Acao }) {
   );
 }
 
-function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
-  label: string; n: number; ativo: boolean; onClick: () => void; tooltip?: ReactNode; tom?: "warning" | "destructive"; pequeno?: boolean;
-}) {
-  const destaque = n > 0 ? tom : undefined;
-  const card = (
-    <Card
-      role="button"
-      tabIndex={0}
-      onClick={onClick}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
-      className={cn(
-        "flex-1 cursor-pointer bg-card transition-colors hover:bg-muted/50",
-        ativo && "ring-2 ring-primary",
-        destaque === "destructive" && "border-destructive bg-destructive/10",
-        destaque === "warning" && "border-warning bg-warning/10",
-      )}
-    >
-      <CardContent className={pequeno ? "p-2" : "p-3"}>
-        <div className={cn("text-xs text-muted-foreground", destaque === "destructive" && "text-destructive", destaque === "warning" && "text-warning")}>{label}</div>
-        <div className={cn("font-medium tabular-nums", pequeno ? "text-lg" : "text-2xl", destaque === "destructive" && "text-destructive", destaque === "warning" && "text-warning")}>{n}</div>
-      </CardContent>
-    </Card>
-  );
-  if (!tooltip) return card;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-interface FaseSelo { f: Filtro; n: number; tom: "warning" | "destructive"; label: string; tip?: string }
-interface FaseCard {
-  f: Filtro; label: string; icon: LucideIcon; acao: string; equipe: boolean;
-  espera?: string; sucesso?: boolean; tip?: string; selos: FaseSelo[];
-}
-
-function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
-  fase: FaseCard; n: number; tooltip?: string; filtro: Filtro | null; onFiltro: (f: Filtro) => void;
-}) {
-  const ativo = filtro === fase.f;
-  const zerado = n === 0 && !ativo;
-  const emEspera = n > 0 && !fase.equipe && !fase.sucesso;
-  const equipe = n > 0 && fase.equipe;
-  const Icon = fase.icon;
-  const card = (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onFiltro(fase.f)}
-      onKeyDown={(e) => e.key === "Enter" && onFiltro(fase.f)}
-      className={cn(
-        "relative flex min-w-0 flex-1 cursor-pointer flex-col gap-0.5 rounded-md border bg-card px-3 py-2 transition-all gold-border-hover",
-        ativo ? "gold-border bg-gold-soft shadow-sm"
-          : emEspera ? "border-border border-dashed"
-          : equipe ? "border-border border-l-4 border-l-primary"
-          : "border-border",
-      )}
-    >
-      <div className={cn("flex items-center gap-1.5 pr-14 text-[10px] font-medium uppercase tracking-wide", zerado ? "text-muted-foreground/60" : "text-muted-foreground")}>
-        <Icon className={cn("h-4 w-4", zerado ? "text-muted-foreground/60" : fase.sucesso && n > 0 ? "text-success" : emEspera ? "text-muted-foreground" : "text-foreground")} />
-        <span className="truncate">{fase.label}</span>
-      </div>
-      <div className={cn("text-2xl font-medium tabular-nums leading-tight",
-        zerado ? "text-muted-foreground/60" : emEspera ? "text-muted-foreground" : fase.sucesso && n > 0 ? "text-success-strong" : "text-foreground")}>{n}</div>
-      {n > 0 && fase.acao && <div className="text-[11px] leading-snug text-muted-foreground">{fase.acao}</div>}
-      {n > 0 && fase.equipe && <div className="text-[10px] font-medium text-primary">Ação da equipe</div>}
-      {emEspera && (
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-          <PauseCircle className="h-3 w-3" />{fase.espera}
-        </div>
-      )}
-      <div className="absolute right-1 top-1 flex gap-1">
-        {fase.selos.filter((s) => s.n > 0).map((s) => (
-          <Tooltip key={s.f}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); onFiltro(s.f); }}
-                className={cn(
-                  "inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium",
-                  filtro === s.f ? "gold-border bg-gold-soft"
-                    : s.tom === "destructive" ? "bg-destructive text-destructive-foreground" : "bg-warning text-warning-foreground",
-                )}
-              >
-                <AlertTriangle className="h-2.5 w-2.5" />{s.n}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{s.tip ?? s.label}</TooltipContent>
-          </Tooltip>
-        ))}
-      </div>
-    </div>
-  );
-  if (!tooltip) return card;
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent>{tooltip}</TooltipContent>
-    </Tooltip>
-  );
-}
-
 export default function VendaDiretaGestao() {
   const qc = useQueryClient();
   const { podeEditar } = usePermissoesTela("tela.venda_direta_gestao");
@@ -258,10 +126,12 @@ export default function VendaDiretaGestao() {
   const cancelNfPorPedido = cancelNfQ.data;
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
-  const [filtro, setFiltro] = useState<Filtro | null>(null);
+  const [filtro, setFiltro] = useState<FiltroVD | null>(null);
+  const [soAcaoEquipe, setSoAcaoEquipe] = useState(false);
   const [mostrarCancelados, setMostrarCancelados] = useState(false);
   const [config, setConfig] = useState(false);
-  const qp = useParametrosVD();
+  const dimQ = useDimensoesVD();
+  useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
   const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
   const [busca, setBusca] = useState("");
   const [filtroPagamento, setFiltroPagamento] = useState<FiltroPagamento>("todos");
@@ -315,33 +185,20 @@ export default function VendaDiretaGestao() {
     onError: (e) => toast.error(rawMessage(e)),
   });
 
-  // Entregue conta só os últimos 30 dias — cartão e filtro seguem a mesma régua.
+  // Entregue conta só os últimos 30 dias (marcos.entregue_em) — cartão e filtro seguem a mesma régua.
   const visiveis = useMemo(
-    () => (q.data ?? []).filter((l) =>
-      l.situacao !== "entregue" ||
-      (l.entrou_na_fase_em && Date.now() - new Date(l.entrou_na_fase_em).getTime() <= TRINTA_DIAS)),
+    () => (q.data ?? []).filter((l) => {
+      if (l.fase !== "entregue") return true;
+      const em = l.marcos?.entregue_em;
+      return !!em && Date.now() - new Date(em).getTime() <= TRINTA_DIAS;
+    }),
     [q.data],
   );
-  const ativos = useMemo(() => visiveis.filter((l) => l.situacao !== "cancelado"), [visiveis]);
-
-  const porSituacao = useMemo(() => {
-    const c: Record<string, number> = {};
-    for (const l of ativos) c[l.situacao] = (c[l.situacao] ?? 0) + 1;
-    return c;
-  }, [ativos]);
+  const ativos = useMemo(() => visiveis.filter((l) => l.fase !== "cancelado"), [visiveis]);
   const nCancelados = visiveis.length - ativos.length;
 
-  const bate = (l: Linha, f: Filtro) => {
-    const p = PROCESSO.find((x) => x.f === f);
-    if (p) return p.s.includes(l.situacao) && (!p.est || p.est(l));
-    if (f === "pausado") return l.situacao === "pausado" && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
-    if (f === "travado") return l.situacao === f;
-    if (f === "sem_pagamento") return !!l.alerta_sem_pagamento;
-    if (f === "pagamento_desatualizado") return !!l.pagamento_desatualizado;
-    if (f === "reembolso") return DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida");
-    return temFalta(l);
-  };
-  const contar = (f: Filtro) => ativos.filter((l) => bate(l, f)).length;
+  const bate = (l: Linha, f: FiltroVD) =>
+    f.tipo === "fase" ? l.fase === f.codigo : f.tipo === "etapa" ? l.etapa === f.codigo : temAlerta(l, f.codigo);
 
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
@@ -349,6 +206,7 @@ export default function VendaDiretaGestao() {
     const base = mostrarCancelados ? visiveis : ativos;
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
+      if (soAcaoEquipe && !l.acao_equipe) return false;
       if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em) return false;
       if (filtroPagamento === "nao_pagos" && l.pagamento_confirmado_em) return false;
       if (!t) return true;
@@ -357,9 +215,9 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, devolucaoPorPedido]);
+  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
 
-  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados]);
+  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   const skusFalta = useMemo(
@@ -403,14 +261,6 @@ export default function VendaDiretaGestao() {
     if (l.situacao === "em_transporte" && l.modal === "frete_fetely") a.push({ k: "ent", label: "Registrar entrega", icon: Truck, onClick: () => setEntrega(l) });
     return a;
   };
-  // Fase do processo, ignorando a pausa (que, com reembolso, é consequência dele).
-  const faseDoProcesso = (l: Linha) => {
-    if (l.situacao !== "pausado") return rotuloSituacao(l);
-    if (!l.pagamento_confirmado_em) return LABEL.aguardando_pagamento;
-    if (l.nf_numero) return rotuloSeparacao(l);
-    if (l.bling_pedido_numero) return LABEL.aguardando_nf;
-    return LABEL.descendo_bling;
-  };
   const podeCancelar = (l: Linha) => podeEditar && l.situacao !== "cancelado" && !cancelNfPorPedido?.get(l.id)?.aberta && (l.situacao !== "entregue" || !!l.nf_numero);
   const rotuloCancelar = (l: Linha) => l.nf_numero ? "Solicitar cancelamento com NF" : l.pagamento_confirmado_em ? "Solicitar cancelamento com reembolso" : "Cancelar";
   const avisoDe = (l: Linha, icone: boolean) =>
@@ -438,95 +288,17 @@ export default function VendaDiretaGestao() {
       />
 
       <TooltipProvider>
-        {(() => {
-          const horas = qp.data?.alerta_sem_pagamento_horas ?? "?";
-          const na = (s: Situacao[]) => ativos.filter((l) => s.includes(l.situacao));
-          const pag = na(["aguardando_pagamento"]);
-          const a = pag.filter((l) => l.alerta_sem_pagamento).length;
-          const d = pag.filter((l) => l.pagamento_desatualizado).length;
-          const r = pag.filter((l) => !l.alerta_sem_pagamento && !l.pagamento_desatualizado).length;
-          const fat = na(["descendo_bling", "aguardando_nf"]);
-          const filaSep = na(["separacao"]).filter((l) => l.estagio === "pre_separacao");
-          const sepPuxada = na(["separacao"]).filter((l) => l.estagio !== "pre_separacao");
-          const sepEmbalado = sepPuxada.filter((l) => l.embalado).length;
-          const ret = na(["pronto_retirada", "em_transporte"]);
-          const p = porSituacao.pronto_retirada ?? 0;
-          const e = ret.filter((l) => l.situacao === "em_transporte" && l.modal === "frete_fetely").length;
-          const c = (porSituacao.em_transporte ?? 0) - e;
-          const totalFalta = contar("falta_site_sp");
-          const partes = (xs: [number, string][]) => xs.filter(([n]) => n > 0).map(([n, t]) => `${n} ${t}`).join(" · ");
-          const seloFalta = (n: number): FaseSelo[] => [{ f: "falta_site_sp", n, tom: "destructive", label: "Falta no Site SP", tip: `Falta no Site SP: ${totalFalta} no total` }];
-          const fases: FaseCard[] = [
-            { f: "pagamento", label: "Pagamento", icon: Wallet,
-              acao: partes([[a, `cobrar (+${horas}h)`], [d, "remontar pagamento"], [r, "aguardando cliente"]]),
-              equipe: a + d > 0, espera: "aguardando cliente",
-              selos: [
-                { f: "sem_pagamento", n: contar("sem_pagamento"), tom: "warning", label: `Sem pagamento +${horas}h` },
-                { f: "pagamento_desatualizado", n: contar("pagamento_desatualizado"), tom: "warning", label: "Pagamento desatualizado" },
-              ] },
-            { f: "faturamento", label: "A faturar", icon: FileText,
-              acao: partes([[porSituacao.descendo_bling ?? 0, "descendo ao Bling"], [porSituacao.aguardando_nf ?? 0, "aguardando NF"]]),
-              equipe: false, espera: "aguardando Bling", selos: seloFalta(fat.filter(temFalta).length) },
-            { f: "fila_separacao", label: "Fila de separação", icon: ListOrdered,
-              acao: partes([[filaSep.length, "puxar na Mesa SP"], [filaSep.filter(temFalta).length, "com falta no Site SP"]]),
-              equipe: true, tip: "Fila: NF emitida, aguardando ser puxado na Mesa SP",
-              selos: seloFalta(filaSep.filter(temFalta).length) },
-            { f: "em_separacao", label: "Em separação", icon: Package,
-              acao: partes([[sepPuxada.length - sepEmbalado, "separando"], [sepEmbalado, "embalado, aguardando envio"], [sepPuxada.filter(temFalta).length, "com falta no Site SP"]]),
-              equipe: true, tip: "Em separação: puxado na Mesa SP",
-              selos: seloFalta(sepPuxada.filter(temFalta).length) },
-            { f: "retirada_envio", label: "Retirada / Envio", icon: Truck,
-              acao: partes([[p, "registrar retirada"], [e, "registrar entrega"], [c, "em transporte"]]),
-              equipe: p + e > 0, espera: "com a transportadora", selos: [] },
-            { f: "entregue", label: "Entregue · 30 dias", icon: PackageCheck, acao: "últimos 30 dias", equipe: false, sucesso: true, selos: [] },
-          ];
-          const fora: { f: Filtro; label: string; tom: "warning" | "destructive" }[] = [
-            { f: "travado", label: "Travado", tom: "destructive" },
-            { f: "pausado", label: "Pausado", tom: "warning" },
-            { f: "reembolso", label: "Reembolso", tom: "warning" },
-          ];
-          const alternar = (f: Filtro) => setFiltro(filtro === f ? null : f);
-          return (
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
-              <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-stretch">
-                {fases.map((fc, i) => {
-                  const pr = PROCESSO.find((x) => x.f === fc.f)!;
-                  const n = contar(fc.f);
-                  const tip = fc.tip ?? (pr.detalhe ? Object.entries(pr.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined);
-                  return (
-                    <Fragment key={fc.f}>
-                      {i > 0 && <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground md:block" aria-hidden="true" />}
-                      <CardFase fase={fc} n={n} tooltip={tip} filtro={filtro} onFiltro={alternar} />
-                    </Fragment>
-                  );
-                })}
-              </div>
-              <div className="hidden w-px shrink-0 bg-border lg:block" aria-hidden="true" />
-              <div className="flex flex-col gap-1 lg:w-44">
-                <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Fora do fluxo</div>
-                <div className="flex gap-2 lg:flex-col">
-                  {fora.map((o) => {
-                    const n = contar(o.f);
-                    const ativo = filtro === o.f;
-                    return (
-                      <button key={o.f} type="button" onClick={() => alternar(o.f)}
-                        className={cn(
-                          "flex flex-1 items-center justify-between rounded-md border bg-card px-2 py-1 text-xs transition-all gold-border-hover",
-                          ativo ? "gold-border bg-gold-soft shadow-sm"
-                            : n > 0 && o.tom === "destructive" ? "border-border border-l-4 border-l-destructive text-destructive-strong"
-                            : n > 0 ? "border-border border-l-4 border-l-warning text-warning-strong"
-                            : "border-border text-muted-foreground/60",
-                        )}>
-                        <span>{o.label}</span>
-                        <span className="text-base font-medium tabular-nums">{n}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {dimQ.data && (
+          <FunilVD
+            linhas={ativos}
+            fases={dimQ.data.fases}
+            etapas={dimQ.data.etapas}
+            responsaveis={dimQ.data.responsaveis}
+            filtro={filtro}
+            onFiltro={(f) => setFiltro(filtro && filtro.tipo === f.tipo && filtro.codigo === f.codigo ? null : f)}
+          />
+        )}
+        {dimQ.isError && <p className="text-sm text-destructive">{rawMessage(dimQ.error)}</p>}
 
         <TabelaFetely
           busca={{ valor: busca, aoMudar: setBusca, placeholder: "Nº VD, nome ou telefone" }}
@@ -537,6 +309,10 @@ export default function VendaDiretaGestao() {
                 <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
                 <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
               </ToggleGroup>
+              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe((v) => !v)}
+                className={cn(soAcaoEquipe && "gold-border bg-gold-soft")}>
+                Ação da equipe
+              </Button>
               <div className="flex items-center gap-2">
                 <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
                 <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
@@ -575,28 +351,7 @@ export default function VendaDiretaGestao() {
                     const devolucao = devolucaoPorPedido.get(l.id);
                     const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
                     const reembolsoConcluido = devolucao?.status === "concluida";
-                    const cancelNf = cancelNfPorPedido?.get(l.id);
-                    const cancelNfAberto = cancelNf?.aberta ? cancelNf : null;
-                    const situacaoRotulo = cancelNfAberto
-                      ? "Cancelamento com NF"
-                      : reembolsoAtivo
-                      ? (reembolsoAtivo.status === "aguardando_devolucao" ? "Aguardando devolução" : `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`)
-                      : rotuloSituacao(l);
-                    const situacaoEstado: EstadoSelo = cancelNfAberto
-                      ? "warning"
-                      : reembolsoAtivo?.status === "falhou"
-                      ? "destructive"
-                      : reembolsoAtivo
-                        ? "warning"
-                        : l.situacao === "travado" || l.situacao === "cancelado"
-                          ? "destructive"
-                          : l.situacao === "pausado"
-                            ? "muted"
-                            : l.situacao === "entregue"
-                              ? "success"
-                              : l.situacao === "aguardando_pagamento"
-                                ? "muted"
-                                : "info";
+                    const cancelNfAberto = cancelNfPorPedido?.get(l.id)?.aberta ?? false;
                     return (
                       <TableRow
                         key={l.id}
@@ -663,42 +418,38 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                         <TableCell>
-                          {reembolsoAtivo && !cancelNfAberto ? (
+                          {naoMapeada(l) ? (
+                            <Selo estado="destructive">Situação não mapeada — avisar Sistemas</Selo>
+                          ) : reembolsoAtivo && !cancelNfAberto ? (
                             <Link
                               to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
                               title="Abrir reembolso em Devoluções › Cancelamento sem NF"
                               aria-label="Abrir reembolso em Devoluções › Cancelamento sem NF"
                               className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                              <Selo estado={situacaoEstado}>
-                                {situacaoRotulo}
-                              </Selo>
+                              <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
                             </Link>
                           ) : (
-                            <Selo estado={situacaoEstado}>
-                              {situacaoRotulo}
-                            </Selo>
+                            <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
                           )}
-                          {cancelNfAberto && <div className="mt-1 text-xs text-muted-foreground">{cancelNfAberto.etapa}</div>}
-                          {!cancelNfAberto && reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
-                            {l.alerta_sem_pagamento && (
-                              <div className="text-warning-strong">
-                                Sem pagamento há {Math.floor(Number(l.horas_sem_pagamento ?? 0))}h
+                            {l.etapa_detalhe && (
+                              <div className={l.etapa_tom === "critico" ? "text-destructive-strong" : "text-muted-foreground"}>{l.etapa_detalhe}</div>
+                            )}
+                            {(l.marcos?.bling_numero || l.marcos?.nf_numero) && (
+                              <div className="tabular-nums text-muted-foreground/80">
+                                {[l.marcos?.bling_numero ? `Bling #${l.marcos.bling_numero}` : null, l.marcos?.nf_numero ? `NF ${l.marcos.nf_numero}` : null].filter(Boolean).join(" · ")}
                               </div>
                             )}
-                            {l.pagamento_desatualizado && (
-                              <Tooltip>
-                                <TooltipTrigger asChild><span className="block cursor-help text-warning-strong">Pagamento desatualizado</span></TooltipTrigger>
-                                <TooltipContent className="max-w-sm">Os itens mudaram depois do pedido. O PIX/link antigo não vale mais — remonte e reenvie ao cliente.</TooltipContent>
-                              </Tooltip>
+                            {l.proxima_acao && (
+                              <div className="text-foreground">→ {l.proxima_acao}{l.responsavel_rotulo && <span className="text-muted-foreground"> · {l.responsavel_rotulo}</span>}</div>
                             )}
-                            {temFalta(l) && (
+                            {temAlerta(l, ALERTA_FALTA) && (
                               <Tooltip>
                                 <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
                                 <TooltipContent className="max-w-sm">
                                   {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
-                                  {l.faltando_site_sp!.map((f) => {
+                                  {(l.faltando_site_sp ?? []).map((f) => {
                                     const p = prodFalta.data?.get(f.sku);
                                     return <div key={f.sku} className="tabular-nums"><CodProduto chave={f.sku} variant="compacto" />{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
                                   })}
@@ -766,6 +517,7 @@ export default function VendaDiretaGestao() {
           )}
           devolucao={gaveta ? devolucaoPorPedido.get(gaveta.id) ?? null : null}
           cancelamentoNf={gaveta ? cancelNfPorPedido?.get(gaveta.id) ?? null : null}
+          classificacao={gaveta}
         />
       </TooltipProvider>
 

@@ -79578,6 +79578,81 @@ export type Database = {
           },
         ]
       }
+      vd_etapa: {
+        Row: {
+          codigo: string
+          fase_codigo: string
+          ordem: number
+          proxima_acao: string | null
+          responsavel_codigo: string
+          rotulo: string
+          tom: string
+        }
+        Insert: {
+          codigo: string
+          fase_codigo: string
+          ordem: number
+          proxima_acao?: string | null
+          responsavel_codigo: string
+          rotulo: string
+          tom?: string
+        }
+        Update: {
+          codigo?: string
+          fase_codigo?: string
+          ordem?: number
+          proxima_acao?: string | null
+          responsavel_codigo?: string
+          rotulo?: string
+          tom?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vd_etapa_fase_codigo_fkey"
+            columns: ["fase_codigo"]
+            isOneToOne: false
+            referencedRelation: "vd_fase"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "vd_etapa_responsavel_codigo_fkey"
+            columns: ["responsavel_codigo"]
+            isOneToOne: false
+            referencedRelation: "vd_responsavel"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      vd_fase: {
+        Row: {
+          codigo: string
+          descricao: string | null
+          fora_do_fluxo: boolean
+          icone: string | null
+          ordem: number
+          rotulo: string
+          terminal: boolean
+        }
+        Insert: {
+          codigo: string
+          descricao?: string | null
+          fora_do_fluxo?: boolean
+          icone?: string | null
+          ordem: number
+          rotulo: string
+          terminal?: boolean
+        }
+        Update: {
+          codigo?: string
+          descricao?: string | null
+          fora_do_fluxo?: boolean
+          icone?: string | null
+          ordem?: number
+          rotulo?: string
+          terminal?: boolean
+        }
+        Relationships: []
+      }
       vd_modo_modal: {
         Row: {
           atualizado_em: string
@@ -79593,6 +79668,27 @@ export type Database = {
           atualizado_em?: string
           modal_codigo?: string
           modo?: string
+        }
+        Relationships: []
+      }
+      vd_responsavel: {
+        Row: {
+          acao_equipe: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          acao_equipe?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          acao_equipe?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
         }
         Relationships: []
       }
@@ -111825,14 +111921,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -112902,14 +112998,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -126954,14 +127050,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -131192,7 +131288,9 @@ export type Database = {
       }
       vw_venda_direta_gestao: {
         Row: {
+          acao_equipe: boolean | null
           alerta_sem_pagamento: boolean | null
+          alertas: string[] | null
           bling_pedido_numero: string | null
           cancelado_em: string | null
           cancelado_motivo: string | null
@@ -131205,7 +131303,13 @@ export type Database = {
           endereco_entrega: Json | null
           entrou_na_fase_em: string | null
           estagio: string | null
+          etapa: string | null
+          etapa_detalhe: string | null
+          etapa_rotulo: string | null
+          etapa_tom: string | null
           faltando_site_sp: Json | null
+          fase: string | null
+          fase_rotulo: string | null
           fila_erro: string | null
           fila_id: string | null
           fila_status: string | null
@@ -131216,6 +131320,7 @@ export type Database = {
           id: string | null
           id_externo: string | null
           link_pagamento: string | null
+          marcos: Json | null
           modal: string | null
           nf_emitida_em: string | null
           nf_numero: string | null
@@ -131224,8 +131329,11 @@ export type Database = {
           pagamento_confirmado_em: string | null
           pagamento_desatualizado: boolean | null
           provisao_id: string | null
+          proxima_acao: string | null
           rastreio_servico: string | null
           recebido_em: string | null
+          responsavel: string | null
+          responsavel_rotulo: string | null
           situacao: string | null
           valor_bruto: number | null
           valor_frete: number | null
@@ -131244,6 +131352,20 @@ export type Database = {
             columns: ["frete_tipo"]
             isOneToOne: false
             referencedRelation: "frete_tipos"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "vd_etapa_fase_codigo_fkey"
+            columns: ["fase"]
+            isOneToOne: false
+            referencedRelation: "vd_fase"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "vd_etapa_responsavel_codigo_fkey"
+            columns: ["responsavel"]
+            isOneToOne: false
+            referencedRelation: "vd_responsavel"
             referencedColumns: ["codigo"]
           },
         ]
