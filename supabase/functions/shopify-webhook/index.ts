@@ -500,13 +500,37 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
         fulfillment_status: str(li.fulfillment_status),
       });
     }
-    if (itens.length) {
-      const { error: insErr } = await supabase.from("shopify_itens").insert(itens);
+    // Dedup por line_item_id: upsert com chave repetida no mesmo lote falha no Postgres.
+    // Mantem a ultima ocorrencia; itens sem line_item_id passam sem dedup.
+    const vistos = new Map<number, number>();
+    const itensFinal: Array<Record<string, unknown>> = [];
+    for (const it of itens) {
+      const lid = it.line_item_id;
+      if (lid === null || lid === undefined) {
+        itensFinal.push(it);
+        continue;
+      }
+      const idx = vistos.get(lid);
+      if (idx === undefined) {
+        vistos.set(lid, itensFinal.length);
+        itensFinal.push(it);
+      } else {
+        itensFinal[idx] = it;
+      }
+    }
+
+    if (itensFinal.length) {
+      // Corrida de webhooks duplicava itens (pedido #1522, 23/10/2026);
+      // índice único + upsert tornam a gravação idempotente.
+      const { error: insErr } = await supabase
+        .from("shopify_itens")
+        .upsert(itensFinal, { onConflict: "pedido_id,line_item_id" });
       if (insErr) {
         await registrarLog(supabase, { topic, etapa: "erro_insert_itens", shopify_id, detalhe: { msg: insErr.message } });
         return jsonResponse(500, { error: `Falha gravar itens: ${insErr.message}` });
       }
     }
+
 
     await registrarLog(supabase, {
       topic,
