@@ -181,7 +181,7 @@ function CardEtapa({ label, n, ativo, onClick, tooltip, tom, pequeno }: {
 interface FaseSelo { f: Filtro; n: number; tom: "warning" | "destructive"; label: string; tip?: string }
 interface FaseCard {
   f: Filtro; label: string; icon: LucideIcon; acao: string; equipe: boolean;
-  espera?: string; sucesso?: boolean; selos: FaseSelo[];
+  espera?: string; sucesso?: boolean; tip?: string; selos: FaseSelo[];
 }
 
 function CardFase({ fase, n, tooltip, filtro, onFiltro }: {
@@ -446,9 +446,9 @@ export default function VendaDiretaGestao() {
           const d = pag.filter((l) => l.pagamento_desatualizado).length;
           const r = pag.filter((l) => !l.alerta_sem_pagamento && !l.pagamento_desatualizado).length;
           const fat = na(["descendo_bling", "aguardando_nf"]);
-          const sep = na(["separacao"]);
-          const sepFila = sep.filter((l) => l.estagio === "pre_separacao").length;
-          const sepPuxado = sep.length - sepFila;
+          const filaSep = na(["separacao"]).filter((l) => l.estagio === "pre_separacao");
+          const sepPuxada = na(["separacao"]).filter((l) => l.estagio !== "pre_separacao");
+          const sepEmbalado = sepPuxada.filter((l) => l.embalado).length;
           const ret = na(["pronto_retirada", "em_transporte"]);
           const p = porSituacao.pronto_retirada ?? 0;
           const e = ret.filter((l) => l.situacao === "em_transporte" && l.modal === "frete_fetely").length;
@@ -467,9 +467,14 @@ export default function VendaDiretaGestao() {
             { f: "faturamento", label: "A faturar", icon: FileText,
               acao: partes([[porSituacao.descendo_bling ?? 0, "descendo ao Bling"], [porSituacao.aguardando_nf ?? 0, "aguardando NF"]]),
               equipe: false, espera: "aguardando Bling", selos: seloFalta(fat.filter(temFalta).length) },
-            { f: "separacao", label: "Separação", icon: Package,
-              acao: partes([[sepFila, "puxar na Mesa SP"], [sepPuxado, "em separação"], [sep.filter(temFalta).length, "com falta no Site SP"]]),
-               equipe: true, selos: seloFalta(sep.filter(temFalta).length) },
+            { f: "fila_separacao", label: "Fila de separação", icon: ListOrdered,
+              acao: partes([[filaSep.length, "puxar na Mesa SP"], [filaSep.filter(temFalta).length, "com falta no Site SP"]]),
+              equipe: true, tip: "Fila: NF emitida, aguardando ser puxado na Mesa SP",
+              selos: seloFalta(filaSep.filter(temFalta).length) },
+            { f: "em_separacao", label: "Em separação", icon: Package,
+              acao: partes([[sepPuxada.length - sepEmbalado, "separando"], [sepEmbalado, "embalado, aguardando envio"], [sepPuxada.filter(temFalta).length, "com falta no Site SP"]]),
+              equipe: true, tip: "Em separação: puxado na Mesa SP",
+              selos: seloFalta(sepPuxada.filter(temFalta).length) },
             { f: "retirada_envio", label: "Retirada / Envio", icon: Truck,
               acao: partes([[p, "registrar retirada"], [e, "registrar entrega"], [c, "em transporte"]]),
               equipe: p + e > 0, espera: "com a transportadora", selos: [] },
@@ -486,8 +491,8 @@ export default function VendaDiretaGestao() {
               <div className="flex flex-1 flex-col gap-2 md:flex-row md:items-stretch">
                 {fases.map((fc, i) => {
                   const pr = PROCESSO.find((x) => x.f === fc.f)!;
-                  const n = pr.s.reduce((acc, s) => acc + (porSituacao[s] ?? 0), 0);
-                  const tip = pr.detalhe ? Object.entries(pr.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined;
+                  const n = contar(fc.f);
+                  const tip = fc.tip ?? (pr.detalhe ? Object.entries(pr.detalhe).map(([s, t]) => `${porSituacao[s] ?? 0} ${t}`).join(" · ") : undefined);
                   return (
                     <Fragment key={fc.f}>
                       {i > 0 && <ChevronRight className="hidden h-4 w-4 shrink-0 self-center text-muted-foreground md:block" aria-hidden="true" />}
