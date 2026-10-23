@@ -94,6 +94,7 @@ export function EstacaoEmbalagem({
   // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
   useEffect(() => {
     setPeso("");
+    setPesoEditado(false);
     setVolumes("1");
     setCaixa(null);
     setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
