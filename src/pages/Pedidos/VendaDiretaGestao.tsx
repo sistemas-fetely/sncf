@@ -351,28 +351,7 @@ export default function VendaDiretaGestao() {
                     const devolucao = devolucaoPorPedido.get(l.id);
                     const reembolsoAtivo = devolucao && DEVOLUCAO_ATIVA.has(devolucao.status) ? devolucao : null;
                     const reembolsoConcluido = devolucao?.status === "concluida";
-                    const cancelNf = cancelNfPorPedido?.get(l.id);
-                    const cancelNfAberto = cancelNf?.aberta ? cancelNf : null;
-                    const situacaoRotulo = cancelNfAberto
-                      ? "Cancelamento com NF"
-                      : reembolsoAtivo
-                      ? (reembolsoAtivo.status === "aguardando_devolucao" ? "Aguardando devolução" : `Reembolso ${ROTULO_DEVOLUCAO[reembolsoAtivo.status].toLocaleLowerCase("pt-BR")}`)
-                      : rotuloSituacao(l);
-                    const situacaoEstado: EstadoSelo = cancelNfAberto
-                      ? "warning"
-                      : reembolsoAtivo?.status === "falhou"
-                      ? "destructive"
-                      : reembolsoAtivo
-                        ? "warning"
-                        : l.situacao === "travado" || l.situacao === "cancelado"
-                          ? "destructive"
-                          : l.situacao === "pausado"
-                            ? "muted"
-                            : l.situacao === "entregue"
-                              ? "success"
-                              : l.situacao === "aguardando_pagamento"
-                                ? "muted"
-                                : "info";
+                    const cancelNfAberto = cancelNfPorPedido?.get(l.id)?.aberta ?? false;
                     return (
                       <TableRow
                         key={l.id}
@@ -439,42 +418,38 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
                         <TableCell>
-                          {reembolsoAtivo && !cancelNfAberto ? (
+                          {naoMapeada(l) ? (
+                            <Selo estado="destructive">Situação não mapeada — avisar Sistemas</Selo>
+                          ) : reembolsoAtivo && !cancelNfAberto ? (
                             <Link
                               to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
                               title="Abrir reembolso em Devoluções › Cancelamento sem NF"
                               aria-label="Abrir reembolso em Devoluções › Cancelamento sem NF"
                               className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
-                              <Selo estado={situacaoEstado}>
-                                {situacaoRotulo}
-                              </Selo>
+                              <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
                             </Link>
                           ) : (
-                            <Selo estado={situacaoEstado}>
-                              {situacaoRotulo}
-                            </Selo>
+                            <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>
                           )}
-                          {cancelNfAberto && <div className="mt-1 text-xs text-muted-foreground">{cancelNfAberto.etapa}</div>}
-                          {!cancelNfAberto && reembolsoAtivo && <div className="mt-1 text-xs text-muted-foreground">parado em: {faseDoProcesso(l)}</div>}
                           <div className="mt-1 space-y-0.5 text-xs">
-                            {l.alerta_sem_pagamento && (
-                              <div className="text-warning-strong">
-                                Sem pagamento há {Math.floor(Number(l.horas_sem_pagamento ?? 0))}h
+                            {l.etapa_detalhe && (
+                              <div className={l.etapa_tom === "critico" ? "text-destructive-strong" : "text-muted-foreground"}>{l.etapa_detalhe}</div>
+                            )}
+                            {(l.marcos?.bling_numero || l.marcos?.nf_numero) && (
+                              <div className="tabular-nums text-muted-foreground/80">
+                                {[l.marcos?.bling_numero ? `Bling #${l.marcos.bling_numero}` : null, l.marcos?.nf_numero ? `NF ${l.marcos.nf_numero}` : null].filter(Boolean).join(" · ")}
                               </div>
                             )}
-                            {l.pagamento_desatualizado && (
-                              <Tooltip>
-                                <TooltipTrigger asChild><span className="block cursor-help text-warning-strong">Pagamento desatualizado</span></TooltipTrigger>
-                                <TooltipContent className="max-w-sm">Os itens mudaram depois do pedido. O PIX/link antigo não vale mais — remonte e reenvie ao cliente.</TooltipContent>
-                              </Tooltip>
+                            {l.proxima_acao && (
+                              <div className="text-foreground">→ {l.proxima_acao}{l.responsavel_rotulo && <span className="text-muted-foreground"> · {l.responsavel_rotulo}</span>}</div>
                             )}
-                            {temFalta(l) && (
+                            {temAlerta(l, ALERTA_FALTA) && (
                               <Tooltip>
                                 <TooltipTrigger asChild><span className="block cursor-help text-destructive-strong">Falta no Site SP</span></TooltipTrigger>
                                 <TooltipContent className="max-w-sm">
                                   {prodFalta.isError && <div>{rawMessage(prodFalta.error)}</div>}
-                                  {l.faltando_site_sp!.map((f) => {
+                                  {(l.faltando_site_sp ?? []).map((f) => {
                                     const p = prodFalta.data?.get(f.sku);
                                     return <div key={f.sku} className="tabular-nums"><CodProduto chave={f.sku} variant="compacto" />{p?.nome_comercial ? ` ${p.nome_comercial}` : ""} · pedido {f.quantidade} · saldo {f.saldo_site_sp}</div>;
                                   })}
@@ -542,6 +517,7 @@ export default function VendaDiretaGestao() {
           )}
           devolucao={gaveta ? devolucaoPorPedido.get(gaveta.id) ?? null : null}
           cancelamentoNf={gaveta ? cancelNfPorPedido?.get(gaveta.id) ?? null : null}
+          classificacao={gaveta}
         />
       </TooltipProvider>
 
