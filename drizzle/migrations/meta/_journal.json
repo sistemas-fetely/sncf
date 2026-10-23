@@ -57,6 +57,13 @@
       "when": 1792679697714,
       "tag": "0007_fix_haver_record_nao_atribuido",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792770385147,
+      "tag": "0008_logradouro_cabe_xpm_payload_e_travado_b2c",
+      "breakpoints": true
     }
   ]
 }
