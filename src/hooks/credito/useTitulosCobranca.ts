@@ -185,6 +185,7 @@ const LIMITE_TITULOS = 5000;
 export function useTitulosCobranca() {
   return useQuery({
     queryKey: ["titulos-cobranca"],
+    meta: { pesada: true },
     ...OPCOES_QUERY_RECEBIVEL,
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)

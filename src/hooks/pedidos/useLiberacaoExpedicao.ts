@@ -22,6 +22,7 @@ export function useLiberacaoExpedicaoLote(pedidoIds: string[]) {
   const ids = [...pedidoIds].sort();
   return useQuery({
     queryKey: ["liberacao-expedicao-lote", ids],
+    meta: { pesada: true },
     enabled: ids.length > 0,
     staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<Map<string, LiberacaoExpedicao>> => {

@@ -25,6 +25,7 @@ export interface PipelineB2cRow {
 export function usePipelineB2c() {
   return useQuery({
     queryKey: ["b2c-pipeline"],
+    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<PipelineB2cRow[]> => {
       const { data, error } = await supabase
@@ -156,6 +157,7 @@ const CAMPOS_PEDIDO =
 export function usePedidosB2c() {
   return useQuery({
     queryKey: ["b2c-pedidos"],
+    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<PedidoB2cRow[]> => {
       const { data, error } = await supabase
@@ -333,6 +335,7 @@ export interface SincBlingStatus {
 export function useSincStatusBling() {
   return useQuery({
     queryKey: ["b2c-sinc-status"],
+    meta: { pesada: true },
     refetchInterval: 60 * 1000,
     retry: false,
     queryFn: async (): Promise<SincBlingStatus | null> => {

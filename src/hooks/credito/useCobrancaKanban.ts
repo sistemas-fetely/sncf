@@ -73,6 +73,7 @@ const semCartao = (t: TituloCobranca) =>
 export function useCobrancaKanban() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "cobranca-kanban"],
+    meta: { pesada: true },
     queryFn: async (): Promise<{ cards: CardKanban[]; idsNoKanban: Set<string> }> => {
       const { data: kanban, error } = await (supabase as any)
         .from("vw_cobranca_kanban")
@@ -108,6 +109,7 @@ export function useCobrancaKanban() {
 export function useRaiasKanban(incluirInativas = false) {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "cobranca-kanban", "raias", incluirInativas],
+    meta: { pesada: true },
     queryFn: async (): Promise<RaiaKanban[]> => {
       let q = (supabase as any)
         .from("cobranca_raia_dim")
@@ -145,6 +147,7 @@ export function useMovimentosRaia(tituloId: string | null | undefined) {
   return useQuery({
     enabled: !!tituloId,
     queryKey: ["titulos-cobranca", "cobranca-mesa", "cobranca-kanban", "movimentos", tituloId],
+    meta: { pesada: true },
     queryFn: async (): Promise<MovimentoRaia[]> => {
       const { data, error } = await (supabase as any)
         .from("cobranca_raia_movimento")

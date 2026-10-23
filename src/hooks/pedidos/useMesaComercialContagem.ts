@@ -18,6 +18,7 @@ export type MesaComercialContagem = {
 export function useMesaComercialContagem() {
   return useQuery({
     queryKey: ["mesa-comercial-contagem"],
+    meta: { pesada: true },
     // CUSTO-DA-VIEW (09/09/2026): vw_oportunidades_comercial custa ~3s por
     // chamada e era refeita a cada minuto em toda aba aberta — 923 execuções
     // empilhadas nos picos de timeout. Cinco minutos basta para um contador.

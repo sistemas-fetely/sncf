@@ -429,6 +429,7 @@ export default function ShopifyB2c() {
   // CD. SISTEMA SUGERE / HUMANO DECIDE — avisa, nunca bloqueia.
   const { data: sugestoesData } = useQuery({
     queryKey: ["b2c-sugestao-cd"],
+    meta: { pesada: true },
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("vw_b2c_sugestao_cd")

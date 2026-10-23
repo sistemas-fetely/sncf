@@ -14,6 +14,7 @@ export interface BadgeNavegacao {
 export function useBadgesNavegacao() {
   return useQuery({
     queryKey: ["badges-navegacao"],
+    meta: { pesada: true },
     staleTime: 60 * 1000,
     queryFn: async (): Promise<Map<string, BadgeNavegacao>> => {
       const { data, error } = await (supabase as any).rpc("fn_badges");

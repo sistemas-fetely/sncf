@@ -43,6 +43,7 @@ export function usePedidoEntrega(pedidoId: string | undefined, estagio: string |
   const enabled = !!pedidoId && estagio === "entregue";
   return useQuery({
     queryKey: ["pedido-entrega", pedidoId],
+    meta: { pesada: true },
     enabled,
     queryFn: async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -102,6 +103,7 @@ export function usePedidosEntregaLote(pedidoIds: string[]) {
   const ids = [...pedidoIds].sort();
   return useQuery({
     queryKey: ["pedidos-fila", "entrega-lote", ids],
+    meta: { pesada: true },
     enabled: ids.length > 0,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, EntregaLinhaInfo>> => {
