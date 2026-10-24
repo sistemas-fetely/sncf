@@ -16,6 +16,10 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { resolverAcao } from "@/lib/navegacao/codecUrl";
 import {
   AlertTriangle,
   ChevronDown,
@@ -343,6 +347,8 @@ export function RecebiveisPorClienteTab() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((r) => r.parceiro_id ?? ""), focoParam: "pc_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   return (
     <div
