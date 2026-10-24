@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
