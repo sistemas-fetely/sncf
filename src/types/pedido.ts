@@ -118,6 +118,10 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
 
 export interface PedidoFilaItem {
   id: string;
+  /** CD de expedição (v_pedidos_fila): código, nome curto e situação vêm do banco. */
+  cd_expedicao_codigo?: string | null;
+  cd_expedicao_nome?: string | null;
+  cd_expedicao_situacao?: "padrao" | "escolhido" | "definido" | null;
   id_externo: string;
   estagio: EstagioPedido;
   area_atual: AreaPedido;
