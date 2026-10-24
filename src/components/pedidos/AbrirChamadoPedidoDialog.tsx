@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -75,6 +76,7 @@ interface Props {
 export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOpenChange }: Props) {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const [item, setItem] = useState<ItemCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
   const [descricao, setDescricao] = useState("");
@@ -167,7 +169,7 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
         {
           action: {
             label: "Ver chamado",
-            onClick: () => navigate(`/chamados/${r.chamado_id}`),
+            onClick: () => abrirDetalhe(navigate, location, `/chamados/${r.chamado_id}`, { label: "Pedido" }),
           },
         },
       );
@@ -336,8 +338,11 @@ export function AbrirChamadoPedidoDialog({ pedidoId, pedidoIdExterno, open, onOp
 
 /** Link auxiliar para a lista de chamados do pedido. */
 export function LinkChamado({ id, numero }: { id: string; numero: string }) {
+  const location = useLocation();
   return (
-    <Link to={`/chamados/${id}`} className="text-sm font-medium text-primary hover:underline">
+    <Link
+      to={`/chamados/${id}`}
+      state={{ from: location.pathname + location.search, fromLabel: "Pedido" }} className="text-sm font-medium text-primary hover:underline">
       {numero}
     </Link>
   );

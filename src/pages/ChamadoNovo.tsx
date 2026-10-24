@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, HelpCircle, PlusCircle, Search, Ticket } from "lucide-react";
@@ -132,6 +132,8 @@ export default function ChamadoNovo() {
 
 function ChamadoNovoConteudo() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const origemNovo = location.state as { from?: string; fromLabel?: string } | null;
   const { podeEditar } = usePermissaoTelaContext();
 
   const [busca, setBusca] = useState("");
@@ -235,7 +237,10 @@ function ChamadoNovoConteudo() {
         throw new Error(r?.erro ?? "O banco não confirmou a abertura do chamado.");
       }
       toast.success(`Chamado ${r.numero ?? ""} aberto para ${r.cadeira ?? item.cadeira}`);
-      navigate(`/chamados/${r.chamado_id}`);
+      // Voltar do chamado criado leva para onde o usuário estava antes do formulário.
+      navigate(`/chamados/${r.chamado_id}`, {
+        state: { from: origemNovo?.from ?? "/chamados", fromLabel: origemNovo?.fromLabel ?? "Chamados" },
+      });
     } catch (e) {
       console.error("[ChamadoNovo] falha ao abrir chamado:", e);
       toast.error(formatError(e));
