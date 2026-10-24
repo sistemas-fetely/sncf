@@ -159,3 +159,6 @@ additional_redirect_urls = ["https://sncf.lovable.app/**", "https://id-preview--
 
 [functions.cadastrar-produto-xpm]
   verify_jwt = true
+
+[functions.receber-fases-xpm-email]
+  verify_jwt = false
