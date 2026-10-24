@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef, useState, type CSSProperties } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { PipelineHorizontal } from "@/components/pedidos/PipelineHorizontal";
@@ -29,8 +30,7 @@ export default function PedidosIndex() {
   const qc = useQueryClient();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
   const abaParam = searchParams.get("aba");
-  const [incluirCancelados, setIncluirCancelados] = useState(false);
-  const [riscoAltoAtivo, setRiscoAltoAtivo] = useState(false);
+  const [{ cancelados: incluirCancelados, risco: riscoAltoAtivo }, setEstadoCasa] = useEstadoTela({ cancelados: false, risco: false });
 
 
 
@@ -184,9 +184,9 @@ export default function PedidosIndex() {
                   onLimparFiltro={handleLimparFiltro}
                   estagioAtivo={estagioParam}
                   incluirCancelados={incluirCancelados}
-                  onToggleCancelados={setIncluirCancelados}
+                  onToggleCancelados={(v: boolean) => setEstadoCasa({ cancelados: v })}
                   riscoAltoAtivo={riscoAltoAtivo}
-                  onToggleRiscoAlto={() => setRiscoAltoAtivo((v) => !v)}
+                  onToggleRiscoAlto={() => setEstadoCasa({ risco: !riscoAltoAtivo })}
                   onAbrirRecuperacao={() => setAba("recuperacao")}
                 />
               </div>

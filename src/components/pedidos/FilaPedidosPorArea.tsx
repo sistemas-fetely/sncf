@@ -467,7 +467,6 @@ export function FilaPedidosPorArea({
   );
   const navigate = useNavigate();
   const location = useLocation();
-  const location = useLocation();
 
   useEffect(() => {
     const t = setTimeout(() => setBuscaDebounced(busca), 300);
@@ -1546,6 +1545,8 @@ function FarolRisco({
 /** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
 function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined; nfInfo: EntregaLinhaInfo | undefined }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const abrir = (to: string) => abrirDetalhe(navigate, location, to, { foco: p.id, label: "Casa dos Pedidos" });
   const { temNivel } = useNivel();
   const { mutate: atualizarUrgencia, isPending } = useAtualizarUrgencia();
   const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
@@ -1600,9 +1601,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           title="Abrir cobrança"
           aria-label="Abrir cobrança"
           onClick={() =>
-            navigate(`/recebimento/cobranca/${p.id}`, {
-              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
-            })
+            abrir(`/recebimento/cobranca/${p.id}`)
           }
         >
           <ExternalLink className="h-4 w-4" />
@@ -1636,9 +1635,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           title="Abrir pré-faturamento"
           aria-label="Abrir pré-faturamento"
           onClick={() =>
-            navigate(`/pedidos/${p.id}`, {
-              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
-            })
+            abrir(`/pedidos/${p.id}`)
           }
         >
           <ExternalLink className="h-4 w-4" />
@@ -1675,12 +1672,12 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+          <DropdownMenuItem onSelect={() => abrir(`/pedidos/${p.id}`)}>
             <ExternalLink className="h-4 w-4 mr-2" />
             Abrir pedido
           </DropdownMenuItem>
           {temMsg && (
-            <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+            <DropdownMenuItem onSelect={() => abrir(`/pedidos/${p.id}`)}>
               <MessageCircle className="h-4 w-4 mr-2" />
               Mensagem pendente
             </DropdownMenuItem>
