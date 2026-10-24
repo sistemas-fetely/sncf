@@ -1,5 +1,8 @@
 import { ROTULO_LINK_PIX_COPIADO, urlPaginaPix } from "@/lib/pagamento/linkPix";
-import React, { Fragment, useEffect, useMemo, useState } from "react";
+import React, { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -644,6 +647,7 @@ type ColunaTitulos =
   | "titulo" | "cliente" | "pedido" | "nf" | "tipo"
   | "vencimento" | "liquidacao" | "valor" | "instrumento" | "situacao";
 
+const CARDS_PADRAO = "a_vencer,vence_hoje,atrasado";
 type OrdenacaoTitulos = { coluna: ColunaTitulos; dir: DirecaoOrdenacao } | null;
 
 /** Vencimento sobe (o mais proximo primeiro); dinheiro e liquidacao descem. */
@@ -701,15 +705,27 @@ export default function TitulosTab() {
   const [confirmarEnvioBoleto, setConfirmarEnvioBoleto] = useState<TituloCobranca | null>(null);
   const [confirmarEnvioPix, setConfirmarEnvioPix] = useState<TituloCobranca | null>(null);
 
-  const [cardsAtivos, setCardsAtivos] = useState<Set<string>>(
-    new Set(["a_vencer", "vence_hoje", "atrasado"]),
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página na URL (prefixo "tit"). */
+  const [estTela, setEstTela] = useEstadoTela(
+    { cards: CARDS_PADRAO, tipo: "todos", busca: "", vencDe: "", vencAte: "", agrupado: true, ordem: "", pagina: 1 },
+    { prefixo: "tit", replaceKeys: ["busca"] },
   );
-
-
-  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("todos");
-  const [busca, setBusca] = useState("");
-  const [vencDe, setVencDe] = useState("");
-  const [vencAte, setVencAte] = useState("");
+  const cardsAtivos = useMemo(
+    () => new Set(estTela.cards === "nenhum" ? [] : estTela.cards.split(",").filter(Boolean)),
+    [estTela.cards],
+  );
+  const setCardsAtivos = (fn: (prev: Set<string>) => Set<string>) => {
+    const n = fn(cardsAtivos);
+    setEstTela({ cards: n.size === 0 ? "nenhum" : [...n].join(",") });
+  };
+  const tipoFiltro = estTela.tipo as TipoFiltro;
+  const setTipoFiltro = (v: TipoFiltro) => setEstTela({ tipo: v });
+  const busca = estTela.busca;
+  const setBusca = (v: string) => setEstTela({ busca: v });
+  const vencDe = estTela.vencDe;
+  const setVencDe = (v: string) => setEstTela({ vencDe: v });
+  const vencAte = estTela.vencAte;
+  const setVencAte = (v: string) => setEstTela({ vencAte: v });
   const [detalhe, setDetalhe] = useState<TituloCobranca | null>(null);
   const [params, setParams] = useSearchParams();
   const tituloDaUrl = params.get("titulo");
@@ -744,11 +760,20 @@ export default function TitulosTab() {
     }),
   });
 
-  const [agrupado, setAgrupado] = useState(true);
+  const agrupado = estTela.agrupado;
+  const setAgrupado = (v: boolean) => setEstTela({ agrupado: v });
   const [abertos, setAbertos] = useState<Set<string>>(new Set());
 
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoTitulos>(null);
-  const [pagina, setPagina] = useState(1);
+  const ordenacao: OrdenacaoTitulos = useMemo(() => {
+    const [coluna, dir] = estTela.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaTitulos, dir } : null;
+  }, [estTela.ordem]);
+  const setOrdenacao = (v: OrdenacaoTitulos | ((a: OrdenacaoTitulos) => OrdenacaoTitulos)) => {
+    const n = typeof v === "function" ? v(ordenacao) : v;
+    setEstTela({ ordem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = estTela.pagina;
+  const setPagina = (n: number) => setEstTela({ pagina: n });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_TITULOS),
   );
@@ -786,9 +811,19 @@ export default function TitulosTab() {
     }
   }, [agrupado, ordenacao]);
 
+  // Primeira renderização (voltando do detalhe) não zera a página da URL.
+  const primeiraRender = useRef(true);
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, vencDe, vencAte, tipoFiltro, cardsAtivos, agrupado, ordenacao]);
+  }, [busca, vencDe, vencAte, tipoFiltro, estTela.cards, agrupado, estTela.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const idsFocaveis = useMemo(
+    () => (agrupado
+      ? gruposDaPaginaIds.current
+      : []),
+    [agrupado],
+  );
 
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
