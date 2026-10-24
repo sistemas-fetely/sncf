@@ -80,9 +80,17 @@ function extrairGeradoEm(texto: string): { iso: string; texto: string } | null {
   if (!m) return null;
   const mes = MESES[m[2].toLowerCase()];
   if (mes === undefined) return null;
-  const d = new Date(+m[3], mes, +m[1], +m[4], +m[5], +m[6]);
+  // 24/10/2026: "Data de geração" vem em 12h sem AM/PM. A hora do assunto
+  // ("Tempos Pedidos (Fetely) - 17:00") desempata — mesma regra da edge receber-fases-xpm-email.
+  let hora = +m[4];
+  const a = texto.match(/tempos\s+pedidos[^-]*-\s*(\d{1,2}):(\d{2})/i);
+  if (a && +a[1] >= 12 && hora < 12) hora += 12;
+  const d = new Date(+m[3], mes, +m[1], hora, +m[5], +m[6]);
   if (isNaN(d.getTime())) return null;
-  return { iso: d.toISOString(), texto: m[0].replace(/^[Dd]ata\s*de\s*[Gg]era[çc][ãa]o\s*:?\s*/, "") };
+  return {
+    iso: d.toISOString(),
+    texto: `${m[1]} de ${m[2]} de ${m[3]} ${String(hora).padStart(2, "0")}:${m[5]}:${m[6]}`,
+  };
 }
 
 function extrairNumeroEnvio(texto: string): string | null {
