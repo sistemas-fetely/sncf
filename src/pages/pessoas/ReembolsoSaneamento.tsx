@@ -66,9 +66,9 @@ interface Rascunho {
 
 export default function ReembolsoSaneamento() {
   const qc = useQueryClient();
-  const [__nav, __setNav] = useEstadoTela({ filtro: null } as Record<string, string | number | boolean | null>);
-  const filtro = __nav.filtro as Filtro>("todos");
-  const [editando, setEditando] = useState<string | null;
+  const [__nav, __setNav] = useEstadoTela({ filtro: "todos" } as Record<string, string | number | boolean | null>);
+  const filtro = __nav.filtro as Filtro;
+  const [editando, setEditando] = useState<string | null>(null);
   const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
 
