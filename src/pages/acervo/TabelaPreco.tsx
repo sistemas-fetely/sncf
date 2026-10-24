@@ -271,6 +271,8 @@ export default function TabelaPreco() {
   const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const naPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  useFocoAoVoltar({ pronto: !listaQ.isLoading, idsVisiveis: naPagina.map((l) => l.cod_cadastro ?? l.sku) });
+  useRestaurarScroll(null, !listaQ.isLoading);
 
   function ordenar(coluna: ColunaOrdem) {
     setOrdem((o) =>
