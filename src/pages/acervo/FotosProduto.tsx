@@ -254,6 +254,8 @@ export default function FotosProduto() {
 
   const pagefim = pagina * tamanhoPagina;
   const visiveis = filtradas.slice(pagefim - tamanhoPagina, pagefim);
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: visiveis.map((f) => String(f.cod_cadastro)) });
+  useRestaurarScroll(null, !isLoading);
 
   function exportarCsv() {
     const cab = ["codigo", "nome", "arquivo", "url", "origem", "catalogo", "resolucao", "principal"];
@@ -543,7 +545,7 @@ export default function FotosProduto() {
                 </TableRow>
               )}
               {visiveis.map((f) => (
-                <TableRow key={f.id}>
+                <TableRow key={f.id} data-foco-id={String(f.cod_cadastro)}>
                   <TableCell>
                     {f.url ? (
                       <a href={f.url} target="_blank" rel="noreferrer">
