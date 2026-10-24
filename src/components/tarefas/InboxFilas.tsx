@@ -270,12 +270,21 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
     return <p className="text-sm text-muted-foreground">Nenhum item nesta fila.</p>;
   }
 
+  const comProblema = (l: Record<string, unknown>, filho: React.ReactNode, key: string) => (
+    <div key={key} className="space-y-1">
+      {filho}
+      <div className="flex justify-end">
+        <BotaoAbrirProblema fila={fila} linha={l} />
+      </div>
+    </div>
+  );
+
   if (FILAS_B2B_SAIDA.includes(fila.chave)) {
     return (
       <div className="space-y-2">
-        {linhas.map((l) => (
-          <LinhaB2bSaida key={String(l.pedido_id ?? l.id)} chave={fila.chave} linha={l} />
-        ))}
+        {linhas.map((l) =>
+          comProblema(l, <LinhaB2bSaida chave={fila.chave} linha={l} />, String(l.pedido_id ?? l.id)),
+        )}
       </div>
     );
   }
@@ -283,8 +292,16 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
   if (fila.chave === "cd_saldo_a_corrigir") {
     return (
       <div className="space-y-2">
+        {linhas.map((l) => comProblema(l, <LinhaSaldoCd linha={l} />, String(l.id)))}
+      </div>
+    );
+  }
+
+  if (fila.chave === "problemas_esquecidos") {
+    return (
+      <div className="space-y-2">
         {linhas.map((l) => (
-          <LinhaSaldoCd key={String(l.id)} linha={l} />
+          <LinhaProblemaEsquecido key={String(l.chamado_id)} linha={l} />
         ))}
       </div>
     );
