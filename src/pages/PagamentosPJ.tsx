@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import {
   CreditCard, Search, MoreHorizontal, Eye, Loader2,
@@ -69,9 +70,13 @@ export default function PagamentosPJ() {
   const [pagamentos, setPagamentos] = useState<PagamentoComContrato[]>([]);
   const [contratos, setContratos] = useState<ContratoPJOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [filterContrato, setFilterContrato] = useState("todos");
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterStatus: "todos", filterContrato: "todos" } as Record<string, string | number | boolean | null>);
+  const search = __nav.search as string;
+  const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
+  const filterStatus = __nav.filterStatus as string;
+  const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
+  const filterContrato = __nav.filterContrato as string;
+  const setFilterContrato = (v: any) => __setNav({ filterContrato: resolverAcao(v, __nav.filterContrato as any) } as any);
 
   const fetchData = async () => {
     const [{ data: pags }, { data: cps }] = await Promise.all([

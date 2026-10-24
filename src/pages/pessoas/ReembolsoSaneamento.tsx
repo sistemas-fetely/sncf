@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Link } from "react-router-dom";
@@ -65,8 +66,10 @@ interface Rascunho {
 
 export default function ReembolsoSaneamento() {
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [editando, setEditando] = useState<string | null>(null);
+  const [__nav, __setNav] = useEstadoTela({ filtro: null } as Record<string, string | number | boolean | null>);
+  const filtro = __nav.filtro as Filtro>("todos");
+  const [editando, setEditando] = useState<string | null;
+  const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
   const [rascunho, setRascunho] = useState<Rascunho | null>(null);
 
   const linhasQ = useQuery({

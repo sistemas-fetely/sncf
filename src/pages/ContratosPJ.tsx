@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -405,8 +406,11 @@ export default function ContratosPJ() {
   const canDelete = podeEditarContrato && !carregandoPermissao;
   const [contratos, setContratos] = useState<ContratoPJ[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterStatus: "todos" } as Record<string, string | number | boolean | null>);
+  const search = __nav.search as string;
+  const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
+  const filterStatus = __nav.filterStatus as string;
+  const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
   const [formOpen, setFormOpen] = useState(searchParams.get("novo") === "true");
   const [editContrato, setEditContrato] = useState<ContratoPJ | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ContratoPJ | null>(null);

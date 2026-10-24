@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import {
   Plus, Search, FileText, Users, Building2, MapPin, Briefcase,
@@ -58,7 +59,9 @@ export default function Processos() {
   const podeEditar = roles?.some((r) => ["super_admin", "admin_rh"].includes(r));
 
   const [filtros, setFiltros] = useState<FiltrosProcessos>({});
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>);
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [filtrosAbertos, setFiltrosAbertos] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
 

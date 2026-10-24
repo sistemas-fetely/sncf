@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Heart, Wallet, Search } from "lucide-react";
@@ -34,9 +35,12 @@ type Row = {
 };
 
 export default function Beneficios() {
-  const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState<"ativo" | "encerrado" | "todos">("ativo");
-  const [beneficioFiltro, setBeneficioFiltro] = useState<string>("__all__");
+  const [__nav, __setNav] = useEstadoTela({ busca: "", statusFiltro: "__all__" } as Record<string, string | number | boolean | null>);
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
+  const statusFiltro = __nav.statusFiltro as "ativo" | "encerrado" | "todos">("ativo");
+  const [beneficioFiltro, setBeneficioFiltro] = useState<string;
+  const setStatusFiltro = (v: any) => __setNav({ statusFiltro: resolverAcao(v, __nav.statusFiltro as any) } as any);
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["beneficios-consolidado"],
