@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe, lerLista, escreverLista } from "@/lib/navegacao";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
