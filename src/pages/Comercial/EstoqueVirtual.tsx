@@ -1,4 +1,5 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { useEstadoTela, resolverAcao, lerOrdemKD, escreverOrdemKD } from "@/lib/navegacao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -229,15 +230,33 @@ async function carregarPaginado<T>(tabela: string, cols: string, ordem: string[]
 }
 
 export default function EstoqueVirtual() {
-  const [busca, setBusca] = useState("");
-  const [faseFiltro, setFaseFiltro] = useState("todos");
-  const [colecaoFiltro, setColecaoFiltro] = useState("todos");
-  const [centroFiltro, setCentroFiltro] = useState("todos");
-  const [situacaoFiltro, setSituacaoFiltro] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, visão, ordem e página na URL.
+  // ordem "" = padrão da visão; "nenhum" = sem ordenação.
+  const [nav, setNav] = useEstadoTela({ busca: "", fase: "todos", colecao: "todos", centro: "todos", situacao: "todos", visao: "estoque", ordem: "", pagina: 1 });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const faseFiltro = nav.fase;
+  const setFaseFiltro = (v: string) => setNav({ fase: v });
+  const colecaoFiltro = nav.colecao;
+  const setColecaoFiltro = (v: string) => setNav({ colecao: v });
+  const centroFiltro = nav.centro;
+  const setCentroFiltro = (v: string) => setNav({ centro: v });
+  const situacaoFiltro = nav.situacao;
+  const setSituacaoFiltro = (v: string) => setNav({ situacao: v });
   const [detalhe, setDetalhe] = useState<{ sku: string; nome: string | null } | null>(null);
-  const [visao, setVisao] = useState<Visao>("estoque");
-  const [sort, setSort] = useState<SortState<ColSort> | null>(SORT_PADRAO.estoque);
-  const [pagina, setPagina] = useState(1);
+  const visao = nav.visao as Visao;
+  const setVisao = (v: Visao) => setNav({ visao: v, ordem: "" });
+  const sort = useMemo<SortState<ColSort> | null>(() => {
+    if (!nav.ordem) return SORT_PADRAO[visao] ?? null;
+    const o = lerOrdemKD(nav.ordem);
+    return o ? { column: o.key as ColSort, direction: o.dir } : null;
+  }, [nav.ordem, visao]);
+  const setSort = (v: SetStateAction<SortState<ColSort> | null>) => {
+    const n = resolverAcao(v, sort);
+    setNav({ ordem: escreverOrdemKD(n ? { key: n.column, dir: n.direction } : null) });
+  };
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   const centrosQuery = useQuery({
@@ -777,7 +796,7 @@ export default function EstoqueVirtual() {
         <ToggleGroup
           type="single"
           value={visao}
-          onValueChange={(v) => { if (!v) return; setVisao(v as Visao); setSort(SORT_PADRAO[v as Visao]); setPagina(1); }}
+          onValueChange={(v) => { if (!v) return; setNav({ visao: v, ordem: "", pagina: 1 }); }}
           className="rounded-md border bg-card p-0.5"
           aria-label="Visão da tabela"
         >
