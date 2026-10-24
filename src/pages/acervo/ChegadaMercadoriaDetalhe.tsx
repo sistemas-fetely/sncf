@@ -1,11 +1,10 @@
-import SmartBackButton from "@/components/SmartBackButton";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   ExternalLink,
