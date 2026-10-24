@@ -88,14 +88,14 @@ function pareceTimeout(m: string): boolean {
 }
 
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
-  // TELA-LEMBRA-ONDE-EU-ESTAVA: na tela própria os filtros vivem na URL; embutida
-  // numa tela hospedeira, ficam em estado local (não escreve na URL de quem hospeda).
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros sempre na URL; embutida na Casa, com
+  // prefixo "mc_" para não colidir com as chaves da tela hospedeira.
   const DEFAULTS_MESA = { busca: "", status: "todos", pagamento: "todos", grupo: "em_andamento", meus: true };
-  const [estadoUrl, setEstadoUrl] = useEstadoTela(DEFAULTS_MESA, { replaceKeys: ["busca"] });
-  const [estadoLocal, setEstadoLocalBruto] = useState(DEFAULTS_MESA);
-  const estadoMesa = embutido ? estadoLocal : estadoUrl;
-  const setEstadoMesa = (patch: Partial<typeof DEFAULTS_MESA>) =>
-    embutido ? setEstadoLocalBruto((a) => ({ ...a, ...patch })) : setEstadoUrl(patch);
+  const [estadoMesa, setEstadoMesa] = useEstadoTela(DEFAULTS_MESA, {
+    replaceKeys: ["busca"],
+    prefixo: embutido ? "mc" : undefined,
+  });
+  const focoParam = embutido ? "mc_foco" : "foco";
   const { busca, status: statusFiltro, pagamento: pagamentoFiltro, meus } = estadoMesa;
   const grupo: FiltroGrupo = GRUPOS.some((g) => g.valor === estadoMesa.grupo)
     ? (estadoMesa.grupo as FiltroGrupo)
@@ -283,15 +283,16 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
   /** FILTRO-QUE-NAO-SE-APLICA-NAO-RENDERIZA: esconder uma faixa sem resetar
    *  o estado deixaria o filtro ativo invisível — armadilha de UX. */
   useFocoAoVoltar({
-    pronto: !embutido && !isLoading,
+    pronto: !isLoading,
+    focoParam,
     idsVisiveis: filtradas.map((r) => r.pedido_id),
     aoNaoEncontrar: (id) =>
       toast.info("O pedido aberto saiu desta lista", {
         action: { label: "Abrir", onClick: () => navigate(`/pedidos/${id}`) },
       }),
   });
-  // A lista rola com a janela; embutida, quem cuida é a tela hospedeira.
-  useRestaurarScroll(null, !embutido && !isLoading);
+  // A lista rola com a janela; a chave é pathname+search (inclui mc_*).
+  useRestaurarScroll(null, !isLoading);
 
   const mudarGrupo = (novo: FiltroGrupo) => {
     setEstadoMesa(novo !== "oportunidade" ? { grupo: novo, pagamento: "todos" } : { grupo: novo });
@@ -606,6 +607,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                               abrirDetalheNav(navigate, location, `/parceiros/${r.parceiro_id}`, {
                                 foco: r.pedido_id,
                                 label: "Mesa Comercial",
+                                focoParam,
                               })
                             }
                           >

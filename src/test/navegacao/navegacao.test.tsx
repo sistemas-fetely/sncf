@@ -49,6 +49,30 @@ describe("useEstadoTela", () => {
   });
 });
 
+describe("useEstadoTela com prefixo", () => {
+  it("escreve mc_busca, estado sem prefixo, ignora chave sem prefixo", () => {
+    const D = { busca: "", grupo: "em_andamento" };
+    let api!: ReturnType<typeof useEstadoTela<typeof D>>;
+    function Tela() {
+      api = useEstadoTela(D, { replaceKeys: ["busca"], prefixo: "mc" });
+      return <Espia />;
+    }
+    render(<MemoryRouter initialEntries={["/x?busca=casa&grupo=todas"]}><Tela /></MemoryRouter>);
+    expect(api[0].busca).toBe("");
+    expect(api[0].grupo).toBe("em_andamento");
+    act(() => api[1]({ busca: "x" }));
+    expect(loc.current).toBe("/x?busca=casa&grupo=todas&mc_busca=x");
+    expect(api[0].busca).toBe("x");
+  });
+});
+
+describe("abrirDetalhe com focoParam", () => {
+  it("usa mc_foco e preserva aba e mc_*", () => {
+    expect(montarFrom("/pedidos", "?aba=recuperacao&mc_busca=a&foco=Z", "P1", "mc_foco"))
+      .toBe("/pedidos?aba=recuperacao&mc_busca=a&foco=Z&mc_foco=P1");
+  });
+});
+
 describe("useFocoAoVoltar", () => {
   it("id visível: marca o elemento e remove foco", () => {
     function Tela() {
