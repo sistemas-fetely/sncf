@@ -176,6 +176,8 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((c) => c.parceiro_id as string) });
+  useRestaurarScroll(null, !isLoading);
 
   const kpis = useMemo(() => {
     const base = contas ?? [];
