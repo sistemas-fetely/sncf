@@ -70,7 +70,7 @@ export function TarefaItem({
   };
 
   return (
-    <div className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 transition-colors hover:bg-accent/40">
+    <div data-foco-id={tarefa.id} className="group flex items-start gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 transition-colors hover:bg-accent/40">
       {somenteLeitura ? (
         <span className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       ) : (

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { rotuloOrigemTarefa } from "@/lib/navegacao/rotuloOrigemTarefa";
 import { ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -50,12 +52,13 @@ export function TarefaDetalhePainel({ tarefaId, aberto, onOpenChange }: Props) {
 function Conteudo({ tarefaId, onFechar }: { tarefaId: string; onFechar: () => void }) {
   const { data: tarefa, isLoading, error, refetch } = useTarefaDetalhe(tarefaId);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const rodape = (
     <div className="flex items-center gap-2 border-t bg-background p-4">
       <div className="mr-auto"><IndicadorSalvamento tarefaId={tarefaId} /></div>
       <Button variant="outline" onClick={onFechar}>Fechar</Button>
-      <Button variant="outline" onClick={() => navigate(`/tarefas/${tarefaId}`)}>
+      <Button variant="outline" onClick={() => abrirDetalhe(navigate, location, `/tarefas/${tarefaId}`, { foco: tarefaId, label: rotuloOrigemTarefa(location.pathname) })}>
         <ExternalLink className="mr-1 h-4 w-4" /> Abrir tarefa completa
       </Button>
     </div>

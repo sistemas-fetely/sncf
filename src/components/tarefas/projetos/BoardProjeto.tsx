@@ -425,6 +425,7 @@ export function BoardProjeto({ projetoId }: Props) {
                     return (
                       <Card
                         key={t.id}
+                        data-foco-id={t.id}
                         draggable={arrastavel}
                         onDragStart={(e) => {
                           if (!arrastavel) return;

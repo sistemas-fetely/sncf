@@ -142,6 +142,7 @@ export default function CalendarioTarefas() {
                 {(porDia[iso(d)] ?? []).map((t) => (
                   <button
                     key={t.id}
+                    data-foco-id={t.id}
                     onClick={() => abrirTarefa(t.id)}
                     className={cn(
                       "w-full rounded-md border border-l-4 px-2 py-1.5 text-left text-sm",
@@ -197,6 +198,7 @@ export default function CalendarioTarefas() {
                   {visiveis.map((t) => (
                     <div
                       key={t.id}
+                      data-foco-id={t.id}
                       draggable
                       onDragStart={() => setArrastando(t.id)}
                       onDragEnd={() => { setArrastando(null); setDiaAlvo(null); }}

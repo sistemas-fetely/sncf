@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
@@ -128,15 +129,7 @@ export default function TarefaPagina() {
   return (
     <PageShell>
       <div className="flex items-start gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Voltar"
-          className="mt-1 shrink-0"
-          onClick={() => navigate(-1)}
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
+        <SmartBackButton fallback="/tarefas/minhas" fallbackLabel="Minhas tarefas" className="mt-1 shrink-0" />
 
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex items-center gap-1">
