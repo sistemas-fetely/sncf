@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { toast } from "sonner";
 import { ArrowLeft, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -128,6 +129,10 @@ export default function PessoaForm() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
+  // Volta para a lista como estava (filtros + foco) quando veio dela.
+  const origemLista = location.state as { from?: string; fromLabel?: string } | null;
+  const voltarLista = () => navigate(origemLista?.from ?? "/pessoas");
 
   const [pessoa, setPessoa] = useState<PessoaForm>(emptyPessoa);
   const [vinculo, setVinculo] = useState<VinculoForm>(emptyVinculo);
@@ -480,7 +485,7 @@ export default function PessoaForm() {
         setEmailCorporativoOriginal((vinculo.email_corporativo || "").trim());
 
         toast.success("Pessoa atualizada");
-        navigate("/pessoas");
+        voltarLista();
       } else {
         // CREATE: checa CPF duplicado
         const dup = await checarCpfDuplicado();
@@ -495,11 +500,11 @@ export default function PessoaForm() {
         const { error: e2 } = await (db as any).from("vinculos").insert({ ...payloadVinculo(novoId), status: "ativo" });
         if (e2) {
           toast.error("Pessoa criada mas o vínculo falhou: " + humanizeError(e2.message) + ". Edite a pessoa para completar.");
-          navigate(`/pessoas/${novoId}/editar`);
+          navigate(`/pessoas/${novoId}/editar`, { state: origemLista });
           return;
         }
         toast.success("Pessoa cadastrada");
-        navigate("/pessoas");
+        voltarLista();
       }
     } catch (err: any) {
       toast.error(humanizeError(err?.message || String(err)));
@@ -515,7 +520,7 @@ export default function PessoaForm() {
       const { error } = await (db as any).from("vinculos").insert({ ...payloadVinculo(pessoaExistente.id), status: "ativo" });
       if (error) throw error;
       toast.success("Vínculo criado para pessoa existente");
-      navigate(`/pessoas/${pessoaExistente.id}/editar`);
+      navigate(`/pessoas/${pessoaExistente.id}/editar`, { state: origemLista });
     } catch (err: any) {
       toast.error(humanizeError(err?.message || String(err)));
     } finally {
@@ -531,7 +536,7 @@ export default function PessoaForm() {
   return (
     <PageShell>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/pessoas")}><ArrowLeft className="h-4 w-4" /></Button>
+        <SmartBackButton fallback="/pessoas" fallbackLabel="Pessoas" />
         <PageHeader
           className="flex-1 mb-0"
           titulo={isEdit ? "Editar pessoa" : "Nova pessoa"}
