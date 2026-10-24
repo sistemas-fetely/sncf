@@ -1,4 +1,8 @@
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useInboxFilas, type FilaInbox } from "@/hooks/tarefas/useInboxFilas";
 import { useInboxFilaItens } from "@/hooks/tarefas/useInboxFilaItens";
@@ -49,6 +53,62 @@ function formatarCelula(valor: unknown): { texto: string; numerico: boolean } {
   return { texto: json.length > 60 ? `${json.slice(0, 60)}…` : json, numerico: false };
 }
 
+/** Fila cd_saldo_a_corrigir: faltas legíveis + fechar a pendência. */
+function LinhaSaldoCd({ linha }: { linha: Record<string, unknown> }) {
+  const qc = useQueryClient();
+  const [obs, setObs] = useState("");
+  const faltas = (Array.isArray(linha.faltas) ? linha.faltas : []) as {
+    sku: string;
+    pedido: number;
+    livre_cd: number;
+  }[];
+  const corrigir = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("fn_pedido_cd_falta_corrigida", {
+        p_aceite_id: linha.id,
+        p_obs: obs.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Saldo marcado como corrigido");
+      await qc.invalidateQueries({ queryKey: ["tarefas"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  return (
+    <div className="rounded-md border p-3 space-y-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-medium">{String(linha.id_externo ?? "—")}</span>
+        {linha.centro_nome ? <Badge variant="secondary">{String(linha.centro_nome)}</Badge> : null}
+        {linha.criado_em ? (
+          <span className="text-muted-foreground">{formatarCelula(linha.criado_em).texto}</span>
+        ) : null}
+      </div>
+      <ul className="tabular-nums">
+        {faltas.map((f, i) => (
+          <li key={`${f.sku}-${i}`}>
+            {f.sku}: pede {f.pedido}, livre {f.livre_cd}
+          </li>
+        ))}
+      </ul>
+      {linha.motivo ? <p className="text-muted-foreground">Motivo: {String(linha.motivo)}</p> : null}
+      <div className="flex gap-2">
+        <Input
+          className="h-8 text-xs"
+          placeholder="Observação (opcional)"
+          value={obs}
+          onChange={(e) => setObs(e.target.value)}
+        />
+        <Button size="sm" disabled={corrigir.isPending} onClick={() => corrigir.mutate()}>
+          Saldo corrigido
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function TabelaFila({ fila }: { fila: FilaInbox }) {
   const { data, isLoading, isError, error } = useInboxFilaItens(fila.chave, 25);
 
@@ -75,6 +135,16 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
   const linhas = data ?? [];
   if (linhas.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhum item nesta fila.</p>;
+  }
+
+  if (fila.chave === "cd_saldo_a_corrigir") {
+    return (
+      <div className="space-y-2">
+        {linhas.map((l) => (
+          <LinhaSaldoCd key={String(l.id)} linha={l} />
+        ))}
+      </div>
+    );
   }
 
   const colunas = Object.keys(linhas[0]);

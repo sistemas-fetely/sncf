@@ -7,6 +7,8 @@ import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { ordenacaoParaTexto, textoParaOrdenacao, type Ordenacao, type PresetOrdenacao, type ColunaOrdenavel } from "@/lib/pedidos/ordenacaoCasa";
 import { alertaCoberturaCd } from "@/lib/pedidos/coberturaCd";
+import { DialogoCdNaoCobre } from "@/components/pedidos/DialogoCdNaoCobre";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -1871,20 +1873,53 @@ const DICA_CD: Record<string, string> = {
  *  de expedição do pedido. v_pedidos_fila devolve nulas fora da separação — aí nada aparece. */
 function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
   const alerta = alertaCoberturaCd(p);
+  const permSp = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
+  const permXpm = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
+  const [aberto, setAberto] = useState(false);
   if (!alerta) return null;
 
-  const selo = (
-    <span
+  if (p.cd_falta_aceita) {
+    return (
+      <span className="inline-flex items-center text-[10px] rounded px-1 py-[1px] border border-border bg-muted text-muted-foreground whitespace-nowrap">
+        Saldo do CD em correção
+      </span>
+    );
+  }
+
+  const podeAgir = permSp.permitido || permXpm.permitido;
+  const classe = cn(
+    "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
+    "border-warning/50 text-warning",
+    podeAgir && "hover:bg-warning/10 cursor-pointer",
+  );
+  const selo = podeAgir ? (
+    <button
+      type="button"
       title={alerta.tooltip || alerta.texto}
-      className={cn(
-        "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
-        "border-warning/50 text-warning",
-      )}
+      className={classe}
+      onClick={(e) => {
+        e.stopPropagation();
+        setAberto(true);
+      }}
     >
+      <AlertTriangle className="h-3 w-3" />
+      {alerta.texto}
+    </button>
+  ) : (
+    <span title={alerta.tooltip || alerta.texto} className={classe}>
       <AlertTriangle className="h-3 w-3" />
       {alerta.texto}
     </span>
   );
+
+  if (podeAgir) {
+    return (
+      <>
+        {selo}
+        {aberto && <DialogoCdNaoCobre p={p} open={aberto} onOpenChange={setAberto} />}
+      </>
+    );
+  }
 
   if (!alerta.tooltip) return selo;
 
