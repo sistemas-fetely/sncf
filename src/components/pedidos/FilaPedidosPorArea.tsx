@@ -430,6 +430,7 @@ export function FilaPedidosPorArea({
   apenasAtivos = true,
   incluirCancelados = false,
   somenteRiscoAlto = false,
+  somenteTravados = false,
   
 }: Props) {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página vivem na URL.
@@ -495,7 +496,7 @@ export function FilaPedidosPorArea({
       return;
     }
     if (pagina !== 1) setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo, somenteTravados]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
