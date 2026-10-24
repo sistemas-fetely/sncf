@@ -1,5 +1,9 @@
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useAllCargos, type Cargo } from "@/hooks/useCargos";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +68,7 @@ const FERRAMENTAS_CATALOGO = [
 /* ─── Drawer Component ─── */
 function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const faixas = [
     { key: "F1", label: "Entrada" },
@@ -204,7 +209,7 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
               contexto={{ cargo_id: cargo.id, cargo: cargo.nome }}
               className="w-full"
               variant="outline"
-              onClick={() => navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } })}
+              onClick={() => abrirDetalhe(navigate, location, `/pessoas/cargos/${cargo.id}`, { foco: cargo.id, label: "Cargos" })}
             >
               <Pencil className="h-4 w-4 mr-2" />
               Editar cargo completo
@@ -219,12 +224,18 @@ function CargoDrawer({ cargo, onClose }: { cargo: Cargo; onClose: () => void }) 
 /* ─── Main Page ─── */
 export default function Cargos() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: cargos, isLoading } = useAllCargos();
   const edGuard = usePedirAcesso("acao.cargo_editar", "Editar cargo");
   const exGuard = usePedirAcesso("acao.cargo_editar", "Excluir cargo");
-  const [search, setSearch] = useState("");
-  const [filtroDepartamento, setFiltroDepartamento] = useState("todos");
-  const [filtroTipo, setFiltroTipo] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [f, setF] = useEstadoTela({ busca: "", depto: "todos", tipo: "todos" }, { replaceKeys: ["busca"] });
+  const search = f.busca;
+  const setSearch = (v: string) => setF({ busca: v });
+  const filtroDepartamento = f.depto;
+  const setFiltroDepartamento = (v: string) => setF({ depto: v });
+  const filtroTipo = f.tipo;
+  const setFiltroTipo = (v: string) => setF({ tipo: v });
   const [deleteTarget, setDeleteTarget] = useState<Cargo | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -279,6 +290,9 @@ export default function Cargos() {
       return true;
     });
   }, [cargos, search, filtroDepartamento, filtroTipo]);
+
+  useFocoAoVoltar({ pronto: !isLoading && !!cargos, idsVisiveis: filtered.map((c) => c.id) });
+  useRestaurarScroll(null, !isLoading && !!cargos);
 
   return (
     <PageShell>
@@ -353,7 +367,7 @@ export default function Cargos() {
               </TableRow>
             ) : (
               filtered.map((cargo) => (
-                <TableRow key={cargo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(cargo)}>
+                <TableRow key={cargo.id} data-foco-id={cargo.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelected(cargo)}>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {cargo.nome}
@@ -392,7 +406,7 @@ export default function Cargos() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
-                          onClick={() => { if (edGuard.permitido) navigate(`/pessoas/cargos/${cargo.id}`, { state: { from: "/pessoas/cargos", fromLabel: "Cargos" } }); else void edGuard.pedir(); }}
+                          onClick={() => { if (edGuard.permitido) abrirDetalhe(navigate, location, `/pessoas/cargos/${cargo.id}`, { foco: cargo.id, label: "Cargos" }); else void edGuard.pedir(); }}
                           disabled={edGuard.carregando}
                           aria-disabled={!edGuard.permitido}
                           title={!edGuard.permitido && !edGuard.carregando ? "Sem permissão (acao.cargo_editar) — clique para pedir acesso" : undefined}

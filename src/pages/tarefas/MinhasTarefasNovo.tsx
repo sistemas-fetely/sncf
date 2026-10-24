@@ -1,6 +1,9 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -117,18 +120,35 @@ function LinhaContainer({
 
 export default function MinhasTarefasNovo() {
   const { user } = useAuth();
-  const [filtro, setFiltro] = useState<FiltroStatus>("abertas");
-  const [projetoFiltro, setProjetoFiltro] = useState<string>("__todos__");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, visão e agrupamento na URL.
+  const [estadoLista, setEstadoLista] = useEstadoTela({
+    status: "abertas",
+    projeto: "__todos__",
+    visao: "lista",
+    agrupar: "status",
+  });
+  const filtro = estadoLista.status as FiltroStatus;
+  const setFiltro = (v: FiltroStatus) => setEstadoLista({ status: v });
+  const projetoFiltro = estadoLista.projeto;
+  const setProjetoFiltro = (v: string) => setEstadoLista({ projeto: v });
   /** lista (padrão) ou quadro; persiste ao trocar a aba de papel, como o filtro de projeto */
-  const [visao, setVisao] = useState<"lista" | "quadro">("lista");
+  const visao = estadoLista.visao as "lista" | "quadro";
+  const setVisao = (v: "lista" | "quadro") => setEstadoLista({ visao: v });
   /** no quadro: colunas por status (padrão) ou por projeto */
-  const [agruparPor, setAgruparPor] = useState<AgruparPor>("status");
+  const agruparPor = estadoLista.agrupar as AgruparPor;
+  const setAgruparPor = (v: AgruparPor) => setEstadoLista({ agrupar: v });
 
   const [aba, setAba] = useAbaUrl("r");
   const abaAtual = aba as Papel;
   const { data: tarefas, isLoading } = useMinhasTarefasPapel(user?.id, filtro);
   // coluna "Concluída" do quadro busca por conta própria — o filtro de status do topo não a alimenta
   const { data: concluidasRecentes } = useConcluidasRecentesPapel(user?.id);
+  // Volta da página da tarefa: rola até o cartão aberto e destaca.
+  useFocoAoVoltar({
+    pronto: !isLoading && !!tarefas,
+    idsVisiveis: [...(tarefas ?? []).map((t) => t.id), ...(concluidasRecentes ?? []).map((t) => t.id)],
+  });
+  useRestaurarScroll(null, !isLoading && !!tarefas);
   const { data: projetos } = useProjetos();
 
   const contarFolhas = (p: Papel) =>

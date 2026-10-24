@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useChamadoRelacao, chaveChamadoRelacao, mensagemErroChamado } from "@/hooks/useChamadoRelacao";
@@ -554,9 +555,7 @@ function ChamadoDetalheConteudo() {
       <PageShell>
         <PageHeader titulo="Chamado" icone={Ticket} />
         <ErroQuery o_que="o chamado" erro={chamadoQ.error} />
-        <Button variant="outline" onClick={() => navigate("/chamados")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para a Central de Chamados
-        </Button>
+        <SmartBackButton fallback="/chamados" fallbackLabel="Chamados" />
       </PageShell>
     );
   }
@@ -585,9 +584,7 @@ function ChamadoDetalheConteudo() {
         <p className="text-sm text-muted-foreground">
           Este chamado não existe ou você não tem acesso a ele.
         </p>
-        <Button variant="outline" onClick={() => navigate("/chamados")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para a Central de Chamados
-        </Button>
+        <SmartBackButton fallback="/chamados" fallbackLabel="Chamados" />
       </PageShell>
     );
   }
@@ -660,9 +657,7 @@ function ChamadoDetalheConteudo() {
           icone={Ticket}
           estado={c.criado_em ? `Aberto em ${fmtDataHora(c.criado_em)}` : undefined}
           acoes={
-            <Button variant="outline" onClick={() => navigate("/chamados")}>
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar
-            </Button>
+            <SmartBackButton fallback="/chamados" fallbackLabel="Chamados" />
           }
         />
 

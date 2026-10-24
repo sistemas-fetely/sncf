@@ -1,7 +1,9 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { montarFrom } from "@/lib/navegacao/abrirDetalhe";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { LayoutGrid, Plus } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,6 +20,8 @@ import {
 
 export default function ProjetosGrid() {
   const { data: projetos, isLoading } = useProjetosLista();
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: !isLoading && !!projetos, idsVisiveis: (projetos ?? []).map((p) => p.id) });
   const { data: contagem } = useContagemAbertasPorProjeto();
   const nomePessoa = useNomePessoa();
   const { user } = useAuth();
@@ -60,7 +64,12 @@ export default function ProjetosGrid() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {(projetos ?? []).map((p) => (
-            <Link key={p.id} to={`/tarefas/projetos/${p.id}`}>
+            <Link
+              key={p.id}
+              data-foco-id={p.id}
+              to={`/tarefas/projetos/${p.id}`}
+              state={{ from: montarFrom(location.pathname, location.search, p.id), fromLabel: "Projetos" }}
+            >
               <Card className="h-full transition hover:shadow-md">
                 <CardContent className="space-y-3 p-4">
                   <div className="flex items-start gap-3">

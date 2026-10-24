@@ -3,6 +3,7 @@ import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { ArrowLeft, Save } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,11 +30,7 @@ export default function ProjetoDetalhe() {
   return (
     <PageShell>
       <div>
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/tarefas/projetos">
-            <ArrowLeft className="mr-1 h-4 w-4" /> Projetos
-          </Link>
-        </Button>
+        <SmartBackButton fallback="/tarefas/projetos" fallbackLabel="Projetos" />
       </div>
 
       {error && (

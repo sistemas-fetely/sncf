@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { CalendarClock, ChevronDown, ChevronUp, GripVertical, ListChecks, Lock, MoreHorizontal, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,6 +69,7 @@ export function BoardProjeto({ projetoId }: Props) {
   const { abrir: abrirTarefa } = useTarefaAberta();
   const { data: secoes } = useSecoesProjeto(projetoId);
   const { data: tarefas, isLoading } = useTarefasDoProjeto(projetoId);
+  useFocoAoVoltar({ pronto: !isLoading && !!tarefas, idsVisiveis: (tarefas ?? []).map((t) => t.id) });
   const { data: podeGerenciar } = usePodeGerenciarProjeto(projetoId);
   // papel efetivo no projeto (gestor/membro/observador) — vem das RPCs do banco
   const { podeCriarTarefa, podeEditarQualquerTarefa, carregando: carregandoPapel } = useMeuPapelNoProjeto(projetoId);
@@ -425,6 +427,7 @@ export function BoardProjeto({ projetoId }: Props) {
                     return (
                       <Card
                         key={t.id}
+                        data-foco-id={t.id}
                         draggable={arrastavel}
                         onDragStart={(e) => {
                           if (!arrastavel) return;

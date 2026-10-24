@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, ChevronUp, AlertTriangle, Ticket } from "lucide-react";
 import { toast } from "sonner";
@@ -67,6 +68,7 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
   const [enviando, setEnviando] = useState(false);
   const { podeEditar } = usePermissoesTela("tela.pedidos");
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!cards || cards.length === 0) return null;
 
@@ -111,7 +113,7 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
       if (error) throw error;
       toast.success("Chamado aberto.");
       setCardChamado(null);
-      navigate(`/chamados/${data as unknown as string}`);
+      abrirDetalhe(navigate, location, `/chamados/${data as unknown as string}`, { label: "Pedido" });
     } catch (e) {
       toast.error(formatError(e));
     } finally {
@@ -219,7 +221,7 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
                     {botao("Resolver", () => { setNota(""); setDialogoAcao({ card: c, acao: "resolver" }); }, "resolver")}
                     {botao("Não é problema", () => { setNota(""); setDialogoAcao({ card: c, acao: "nao_e_problema" }); }, "nao")}
                     {c.chamado_id ? (
-                      <Link to={`/chamados/${c.chamado_id}`} className="underline underline-offset-2 hover:text-foreground">
+                      <Link to={`/chamados/${c.chamado_id}`} state={{ from: location.pathname + location.search, fromLabel: "Pedido" }} className="underline underline-offset-2 hover:text-foreground">
                         Ver chamado →
                       </Link>
                     ) : sev === "bloqueante" && c.pode_abrir_chamado === true && (c.achado_ids?.length ?? 0) > 0 ? (

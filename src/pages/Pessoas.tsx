@@ -1,5 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { toast } from "sonner";
 import {
   Users, Search, MoreHorizontal, Eye, Edit, Plus, UserCheck, Briefcase, Building2, UserMinus, BarChart3, AlertTriangle, Handshake,
@@ -50,22 +54,28 @@ const statusStyles: Record<string, string> = {
 
 export default function Pessoas() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { data: isSocio } = useIsDiretoria();
-  const tipoFromQuery = searchParams.get("tipo");
 
   const [linhas, setLinhas] = useState<PessoaLinha[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterTipo, setFilterTipo] = useState<string>(
-    tipoFromQuery === "CLT" || tipoFromQuery === "PJ" ? tipoFromQuery : "todos"
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL (`?tipo=` já existia).
+  const [f, setF] = useEstadoTela(
+    { busca: "", tipo: "todos", status: "todos", incompletos: false, cc: "todos" },
+    { replaceKeys: ["busca"] },
   );
-  const [filterStatus, setFilterStatus] = useState("todos");
+  const search = f.busca;
+  const setSearch = (v: string) => setF({ busca: v });
+  const filterTipo = f.tipo === "CLT" || f.tipo === "PJ" ? f.tipo : "todos";
+  const setFilterTipo = (v: string) => setF({ tipo: v });
+  const filterStatus = f.status;
+  const setFilterStatus = (v: string) => setF({ status: v });
   const [desligarTarget, setDesligarTarget] = useState<PessoaLinha | null>(null);
   const [dataFim, setDataFim] = useState<string>(hojeISO());
   const [desligando, setDesligando] = useState(false);
-  const [soloIncompletos, setSoloIncompletos] = useState(false);
-  const [filterCC, setFilterCC] = useState("todos");
+  const soloIncompletos = f.incompletos;
+  const filterCC = f.cc;
+  const setFilterCC = (v: string) => setF({ cc: v });
   const [centrosCusto, setCentrosCusto] = useState<{ id: string; codigo: string; nome: string }[]>([]);
 
   async function fetchData() {
@@ -164,6 +174,9 @@ export default function Pessoas() {
     const matchIncompleto = !soloIncompletos || l.incompleto;
     return matchSearch && matchTipo && matchStatus && matchCC && matchIncompleto;
   }), [linhas, search, filterTipo, filterStatus, filterCC, soloIncompletos]);
+
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: filtered.map((p) => p.pessoa_id) });
+  useRestaurarScroll(null, !loading);
 
 
 
@@ -268,7 +281,7 @@ export default function Pessoas() {
                 type="button"
                 size="sm"
                 variant={soloIncompletos ? "default" : "outline"}
-                onClick={() => setSoloIncompletos((v) => !v)}
+                onClick={() => setF({ incompletos: !soloIncompletos })}
                 className={soloIncompletos ? "gap-2 bg-warning text-warning-foreground hover:bg-warning/90" : "gap-2 border-warning/40 text-warning hover:bg-warning/10"}
               >
                 <AlertTriangle className="h-4 w-4" />
@@ -297,7 +310,7 @@ export default function Pessoas() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhuma pessoa encontrada.</TableCell></TableRow>
                 ) : filtered.map((p) => (
-                  <TableRow key={p.pessoa_id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/pessoas/${p.pessoa_id}/editar`)}>
+                  <TableRow key={p.pessoa_id} data-foco-id={p.pessoa_id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => abrirDetalhe(navigate, location, `/pessoas/${p.pessoa_id}/editar`, { foco: p.pessoa_id, label: "Pessoas" })}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar className="h-8 w-8">
@@ -353,10 +366,10 @@ export default function Pessoas() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/pessoas/${p.pessoa_id}/editar`)}>
+                          <DropdownMenuItem onClick={() => abrirDetalhe(navigate, location, `/pessoas/${p.pessoa_id}/editar`, { foco: p.pessoa_id, label: "Pessoas" })}>
                             <Eye className="mr-2 h-4 w-4" /> Visualizar
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => navigate(`/pessoas/${p.pessoa_id}/editar`)}>
+                          <DropdownMenuItem onClick={() => abrirDetalhe(navigate, location, `/pessoas/${p.pessoa_id}/editar`, { foco: p.pessoa_id, label: "Pessoas" })}>
                             <Edit className="mr-2 h-4 w-4" /> Editar
                           </DropdownMenuItem>
                           {p.status === "ativo" && p.vinculo_id && (
