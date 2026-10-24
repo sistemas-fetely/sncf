@@ -1,5 +1,11 @@
-import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { ordenacaoParaTexto, textoParaOrdenacao, type Ordenacao, type PresetOrdenacao, type ColunaOrdenavel } from "@/lib/pedidos/ordenacaoCasa";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -63,15 +69,6 @@ import { useNivel } from "@/hooks/useNivel";
 import { URGENCIA_LABELS, type UrgenciaDeclarada, type AreaPedido, type EstagioPedido, type PedidoFilaItem, PIPELINE_PRINCIPAL } from "@/types/pedido";
 
 
-type PresetOrdenacao = "cronologico" | "risco" | "entrada_paga";
-type ColunaOrdenavel =
-  | "risco" | "pedido" | "valor" | "estoque" | "cobranca" | "estagio" | "entrega" | "na_fase";
-
-/** UMA-ORDENACAO-SO (16/09/2026): preset de negocio e clique no cabecalho sao o
- *  MESMO estado. Dois seletores de ordem concorrendo = fila mentindo sobre a ordem. */
-type Ordenacao =
-  | { tipo: "preset"; preset: PresetOrdenacao }
-  | { tipo: "coluna"; coluna: ColunaOrdenavel; dir: "asc" | "desc" };
 
 const COLUNA_ROTULO: Record<ColunaOrdenavel, string> = {
   risco: "Risco", pedido: "Pedido", valor: "Valor", estoque: "Estoque",
@@ -424,46 +421,68 @@ export function FilaPedidosPorArea({
   somenteRiscoAlto = false,
   
 }: Props) {
-  const [busca, setBusca] = useState("");
-  const [buscaDebounced, setBuscaDebounced] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página vivem na URL.
+  const [estadoTela, setEstadoTela] = useEstadoTela(
+    { busca: "", marcacao: "todas", forma: "todas", situacao: "todas", liberacao: "todas", alerta: false, semvinc: false, ordem: "", pagina: 1 },
+    { replaceKeys: ["busca"] },
+  );
+  const {
+    busca, marcacao: marcacaoFilter, forma: formaPgtoFilter, situacao: situacaoFilter,
+    liberacao: liberacaoFilter, alerta: somenteComAlerta, semvinc: comPagamentoSemVinculo, pagina,
+  } = estadoTela;
+  const setBusca = (v: string) => setEstadoTela({ busca: v });
+  const setMarcacaoFilter = (v: string) => setEstadoTela({ marcacao: v });
+  const setFormaPgtoFilter = (v: string) => setEstadoTela({ forma: v });
+  const setSituacaoFilter = (v: string) => setEstadoTela({ situacao: v });
+  const setLiberacaoFilter = (v: string) => setEstadoTela({ liberacao: v });
+  const setSomenteComAlerta = (v: boolean) => setEstadoTela({ alerta: v });
+  const setComPagamentoSemVinculo = (v: boolean) => setEstadoTela({ semvinc: v });
+  const setPagina = (n: number) => setEstadoTela({ pagina: n });
+  const ordenacao = useMemo(() => textoParaOrdenacao(estadoTela.ordem), [estadoTela.ordem]);
+  const setOrdenacao = (o: Ordenacao) => setEstadoTela({ ordem: ordenacaoParaTexto(o) });
+  // Nasce com a busca da URL: voltar do detalhe não pode piscar a lista sem filtro.
+  const [buscaDebounced, setBuscaDebounced] = useState(busca);
   const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
 
-  const [marcacaoFilter, setMarcacaoFilter] = useState<string>("todas");
-  const [formaPgtoFilter, setFormaPgtoFilter] = useState<string>("todas");
-  const [situacaoFilter, setSituacaoFilter] = useState<string>("todas");
-  const [liberacaoFilter, setLiberacaoFilter] = useState<string>("todas");
-  const [ordenacao, setOrdenacao] = useState<Ordenacao>({ tipo: "preset", preset: "risco" });
   // Terceiro clique no cabecalho devolve a fila ao preset que estava valendo.
-  const [presetAnterior, setPresetAnterior] = useState<PresetOrdenacao>("risco");
+  const [presetAnterior, setPresetAnterior] = useState<PresetOrdenacao>(
+    ordenacao.tipo === "preset" ? ordenacao.preset : "risco",
+  );
 
   const alternarOrdenacaoColuna = (coluna: ColunaOrdenavel) => {
-    setOrdenacao((atual) => {
-      if (atual.tipo !== "coluna" || atual.coluna !== coluna) {
-        return { tipo: "coluna", coluna, dir: COLUNA_DIR_INICIAL[coluna] };
-      }
-      const invertida = atual.dir === "asc" ? "desc" : "asc";
-      // Voltou ao inicial depois de inverter = ciclo fechado, volta pro preset.
-      return invertida === COLUNA_DIR_INICIAL[coluna]
+    const atual = ordenacao;
+    if (atual.tipo !== "coluna" || atual.coluna !== coluna) {
+      setOrdenacao({ tipo: "coluna", coluna, dir: COLUNA_DIR_INICIAL[coluna] });
+      return;
+    }
+    const invertida = atual.dir === "asc" ? "desc" : "asc";
+    // Voltou ao inicial depois de inverter = ciclo fechado, volta pro preset.
+    setOrdenacao(
+      invertida === COLUNA_DIR_INICIAL[coluna]
         ? { tipo: "preset", preset: presetAnterior }
-        : { tipo: "coluna", coluna, dir: invertida };
-    });
+        : { tipo: "coluna", coluna, dir: invertida },
+    );
   };
-  const [somenteComAlerta, setSomenteComAlerta] = useState(false);
-  const [comPagamentoSemVinculo, setComPagamentoSemVinculo] = useState(false);
-  const [pagina, setPagina] = useState(1);
   const [pageSize, setPageSize] = useState<PageSizeOption>(() =>
     lerTamanhoPaginaSalvo(PAGE_SIZE_STORAGE_KEY),
   );
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const t = setTimeout(() => setBuscaDebounced(busca), 300);
     return () => clearTimeout(t);
   }, [busca]);
 
+  // Não roda na montagem: a página que veio da URL (voltar do detalhe) fica.
+  const primeiraSelecao = useRef(true);
   useEffect(() => {
-    setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, ordenacao, estagios, area, comPagamentoSemVinculo]);
+    if (primeiraSelecao.current) {
+      primeiraSelecao.current = false;
+      return;
+    }
+    if (pagina !== 1) setPagina(1);
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
@@ -832,6 +851,16 @@ export function FilaPedidosPorArea({
     (paginaAtual - 1) * pageSize,
     paginaAtual * pageSize,
   );
+  useFocoAoVoltar({
+    pronto: !isLoading,
+    idsVisiveis: pageItems.map((p) => p.id),
+    aoNaoEncontrar: (id) =>
+      toast.info("O pedido aberto saiu desta lista", {
+        action: { label: "Abrir", onClick: () => navigate(`/pedidos/${id}`) },
+      }),
+  });
+  // A lista rola com a janela.
+  useRestaurarScroll(null, !isLoading);
   const { data: candidatoMap, error: candidatoError } = usePortaoCandidato(pageItems.map((p) => p.id));
   const { data: condicaoPendenteSet } = useCondicaoPendenteLote(
     pageItems.filter((p) => p.estagio === "recebido" && p.recebido_via === "api").map((p) => p.id),
@@ -945,7 +974,7 @@ export function FilaPedidosPorArea({
           size="sm"
           aria-pressed={somenteComAlerta}
           className="w-full sm:w-auto"
-          onClick={() => setSomenteComAlerta((v) => !v)}
+          onClick={() => setSomenteComAlerta(!somenteComAlerta)}
         >
           Só com alerta
         </Button>
@@ -1037,7 +1066,8 @@ export function FilaPedidosPorArea({
                 <TableRow
                   key={p.id}
                   className="cursor-pointer h-20 [&>td]:py-2 [&>td]:align-top [&>td]:overflow-hidden"
-                  onClick={() => navigate(`/pedidos/${p.id}`)}
+                  data-foco-id={p.id}
+                  onClick={() => abrirDetalhe(navigate, location, `/pedidos/${p.id}`, { foco: p.id, label: "Casa dos Pedidos" })}
                 >
                   <TableCell onClick={(e) => e.stopPropagation()} className="whitespace-nowrap">
                     <FarolRisco
@@ -1085,7 +1115,7 @@ export function FilaPedidosPorArea({
                         type="button"
                         className="text-sm font-normal text-muted-foreground text-left hover:underline truncate block w-full min-w-0"
                         title={p.parceiro_razao}
-                        onClick={() => navigate(`/parceiros/${p.parceiro_id}`, { state: { from: "/pedidos" } })}
+                        onClick={() => abrirDetalhe(navigate, location, `/parceiros/${p.parceiro_id}`, { foco: p.id, label: "Casa dos Pedidos" })}
                       >
                         {p.parceiro_razao}
                       </button>
@@ -1513,6 +1543,8 @@ function FarolRisco({
 /** Coluna de ações: uma ação primária por estágio + resto no menu "⋯". */
 function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: boolean; risco: PedidoRisco | undefined; nfInfo: EntregaLinhaInfo | undefined }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const abrir = (to: string) => abrirDetalhe(navigate, location, to, { foco: p.id, label: "Casa dos Pedidos" });
   const { temNivel } = useNivel();
   const { mutate: atualizarUrgencia, isPending } = useAtualizarUrgencia();
   const { baixar: baixarNf, baixando: baixandoNf } = useDownloadNfPdf();
@@ -1567,9 +1599,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           title="Abrir cobrança"
           aria-label="Abrir cobrança"
           onClick={() =>
-            navigate(`/recebimento/cobranca/${p.id}`, {
-              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
-            })
+            abrir(`/recebimento/cobranca/${p.id}`)
           }
         >
           <ExternalLink className="h-4 w-4" />
@@ -1603,9 +1633,7 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           title="Abrir pré-faturamento"
           aria-label="Abrir pré-faturamento"
           onClick={() =>
-            navigate(`/pedidos/${p.id}`, {
-              state: { from: "/pedidos", fromLabel: "Fila de Pedidos" },
-            })
+            abrir(`/pedidos/${p.id}`)
           }
         >
           <ExternalLink className="h-4 w-4" />
@@ -1642,12 +1670,12 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
-          <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+          <DropdownMenuItem onSelect={() => abrir(`/pedidos/${p.id}`)}>
             <ExternalLink className="h-4 w-4 mr-2" />
             Abrir pedido
           </DropdownMenuItem>
           {temMsg && (
-            <DropdownMenuItem onSelect={() => navigate(`/pedidos/${p.id}`)}>
+            <DropdownMenuItem onSelect={() => abrir(`/pedidos/${p.id}`)}>
               <MessageCircle className="h-4 w-4 mr-2" />
               Mensagem pendente
             </DropdownMenuItem>
