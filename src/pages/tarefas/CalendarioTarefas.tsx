@@ -2,6 +2,7 @@ import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
 import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import {
   addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
 startOfMonth, startOfWeek,
@@ -38,9 +39,21 @@ export default function CalendarioTarefas() {
   const { data: projetos } = useProjetos();
   const { abrir: abrirTarefa } = useTarefaAberta();
 
-  const [mes, setMes] = useState(() => startOfMonth(new Date()));
-  const [responsavelId, setResponsavelId] = useState<string | null>(user?.id ?? null);
-  const [projetoId, setProjetoId] = useState<string | null>(null);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: mês ("yyyy-MM"), responsável e projeto na URL.
+  // resp "" = eu (padrão), "todos" = todos; mes "" = mês atual.
+  const [nav, setNav] = useEstadoTela({ mes: "", resp: "", projeto: "" });
+  const mes = useMemo(() => {
+    const m = /^(\d{4})-(\d{2})$/.exec(nav.mes);
+    return m ? new Date(Number(m[1]), Number(m[2]) - 1, 1) : startOfMonth(new Date());
+  }, [nav.mes]);
+  const setMes = (d: Date) => {
+    const alvo = format(startOfMonth(d), "yyyy-MM");
+    setNav({ mes: alvo === format(startOfMonth(new Date()), "yyyy-MM") ? "" : alvo });
+  };
+  const responsavelId: string | null = nav.resp === "todos" ? null : nav.resp || (user?.id ?? null);
+  const setResponsavelId = (v: string | null) => setNav({ resp: v === null ? "todos" : v === user?.id ? "" : v });
+  const projetoId: string | null = nav.projeto || null;
+  const setProjetoId = (v: string | null) => setNav({ projeto: v ?? "" });
   const [arrastando, setArrastando] = useState<string | null>(null);
   const [diaAlvo, setDiaAlvo] = useState<string | null>(null);
 
