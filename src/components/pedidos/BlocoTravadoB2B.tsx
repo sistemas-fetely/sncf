@@ -1,0 +1,206 @@
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  DialogoDeclaracaoB2B,
+  invalidarSaidasB2B,
+  useB2bSaidaPermitida,
+  type DeclaracaoB2B,
+} from "@/components/pedidos/DialogoDeclaracaoB2B";
+
+type MotivoTravado = {
+  pedido_id: string;
+  motivo: string;
+  ordem: number | null;
+  desde: string | null;
+  acao: string | null;
+  o_que_fazer: string | null;
+  ref: Record<string, unknown> | null;
+};
+
+export const ID_BLOCO_TRAVADO = "bloco-travado";
+export const ID_BLOCO_ALERTAS = "alertas-auditoria";
+
+const fmtDdMm = (v: unknown) => {
+  if (!v) return null;
+  const d = new Date(String(v));
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+};
+
+async function invalidarTudo(qc: ReturnType<typeof useQueryClient>, pedidoId: string) {
+  await Promise.all([
+    invalidarSaidasB2B(qc),
+    qc.invalidateQueries({ queryKey: ["pedido-travado-motivos", pedidoId] }),
+    qc.invalidateQueries({ predicate: (q) => q.queryKey.includes(pedidoId) }),
+  ]);
+}
+
+/** Vincula a NF candidata ao pedido (RPC do banco) — usado no bloco e no Dash. */
+export function useVincularNfCandidata(pedidoId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (nfId: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase as any).rpc("fn_pedido_vincular_nf_candidata", {
+        p_pedido_id: pedidoId,
+        p_nf_id: nfId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("NF vinculada ao pedido");
+      await invalidarTudo(qc, pedidoId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: string; idExterno?: string | null }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { data: permitido } = useB2bSaidaPermitida();
+  const [declaracao, setDeclaracao] = useState<DeclaracaoB2B | null>(null);
+  const [cobrando, setCobrando] = useState(false);
+  const [obs, setObs] = useState("");
+  const vincular = useVincularNfCandidata(pedidoId);
+  const ref = m.ref ?? {};
+
+  const cobrar = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_pedido_b2b_cobrar_transportadora", {
+        p_pedido_id: pedidoId,
+        p_obs: obs.trim(),
+      });
+      if (error) throw error;
+      return data as { volta_em?: string } | null;
+    },
+    onSuccess: async (d) => {
+      const volta = fmtDdMm(d?.volta_em);
+      toast.success(volta ? `Cobrança registrada · volta em ${volta}` : "Cobrança registrada");
+      setCobrando(false);
+      setObs("");
+      await invalidarTudo(qc, pedidoId);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const btn = "h-7 text-xs";
+  const pode = permitido === true;
+
+  if (m.acao === "abrir_chamado" && ref.chamado_id) {
+    return (
+      <Button size="sm" variant="outline" className={btn}
+        onClick={() => navigate(`/chamados/${String(ref.chamado_id)}`, { state: { from: location.pathname + location.search, fromLabel: "Pedido" } })}>
+        Abrir {String(ref.numero ?? "chamado")}
+      </Button>
+    );
+  }
+  if (m.acao === "ver_auditoria") {
+    return (
+      <Button size="sm" variant="outline" className={btn}
+        onClick={() => document.getElementById(ID_BLOCO_ALERTAS)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+        Ver alertas
+      </Button>
+    );
+  }
+  if (!pode) return null;
+
+  return (
+    <div className="space-y-2">
+      <div className="flex flex-wrap gap-2">
+        {m.acao === "vincular_nf" && ref.nf_candidata_id && (
+          <Button size="sm" variant="outline" className={btn} disabled={vincular.isPending}
+            onClick={() => vincular.mutate(String(ref.nf_candidata_id))}>
+            Vincular NF {String(ref.nf_candidata_numero ?? "")}
+          </Button>
+        )}
+        {m.acao === "cobrar_ou_declarar_entrega" && (
+          <Button size="sm" variant="outline" className={btn} onClick={() => setCobrando((v) => !v)}>
+            Cobrei a transportadora
+          </Button>
+        )}
+        {m.acao === "declarar_embarque_ou_entrega" && (
+          <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("embarque")}>
+            Declarar embarque
+          </Button>
+        )}
+        {(m.acao === "cobrar_ou_declarar_entrega" || m.acao === "declarar_embarque_ou_entrega") && (
+          <Button size="sm" variant="outline" className={btn} onClick={() => setDeclaracao("entrega")}>
+            Declarar entrega
+          </Button>
+        )}
+      </div>
+      {cobrando && (
+        <div className="flex gap-2">
+          <Input className="h-8 text-xs" placeholder="O que a transportadora respondeu (mín. 10 caracteres)"
+            value={obs} onChange={(e) => setObs(e.target.value)} />
+          <Button size="sm" disabled={obs.trim().length < 10 || cobrar.isPending} onClick={() => cobrar.mutate()}>
+            Registrar cobrança
+          </Button>
+        </div>
+      )}
+      {declaracao && (
+        <DialogoDeclaracaoB2B tipo={declaracao} pedidoId={pedidoId} idExterno={idExterno}
+          open={!!declaracao}
+          onOpenChange={(v) => {
+            if (!v) {
+              setDeclaracao(null);
+              invalidarTudo(qc, pedidoId);
+            }
+          }} />
+      )}
+    </div>
+  );
+}
+
+/** Bloco "Travado" no topo do pedido B2B: motivo, desde quando, o que fazer e a saída. */
+export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idExterno?: string | null }) {
+  const location = useLocation();
+  const { data: motivos = [] } = useQuery({
+    queryKey: ["pedido-travado-motivos", pedidoId],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_pedido_b2b_travado_motivo")
+        .select("*")
+        .eq("pedido_id", pedidoId)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as MotivoTravado[];
+    },
+  });
+
+  useEffect(() => {
+    if (location.hash === `#${ID_BLOCO_TRAVADO}` && motivos.length > 0) {
+      document.getElementById(ID_BLOCO_TRAVADO)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [location.hash, motivos.length]);
+
+  if (motivos.length === 0) return null;
+
+  return (
+    <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+        <AlertTriangle className="h-4 w-4" />
+        Travado
+      </div>
+      {motivos.map((m, i) => (
+        <div key={`${m.motivo}-${i}`} className="space-y-1.5 text-sm">
+          <div className="flex flex-wrap items-baseline gap-2">
+            <span className="font-medium">{m.motivo}</span>
+            {fmtDdMm(m.desde) && <span className="text-xs text-muted-foreground">desde {fmtDdMm(m.desde)}</span>}
+          </div>
+          {m.o_que_fazer && <p className="text-xs text-muted-foreground">{m.o_que_fazer}</p>}
+          <AcoesMotivo m={m} pedidoId={pedidoId} idExterno={idExterno} />
+        </div>
+      ))}
+    </div>
+  );
+}
