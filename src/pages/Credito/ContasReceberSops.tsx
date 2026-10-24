@@ -1,4 +1,6 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { apelidoParceiro } from "@/lib/parceiros/nome";
@@ -141,12 +143,23 @@ function BotaoEmailCobranca({ titulo }: { titulo: Titulo }) {
 
 export default function ContasReceberSops() {
   const { toast } = useToast();
-  const [filtroGrupo, setFiltroGrupo] = useState<"todos" | GrupoStatus>("todos");
-  const [filtroBoleto, setFiltroBoleto] = useState<string>("todos");
-  const [busca, setBusca] = useState("");
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [page, setPage] = useState(1);
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: tela sem rota hoje; se ganhar rota própria, sem prefixo. */
+  const [est, setEst] = useEstadoTela(
+    { grupo: "todos", boleto: "todos", busca: "", dataDe: "", dataAte: "", page: 1 },
+    { replaceKeys: ["busca"] },
+  );
+  const filtroGrupo = est.grupo as "todos" | GrupoStatus;
+  const setFiltroGrupo = (v: "todos" | GrupoStatus) => setEst({ grupo: v });
+  const filtroBoleto = est.boleto;
+  const setFiltroBoleto = (v: string) => setEst({ boleto: v });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const dataDe = est.dataDe;
+  const setDataDe = (v: string) => setEst({ dataDe: v });
+  const dataAte = est.dataAte;
+  const setDataAte = (v: string) => setEst({ dataAte: v });
+  const page = est.page;
+  const setPage = (v: number | ((p: number) => number)) => setEst({ page: typeof v === "function" ? v(page) : v });
   const [tituloBaixa, setTituloBaixa] = useState<Titulo | null>(null);
   const [copiadoId, setCopiadoId] = useState<string | null>(null);
 
@@ -263,6 +276,7 @@ export default function ContasReceberSops() {
 
   const totalPages = Math.max(1, Math.ceil(filtrados.length / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
+  useRestaurarScroll(null, !isLoading);
   const paginados = filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
 
   const handleCopy = async (id: string, linha: string) => {
@@ -496,7 +510,7 @@ export default function ContasReceberSops() {
                       t.boleto_status !== "pago_banco";
 
                     return (
-                      <TableRow key={t.id} className={vencido ? "bg-destructive/10" : ""}>
+                      <TableRow key={t.id} data-foco-id={t.id} className={vencido ? "bg-destructive/10" : ""}>
                         <TableCell
                           className={vencido ? "font-medium text-destructive" : ""}
                         >

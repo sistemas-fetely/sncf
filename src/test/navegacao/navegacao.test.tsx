@@ -171,3 +171,14 @@ describe("chaveScroll ignora qualquer *_foco", () => {
     expect(chaveScroll("/x", "?a=1&tit_foco=9&sp_foco=2")).toBe(chaveScroll("/x", "?a=1"));
   });
 });
+
+describe("useEstadoTela — duas escritas no mesmo clique", () => {
+  const D = { busca: "", page: 1 };
+  let api: ReturnType<typeof useEstadoTela<typeof D>>;
+  function Tela() { api = useEstadoTela(D, { prefixo: "b2b" }); return <Espia />; }
+  it("busca e página na mesma ação ficam ambas na URL", () => {
+    render(<MemoryRouter initialEntries={["/c?b2b_page=3"]}><Tela /></MemoryRouter>);
+    act(() => { api[1]({ busca: "a" }); api[1]({ page: 1 }); });
+    expect(loc.current).toBe("/c?b2b_busca=a");
+  });
+});

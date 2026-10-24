@@ -16,6 +16,10 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { resolverAcao } from "@/lib/navegacao/codecUrl";
 import {
   AlertTriangle,
   ChevronDown,
@@ -226,11 +230,27 @@ function TitulosAbertosCliente({
 export function RecebiveisPorClienteTab() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [busca, setBusca] = useState("");
-  const [incluirPagos, setIncluirPagos] = useState(false);
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros na URL (prefixo "pc"). */
+  const [est, setEst] = useEstadoTela(
+    { busca: "", pagos: false, ordem: "", pagina: 1 },
+    { prefixo: "pc", replaceKeys: ["busca"] },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const incluirPagos = est.pagos;
+  const setIncluirPagos = (v: boolean) => setEst({ pagos: v });
   const [expandido, setExpandido] = useState<string | null>(null);
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoRecebivel>(null);
-  const [pagina, setPagina] = useState(1);
+  const ordenacao: OrdenacaoRecebivel = useMemo(() => {
+    const [coluna, dir] = est.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? ({ coluna, dir } as NonNullable<OrdenacaoRecebivel>) : null;
+  }, [est.ordem]);
+  const setOrdenacao = (v: React.SetStateAction<OrdenacaoRecebivel>) => {
+    const n = resolverAcao(v, ordenacao);
+    setEst({ ordem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = est.pagina;
+  const setPagina = (n: number) => setEst({ pagina: n });
+  const primeiraRender = useRef(true);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_RECEBIVEIS),
   );
@@ -256,8 +276,9 @@ export function RecebiveisPorClienteTab() {
   };
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, ordenacao, incluirPagos]);
+  }, [busca, est.ordem, incluirPagos]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
   // altura deles muda (os cards quebram linha em tela menor). Mede, nao chuta.
@@ -326,6 +347,8 @@ export function RecebiveisPorClienteTab() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((r) => r.parceiro_id ?? ""), focoParam: "pc_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   return (
     <div
@@ -444,6 +467,7 @@ export function RecebiveisPorClienteTab() {
                     return (
                       <Fragment key={id || r.cliente || Math.random()}>
                         <TableRow
+                          data-foco-id={id || undefined}
                           className="cursor-pointer"
                           onClick={() => setExpandido(aberto ? null : id)}
                         >
@@ -460,7 +484,7 @@ export function RecebiveisPorClienteTab() {
                               className="text-left hover:underline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (id) abrirDetalhe(navigate, location, `/cliente/${id}?aba=posicao`, { label: "Contas a Receber" });
+                                if (id) abrirDetalhe(navigate, location, `/cliente/${id}?aba=posicao`, { label: "Contas a Receber", foco: id, focoParam: "pc_foco" });
                               }}
                             >
                               {r.cliente ?? "(sem nome)"}

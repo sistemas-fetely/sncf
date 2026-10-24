@@ -7,6 +7,10 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { resolverAcao } from "@/lib/navegacao/codecUrl";
 import { Plus, Search, Users, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -70,9 +74,21 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
-  const [busca, setBusca] = useState("");
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoContas>(null);
-  const [pagina, setPagina] = useState(1);
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: busca, ordem e página na URL (tela /cliente, sem prefixo). */
+  const [est, setEst] = useEstadoTela({ busca: "", ordem: "", pagina: 1 }, { replaceKeys: ["busca"] });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const ordenacao: OrdenacaoContas = useMemo(() => {
+    const [coluna, dir] = est.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? ({ coluna, dir } as NonNullable<OrdenacaoContas>) : null;
+  }, [est.ordem]);
+  const setOrdenacao = (v: React.SetStateAction<OrdenacaoContas>) => {
+    const n = resolverAcao(v, ordenacao);
+    setEst({ ordem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = est.pagina;
+  const setPagina = (n: number) => setEst({ pagina: n });
+  const primeiraRender = useRef(true);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_CONTAS),
   );
@@ -87,8 +103,9 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   };
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, ordenacao]);
+  }, [busca, est.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // TOPO-COLADO-SE-MEDE: o cabecalho da tabela cola logo abaixo dos KPIs, e a
   // altura deles muda (os cards quebram linha em tela menor). Mede, nao chuta.
@@ -159,6 +176,8 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((c) => c.parceiro_id as string) });
+  useRestaurarScroll(null, !isLoading);
 
   const kpis = useMemo(() => {
     const base = contas ?? [];
@@ -284,9 +303,10 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
                 return (
                   <TableRow
                     key={c.parceiro_id}
+                    data-foco-id={c.parceiro_id}
                     className="cursor-pointer"
                     onClick={() =>
-                      abrirDetalhe(navigate, location, `/cliente/${c.parceiro_id}?aba=posicao`, { label: "Clientes" })
+                      abrirDetalhe(navigate, location, `/cliente/${c.parceiro_id}?aba=posicao`, { label: "Clientes", foco: c.parceiro_id })
                     }
                   >
                     <TableCell className="text-xs font-medium">

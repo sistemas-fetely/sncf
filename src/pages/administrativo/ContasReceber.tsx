@@ -5,6 +5,10 @@ import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { resolverAcao, lerOrdemKD, escreverOrdemKD, lerConjunto, escreverConjunto, type OrdemKD } from "@/lib/navegacao/codecUrl";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -462,37 +466,54 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [busca, setBusca] = useState("");
-  const [dataBase, setDataBase] = useState<DataBase>("emissao");
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [filtroBanco, setFiltroBanco] = useState<string>("todos");
-  const [carteiraAtiva, setCarteiraAtiva] = useState<string | null>(null);
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da aba B2B na URL (prefixo "b2b"). */
+  const [est, setEst] = useEstadoTela(
+    {
+      busca: "", dataBase: "emissao", dataDe: "", dataAte: "", banco: "todos", carteira: "",
+      instr: "", prazo: "todos", baseMensal: "competencia", receb: "em_aberto",
+      page: 1, sort: "data_compra:desc", agrupado: true,
+    },
+    { prefixo: "b2b", replaceKeys: ["busca"] },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const dataBase = est.dataBase as DataBase;
+  const setDataBase = (v: DataBase) => setEst({ dataBase: v });
+  const dataDe = est.dataDe;
+  const setDataDe = (v: string) => setEst({ dataDe: v });
+  const dataAte = est.dataAte;
+  const setDataAte = (v: string) => setEst({ dataAte: v });
+  const filtroBanco = est.banco;
+  const setFiltroBanco = (v: string) => setEst({ banco: v });
+  const carteiraAtiva = est.carteira || null;
+  const setCarteiraAtiva = (v: string | null) => setEst({ carteira: v ?? "" });
   const [achado, setAchado] = useState<Achado | null>(null);
   /** Par mutuamente exclusivo da faixa de KPI. Ambos forçam "em aberto". */
-  const [filtroInstrumento, setFiltroInstrumento] = useState<
-    "garantido" | "sem_instrumento" | null
-  >(null);
+  type FiltroInstr = "garantido" | "sem_instrumento" | null;
+  const filtroInstrumento = (est.instr || null) as FiltroInstr;
+  const setFiltroInstrumento = (v: React.SetStateAction<FiltroInstr>) =>
+    setEst({ instr: resolverAcao(v, filtroInstrumento) ?? "" });
   /**
    * PRAZO-TRI-STATE (03/09/2026): "vencido" não é um valor do eixo
    * `eixo_recebimento` — é um subconjunto de "Em aberto". Um sexto chip
    * faria os totais deixarem de somar. O controle de prazo fica fora da fila.
    */
-  const [filtroPrazo, setFiltroPrazo] = useState<
-    "todos" | "a_vencer" | "vencidos" | "cobravel" | "carencia"
-  >("todos");
+  type FiltroPrazo = "todos" | "a_vencer" | "vencidos" | "cobravel" | "carencia";
+  const filtroPrazo = est.prazo as FiltroPrazo;
+  const setFiltroPrazo = (v: React.SetStateAction<FiltroPrazo>) =>
+    setEst({ prazo: resolverAcao(v, filtroPrazo) });
 
   const [qualidadeAberta, setQualidadeAberta] = useState(false);
-  const [baseMensal, setBaseMensal] = useState<BaseMensal>("competencia");
-  const [recebimentosAtivos, setRecebimentosAtivos] = useState<Set<EixoRecebimento>>(
-    new Set<EixoRecebimento>(["em_aberto"])
-  );
+  const baseMensal = est.baseMensal as BaseMensal;
+  const setBaseMensal = (v: BaseMensal) => setEst({ baseMensal: v });
+  const recebimentosAtivos = useMemo(() => lerConjunto<EixoRecebimento>(est.receb), [est.receb]);
+  const setRecebimentosAtivos = (v: React.SetStateAction<Set<EixoRecebimento>>) =>
+    setEst({ receb: escreverConjunto(resolverAcao(v, recebimentosAtivos)) });
 
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
-    key: "data_compra",
-    dir: "desc",
-  });
+  const page = est.page;
+  const setPage = (v: React.SetStateAction<number>) => setEst({ page: resolverAcao(v, page) });
+  const sort = lerOrdemKD(est.sort);
+  const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-gestao"],
@@ -1280,11 +1301,18 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
       return next;
     });
 
-  const [agrupado, setAgrupado] = useState(true);
+  const agrupado = est.agrupado;
+  const setAgrupado = (v: boolean) => setEst({ agrupado: v });
 
   const totalItens = agrupado ? grupos.length : filtrados.length;
   const totalPages = Math.max(1, Math.ceil(totalItens / PAGE_SIZE));
   const pageSafe = Math.min(page, totalPages);
+
+  const idsFocaveis = agrupado
+    ? grupos.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE).flatMap((g) => g.titulos.map((t) => t.id as string))
+    : filtrados.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE).map((t) => t.id as string);
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: idsFocaveis, focoParam: "b2b_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   const numerosPorId = new Map(
     filtrados.map((t) => [t.id, t.numero_titulo ?? null] as const),
@@ -1297,6 +1325,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     return (
       <TableRow
         key={t.id}
+        data-foco-id={t.id}
         className={atrasado ? "bg-destructive/10" : aninhada ? "bg-muted/10" : undefined}
       >
         <TableCell className={aninhada ? "pl-10" : undefined}>
@@ -1326,7 +1355,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
               className="font-mono text-xs text-primary hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
-                if (t.pedido_id) abrirDetalhe(navigate, location, `/pedidos/${t.pedido_id}`, { label: "Contas a Receber" });
+                if (t.pedido_id) abrirDetalhe(navigate, location, `/pedidos/${t.pedido_id}`, { label: "Contas a Receber", foco: t.id, focoParam: "b2b_foco" });
               }}
             >
               {t.pedido_ref}
@@ -2140,6 +2169,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                         return (
                           <Fragment key={g.chave}>
                             <TableRow
+                              data-foco-id={g.titulos[0]?.id}
                               className="cursor-pointer bg-muted/40 hover:bg-muted/60"
                               onClick={() => toggleGrupo(g.chave)}
                             >
@@ -2174,7 +2204,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                                     className="font-mono text-xs text-primary hover:underline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (g.pedidoId) abrirDetalhe(navigate, location, `/pedidos/${g.pedidoId}`, { label: "Contas a Receber" });
+                                      if (g.pedidoId) abrirDetalhe(navigate, location, `/pedidos/${g.pedidoId}`, { label: "Contas a Receber", foco: g.titulos[0]?.id, focoParam: "b2b_foco" });
                                     }}
                                   >
                                     {g.pedidoRef}
@@ -2307,18 +2337,24 @@ function diasDesde(iso: string | null | undefined): number | null {
 }
 
 function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
-  const [busca, setBusca] = useState("");
-
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [page, setPage] = useState(1);
-  const [listaFvr, setListaFvr] = useState<
-    "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado"
-  >("faturado_sem_recebimento");
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
-    key: "data_transacao",
-    dir: "desc",
-  });
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da aba B2C na URL (prefixo "b2c"). */
+  const [est, setEst] = useEstadoTela(
+    { busca: "", dataDe: "", dataAte: "", page: 1, lista: "faturado_sem_recebimento", sort: "data_transacao:desc" },
+    { prefixo: "b2c", replaceKeys: ["busca"] },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const dataDe = est.dataDe;
+  const setDataDe = (v: string) => setEst({ dataDe: v });
+  const dataAte = est.dataAte;
+  const setDataAte = (v: string) => setEst({ dataAte: v });
+  const page = est.page;
+  const setPage = (v: React.SetStateAction<number>) => setEst({ page: resolverAcao(v, page) });
+  type ListaFvr = "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado";
+  const listaFvr = est.lista as ListaFvr;
+  const setListaFvr = (v: React.SetStateAction<ListaFvr>) => setEst({ lista: resolverAcao(v, listaFvr) });
+  const sort = lerOrdemKD(est.sort);
+  const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2c-pedido"],
@@ -2986,7 +3022,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                   const bruto = Number(r.pedido_total_bruto ?? 0);
                   const liq = Number(r.valor_liquido_mp ?? 0);
                   return (
-                    <TableRow key={r.movimentacao_id}>
+                    <TableRow key={r.movimentacao_id} data-foco-id={r.movimentacao_id}>
                       <TableCell className="font-mono text-xs">{r.order_name ?? "—"}</TableCell>
                       <TableCell>
                         {formatDateBR(String(r.data_transacao ?? "").slice(0, 10))}
