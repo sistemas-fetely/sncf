@@ -12,6 +12,9 @@ import {
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
@@ -389,8 +392,12 @@ function ImportarRetornoModal({
 // ─── Tab 2: Títulos ──────────────────────────────────────────────────────────
 
 function TitulosBoletoTab() {
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<BoletoStatus | "todos">("todos");
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da fila na URL (prefixo "fila"). */
+  const [estTela, setEstTela] = useEstadoTela({ busca: "", status: "todos" }, { prefixo: "fila", replaceKeys: ["busca"] });
+  const busca = estTela.busca;
+  const setBusca = (v: string) => setEstTela({ busca: v });
+  const filtroStatus = estTela.status as BoletoStatus | "todos";
+  const setFiltroStatus = (v: BoletoStatus | "todos") => setEstTela({ status: v });
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [gerarOpen, setGerarOpen] = useState(false);
   const qc = useQueryClient();
@@ -508,7 +515,7 @@ function TitulosBoletoTab() {
               const isPendente = t.boleto_status === "pendente";
               const isChecked = selecionados.has(t.titulo_id);
               return (
-                <TableRow key={t.titulo_id}>
+                <TableRow key={t.titulo_id} data-foco-id={t.titulo_id}>
                   <TableCell>
                     <Checkbox
                       checked={isChecked}
@@ -845,8 +852,18 @@ function RemessasSafraTab() {
   const { toast } = useToast();
   const { data: remessas = [], isLoading } = useRemessasSafra();
 
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoRemessa>(null);
-  const [pagina, setPagina] = useState(1);
+  const [estTela, setEstTela] = useEstadoTela({ remOrdem: "", remPagina: 1 }, { prefixo: "fila" });
+  const ordenacao: OrdenacaoRemessa = useMemo(() => {
+    const [coluna, dir] = estTela.remOrdem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaRemessa, dir } : null;
+  }, [estTela.remOrdem]);
+  const setOrdenacao = (v: OrdenacaoRemessa | ((a: OrdenacaoRemessa) => OrdenacaoRemessa)) => {
+    const n = typeof v === "function" ? v(ordenacao) : v;
+    setEstTela({ remOrdem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = estTela.remPagina;
+  const setPagina = (n: number) => setEstTela({ remPagina: n });
+  const primeiraRender = useRef(true);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_REMESSAS),
   );
@@ -861,8 +878,9 @@ function RemessasSafraTab() {
   };
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [ordenacao]);
+  }, [estTela.remOrdem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
   const ordenadas = useMemo(() => {
@@ -1035,6 +1053,7 @@ function RemessasSafraTab() {
               return (
                 <Fragment key={r.id}>
                   <TableRow
+                    data-foco-id={r.id}
                     className={esquecida ? "bg-warning/5 hover:bg-warning/10" : undefined}
                     title={
                       esquecida
@@ -1211,13 +1230,27 @@ const CHAVE_PAGINA_MATERIALIZACAO = "fetely:cobranca:fila-materializacao:page-si
 function PedidosCobrancaTab() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [busca, setBusca] = useState("");
+  const [estTela, setEstTela] = useEstadoTela(
+    { pedBusca: "", pedOrdem: "", pedPagina: 1 },
+    { prefixo: "fila", replaceKeys: ["pedBusca"] },
+  );
+  const busca = estTela.pedBusca;
+  const setBusca = (v: string) => setEstTela({ pedBusca: v });
   const { data, isLoading } = useCobrancaFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
   const { data: linksFila } = useLinksPagamentoFila((data ?? []).map((p) => p.pedido_id));
 
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoMaterializacao>(null);
-  const [pagina, setPagina] = useState(1);
+  const ordenacao: OrdenacaoMaterializacao = useMemo(() => {
+    const [coluna, dir] = estTela.pedOrdem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaMaterializacao, dir } : null;
+  }, [estTela.pedOrdem]);
+  const setOrdenacao = (v: OrdenacaoMaterializacao | ((a: OrdenacaoMaterializacao) => OrdenacaoMaterializacao)) => {
+    const n = typeof v === "function" ? v(ordenacao) : v;
+    setEstTela({ pedOrdem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = estTela.pedPagina;
+  const setPagina = (n: number) => setEstTela({ pedPagina: n });
+  const primeiraRender = useRef(true);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_MATERIALIZACAO),
   );
@@ -1233,8 +1266,9 @@ function PedidosCobrancaTab() {
   };
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, ordenacao]);
+  }, [busca, estTela.pedOrdem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
   const ordenados = useMemo(() => {
@@ -1321,8 +1355,9 @@ function PedidosCobrancaTab() {
             {paginaItens.map((p) => (
               <TableRow
                 key={p.pedido_id}
+                data-foco-id={p.pedido_id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => abrirDetalhe(navigate, location, `/recebimento/cobranca/${p.pedido_id}`, { label: "Cobrança" })}
+                onClick={() => abrirDetalhe(navigate, location, `/recebimento/cobranca/${p.pedido_id}`, { label: "Cobrança", foco: p.pedido_id, focoParam: "fila_foco" })}
               >
                 <TableCell>
                   <div className="flex flex-col gap-1">
