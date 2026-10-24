@@ -1773,8 +1773,30 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
             open={splitOpen}
             onOpenChange={setSplitOpen}
           />
+          {podeDeclararEmbarque && (
+            <DropdownMenuItem onSelect={() => setDeclaracao("embarque")}>
+              <Truck className="h-4 w-4 mr-2" />
+              Declarar embarque
+            </DropdownMenuItem>
+          )}
+          {podeDeclararEntrega && (
+            <DropdownMenuItem onSelect={() => setDeclaracao("entrega")}>
+              <PackageCheck className="h-4 w-4 mr-2" />
+              Declarar entrega
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {declaracao && (
+        <DialogoDeclaracaoB2B
+          tipo={declaracao}
+          pedidoId={p.id}
+          idExterno={p.id_externo}
+          open={!!declaracao}
+          onOpenChange={(v) => !v && setDeclaracao(null)}
+        />
+      )}
 
       {/* Diálogo de marcação controlado pelo menu — Dialog, não Popover:
           o DropdownMenu devolve o foco ao trigger ao fechar e derrubava o popover. */}
