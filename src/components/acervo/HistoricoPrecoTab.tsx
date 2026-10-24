@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 // Aba Histórico da Tabela de Preço — LEITURA PURA de vw_preco_historico_analise.
 // Espelho do histórico de preços do FOP. Nenhuma escrita, nenhum botão de
 // corrigir/desfazer/reverter. O dicionário de `sentido` é hardcode aqui, e só
@@ -145,14 +147,30 @@ function hojeIso(): string {
 const Travessao = () => <span className="text-muted-foreground">—</span>;
 
 export function HistoricoPrecoTab() {
-  const [busca, setBusca] = useState("");
-  const [sentido, setSentido] = useState("todos");
-  const [colecao, setColecao] = useState("todas");
-  const [grupo, setGrupo] = useState("todos");
-  const [mesIni, setMesIni] = useState("inicio");
-  const [mesFim, setMesFim] = useState("fim");
-  const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(null);
-  const [pagina, setPagina] = useState(1);
+  const [__n_busca, __s_busca] = __uet({ busca: "" }, { prefixo: "hp", replaceKeys: ["busca"] });
+  const busca: string = __n_busca.busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ busca: x } as never); };
+  const [__n_sentido, __s_sentido] = __uet({ sentido: "todos" }, { prefixo: "hp" });
+  const sentido: string = __n_sentido.sentido as string;
+  const setSentido = (v: __SSA<string>) => { const x = __ra(v, sentido); __s_sentido({ sentido: x } as never); };
+  const [__n_colecao, __s_colecao] = __uet({ colecao: "todas" }, { prefixo: "hp" });
+  const colecao: string = __n_colecao.colecao as string;
+  const setColecao = (v: __SSA<string>) => { const x = __ra(v, colecao); __s_colecao({ colecao: x } as never); };
+  const [__n_grupo, __s_grupo] = __uet({ grupo: "todos" }, { prefixo: "hp" });
+  const grupo: string = __n_grupo.grupo as string;
+  const setGrupo = (v: __SSA<string>) => { const x = __ra(v, grupo); __s_grupo({ grupo: x } as never); };
+  const [__n_mesIni, __s_mesIni] = __uet({ de: "inicio" }, { prefixo: "hp" });
+  const mesIni: string = __n_mesIni.de as string;
+  const setMesIni = (v: __SSA<string>) => { const x = __ra(v, mesIni); __s_mesIni({ de: x } as never); };
+  const [__n_mesFim, __s_mesFim] = __uet({ ate: "fim" }, { prefixo: "hp" });
+  const mesFim: string = __n_mesFim.ate as string;
+  const setMesFim = (v: __SSA<string>) => { const x = __ra(v, mesFim); __s_mesFim({ ate: x } as never); };
+  const [__n_ordem, __s_ordem] = __uet({ ordem: "" }, { prefixo: "hp" });
+  const ordem: { coluna: ColunaOrdem; dir: "asc" | "desc" } | null = __useMemo<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(() => { const t = __n_ordem.ordem as string; if (!t) return null; try { return JSON.parse(t); } catch { return null; } }, [__n_ordem.ordem]);
+  const setOrdem = (v: __SSA<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>) => { const x = __ra(v, ordem); __s_ordem({ ordem: (JSON.stringify(x) === JSON.stringify(null) ? "" : JSON.stringify(x)) } as never); };
+  const [__n_pagina, __s_pagina] = __uet({ pagina: 1 }, { prefixo: "hp" });
+  const pagina: number = __n_pagina.pagina as number;
+  const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ pagina: x } as never); };
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const listaQ = useQuery({

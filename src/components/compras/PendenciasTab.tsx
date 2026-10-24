@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -234,8 +236,12 @@ export default function PendenciasTab() {
     ? (tipoUrl as TipoPendencia)
     : "codigos_sem_sku";
   const pedidoFiltro = params.get("pedido") ?? "todos";
-  const [busca, setBusca] = useState("");
-  const [pagina, setPagina] = useState(1);
+  const [__n_busca, __s_busca] = __uet({ busca: "" }, { prefixo: "pe", replaceKeys: ["busca"] });
+  const busca: string = __n_busca.busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ busca: x } as never); };
+  const [__n_pagina, __s_pagina] = __uet({ pagina: 1 }, { prefixo: "pe" });
+  const pagina: number = __n_pagina.pagina as number;
+  const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ pagina: x } as never); };
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const setTipo = (t: TipoPendencia) => {

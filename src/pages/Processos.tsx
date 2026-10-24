@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useState, useMemo } from "react";
 import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -59,7 +61,9 @@ export default function Processos() {
   const queryClient = useQueryClient();
   const podeEditar = roles?.some((r) => ["super_admin", "admin_rh"].includes(r));
 
-  const [filtros, setFiltros] = useState<FiltrosProcessos>({});
+  const [__n_filtros, __s_filtros] = __uet({ f: "" });
+  const filtros: FiltrosProcessos = __useMemo<FiltrosProcessos>(() => { const t = __n_filtros.f as string; if (!t) return ({} as FiltrosProcessos); try { return JSON.parse(t); } catch { return ({} as FiltrosProcessos); } }, [__n_filtros.f]);
+  const setFiltros = (v: __SSA<FiltrosProcessos>) => { const x = __ra(v, filtros); __s_filtros({ f: (JSON.stringify(x) === JSON.stringify(({} as FiltrosProcessos)) ? "" : JSON.stringify(x)) } as never); };
   const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>);
   const busca = __nav.busca as string;
   const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);

@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
@@ -136,7 +138,9 @@ type Tom = "erro" | "aviso" | "ok" | "neutro";
 
 export function XpmCadastroFila() {
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [filtro, setFiltro] = useState<string>("todos");
+  const [__n_filtro, __s_filtro] = __uet({ filtro: "todos" }, { prefixo: "xc" });
+  const filtro: string = __n_filtro.filtro as string;
+  const setFiltro = (v: __SSA<string>) => { const x = __ra(v, filtro); __s_filtro({ filtro: x } as never); };
   const [previa, setPrevia] = useState<ResultadoSku[] | null>(null);
   const [previaAberta, setPreviaAberta] = useState(false);
   const [resultados, setResultados] = useState<ResultadoSku[] | null>(null);
