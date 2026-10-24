@@ -186,7 +186,7 @@ export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idE
   if (motivos.length === 0) return null;
 
   return (
-    <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+    <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
       <div className="flex items-center gap-2 text-sm font-medium text-destructive">
         <AlertTriangle className="h-4 w-4" />
         Travado

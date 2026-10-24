@@ -154,7 +154,7 @@ export function AlertasPedidoPanel({ pedidoId }: { pedidoId: string }) {
 
   return (
     <TooltipProvider>
-      <div id="alertas-auditoria" className="mx-6 mb-3 scroll-mt-4 rounded-lg border border-border bg-muted/30 p-3">
+      <div id="alertas-auditoria" className="mx-6 mb-3 scroll-mt-24 rounded-lg border border-border bg-muted/30 p-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle className="h-4 w-4 shrink-0 text-muted-foreground" />
