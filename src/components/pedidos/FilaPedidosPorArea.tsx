@@ -55,6 +55,7 @@ import {
 import { formatDateBR } from "@/lib/format-currency";
 import { ExcecaoRecebidoSelo, ExcecaoRecebidoBotao } from "@/components/pedidos/ExcecaoRecebido";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
+import { DialogoDeclaracaoB2B, useB2bSaidaPermitida, type DeclaracaoB2B } from "@/components/pedidos/DialogoDeclaracaoB2B";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { TabelaCadastroDialog } from "@/components/pedidos/dialogs/TabelaCadastroDialog";
 import { ExportarPedidoDialog } from "@/components/pedidos/dialogs/ExportarPedidoDialog";
@@ -1592,6 +1593,11 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
   const [marcacaoOpen, setMarcacaoOpen] = useState(false);
   const [urgenciaOpen, setUrgenciaOpen] = useState(false);
   const [confirmarPagamentoAberto, setConfirmarPagamentoAberto] = useState(false);
+  // Saídas B2B pós-faturamento: canal e estágio são revalidados pela RPC.
+  const { data: saidaB2bPermitida } = useB2bSaidaPermitida();
+  const [declaracao, setDeclaracao] = useState<DeclaracaoB2B | null>(null);
+  const podeDeclararEntrega = saidaB2bPermitida === true && (p.estagio === "faturado" || p.estagio === "em_transporte");
+  const podeDeclararEmbarque = saidaB2bPermitida === true && p.estagio === "faturado";
 
   const motivos = risco?.risco_motivos ?? [];
   const urgenciaInicial: UrgenciaDeclarada = motivos.some((m) => m.codigo === "urgencia_critica_declarada")
