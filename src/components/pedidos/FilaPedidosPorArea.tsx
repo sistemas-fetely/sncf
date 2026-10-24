@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, ExternalLink, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck } from "lucide-react";
+import { Search, ExternalLink, MessageCircle, MoreHorizontal, FileSpreadsheet, Tag, Download, Flame, Loader2, FileText, AlertTriangle, BadgeCheck, Warehouse } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 import {
@@ -423,7 +423,7 @@ export function FilaPedidosPorArea({
 }: Props) {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página vivem na URL.
   const [estadoTela, setEstadoTela] = useEstadoTela(
-    { busca: "", marcacao: "todas", forma: "todas", situacao: "todas", liberacao: "todas", alerta: false, semvinc: false, ordem: "", pagina: 1 },
+    { busca: "", marcacao: "todas", forma: "todas", situacao: "todas", liberacao: "todas", cd: "todos", alerta: false, semvinc: false, ordem: "", pagina: 1 },
     { replaceKeys: ["busca"] },
   );
   const {
@@ -435,6 +435,8 @@ export function FilaPedidosPorArea({
   const setFormaPgtoFilter = (v: string) => setEstadoTela({ forma: v });
   const setSituacaoFilter = (v: string) => setEstadoTela({ situacao: v });
   const setLiberacaoFilter = (v: string) => setEstadoTela({ liberacao: v });
+  const cdFilter = estadoTela.cd;
+  const setCdFilter = (v: string) => setEstadoTela({ cd: v, pagina: 1 });
   const setSomenteComAlerta = (v: boolean) => setEstadoTela({ alerta: v });
   const setComPagamentoSemVinculo = (v: boolean) => setEstadoTela({ semvinc: v });
   const setPagina = (n: number) => setEstadoTela({ pagina: n });
@@ -753,14 +755,25 @@ export function FilaPedidosPorArea({
 
 
   // Liberação: filtro aplicado depois que o mapa existe (hook acima depende dos ids).
+  // CD de expedição: opções e rótulos vêm dos próprios dados (cd_expedicao_nome).
+  const opcoesCd = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of data ?? []) {
+      if (p.cd_expedicao_codigo && !m.has(p.cd_expedicao_codigo))
+        m.set(p.cd_expedicao_codigo, p.cd_expedicao_nome ?? p.cd_expedicao_codigo);
+    }
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  }, [data]);
+
   const linhasFiltradas = useMemo(() => {
-    if (liberacaoFilter === "todas") return linhas;
-    return linhas.filter((p) => {
+    const porCd = cdFilter === "todos" ? linhas : linhas.filter((p) => p.cd_expedicao_codigo === cdFilter);
+    if (liberacaoFilter === "todas") return porCd;
+    return porCd.filter((p) => {
       const lib = liberacaoMap?.get(p.id);
       if (!lib) return false;
       return liberacaoFilter === "liberado" ? lib.liberado : !lib.liberado;
     });
-  }, [linhas, liberacaoMap, liberacaoFilter]);
+  }, [linhas, liberacaoMap, liberacaoFilter, cdFilter]);
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar, nos dois sentidos.
   const linhasOrdenadas = useMemo(() => {
@@ -930,6 +943,17 @@ export function FilaPedidosPorArea({
             <SelectItem value="todas">Liberação: Todas</SelectItem>
             <SelectItem value="liberado">Só liberáveis</SelectItem>
             <SelectItem value="bloqueado">Falta pagamento</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={cdFilter} onValueChange={setCdFilter}>
+          <SelectTrigger className="w-full sm:w-48">
+            <SelectValue placeholder="CD" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">CD: Todos</SelectItem>
+            {opcoesCd.map(([cod, nome]) => (
+              <SelectItem key={cod} value={cod}>{nome}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Select value={marcacaoFilter} onValueChange={setMarcacaoFilter}>
@@ -1158,6 +1182,7 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
+                      <SeloCdExpedicao p={p} />
                       {p.estagio === "recebido" && <ExcecaoRecebidoSelo pedidoId={p.id} />}
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
                         <span title="Pedido criado no Bling — aguardando emissão da NF">
@@ -1829,3 +1854,30 @@ function AcoesLinha({ p, temMsg, risco, nfInfo }: { p: PedidoFilaItem; temMsg: b
 
 
 
+
+const DICA_CD: Record<string, string> = {
+  padrao: "CD padrão — ainda não escolhido na pré-separação",
+  escolhido: "CD escolhido na pré-separação, ainda não enviado",
+  definido: "CD de separação",
+};
+
+/** Selo do CD de expedição logo abaixo do estágio; tudo vem de v_pedidos_fila. */
+function SeloCdExpedicao({ p }: { p: PedidoFilaItem }) {
+  if (!p.cd_expedicao_nome) return null;
+  const sit = p.cd_expedicao_situacao ?? "padrao";
+  const sufixo = sit === "escolhido" ? " · escolhido" : sit === "padrao" ? " · padrão" : "";
+  return (
+    <div className="basis-full">
+      <span
+        title={DICA_CD[sit]}
+        className={cn(
+          "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap",
+          sit === "padrao" && "text-muted-foreground border-dashed",
+        )}
+      >
+        <Warehouse className="h-3 w-3" />
+        {p.cd_expedicao_nome}{sufixo}
+      </span>
+    </div>
+  );
+}
