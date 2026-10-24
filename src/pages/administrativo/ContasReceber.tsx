@@ -511,7 +511,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
     setEst({ receb: escreverConjunto(resolverAcao(v, recebimentosAtivos)) });
 
   const page = est.page;
-  const setPage = (n: number) => setEst({ page: n });
+  const setPage = (v: React.SetStateAction<number>) => setEst({ page: resolverAcao(v, page) });
   const sort = lerOrdemKD(est.sort);
   const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
@@ -2349,7 +2349,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
   const dataAte = est.dataAte;
   const setDataAte = (v: string) => setEst({ dataAte: v });
   const page = est.page;
-  const setPage = (n: number) => setEst({ page: n });
+  const setPage = (v: React.SetStateAction<number>) => setEst({ page: resolverAcao(v, page) });
   type ListaFvr = "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado";
   const listaFvr = est.lista as ListaFvr;
   const setListaFvr = (v: React.SetStateAction<ListaFvr>) => setEst({ lista: resolverAcao(v, listaFvr) });
