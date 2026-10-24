@@ -1,3 +1,4 @@
+import { useEstadoTela } from "@/lib/navegacao";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -153,9 +154,14 @@ const TIPO_LABELS: Record<TipoLinha, string> = {
 export default function DeParaFornecedor() {
   const qc = useQueryClient();
 
-  const [fornecedorFiltro, setFornecedorFiltro] = useState<string>("todos");
-  const [busca, setBusca] = useState("");
-  const [tipoFiltro, setTipoFiltro] = useState<TipoLinha | "todos">("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: componente embutido, prefixo "dp".
+  const [nav, setNav] = useEstadoTela({ forn: "todos", busca: "", tipo: "todos" }, { prefixo: "dp", replaceKeys: ["busca"] });
+  const fornecedorFiltro = nav.forn;
+  const setFornecedorFiltro = (v: string) => setNav({ forn: v });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const tipoFiltro = nav.tipo as TipoLinha | "todos";
+  const setTipoFiltro = (v: TipoLinha | "todos") => setNav({ tipo: v });
 
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);

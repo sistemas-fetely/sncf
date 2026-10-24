@@ -10,8 +10,9 @@
 //  - os alertas vêm de preco_regra_validacao (nome, descricao, severidade);
 //    a view só devolve os slugs em `alertas`.
 // Nenhuma faixa, percentual, nome de regra ou severidade está escrito no código.
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -112,14 +113,34 @@ export default function TabelaPreco() {
     },
     [setParams],
   );
-  const [busca, setBusca] = useState("");
-  const [colecao, setColecao] = useState("todas");
-  const [grupo, setGrupo] = useState("todos");
-  const [fase, setFase] = useState("todas");
+  const location = useLocation();
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página na URL.
+  const [nav, setNav] = useEstadoTela(
+    { busca: "", colecao: "todas", grupo: "todos", fase: "todas", alerta: "todos", ordem: "", pagina: 1 },
+    { replaceKeys: ["busca"] },
+  );
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const colecao = nav.colecao;
+  const setColecao = (v: string) => setNav({ colecao: v });
+  const grupo = nav.grupo;
+  const setGrupo = (v: string) => setNav({ grupo: v });
+  const fase = nav.fase;
+  const setFase = (v: string) => setNav({ fase: v });
   /** "todos" | "com_alerta" | "criticos" | slug de uma regra */
-  const [alerta, setAlerta] = useState("todos");
-  const [ordem, setOrdem] = useState<{ coluna: ColunaOrdem; dir: "asc" | "desc" } | null>(null);
-  const [pagina, setPagina] = useState(1);
+  const alerta = nav.alerta;
+  const setAlerta = (v: string) => setNav({ alerta: v });
+  type OrdemTP = { coluna: ColunaOrdem; dir: "asc" | "desc" } | null;
+  const ordem = useMemo<OrdemTP>(() => {
+    const [coluna, dir] = nav.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaOrdem, dir } : null;
+  }, [nav.ordem]);
+  const setOrdem = (v: SetStateAction<OrdemTP>) => {
+    const o = resolverAcao(v, ordem);
+    setNav({ ordem: o ? `${o.coluna}:${o.dir}` : "" });
+  };
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const faixasQ = useQuery({
@@ -241,11 +262,17 @@ export default function TabelaPreco() {
     return [...base].sort(comparar);
   }, [baseSemAlerta, alerta, ordem, ehCritico]);
 
-  useEffect(() => { setPagina(1); }, [busca, colecao, grupo, fase, alerta, tamanho]);
+  const primeiraRender = useRef(true);
+  useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
+    setPagina(1);
+  }, [busca, colecao, grupo, fase, alerta, tamanho]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPaginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const naPagina = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  useFocoAoVoltar({ pronto: !listaQ.isLoading, idsVisiveis: naPagina.map((l) => l.cod_cadastro ?? l.sku) });
+  useRestaurarScroll(null, !listaQ.isLoading);
 
   function ordenar(coluna: ColunaOrdem) {
     setOrdem((o) =>
@@ -494,12 +521,14 @@ export default function TabelaPreco() {
                     return (
                       <TableRow
                         key={l.sku}
+                        data-foco-id={l.cod_cadastro ?? l.sku}
                         className={cn(critico && "border-l-2 border-l-destructive bg-destructive/5")}
                       >
                         <TableCell className="whitespace-nowrap">
                           {l.cod_cadastro ? (
                             <Link
                               to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`}
+                              state={{ from: montarFrom(location.pathname, location.search, l.cod_cadastro), fromLabel: "Tabela de preço" }}
                               className="font-medium tracking-tight underline-offset-2 hover:underline"
                             >
                               {l.cod_cadastro}

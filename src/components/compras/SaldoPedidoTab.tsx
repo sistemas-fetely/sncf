@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
@@ -166,9 +168,11 @@ function fmtData(v: string | null | undefined): string {
 }
 
 export default function SaldoPedidoTab({ pedidoId }: { pedidoId: number }) {
-  const [busca, setBusca] = useState("");
-  const [quemDeve, setQuemDeve] = useState<string>("todos");
-  const [pagina, setPagina] = useState(1);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", deve: "todos", pagina: 1 }, { prefixo: "sld", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const quemDeve = nav.deve as string; const setQuemDeve = (v: SetStateAction<typeof quemDeve>) => setNav({ deve: resolverAcao(v, quemDeve) as never });
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
   const [foraAberto, setForaAberto] = useState(false);
 

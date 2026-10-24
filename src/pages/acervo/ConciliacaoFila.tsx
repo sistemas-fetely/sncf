@@ -1,5 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle, ArrowDown, ArrowUp, ArrowUpDown, Check, ChevronDown, ChevronRight,
@@ -130,12 +132,23 @@ export default function ConciliacaoFila() {
   const [exportCad, setExportCad] = useState(false);
   const [importCad, setImportCad] = useState(false);
   const [sp, setSp] = useSearchParams();
-  const [pagina, setPagina] = useState(1);
+  const location = useLocation();
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: página e ordem também na URL (filtros já moravam lá).
+  const [nav, setNav] = useEstadoTela({ pagina: 1, ordem: "regra:asc" });
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
   // Seleção por PRODUTO (chave = sku). Mudar filtro não limpa: quem limpa é o usuário.
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
-  const [ordem, setOrdem] = useState<{ coluna: string; dir: "asc" | "desc" }>({ coluna: "regra", dir: "asc" });
+  const ordem = useMemo(() => {
+    const [coluna, dir] = nav.ordem.split(":");
+    return { coluna: coluna || "regra", dir: (dir === "desc" ? "desc" : "asc") as "asc" | "desc" };
+  }, [nav.ordem]);
+  const setOrdem = (v: SetStateAction<{ coluna: string; dir: "asc" | "desc" }>) => {
+    const o = resolverAcao(v, ordem);
+    setNav({ ordem: `${o.coluna}:${o.dir}` });
+  };
 
   // FILTRO-MORA-NA-URL: a Mesa e o resto do sistema linkam já filtrado.
   // Ao abrir sem nenhum parâmetro, a fila nasce no recorte que importa: fase ativo.
@@ -249,7 +262,12 @@ export default function ConciliacaoFila() {
   // aplica depende dos parâmetros da URL, que entram na dependência via `sp`
   }, [linhas, ordem, sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { setPagina(1); setExpandido(null); }, [sp, tamanho]);
+  const chaveFiltros = [...PARAMS, "q", "sem_produto"].map((k) => sp.get(k) ?? "").join("|");
+  const primeiraRender = useRef(true);
+  useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
+    setPagina(1); setExpandido(null);
+  }, [chaveFiltros, tamanho]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // INDICADOR-POR-ONDE-RESOLVE: um card por sistema ATIVO da dimensão, na ordem
   // dela, SEMPRE — mesmo com contagem 0. Sistema que aparece na fila e não está
@@ -307,6 +325,8 @@ export default function ConciliacaoFila() {
   const paginas = Math.max(1, Math.ceil(recorte.length / tamanho));
   const paginaAtual = Math.min(pagina, paginas);
   const paginaLinhas = recorte.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
+  useFocoAoVoltar({ pronto: !carregando, idsVisiveis: paginaLinhas.map((l) => l.cod_cadastro ?? l.sku).filter(Boolean).map(String) });
+  useRestaurarScroll(null, !carregando);
   const produtos = new Set(recorte.map(l => l.sku)).size;
   // CICLO-PLANILHA: produtos do recorte com a regra de cadastro incompleto.
   const codsIncompletos = useMemo(
@@ -403,7 +423,7 @@ export default function ConciliacaoFila() {
 
   function celula(l: FilaLinha, c: ColDef) {
     if (c.key === "cod_cadastro") return l.cod_cadastro
-      ? <Link to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`} className="font-medium hover:underline">{l.cod_cadastro}</Link>
+      ? <Link to={`/vendas/produto/ficha/${encodeURIComponent(l.cod_cadastro)}`} state={{ from: montarFrom(location.pathname, location.search, l.cod_cadastro), fromLabel: "Conciliação de Cadastro" }} className="font-medium hover:underline">{l.cod_cadastro}</Link>
       : celulaVazia;
     if (c.key === "sku") return <span>{l.sku}</span>;
     if (c.key === "nome_comercial") return <span className="block max-w-56 truncate">{l.nome_comercial ?? "—"}</span>;
@@ -519,7 +539,7 @@ export default function ConciliacaoFila() {
           </TableHead>)}
         </TableRow></TableHeader>
         <TableBody>{paginaLinhas.map(l => <Fragment key={l.linha_id}>
-          <TableRow className="border-b">
+          <TableRow className="border-b" data-foco-id={String(l.cod_cadastro ?? l.sku)}>
             <TableCell className="py-2.5 align-top">
               <Checkbox
                 aria-label={`Selecionar ${l.cod_cadastro ?? l.sku}`}

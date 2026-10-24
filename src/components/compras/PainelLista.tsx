@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe, lerLista, escreverLista } from "@/lib/navegacao";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { CHAVE_EMBARQUE_PAINEL, useEmbarquePainel } from "@/lib/compras/embarque-painel";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -202,6 +203,7 @@ function ordemPedido(a: PedidoLinha, b: PedidoLinha): number {
 
 function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vazio: string }) {
   const navigate = useNavigate();
+  const location = useLocation();
   if (linhas.length === 0) return <p className="text-sm text-muted-foreground">{vazio}</p>;
   const docs = (p: PedidoLinha) =>
     [
@@ -233,10 +235,15 @@ function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vaz
             return (
               <TableRow
                 key={p.id}
+                data-foco-id={String(p.id)}
                 className="cursor-pointer"
                 onClick={(ev) => {
                   ev.stopPropagation();
-                  navigate(`/vendas/produto/chegada-mercadoria/${p.id}`);
+                  abrirDetalhe(navigate, location, `/vendas/produto/chegada-mercadoria/${p.id}`, {
+                    foco: String(p.id),
+                    label: "Chegada de Mercadoria",
+                    focoParam: "pl_foco",
+                  });
                 }}
               >
                 <TableCell className="whitespace-nowrap text-sm font-medium">
@@ -1175,20 +1182,36 @@ export default function PainelLista() {
   );
   const [semEmbarqueAberto, setSemEmbarqueAberto] = useState(true);
 
-  const [busca, setBusca] = useState("");
-  const [statusSel, setStatusSel] = useState<string[]>([]);
-  const [portoSel, setPortoSel] = useState("todos");
-  const [fabricaSel, setFabricaSel] = useState("todas");
-  const [soTransito, setSoTransito] = useState(false);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: aba embutida, prefixo "pl"; embarques abertos também,
+  // para o pedido aberto estar visível ao voltar.
+  const [nav, setNav] = useEstadoTela(
+    { busca: "", status: "", porto: "todos", fabrica: "todas", transito: false, exp: "" },
+    { prefixo: "pl", replaceKeys: ["busca"] },
+  );
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const statusSel = useMemo(() => lerLista(nav.status), [nav.status]);
+  const setStatusSel = (v: string[]) => setNav({ status: escreverLista(v) });
+  const portoSel = nav.porto;
+  const setPortoSel = (v: string) => setNav({ porto: v });
+  const fabricaSel = nav.fabrica;
+  const setFabricaSel = (v: string) => setNav({ fabrica: v });
+  const soTransito = nav.transito;
+  const setSoTransito = (v: boolean) => setNav({ transito: v });
   const [editando, setEditando] = useState<number | null>(null);
-  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
-  const alternar = (id: number) =>
-    setExpandidos((prev) => {
-      const n = new Set(prev);
-      if (n.has(id)) n.delete(id);
-      else n.add(id);
-      return n;
-    });
+  const expandidos = useMemo(() => new Set(lerLista(nav.exp).map(Number)), [nav.exp]);
+  const alternar = (id: number) => {
+    const n = new Set(expandidos);
+    if (n.has(id)) n.delete(id);
+    else n.add(id);
+    setNav({ exp: escreverLista([...n].sort((a, b) => a - b).map(String)) });
+  };
+  useFocoAoVoltar({
+    pronto: !pedidosQ.isLoading && !embarquesQ.isLoading,
+    idsVisiveis: (pedidosQ.data ?? []).map((p) => String(p.id)),
+    focoParam: "pl_foco",
+  });
+  useRestaurarScroll(null, !pedidosQ.isLoading && !embarquesQ.isLoading);
   const [params, setParams] = useSearchParams();
   const soFurada = params.get("furada") === "1";
   const setSoFurada = (v: boolean) => {

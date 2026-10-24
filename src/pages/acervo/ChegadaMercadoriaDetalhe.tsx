@@ -1,10 +1,10 @@
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 import {
-  ArrowLeft,
   Loader2,
   AlertTriangle,
   ExternalLink,
@@ -626,12 +626,7 @@ export default function ChegadaMercadoriaDetalhe() {
 
   return (
     <div className="p-6 space-y-6">
-      <Link
-        to="/vendas/produto/chegada-mercadoria?aba=pedidos"
-        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" /> Voltar para Chegada de Mercadoria
-      </Link>
+      <SmartBackButton fallback="/vendas/produto/chegada-mercadoria?aba=pedidos" fallbackLabel="Chegada de Mercadoria" />
 
       {pedidoQ.isLoading ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">

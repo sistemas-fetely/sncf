@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { Fragment, useMemo, useState, type ReactNode } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbaConciliacaoXpm } from "@/components/estoque/AbaConciliacaoXpm";
@@ -173,7 +175,9 @@ export default function ConciliacaoEstoque() {
 
 function ConciliacaoTriade({ barra }: { barra: ReactNode }) {
   const [sp, setSp] = useSearchParams();
-  const [pagina, setPagina] = useState(1);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ pagina: 1 });
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [expandido, setExpandido] = useState<string | null>(null);
   const [ordem, setOrdem] = useState<{ coluna: "fiscal" | "real" | "delta"; dir: "asc" | "desc" }>({ coluna: "delta", dir: "desc" });

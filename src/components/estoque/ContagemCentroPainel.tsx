@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,11 +43,13 @@ const CENTRO_XPM = "XPM-SC";
 export function ContagemCentroPainel() {
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const [soDiv, setSoDiv] = useState(false);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ div: false, centro: "SITE-SP", busca: "" }, { prefixo: "ct", replaceKeys: ["busca"] });
+  const soDiv = nav.div; const setSoDiv = (v: SetStateAction<typeof soDiv>) => setNav({ div: resolverAcao(v, soDiv) as never });
   const [achados, setAchados] = useState<Linha[]>([]);
-  const [centro, setCentro] = useState("SITE-SP");
+  const centro = nav.centro; const setCentro = (v: SetStateAction<typeof centro>) => setNav({ centro: resolverAcao(v, centro) as never });
   const [data, setData] = useState(hojeISO());
-  const [busca, setBusca] = useState("");
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [colecoes, setColecoes] = useState<string[]>([]);
   const [contados, setContados] = useState<Record<string, string>>({});
   const [confirmar, setConfirmar] = useState(false);

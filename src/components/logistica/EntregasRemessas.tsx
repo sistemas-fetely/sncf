@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, Check, Loader2, Search, X } from "lucide-react";
@@ -73,10 +75,12 @@ export function EntregasRemessas({ transportadoraId = null, canal = "total" }: {
   const [dias, setDias] = useState(90);
   const de = dias ? isoDiasAtras(dias) : null;
   const { data = [], isLoading, error, refetch } = useLogisticaRemessas({ transportadoraId, canal: canal === "total" ? null : canal, de });
-  const [status, setStatus] = useState<Status>("todas");
-  const [transp, setTransp] = useState<string | null>(null);
-  const [busca, setBusca] = useState("");
-  const [soCobrado, setSoCobrado] = useState(false);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ status: "todas", transp: null, busca: "", cobrado: false }, { prefixo: "en", replaceKeys: ["busca"] });
+  const status = nav.status as Status; const setStatus = (v: SetStateAction<typeof status>) => setNav({ status: resolverAcao(v, status) as never });
+  const transp = nav.transp as string | null; const setTransp = (v: SetStateAction<typeof transp>) => setNav({ transp: resolverAcao(v, transp) as never });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const soCobrado = nav.cobrado; const setSoCobrado = (v: SetStateAction<typeof soCobrado>) => setNav({ cobrado: resolverAcao(v, soCobrado) as never });
   const [sort, setSort] = useState<SortState<Col> | null>(null);
   const [aberto, setAberto] = useState<string | null>(null);
   const mobile = useIsMobile();
