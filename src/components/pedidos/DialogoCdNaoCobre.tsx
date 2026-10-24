@@ -10,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 
-/** Código do CD que é a Mesa SP (regra da troca: em separação só vale na Mesa SP). */
-const CODIGO_MESA_SP = "SITE-SP";
+
 
 function useCdsHabilitados(enabled: boolean) {
+
   return useQuery({
     queryKey: ["expedicao-b2b-cds-habilitados"],
     enabled,
@@ -48,9 +48,9 @@ export function DialogoCdNaoCobre({
   const [motivoTroca, setMotivoTroca] = useState("");
   const [motivoSeguir, setMotivoSeguir] = useState("");
 
-  const podeTrocar =
-    p.estagio === "pre_separacao" ||
-    (p.estagio === "em_separacao" && p.cd_expedicao_codigo === CODIGO_MESA_SP);
+  /** A regra de quando a troca vale vive no banco (v_pedidos_fila.cd_pode_trocar). */
+  const podeTrocar = p.cd_pode_trocar === true;
+
 
   const concluir = async () => {
     await qc.invalidateQueries({ queryKey: ["pedidos-fila"] });
