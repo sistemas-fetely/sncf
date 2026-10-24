@@ -1,7 +1,7 @@
 import { useRef as __useRef } from "react";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -136,11 +136,13 @@ function NfsSemEntrada({
   const paginaAtual = Math.min(pagina, totalPaginas);
   const naPagina = linhas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
+  useFocoAoVoltar({ pronto: !q.isLoading, idsVisiveis: naPagina.map((r) => String(r.pedido_id)), focoParam: "pd_foco" });
+
   const receber = (r: NfSemEntrada) => {
     if (r.rota_recebimento) {
       navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
     } else {
-      navigate(`/vendas/produto/chegada-mercadoria/${r.pedido_id}`);
+      abrirDetalhe(navigate, window.location, `/vendas/produto/chegada-mercadoria/${r.pedido_id}`, { foco: r.pedido_id, focoParam: "pd_foco", label: "Pendências" });
     }
   };
 
@@ -176,7 +178,7 @@ function NfsSemEntrada({
           </TableHeader>
           <TableBody>
             {naPagina.map((r, i) => (
-              <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`}>
+              <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`} data-foco-id={r.pedido_id}>
                 <TableCell className="font-medium">{r.numero_pedido ?? "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">
                   {r.nf_numero ?? "—"}
