@@ -200,6 +200,8 @@ export default function PedidosIndex() {
                   riscoAltoAtivo={riscoAltoAtivo}
                   onToggleRiscoAlto={() => setEstadoCasa({ risco: !riscoAltoAtivo })}
                   onAbrirRecuperacao={() => setAba("recuperacao")}
+                  travadoAtivo={travadoParam}
+                  onClickTravado={handleTravadoClick}
                 />
               </div>
 
@@ -211,6 +213,7 @@ export default function PedidosIndex() {
                   apenasAtivos={!estagioParam}
                   incluirCancelados={incluirCancelados}
                   somenteRiscoAlto={riscoAltoAtivo}
+                  somenteTravados={travadoParam}
                 />
               </div>
             </ConteudoAba>
