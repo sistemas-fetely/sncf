@@ -136,6 +136,9 @@ export interface PedidoFilaItem {
   cd_faltas?: CdFaltaItem[] | null;
   /** Decisão registrada de seguir com saldo do CD errado (pendência de correção aberta). */
   cd_falta_aceita?: boolean | null;
+  /** Se a troca de CD vale agora para este pedido (regra no banco, v_pedidos_fila). */
+  cd_pode_trocar?: boolean | null;
+
   id_externo: string;
   estagio: EstagioPedido;
   area_atual: AreaPedido;
