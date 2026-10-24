@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe as abrirDetalheNav } from "@/lib/navegacao/abrirDetalhe";
 
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent } from "@/components/ui/card";
@@ -83,13 +88,25 @@ function pareceTimeout(m: string): boolean {
 }
 
 export default function Oportunidades({ embutido = false }: { embutido?: boolean } = {}) {
-  const [busca, setBusca] = useState("");
-  const [statusFiltro, setStatusFiltro] = useState<string>("todos");
-  const [pagamentoFiltro, setPagamentoFiltro] = useState<string>("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: na tela própria os filtros vivem na URL; embutida
+  // numa tela hospedeira, ficam em estado local (não escreve na URL de quem hospeda).
+  const DEFAULTS_MESA = { busca: "", status: "todos", pagamento: "todos", grupo: "em_andamento", meus: true };
+  const [estadoUrl, setEstadoUrl] = useEstadoTela(DEFAULTS_MESA, { replaceKeys: ["busca"] });
+  const [estadoLocal, setEstadoLocalBruto] = useState(DEFAULTS_MESA);
+  const estadoMesa = embutido ? estadoLocal : estadoUrl;
+  const setEstadoMesa = (patch: Partial<typeof DEFAULTS_MESA>) =>
+    embutido ? setEstadoLocalBruto((a) => ({ ...a, ...patch })) : setEstadoUrl(patch);
+  const { busca, status: statusFiltro, pagamento: pagamentoFiltro, meus } = estadoMesa;
+  const grupo: FiltroGrupo = GRUPOS.some((g) => g.valor === estadoMesa.grupo)
+    ? (estadoMesa.grupo as FiltroGrupo)
+    : "em_andamento";
+  const setBusca = (v: string) => setEstadoMesa({ busca: v });
+  const setStatusFiltro = (v: string) => setEstadoMesa({ status: v });
+  const setPagamentoFiltro = (v: string) => setEstadoMesa({ pagamento: v });
+  const setMeus = (v: boolean) => setEstadoMesa({ meus: v });
+  const location = useLocation();
   // O valor da mesa está em "Em andamento" (NF, boleto, prazo de entrega).
 
-  const [grupo, setGrupo] = useState<FiltroGrupo>("em_andamento");
-  const [meus, setMeus] = useState(true);
 
   const [detalhe, setDetalhe] = useState<MesaComercialRow | null>(null);
   const [abaDetalhe, setAbaDetalhe] =
@@ -265,9 +282,19 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
 
   /** FILTRO-QUE-NAO-SE-APLICA-NAO-RENDERIZA: esconder uma faixa sem resetar
    *  o estado deixaria o filtro ativo invisível — armadilha de UX. */
+  useFocoAoVoltar({
+    pronto: !embutido && !isLoading,
+    idsVisiveis: filtradas.map((r) => r.pedido_id),
+    aoNaoEncontrar: (id) =>
+      toast.info("O pedido aberto saiu desta lista", {
+        action: { label: "Abrir", onClick: () => navigate(`/pedidos/${id}`) },
+      }),
+  });
+  // A lista rola com a janela; embutida, quem cuida é a tela hospedeira.
+  useRestaurarScroll(null, !embutido && !isLoading);
+
   const mudarGrupo = (novo: FiltroGrupo) => {
-    setGrupo(novo);
-    if (novo !== "oportunidade") setPagamentoFiltro("todos");
+    setEstadoMesa(novo !== "oportunidade" ? { grupo: novo, pagamento: "todos" } : { grupo: novo });
   };
 
   return (
@@ -512,7 +539,7 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                   </TableHeader>
                   <TableBody>
                     {filtradas.map((r) => (
-                      <TableRow key={r.pedido_id}>
+                      <TableRow key={r.pedido_id} data-foco-id={r.pedido_id}>
                         <TableCell className="align-top">
                           {/* EIXO 1 (manual) + EIXO 2 (derivado). Vocabulários distintos. */}
                           <div className="flex flex-col items-start gap-1">
@@ -575,7 +602,12 @@ export default function Oportunidades({ embutido = false }: { embutido?: boolean
                           <button
                             type="button"
                             className="block max-w-full truncate font-medium text-left text-primary underline-offset-2 hover:underline cursor-pointer"
-                            onClick={() => navigate(`/parceiros/${r.parceiro_id}`)}
+                            onClick={() =>
+                              abrirDetalheNav(navigate, location, `/parceiros/${r.parceiro_id}`, {
+                                foco: r.pedido_id,
+                                label: "Mesa Comercial",
+                              })
+                            }
                           >
                             {r.cliente || "—"}
                           </button>
