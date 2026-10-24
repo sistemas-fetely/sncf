@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { VincularContraparteDialog, type AlvoContraparte } from "./VincularContraparteDialog";
 import { useParams, useSearchParams, Link } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowLeft, Printer, User } from "lucide-react";
@@ -409,7 +410,7 @@ export default function RepresentanteFicha() {
         estado={`${k.email_contato ?? "sem e-mail"} · Relacionamento: ${periodo}`}
       />
       <div className="flex flex-wrap items-center gap-2">
-        <Button asChild variant="ghost" size="sm"><Link to="/comercial/representantes"><ArrowLeft className="h-4 w-4 mr-1" />Painel</Link></Button>
+        <SmartBackButton fallback="/comercial/representantes" fallbackLabel="Representantes" />
         <Badge variant="outline" className="capitalize">{k.tipo}</Badge>
         <BadgeApto apto={!!k.apto_a_pagamento} />
         <div className="flex-1" />
