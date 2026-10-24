@@ -281,7 +281,7 @@ export default function CargoForm() {
       qc.invalidateQueries({ queryKey: ["cargo-detalhe"] });
       qc.invalidateQueries({ queryKey: ["cargo"] });
       toast.success(isNovo ? "Cargo criado!" : "Cargo atualizado!");
-      navigate("/cargos");
+      navigate((location.state as { from?: string } | null)?.from ?? "/pessoas/cargos");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
