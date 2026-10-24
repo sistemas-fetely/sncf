@@ -372,6 +372,16 @@ export default function Parceiros() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  // Ao voltar do ParceiroDetalhe: destaca a linha aberta e restaura a rolagem.
+  useFocoAoVoltar({
+    pronto: !isLoading,
+    idsVisiveis: paginaItens.map((p) => p.id),
+    aoNaoEncontrar: (id) => {
+      const i = filtered.findIndex((p) => p.id === id);
+      if (i >= 0) setPagina(Math.floor(i / tamanhoPagina) + 1);
+    },
+  });
+  useRestaurarScroll(null, !isLoading);
 
   const handleOpenNew = () => {
     setEditing(null);
