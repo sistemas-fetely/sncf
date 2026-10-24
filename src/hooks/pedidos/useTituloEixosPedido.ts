@@ -18,7 +18,6 @@ export interface TituloEixos {
 export function useTituloEixosPedido(pedidoId: string | undefined) {
   return useQuery({
     queryKey: ["titulo-eixos-pedido", pedidoId],
-    meta: { pesada: true },
     enabled: !!pedidoId,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Record<string, TituloEixos>> => {

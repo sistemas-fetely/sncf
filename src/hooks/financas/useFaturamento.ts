@@ -112,7 +112,6 @@ export function useFaturamentoMensal() {
 export function useFaturamentoNf(mes: string) {
   return useQuery({
     queryKey: ["faturamento-nf", mes],
-    meta: { pesada: true },
     enabled: !!mes,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
@@ -128,7 +127,6 @@ export function useFaturamentoNf(mes: string) {
 export function useFaturamentoProduto(mes: string) {
   return useQuery({
     queryKey: ["faturamento-produto", mes],
-    meta: { pesada: true },
     enabled: !!mes,
     queryFn: async () => {
       const { data, error } = await (supabase as any)

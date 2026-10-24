@@ -109,7 +109,6 @@ export function PipelineHorizontal({
     error: pagVencidoErroObj,
   } = useQuery({
     queryKey: ["pedidos-pagamento-vencido-count"],
-    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async () => {
       // Fonte única do estado financeiro: vw_pedido_situacao_financeira

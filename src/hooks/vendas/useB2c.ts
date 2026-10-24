@@ -335,7 +335,6 @@ export interface SincBlingStatus {
 export function useSincStatusBling() {
   return useQuery({
     queryKey: ["b2c-sinc-status"],
-    meta: { pesada: true },
     refetchInterval: 60 * 1000,
     retry: false,
     queryFn: async (): Promise<SincBlingStatus | null> => {
