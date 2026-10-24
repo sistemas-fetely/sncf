@@ -124,13 +124,13 @@ export default function Conhecimento() {
   const [itens, setItens] = useState<Conhecimento[]>([]);
   const [sugestoes, setSugestoes] = useState<SugestaoPendente[]>([]);
   const [loading, setLoading] = useState(true);
-  const [__nav, __setNav] = useEstadoTela({ busca: "", filtroCategoria: FORM_INICIAL } as Record<string, string | number | boolean | null>);
+  const [__nav, __setNav] = useEstadoTela({ busca: "", filtroCategoria: "todas" } as Record<string, string | number | boolean | null>);
   const busca = __nav.busca as string;
   const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
-  const filtroCategoria = __nav.filtroCategoria as string>("todas");
+  const filtroCategoria = __nav.filtroCategoria as string;
   const [showForm, setShowForm] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [form, setForm] = useState<FormState;
+  const [form, setForm] = useState<FormState>(FORM_INICIAL);
   const setFiltroCategoria = (v: any) => __setNav({ filtroCategoria: resolverAcao(v, __nav.filtroCategoria as any) } as any);
   const [tagInput, setTagInput] = useState("");
   const [aprovandoSugestao, setAprovandoSugestao] = useState<SugestaoPendente | null>(null);

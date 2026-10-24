@@ -35,11 +35,12 @@ type Row = {
 };
 
 export default function Beneficios() {
-  const [__nav, __setNav] = useEstadoTela({ busca: "", statusFiltro: "__all__" } as Record<string, string | number | boolean | null>);
+  const [__nav, __setNav] = useEstadoTela({ busca: "", statusFiltro: "ativo", beneficioFiltro: "__all__" } as Record<string, string | number | boolean | null>);
   const busca = __nav.busca as string;
   const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
-  const statusFiltro = __nav.statusFiltro as "ativo" | "encerrado" | "todos">("ativo");
-  const [beneficioFiltro, setBeneficioFiltro] = useState<string;
+  const statusFiltro = __nav.statusFiltro as "ativo" | "encerrado" | "todos";
+  const beneficioFiltro = __nav.beneficioFiltro as string;
+  const setBeneficioFiltro = (v: any) => __setNav({ beneficioFiltro: resolverAcao(v, __nav.beneficioFiltro as any) } as any);
   const setStatusFiltro = (v: any) => __setNav({ statusFiltro: resolverAcao(v, __nav.statusFiltro as any) } as any);
 
   const { data = [], isLoading } = useQuery({

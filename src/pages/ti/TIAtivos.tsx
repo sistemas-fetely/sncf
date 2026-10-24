@@ -60,13 +60,13 @@ export default function TIAtivos() {
   const { user } = useAuth();
   const [ativos, setAtivos] = useState<Ativo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [__nav, __setNav] = useEstadoTela({ search: "", filterTipo: "todos", filterStatus: [] } as Record<string, string | number | boolean | null>);
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterTipo: "todos", filterStatus: "todos" } as Record<string, string | number | boolean | null>);
   const search = __nav.search as string;
   const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
-  const filterTipo = __nav.filterTipo as string>("todos");
+  const filterTipo = __nav.filterTipo as string;
   const filterStatus = __nav.filterStatus as string;
   const setFilterTipo = (v: any) => __setNav({ filterTipo: resolverAcao(v, __nav.filterTipo as any) } as any);
-  const [tiposDisponiveis, setTiposDisponiveis] = useState<string[];
+  const [tiposDisponiveis, setTiposDisponiveis] = useState<string[]>([]);
   const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

@@ -59,11 +59,11 @@ function Resumo({ rotulo, valor }: { rotulo: string; valor: string | number }) {
 }
 
 export default function Reembolsos() {
-  const [__nav, __setNav] = useEstadoTela({ filtro: null } as Record<string, string | number | boolean | null>);
-  const filtro = __nav.filtro as Filtro>("todos");
+  const [__nav, __setNav] = useEstadoTela({ filtro: "todos" } as Record<string, string | number | boolean | null>);
+  const filtro = __nav.filtro as Filtro;
   const [sheetAberto, setSheetAberto] = useState(false);
   const [importarAberto, setImportarAberto] = useState(false);
-  const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null;
+  const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null>(null);
   const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
 
 
