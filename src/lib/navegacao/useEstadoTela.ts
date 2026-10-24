@@ -21,6 +21,11 @@ export function escreverValor(v: Valor, padrao: Valor): string | null {
   return String(v);
 }
 
+/** Literais do default viram o tipo largo (false → boolean, 1 → number). */
+export type Ampliar<T> = {
+  [K in keyof T]: T[K] extends boolean ? boolean : T[K] extends number ? number : T[K] extends string ? string : T[K];
+};
+
 /**
  * TELA-LEMBRA-ONDE-EU-ESTAVA: estado de navegação (busca, filtros, ordem,
  * página) vive na URL. Default não vai para a URL; chaves fora de `defaults`
@@ -29,19 +34,19 @@ export function escreverValor(v: Valor, padrao: Valor): string | null {
 export function useEstadoTela<T extends Record<string, Valor>>(
   defaults: T,
   opts?: { replaceKeys?: (keyof T)[] },
-): [T, (patch: Partial<T>) => void] {
+): [Ampliar<T>, (patch: Partial<Ampliar<T>>) => void] {
   const [params, setParams] = useSearchParams();
   const chaveDefaults = JSON.stringify(defaults);
 
   const estado = useMemo(() => {
     const out = {} as Record<string, Valor>;
     for (const k of Object.keys(defaults)) out[k] = lerValor(params.get(k), defaults[k]);
-    return out as T;
+    return out as Ampliar<T>;
   }, [params, chaveDefaults]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const replaceKeys = opts?.replaceKeys;
   const setEstado = useCallback(
-    (patch: Partial<T>) => {
+    (patch: Partial<Ampliar<T>>) => {
       const chaves = Object.keys(patch);
       const soReplace =
         chaves.length > 0 && chaves.every((k) => replaceKeys?.includes(k as keyof T));
@@ -49,7 +54,7 @@ export function useEstadoTela<T extends Record<string, Valor>>(
         (atual) => {
           const prox = new URLSearchParams(atual);
           for (const k of chaves) {
-            const txt = escreverValor(patch[k] as Valor, defaults[k]);
+            const txt = escreverValor((patch as Record<string, Valor>)[k], defaults[k]);
             if (txt === null) prox.delete(k);
             else prox.set(k, txt);
           }

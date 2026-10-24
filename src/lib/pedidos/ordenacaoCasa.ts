@@ -6,13 +6,14 @@ export type Ordenacao =
   | { tipo: "preset"; preset: PresetOrdenacao }
   | { tipo: "coluna"; coluna: ColunaOrdenavel; dir: "asc" | "desc" };
 
-export const ORDENACAO_PADRAO: Ordenacao = { tipo: "preset", preset: "risco" };
+const PRESET_PADRAO: PresetOrdenacao = "risco";
+export const ORDENACAO_PADRAO: Ordenacao = { tipo: "preset", preset: PRESET_PADRAO };
 const PRESETS: PresetOrdenacao[] = ["cronologico", "risco", "entrada_paga"];
 const COLUNAS: ColunaOrdenavel[] = ["risco", "pedido", "valor", "estoque", "cobranca", "estagio", "entrega", "na_fase"];
 
 /** "preset:risco" | "coluna:valor:desc". O padrão vira "" (fora da URL). */
 export function ordenacaoParaTexto(o: Ordenacao): string {
-  if (o.tipo === "preset") return o.preset === ORDENACAO_PADRAO.preset ? "" : `preset:${o.preset}`;
+  if (o.tipo === "preset") return o.preset === PRESET_PADRAO ? "" : `preset:${o.preset}`;
   return `coluna:${o.coluna}:${o.dir}`;
 }
 
