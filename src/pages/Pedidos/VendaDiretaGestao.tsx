@@ -329,7 +329,7 @@ export default function VendaDiretaGestao() {
                 <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
                 <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
               </ToggleGroup>
-              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe((v) => !v)}
+              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe(!soAcaoEquipe)}
                 className={cn(soAcaoEquipe && "gold-border bg-gold-soft")}>
                 Ação da equipe
               </Button>
