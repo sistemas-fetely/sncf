@@ -5,7 +5,8 @@
  * O trabalho de conciliação (entradas a reconhecer) vive em outra rota.
  */
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { Plus, Search, Users, AlertTriangle } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -67,6 +68,7 @@ interface Props {
 
 export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: contas, isLoading, isError, error } = useContasClienteSaldo();
   const [busca, setBusca] = useState("");
   const [ordenacao, setOrdenacao] = useState<OrdenacaoContas>(null);
@@ -284,9 +286,7 @@ export function ListaContasClientes({ mostrarCabecalho = true }: Props = {}) {
                     key={c.parceiro_id}
                     className="cursor-pointer"
                     onClick={() =>
-                      navigate(`/cliente/${c.parceiro_id}?aba=posicao`, {
-                        state: { from: "/cliente" },
-                      })
+                      abrirDetalhe(navigate, location, `/cliente/${c.parceiro_id}?aba=posicao`, { label: "Clientes" })
                     }
                   >
                     <TableCell className="text-xs font-medium">

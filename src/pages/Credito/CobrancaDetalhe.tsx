@@ -1,7 +1,8 @@
 import { urlPaginaPix } from "@/lib/pagamento/linkPix";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -400,6 +401,7 @@ function LinhaParcela({ l }: { l: LinhaCobrancaPedido }) {
 
 function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [alterarPagtoOpen, setAlterarPagtoOpen] = useState(false);
   const [chamadoOpen, setChamadoOpen] = useState(false);
   const portaoRegraQ = usePedidoPortaoRegra(pedido.id);
@@ -597,7 +599,7 @@ function GerenciarLinksPagamento({ pedido }: { pedido: any }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={refazerPlano}>Refazer plano</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate(`/pedidos/${pedido.id}`)}>
+              <DropdownMenuItem onClick={() => abrirDetalhe(navigate, location, `/pedidos/${pedido.id}`, { label: "Cobrança" })}>
                 Ver pedido
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -631,6 +633,7 @@ export default function CobrancaDetalhe() {
   const { pedidoId } = useParams<{ pedidoId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const voltarPara = useVoltarParaOrigem("/recebimento/cobranca");
   const { toast } = useToast();
 

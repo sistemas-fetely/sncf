@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -163,6 +164,7 @@ function CardResumo({
 
 function CardSemProva({ l }: { l: LinhaMesa }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const razao = nomeCanonico(l.nome_exibicao ?? l.nome_canonico, "—");
   const apelido = apelidoParceiro(l.nome_exibicao ?? l.nome_canonico, l.apelido);
   const classe = (l.prova_classe ?? "") as ProvaClasse;
@@ -244,7 +246,7 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
           size="sm"
           variant="outline"
           className="h-7 text-xs"
-          onClick={() => l.pedido_id && navigate(`/pedidos/${l.pedido_id}`)}
+          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/pedidos/${l.pedido_id}`, { label: "Sem Prova" })}
         >
           Ver pedido
         </Button>
@@ -252,7 +254,7 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
           size="sm"
           variant="ghost"
           className="h-7 text-xs"
-          onClick={() => l.pedido_id && navigate(`/recebimento/cobranca/${l.pedido_id}`)}
+          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/recebimento/cobranca/${l.pedido_id}`, { label: "Sem Prova" })}
         >
           Ver título
         </Button>

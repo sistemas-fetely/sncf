@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight, CheckCircle2, Minus } from "lucide-react";
@@ -543,6 +544,7 @@ export default function ReguaTab() {
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: etapas = [] } = useReguaEtapas();
   const { data: fila = [], isLoading: loadingFila } = useReguaFilaHoje();
   const { data: foraDaRegua = [], isLoading: loadingFora } = useReguaVencidoForaDaFila();
@@ -617,7 +619,7 @@ export default function ReguaTab() {
 
   const abrirTitulo = (t: TituloCobranca) => {
     const pedidoId = (t as any)._mesa?.pedido_id ?? t.pedido_id;
-    if (pedidoId) navigate(`/pedidos/${pedidoId}`);
+    if (pedidoId) abrirDetalhe(navigate, location, `/pedidos/${pedidoId}`, { label: "Régua" });
     else toast.info("Este título não tem pedido vinculado para abrir.");
   };
 

@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -459,6 +460,7 @@ export default function ContasReceber() {
 
 function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [busca, setBusca] = useState("");
   const [dataBase, setDataBase] = useState<DataBase>("emissao");
@@ -1324,7 +1326,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
               className="font-mono text-xs text-primary hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
-                if (t.pedido_id) navigate(`/pedidos/${t.pedido_id}`);
+                if (t.pedido_id) abrirDetalhe(navigate, location, `/pedidos/${t.pedido_id}`, { label: "Contas a Receber" });
               }}
             >
               {t.pedido_ref}
@@ -2172,7 +2174,7 @@ function AbaB2B({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                                     className="font-mono text-xs text-primary hover:underline"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      if (g.pedidoId) navigate(`/pedidos/${g.pedidoId}`);
+                                      if (g.pedidoId) abrirDetalhe(navigate, location, `/pedidos/${g.pedidoId}`, { label: "Contas a Receber" });
                                     }}
                                   >
                                     {g.pedidoRef}

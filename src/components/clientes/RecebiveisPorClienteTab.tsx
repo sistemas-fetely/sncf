@@ -14,7 +14,8 @@ import {
   type CSSProperties,
 } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import {
   AlertTriangle,
   ChevronDown,
@@ -224,6 +225,7 @@ function TitulosAbertosCliente({
 
 export function RecebiveisPorClienteTab() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [busca, setBusca] = useState("");
   const [incluirPagos, setIncluirPagos] = useState(false);
   const [expandido, setExpandido] = useState<string | null>(null);
@@ -458,7 +460,7 @@ export function RecebiveisPorClienteTab() {
                               className="text-left hover:underline"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                if (id) navigate(`/cliente/${id}?aba=posicao`);
+                                if (id) abrirDetalhe(navigate, location, `/cliente/${id}?aba=posicao`, { label: "Contas a Receber" });
                               }}
                             >
                               {r.cliente ?? "(sem nome)"}

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useClienteDetalhe } from "@/hooks/credito/useClienteDetalhe";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ export default function ClienteDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data, isLoading } = useClienteDetalhe(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const [criarHaverOpen, setCriarHaverOpen] = useState(false);
@@ -332,7 +334,7 @@ export default function ClienteDetalhe() {
               {analises.map((a) => (
                 <button
                   key={a.id}
-                  onClick={() => navigate(`/credito/analises/${a.id}`)}
+                  onClick={() => abrirDetalhe(navigate, location, `/credito/analises/${a.id}`, { label: "Cliente" })}
                   className="w-full flex items-center justify-between gap-4 rounded-md border p-3 text-left hover:bg-accent transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
