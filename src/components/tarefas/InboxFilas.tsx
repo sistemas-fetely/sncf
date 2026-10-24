@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +28,8 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronUp, ListChecks, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, ListChecks, AlertTriangle, Flag } from "lucide-react";
+import { DialogoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
 
@@ -242,6 +243,81 @@ function LinhaB2bSaida({ chave, linha }: { chave: string; linha: Record<string, 
   );
 }
 
+function identificadorLinha(l: Record<string, unknown>): string {
+  for (const k of ["id_externo", "numero", "codigo", "nome", "id"]) {
+    if (l[k] !== null && l[k] !== undefined && l[k] !== "") return String(l[k]);
+  }
+  return "—";
+}
+
+function BotaoAbrirProblema({
+  fila,
+  linha,
+  compacto,
+}: {
+  fila: FilaInbox;
+  linha: Record<string, unknown>;
+  compacto?: boolean;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const ext = linha.id_externo ? String(linha.id_externo) : "";
+  return (
+    <>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs text-muted-foreground"
+        title="Abrir problema"
+        onClick={(e) => {
+          e.stopPropagation();
+          setAberto(true);
+        }}
+      >
+        <Flag className="h-3.5 w-3.5" />
+        {!compacto && <span className="ml-1">Abrir problema</span>}
+      </Button>
+      <DialogoAbrirProblema
+        open={aberto}
+        onOpenChange={setAberto}
+        contexto={{
+          descricao: `Fila: ${fila.nome} — ${identificadorLinha(linha)}`,
+          pedidoRef: ext.startsWith("PED-") ? ext : null,
+        }}
+      />
+    </>
+  );
+}
+
+/** Fila problemas_esquecidos: leitura própria por linha. */
+function LinhaProblemaEsquecido({ linha }: { linha: Record<string, unknown> }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const abrir = (to: string) =>
+    abrirDetalhe(navigate, location, to, { foco: String(linha.chamado_id), label: "Tarefas" });
+  return (
+    <div className="rounded-md border p-3 space-y-1 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <button className="font-medium text-primary hover:underline" onClick={() => abrir(`/chamados/${linha.chamado_id}`)}>
+          {String(linha.numero ?? "—")}
+        </button>
+        <span>{String(linha.atribuido_nome ?? "sem responsável")}</span>
+        {linha.cadeira ? <Badge variant="secondary">{String(linha.cadeira)}</Badge> : null}
+        <span className="text-muted-foreground">Data-alvo {fmtData(linha.data_alvo)}</span>
+        {linha.pedido_id ? (
+          <button className="text-primary hover:underline" onClick={() => abrir(`/pedidos/${linha.pedido_id}`)}>
+            {String(linha.pedido_id_externo ?? "Pedido")}
+          </button>
+        ) : null}
+      </div>
+      {linha.esquecido_motivo ? (
+        <p className="font-medium text-warning">{String(linha.esquecido_motivo)}</p>
+      ) : null}
+      {linha.detalhe ? <p className="text-muted-foreground line-clamp-2">{String(linha.detalhe)}</p> : null}
+      <p className="text-muted-foreground">Aberto por {String(linha.criado_por_nome ?? "—")}</p>
+    </div>
+  );
+}
+
 function TabelaFila({ fila }: { fila: FilaInbox }) {
   const { data, isLoading, isError, error } = useInboxFilaItens(fila.chave, 25);
 
@@ -270,12 +346,21 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
     return <p className="text-sm text-muted-foreground">Nenhum item nesta fila.</p>;
   }
 
+  const comProblema = (l: Record<string, unknown>, filho: ReactNode, key: string) => (
+    <div key={key} className="space-y-1">
+      {filho}
+      <div className="flex justify-end">
+        <BotaoAbrirProblema fila={fila} linha={l} />
+      </div>
+    </div>
+  );
+
   if (FILAS_B2B_SAIDA.includes(fila.chave)) {
     return (
       <div className="space-y-2">
-        {linhas.map((l) => (
-          <LinhaB2bSaida key={String(l.pedido_id ?? l.id)} chave={fila.chave} linha={l} />
-        ))}
+        {linhas.map((l) =>
+          comProblema(l, <LinhaB2bSaida chave={fila.chave} linha={l} />, String(l.pedido_id ?? l.id)),
+        )}
       </div>
     );
   }
@@ -283,8 +368,16 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
   if (fila.chave === "cd_saldo_a_corrigir") {
     return (
       <div className="space-y-2">
+        {linhas.map((l) => comProblema(l, <LinhaSaldoCd linha={l} />, String(l.id)))}
+      </div>
+    );
+  }
+
+  if (fila.chave === "problemas_esquecidos") {
+    return (
+      <div className="space-y-2">
         {linhas.map((l) => (
-          <LinhaSaldoCd key={String(l.id)} linha={l} />
+          <LinhaProblemaEsquecido key={String(l.chamado_id)} linha={l} />
         ))}
       </div>
     );
@@ -303,6 +396,7 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
                   {rotuloColuna(c)}
                 </TableHead>
               ))}
+              <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -323,6 +417,9 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
                     </TableCell>
                   );
                 })}
+                <TableCell className="text-right">
+                  <BotaoAbrirProblema fila={fila} linha={linha} compacto />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>

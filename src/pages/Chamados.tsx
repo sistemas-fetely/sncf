@@ -122,6 +122,8 @@ interface Chamado {
   horas_uteis_sla: number | null;
   vencimento: string | null;
   vencido: boolean | null;
+  data_alvo?: string | null;
+  criado_por?: string | null;
   sem_resposta_ha_4h: boolean | null;
   mensagens: number | null;
   resolvido_em: string | null;
@@ -270,7 +272,7 @@ function ChamadosConteudo() {
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [f, setF] = useEstadoTela(
-    { busca: "", cadeira: "todas", prioridade: "todas", tipo: "todos", ordem: "antigo" },
+    { busca: "", cadeira: "todas", prioridade: "todas", tipo: "todos", ordem: "antigo", meusProblemas: "" },
     { replaceKeys: ["busca"] },
   );
   const busca = f.busca;
@@ -287,6 +289,7 @@ function ChamadosConteudo() {
   const setTipo = (v: string) => setF({ tipo: v });
   const ordem = f.ordem as "antigo" | "prioridade" | "vencimento";
   const setOrdem = (v: "antigo" | "prioridade" | "vencimento") => setF({ ordem: v });
+  const meusProblemas = f.meusProblemas === "1";
 
   const [acao, setAcao] = useState<AcaoTipo | null>(null);
   const [alvo, setAlvo] = useState<Chamado | null>(null);
@@ -309,6 +312,22 @@ function ChamadosConteudo() {
         .order("criado_em", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as Chamado[];
+    },
+  });
+
+  const problemas = useQuery({
+    queryKey: ["vw_chamado_problema_aberto"],
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from("vw_chamado_problema_aberto")
+        .select("chamado_id, esquecido, esquecido_motivo");
+      if (error) throw error;
+      const m = new Map<string, { esquecido: boolean; esquecido_motivo: string | null }>();
+      for (const r of (data ?? []) as { chamado_id: string; esquecido: boolean; esquecido_motivo: string | null }[]) {
+        m.set(r.chamado_id, r);
+      }
+      return m;
     },
   });
 
@@ -372,6 +391,14 @@ function ChamadosConteudo() {
     if (cadeira !== "todas") itens = itens.filter((c) => c.cadeira === cadeira);
     if (prioridade !== "todas") itens = itens.filter((c) => c.prioridade === prioridade);
     if (tipo !== "todos") itens = itens.filter((c) => c.tipo === tipo);
+    if (meusProblemas) {
+      itens = itens.filter(
+        (c) =>
+          c.tipo === "problema" &&
+          !!user?.id &&
+          (c.atribuido_a === user.id || c.criado_por === user.id),
+      );
+    }
 
     const termo = busca.trim().toLowerCase();
     if (termo) {
@@ -400,8 +427,15 @@ function ChamadosConteudo() {
     } else {
       copia.sort((a, b) => (a.criado_em ?? "").localeCompare(b.criado_em ?? ""));
     }
+    // Esquecidos primeiro (sort estável preserva a ordem escolhida dentro de cada grupo).
+    const esq = problemas.data;
+    if (esq && esq.size > 0) {
+      copia.sort(
+        (a, b) => Number(!!esq.get(b.chamado_id)?.esquecido) - Number(!!esq.get(a.chamado_id)?.esquecido),
+      );
+    }
     return copia;
-  }, [lista.data, visao, cadeira, prioridade, tipo, busca, ordem, user?.id]);
+  }, [lista.data, visao, cadeira, prioridade, tipo, busca, ordem, user?.id, meusProblemas, problemas.data]);
 
   const listaPronta = !lista.isLoading && !!lista.data;
   useFocoAoVoltar({ pronto: listaPronta, idsVisiveis: filtrados.map((c) => c.chamado_id) });
@@ -638,6 +672,14 @@ function ChamadosConteudo() {
               <SelectItem value="vencimento">Vencimento</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            size="sm"
+            variant={meusProblemas ? "default" : "outline"}
+            className="h-9"
+            onClick={() => setF({ meusProblemas: meusProblemas ? "" : "1" })}
+          >
+            Meus problemas
+          </Button>
           <span className="text-sm text-muted-foreground">
             {filtrados.length} resultado(s)
           </span>
@@ -725,6 +767,26 @@ function ChamadosConteudo() {
                         >
                           {TIPO_ROTULO[c.tipo ?? ""] ?? c.tipo ?? "—"}
                         </Badge>
+                        {c.tipo === "problema" && c.data_alvo && (
+                          <div className="mt-0.5 text-[10px] text-muted-foreground whitespace-nowrap">
+                            alvo {new Date(`${c.data_alvo.slice(0, 10)}T00:00:00`).toLocaleDateString("pt-BR")}
+                          </div>
+                        )}
+                        {problemas.data?.get(c.chamado_id)?.esquecido && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Badge
+                                variant="outline"
+                                className="mt-0.5 border-warning/60 bg-warning/10 text-[10px] text-warning"
+                              >
+                                Esquecido
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              {problemas.data?.get(c.chamado_id)?.esquecido_motivo ?? "Problema esquecido"}
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </TableCell>
                       <TableCell className="max-w-[240px]">
                         {c.assunto ? (

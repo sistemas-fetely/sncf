@@ -79,6 +79,7 @@ import { DesvincularBlingDialog } from "@/components/pedidos/dialogs/Desvincular
 import { AnotarPedidoDialog } from "@/components/pedidos/dialogs/AnotarPedidoDialog";
 import { CanalFopTab } from "@/components/pedidos/CanalFopTab";
 import { BotaoEditarPedido } from "@/components/pedidos/BotaoEditarPedido";
+import { BotaoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
 import { EditarItensDialog } from "@/components/pedidos/dialogs/EditarItensDialog";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { usePlanoAbertoPedido, rotuloMeio } from "@/hooks/pedidos/usePlanoAbertoPedido";
@@ -3156,6 +3157,7 @@ export default function PedidoDetalhe() {
                 <p className="text-[10px] uppercase tracking-widest text-muted-foreground">Ações</p>
               )}
               {temNivel(2) && <BotaoEditarPedido pedido={pedido} itens={itens} />}
+              <BotaoAbrirProblema contexto={{ pedidoRef: pedido.id_externo, descricao: `Pedido ${pedido.id_externo} — ` }} />
               <div className="border-t border-border/40" />
               {!estagioFinal && (
                 <AcaoPrimaria pedido={pedido} parceiro={parceiro} estagio={estagio} geraTituloReceber={geraTituloReceber} exigeExpedicao={natureza?.exige_expedicao !== false} />
