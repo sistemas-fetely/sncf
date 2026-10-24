@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -172,6 +175,7 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
 
   return (
     <div
+      data-foco-id={l.titulo_id}
       className={cn(
         "rounded-md border bg-card p-3 space-y-2",
         grave ? "border-l-4 border-l-destructive" : "border-l-4 border-l-warning",
@@ -246,7 +250,7 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
           size="sm"
           variant="outline"
           className="h-7 text-xs"
-          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/pedidos/${l.pedido_id}`, { label: "Sem Prova" })}
+          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/pedidos/${l.pedido_id}`, { label: "Sem Prova", foco: l.titulo_id, focoParam: "sp_foco" })}
         >
           Ver pedido
         </Button>
@@ -254,7 +258,7 @@ function CardSemProva({ l }: { l: LinhaMesa }) {
           size="sm"
           variant="ghost"
           className="h-7 text-xs"
-          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/recebimento/cobranca/${l.pedido_id}`, { label: "Sem Prova" })}
+          onClick={() => l.pedido_id && abrirDetalhe(navigate, location, `/recebimento/cobranca/${l.pedido_id}`, { label: "Sem Prova", foco: l.titulo_id, focoParam: "sp_foco" })}
         >
           Ver título
         </Button>
@@ -268,9 +272,12 @@ export default function SemProvaTab() {
   const { data: instrumento = [], isLoading: loadingInstr } = useInstrumentoQuebradoFila();
   const { data: naoCobravel = [], isLoading: loadingNC } = useNaoCobravelFila();
 
-  const [filtro, setFiltro] = useState<ChaveFiltro | null>(null);
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtro do card na URL (prefixo "sp"). */
+  const [estTela, setEstTela] = useEstadoTela({ filtro: "" }, { prefixo: "sp" });
+  const filtro = (estTela.filtro || null) as ChaveFiltro | null;
+  const setFiltro = (v: ChaveFiltro | null) => setEstTela({ filtro: v ?? "" });
   /** Clicar no card ativo desliga o filtro — nao precisa de botao "limpar". */
-  const alternar = (k: ChaveFiltro) => setFiltro((atual) => (atual === k ? null : k));
+  const alternar = (k: ChaveFiltro) => setFiltro(filtro === k ? null : k);
   const mostra = (k: ChaveFiltro) => filtro === null || filtro === k;
 
   const blocos = useMemo(() => {
@@ -281,6 +288,11 @@ export default function SemProvaTab() {
         .sort((a, b) => Number(b.valor_atual ?? 0) - Number(a.valor_atual ?? 0)),
     }));
   }, [linhas]);
+
+  const pronto = !isLoading && !loadingInstr && !loadingNC;
+  const idsFocaveis = [...linhas, ...instrumento, ...naoCobravel].map((l) => l.titulo_id as string);
+  useFocoAoVoltar({ pronto, idsVisiveis: idsFocaveis, focoParam: "sp_foco" });
+  useRestaurarScroll(null, pronto);
 
   if (isLoading || loadingInstr || loadingNC) {
     return (

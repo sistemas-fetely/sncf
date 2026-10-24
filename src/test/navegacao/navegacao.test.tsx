@@ -140,3 +140,34 @@ describe("useEstadoTela com prefixo e boolean/ordem (Leva 2)", () => {
     expect(loc.current).toBe("/recebimento/cobranca?aba=mesa");
   });
 });
+
+describe("useEstadoTela — datas de/até (Títulos)", () => {
+  const D = { vencDe: "", vencAte: "" };
+  let api: ReturnType<typeof useEstadoTela<typeof D>>;
+  function Tela() {
+    api = useEstadoTela(D, { prefixo: "tit" });
+    return <Espia />;
+  }
+  it("default vazio fica fora da URL; data entra e volta como string", () => {
+    render(<MemoryRouter initialEntries={["/c?aba=titulos"]}><Tela /></MemoryRouter>);
+    expect(loc.current).toBe("/c?aba=titulos");
+    act(() => api[1]({ vencDe: "2026-10-01", vencAte: "2026-10-31" }));
+    expect(loc.current).toContain("tit_vencDe=2026-10-01");
+    expect(loc.current).toContain("tit_vencAte=2026-10-31");
+    expect(api[0].vencDe).toBe("2026-10-01");
+    expect(typeof api[0].vencDe).toBe("string");
+    act(() => api[1]({ vencDe: "", vencAte: "" }));
+    expect(loc.current).toBe("/c?aba=titulos");
+  });
+  it("lê a data da URL ao voltar", () => {
+    render(<MemoryRouter initialEntries={["/c?tit_vencDe=2026-10-01"]}><Tela /></MemoryRouter>);
+    expect(api[0].vencDe).toBe("2026-10-01");
+    expect(api[0].vencAte).toBe("");
+  });
+});
+
+describe("chaveScroll ignora qualquer *_foco", () => {
+  it("tit_foco e sp_foco não mudam a chave", () => {
+    expect(chaveScroll("/x", "?a=1&tit_foco=9&sp_foco=2")).toBe(chaveScroll("/x", "?a=1"));
+  });
+});

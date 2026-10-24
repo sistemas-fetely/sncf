@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useLocation } from "react-router-dom";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RefreshCw, Star, AlertTriangle, Users, Play, Send, ChevronRight, CheckCircle2, Minus } from "lucide-react";
@@ -558,7 +561,10 @@ export default function ReguaTab() {
   );
   const { data: conferencias } = useBoletoVencimentoConferencia();
 
-  const [vista, setVista] = useState<Vista>("fila");
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: a vista (fila/pausados) vive na URL (prefixo "regua"). */
+  const [estTela, setEstTela] = useEstadoTela({ vista: "fila" }, { prefixo: "regua" });
+  const vista = estTela.vista as Vista;
+  const setVista = (v: Vista) => setEstTela({ vista: v });
   const [acaoDialog, setAcaoDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null; modo: "enviada" | "pulada"; reenvio?: boolean; ultimaEm?: string | null } | null>(null);
   const [pausarDialog, setPausarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
   const [renegociarDialog, setRenegociarDialog] = useState<{ titulo: TituloCobranca; etapa: ReguaEtapa | null } | null>(null);
@@ -619,13 +625,14 @@ export default function ReguaTab() {
 
   const abrirTitulo = (t: TituloCobranca) => {
     const pedidoId = (t as any)._mesa?.pedido_id ?? t.pedido_id;
-    if (pedidoId) abrirDetalhe(navigate, location, `/pedidos/${pedidoId}`, { label: "Régua" });
+    if (pedidoId) abrirDetalhe(navigate, location, `/pedidos/${pedidoId}`, { label: "Régua", foco: t.id, focoParam: "regua_foco" });
     else toast.info("Este título não tem pedido vinculado para abrir.");
   };
 
   const cardCompleto = (t: TituloCobranca, opts?: { zonaAtraso?: boolean }) => {
     const etapa = resolverEtapaParaTitulo(t, etapas);
     return (
+      <div data-foco-id={t.id}>
       <CardTitulo
         titulo={t}
         etapa={etapa}
@@ -643,8 +650,17 @@ export default function ReguaTab() {
           setAcaoDialog({ titulo: t, etapa: u.etapa, modo: "enviada", reenvio: true, ultimaEm: u.em });
         }}
       />
+      </div>
     );
   };
+
+  const prontoRegua = !loadingFila && !loadingFora && !loadingPausados;
+  const idsFocaveis = useMemo(() => {
+    const ids = vista === "pausados" ? pausados : [...fila, ...foraDaReguaVisivel];
+    return ids.map((t) => t.id as string);
+  }, [vista, pausados, fila, foraDaReguaVisivel]);
+  useFocoAoVoltar({ pronto: prontoRegua, idsVisiveis: idsFocaveis, focoParam: "regua_foco" });
+  useRestaurarScroll(null, prontoRegua);
 
   /* Vencido não se calcula aqui: os números vêm da fonte única `vw_titulo_estado`. */
   const { kpis: estadoTitulos } = useTituloEstadoKpis();
@@ -758,12 +774,13 @@ export default function ReguaTab() {
             ) : (
               <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {foraDaReguaVisivel.map((t) => (
-                  <CardForaDaRegua
-                    key={t.id}
-                    titulo={t}
-                    onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
-                    onVerTitulo={() => abrirTitulo(t)}
-                  />
+                  <div key={t.id} data-foco-id={t.id}>
+                    <CardForaDaRegua
+                      titulo={t}
+                      onRenegociar={() => setRenegociarDialog({ titulo: t, etapa: null })}
+                      onVerTitulo={() => abrirTitulo(t)}
+                    />
+                  </div>
                 ))}
               </div>
             )}
