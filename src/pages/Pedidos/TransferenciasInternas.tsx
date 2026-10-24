@@ -178,6 +178,8 @@ export default function TransferenciasInternas() {
     ? linhas
     : linhas.filter((t) => t.finalidade_codigo !== "venda_fora");
   const nVendaFora = linhas.length - visiveis.length;
+  useFocoAoVoltar({ pronto: listaQ.isSuccess, idsVisiveis: visiveis.map((t) => t.id), focoParam: "tr_foco" });
+  useRestaurarScroll(null, listaQ.isSuccess);
   const nOrfaos = visiveis.filter((t) => t.orfao === true).length;
 
   const idsLista = linhas.map((t) => t.id);
