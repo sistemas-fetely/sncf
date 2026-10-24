@@ -1,5 +1,6 @@
 import { Controller, useFieldArray, useForm } from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -128,13 +129,19 @@ export default function TransferenciasInternas() {
     abaUrl === "nova" || abaUrl === "receber" ? abaUrl
     : abaUrl === "retorno" && permRetorno.podeVer ? "retorno"
     : "transferencias";
-  const [soOrfaos, setSoOrfaos] = useState(false);
+  const location = useLocation();
+  // Filtros da lista (aba Transferências) na URL, prefixo "tr".
+  const [nav, setNav] = useEstadoTela({ orfaos: false, vendaFora: false, finalidade: "todas" }, { prefixo: "tr" });
+  const soOrfaos = nav.orfaos;
+  const setSoOrfaos = (v: boolean | ((p: boolean) => boolean)) => setNav({ orfaos: typeof v === "function" ? v(nav.orfaos) : v });
   // Venda fora (Casa 22) é operação de consignado: fica fora da lista e dos
   // contadores da tela até o chip "Mostrar venda fora" ser ligado.
-  const [mostrarVendaFora, setMostrarVendaFora] = useState(false);
+  const mostrarVendaFora = nav.vendaFora;
+  const setMostrarVendaFora = (v: boolean | ((p: boolean) => boolean)) => setNav({ vendaFora: typeof v === "function" ? v(nav.vendaFora) : v });
   const semBaixaRef = useRef<HTMLDivElement>(null);
 
-  const [filtroFinalidade, setFiltroFinalidade] = useState("todas");
+  const filtroFinalidade = nav.finalidade;
+  const setFiltroFinalidade = (v: string) => setNav({ finalidade: v });
   const finalidadesFiltroQ = useQuery({
     queryKey: ["transferencia-finalidades-todas"],
     queryFn: async () => {
@@ -365,10 +372,11 @@ export default function TransferenciasInternas() {
               </TableHeader>
               <TableBody>
                 {visiveis.filter((t) => !soOrfaos || t.orfao === true).filter((t) => filtroFinalidade === "todas" || t.finalidade_codigo === filtroFinalidade).map((t) => {
-                  const abrir = () => navigate(`/pedidos/${t.id}`);
+                  const abrir = () => abrirDetalhe(navigate, location, `/pedidos/${t.id}`, { foco: t.id, label: "Transferências", focoParam: "tr_foco" });
                   return (
                     <TableRow
                       key={t.id}
+                      data-foco-id={t.id}
                       className="cursor-pointer hover:bg-muted/50"
                       role="link"
                       tabIndex={0}

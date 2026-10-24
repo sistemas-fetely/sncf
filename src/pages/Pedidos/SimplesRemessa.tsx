@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -79,6 +80,9 @@ function PainelRemessas() {
   });
   useEffect(() => { if (q.isError) toast.error(formatError(q.error)); }, [q.isError, q.error]);
   const linhas = q.data ?? [];
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: linhas.map((r) => r.id), focoParam: "sr_foco" });
+  useRestaurarScroll(null, q.isSuccess);
   return (
     <Card>
       <CardHeader><CardTitle className="text-base">Remessas</CardTitle></CardHeader>
@@ -94,7 +98,7 @@ function PainelRemessas() {
             </TableRow></TableHeader>
             <TableBody>
               {linhas.map((r) => (
-                <TableRow key={r.id} className={r.cancelado_em ? "opacity-60" : "cursor-pointer"} onClick={() => navigate(`/pedidos/${r.id}`)}>
+                <TableRow key={r.id} data-foco-id={r.id} className={r.cancelado_em ? "opacity-60" : "cursor-pointer"} onClick={() => abrirDetalhe(navigate, location, `/pedidos/${r.id}`, { foco: r.id, label: "Simples remessa", focoParam: "sr_foco" })}>
                   <TableCell className="font-medium text-primary">{r.id_externo ?? "—"}</TableCell>
                   <TableCell className="tabular-nums">{r.data_pedido ? formatDateBR(r.data_pedido) : "—"}</TableCell>
                   <TableCell>{r.natureza_nome ?? "—"}</TableCell>
@@ -114,9 +118,12 @@ function PainelRemessas() {
 }
 
 function ConsumoShowroom() {
-  const [de, setDe] = useState(mesISO(-5));
-  const [ate, setAte] = useState(mesISO(0));
-  const [busca, setBusca] = useState("");
+  // Filtros da aba Painel na URL (prefixo "cs"); default fica fora da URL.
+  const [nav, setNav] = useEstadoTela({ de: mesISO(-5), ate: mesISO(0), busca: "" }, { prefixo: "cs" });
+  const { de, ate, busca } = nav;
+  const setDe = (v: string) => setNav({ de: v });
+  const setAte = (v: string) => setNav({ ate: v });
+  const setBusca = (v: string) => setNav({ busca: v });
   const { resolver: resolverCod } = useCodigoProdutoMap();
   const q = useQuery({
     queryKey: ["consumo-showroom", de, ate],
