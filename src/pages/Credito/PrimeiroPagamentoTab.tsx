@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { usePrimeiroPagamentoFila } from "@/hooks/credito/usePrimeiroPagamentoFila";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -39,15 +41,30 @@ const DIR_INICIAL_PRIMEIRO_PGTO: Record<ColunaPrimeiroPgto, DirecaoOrdenacao> = 
 const CHAVE_PAGINA_PRIMEIRO_PGTO = "fetely:cobranca:primeiro-pagamento:page-size";
 
 export default function PrimeiroPagamentoTab() {
-  const [busca, setBusca] = useState("");
+  const [est, setEst] = useEstadoTela(
+    { busca: "", pagina: 1, ordem: "" },
+    { replaceKeys: ["busca"], prefixo: "pp" },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
   const { data, isLoading } = usePrimeiroPagamentoFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
 
   // REFERENCIA-SEMPRE: uma única tela de confirmação, modo SOPS (anexo opcional).
   const [confirmando, setConfirmando] = useState<{ pedidoId: string } | null>(null);
 
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoPrimeiroPgto>(null);
-  const [pagina, setPagina] = useState(1);
+  const ordenacao = useMemo<OrdenacaoPrimeiroPgto>(() => {
+    const [coluna, dir] = est.ordem.split(":");
+    return coluna ? ({ coluna, dir } as unknown as OrdenacaoPrimeiroPgto) : null;
+  }, [est.ordem]);
+  const setOrdenacao = (fn: (a: OrdenacaoPrimeiroPgto) => OrdenacaoPrimeiroPgto) => {
+    const n = fn(ordenacao);
+    setEst({ ordem: n ? `${n.coluna}:${n.dir}` : "" });
+  };
+  const pagina = est.pagina;
+  const setPagina = (n: number) => setEst({ pagina: n });
+  const primeiraRender = useRef(true);
+  useRestaurarScroll(null, !isLoading);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_PRIMEIRO_PGTO),
   );
@@ -63,8 +80,9 @@ export default function PrimeiroPagamentoTab() {
   };
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, ordenacao]);
+  }, [busca, est.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // VAZIO-VAI-PRO-FIM: celula sem dado nunca ganha primeiro lugar.
   const ordenados = useMemo(() => {
