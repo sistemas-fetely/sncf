@@ -3,6 +3,7 @@
  * A permissão em si se concede no Console de Acesso; aqui fica a decisão.
  */
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -57,8 +58,11 @@ export function useContagemPedidosAbertos(habilitado: boolean) {
 
 export default function PedidosAcessoTab() {
   const qc = useQueryClient();
-  const [status, setStatus] = useState("aberto");
-  const [pagina, setPagina] = useState(1);
+  const [__nav, __setNav] = useEstadoTela({ status: "aberto", pagina: 1 } as Record<string, string | number | boolean | null>, { prefixo: "pa" });
+  const status = __nav.status as string;
+  const setStatus = (v: any) => __setNav({ status: resolverAcao(v, __nav.status as any) } as any);
+  const pagina = __nav.pagina as number;
+  const setPagina = (v: any) => __setNav({ pagina: resolverAcao(v, __nav.pagina as any) } as any);
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [decidir, setDecidir] = useState<{ p: PedidoAcesso; s: "concedido" | "recusado" } | null>(null);
   const [nota, setNota] = useState("");

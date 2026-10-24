@@ -3,6 +3,7 @@
  * Vivo por padrão; ordenação dinheiro-grande-primeiro (severidade, valor).
  */
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { formatBRL } from "@/lib/format-currency";
 import { formatError } from "@/lib/format-error";
@@ -60,12 +61,18 @@ export default function AchadosTab({
   const dims = useDimsAuditoria();
   const donos = useDonosAuditoria();
 
-  const [modulo, setModulo] = useState(TODOS);
-  const [severidade, setSeveridade] = useState(TODOS);
+  const [__nav, __setNav] = useEstadoTela({ modulo: TODOS, severidade: TODOS, busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "ach" });
+
+  const modulo = __nav.modulo as number;
+
+  const setModulo = (v: any) => __setNav({ modulo: resolverAcao(v, __nav.modulo as any) } as any);
+  const severidade = __nav.severidade as number;
+  const setSeveridade = (v: any) => __setNav({ severidade: resolverAcao(v, __nav.severidade as any) } as any);
   const [situacao, setSituacao] = useState(TODOS);
   const [dono, setDono] = useState(TODOS);
   const [incluir, setIncluir] = useState(false);
-  const [busca, setBusca] = useState("");
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [aberto, setAberto] = useState<Record<string, boolean>>({});
   const [selecionado, setSelecionado] = useState<Achado | null>(null);
 

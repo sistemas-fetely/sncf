@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { Bell, ExternalLink, Check, Undo2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,7 +42,9 @@ export default function MinhasNotificacoes() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<Filtro>("nao_lidas");
+  const [__nav, __setNav] = useEstadoTela({ filtro: "nao_lidas" } as Record<string, string | number | boolean | null>);
+  const filtro = __nav.filtro as Filtro;
+  const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
   const [paginas, setPaginas] = useState(1);
   const [agindo, setAgindo] = useState(false);
 

@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useState } from "react";
 import { MessageSquareWarning, Clock, AlertCircle, Loader2, Trash2 } from "lucide-react";
 import {
@@ -60,7 +61,9 @@ const STATUS_COR: Record<string, string> = {
 export default function SistemaReportes() {
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
-  const [filtroStatus, setFiltroStatus] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ filtroStatus: "" } as Record<string, string | number | boolean | null>);
+  const filtroStatus = __nav.filtroStatus as string;
+  const setFiltroStatus = (v: any) => __setNav({ filtroStatus: resolverAcao(v, __nav.filtroStatus as any) } as any);
   const { data: reportes, isLoading } = useReportesInbox(filtroStatus || undefined);
   const [selecionado, setSelecionado] = useState<Reporte | null>(null);
   const [respostaAdmin, setRespostaAdmin] = useState("");

@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, FileText, Search, BookOpen, ChevronRight, Trash2 } from "lucide-react";
@@ -50,8 +51,11 @@ export default function DocumentacaoGeral() {
 
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroCategoria, setFiltroCategoria] = useState("todos");
-  const [buscaTexto, setBuscaTexto] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ filtroCategoria: "todos", buscaTexto: "" } as Record<string, string | number | boolean | null>);
+  const filtroCategoria = __nav.filtroCategoria as string;
+  const setFiltroCategoria = (v: any) => __setNav({ filtroCategoria: resolverAcao(v, __nav.filtroCategoria as any) } as any);
+  const buscaTexto = __nav.buscaTexto as string;
+  const setBuscaTexto = (v: any) => __setNav({ buscaTexto: resolverAcao(v, __nav.buscaTexto as any) } as any);
   const [deleteTarget, setDeleteTarget] = useState<Documento | null>(null);
 
   useEffect(() => {

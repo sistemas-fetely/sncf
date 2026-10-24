@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { useNavigate } from "react-router-dom";
 import {
@@ -123,11 +124,14 @@ export default function Conhecimento() {
   const [itens, setItens] = useState<Conhecimento[]>([]);
   const [sugestoes, setSugestoes] = useState<SugestaoPendente[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busca, setBusca] = useState("");
-  const [filtroCategoria, setFiltroCategoria] = useState<string>("todas");
+  const [__nav, __setNav] = useEstadoTela({ busca: "", filtroCategoria: FORM_INICIAL } as Record<string, string | number | boolean | null>);
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
+  const filtroCategoria = __nav.filtroCategoria as string>("todas");
   const [showForm, setShowForm] = useState(false);
   const [salvando, setSalvando] = useState(false);
-  const [form, setForm] = useState<FormState>(FORM_INICIAL);
+  const [form, setForm] = useState<FormState;
+  const setFiltroCategoria = (v: any) => __setNav({ filtroCategoria: resolverAcao(v, __nav.filtroCategoria as any) } as any);
   const [tagInput, setTagInput] = useState("");
   const [aprovandoSugestao, setAprovandoSugestao] = useState<SugestaoPendente | null>(null);
   const [confirmarDesativar, setConfirmarDesativar] = useState<Conhecimento | null>(null);

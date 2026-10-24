@@ -2,6 +2,7 @@
 // O operador declara um FATO FÍSICO que o sistema não consegue observar.
 // Cada declaração viva é uma DÍVIDA DE INTEGRAÇÃO em aberto.
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -498,7 +499,9 @@ function NovaDeclaracaoForm({
   const [tipoCodigo, setTipoCodigo] = useState("");
   const [motivoCodigo, setMotivoCodigo] = useState("");
   const [alvo, setAlvo] = useState<Alvo | null>(null);
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "md" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [dataFato, setDataFato] = useState("");
   const [transportadoraId, setTransportadoraId] = useState("");
   const [observacao, setObservacao] = useState("");

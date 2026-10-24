@@ -2,6 +2,7 @@
 // O catálogo de campos personalizados de tarefa é da empresa inteira: nasce aqui,
 // uma vez, e é reaproveitado. Ligar a um projeto é decisão de cada projeto.
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { Loader2, Pencil, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 
 import { PageShell } from "@/components/layout/PageShell";
@@ -60,7 +61,11 @@ export default function CamposTarefa() {
   const alternar = useAlternarAtivoCampo();
   const apagar = useApagarCampoCatalogo();
 
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>);
+
+  const busca = __nav.busca as string;
+
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<CampoCatalogoUso | null>(null);
   const [form, setForm] = useState<FormEstado>(FORM_VAZIO);
