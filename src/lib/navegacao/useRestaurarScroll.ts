@@ -6,8 +6,7 @@ const PREFIXO = "scroll:";
 /** Chave = pathname + search sem `foco`. */
 export function chaveScroll(pathname: string, search: string): string {
   const p = new URLSearchParams(search);
-  p.delete("foco");
-  p.delete("mc_foco");
+  for (const k of [...p.keys()]) if (k === "foco" || k.endsWith("_foco")) p.delete(k);
   const s = p.toString();
   return PREFIXO + pathname + (s ? `?${s}` : "");
 }
@@ -22,7 +21,7 @@ export function useRestaurarScroll(ref: RefObject<HTMLElement> | null, pronto: b
   const chave = chaveScroll(pathname, search);
   const temFoco = (() => {
     const q = new URLSearchParams(search);
-    return q.has("foco") || q.has("mc_foco");
+    return [...q.keys()].some((k) => k === "foco" || k.endsWith("_foco"));
   })();
   const restaurou = useRef(false);
 
