@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
@@ -68,6 +71,16 @@ type ColunaB2c =
   | "cd" | "estagio" | "dono" | "proxima_acao" | "financeiro" | "rastreio";
 
 type OrdenacaoB2c = { coluna: ColunaB2c; dir: DirecaoOrdenacao } | null;
+
+const COLUNAS_B2C: ColunaB2c[] = ["pedido", "bling", "data", "cliente", "valor", "cd", "estagio", "dono", "proxima_acao", "financeiro", "rastreio"];
+/** URL guarda a ordem como "coluna:dir". */
+const ordemParaTexto = (o: OrdenacaoB2c) => (o ? `${o.coluna}:${o.dir}` : "");
+const textoParaOrdem = (t: string): OrdenacaoB2c => {
+  const [c, d] = t.split(":");
+  return COLUNAS_B2C.includes(c as ColunaB2c) && (d === "asc" || d === "desc")
+    ? { coluna: c as ColunaB2c, dir: d }
+    : null;
+};
 
 /** Primeiro clique: data e dinheiro descem (recente/maior primeiro), texto sobe. */
 const DIR_INICIAL_B2C: Record<ColunaB2c, DirecaoOrdenacao> = {
@@ -278,12 +291,20 @@ export default function ShopifyB2c() {
   }, [carregandoPermissoes, abaEfetiva, abaSolicitada, searchParams, setSearchParams]);
 
 
-  const [busca, setBusca] = useState("");
-  const [uf, setUf] = useState("todas");
-  const [alerta, setAlerta] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página vivem na URL.
+  const [estadoTela, setEstadoTela] = useEstadoTela(
+    { busca: "", uf: "todas", alerta: "todos", cd: "todos", ordem: "", pagina: 1 },
+    { replaceKeys: ["busca"] },
+  );
+  const { busca, uf, alerta, cd: cdFiltro, pagina } = estadoTela;
+  const setBusca = (v: string) => setEstadoTela({ busca: v });
+  const setUf = (v: string) => setEstadoTela({ uf: v });
+  const setAlerta = (v: string) => setEstadoTela({ alerta: v });
+  const setCdFiltro = (v: string) => setEstadoTela({ cd: v });
+  const setPagina = (n: number) => setEstadoTela({ pagina: n });
+  const ordenacao = useMemo(() => textoParaOrdem(estadoTela.ordem), [estadoTela.ordem]);
+  const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoB2c>(null);
-  const [cdFiltro, setCdFiltro] = useState("todos");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [gravandoCd, setGravandoCd] = useState(false);
   const [confirmacao, setConfirmacao] = useState<{
@@ -297,12 +318,15 @@ export default function ShopifyB2c() {
   const [reprocessando, setReprocessando] = useState(false);
 
   const ordenarPor = (coluna: ColunaB2c) => {
-    setOrdenacao((atual) => {
-      if (!atual || atual.coluna !== coluna) return { coluna, dir: DIR_INICIAL_B2C[coluna] };
+    const atual = ordenacao;
+    let prox: OrdenacaoB2c;
+    if (!atual || atual.coluna !== coluna) prox = { coluna, dir: DIR_INICIAL_B2C[coluna] };
+    else {
       const invertida: DirecaoOrdenacao = atual.dir === "asc" ? "desc" : "asc";
       // Fechou o ciclo: volta a ordem padrao da view (data do pedido, mais recente primeiro).
-      return invertida === DIR_INICIAL_B2C[coluna] ? null : { coluna, dir: invertida };
-    });
+      prox = invertida === DIR_INICIAL_B2C[coluna] ? null : { coluna, dir: invertida };
+    }
+    setEstadoTela({ ordem: ordemParaTexto(prox), pagina: 1 });
   };
 
   // TOPO-COLADO-SE-MEDE: o cabecalho cola logo abaixo do funil, e a altura do
@@ -842,16 +866,21 @@ export default function ShopifyB2c() {
     });
   }, [filtrados, ordenacao]);
 
-  const [pagina, setPagina] = useState(1);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_B2C),
   );
 
   // Trocar a seleção joga o operador de volta pra primeira página — senão ele
   // fica olhando uma página 7 que já não existe.
+  // Não roda na montagem: a página que veio da URL (voltar do detalhe) fica.
+  const primeiraSelecao = useRef(true);
   useEffect(() => {
-    setPagina(1);
-  }, [busca, uf, alerta, estagioParam, ordenacao, cdFiltro]);
+    if (primeiraSelecao.current) {
+      primeiraSelecao.current = false;
+      return;
+    }
+    if (pagina !== 1) setPagina(1);
+  }, [busca, uf, alerta, estagioParam, estadoTela.ordem, cdFiltro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const totalPaginasB2c = Math.max(1, Math.ceil(ordenados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginasB2c);
@@ -859,6 +888,17 @@ export default function ShopifyB2c() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+
+  useFocoAoVoltar({
+    pronto: !isLoading,
+    idsVisiveis: paginaItens.map((p) => String(p.pedido_id ?? p.shopify_id ?? "")),
+    aoNaoEncontrar: (id) =>
+      toast.info("O pedido aberto saiu desta lista", {
+        action: { label: "Abrir", onClick: () => navigate(`/pedidos/${id}`) },
+      }),
+  });
+  // A lista rola com a janela.
+  useRestaurarScroll(null, !isLoading);
 
 
   const copiar = (v: string, label: string) => {
@@ -1118,6 +1158,7 @@ export default function ShopifyB2c() {
                           paginaItens.map((p, idx) => (
                             <TableRow
                               key={`${p.shopify_id ?? p.order_name ?? "sem-id"}-${idx}`}
+                              data-foco-id={p.pedido_id ?? p.shopify_id ?? undefined}
                               onClick={() => setSelecionado(p)}
                               className={cn(
                                 "cursor-pointer transition-colors duration-700",
