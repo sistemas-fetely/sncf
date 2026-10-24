@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronDown, ChevronUp, ListChecks, AlertTriangle, Flag } from "lucide-react";
+import { useVincularNfCandidata } from "@/components/pedidos/BlocoTravadoB2B";
 import { DialogoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
@@ -135,6 +136,8 @@ function LinhaB2bSaida({ chave, linha }: { chave: string; linha: Record<string, 
   const [cobrando, setCobrando] = useState(false);
   const [obs, setObs] = useState("");
   const pedidoId = String(linha.pedido_id ?? "");
+  const vincular = useVincularNfCandidata(pedidoId);
+  const nfQtd = Number(linha.nf_candidatas_qtd ?? 0);
 
   const cobrar = useMutation({
     mutationFn: async () => {
@@ -200,6 +203,31 @@ function LinhaB2bSaida({ chave, linha }: { chave: string; linha: Record<string, 
           </span>
         ))}
       </div>
+      {chave === "b2b_embarcado_sem_nf" && (
+        <div className="flex flex-wrap items-center gap-2">
+          {linha.nf_candidata_numero ? (
+            <>
+              <span>
+                NF candidata {String(linha.nf_candidata_numero)}
+                {linha.nf_candidata_emissao ? ` (${fmtData(linha.nf_candidata_emissao).slice(0, 5)})` : ""}
+              </span>
+              {nfQtd > 1 ? (
+                <span className="text-muted-foreground">+{nfQtd - 1} candidata(s)</span>
+              ) : (
+                permitido === true &&
+                linha.nf_candidata_id && (
+                  <Button size="sm" variant="outline" className="h-7" disabled={vincular.isPending}
+                    onClick={() => vincular.mutate(String(linha.nf_candidata_id))}>
+                    Vincular NF
+                  </Button>
+                )
+              )}
+            </>
+          ) : (
+            <span className="text-muted-foreground">Sem NF candidata — emitir no Bling</span>
+          )}
+        </div>
+      )}
       {acoes && (
         <div className="flex flex-wrap gap-2">
           {chave === "b2b_transporte_sem_noticia" && (
