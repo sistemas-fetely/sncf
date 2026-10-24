@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Loader2, FileText, Search, BookOpen, ChevronRight, Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,9 @@ const SNCF_COLOR = "#1A4A3A";
 
 export default function DocumentacaoGeral() {
   const navigate = useNavigate();
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (docs ?? []).map((x: any) => x.id) });
+  useRestaurarScroll(null, !isLoading);
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
@@ -183,8 +186,9 @@ export default function DocumentacaoGeral() {
                   {docsCategoria.map((doc) => (
                     <Card
                       key={doc.id}
+                      data-foco-id={doc.id}
                       className="cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => navigate(`/documentacao/${doc.slug}`, { state: { from: "/documentacao", fromLabel: "Documentação" } })}
+                      onClick={() => abrirDetalhe(navigate, location, `/documentacao/${doc.slug}`, { foco: doc.id, label: "Documentação" })}
                     >
                       <CardContent className="pt-5 pb-4">
                         <div className="flex items-start justify-between gap-3">

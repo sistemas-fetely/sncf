@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
-import { useNavigate } from "react-router-dom";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   CreditCard, Search, MoreHorizontal, Eye, Loader2,
 } from "lucide-react";
@@ -67,6 +67,9 @@ interface ContratoPJOption {
 
 export default function PagamentosPJ() {
   const navigate = useNavigate();
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: pagamentos.map((x) => x.id) });
+  useRestaurarScroll(null, !loading);
   const [pagamentos, setPagamentos] = useState<PagamentoComContrato[]>([]);
   const [contratos, setContratos] = useState<ContratoPJOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,7 +188,7 @@ export default function PagamentosPJ() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum pagamento encontrado.</TableCell></TableRow>
                 ) : filtered.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/pagamentos-pj/${p.contrato_id}`)}>
+                  <TableRow key={p.id} className="hover:bg-muted/30 transition-colors cursor-pointer" data-foco-id={p.id} onClick={() => abrirDetalhe(navigate, location, `/pagamentos-pj/${p.contrato_id}`, { foco: p.id, label: "Pagamentos PJ" })}>
                     <TableCell className="font-medium text-sm">{p.contrato_nome}</TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{p.nf_numero || "—"}</TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{formatCompetencia(p.competencia)}</TableCell>

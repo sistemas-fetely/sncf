@@ -1,8 +1,8 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   Briefcase, Plus, Search, MoreHorizontal, Eye, Edit, Trash2,
   FileCheck, FileClock, User, ShieldAlert,
@@ -396,6 +396,9 @@ function ContratoPJForm({
 
 export default function ContratosPJ() {
   const navigate = useNavigate();
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: contratos.map((x) => x.id) });
+  useRestaurarScroll(null, !loading);
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles: authRoles } = useAuth();
   const { permitido: podeEditarContrato, carregando: carregandoPermissao } = usePermissaoAcao("acao.contrato_pj_editar");
@@ -594,7 +597,7 @@ export default function ContratosPJ() {
                   </TableRow>
                 ) : (
                   filtered.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/contratos-pj/${c.id}`, { state: { from: "/contratos-pj" } })}>
+                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors cursor-pointer" data-foco-id={c.id} onClick={() => abrirDetalhe(navigate, location, `/contratos-pj/${c.id}`, { foco: c.id, label: "Contratos PJ" })}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">

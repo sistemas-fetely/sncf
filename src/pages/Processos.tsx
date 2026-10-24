@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
-import { useNavigate } from "react-router-dom";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Plus, Search, FileText, Users, Building2, MapPin, Briefcase,
   Monitor, Filter, Loader2, Eye, AlertCircle, Sparkles, Trash2,
@@ -52,6 +52,9 @@ const NATUREZA_LABEL: Record<string, string> = {
 
 export default function Processos() {
   const navigate = useNavigate();
+  const location = useLocation();
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (processos ?? []).map((x: any) => x.id) });
+  useRestaurarScroll(null, !isLoading);
   const { roles } = useAuth();
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
@@ -303,8 +306,9 @@ export default function Processos() {
           {processos.map((p) => (
             <Card
               key={p.id}
+              data-foco-id={p.id}
               className="cursor-pointer hover:shadow-md hover:border-primary/30 transition-all"
-              onClick={() => navigate(`/processos/${p.id}`, { state: { from: "/processos", fromLabel: "Processos" } })}
+              onClick={() => abrirDetalhe(navigate, location, `/processos/${p.id}`, { foco: p.id, label: "Processos" })}
             >
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-start justify-between gap-2">
