@@ -4,7 +4,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { SmartBackButton } from "@/components/SmartBackButton";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeft, Printer, User } from "lucide-react";
+import { Printer, User } from "lucide-react";
 import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis,
 } from "recharts";
