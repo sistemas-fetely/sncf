@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { usePedirAcesso } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
@@ -224,8 +226,10 @@ export default function PlanoDeContas() {
   const canManage = roles.includes("super_admin");
   const pPlano = usePermissaoAcaoOuSuperAdmin("acao.plano_contas_gerir");
 
-  const [busca, setBusca] = useState("");
-  const [tipoFilter, setTipoFilter] = useState<string>("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", tipo: "todos" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const tipoFilter = nav.tipo as string; const setTipoFilter = (v: SetStateAction<typeof tipoFilter>) => setNav({ tipo: resolverAcao(v, tipoFilter) as never });
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   // Dialog state

@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -196,10 +198,12 @@ export default function FluxoCompetencia() {
   const { temNivel } = useNivel();
   const { data = [], isLoading, isError, error } = useFluxoCompetencia();
 
-  const [mes, setMes] = useState<string>("");
-  const [tipo, setTipo] = useState<string>("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ mes: "", tipo: "todos", busca: "" }, { replaceKeys: ["busca"] });
+  const mes = nav.mes as string; const setMes = (v: SetStateAction<typeof mes>) => setNav({ mes: resolverAcao(v, mes) as never });
+  const tipo = nav.tipo as string; const setTipo = (v: SetStateAction<typeof tipo>) => setNav({ tipo: resolverAcao(v, tipo) as never });
   const [elo, setElo] = useState<string>("todos");
-  const [busca, setBusca] = useState("");
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [sortKey, setSortKey] = useState<SortKey>("valor");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [visao, setVisao] = useState<"pedido" | "titulo">("pedido");

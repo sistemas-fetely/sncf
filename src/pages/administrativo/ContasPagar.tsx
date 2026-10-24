@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
@@ -146,7 +148,9 @@ const REGRA_KPI: Record<Exclude<KpiFilter, null>, (c: Conta, limite: string) => 
 export default function ContasPagar() {
   const qc = useQueryClient();
 
-  const [kpiFilter, setKpiFilter] = useState<KpiFilter>(null);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ kpi: null, busca: "", de: "", ate: "", status: "pendentes", solicitante: "todos" }, { replaceKeys: ["busca"] });
+  const kpiFilter = nav.kpi as KpiFilter; const setKpiFilter = (v: SetStateAction<typeof kpiFilter>) => setNav({ kpi: resolverAcao(v, kpiFilter) as never });
   // Altura do bloco sticky de KPIs/filtros — o cabeçalho da tabela fica ancorado logo abaixo dele
   const headerStickyRef = useRef<HTMLDivElement>(null);
   const [headerStickyH, setHeaderStickyH] = useState(0);
@@ -159,11 +163,11 @@ export default function ContasPagar() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const [busca, setBusca] = useState("");
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("pendentes");
-  const [solicitanteFilter, setSolicitanteFilter] = useState<string>("todos");
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const dataDe = nav.de; const setDataDe = (v: SetStateAction<typeof dataDe>) => setNav({ de: resolverAcao(v, dataDe) as never });
+  const dataAte = nav.ate; const setDataAte = (v: SetStateAction<typeof dataAte>) => setNav({ ate: resolverAcao(v, dataAte) as never });
+  const statusFilter = nav.status as string; const setStatusFilter = (v: SetStateAction<typeof statusFilter>) => setNav({ status: resolverAcao(v, statusFilter) as never });
+  const solicitanteFilter = nav.solicitante as string; const setSolicitanteFilter = (v: SetStateAction<typeof solicitanteFilter>) => setNav({ solicitante: resolverAcao(v, solicitanteFilter) as never });
 
   const [contaIdSelecionada, setContaIdSelecionada] = useState<string | null>(null);
   const [novaContaOpen, setNovaContaOpen] = useState(false);

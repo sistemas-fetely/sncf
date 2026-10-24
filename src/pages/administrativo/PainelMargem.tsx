@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
@@ -50,7 +52,9 @@ type SortKey = "margem_b2b" | "margem_b2c" | null;
 type SortDir = "asc" | "desc";
 
 export default function PainelMargem() {
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [grupo, setGrupo] = useState<string>("todos");
   const [colecao, setColecao] = useState<string>("todas");
   const [soAbaixo, setSoAbaixo] = useState(false);

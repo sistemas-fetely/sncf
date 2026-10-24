@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * ÓRFÃOS DE ENTRADA — créditos bancários sem dono identificado.
  *
@@ -271,9 +273,11 @@ function BotaoAceitarSugestao({ orfao }: { orfao: OrfaoEntrada }) {
 
 export default function ConciliacaoOrfaos() {
   const { data: orfaos, isLoading, isError, error } = useConciliacaoOrfaos();
-  const [filtroConta, setFiltroConta] = useState("todas");
-  const [filtroMeio, setFiltroMeio] = useState("todos");
-  const [filtroSugestao, setFiltroSugestao] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ conta: "todas", meio: "todos", sugestao: "todos" });
+  const filtroConta = nav.conta; const setFiltroConta = (v: SetStateAction<typeof filtroConta>) => setNav({ conta: resolverAcao(v, filtroConta) as never });
+  const filtroMeio = nav.meio; const setFiltroMeio = (v: SetStateAction<typeof filtroMeio>) => setNav({ meio: resolverAcao(v, filtroMeio) as never });
+  const filtroSugestao = nav.sugestao; const setFiltroSugestao = (v: SetStateAction<typeof filtroSugestao>) => setNav({ sugestao: resolverAcao(v, filtroSugestao) as never });
   const [emAtribuicao, setEmAtribuicao] = useState<OrfaoEntrada | null>(null);
 
   const linhas = orfaos ?? [];

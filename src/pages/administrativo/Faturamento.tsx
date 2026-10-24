@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { useCodigoProdutoMap } from "@/hooks/useCodigoProdutoMap";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
@@ -210,7 +212,9 @@ function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Compone
 
 export default function Faturamento() {
   const navigate = useNavigate();
-  const [mes, setMes] = useState<string>("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ mes: "" });
+  const mes = nav.mes as string; const setMes = (v: SetStateAction<typeof mes>) => setNav({ mes: resolverAcao(v, mes) as never });
   const [canal, setCanal] = useState<string>("todos");
   const [componente, setComponente] = useState<Componente>("tudo");
   const [aba, setAba] = useAbaUrl("nfs");
