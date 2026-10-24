@@ -1,5 +1,7 @@
 import { useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { rotuloOrigemTarefa } from "@/lib/navegacao/rotuloOrigemTarefa";
 
 /**
  * A tarefa aberta mora na URL (?tarefa=<id>), nunca no estado de uma linha de lista.
@@ -13,13 +15,23 @@ import { useNavigate, useSearchParams } from "react-router-dom";
  * FICHA-DA-TAREFA (19/09/2026): `abrir` NAVEGA para /tarefas/:id — a tarefa tem
  * página própria. A assinatura do hook não mudou, então todo call site herda o
  * novo comportamento sem edição. `?tarefa=` de link antigo continua sendo lido.
+ *
+ * TELA-LEMBRA-ONDE-EU-ESTAVA: `abrir` leva `from` (query + foco no cartão) e o
+ * rótulo da tela de origem, para o Voltar da página da tarefa voltar certo.
  */
 export function useTarefaAberta() {
   const [params, setParams] = useSearchParams();
-
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const abrir = useCallback((id: string) => navigate(`/tarefas/${id}`), [navigate]);
+  const abrir = useCallback(
+    (id: string, label?: string) =>
+      abrirDetalhe(navigate, location, `/tarefas/${id}`, {
+        foco: id,
+        label: label ?? rotuloOrigemTarefa(location.pathname),
+      }),
+    [navigate, location],
+  );
 
   const fechar = useCallback(() => {
     setParams(
