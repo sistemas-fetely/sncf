@@ -55,7 +55,21 @@ function extrairNumeroEnvio(texto: string): string | null {
   return m ? m[1] : null;
 }
 
-function parsearEmail(html: string) {
+// 24/10/2026: "Data de geração" vem em 12h sem AM/PM. A hora do assunto ("... - 17:00") desempata.
+function corrigirMeioDia(geradoIso: string | null, assunto: string): string | null {
+  if (!geradoIso) return geradoIso;
+  const m = assunto.match(/-\s*(\d{1,2}):(\d{2})\s*$/);
+  if (!m) return geradoIso;
+  const horaAssunto = +m[1];
+  const horaGerado = +geradoIso.slice(11, 13);
+  if (horaAssunto >= 12 && horaGerado < 12) {
+    return geradoIso.slice(0, 11) + String(horaGerado + 12).padStart(2, "0") + geradoIso.slice(13);
+  }
+  return geradoIso;
+}
+
+function parsearEmail(html: string): { linhas: Record<string, string>[]; geradoEm: string | null; numeroEnvio: string | null; datasInvalidas: number; erro: string | null } {
+
   const doc = new DOMParser().parseFromString(html, "text/html");
   if (!doc) return { linhas: [], geradoEm: null, numeroEnvio: null, datasInvalidas: 0, erro: "HTML ilegível." };
   const textoPlano = (doc.body?.textContent ?? html).replace(/\s+/g, " ");
