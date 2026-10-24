@@ -134,6 +134,8 @@ export interface PedidoFilaItem {
   cd_itens?: number | null;
   cd_itens_cobertos?: number | null;
   cd_faltas?: CdFaltaItem[] | null;
+  /** Decisão registrada de seguir com saldo do CD errado (pendência de correção aberta). */
+  cd_falta_aceita?: boolean | null;
   id_externo: string;
   estagio: EstagioPedido;
   area_atual: AreaPedido;
