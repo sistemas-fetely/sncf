@@ -1,17 +1,16 @@
-import { useParams, useNavigate, Navigate } from "react-router-dom";
+import { useParams, Navigate } from "react-router-dom";
 import { useAnaliseDetalhe } from "@/hooks/credito/useAnaliseDetalhe";
 import { AnaliseDetalheAnalise } from "@/components/credito/AnaliseDetalheAnalise";
 import { AnaliseDetalheDecisao } from "@/components/credito/AnaliseDetalheDecisao";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, AlertCircle, ArrowLeft } from "lucide-react";
+import { SmartBackButton } from "@/components/SmartBackButton";
+import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
 
 import { PageShell } from "@/components/layout/PageShell";
 export default function AnaliseDetalhe() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const { data, isLoading } = useAnaliseDetalhe(id);
 
   if (isLoading) {
@@ -49,15 +48,7 @@ export default function AnaliseDetalhe() {
           ]}
           title="Análise decidida"
           actions={
-            <Button
-              variant="ghost"
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate("/credito?aba=decididas")}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Fila (Decididas)
-            </Button>
+            <SmartBackButton fallback="/credito?aba=decididas" fallbackLabel="Análises de Crédito" />
           }
         />
         <Card>
