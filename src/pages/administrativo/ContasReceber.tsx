@@ -2337,18 +2337,24 @@ function diasDesde(iso: string | null | undefined): number | null {
 }
 
 function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void; ativo: boolean }) => void }) {
-  const [busca, setBusca] = useState("");
-
-  const [dataDe, setDataDe] = useState("");
-  const [dataAte, setDataAte] = useState("");
-  const [page, setPage] = useState(1);
-  const [listaFvr, setListaFvr] = useState<
-    "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado"
-  >("faturado_sem_recebimento");
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>({
-    key: "data_transacao",
-    dir: "desc",
-  });
+  /* TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da aba B2C na URL (prefixo "b2c"). */
+  const [est, setEst] = useEstadoTela(
+    { busca: "", dataDe: "", dataAte: "", page: 1, lista: "faturado_sem_recebimento", sort: "data_transacao:desc" },
+    { prefixo: "b2c", replaceKeys: ["busca"] },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const dataDe = est.dataDe;
+  const setDataDe = (v: string) => setEst({ dataDe: v });
+  const dataAte = est.dataAte;
+  const setDataAte = (v: string) => setEst({ dataAte: v });
+  const page = est.page;
+  const setPage = (n: number) => setEst({ page: n });
+  type ListaFvr = "faturado_sem_recebimento" | "recebido_sem_nf" | "conciliado";
+  const listaFvr = est.lista as ListaFvr;
+  const setListaFvr = (v: React.SetStateAction<ListaFvr>) => setEst({ lista: resolverAcao(v, listaFvr) });
+  const sort = lerOrdemKD(est.sort);
+  const setSort = (v: React.SetStateAction<OrdemKD>) => setEst({ sort: escreverOrdemKD(resolverAcao(v, sort)) });
 
   const { data, isLoading } = useQuery({
     queryKey: ["recebivel-b2c-pedido"],
@@ -3016,7 +3022,7 @@ function AbaB2C({ onRegistrarExport }: { onRegistrarExport: (e: { fn: () => void
                   const bruto = Number(r.pedido_total_bruto ?? 0);
                   const liq = Number(r.valor_liquido_mp ?? 0);
                   return (
-                    <TableRow key={r.movimentacao_id}>
+                    <TableRow key={r.movimentacao_id} data-foco-id={r.movimentacao_id}>
                       <TableCell className="font-mono text-xs">{r.order_name ?? "—"}</TableCell>
                       <TableCell>
                         {formatDateBR(String(r.data_transacao ?? "").slice(0, 10))}
