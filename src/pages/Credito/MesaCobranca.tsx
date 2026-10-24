@@ -21,7 +21,11 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown, Search, Send, Copy, AlertTriangle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useToast } from "@/hooks/use-toast";
 import { useReguaEtapas, resolverEtapaParaTitulo, type ReguaEtapa } from "@/hooks/credito/useReguaFila";
 import type { TituloCobranca } from "@/hooks/credito/useTitulosCobranca";
@@ -186,12 +190,22 @@ interface MesaCobrancaProps {
 export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) {
   const { toast } = useToast();
 
-  const [busca, setBusca] = useState("");
-  const [instrumentoF, setInstrumentoF] = useState("todos");
-  const [filaF, setFilaF] = useState("todas");
+  const navigate = useNavigate();
+  const location = useLocation();
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: aba "mesa" da Cobrança → prefixo mesa_.
+  const [est, setEst] = useEstadoTela(
+    { busca: "", instrumento: "todos", fila: "todas", vencido: false, grupo: "" },
+    { replaceKeys: ["busca"], prefixo: "mesa" },
+  );
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  const instrumentoF = est.instrumento;
+  const setInstrumentoF = (v: string) => setEst({ instrumento: v });
+  const filaF = est.fila;
+  const setFilaF = (v: string) => setEst({ fila: v });
   /** Cartão VENCIDO — única forma de filtrar atraso (o toggle "Só em atraso" foi removido). */
-  const [soVencido, setSoVencido] = useState(false);
-  const [grupoAtivo, setGrupoAtivo] = useState<keyof typeof GRUPOS | null>(null);
+  const soVencido = est.vencido;
+  const grupoAtivo = (est.grupo && est.grupo in GRUPOS ? est.grupo : null) as keyof typeof GRUPOS | null;
   const [abertos, setAbertos] = useState<Record<string, boolean>>(
     () => Object.fromEntries(FILAS.map((f) => [f.chave, GRUPOS.agir.includes(f.chave)])),
   );
@@ -274,6 +288,13 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
     });
   }, [linhas, busca, instrumentoF, filaF, soVencido, grupoAtivo, revelandoSemAcao]);
 
+
+  useFocoAoVoltar({
+    pronto: !q.isLoading,
+    idsVisiveis: filtradas.map((l) => String(l.titulo_id)),
+    focoParam: "mesa_foco",
+  });
+  useRestaurarScroll(null, !q.isLoading);
 
   const resumoGrupo = (grupo: keyof typeof GRUPOS) => {
     const alvo = linhas.filter((l) => GRUPOS[grupo].includes(l.fila ?? ""));
@@ -372,7 +393,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
 
           {/* VENCIDO — transversal a todas as filas, primeiro da fila visual. */}
           <Card
-            onClick={() => { setSoVencido((v) => !v); setGrupoAtivo(null); }}
+            onClick={() => setEst({ vencido: !soVencido, grupo: "" })}
             className={`cursor-pointer transition ${
               soVencido ? "ring-2 ring-destructive" : "hover:bg-muted/50"
             } ${
@@ -418,7 +439,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
             return (
               <Card
                 key={c.chave}
-                onClick={() => { setSoVencido(false); setGrupoAtivo(ativo ? null : c.chave); }}
+                onClick={() => setEst({ vencido: false, grupo: ativo ? "" : c.chave })}
                 className={`cursor-pointer transition ${ativo ? "ring-2 ring-primary" : "hover:bg-muted/50"}`}
               >
                 <CardContent className="p-3">
@@ -633,6 +654,7 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                                         return (
                                         <TableRow
                                           key={l.titulo_id}
+                                          data-foco-id={l.titulo_id}
                                           className="cursor-pointer text-xs"
                                           onClick={() => setDetalhe(l)}
                                         >
@@ -815,6 +837,22 @@ export default function MesaCobranca({ onIrParaBanco }: MesaCobrancaProps = {}) 
                         </Button>
                       </div>
                     </div>
+                  )}
+                  {detalhe.pedido_id && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 w-full"
+                      onClick={() =>
+                        abrirDetalhe(navigate, location, `/pedidos/${detalhe.pedido_id}`, {
+                          foco: detalhe.titulo_id ?? undefined,
+                          label: "Mesa de Cobrança",
+                          focoParam: "mesa_foco",
+                        })
+                      }
+                    >
+                      Abrir pedido
+                    </Button>
                   )}
                   <p className="pt-2 text-[10px] leading-snug text-muted-foreground">{AVISO_PROVA_ENVIO}</p>
                 </div>
