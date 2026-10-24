@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
 import { apelidoParceiro, nomeCanonico } from "@/lib/parceiros/nome";
@@ -1628,9 +1629,7 @@ export default function PedidoDetalhe() {
   return (
     <div className="min-h-screen bg-background">
       <div className="px-6 pt-4">
-        <Button variant="ghost" size="sm" className="gap-2 -ml-2 text-muted-foreground" onClick={() => navigate("/pedidos")}>
-          <ArrowLeft className="h-4 w-4" />Casa dos Pedidos
-        </Button>
+        <SmartBackButton fallback="/pedidos" fallbackLabel="Casa dos Pedidos" className="-ml-2" />
       </div>
 
       <div className="px-6 pb-4">

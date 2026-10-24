@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";

@@ -42,6 +42,7 @@ interface Props {
 
 export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: itens, isLoading } = useItensB2c(open ? pedido?.shopify_id ?? null : null);
 
   // Mesmo padrao da ShopifyB2c: o codigo do alerta vira rotulo/severidade via a
