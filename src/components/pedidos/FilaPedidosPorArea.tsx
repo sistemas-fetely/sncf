@@ -608,6 +608,9 @@ export function FilaPedidosPorArea({
         base = base.filter((p) => p.estagio !== est);
       }
     });
+    // CARD-TRAVADO: a perna extra da busca por apelido não sabe recortar travados —
+    // o guard no cliente mantém card e tabela contando a mesma coisa.
+    if (somenteTravados) base = base.filter((p) => !!p.travado);
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
@@ -653,7 +656,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo, somenteTravados]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
