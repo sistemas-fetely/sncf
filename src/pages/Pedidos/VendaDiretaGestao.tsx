@@ -3,7 +3,7 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
