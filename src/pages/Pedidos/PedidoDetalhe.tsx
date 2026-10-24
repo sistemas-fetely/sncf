@@ -30,6 +30,7 @@ import { PlanoRecebimentoCard } from "@/components/pedidos/PlanoRecebimentoCard"
 import { CoberturaClienteCard } from "@/components/pedidos/CoberturaClienteCard";
 import { ComprovantePagamentoBloco } from "@/components/comercial/ComprovantePagamentoBloco";
 import { AlertasPedidoPanel } from "@/components/pedidos/AlertasPedidoPanel";
+import { BlocoTravadoB2B } from "@/components/pedidos/BlocoTravadoB2B";
 import { ProblemasPedidoBloco } from "@/components/pedidos/ProblemasPedidoBloco";
 import { ChamadosPedidoTab, useChamadosDoPedido, chamadosNaoFinalizados } from "@/components/pedidos/ChamadosPedidoTab";
 import { useRecebivelFamilia } from "@/hooks/pedidos/useRecebivelFamilia";
@@ -1733,6 +1734,9 @@ export default function PedidoDetalhe() {
           )}
         </div>
       </div>
+
+      {/* TRAVADO-B2B: motivo + saída onde o operador olha. */}
+      <BlocoTravadoB2B pedidoId={pedido.id} idExterno={pedido.id_externo} />
 
       {/* BANCADA-SP-TRAVA — pedido B2B na Mesa da Expedição SP: etapa e trava visíveis no topo */}
       <FaixaMesaSp pedidoId={pedido.id} />

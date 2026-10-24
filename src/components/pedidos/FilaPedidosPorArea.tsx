@@ -315,6 +315,8 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
 /** CARD-TRAVADO (24/10/2026): selo discreto do desvio na linha — o estágio real
  *  continua visível; o selo diz por que o pedido está travado e desde quando. */
 function SeloTravado({ p }: { p: PedidoFilaItem }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   if (!p.travado) return null;
   const motivos = (p.travado_motivos ?? []).filter(Boolean);
   const tooltip = [
@@ -329,7 +331,12 @@ function SeloTravado({ p }: { p: PedidoFilaItem }) {
         <TooltipTrigger asChild>
           <Badge
             variant="outline"
-            className="rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 min-w-0"
+            role="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              abrirDetalhe(navigate, location, `/pedidos/${p.id}#bloco-travado`, { foco: p.id, label: "Casa dos Pedidos" });
+            }}
+            className="cursor-pointer rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 min-w-0"
           >
             <AlertTriangle className="h-3 w-3 shrink-0" />
             <span className="truncate">
