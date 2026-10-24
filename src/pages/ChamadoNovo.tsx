@@ -140,6 +140,7 @@ function ChamadoNovoConteudo() {
   const [filaSel, setFilaSel] = useState<string | null>(null);
   const [item, setItem] = useState<ItemCatalogo | null>(null);
   const [tipo, setTipo] = useState<TipoChamado>("requisicao");
+  const [problemaAberto, setProblemaAberto] = useState(false);
   const [pedidoRef, setPedidoRef] = useState("");
   const [extras, setExtras] = useState<Record<string, string>>({});
   const [descricao, setDescricao] = useState("");
@@ -469,6 +470,17 @@ function ChamadoNovoConteudo() {
                   </ToggleGroupItem>
                 ))}
               </ToggleGroup>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                onClick={() => setProblemaAberto(true)}
+              >
+                <Flag className="h-3.5 w-3.5" />
+                Problema (importante, não urgente)
+              </Button>
+              <DialogoAbrirProblema open={problemaAberto} onOpenChange={setProblemaAberto} />
             </div>
 
             {pedidoObrigatorio && (
