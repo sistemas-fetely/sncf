@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { Handshake, Info } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageTitle } from "@/components/layout/PageTitle";
@@ -20,6 +22,7 @@ interface LinhaDiretoria {
 
 export default function Diretoria() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: isDiretoria, isLoading: carregandoPermissao } = useIsDiretoria();
 
   const listaQ = useQuery({
@@ -103,8 +106,11 @@ export default function Diretoria() {
                 ) : linhas.map((s) => (
                   <TableRow
                     key={s.pessoa_id}
+                    data-foco-id={s.pessoa_id}
                     className="cursor-pointer transition-colors hover:bg-muted/30"
-                    onClick={() => navigate(`/pessoas/${s.pessoa_id}/editar`)}
+                    onClick={() =>
+                      abrirDetalhe(navigate, location, `/pessoas/${s.pessoa_id}/editar`, { foco: s.pessoa_id, label: "Diretoria" })
+                    }
                   >
                     <TableCell className="text-sm font-medium">{s.nome}</TableCell>
                     <TableCell className="text-sm">{s.cargo || "—"}</TableCell>

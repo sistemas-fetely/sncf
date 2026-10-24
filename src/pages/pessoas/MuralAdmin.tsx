@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, Megaphone, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -228,8 +229,12 @@ export default function MuralAdmin() {
   const { user, roles } = useAuth();
   const isSuper = (roles ?? []).includes("super_admin");
   const qc = useQueryClient();
-  const [filtro, setFiltro] = useState<Filtro>("publicada");
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtro e busca da lista na URL.
+  const [estadoLista, setEstadoLista] = useEstadoTela({ filtro: "publicada", busca: "" }, { replaceKeys: ["busca"] });
+  const filtro = estadoLista.filtro as Filtro;
+  const setFiltro = (v: Filtro) => setEstadoLista({ filtro: v });
+  const busca = estadoLista.busca;
+  const setBusca = (v: string) => setEstadoLista({ busca: v });
   const [form, setForm] = useState<Form | null>(null);
   const [excluir, setExcluir] = useState<Linha | null>(null);
 
