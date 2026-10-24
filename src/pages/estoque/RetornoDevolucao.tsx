@@ -40,7 +40,6 @@ import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetor
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
-import { useSearchParams } from "react-router-dom";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
