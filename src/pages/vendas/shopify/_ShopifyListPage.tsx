@@ -1,4 +1,5 @@
 import { useMemo, useState, ReactNode } from "react";
+import { useEstadoTela } from "@/lib/navegacao";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,7 +42,9 @@ interface Props<T> {
 export function ShopifyListPage<T extends Record<string, any>>({
   titulo, table, orderBy, searchFields, columns, detailFields,
 }: Props<T>) {
-  const [busca, setBusca] = useState("");
+  const [nav, setNav] = useEstadoTela({ busca: "" });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
   const [detalheRow, setDetalheRow] = useState<T | null>(null);
 
   const { data, isLoading } = useQuery({

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type SetStateAction } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe, resolverAcao } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -102,16 +103,32 @@ const CHAVE_PAGINA_CONSIGNADOS = "fetely:comercial:consignados:page-size";
 
 export default function Consignados({ embutido = false }: { embutido?: boolean } = {}) {
   const navigate = useNavigate();
-  const [busca, setBusca] = useState("");
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoConsignado>(null);
-  const [pagina, setPagina] = useState(1);
+  const location = useLocation();
+  // Embutida: prefixo "cs" para não colidir com a tela que a hospeda.
+  const prefixo = embutido ? "cs" : undefined;
+  const focoParam = embutido ? "cs_foco" : "foco";
+  const [nav, setNav] = useEstadoTela({ busca: "", ordem: "", pagina: 1 }, { prefixo });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const ordenacao = useMemo<OrdenacaoConsignado>(() => {
+    const [coluna, dir] = nav.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaConsignado, dir } : null;
+  }, [nav.ordem]);
+  const setOrdenacao = (v: SetStateAction<OrdenacaoConsignado>) => {
+    const o = resolverAcao(v, ordenacao);
+    setNav({ ordem: o ? `${o.coluna}:${o.dir}` : "" });
+  };
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
+  const primeiraRender = useRef(true);
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_CONSIGNADOS),
   );
 
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, ordenacao]);
+  }, [busca, nav.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ordenarPor = (coluna: ColunaConsignado) => {
     setOrdenacao((atual) => {
@@ -219,6 +236,8 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
   const itensVisiveis = embutido
     ? linhasOrdenadas
     : linhasOrdenadas.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);
+  useFocoAoVoltar({ pronto: !parceirosQ.isLoading, idsVisiveis: itensVisiveis.map((p) => p.id), focoParam });
+  useRestaurarScroll(null, !parceirosQ.isLoading);
 
   const estiloTopo = {
     "--fila-topo-colado": topoColado != null ? `${topoColado}px` : undefined,
@@ -329,8 +348,9 @@ export default function Consignados({ embutido = false }: { embutido?: boolean }
                     return (
                       <TableRow
                         key={p.id}
+                        data-foco-id={p.id}
                         className="cursor-pointer"
-                        onClick={() => navigate(`/comercial/consignados/${p.id}`)}
+                        onClick={() => abrirDetalhe(navigate, location, `/comercial/consignados/${p.id}`, { foco: p.id, label: "Consignados", focoParam })}
                       >
                         <TableCell className="font-medium">
                           {p.razao_social}

@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1130,6 +1131,7 @@ export default function ConsignadoDetalhe() {
         ].filter(Boolean).join(" · ")}
         actions={
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <SmartBackButton fallback="/comercial/consignados" fallbackLabel="Consignados" />
             {!ehVendaFora && <Badge
                 variant={creditoOk ? "outline" : "destructive"}
                 className={cn(creditoOk && "border-success/40 bg-success/10 text-success")}

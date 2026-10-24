@@ -3,8 +3,9 @@ import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { TrocarMeioPagamentoDialog } from "@/components/venda-direta/TrocarMeioPagamento";
 import { RemontarPagamentoDialog } from "@/components/venda-direta/RemontarPagamento";
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
@@ -126,16 +127,27 @@ export default function VendaDiretaGestao() {
   const cancelNfPorPedido = cancelNfQ.data;
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
-  const [filtro, setFiltro] = useState<FiltroVD | null>(null);
-  const [soAcaoEquipe, setSoAcaoEquipe] = useState(false);
-  const [mostrarCancelados, setMostrarCancelados] = useState(false);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros de lista vivem na URL.
+  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, busca: "", pagamento: "todos", pagina: 1 });
+  const filtro = useMemo<FiltroVD | null>(() => {
+    const [tipo, ...resto] = nav.filtro.split(":");
+    return tipo && resto.length ? ({ tipo, codigo: resto.join(":") } as FiltroVD) : null;
+  }, [nav.filtro]);
+  const setFiltro = (f: FiltroVD | null) => setNav({ filtro: f ? `${f.tipo}:${f.codigo}` : "" });
+  const soAcaoEquipe = nav.acaoEquipe;
+  const setSoAcaoEquipe = (v: boolean) => setNav({ acaoEquipe: v });
+  const mostrarCancelados = nav.cancelados;
+  const setMostrarCancelados = (v: boolean | ((p: boolean) => boolean)) => setNav({ cancelados: typeof v === "function" ? v(nav.cancelados) : v });
   const [config, setConfig] = useState(false);
   const dimQ = useDimensoesVD();
   useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
   const cfgPixNoLink = useCfgParcelas().data?.pix_no_link === true;
-  const [busca, setBusca] = useState("");
-  const [filtroPagamento, setFiltroPagamento] = useState<FiltroPagamento>("todos");
-  const [pagina, setPagina] = useState(1);
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const filtroPagamento = nav.pagamento as FiltroPagamento;
+  const setFiltroPagamento = (v: FiltroPagamento) => setNav({ pagamento: v });
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [confManual, setConfManual] = useState<Linha | null>(null);
   const [retirada, setRetirada] = useState<Linha | null>(null);
@@ -159,6 +171,7 @@ export default function VendaDiretaGestao() {
   };
   const [confirmaPausado, setConfirmaPausado] = useState<Linha | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const q = useQuery({
     queryKey: QK_VD_GESTAO,
@@ -217,8 +230,15 @@ export default function VendaDiretaGestao() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
 
-  useEffect(() => { setPagina(1); }, [filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
+  const primeiraRender = useRef(true);
+  useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
+    setPagina(1);
+  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
+  useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: pag.map((l) => l.id) });
+  useRestaurarScroll(null, q.isSuccess);
+  const abrirPedido = (id: string) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { foco: id, label: "Pedidos Site SP" });
 
   const skusFalta = useMemo(
     () => Array.from(new Set(pag.flatMap((l) => (l.faltando_site_sp ?? []).map((f) => f.sku)))),
@@ -248,7 +268,7 @@ export default function VendaDiretaGestao() {
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l), disabled: !l.provisao_id });
     }
     if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em && !DEVOLUCAO_ATIVA.has(devolucaoPorPedido.get(l.id)?.status ?? "concluida"))
-      a.push({ k: "editar", label: "Editar pedido", icon: Pencil, onClick: () => navigate(`/pedidos/venda-direta/${l.id}/editar`) });
+      a.push({ k: "editar", label: "Editar pedido", icon: Pencil, onClick: () => abrirDetalhe(navigate, location, `/pedidos/venda-direta/${l.id}/editar`, { foco: l.id, label: "Pedidos Site SP" }) });
     if (l.situacao === "aguardando_pagamento" && !l.pagamento_confirmado_em) a.push({ k: "trocar", label: "Trocar meio de pagamento", icon: ArrowLeftRight, onClick: () => setTrocarMeio(l) });
     if (l.pagamento_desatualizado) a.push({ k: "remontar", label: "Remontar pagamento", icon: RefreshCw, onClick: () => setRemontar(l) });
     if (l.situacao === "travado" && l.fila_id) {
@@ -309,7 +329,7 @@ export default function VendaDiretaGestao() {
                 <ToggleGroupItem value="pagos">Pagos</ToggleGroupItem>
                 <ToggleGroupItem value="nao_pagos">Não pagos</ToggleGroupItem>
               </ToggleGroup>
-              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe((v) => !v)}
+              <Button size="sm" variant="outline" aria-pressed={soAcaoEquipe} onClick={() => setSoAcaoEquipe(!soAcaoEquipe)}
                 className={cn(soAcaoEquipe && "gold-border bg-gold-soft")}>
                 Ação da equipe
               </Button>
@@ -355,6 +375,7 @@ export default function VendaDiretaGestao() {
                     return (
                       <TableRow
                         key={l.id}
+                        data-foco-id={l.id}
                         className="cursor-pointer"
                         onClick={(e) => {
                           const el = e.target as HTMLElement;
@@ -470,7 +491,7 @@ export default function VendaDiretaGestao() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8" asChild>
-                                  <Link to={`/pedidos/${l.id}`} aria-label="Abrir pedido"><ExternalLink className="h-4 w-4" /></Link>
+                                  <Link to={`/pedidos/${l.id}`} aria-label="Abrir pedido" onClick={(e) => { e.preventDefault(); abrirPedido(l.id); }}><ExternalLink className="h-4 w-4" /></Link>
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Abrir pedido</TooltipContent>
@@ -512,7 +533,7 @@ export default function VendaDiretaGestao() {
                 </Button>
               )}
               <Button size="sm" variant="outline" onClick={() => abrirImpressaoVD(gaveta.id)}><Printer className="mr-1 h-3.5 w-3.5" />Imprimir</Button>
-              <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>
+              <Button size="sm" asChild><Link to={`/pedidos/${gaveta.id}`} onClick={(e) => { e.preventDefault(); abrirPedido(gaveta.id); }}><ExternalLink className="mr-1 h-3.5 w-3.5" />Abrir pedido</Link></Button>
             </>
           )}
           devolucao={gaveta ? devolucaoPorPedido.get(gaveta.id) ?? null : null}

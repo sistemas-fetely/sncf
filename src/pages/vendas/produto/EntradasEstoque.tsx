@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ChevronRight, PackagePlus } from "lucide-react";
 
@@ -115,11 +116,14 @@ function isoDiasAtras(dias: number): string {
 
 
 export default function EntradasEstoque() {
-  const [de, setDe] = useState(() => isoDiasAtras(90));
-  const [ate, setAte] = useState(() => hojeISO());
-  const [centro, setCentro] = useState("todos");
-  const [motivo, setMotivo] = useState("todos");
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros na URL; período padrão fica fora dela.
+  const [nav, setNav] = useEstadoTela({ de: isoDiasAtras(90), ate: hojeISO(), centro: "todos", motivo: "todos", busca: "" });
+  const { de, ate, centro, motivo, busca } = nav;
+  const setDe = (v: string) => setNav({ de: v });
+  const setAte = (v: string) => setNav({ ate: v });
+  const setCentro = (v: string) => setNav({ centro: v });
+  const setMotivo = (v: string) => setNav({ motivo: v });
+  const setBusca = (v: string) => setNav({ busca: v });
   const [aberto, setAberto] = useState<string | null>(null);
 
   const entradasQ = useQuery({

@@ -27,7 +27,7 @@ import { useNomePessoa } from "@/components/tarefas/detalhe/comuns";
 import {
   PontoUrgente, PRIORIDADE_CLASSE, PRIORIDADE_ROTULO, mostrarSeloPrioridade,
 } from "@/lib/tarefas/prioridade";
-import { useFiltrosPersistentes } from "@/hooks/useFiltrosPersistentes";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useTarefaAberta } from "@/hooks/tarefas/useTarefaAberta";
 import { useAlterarStatusTarefa } from "@/hooks/tarefas/useTarefaMutations";
 import { useStatusTarefaDim, type StatusTarefaDim } from "@/hooks/tarefas/useStatusTarefaDim";
@@ -103,7 +103,10 @@ export function BoardProjeto({ projetoId }: Props) {
   const [passosAbertos, setPassosAbertos] = useState<Record<string, boolean>>({});
   const [tituloNovaTarefa, setTituloNovaTarefa] = useState("");
   /** a escolha do agrupamento sobrevive a sair e voltar do board */
-  const [agruparPor, setAgruparPor] = useFiltrosPersistentes<AgruparPor>("board_agrupar", "secao");
+  // Agrupamento do quadro na URL (prefixo "bp"), não mais em sessionStorage.
+  const [navBp, setNavBp] = useEstadoTela({ agrupar: "secao" }, { prefixo: "bp" });
+  const agruparPor = navBp.agrupar as AgruparPor;
+  const setAgruparPor = (v: AgruparPor) => setNavBp({ agrupar: v });
   const { data: statusDim } = useStatusTarefaDim();
   /** status exibido até a mutation confirmar; rollback em erro */
   const [otimista, setOtimista] = useState<Record<string, TarefaStatus>>({});
