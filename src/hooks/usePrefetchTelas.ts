@@ -35,7 +35,6 @@ export function usePrefetchTelas() {
 
       // People
       void import("@/pages/Dashboard");
-      void import("@/pages/Colaboradores");
       void import("@/pages/Pessoas");
     }, 50);
 
