@@ -29,6 +29,7 @@ export default function PedidosIndex() {
   const [searchParams, setSearchParams] = useSearchParams();
   const qc = useQueryClient();
   const estagioParam = searchParams.get("estagio") as EstagioPedido | null;
+  const travadoParam = searchParams.get("travado") === "1";
   const abaParam = searchParams.get("aba");
   const [{ cancelados: incluirCancelados, risco: riscoAltoAtivo }, setEstadoCasa] = useEstadoTela({ cancelados: false, risco: false });
 
@@ -118,6 +119,16 @@ export default function PedidosIndex() {
   const handlePipelineClick = (estagio: EstagioPedido) => {
     const next = new URLSearchParams(searchParams);
     next.set("estagio", estagio);
+    // CARD-TRAVADO: os filtros são exclusivos — estágio conta sem travados.
+    next.delete("travado");
+    setSearchParams(next);
+    revalidarFunil();
+  };
+
+  const handleTravadoClick = () => {
+    const next = new URLSearchParams(searchParams);
+    next.set("travado", "1");
+    next.delete("estagio");
     setSearchParams(next);
     revalidarFunil();
   };
@@ -125,6 +136,7 @@ export default function PedidosIndex() {
   const handleLimparFiltro = () => {
     const next = new URLSearchParams(searchParams);
     next.delete("estagio");
+    next.delete("travado");
     setSearchParams(next);
     revalidarFunil();
   };
