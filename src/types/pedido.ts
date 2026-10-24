@@ -138,6 +138,8 @@ export interface PedidoFilaItem {
   cd_falta_aceita?: boolean | null;
   /** Se a troca de CD vale agora para este pedido (regra no banco, v_pedidos_fila). */
   cd_pode_trocar?: boolean | null;
+  /** Motivo pronto (pt-BR) de por que a troca de CD não vale agora; null quando pode (v_pedidos_fila). */
+  cd_troca_bloqueio?: string | null;
 
   id_externo: string;
   estagio: EstagioPedido;

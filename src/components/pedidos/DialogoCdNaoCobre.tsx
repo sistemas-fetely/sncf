@@ -116,7 +116,9 @@ export function DialogoCdNaoCobre({
           <div className="space-y-2 rounded-md border p-3">
             <p className="text-sm font-medium">Trocar CD</p>
             {!podeTrocar && (
-              <p className="text-xs text-muted-foreground">Troca de CD indisponível para este pedido</p>
+              <p className="text-xs text-muted-foreground">
+                {p.cd_troca_bloqueio ?? "Troca de CD indisponível para este pedido"}
+              </p>
             )}
             <Select value={cdNovo} onValueChange={setCdNovo} disabled={!podeTrocar}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Escolha o CD" /></SelectTrigger>
