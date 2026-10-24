@@ -203,6 +203,12 @@ export interface PedidoFilaItem {
   adiantado_recebido_em?: string | null;
   adiantado_pct_pago?: number | null;
   adiantado_cobre_pedido_inteiro?: boolean | null;
+  // TRAVADO-NA-FILA (v_pedidos_fila): estagio continua sendo o real; `travado`
+  // marca o desvio. Motivos e desde vêm prontos do banco.
+  travado?: boolean | null;
+  travado_motivo?: string | null;
+  travado_motivos?: string[] | null;
+  travado_desde?: string | null;
 }
 
 export type PagamentoStatus =
@@ -227,7 +233,8 @@ export type SituacaoFinanceira =
   | 'recebivel_familia';
 
 export interface PipelineItem {
-  estagio: EstagioPedido;
+  /** 'travado' é linha de desvio do pipeline (v_pedidos_pipeline), fora do catálogo de estágios. */
+  estagio: EstagioPedido | "travado";
   area_atual: AreaPedido;
   qtd: number;
   qtd_sla_estourado: number;
