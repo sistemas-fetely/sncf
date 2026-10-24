@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,10 +149,15 @@ export default function EstoqueXpm() {
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<IngestResult | null>(null);
 
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  // Filtros da aba Estoque na URL (prefixo "est").
+  const [nav, setNav] = useEstadoTela({ busca: "", status: "todos", posicao: "" }, { prefixo: "est" });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const filtroStatus = nav.status;
+  const setFiltroStatus = (v: string) => setNav({ status: v });
   const [sincronizando, setSincronizando] = useState(false);
-  const [posicaoEscolhida, setPosicaoEscolhida] = useState<string>("");
+  const posicaoEscolhida = nav.posicao;
+  const setPosicaoEscolhida = (v: string) => setNav({ posicao: v });
 
   const conciliacaoQ = useQuery({
     queryKey: ["xpm-estoque-conciliacao"],

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEstadoTela } from "@/lib/navegacao";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Selo } from "@/components/ui/selo";
@@ -50,9 +51,12 @@ export function ComparativoFontesXpm() {
   const [linhas, setLinhas] = useState<LinhaComparativo[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [busca, setBusca] = useState("");
-  const [mostrarSoApi, setMostrarSoApi] = useState(false);
-  const [mostrarSoArquivo, setMostrarSoArquivo] = useState(false);
+  // Filtros da aba Comparativo na URL (prefixo "cmp").
+  const [nav, setNav] = useEstadoTela({ busca: "", soApi: false, soArquivo: false }, { prefixo: "cmp" });
+  const { busca, soApi: mostrarSoApi, soArquivo: mostrarSoArquivo } = nav;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const setMostrarSoApi = (v: boolean) => setNav({ soApi: v });
+  const setMostrarSoArquivo = (v: boolean) => setNav({ soArquivo: v });
 
   useEffect(() => {
     let cancelado = false;
