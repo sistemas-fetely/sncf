@@ -305,7 +305,7 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
   );
 }
 
-function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | undefined; estagio?: string | null; politica?: PoliticaCobertura }) {
+function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | undefined; estagio?: string | null; politica?: PoliticaCobertura; p: PedidoFilaItem }) {
   if (politica && !politica.mostra_na_fila) {
     return <span className="text-muted-foreground">—</span>;
   }
@@ -335,6 +335,8 @@ function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | unde
     .filter(Boolean)
     .join("\n");
 
+  const alertaCd = <AlertaCoberturaCd p={p} />;
+
   if (cob.cobertura_pedido === "separado") {
     return (
       <TooltipProvider>
@@ -353,6 +355,7 @@ function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | unde
             </p>
           </TooltipContent>
         </Tooltip>
+        {alertaCd}
       </TooltipProvider>
     );
   }
@@ -373,6 +376,7 @@ function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | unde
             <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
           </TooltipContent>
         </Tooltip>
+        {alertaCd}
       </TooltipProvider>
     );
   }
@@ -406,6 +410,7 @@ function CelulaEstoque({ cob, estagio, politica }: { cob: CoberturaPedido | unde
           <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
         </TooltipContent>
       </Tooltip>
+      {alertaCd}
     </TooltipProvider>
   );
 }
@@ -1174,7 +1179,7 @@ export function FilaPedidosPorArea({
                     </div>
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
-                    <CelulaEstoque cob={coberturaMap?.get(p.id)} estagio={p.estagio} politica={politicaMap?.get(p.estagio ?? "")} />
+                    <CelulaEstoque cob={coberturaMap?.get(p.id)} estagio={p.estagio} politica={politicaMap?.get(p.estagio ?? "")} p={p} />
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
@@ -1860,6 +1865,50 @@ const DICA_CD: Record<string, string> = {
   escolhido: "CD escolhido na pré-separação, ainda não enviado",
   definido: "CD de separação",
 };
+
+/** CD-NAO-COBRE (24/10/2026): o chip de Estoque mede a rede; este alerta mede só o CD
+ *  de expedição do pedido. v_pedidos_fila devolve nulas fora da separação — aí nada aparece. */
+function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
+  const total = p.cd_itens;
+  const cobertos = p.cd_itens_cobertos;
+  if (total == null || cobertos == null || cobertos >= total) return null;
+
+  const texto = `CD não cobre ${total - cobertos}/${total}`;
+  const tooltip = [
+    p.cd_expedicao_nome ? `CD ${p.cd_expedicao_nome}` : null,
+    ...(p.cd_faltas ?? []).map(
+      (f) => `${f.sku}: pede ${f.pedido}, livre no CD ${f.livre_cd}`,
+    ),
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const selo = (
+    <span
+      title={tooltip || texto}
+      className={cn(
+        "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
+        "border-warning/50 text-warning",
+      )}
+    >
+      <AlertTriangle className="h-3 w-3" />
+      {texto}
+    </span>
+  );
+
+  if (!tooltip) return selo;
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{selo}</TooltipTrigger>
+        <TooltipContent>
+          <p className="text-xs max-w-[260px] whitespace-pre-line">{tooltip}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
 
 /** Selo do CD de expedição logo abaixo do estágio; tudo vem de v_pedidos_fila. */
 function SeloCdExpedicao({ p }: { p: PedidoFilaItem }) {

@@ -116,12 +116,24 @@ export const ESTAGIO_AREA: Record<EstagioPedido, AreaPedido> = {
   recuperacao_venda: "comercial",
 };
 
+/** Item que o CD de expedição não cobre (v_pedidos_fila.cd_faltas). */
+export interface CdFaltaItem {
+  sku: string;
+  pedido: number;
+  livre_cd: number;
+}
+
 export interface PedidoFilaItem {
   id: string;
   /** CD de expedição (v_pedidos_fila): código, nome curto e situação vêm do banco. */
   cd_expedicao_codigo?: string | null;
   cd_expedicao_nome?: string | null;
   cd_expedicao_situacao?: "padrao" | "escolhido" | "definido" | null;
+  /** Cobertura medida contra o saldo do CD de expedição do pedido (v_pedidos_fila).
+   *  Nulas fora de pré-separação/em separação/pré-faturamento — aí não se mostra nada. */
+  cd_itens?: number | null;
+  cd_itens_cobertos?: number | null;
+  cd_faltas?: CdFaltaItem[] | null;
   id_externo: string;
   estagio: EstagioPedido;
   area_atual: AreaPedido;
