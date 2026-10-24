@@ -1308,6 +1308,8 @@ function PedidosCobrancaTab() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((p) => p.pedido_id), focoParam: "fila_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   return (
     <div className="space-y-4">
