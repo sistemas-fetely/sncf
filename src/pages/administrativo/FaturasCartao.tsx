@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { KpiPill as KpiPillShared, type KpiPillProps } from "@/components/shared/KpiPill";
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -151,9 +153,11 @@ type FiltroPill = "todas" | "aberta" | "paga" | "conciliada" | "cancelada";
 export default function FaturasCartao() {
   const qc = useQueryClient();
   const [importarOpen, setImportarOpen] = useState(false);
-  const [busca, setBusca] = useState("");
-  const [filtroPill, setFiltroPill] = useState<FiltroPill>("todas");
-  const [filtroCartao, setFiltroCartao] = useState<string>("__todos__");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", filtro: "todas", cartao: "__todos__" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtroPill = nav.filtro as FiltroPill; const setFiltroPill = (v: SetStateAction<typeof filtroPill>) => setNav({ filtro: resolverAcao(v, filtroPill) as never });
+  const filtroCartao = nav.cartao as string; const setFiltroCartao = (v: SetStateAction<typeof filtroCartao>) => setNav({ cartao: resolverAcao(v, filtroCartao) as never });
   const [faturaExpanded, setFaturaExpanded] = useState<string | null>(null);
   const [paraDescartar, setParaDescartar] = useState<FaturaRow | null>(null);
   const [exportandoPDF, setExportandoPDF] = useState<string | null>(null);

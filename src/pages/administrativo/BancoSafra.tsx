@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { BotaoBaixarBoletoPdf } from "@/components/credito/BotaoBaixarBoletoPdf";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -917,7 +919,9 @@ export default function BancoSafra({ onIrParaRemessas }: { onIrParaRemessas?: ()
   const [filtroKpi, setFiltroKpi] = useState<
     "pendentes" | "registrados" | "pagos_mes" | "vencidos" | "baixas" | null
   >(null);
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "" }, { prefixo: "bs", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [buscaDebounced, setBuscaDebounced] = useState("");
   const [gruposAbertos, setGruposAbertos] = useState<Record<string, boolean>>({});
 

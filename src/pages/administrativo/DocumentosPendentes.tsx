@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMemo, useState } from "react";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -330,9 +332,11 @@ export default function DocumentosPendentes() {
   const qc = useQueryClient();
   const [aba, setAba] = useAbaUrl("cobrar");
   const abaAtual = aba as Aba;
-  const [periodoInicio, setPeriodoInicio] = useState("");
-  const [periodoFim, setPeriodoFim] = useState("");
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ de: "", ate: "", busca: "" }, { replaceKeys: ["busca"] });
+  const periodoInicio = nav.de; const setPeriodoInicio = (v: SetStateAction<typeof periodoInicio>) => setNav({ de: resolverAcao(v, periodoInicio) as never });
+  const periodoFim = nav.ate; const setPeriodoFim = (v: SetStateAction<typeof periodoFim>) => setNav({ ate: resolverAcao(v, periodoFim) as never });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [contaIdDrawer, setContaIdDrawer] = useState<string | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [marcarOpen, setMarcarOpen] = useState(false);

@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * TELA 1 — Contabilidade > Fechamento Mensal.
  *
@@ -209,9 +211,11 @@ const POR_PAGINA = 100;
 export default function FechamentoContabil() {
   const qc = useQueryClient();
   const [selecionada, setSelecionada] = useState<string | null>(null);
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", pagina: 0 }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [ordem, setOrdem] = useState<{ campo: keyof LinhaPosicao; asc: boolean }>({ campo: "valor_total", asc: false });
-  const [pagina, setPagina] = useState(0);
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [dialogFechar, setDialogFechar] = useState<"normal" | "forcar" | null>(null);
   const [dialogReabrir, setDialogReabrir] = useState(false);
   const [dialogPre, setDialogPre] = useState(false);

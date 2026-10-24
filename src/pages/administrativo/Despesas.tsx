@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * Despesas — registro único de despesas, todas as origens, por competência.
  *
@@ -122,13 +124,15 @@ function BadgeEstagio({ estagio }: { estagio: string | null }) {
 }
 
 export default function Despesas() {
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", mes: "todos", pagina: 1 }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [origem, setOrigem] = useState<string>("todas");
-  const [mes, setMes] = useState<string>("todos");
+  const mes = nav.mes as string; const setMes = (v: SetStateAction<typeof mes>) => setNav({ mes: resolverAcao(v, mes) as never });
   const [plano, setPlano] = useState<string>("todos");
   const [natureza, setNatureza] = useState<string>("todas");
   const [estagio, setEstagio] = useState<string>("todos");
-  const [pagina, setPagina] = useState(1);
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["vw_despesas_v2"],

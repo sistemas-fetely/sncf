@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
@@ -195,9 +197,11 @@ export default function Contratos() {
   const { toast } = useToast();
   const pGerir = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_gerir");
   const pExcl = usePermissaoAcaoOuSuperAdmin("acao.contrato_recorrente_excluir");
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [filtroTipo, setFiltroTipo] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", status: "todos", tipo: "todos" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtroStatus = nav.status; const setFiltroStatus = (v: SetStateAction<typeof filtroStatus>) => setNav({ status: resolverAcao(v, filtroStatus) as never });
+  const filtroTipo = nav.tipo; const setFiltroTipo = (v: SetStateAction<typeof filtroTipo>) => setNav({ tipo: resolverAcao(v, filtroTipo) as never });
   const [contratoParaExcluir, setContratoParaExcluir] = useState<ContratoListagem | null>(null);
   const [mostrarBanner, setMostrarBanner] = useState(false);
   const [novoContratoOpen, setNovoContratoOpen] = useState(false);

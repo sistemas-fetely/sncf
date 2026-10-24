@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * GruposLista — conteúdo da aba "Grupos" em /administrativo/parceiros.
  *
@@ -57,9 +59,11 @@ const TIPO_OPCOES: TipoControle[] = [
 ];
 
 export function GruposLista() {
-  const [busca, setBusca] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState<string>("todos");
-  const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", tipo: "todos", status: "ativos" }, { prefixo: "gl", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtroTipo = nav.tipo as string; const setFiltroTipo = (v: SetStateAction<typeof filtroTipo>) => setNav({ tipo: resolverAcao(v, filtroTipo) as never });
+  const filtroStatus = nav.status as string; const setFiltroStatus = (v: SetStateAction<typeof filtroStatus>) => setNav({ status: resolverAcao(v, filtroStatus) as never });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<GrupoEmpresarial | null>(null);
   const [grupoParaExcluir, setGrupoParaExcluir] = useState<GrupoEmpresarial | null>(null);

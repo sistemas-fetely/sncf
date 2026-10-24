@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -115,9 +117,11 @@ export default function Parceiros() {
   // Se URL contém ?abrir=, abre o Sheet do parceiro automaticamente
   const abrirParceiroId = searchParams.get("abrir");
 
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState<string>("ativos");
-  const [filtroGrupo, setFiltroGrupo] = useState<string>("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", status: "ativos", grupo: "todos", pagina: 1, incompleto: null }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtroStatus = nav.status as string; const setFiltroStatus = (v: SetStateAction<typeof filtroStatus>) => setNav({ status: resolverAcao(v, filtroStatus) as never });
+  const filtroGrupo = nav.grupo as string; const setFiltroGrupo = (v: SetStateAction<typeof filtroGrupo>) => setNav({ grupo: resolverAcao(v, filtroGrupo) as never });
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Parceiro | null>(null);
   const [parceiroParaExcluir, setParceiroParaExcluir] = useState<Parceiro | null>(null);
@@ -133,7 +137,7 @@ export default function Parceiros() {
     });
   };
 
-  const [pagina, setPagina] = useState(1);
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_PARCEIROS),
   );
@@ -153,7 +157,7 @@ export default function Parceiros() {
     return () => ro.disconnect();
   }, [tabAtiva]);
 
-  const [filtroIncompleto, setFiltroIncompleto] = useState<"sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null>(null);
+  const filtroIncompleto = nav.incompleto as "sem_categoria" | "sem_meio_pgto" | "sem_centro_custo" | null; const setFiltroIncompleto = (v: SetStateAction<typeof filtroIncompleto>) => setNav({ incompleto: resolverAcao(v, filtroIncompleto) as never });
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
 

@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * ConciliacaoPorCliente — o recebível lido no eixo canônico da Fetely:
  * CLIENTE (conta corrente) → TÍTULOS → PROVA. O pedido é rastro, nunca o eixo.
@@ -271,7 +273,9 @@ function TitulosDoCliente({ parceiroId }: { parceiroId: string }) {
 }
 
 export function ConciliacaoPorCliente() {
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "" }, { prefixo: "cpc", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [mostrarTodos, setMostrarTodos] = useState(false);
   const [abertoCliente, setAbertoCliente] = useState<string | null>(null);
 

@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
@@ -101,7 +103,9 @@ export default function ConciliacaoDespesas() {
   const [classificarOpen, setClassificarOpen] = useState(false);
   const [faturaCartaoOpen, setFaturaCartaoOpen] = useState(false);
   const [furoAtivo, setFuroAtivo] = useState<Furo | null>(null);
-  const [filtroFuros, setFiltroFuros] = useState<"todos" | "aguardando" | "sem_tratativa">("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ furos: "todos" });
+  const filtroFuros = nav.furos as "todos" | "aguardando" | "sem_tratativa"; const setFiltroFuros = (v: SetStateAction<typeof filtroFuros>) => setNav({ furos: resolverAcao(v, filtroFuros) as never });
   const [visaoFuros, setVisaoFuros] = useState<"fornecedor" | "lancamento">("fornecedor");
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
   const [confirmarLoteOpen, setConfirmarLoteOpen] = useState(false);

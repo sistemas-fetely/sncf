@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useMemo, useState } from "react";
@@ -105,7 +107,9 @@ export default function ExtratoConta() {
   const [dataFim, setDataFim] = useState<string>(
     () => intervaloPreset("este_mes").fim ?? "",
   );
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [sentido, setSentido] = useState<"todos" | "entrada" | "saida">("todos");
   const [meios, setMeios] = useState<string[]>([]);
   const [classes, setClasses] = useState<string[]>([]);
@@ -118,7 +122,7 @@ export default function ExtratoConta() {
     column: "data",
     direction: "desc",
   });
-  const [pagina, setPagina] = useState(1);
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [detalhe, setDetalhe] = useState<ExtratoLinha | null>(null);
 
   const filtrosServidor = useMemo(
