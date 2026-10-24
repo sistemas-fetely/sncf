@@ -168,7 +168,9 @@ Deno.serve(async (req) => {
     log.assunto = email.subject ?? null;
 
     const p = parsearEmail(String(email.html ?? ""));
+    p.geradoEm = corrigirMeioDia(p.geradoEm, String(email.subject ?? ""));
     log.arquivo_gerado_em = p.geradoEm;
+
     log.arquivo_numero_envio = p.numeroEnvio;
     log.linhas_lidas = p.linhas.length;
     log.datas_invalidas = p.datasInvalidas;
