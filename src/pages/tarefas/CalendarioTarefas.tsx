@@ -1,6 +1,7 @@
 import { PageTitle } from "@/components/layout/PageTitle";
 import { PageShell } from "@/components/layout/PageShell";
 import { useMemo, useState } from "react";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import {
   addMonths, eachDayOfInterval, endOfMonth, endOfWeek, format, isSameDay, isSameMonth,
 startOfMonth, startOfWeek,
@@ -52,6 +53,7 @@ export default function CalendarioTarefas() {
   }, [mes]);
 
   const { data: tarefas, isLoading } = useTarefasCalendario(iso(inicioGrade), iso(fimGrade), filtro);
+  useFocoAoVoltar({ pronto: !isLoading && !!tarefas, idsVisiveis: (tarefas ?? []).map((t) => t.id) });
   const reagendar = useReagendarNoCalendario(iso(inicioGrade), iso(fimGrade), filtro);
 
   const porDia = useMemo(() => {
