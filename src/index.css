@@ -295,3 +295,10 @@
   border-radius: 6px;
   background: hsl(var(--muted-foreground));
 }
+
+/* TELA-LEMBRA-ONDE-EU-ESTAVA: pulso na linha do item aberto ao voltar. */
+@keyframes foco-pulse {
+  0% { background-color: hsl(var(--accent)); box-shadow: inset 0 0 0 2px hsl(var(--ring)); }
+  100% { background-color: transparent; box-shadow: inset 0 0 0 2px transparent; }
+}
+.foco-navegacao { animation: foco-pulse 2s ease-out; }

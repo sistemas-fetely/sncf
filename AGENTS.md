@@ -28,3 +28,11 @@
 - Every externally shared link builds its origin through `publicUrl()` in `src/lib/urls.ts` (env → `fn_url_publica()` loaded once at boot → fallback), never `window.location.origin`, because the preview origin leaked into customer PIX links.
 - Safra return effects on titulo_a_receber apply only to the current boleto (nosso_numero_seq, else nosso_numero_safra); baixa/rejeição of an older replaced boleto touches only titulo_boleto and the instrument log, and rejection classification comes from vw_safra_retorno_pendente.classificacao_rejeicao, because a stale baixa overwrote freshly registered boletos.
 - Site SP order screens draw phase/step/owner/next action only from `vw_venda_direta_gestao` + `vd_fase`/`vd_etapa`/`vd_responsavel` (via `FunilVD`); `situacao` only drives actions, so classification lives in one place (the database).
+
+## TELA-LEMBRA-ONDE-EU-ESTAVA
+- Navigation state (search, filters, sort, page, tab, focus) lives in the URL via `useEstadoTela` (`src/lib/navegacao`); defaults stay out of the URL.
+- Preferences (page size, columns) are not navigation: they stay in `usePreferenciaTela`.
+- Open details with `abrirDetalhe` (carries `state.from` with query + `foco`); go back with `SmartBackButton` — never blind `navigate(-1)` nor a hard-coded route.
+- List rows carry `data-foco-id`; `useFocoAoVoltar` scrolls to and highlights the opened item on return.
+- `useRestaurarScroll` restores list scroll per URL (sessionStorage, the one sanctioned exception).
+- Every new screen is born with these pieces.

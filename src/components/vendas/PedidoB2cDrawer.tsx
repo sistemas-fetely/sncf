@@ -1,5 +1,6 @@
 import { CodProduto } from "@/components/produto/CodProduto";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { ExternalLink, ArrowRight } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ interface Props {
 
 export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: itens, isLoading } = useItensB2c(open ? pedido?.shopify_id ?? null : null);
 
   // Mesmo padrao da ShopifyB2c: o codigo do alerta vira rotulo/severidade via a
@@ -252,7 +254,12 @@ export function PedidoB2cDrawer({ pedido, open, onOpenChange }: Props) {
                 variant="outline"
                 size="sm"
                 className="w-full justify-between"
-                onClick={() => navigate(`/pedidos/${pedido.pedido_id}`)}
+                onClick={() =>
+                  abrirDetalhe(navigate, location, `/pedidos/${pedido.pedido_id}`, {
+                    foco: pedido.pedido_id!,
+                    label: "Pedidos B2C",
+                  })
+                }
               >
                 Abrir pedido {txt(pedido.id_externo)}
                 <ArrowRight className="h-4 w-4" />
