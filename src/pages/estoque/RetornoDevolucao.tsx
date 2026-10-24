@@ -1,3 +1,4 @@
+import { useEstadoTela } from "@/lib/navegacao";
 /**
  * FUNIL DE DEVOLUÇÕES (30/09/2026): uma linha por devolução, lida da view
  * canônica `vw_devolucao_funil`. As 7 etapas (e1–e7) têm rótulo e descrição
@@ -179,10 +180,14 @@ export default function RetornoDevolucao() {
   const etapas = etapasQ.data ?? [];
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
-  const [searchParams] = useSearchParams();
-  const [busca, setBusca] = useState(() => searchParams.get("q") ?? "");
-  const [canal, setCanal] = useState<"todos" | "b2b" | "b2c" | "site_sp">("todos");
-  const [soAbertas, setSoAbertas] = useState(true);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: busca (`q`, link antigo), canal, só abertas e página na URL.
+  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", abertas: true, pagina: 1 }, { replaceKeys: ["q"] });
+  const busca = nav.q;
+  const setBusca = (v: string) => setNav({ q: v });
+  const canal = nav.canal as "todos" | "b2b" | "b2c" | "site_sp";
+  const setCanal = (v: "todos" | "b2b" | "b2c" | "site_sp") => setNav({ canal: v });
+  const soAbertas = nav.abertas;
+  const setSoAbertas = (v: boolean) => setNav({ abertas: v });
   const [expandido, setExpandido] = useState<string | null>(null);
   const [conferirId, setConferirId] = useState<string | null>(null);
   const [receber, setReceber] = useState<Funil | null>(null);
@@ -203,10 +208,15 @@ export default function RetornoDevolucao() {
       setAcaoId(null);
     }
   };
-  const [pagina, setPagina] = useState(1);
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanhoPagina, setTamanhoPagina] = useState(() => lerTamanhoPaginaSalvo(CHAVE_PAGINA_DEVOLUCAO));
 
-  useEffect(() => { setPagina(1); }, [busca, canal, soAbertas]);
+  const primeiraRender = useRef(true);
+  useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
+    setPagina(1);
+  }, [busca, canal, soAbertas]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpisRef = useRef<HTMLDivElement>(null);
   const [alturaKpis, setAlturaKpis] = useState(0);
