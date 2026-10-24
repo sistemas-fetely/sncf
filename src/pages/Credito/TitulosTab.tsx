@@ -1242,9 +1242,8 @@ export default function TitulosTab() {
                     saldo={s0}
                     numeroPai={s0?.titulo_pai_id ? numerosPorId.get(s0.titulo_pai_id) ?? null : null}
                     onAbrir={setDetalhe}
-                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
+                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos", foco: t0.id, focoParam: "tit_foco" })}
                     sel={selDe(t0)}
-                    focoId={t0.id}
                   />
                 );
               }
@@ -1257,7 +1256,7 @@ export default function TitulosTab() {
                     g={g}
                     aberto={aberto}
                     onToggle={() => toggleGrupo(g.chave)}
-                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
+                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos", foco: g.cabeca.id, focoParam: "tit_foco" })}
                     selGrupo={{
                       habilitado: elegGrupo.length > 0 && !permAcordo.carregando,
                       bloqueado: semPermAcordo,
@@ -1279,7 +1278,7 @@ export default function TitulosTab() {
                         numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
                         aninhada
                         onAbrir={setDetalhe}
-                        onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
+                        onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos", foco: t.id, focoParam: "tit_foco" })}
                         sel={selDe(t)}
                       />
                     );
@@ -1296,7 +1295,7 @@ export default function TitulosTab() {
                   saldo={s}
                   numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
                   onAbrir={setDetalhe}
-                  onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
+                  onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos", foco: t.id, focoParam: "tit_foco" })}
                   sel={selDe(t)}
                 />
               );
