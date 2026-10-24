@@ -53,8 +53,6 @@ const NATUREZA_LABEL: Record<string, string> = {
 export default function Processos() {
   const navigate = useNavigate();
   const location = useLocation();
-  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (processos ?? []).map((x: any) => x.id) });
-  useRestaurarScroll(null, !isLoading);
   const { roles } = useAuth();
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
@@ -115,6 +113,8 @@ export default function Processos() {
   );
 
   const { data: processos, isLoading } = useProcessos(filtrosFull);
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (processos ?? []).map((x: any) => x.id) });
+  useRestaurarScroll(null, !isLoading);
 
   const filtrosAtivos = Object.entries(filtros).filter(
     ([, v]) => v !== undefined && v !== "",

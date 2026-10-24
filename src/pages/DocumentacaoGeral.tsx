@@ -47,13 +47,13 @@ const SNCF_COLOR = "#1A4A3A";
 export default function DocumentacaoGeral() {
   const navigate = useNavigate();
   const location = useLocation();
-  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (docs ?? []).map((x: any) => x.id) });
-  useRestaurarScroll(null, !isLoading);
   const { roles: authRoles } = useAuth();
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
 
   const [docs, setDocs] = useState<Documento[]>([]);
   const [loading, setLoading] = useState(true);
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: (docs ?? []).map((x: any) => x.id) });
+  useRestaurarScroll(null, !loading);
   const [__nav, __setNav] = useEstadoTela({ filtroCategoria: "todos", buscaTexto: "" } as Record<string, string | number | boolean | null>);
   const filtroCategoria = __nav.filtroCategoria as string;
   const setFiltroCategoria = (v: any) => __setNav({ filtroCategoria: resolverAcao(v, __nav.filtroCategoria as any) } as any);

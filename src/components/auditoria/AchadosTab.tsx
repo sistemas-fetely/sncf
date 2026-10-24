@@ -63,10 +63,10 @@ export default function AchadosTab({
 
   const [__nav, __setNav] = useEstadoTela({ modulo: TODOS, severidade: TODOS, busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "ach" });
 
-  const modulo = __nav.modulo as number;
+  const modulo = __nav.modulo as string;
 
   const setModulo = (v: any) => __setNav({ modulo: resolverAcao(v, __nav.modulo as any) } as any);
-  const severidade = __nav.severidade as number;
+  const severidade = __nav.severidade as string;
   const setSeveridade = (v: any) => __setNav({ severidade: resolverAcao(v, __nav.severidade as any) } as any);
   const [situacao, setSituacao] = useState(TODOS);
   const [dono, setDono] = useState(TODOS);

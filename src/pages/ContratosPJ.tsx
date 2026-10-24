@@ -397,8 +397,6 @@ function ContratoPJForm({
 export default function ContratosPJ() {
   const navigate = useNavigate();
   const location = useLocation();
-  useFocoAoVoltar({ pronto: !loading, idsVisiveis: contratos.map((x) => x.id) });
-  useRestaurarScroll(null, !loading);
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles: authRoles } = useAuth();
   const { permitido: podeEditarContrato, carregando: carregandoPermissao } = usePermissaoAcao("acao.contrato_pj_editar");
@@ -409,6 +407,8 @@ export default function ContratosPJ() {
   const canDelete = podeEditarContrato && !carregandoPermissao;
   const [contratos, setContratos] = useState<ContratoPJ[]>([]);
   const [loading, setLoading] = useState(true);
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: contratos.map((x) => x.id) });
+  useRestaurarScroll(null, !loading);
   const [__nav, __setNav] = useEstadoTela({ search: "", filterStatus: "todos" } as Record<string, string | number | boolean | null>);
   const search = __nav.search as string;
   const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
