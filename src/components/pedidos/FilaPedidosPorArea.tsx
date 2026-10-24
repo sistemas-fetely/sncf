@@ -440,7 +440,8 @@ export function FilaPedidosPorArea({
   const setPagina = (n: number) => setEstadoTela({ pagina: n });
   const ordenacao = useMemo(() => textoParaOrdenacao(estadoTela.ordem), [estadoTela.ordem]);
   const setOrdenacao = (o: Ordenacao) => setEstadoTela({ ordem: ordenacaoParaTexto(o) });
-  const [buscaDebounced, setBuscaDebounced] = useState("");
+  // Nasce com a busca da URL: voltar do detalhe não pode piscar a lista sem filtro.
+  const [buscaDebounced, setBuscaDebounced] = useState(busca);
   const [estagioFilter] = useState<EstagioPedido | "todos">(estagioInicial);
 
   // Terceiro clique no cabecalho devolve a fila ao preset que estava valendo.
@@ -474,13 +475,10 @@ export function FilaPedidosPorArea({
   }, [busca]);
 
   // Não roda na montagem: a página que veio da URL (voltar do detalhe) fica.
-  // A busca debounced começa vazia e só "chega" 300 ms depois — esse primeiro
-  // eco também não pode zerar a página.
   const primeiraSelecao = useRef(true);
-  const buscaInicial = useRef(busca);
   useEffect(() => {
     if (primeiraSelecao.current) {
-      if (buscaDebounced === buscaInicial.current) primeiraSelecao.current = false;
+      primeiraSelecao.current = false;
       return;
     }
     if (pagina !== 1) setPagina(1);
