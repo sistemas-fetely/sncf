@@ -209,7 +209,7 @@ function LinhaB2bSaida({ chave, linha }: { chave: string; linha: Record<string, 
             <>
               <span>
                 NF candidata {String(linha.nf_candidata_numero)}
-                {linha.nf_candidata_emissao ? ` (${fmtData(linha.nf_candidata_emissao).slice(0, 5)})` : ""}
+                {linha.nf_candidata_emissao ? ` (${new Date(String(linha.nf_candidata_emissao)).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", timeZone: "UTC" })})` : ""}
               </span>
               {nfQtd > 1 ? (
                 <span className="text-muted-foreground">+{nfQtd - 1} candidata(s)</span>
