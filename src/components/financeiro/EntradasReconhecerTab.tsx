@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /**
  * ENTRADAS A RECONHECER — o que a varredura automática não reconheceu.
  *
@@ -459,7 +461,9 @@ function ComprovantesAguardandoBloco() {
 export function EntradasReconhecerTab() {
   const { data: entradas, isLoading, isError, error } = useEntradasReconhecer();
   const [ordenacao, setOrdenacao] = useState<OrdenacaoEntradas>(null);
-  const [pagina, setPagina] = useState(1);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ pagina: 1 }, { prefixo: "er" });
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_ENTRADAS),
   );

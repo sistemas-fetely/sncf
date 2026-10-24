@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao, lerConjunto, escreverConjunto } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -80,11 +82,16 @@ export default function ExtratoInbox() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const { ini, fim } = mesInicioFim();
-  const [filtros, setFiltros] = useState<Set<Filtro>>(new Set(["abertos"]));
-  const [contaId, setContaId] = useState<string>("todas");
-  const [de, setDe] = useState(ini);
-  const [ate, setAte] = useState(fim);
-  const [busca, setBusca] = useState("");
+  // Conjunto de filtros rápidos na URL (padrão: só abertos).
+  const [navF, setNavF] = useEstadoTela({ filtros: "abertos" });
+  const filtros = lerConjunto<Filtro>(navF.filtros);
+  const setFiltros = (v: SetStateAction<Set<Filtro>>) => setNavF({ filtros: escreverConjunto(resolverAcao(v, filtros)) });
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ conta: "todas", de: ini, ate: fim, busca: "" }, { replaceKeys: ["busca"] });
+  const contaId = nav.conta as string; const setContaId = (v: SetStateAction<typeof contaId>) => setNav({ conta: resolverAcao(v, contaId) as never });
+  const de = nav.de; const setDe = (v: SetStateAction<typeof de>) => setNav({ de: resolverAcao(v, de) as never });
+  const ate = nav.ate; const setAte = (v: SetStateAction<typeof ate>) => setNav({ ate: resolverAcao(v, ate) as never });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [selecionada, setSelecionada] = useState<Mov | null>(null);
   const [classe, setClasse] = useState<string>("");
   const [nota, setNota] = useState("");
