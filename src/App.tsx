@@ -29,7 +29,6 @@ import { CasaLayout } from "@/layouts/CasaLayout";
 // Lazy-loaded routes — reduces initial bundle (was ~1.3MB) to improve TBT/Max FID.
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const CasaHome = lazy(() => import("@/pages/CasaHome"));
-const Colaboradores = lazy(() => import("@/pages/Colaboradores"));
 const Pessoas = lazy(() => import("@/pages/Pessoas"));
 const PessoaForm = lazy(() => import("@/pages/PessoaForm"));
 const PessoaEntradaRapida = lazy(() => import("@/pages/PessoaEntradaRapida"));
