@@ -1234,6 +1234,7 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
+                      <SeloTravado p={p} />
                       <SeloCdExpedicao p={p} />
                       {p.estagio === "recebido" && <ExcecaoRecebidoSelo pedidoId={p.id} />}
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
