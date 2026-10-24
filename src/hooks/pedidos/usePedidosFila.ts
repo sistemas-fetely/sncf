@@ -21,6 +21,8 @@ interface Opts {
   apenasAtivos?: boolean;
   /** Quando true, cancelados entram na consulta. Recuperação (desvio) nunca entra. */
   incluirCancelados?: boolean;
+  /** CARD-TRAVADO: só pedidos com o desvio `travado` ativo (v_pedidos_fila.travado). */
+  somenteTravados?: boolean;
 }
 
 
@@ -62,6 +64,11 @@ export function usePedidosFila(opts: Opts = {}) {
             ? q.not("estagio", "in", "(entregue,recuperacao_venda)")
             : q.not("estagio", "in", "(entregue,cancelado,recuperacao_venda)");
         }
+
+        // CARD-TRAVADO: o card "Travado" do funil conta só os travados; cada card
+        // de estágio conta `estagio = X` SEM travados. "Fila ativa" não recorta.
+        if (opts.somenteTravados) q = q.eq("travado", true);
+        if (filtroEstagioExplicito) q = q.eq("travado", false);
 
         if (temBusca) {
           // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
