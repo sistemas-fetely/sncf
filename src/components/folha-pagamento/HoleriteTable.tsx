@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,9 @@ interface Props {
 }
 
 export function HoleriteTable({ holerites, onSelect }: Props) {
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "hl" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const { roles: authRoles } = useAuth();
   const isSuperAdminLocal = (authRoles ?? []).includes("super_admin");
   const isAdminRHLocal = (authRoles ?? []).includes("admin_rh");

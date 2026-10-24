@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { Link } from "react-router-dom";
 import { Receipt, Plus, Wrench, CalendarRange, RefreshCw, Loader2, FileUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,10 +59,12 @@ function Resumo({ rotulo, valor }: { rotulo: string; valor: string | number }) {
 }
 
 export default function Reembolsos() {
-  const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [__nav, __setNav] = useEstadoTela({ filtro: "todos" } as Record<string, string | number | boolean | null>);
+  const filtro = __nav.filtro as Filtro;
   const [sheetAberto, setSheetAberto] = useState(false);
   const [importarAberto, setImportarAberto] = useState(false);
   const [solicitacaoAberta, setSolicitacaoAberta] = useState<string | null>(null);
+  const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
 
 
   const listaQ = useSolicitacoes("todos");

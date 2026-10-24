@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Loader2, History, Search } from "lucide-react";
@@ -29,8 +30,11 @@ const fmtQuando = (iso: string) => {
 };
 
 export default function RastroAcessoTab() {
-  const [tipo, setTipo] = useState<string>("todos");
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ tipo: "todos", busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "ra" });
+  const tipo = __nav.tipo as string;
+  const setTipo = (v: any) => __setNav({ tipo: resolverAcao(v, __nav.tipo as any) } as any);
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
 
   const { data, isLoading } = useQuery({
     queryKey: ["rastro-acesso-dados-log"],

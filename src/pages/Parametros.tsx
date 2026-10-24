@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useState, useMemo } from "react";
 import { useAllParametros } from "@/hooks/useParametros";
 import { supabase } from "@/integrations/supabase/client";
@@ -408,7 +409,9 @@ export default function Parametros() {
   const [deleteTarget, setDeleteTarget] = useState<Parametro | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [clevelConfirm, setClevelConfirm] = useState<{ param: Parametro; enabling: boolean } | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ searchTerm: "" } as Record<string, string | number | boolean | null>);
+  const searchTerm = __nav.searchTerm as string;
+  const setSearchTerm = (v: any) => __setNav({ searchTerm: resolverAcao(v, __nav.searchTerm as any) } as any);
 
   const handleModuloChange = (value: string) => {
     setSearchParams({ aba: value });

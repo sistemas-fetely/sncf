@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,10 +60,14 @@ export default function TIAtivos() {
   const { user } = useAuth();
   const [ativos, setAtivos] = useState<Ativo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterTipo, setFilterTipo] = useState<string>("todos");
-  const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterTipo: "todos", filterStatus: "todos" } as Record<string, string | number | boolean | null>);
+  const search = __nav.search as string;
+  const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
+  const filterTipo = __nav.filterTipo as string;
+  const filterStatus = __nav.filterStatus as string;
+  const setFilterTipo = (v: any) => __setNav({ filterTipo: resolverAcao(v, __nav.filterTipo as any) } as any);
   const [tiposDisponiveis, setTiposDisponiveis] = useState<string[]>([]);
+  const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);

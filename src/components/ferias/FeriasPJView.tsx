@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { format, addDays } from "date-fns";
 import { Calendar, Plus, Check, X, Eye, Pencil, Trash2 } from "lucide-react";
@@ -60,7 +61,9 @@ export function FeriasPJView({ canManage, isAdmin }: Props) {
   const [showEditProg, setShowEditProg] = useState(false);
   const [selectedPeriodo, setSelectedPeriodo] = useState<PeriodoPJComContrato | null>(null);
   const [editingProg, setEditingProg] = useState<Tables<"ferias_pj"> | null>(null);
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "fp" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
 
   // Form - novo período
   const [novoContratoId, setNovoContratoId] = useState("");

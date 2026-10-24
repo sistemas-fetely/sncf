@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { Loader2, FileText, Sparkles, AlertCircle, CheckCircle2, XCircle, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,7 +34,9 @@ export default function HistoricoImportacoesPDF() {
   const navigate = useNavigate();
   const [importacoes, setImportacoes] = useState<Importacao[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  const [__nav, __setNav] = useEstadoTela({ filtroStatus: "todos" } as Record<string, string | number | boolean | null>);
+  const filtroStatus = __nav.filtroStatus as string;
+  const setFiltroStatus = (v: any) => __setNav({ filtroStatus: resolverAcao(v, __nav.filtroStatus as any) } as any);
 
   useEffect(() => {
     const carregar = async () => {

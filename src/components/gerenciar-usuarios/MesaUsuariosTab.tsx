@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -79,7 +80,9 @@ interface Props {
 
 export default function MesaUsuariosTab({ isSuperAdmin, podeCriar, onNovoUsuario }: Props) {
   const qc = useQueryClient();
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "mu" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
 
   // dialogs
   const [papelDialog, setPapelDialog] = useState<{ userId: string; nome: string } | null>(null);

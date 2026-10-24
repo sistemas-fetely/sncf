@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Brain, Pencil, Trash2, Plus, RotateCcw, ShieldAlert, X } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -96,12 +97,14 @@ export default function MinhasMemorias() {
   const isSuperAdmin = (authRoles ?? []).includes("super_admin");
   const [memorias, setMemorias] = useState<Memoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filtroTipo, setFiltroTipo] = useState<string>("todas");
+  const [__nav, __setNav] = useEstadoTela({ filtroTipo: "todas" } as Record<string, string | number | boolean | null>);
+  const filtroTipo = __nav.filtroTipo as string;
   const [apenasAtivas, setApenasAtivas] = useState(true);
 
   // Regra 5 — Super Admin acessando memórias de OUTRO usuário (com log formal)
   const [acessarOutroOpen, setAcessarOutroOpen] = useState(false);
   const [memoriasOutro, setMemoriasOutro] = useState<MemoriaOutro[] | null>(null);
+  const setFiltroTipo = (v: any) => __setNav({ filtroTipo: resolverAcao(v, __nav.filtroTipo as any) } as any);
   const [titularOutro, setTitularOutro] = useState<{ user_id: string; full_name: string | null } | null>(null);
 
 

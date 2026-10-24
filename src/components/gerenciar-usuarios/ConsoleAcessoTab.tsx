@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -398,7 +399,9 @@ export default function ConsoleAcessoTab({
   const [painelGrupoAberto, setPainelGrupoAberto] = useState(false);
 
   // ── Filtros (apresentação pura: nunca alteram o que é gravado) ──
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "ca" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [soSemGuarda, setSoSemGuarda] = useState(false);
   const [soAltoSemGuarda, setSoAltoSemGuarda] = useState(false);
   const [soNaoDeclaradas, setSoNaoDeclaradas] = useState(false);

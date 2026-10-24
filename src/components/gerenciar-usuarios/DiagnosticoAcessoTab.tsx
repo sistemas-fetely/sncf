@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronDown, ScanSearch, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -242,8 +243,11 @@ function MatrizConcessao() {
 }
 
 export default function DiagnosticoAcessoTab() {
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<string>("todos");
+  const [__nav, __setNav] = useEstadoTela({ busca: "", filtro: "todos" } as Record<string, string | number | boolean | null>, { prefixo: "da" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
+  const filtro = __nav.filtro as string;
+  const setFiltro = (v: any) => __setNav({ filtro: resolverAcao(v, __nav.filtro as any) } as any);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["permissao-diagnostico"],

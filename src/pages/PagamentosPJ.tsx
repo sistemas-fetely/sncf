@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   CreditCard, Search, MoreHorizontal, Eye, Loader2,
 } from "lucide-react";
@@ -66,12 +67,19 @@ interface ContratoPJOption {
 
 export default function PagamentosPJ() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [pagamentos, setPagamentos] = useState<PagamentoComContrato[]>([]);
   const [contratos, setContratos] = useState<ContratoPJOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [filterContrato, setFilterContrato] = useState("todos");
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: pagamentos.map((x) => x.id) });
+  useRestaurarScroll(null, !loading);
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterStatus: "todos", filterContrato: "todos" } as Record<string, string | number | boolean | null>);
+  const search = __nav.search as string;
+  const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
+  const filterStatus = __nav.filterStatus as string;
+  const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
+  const filterContrato = __nav.filterContrato as string;
+  const setFilterContrato = (v: any) => __setNav({ filterContrato: resolverAcao(v, __nav.filterContrato as any) } as any);
 
   const fetchData = async () => {
     const [{ data: pags }, { data: cps }] = await Promise.all([
@@ -180,7 +188,7 @@ export default function PagamentosPJ() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum pagamento encontrado.</TableCell></TableRow>
                 ) : filtered.map((p) => (
-                  <TableRow key={p.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/pagamentos-pj/${p.contrato_id}`)}>
+                  <TableRow key={p.id} className="hover:bg-muted/30 transition-colors cursor-pointer" data-foco-id={p.id} onClick={() => abrirDetalhe(navigate, location, `/pagamentos-pj/${p.contrato_id}`, { foco: p.id, label: "Pagamentos PJ" })}>
                     <TableCell className="font-medium text-sm">{p.contrato_nome}</TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{p.nf_numero || "—"}</TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{formatCompetencia(p.competencia)}</TableCell>

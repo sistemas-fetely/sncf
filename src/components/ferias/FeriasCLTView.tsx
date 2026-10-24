@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
 import { format, differenceInDays, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -64,7 +65,9 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
   const [showEditProg, setShowEditProg] = useState(false);
   const [selectedPeriodo, setSelectedPeriodo] = useState<PeriodoComColaborador | null>(null);
   const [editingProg, setEditingProg] = useState<Tables<"ferias_programacoes"> | null>(null);
-  const [busca, setBusca] = useState("");
+  const [__nav, __setNav] = useEstadoTela({ busca: "" } as Record<string, string | number | boolean | null>, { prefixo: "fc" });
+  const busca = __nav.busca as string;
+  const setBusca = (v: any) => __setNav({ busca: resolverAcao(v, __nav.busca as any) } as any);
   const [deleteProgId, setDeleteProgId] = useState<string | null>(null);
   const [deletePeriodoId, setDeletePeriodoId] = useState<string | null>(null);
 

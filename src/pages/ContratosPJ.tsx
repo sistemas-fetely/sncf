@@ -1,7 +1,8 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { usePermissaoAcao } from "@/hooks/usePermissaoAcao";
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   Briefcase, Plus, Search, MoreHorizontal, Eye, Edit, Trash2,
   FileCheck, FileClock, User, ShieldAlert,
@@ -395,6 +396,7 @@ function ContratoPJForm({
 
 export default function ContratosPJ() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { roles: authRoles } = useAuth();
   const { permitido: podeEditarContrato, carregando: carregandoPermissao } = usePermissaoAcao("acao.contrato_pj_editar");
@@ -405,8 +407,13 @@ export default function ContratosPJ() {
   const canDelete = podeEditarContrato && !carregandoPermissao;
   const [contratos, setContratos] = useState<ContratoPJ[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: contratos.map((x) => x.id) });
+  useRestaurarScroll(null, !loading);
+  const [__nav, __setNav] = useEstadoTela({ search: "", filterStatus: "todos" } as Record<string, string | number | boolean | null>);
+  const search = __nav.search as string;
+  const setSearch = (v: any) => __setNav({ search: resolverAcao(v, __nav.search as any) } as any);
+  const filterStatus = __nav.filterStatus as string;
+  const setFilterStatus = (v: any) => __setNav({ filterStatus: resolverAcao(v, __nav.filterStatus as any) } as any);
   const [formOpen, setFormOpen] = useState(searchParams.get("novo") === "true");
   const [editContrato, setEditContrato] = useState<ContratoPJ | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ContratoPJ | null>(null);
@@ -590,7 +597,7 @@ export default function ContratosPJ() {
                   </TableRow>
                 ) : (
                   filtered.map((c) => (
-                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/contratos-pj/${c.id}`, { state: { from: "/contratos-pj" } })}>
+                    <TableRow key={c.id} className="hover:bg-muted/30 transition-colors cursor-pointer" data-foco-id={c.id} onClick={() => abrirDetalhe(navigate, location, `/contratos-pj/${c.id}`, { foco: c.id, label: "Contratos PJ" })}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
