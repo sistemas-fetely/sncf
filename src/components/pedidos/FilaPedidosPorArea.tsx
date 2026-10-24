@@ -104,6 +104,8 @@ interface Props {
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
+  /** CARD-TRAVADO: filtro vindo do card "Travado" do funil (travado = true). */
+  somenteTravados?: boolean;
 }
 
 interface EstadoVazioFilaProps {
