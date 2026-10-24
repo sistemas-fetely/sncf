@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type SetStateAction } from "react";
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
@@ -694,13 +695,22 @@ function LinhaExpandida({ exp, fases }: { exp: ExpedicaoXpm; fases: Map<number, 
 
 export default function ExpedicoesXpm() {
   const qc = useQueryClient();
-  const [canal, setCanal] = useState("todos");
-  const [estagio, setEstagio] = useState("todos");
-  const [situacao, setSituacao] = useState("curso_5d");
-  const [farolFiltro, setFarolFiltro] = useState<"risco" | "atencao" | null>(null);
-  const [slaFiltro, setSlaFiltro] = useState("todos");
-  const [busca, setBusca] = useState("");
-  const [aberto, setAberto] = useState<string | null>(null);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da aba Expedições na URL (prefixo "exp").
+  const [nav, setNav] = useEstadoTela(
+    { canal: "todos", estagio: "todos", situacao: "curso_5d", farol: "", sla: "todos", busca: "", aberto: "" },
+    { prefixo: "exp", replaceKeys: ["aberto"] },
+  );
+  const { canal, estagio, situacao, busca } = nav;
+  const setCanal = (v: string) => setNav({ canal: v });
+  const setEstagio = (v: string) => setNav({ estagio: v });
+  const setSituacao = (v: string) => setNav({ situacao: v });
+  const farolFiltro = (nav.farol || null) as "risco" | "atencao" | null;
+  const setFarolFiltro = (v: SetStateAction<"risco" | "atencao" | null>) => setNav({ farol: resolverAcao(v, farolFiltro) ?? "" });
+  const slaFiltro = nav.sla;
+  const setSlaFiltro = (v: string) => setNav({ sla: v });
+  const setBusca = (v: string) => setNav({ busca: v });
+  const aberto = nav.aberto || null;
+  const setAberto = (v: string | null) => setNav({ aberto: v ?? "" });
   const [sincronizando, setSincronizando] = useState(false);
 
   const expedicoesQ = useQuery({
