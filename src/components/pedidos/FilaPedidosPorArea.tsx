@@ -6,6 +6,7 @@ import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { ordenacaoParaTexto, textoParaOrdenacao, type Ordenacao, type PresetOrdenacao, type ColunaOrdenavel } from "@/lib/pedidos/ordenacaoCasa";
+import { alertaCoberturaCd } from "@/lib/pedidos/coberturaCd";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -1869,41 +1870,30 @@ const DICA_CD: Record<string, string> = {
 /** CD-NAO-COBRE (24/10/2026): o chip de Estoque mede a rede; este alerta mede só o CD
  *  de expedição do pedido. v_pedidos_fila devolve nulas fora da separação — aí nada aparece. */
 function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
-  const total = p.cd_itens;
-  const cobertos = p.cd_itens_cobertos;
-  if (total == null || cobertos == null || cobertos >= total) return null;
-
-  const texto = `CD não cobre ${total - cobertos}/${total}`;
-  const tooltip = [
-    p.cd_expedicao_nome ? `CD ${p.cd_expedicao_nome}` : null,
-    ...(p.cd_faltas ?? []).map(
-      (f) => `${f.sku}: pede ${f.pedido}, livre no CD ${f.livre_cd}`,
-    ),
-  ]
-    .filter(Boolean)
-    .join("\n");
+  const alerta = alertaCoberturaCd(p);
+  if (!alerta) return null;
 
   const selo = (
     <span
-      title={tooltip || texto}
+      title={alerta.tooltip || alerta.texto}
       className={cn(
         "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
         "border-warning/50 text-warning",
       )}
     >
       <AlertTriangle className="h-3 w-3" />
-      {texto}
+      {alerta.texto}
     </span>
   );
 
-  if (!tooltip) return selo;
+  if (!alerta.tooltip) return selo;
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>{selo}</TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs max-w-[260px] whitespace-pre-line">{tooltip}</p>
+          <p className="text-xs max-w-[260px] whitespace-pre-line">{alerta.tooltip}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
