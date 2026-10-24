@@ -28,6 +28,8 @@
 - Every externally shared link builds its origin through `publicUrl()` in `src/lib/urls.ts` (env → `fn_url_publica()` loaded once at boot → fallback), never `window.location.origin`, because the preview origin leaked into customer PIX links.
 - Safra return effects on titulo_a_receber apply only to the current boleto (nosso_numero_seq, else nosso_numero_safra); baixa/rejeição of an older replaced boleto touches only titulo_boleto and the instrument log, and rejection classification comes from vw_safra_retorno_pendente.classificacao_rejeicao, because a stale baixa overwrote freshly registered boletos.
 - Site SP order screens draw phase/step/owner/next action only from `vw_venda_direta_gestao` + `vd_fase`/`vd_etapa`/`vd_responsavel` (via `FunilVD`); `situacao` only drives actions, so classification lives in one place (the database).
+- CD-swap eligibility in the fila comes only from `v_pedidos_fila.cd_pode_trocar`; the front never hardcodes a distribution-center code (no `SITE-SP` constant), because the rule of when a swap is allowed belongs to the database and can change without a deploy.
+
 
 ## TELA-LEMBRA-ONDE-EU-ESTAVA
 - Navigation state (search, filters, sort, page, tab, focus) lives in the URL via `useEstadoTela` (`src/lib/navegacao`); defaults stay out of the URL.
