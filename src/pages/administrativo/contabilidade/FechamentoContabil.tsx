@@ -1,5 +1,6 @@
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
+import { useRef as useRefNav } from "react";
 /**
  * TELA 1 — Contabilidade > Fechamento Mensal.
  *
@@ -288,7 +289,11 @@ export default function FechamentoContabil() {
     },
   });
 
-  useEffect(() => { setPagina(0); }, [selecionada, busca, ordem]);
+  const montouPag = useRefNav(false); // nav
+  useEffect(() => {
+    if (!montouPag.current) { montouPag.current = true; return; }
+    setPagina(0);
+  }, [selecionada, busca, ordem]);
 
   const linhas = posicao.data ?? [];
 

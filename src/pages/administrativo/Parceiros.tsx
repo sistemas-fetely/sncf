@@ -1,4 +1,4 @@
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -161,7 +161,10 @@ export default function Parceiros() {
   const queryClient = useQueryClient();
   const { temNivel } = useNivel();
 
+  const montouPag = useRef(false); // nav
   useEffect(() => {
+    // Reset de página não roda na montagem (página vem da URL).
+    if (!montouPag.current) { montouPag.current = true; return; }
     setPagina(1);
   }, [busca, filtroStatus, filtroGrupo, filtroIncompleto, tabAtiva, sort]);
 
@@ -689,7 +692,8 @@ export default function Parceiros() {
                             <TableRow
                               key={p.id}
                               className="cursor-pointer"
-                              onClick={() => navigate(`/parceiros/${p.id}`, { state: { from: location.pathname + location.search } })}
+                              data-foco-id={p.id}
+                              onClick={() => abrirDetalhe(navigate, location, `/parceiros/${p.id}`, { foco: p.id, label: "Parceiros" })}
                             >
                               <TableCell>
                                 <div>

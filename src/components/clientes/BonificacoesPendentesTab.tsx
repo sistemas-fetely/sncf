@@ -1,5 +1,6 @@
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
+import { useRef as useRefNav } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -78,7 +79,11 @@ export function BonificacoesPendentesTab() {
     );
   }, [busca, lista]);
 
-  useEffect(() => setPagina(1), [busca, tamanhoPagina]);
+  const montouPag = useRefNav(false); // nav
+  useEffect(() => {
+    if (!montouPag.current) { montouPag.current = true; return; }
+    setPagina(1);
+  }, [busca, tamanhoPagina]);
   const totalPaginas = Math.max(1, Math.ceil(filtrada.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const exibidas = filtrada.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);

@@ -1,5 +1,6 @@
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
+import { useRef as useRefNav } from "react";
 /**
  * Despesas — registro único de despesas, todas as origens, por competência.
  *
@@ -247,7 +248,9 @@ export default function Despesas() {
   }, [filtradas]);
 
   // Reset de página quando qualquer filtro muda
+  const montouPag = useRefNav(false); // nav
   useEffect(() => {
+    if (!montouPag.current) { montouPag.current = true; return; }
     setPagina(1);
   }, [busca, origem, mes, plano, natureza, estagio]);
 
