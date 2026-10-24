@@ -53,6 +53,7 @@ import {
   TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
 import { formatDateBR } from "@/lib/format-currency";
+import { fmtData } from "@/lib/data";
 import { ExcecaoRecebidoSelo, ExcecaoRecebidoBotao } from "@/components/pedidos/ExcecaoRecebido";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { DialogoDeclaracaoB2B, useB2bSaidaPermitida, type DeclaracaoB2B } from "@/components/pedidos/DialogoDeclaracaoB2B";
@@ -308,6 +309,41 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
         </p>
       )}
     </div>
+  );
+}
+
+/** CARD-TRAVADO (24/10/2026): selo discreto do desvio na linha — o estágio real
+ *  continua visível; o selo diz por que o pedido está travado e desde quando. */
+function SeloTravado({ p }: { p: PedidoFilaItem }) {
+  if (!p.travado) return null;
+  const motivos = (p.travado_motivos ?? []).filter(Boolean);
+  const tooltip = [
+    ...motivos,
+    p.travado_desde ? `desde ${fmtData(p.travado_desde)}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            variant="outline"
+            className="rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 min-w-0"
+          >
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              Travado{p.travado_motivo ? ` · ${p.travado_motivo}` : ""}
+            </span>
+          </Badge>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent>
+            <p className="text-xs max-w-[280px] whitespace-pre-line">{tooltip}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
