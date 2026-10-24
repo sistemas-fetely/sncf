@@ -83,6 +83,9 @@ interface Props {
   onToggleRiscoAlto?: () => void;
   /** Abre a aba Mesa Comercial — não filtra a fila. */
   onAbrirRecuperacao?: () => void;
+  /** CARD-TRAVADO: desvio vindo do pipeline (linha estagio='travado'). */
+  travadoAtivo?: boolean;
+  onClickTravado?: () => void;
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -100,8 +103,17 @@ export function PipelineHorizontal({
   riscoAltoAtivo = false,
   onToggleRiscoAlto,
   onAbrirRecuperacao,
+  travadoAtivo = false,
+  onClickTravado,
 }: Props) {
   const { data, isLoading, isError, error } = usePedidosPipeline();
+
+  // CARD-TRAVADO: o pipeline traz a linha estagio='travado' como desvio —
+  // o pedido sai da contagem do card do seu estágio real e conta só aqui.
+  const travadoRow = useMemo(
+    () => (data || []).find((r) => r.estagio === "travado") ?? null,
+    [data],
+  );
 
   const {
     data: pagamentoVencido,
