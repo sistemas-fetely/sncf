@@ -96,7 +96,6 @@ export function useReguaEtapas() {
 export function useReguaFilaHoje() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-fila-hoje"],
-    meta: { pesada: true },
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_cobranca_mesa")
@@ -129,7 +128,6 @@ export function useReguaFilaHoje() {
 export function useReguaVencidoForaDaFila() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-vencido-fora"],
-    meta: { pesada: true },
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_cobranca_mesa")
@@ -150,7 +148,6 @@ export function useReguaVencidoForaDaFila() {
 export function useReguaPausados() {
   return useQuery({
     queryKey: ["titulos-cobranca", "cobranca-mesa", "regua-pausados"],
-    meta: { pesada: true },
     queryFn: async (): Promise<TituloCobranca[]> => {
       const { data, error } = await (supabase as any)
         .from("vw_cobranca_mesa")

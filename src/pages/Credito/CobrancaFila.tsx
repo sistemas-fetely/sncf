@@ -1467,7 +1467,6 @@ export default function CobrancaFila() {
   // Contagem AGIR AGORA da Mesa — mesma queryKey da Mesa, sem requisição extra.
   const mesaQ = useQuery({
     queryKey: ["cobranca-mesa"],
-    meta: { pesada: true },
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("vw_cobranca_mesa").select("*");
       if (error) throw error;

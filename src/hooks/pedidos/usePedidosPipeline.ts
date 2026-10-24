@@ -5,7 +5,6 @@ import type { PipelineItem } from "@/types/pedido";
 export function usePedidosPipeline() {
   return useQuery({
     queryKey: ["pedidos-pipeline"],
-    meta: { pesada: true },
     // Os cards ficam montados (sticky) e nunca remontavam: congelavam enquanto
     // a lista rebuscava a cada clique. Daí refetch por tempo.
     // CUSTO-DA-VIEW (09/09/2026): v_pedidos_pipeline custa ~1s; a cada minuto,

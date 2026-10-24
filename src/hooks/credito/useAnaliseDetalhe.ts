@@ -16,7 +16,6 @@ import type {
 export function useAnaliseDetalhe(analiseId: string | undefined) {
   return useQuery({
     queryKey: ["analise-detalhe", analiseId],
-    meta: { pesada: true },
     enabled: !!analiseId,
     staleTime: 10 * 1000,
     queryFn: async (): Promise<

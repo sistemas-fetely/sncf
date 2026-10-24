@@ -21,7 +21,6 @@ export interface PedidoAlerta {
 export function usePedidoAlerta() {
   return useQuery({
     queryKey: ["pedido-alerta"],
-    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, PedidoAlerta>> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

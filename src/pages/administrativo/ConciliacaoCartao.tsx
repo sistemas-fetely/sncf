@@ -311,7 +311,6 @@ function ResumoCartaoSemProva() {
 
   const { data: linhas = [], isLoading } = useQuery({
     queryKey: ["conciliacao-cartao", "pagos-sem-prova"],
-    meta: { pesada: true },
     staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await sb

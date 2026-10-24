@@ -24,7 +24,6 @@ export interface PedidoRisco {
 export function usePedidoRisco() {
   return useQuery({
     queryKey: ["pedido-risco"],
-    meta: { pesada: true },
     staleTime: 30 * 1000,
     queryFn: async (): Promise<Map<string, PedidoRisco>> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
