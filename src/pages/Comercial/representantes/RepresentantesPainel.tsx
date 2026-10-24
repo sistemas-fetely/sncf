@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AbaReconciliacao } from "./AbaReconciliacao";
 import { AbaCicloMensal } from "./AbaCicloMensal";
@@ -101,9 +102,17 @@ export default function RepresentantesPainel() {
   const [params, setParams] = useSearchParams();
   const abaParam = params.get("aba");
   const aba = abaParam === "reconciliacao" || abaParam === "ciclo" || abaParam === "gerencial" ? abaParam : "painel";
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>("todos");
-  const [ord, setOrd] = useState<{ k: string; asc: boolean }>({ k: "valor_vendido_bruto", asc: false });
+  const location = useLocation();
+  // Filtros da aba Painel na URL (prefixo "rp").
+  const [estado, setEstado] = useEstadoTela({ busca: "", filtro: "todos", ord: "valor_vendido_bruto:desc" }, { prefixo: "rp" });
+  const busca = estado.busca;
+  const setBusca = (v: string) => setEstado({ busca: v });
+  const filtro = estado.filtro as Filtro;
+  const setFiltro = (v: Filtro) => setEstado({ filtro: v });
+  const ord = useMemo(() => { const [k, d] = estado.ord.split(":"); return { k, asc: d === "asc" }; }, [estado.ord]);
+  const setOrd = (f: (o: { k: string; asc: boolean }) => { k: string; asc: boolean }) => {
+    const n = f(ord); setEstado({ ord: `${n.k}:${n.asc ? "asc" : "desc"}` });
+  };
   const [sincronizando, setSincronizando] = useState(false);
   const [errosSync, setErrosSync] = useState<ErroSync[] | null>(null);
   const [alvo, setAlvo] = useState<AlvoContraparte | null>(null);
@@ -167,6 +176,8 @@ export default function RepresentantesPainel() {
       return ord.asc ? cmp : -cmp;
     });
   }, [linhas, busca, ord, filtro]);
+  useFocoAoVoltar({ pronto: !q.isLoading, idsVisiveis: vis.map((r) => String(r.vendedor_id)), focoParam: "rp_foco" });
+  useRestaurarScroll(null, !q.isLoading);
 
   async function sincronizar() {
     setSincronizando(true);
@@ -298,8 +309,8 @@ export default function RepresentantesPainel() {
             ) : vis.map((r) => {
               const semVenda = Number(r.pedidos_total ?? 0) === 0;
               return (
-                <TableRow key={r.vendedor_id} className={cn("cursor-pointer", semVenda && "opacity-60")}
-                  onClick={() => nav(`/comercial/representantes/${r.vendedor_id}`)}>
+                <TableRow key={r.vendedor_id} data-foco-id={String(r.vendedor_id)} className={cn("cursor-pointer", semVenda && "opacity-60")}
+                  onClick={() => abrirDetalhe(nav, location, `/comercial/representantes/${r.vendedor_id}`, { foco: String(r.vendedor_id), label: "Representantes", focoParam: "rp_foco" })}>
                   <TableCell className={cn("font-medium", tdFixo)}>
                     <span className="flex items-center gap-1.5">
                       <span className="truncate" title={String(r.representante ?? "")}>{r.representante}</span>
