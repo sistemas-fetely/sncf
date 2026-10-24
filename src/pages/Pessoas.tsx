@@ -175,6 +175,9 @@ export default function Pessoas() {
     return matchSearch && matchTipo && matchStatus && matchCC && matchIncompleto;
   }), [linhas, search, filterTipo, filterStatus, filterCC, soloIncompletos]);
 
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: filtered.map((p) => p.pessoa_id) });
+  useRestaurarScroll(null, !loading);
+
 
 
   const initials = (name: string) =>
