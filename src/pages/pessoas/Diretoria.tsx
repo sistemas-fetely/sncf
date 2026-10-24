@@ -59,6 +59,8 @@ export default function Diretoria() {
     },
   });
 
+  useFocoAoVoltar({ pronto: !!listaQ.data, idsVisiveis: (listaQ.data ?? []).map((s) => s.pessoa_id) });
+
   if (carregandoPermissao) {
     return (
       <PageShell>
