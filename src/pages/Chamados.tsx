@@ -403,6 +403,10 @@ function ChamadosConteudo() {
     return copia;
   }, [lista.data, visao, cadeira, prioridade, tipo, busca, ordem, user?.id]);
 
+  const listaPronta = !lista.isLoading && !!lista.data;
+  useFocoAoVoltar({ pronto: listaPronta, idsVisiveis: filtrados.map((c) => c.chamado_id) });
+  useRestaurarScroll(null, listaPronta);
+
   function abrir(tipoAcao: AcaoTipo, chamado: Chamado) {
     setAcao(tipoAcao);
     setAlvo(chamado);
