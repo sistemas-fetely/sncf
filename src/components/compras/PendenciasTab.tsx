@@ -142,7 +142,7 @@ function NfsSemEntrada({
     if (r.rota_recebimento) {
       navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
     } else {
-      abrirDetalhe(navigate, window.location, `/vendas/produto/chegada-mercadoria/${r.pedido_id}`, { foco: r.pedido_id, focoParam: "pd_foco", label: "Pendências" });
+      abrirDetalhe(navigate, window.location, `/vendas/produto/chegada-mercadoria/${r.pedido_id}`, { foco: String(r.pedido_id), focoParam: "pd_foco", label: "Pendências" });
     }
   };
 
