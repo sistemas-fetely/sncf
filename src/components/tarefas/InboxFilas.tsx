@@ -3,7 +3,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
+import {
+  DialogoDeclaracaoB2B,
+  invalidarSaidasB2B,
+  useB2bSaidaPermitida,
+  type DeclaracaoB2B,
+} from "@/components/pedidos/DialogoDeclaracaoB2B";
 import { useInboxFilas, type FilaInbox } from "@/hooks/tarefas/useInboxFilas";
 import { useInboxFilaItens } from "@/hooks/tarefas/useInboxFilaItens";
 import { useFilaMedidas, fmtPrazoMedida, type FilaMedida } from "@/hooks/tarefas/useFilaMedidas";
@@ -109,6 +116,132 @@ function LinhaSaldoCd({ linha }: { linha: Record<string, unknown> }) {
   );
 }
 
+const FILAS_B2B_SAIDA = ["b2b_transporte_sem_noticia", "b2b_faturado_parado", "b2b_embarcado_sem_nf"];
+
+const fmtData = (v: unknown) => (v ? formatarCelula(v).texto : "—");
+const fmtBRL = (v: unknown) =>
+  v === null || v === undefined || v === ""
+    ? "—"
+    : Number(v).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+/** Filas de B2B parado depois do faturamento: colunas legíveis + saídas. */
+function LinhaB2bSaida({ chave, linha }: { chave: string; linha: Record<string, unknown> }) {
+  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { data: permitido } = useB2bSaidaPermitida();
+  const [declaracao, setDeclaracao] = useState<DeclaracaoB2B | null>(null);
+  const [cobrando, setCobrando] = useState(false);
+  const [obs, setObs] = useState("");
+  const pedidoId = String(linha.pedido_id ?? "");
+
+  const cobrar = useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("fn_pedido_b2b_cobrar_transportadora", {
+        p_pedido_id: pedidoId,
+        p_obs: obs.trim(),
+      });
+      if (error) throw error;
+      return data as { volta_em?: string } | null;
+    },
+    onSuccess: async (d) => {
+      toast.success(d?.volta_em ? `Cobrança registrada · volta em ${fmtData(d.volta_em)}` : "Cobrança registrada");
+      setCobrando(false);
+      setObs("");
+      await invalidarSaidasB2B(qc);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const campos: [string, string][] =
+    chave === "b2b_transporte_sem_noticia"
+      ? [
+          ["Transportadora", String(linha.transportadora ?? "—")],
+          ["Frete", String(linha.frete_tipo ?? "—")],
+          ["Previsão", fmtData(linha.data_entrega_prevista)],
+          ["Em transporte desde", fmtData(linha.em_transporte_desde)],
+          ["Limite", fmtData(linha.limite)],
+          ["Última cobrança", fmtData(linha.ultima_cobranca)],
+        ]
+      : chave === "b2b_faturado_parado"
+        ? [
+            ["Transportadora", String(linha.transportadora ?? "—")],
+            ["Faturado em", fmtData(linha.faturado_em)],
+            ["Expedição XPM", String(linha.xpm_expedicao_codigo ?? "—")],
+          ]
+        : [
+            ["Estágio", String(linha.estagio ?? "—")],
+            ["Embarcado em", fmtData(linha.embarcado_em)],
+          ];
+
+  const acoes = permitido === true && chave !== "b2b_embarcado_sem_nf";
+
+  return (
+    <div className="rounded-md border p-3 space-y-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="font-medium text-primary hover:underline"
+          onClick={() =>
+            abrirDetalhe(navigate, location, `/pedidos/${pedidoId}`, { foco: pedidoId, label: "Tarefas" })
+          }
+        >
+          {String(linha.id_externo ?? "—")}
+        </button>
+        <span>{String(linha.cliente ?? "—")}</span>
+        <span className="ml-auto tabular-nums font-medium">{fmtBRL(linha.valor_liquido)}</span>
+      </div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+        {campos.map(([r, v]) => (
+          <span key={r}>
+            {r}: <span className="text-foreground tabular-nums">{v}</span>
+          </span>
+        ))}
+      </div>
+      {acoes && (
+        <div className="flex flex-wrap gap-2">
+          {chave === "b2b_transporte_sem_noticia" && (
+            <Button size="sm" variant="outline" className="h-7" onClick={() => setCobrando((v) => !v)}>
+              Cobrei a transportadora
+            </Button>
+          )}
+          {chave === "b2b_faturado_parado" && (
+            <Button size="sm" variant="outline" className="h-7" onClick={() => setDeclaracao("embarque")}>
+              Declarar embarque
+            </Button>
+          )}
+          <Button size="sm" variant="outline" className="h-7" onClick={() => setDeclaracao("entrega")}>
+            Declarar entrega
+          </Button>
+        </div>
+      )}
+      {acoes && cobrando && (
+        <div className="flex gap-2">
+          <Input
+            className="h-8 text-xs"
+            placeholder="O que a transportadora respondeu (mín. 10 caracteres)"
+            value={obs}
+            onChange={(e) => setObs(e.target.value)}
+          />
+          <Button size="sm" disabled={obs.trim().length < 10 || cobrar.isPending} onClick={() => cobrar.mutate()}>
+            Registrar cobrança
+          </Button>
+        </div>
+      )}
+      {declaracao && (
+        <DialogoDeclaracaoB2B
+          tipo={declaracao}
+          pedidoId={pedidoId}
+          idExterno={linha.id_externo ? String(linha.id_externo) : null}
+          open={!!declaracao}
+          onOpenChange={(v) => !v && setDeclaracao(null)}
+        />
+      )}
+    </div>
+  );
+}
+
 function TabelaFila({ fila }: { fila: FilaInbox }) {
   const { data, isLoading, isError, error } = useInboxFilaItens(fila.chave, 25);
 
@@ -135,6 +268,16 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
   const linhas = data ?? [];
   if (linhas.length === 0) {
     return <p className="text-sm text-muted-foreground">Nenhum item nesta fila.</p>;
+  }
+
+  if (FILAS_B2B_SAIDA.includes(fila.chave)) {
+    return (
+      <div className="space-y-2">
+        {linhas.map((l) => (
+          <LinhaB2bSaida key={String(l.pedido_id ?? l.id)} chave={fila.chave} linha={l} />
+        ))}
+      </div>
+    );
   }
 
   if (fila.chave === "cd_saldo_a_corrigir") {
