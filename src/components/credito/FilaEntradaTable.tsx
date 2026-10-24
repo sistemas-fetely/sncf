@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useAnalisesFila } from "@/hooks/credito/useAnalisesFila";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -21,13 +24,19 @@ function tempoNaFila(criadoEm: string): string {
 }
 
 export function FilaEntradaTable() {
-  const [busca, setBusca] = useState("");
+  const [est, setEst] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"], prefixo: "ent" });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
   const navigate = useNavigate();
+  const location = useLocation();
   const { data: analises, isLoading } = useAnalisesFila({
     estagio: "entrada",
     apenasAbertas: true,
     busca: busca || undefined,
   });
+
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (analises ?? []).map((a) => a.id), focoParam: "ent_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   return (
     <div className="space-y-4">
@@ -72,7 +81,8 @@ export function FilaEntradaTable() {
               <TableRow
                 key={a.id}
                 className="cursor-pointer"
-                onClick={() => navigate(`/credito/analises/${a.id}`)}
+                data-foco-id={a.id}
+                onClick={() => abrirDetalhe(navigate, location, `/credito/analises/${a.id}`, { foco: a.id, label: "Análises de Crédito", focoParam: "ent_foco" })}
               >
                 <TableCell className="font-mono text-xs">{a.pedido_id_externo}</TableCell>
                 <TableCell>

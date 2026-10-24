@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,8 +31,22 @@ export default function CreditoClientesIndex() {
   // param próprio: esta tela roda embutida na aba "Crédito do cliente" da Cobrança, que já usa ?aba=
   const [tab, setTab] = useAbaUrl("todos", undefined, "filtro_credito");
   const tabAtual = tab as "todos" | "com_haver" | "com_vencidos";
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
-  const [busca, setBusca] = useState("");
+  const location = useLocation();
+  // Rota própria sem prefixo; embutida na Cobrança usa prefixo "cc".
+  const prefixo = location.pathname.startsWith("/credito/clientes") ? undefined : "cc";
+  const focoParam = prefixo ? `${prefixo}_foco` : "foco";
+  const [est, setEst] = useEstadoTela({ busca: "", ordem: "" }, { replaceKeys: ["busca"], prefixo });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
+  type Sort = { key: string; dir: "asc" | "desc" } | null;
+  const sort: Sort = useMemo(() => {
+    const [key, dir] = est.ordem.split(":");
+    return key ? { key, dir: dir === "desc" ? "desc" : "asc" } : null;
+  }, [est.ordem]);
+  const setSort = (v: Sort | ((p: Sort) => Sort)) => {
+    const n = typeof v === "function" ? v(sort) : v;
+    setEst({ ordem: n ? `${n.key}:${n.dir}` : "" });
+  };
 
 
   const resumosQ = useQuery({
@@ -171,6 +189,8 @@ export default function CreditoClientesIndex() {
   }, [clientes, tab, sort, busca]);
 
   const loading = resumosQ.isLoading || haveresQ.isLoading || parceirosAllQ.isLoading;
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: filtrados.map((c: any) => String(c.parceiro_id)), focoParam });
+  useRestaurarScroll(null, !loading);
 
   return (
     <PageShell className="md:px-8 animate-casa-fade-in">
@@ -260,8 +280,9 @@ export default function CreditoClientesIndex() {
                     {filtrados.map((c: any) => (
                       <tr
                         key={c.parceiro_id}
+                        data-foco-id={c.parceiro_id}
                         className="border-t hover:bg-accent/40 cursor-pointer"
-                        onClick={() => navigate(`/credito/clientes/${c.parceiro_id}`, { state: { from: "/credito/clientes", fromLabel: "Clientes" } })}
+                        onClick={() => abrirDetalhe(navigate, location, `/credito/clientes/${c.parceiro_id}`, { foco: c.parceiro_id, label: "Clientes", focoParam })}
                       >
                       <td className="px-4 py-2">
                         <p className="font-medium truncate text-sm">{c.razao_social ?? c.cliente ?? "—"}</p>
@@ -336,7 +357,7 @@ function SortTh({
   label: string;
   sortKey: string;
   sort: { key: string; dir: "asc" | "desc" } | null;
-  setSort: React.Dispatch<React.SetStateAction<{ key: string; dir: "asc" | "desc" } | null>>;
+  setSort: (v: { key: string; dir: "asc" | "desc" } | null | ((p: { key: string; dir: "asc" | "desc" } | null) => { key: string; dir: "asc" | "desc" } | null)) => void;
   align?: "left" | "right";
 }) {
   const active = sort?.key === sortKey;

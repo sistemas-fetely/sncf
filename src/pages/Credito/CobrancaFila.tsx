@@ -10,7 +10,8 @@ import {
   type PageSizeOption,
 } from "@/components/tabela/RodapePaginacao";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCobrancaFila } from "@/hooks/credito/useCobrancaFila";
 import { useBaixasPendentes } from "@/hooks/credito/useBaixasPendentes";
@@ -1209,6 +1210,7 @@ const CHAVE_PAGINA_MATERIALIZACAO = "fetely:cobranca:fila-materializacao:page-si
 
 function PedidosCobrancaTab() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [busca, setBusca] = useState("");
   const { data, isLoading } = useCobrancaFila({ busca: busca || undefined });
   const total = data?.length ?? 0;
@@ -1320,7 +1322,7 @@ function PedidosCobrancaTab() {
               <TableRow
                 key={p.pedido_id}
                 className="cursor-pointer hover:bg-muted/50"
-                onClick={() => navigate(`/recebimento/cobranca/${p.pedido_id}`, { state: { from: "/recebimento/cobranca", fromLabel: "Fila de Cobrança" } })}
+                onClick={() => abrirDetalhe(navigate, location, `/recebimento/cobranca/${p.pedido_id}`, { label: "Cobrança" })}
               >
                 <TableCell>
                   <div className="flex flex-col gap-1">

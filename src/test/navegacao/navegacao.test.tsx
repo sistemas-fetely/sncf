@@ -123,3 +123,20 @@ describe("abrirDetalhe", () => {
     expect(nav).toHaveBeenCalledWith("/pedidos/P1", { state: { from: "/b2c?pagina=2&foco=P1", fromLabel: "Pedidos B2C" } });
   });
 });
+
+describe("useEstadoTela com prefixo e boolean/ordem (Leva 2)", () => {
+  it("mesa_vencido=1 e ordem coluna:dir; default sai da URL", () => {
+    const D = { vencido: false, ordem: "" };
+    let api!: ReturnType<typeof useEstadoTela<typeof D>>;
+    function Tela() {
+      api = useEstadoTela(D, { prefixo: "mesa" });
+      return <Espia />;
+    }
+    render(<MemoryRouter initialEntries={["/recebimento/cobranca?aba=mesa"]}><Tela /></MemoryRouter>);
+    act(() => api[1]({ vencido: true, ordem: "valor:desc" }));
+    expect(loc.current).toBe("/recebimento/cobranca?aba=mesa&mesa_vencido=1&mesa_ordem=valor%3Adesc");
+    expect(api[0].vencido).toBe(true);
+    act(() => api[1]({ vencido: false, ordem: "" }));
+    expect(loc.current).toBe("/recebimento/cobranca?aba=mesa");
+  });
+});

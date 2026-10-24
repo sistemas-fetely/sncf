@@ -8,7 +8,8 @@
  */
 import { useEffect, useMemo } from "react";
 import { useNavigate, useParams, useSearchParams, useLocation } from "react-router-dom";
-import { ArrowLeft, Users } from "lucide-react";
+import { Users } from "lucide-react";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -124,9 +125,7 @@ export default function ClientePainel() {
             : [apelido, documento].filter(Boolean).join(" · ") || undefined
         }
         acoes={
-          <Button variant="ghost" size="sm" className="gap-1.5" onClick={voltar}>
-            <ArrowLeft className="h-3.5 w-3.5" /> Voltar
-          </Button>
+          <SmartBackButton fallback="/cliente" fallbackLabel="Clientes" />
         }
       />
 

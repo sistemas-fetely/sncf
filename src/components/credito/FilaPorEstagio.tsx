@@ -1,5 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useAnalisesFila } from "@/hooks/credito/useAnalisesFila";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -28,8 +31,11 @@ interface Props {
 }
 
 export function FilaPorEstagio({ estagio }: Props) {
-  const [busca, setBusca] = useState("");
+  const [est, setEst] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"], prefixo: "cr" });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
   const navigate = useNavigate();
+  const location = useLocation();
 
   const estagioParam = estagio === "decididas" ? undefined : (estagio as EstagioAnalise);
   const apenasAbertas = estagio !== "decididas";
@@ -44,6 +50,9 @@ export function FilaPorEstagio({ estagio }: Props) {
     estagio === "decididas"
       ? (analises || []).filter((a) => a.status_final !== null)
       : analises;
+
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: (filtradas ?? []).map((a) => a.id), focoParam: "cr_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   return (
     <div className="space-y-3">
@@ -93,7 +102,8 @@ export function FilaPorEstagio({ estagio }: Props) {
                     "cursor-pointer hover:bg-muted/50",
                     devolvida && "border-l-4 border-l-warning/40",
                   )}
-                  onClick={() => navigate(`/credito/analises/${a.id}`)}
+                  data-foco-id={a.id}
+                onClick={() => abrirDetalhe(navigate, location, `/credito/analises/${a.id}`, { foco: a.id, label: "Análises de Crédito", focoParam: "cr_foco" })}
                 >
                   <TableCell>
                     <div className="flex items-center gap-2">

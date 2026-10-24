@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
 import { useTodosTitulos, type TituloCompleto } from "@/hooks/credito/useTodosTitulos";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -48,8 +49,11 @@ const TIPO_LABEL: Record<string, string> = {
 
 export default function TodosTitulosTab() {
   const { data: titulos = [], isLoading } = useTodosTitulos();
-  const [filtroStatus, setFiltroStatus] = useState("todos");
-  const [busca, setBusca] = useState("");
+  const [est, setEst] = useEstadoTela({ status: "todos", busca: "" }, { replaceKeys: ["busca"], prefixo: "tt" });
+  const filtroStatus = est.status;
+  const setFiltroStatus = (v: string) => setEst({ status: v });
+  const busca = est.busca;
+  const setBusca = (v: string) => setEst({ busca: v });
   const [convertendo, setConvertendo] = useState<{ id: string; numero: string; valor: number } | null>(null);
 
   /* VERDADE-UNICA-DO-VENCIDO (08/09/2026): nada de `data_vencimento_atual < hoje`

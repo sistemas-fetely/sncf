@@ -1,6 +1,7 @@
 import { ROTULO_LINK_PIX_COPIADO, urlPaginaPix } from "@/lib/pagamento/linkPix";
 import React, { Fragment, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   useTitulosCobranca,
@@ -682,6 +683,7 @@ function msDe(iso: string | null | undefined): number | null {
 
 export default function TitulosTab() {
   const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const invalidarRecebivel = useInvalidarRecebivel();
   const { toast } = useToast();
@@ -1204,7 +1206,7 @@ export default function TitulosTab() {
                     saldo={s0}
                     numeroPai={s0?.titulo_pai_id ? numerosPorId.get(s0.titulo_pai_id) ?? null : null}
                     onAbrir={setDetalhe}
-                    onPedido={(id) => navigate(`/pedidos/${id}`)}
+                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
                     sel={selDe(t0)}
                   />
                 );
@@ -1218,7 +1220,7 @@ export default function TitulosTab() {
                     g={g}
                     aberto={aberto}
                     onToggle={() => toggleGrupo(g.chave)}
-                    onPedido={(id) => navigate(`/pedidos/${id}`)}
+                    onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
                     selGrupo={{
                       habilitado: elegGrupo.length > 0 && !permAcordo.carregando,
                       bloqueado: semPermAcordo,
@@ -1240,7 +1242,7 @@ export default function TitulosTab() {
                         numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
                         aninhada
                         onAbrir={setDetalhe}
-                        onPedido={(id) => navigate(`/pedidos/${id}`)}
+                        onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
                         sel={selDe(t)}
                       />
                     );
@@ -1257,7 +1259,7 @@ export default function TitulosTab() {
                   saldo={s}
                   numeroPai={s?.titulo_pai_id ? numerosPorId.get(s.titulo_pai_id) ?? null : null}
                   onAbrir={setDetalhe}
-                  onPedido={(id) => navigate(`/pedidos/${id}`)}
+                  onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
                   sel={selDe(t)}
                 />
               );
@@ -1411,7 +1413,7 @@ export default function TitulosTab() {
                   })()}
                   {detalhe.pedido_id_externo && (
                     <button
-                      onClick={() => navigate(`/pedidos/${detalhe.pedido_id}`)}
+                      onClick={() => abrirDetalhe(navigate, location, `/pedidos/${detalhe.pedido_id}`, { label: "Títulos" })}
                       className="mt-2 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                     >
                       <ExternalLink className="h-3 w-3" />
@@ -1820,7 +1822,7 @@ export default function TitulosTab() {
                   </Button>
                 )}
                 {detalhe.pedido_id_externo && (
-                  <Button onClick={() => navigate(`/pedidos/${detalhe.pedido_id}`)}>
+                  <Button onClick={() => abrirDetalhe(navigate, location, `/pedidos/${detalhe.pedido_id}`, { label: "Títulos" })}>
                     Abrir pedido
                   </Button>
                 )}
