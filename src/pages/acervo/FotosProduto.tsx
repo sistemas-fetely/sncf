@@ -5,7 +5,8 @@
 // Conferência antes de gravar; produto que não existe em sncf_produtos não sobe;
 // troca de principal nunca apaga a foto anterior — ela fica no histórico.
 import { useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, montarFrom } from "@/lib/navegacao";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Download, Image as ImageIcon, Star, Trash2, Upload, X } from "lucide-react";
@@ -207,12 +208,24 @@ export default function FotosProduto() {
   const substituicoes = candidatos.filter((c) => c.substitui).length;
 
   // ---------- lista ----------
-  const [busca, setBusca] = useState("");
-  const [soSemFoto, setSoSemFoto] = useState(false);
-  const [soMultiplas, setSoMultiplas] = useState(false);
-  const [filtroCatalogo, setFiltroCatalogo] = useState("todos");
-  const [filtroOrigem, setFiltroOrigem] = useState("todas");
-  const [pagina, setPagina] = useState(1);
+  const location = useLocation();
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros e página na URL.
+  const [nav, setNav] = useEstadoTela(
+    { busca: "", semfoto: false, multiplas: false, catalogo: "todos", origem: "todas", pagina: 1 },
+    { replaceKeys: ["busca"] },
+  );
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const soSemFoto = nav.semfoto;
+  const setSoSemFoto = (v: boolean) => setNav({ semfoto: v });
+  const soMultiplas = nav.multiplas;
+  const setSoMultiplas = (v: boolean) => setNav({ multiplas: v });
+  const filtroCatalogo = nav.catalogo;
+  const setFiltroCatalogo = (v: string) => setNav({ catalogo: v });
+  const filtroOrigem = nav.origem;
+  const setFiltroOrigem = (v: string) => setNav({ origem: v });
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanhoPagina, setTamanhoPagina] = useState<number>(DEFAULT_PAGE_SIZE);
   const [aExcluir, setAExcluir] = useState<FotoLinha | null>(null);
 
@@ -543,7 +556,7 @@ export default function FotosProduto() {
                     )}
                   </TableCell>
                   <TableCell className="tabular-nums">
-                    <Link className="underline underline-offset-4" to={`/vendas/produto/ficha/${f.cod_cadastro}`}>
+                    <Link className="underline underline-offset-4" to={`/vendas/produto/ficha/${f.cod_cadastro}`} state={{ from: montarFrom(location.pathname, location.search, String(f.cod_cadastro)), fromLabel: "Fotos do produto" }}>
                       {f.cod_cadastro}
                     </Link>
                     {f.fotos_do_produto > 1 && (

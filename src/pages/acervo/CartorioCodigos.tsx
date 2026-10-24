@@ -1,3 +1,4 @@
+import { useEstadoTela } from "@/lib/navegacao";
 // Cartório de Códigos — livro-razão de identidade de produto (cod_cadastro, EAN,
 // DUN, Inner). 1.500 linhas importadas da planilha do Flavio em 07/09/2026.
 // Nada escreve na tabela por fora da RPC fn_cartorio_alocar: aqui o front só
@@ -94,9 +95,14 @@ export default function CartorioCodigos() {
   const [carregandoProposta, setCarregandoProposta] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
 
-  const [filtroSituacao, setFiltroSituacao] = useState<string>("todas");
-  const [busca, setBusca] = useState("");
-  const [pagina, setPagina] = useState(0);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtro, busca e página na URL.
+  const [nav, setNav] = useEstadoTela({ situacao: "todas", busca: "", pagina: 0 }, { replaceKeys: ["busca"] });
+  const filtroSituacao = nav.situacao;
+  const setFiltroSituacao = (v: string) => setNav({ situacao: v });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
 
   const linhas = useQuery({
     queryKey: ["cartorio-situacao"],
