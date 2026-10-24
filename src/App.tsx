@@ -55,7 +55,6 @@ const GerenciarUsuarios = lazy(() => import("@/pages/GerenciarUsuarios"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const Parametros = lazy(() => import("@/pages/Parametros"));
 const SlaOperacao = lazy(() => import("@/pages/parametros/SlaOperacao"));
-const ContratosPJ = lazy(() => import("@/pages/ContratosPJ"));
 const RedirecionarContratoPJ = lazy(() => import("@/pages/pessoas/RedirecionarContratoPJ"));
 const CadastroContratoPJ = lazy(() => import("@/components/contrato-pj/CadastroContratoPJ").then(m => ({ default: m.CadastroContratoPJ })));
 const NotasFiscais = lazy(() => import("@/pages/NotasFiscais"));
