@@ -33,16 +33,19 @@ export type Ampliar<T> = {
  */
 export function useEstadoTela<T extends Record<string, Valor>>(
   defaults: T,
-  opts?: { replaceKeys?: (keyof T)[] },
+  opts?: { replaceKeys?: (keyof T)[]; prefixo?: string },
 ): [Ampliar<T>, (patch: Partial<Ampliar<T>>) => void] {
   const [params, setParams] = useSearchParams();
   const chaveDefaults = JSON.stringify(defaults);
+  const prefixo = opts?.prefixo;
+  /** Chave na URL: com prefixo, `busca` vira `mc_busca`; o estado fica sem prefixo. */
+  const naUrl = (k: string) => (prefixo ? `${prefixo}_${k}` : k);
 
   const estado = useMemo(() => {
     const out = {} as Record<string, Valor>;
-    for (const k of Object.keys(defaults)) out[k] = lerValor(params.get(k), defaults[k]);
+    for (const k of Object.keys(defaults)) out[k] = lerValor(params.get(naUrl(k)), defaults[k]);
     return out as Ampliar<T>;
-  }, [params, chaveDefaults]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [params, chaveDefaults, prefixo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const replaceKeys = opts?.replaceKeys;
   const setEstado = useCallback(
@@ -55,15 +58,15 @@ export function useEstadoTela<T extends Record<string, Valor>>(
           const prox = new URLSearchParams(atual);
           for (const k of chaves) {
             const txt = escreverValor((patch as Record<string, Valor>)[k], defaults[k]);
-            if (txt === null) prox.delete(k);
-            else prox.set(k, txt);
+            if (txt === null) prox.delete(naUrl(k));
+            else prox.set(naUrl(k), txt);
           }
           return prox;
         },
         { replace: soReplace },
       );
     },
-    [setParams, chaveDefaults, replaceKeys], // eslint-disable-line react-hooks/exhaustive-deps
+    [setParams, chaveDefaults, replaceKeys, prefixo], // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return [estado, setEstado];

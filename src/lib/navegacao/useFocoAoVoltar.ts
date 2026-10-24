@@ -9,13 +9,16 @@ export function useFocoAoVoltar({
   pronto,
   idsVisiveis,
   aoNaoEncontrar,
+  focoParam = "foco",
 }: {
+  /** Parâmetro do foco na URL (tela embutida usa um próprio, ex.: "mc_foco"). */
+  focoParam?: string;
   pronto: boolean;
   idsVisiveis: string[];
   aoNaoEncontrar?: (id: string) => void;
 }) {
   const [params, setParams] = useSearchParams();
-  const foco = params.get("foco");
+  const foco = params.get(focoParam);
   const cbRef = useRef(aoNaoEncontrar);
   cbRef.current = aoNaoEncontrar;
   const chaveIds = idsVisiveis.join("|");
@@ -26,7 +29,7 @@ export function useFocoAoVoltar({
       setParams(
         (a) => {
           const p = new URLSearchParams(a);
-          p.delete("foco");
+          p.delete(focoParam);
           return p;
         },
         { replace: true },
