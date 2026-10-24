@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
+import { useEstadoTela } from "@/lib/navegacao";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,7 +28,9 @@ function situacaoBadge(label?: string | null, cor?: string | null) {
 }
 
 export default function PedidosVenda() {
-  const [busca, setBusca] = useState("");
+  const [nav, setNav] = useEstadoTela({ busca: "" });
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
 
   const { data: pedidos = [], isLoading } = useQuery({
     queryKey: ["pedidos-venda"],

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState, type SetStateAction } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe, resolverAcao } from "@/lib/navegacao";
 import {
   CabecalhoOrdenavel, LINHA_CABECALHO_COLADO,
   type DirecaoOrdenacao,
@@ -142,13 +143,30 @@ function AbaNFs() {
   const { roles } = useAuth();
   const { temNivel } = useNivel();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
-  const [busca, setBusca] = useState("");
-  const [situacaoFiltro, setSituacaoFiltro] = useState<string>("todas");
-  const [mesFiltro, setMesFiltro] = useState<string>("todos");
+  const location = useLocation();
+  // Filtros da aba NFs na URL (prefixo "nf").
+  const [nav, setNav] = useEstadoTela(
+    { busca: "", situacao: "todas", mes: "todos", ordem: `${ORDEM_PADRAO_NF.coluna}:${ORDEM_PADRAO_NF.dir}`, pagina: 1 },
+    { prefixo: "nf" },
+  );
+  const busca = nav.busca;
+  const setBusca = (v: string) => setNav({ busca: v });
+  const situacaoFiltro = nav.situacao;
+  const setSituacaoFiltro = (v: string) => setNav({ situacao: v });
+  const mesFiltro = nav.mes;
+  const setMesFiltro = (v: string) => setNav({ mes: v });
   const [syncing, setSyncing] = useState(false);
   const { data: nfs = [], isLoading, isError, error, refetch } = useNfsEmitidas();
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoNf>(ORDEM_PADRAO_NF);
-  const [pagina, setPagina] = useState(1);
+  const ordenacao = useMemo<OrdenacaoNf>(() => {
+    const [coluna, dir] = nav.ordem.split(":");
+    return coluna && (dir === "asc" || dir === "desc") ? { coluna: coluna as ColunaNf, dir } : ORDEM_PADRAO_NF;
+  }, [nav.ordem]);
+  const setOrdenacao = (v: SetStateAction<OrdenacaoNf>) => {
+    const o = resolverAcao(v, ordenacao);
+    setNav({ ordem: `${o.coluna}:${o.dir}` });
+  };
+  const pagina = nav.pagina;
+  const setPagina = (v: number) => setNav({ pagina: v });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_NFS),
   );
@@ -162,9 +180,11 @@ function AbaNFs() {
     });
   };
 
+  const primeiraRender = useRef(true);
   useEffect(() => {
+    if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, situacaoFiltro, mesFiltro, ordenacao]);
+  }, [busca, situacaoFiltro, mesFiltro, nav.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSincronizar() {
     setSyncing(true);
@@ -385,7 +405,7 @@ function AbaNFs() {
               </TableRow>
             ) : (
               paginaItens.map((n) => (
-                <TableRow key={n.id}>
+                <TableRow key={n.id} data-foco-id={n.id}>
                   <TableCell className="font-mono text-xs">
                     {n.serie && n.numero ? `${n.serie}-${n.numero}` : (n.numero ?? "—")}
                   </TableCell>
@@ -420,7 +440,7 @@ function AbaNFs() {
                             variant="link"
                             size="sm"
                             className="h-auto p-0 font-mono text-xs"
-                            onClick={() => navigate(`/vendas/pedidos/${n.pedido_venda_id}`)}
+                            onClick={() => abrirDetalhe(navigate, location, `/vendas/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
                           >
                             {n.pedido_ref}
                           </Button>
@@ -479,7 +499,7 @@ function AbaNFs() {
                           variant="ghost"
                           size="sm"
                           className="h-8 w-8 p-0"
-                          onClick={() => navigate(`/pedidos/${n.pedido_venda_id}`)}
+                          onClick={() => abrirDetalhe(navigate, location, `/pedidos/${n.pedido_venda_id}`, { foco: n.id, label: "NFs de venda", focoParam: "nf_foco" })}
                           title="Ver pedido"
                         >
                           <ExternalLink className="h-4 w-4" />
