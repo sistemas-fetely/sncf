@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -346,7 +346,7 @@ function TabelaFila({ fila }: { fila: FilaInbox }) {
     return <p className="text-sm text-muted-foreground">Nenhum item nesta fila.</p>;
   }
 
-  const comProblema = (l: Record<string, unknown>, filho: React.ReactNode, key: string) => (
+  const comProblema = (l: Record<string, unknown>, filho: ReactNode, key: string) => (
     <div key={key} className="space-y-1">
       {filho}
       <div className="flex justify-end">
