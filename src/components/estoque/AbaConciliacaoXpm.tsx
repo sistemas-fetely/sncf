@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,9 +39,11 @@ const corSentido = (s: string | null) =>
 
 /** Aba "XPM" da Conciliação de Estoque (?aba=xpm). */
 export function AbaConciliacaoXpm() {
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<Status | "todos">("persistente");
-  const [pagina, setPagina] = useState(1);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", filtro: "persistente", pagina: 1 }, { prefixo: "cx", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtro = nav.filtro as Status | "todos"; const setFiltro = (v: SetStateAction<typeof filtro>) => setNav({ filtro: resolverAcao(v, filtro) as never });
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const [aberto, setAberto] = useState<Linha | null>(null);
 

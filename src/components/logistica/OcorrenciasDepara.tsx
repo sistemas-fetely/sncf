@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,7 +36,9 @@ interface Props {
 
 export function OcorrenciasDepara({ transportadoraId }: Props) {
   const { lista, tipos, criar, editar, toggleAtivo, excluir } = useOcorrenciaDepara(transportadoraId);
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "" }, { prefixo: "oc", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [editando, setEditando] = useState<OcorrenciaDeparaRow | null>(null);
   const [abrirNovo, setAbrirNovo] = useState(false);
 

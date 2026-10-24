@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useState, useMemo } from "react";
 import { ArrowUpDown, Plus, Search, TrendingUp, ArrowRightLeft, DollarSign, Building2, Trash2, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -53,9 +55,11 @@ export default function Movimentacoes() {
   const statusMut = useAtualizarStatusMovimentacao();
   const excluirMut = useExcluirMovimentacao();
 
-  const [busca, setBusca] = useState("");
-  const [filtroTipo, setFiltroTipo] = useState("todos");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", tipo: "todos", status: "todos" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtroTipo = nav.tipo; const setFiltroTipo = (v: SetStateAction<typeof filtroTipo>) => setNav({ tipo: resolverAcao(v, filtroTipo) as never });
+  const filtroStatus = nav.status; const setFiltroStatus = (v: SetStateAction<typeof filtroStatus>) => setNav({ status: resolverAcao(v, filtroStatus) as never });
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Form state

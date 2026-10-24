@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Check, ChevronDown, ChevronRight, Copy, Loader2, RefreshCw, RotateCcw, X } from "lucide-react";
@@ -95,8 +97,10 @@ export function CancelamentoReembolsoPainel({ devolucaoId, aguardandoConferencia
   const pedidoParam = params.get("pedido");
   const q = useDevolucoesVD();
   const { permitido } = usePermissaoAcao("acao.vd_devolucao_aprovar");
-  const [busca, setBusca] = useState("");
-  const [filtro, setFiltro] = useState<Filtro>(null);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", filtro: null }, { prefixo: "cr", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const filtro = nav.filtro as Filtro; const setFiltro = (v: SetStateAction<typeof filtro>) => setNav({ filtro: resolverAcao(v, filtro) as never });
   const [expandido, setExpandido] = useState<string | null>(null);
   const [acao, setAcao] = useState<{ d: DevolucaoVD; tipo: "aprovar" | "recusar" | "pix" } | null>(null);
   const [motivo, setMotivo] = useState("");

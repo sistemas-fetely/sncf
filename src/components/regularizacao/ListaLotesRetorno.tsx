@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 /** Lista de lotes de "Transferências com retorno de remessa" (aba de Transferências Internas). */
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +20,9 @@ import type { RegularizacaoLote } from "@/components/regularizacao/types";
 
 export function ListaLotesRetorno() {
   const navigate = useNavigate(); const { podeEditar } = usePermissoesTela("tela.regularizacao_estoque");
-  const [novoAberto, setNovoAberto] = useState(false); const [busca, setBusca] = useState(""); const [pagina, setPagina] = useState(1); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo());
+  const [novoAberto, setNovoAberto] = useState(false); // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { prefixo: "lt", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never }); const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never }); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo());
   const lotesQ = useQuery({ queryKey: ["regularizacao", "lotes"], refetchInterval: 30_000, queryFn: async () => { const { data, error } = await supabase.from("vw_regularizacao_lote").select("*").order("criado_em", { ascending: false }); if (error) throw error; return (data ?? []).filter((r) => r.id) as RegularizacaoLote[]; } });
   const lotes = lotesQ.data ?? [];
   const filtrados = useMemo(() => { const termo = busca.trim().toLocaleLowerCase("pt-BR"); return termo ? lotes.filter((l) => `${l.codigo} ${l.titulo} ${l.centro_destino_rotulo}`.toLocaleLowerCase("pt-BR").includes(termo)) : lotes; }, [lotes, busca]);

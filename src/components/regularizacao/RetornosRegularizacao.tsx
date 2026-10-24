@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { Fragment, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { ChevronDown, ChevronRight, Copy } from "lucide-react";
@@ -13,7 +15,9 @@ import type { RegularizacaoRetorno } from "./types";
 import { useGerarRascunhos } from "./useGerarRascunhos";
 
 export function RetornosRegularizacao({ retornos, podeEditar, recarregar }: { retornos: RegularizacaoRetorno[]; podeEditar: boolean; recarregar: () => Promise<unknown> }) {
-  const [abertos, setAbertos] = useState<Set<string>>(new Set()); const [vincular, setVincular] = useState<string | null>(null); const [busca, setBusca] = useState(""); const [pagina, setPagina] = useState(1); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo());
+  const [abertos, setAbertos] = useState<Set<string>>(new Set()); const [vincular, setVincular] = useState<string | null>(null); // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { prefixo: "rr", replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never }); const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never }); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo());
   const { gerarUm } = useGerarRascunhos(retornos, recarregar);
   const filtrados = useMemo(() => { const termo = busca.trim().toLocaleLowerCase("pt-BR"); return termo ? retornos.filter((r) => `${r.nf_origem_numero} ${r.nf_origem_chave} ${r.nf_retorno_numero ?? ""} ${r.status}`.toLocaleLowerCase("pt-BR").includes(termo)) : retornos; }, [retornos, busca]);
   const paginaAtual = Math.min(pagina, Math.max(1, Math.ceil(filtrados.length / tamanhoPagina))); const exibidos = filtrados.slice((paginaAtual - 1) * tamanhoPagina, paginaAtual * tamanhoPagina);

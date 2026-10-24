@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { Link } from "react-router-dom";
@@ -63,7 +65,9 @@ export default function ComprasAComprar() {
 
   const [tab, setTab] = useAbaUrl("aguardando");
   const tabAtual = tab as ComprarTab;
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "" }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
   const [pedidoSelecionado, setPedidoSelecionado] = useState<PedidoCompraFull | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [registrarOpen, setRegistrarOpen] = useState(false);

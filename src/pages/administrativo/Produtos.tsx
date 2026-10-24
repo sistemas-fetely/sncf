@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type Ref } from "react";
@@ -348,16 +350,18 @@ const CURVA_STYLE: Record<string, string> = {
 
 export default function Produtos() {
   const qc = useQueryClient();
-  const [busca, setBusca] = useState("");
-  const [curvaFiltro, setCurvaFiltro] = useState("todas");
-  const [cdFiltro, setCdFiltro] = useState("todos");
-  const [margemFiltro, setMargemFiltro] = useState("todas");
-  const [gmroiFiltro, setGmroiFiltro] = useState("todos");
-  const [colecaoFiltro, setColecaoFiltro] = useState("todas");
-  const [grupoFiltro, setGrupoFiltro] = useState("todos");
-  const [faseFiltro, setFaseFiltro] = useState("todas");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", curva: "todas", cd: "todos", margem: "todas", gmroi: "todos", colecao: "todas", grupo: "todos", fase: "todas", pagina: 1 }, { replaceKeys: ["busca"] });
+  const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
+  const curvaFiltro = nav.curva; const setCurvaFiltro = (v: SetStateAction<typeof curvaFiltro>) => setNav({ curva: resolverAcao(v, curvaFiltro) as never });
+  const cdFiltro = nav.cd; const setCdFiltro = (v: SetStateAction<typeof cdFiltro>) => setNav({ cd: resolverAcao(v, cdFiltro) as never });
+  const margemFiltro = nav.margem; const setMargemFiltro = (v: SetStateAction<typeof margemFiltro>) => setNav({ margem: resolverAcao(v, margemFiltro) as never });
+  const gmroiFiltro = nav.gmroi; const setGmroiFiltro = (v: SetStateAction<typeof gmroiFiltro>) => setNav({ gmroi: resolverAcao(v, gmroiFiltro) as never });
+  const colecaoFiltro = nav.colecao; const setColecaoFiltro = (v: SetStateAction<typeof colecaoFiltro>) => setNav({ colecao: resolverAcao(v, colecaoFiltro) as never });
+  const grupoFiltro = nav.grupo; const setGrupoFiltro = (v: SetStateAction<typeof grupoFiltro>) => setNav({ grupo: resolverAcao(v, grupoFiltro) as never });
+  const faseFiltro = nav.fase; const setFaseFiltro = (v: SetStateAction<typeof faseFiltro>) => setNav({ fase: resolverAcao(v, faseFiltro) as never });
   const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
-  const [pagina, setPagina] = useState(1);
+  const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_PRODUTOS),
   );

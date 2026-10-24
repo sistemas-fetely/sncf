@@ -1,3 +1,5 @@
+import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useParams } from "react-router-dom";
@@ -29,7 +31,9 @@ type ProdutoJoin = { cod_cadastro?: string | null; nome_comercial?: string | nul
 const produtoJoin = (p: unknown): ProdutoJoin => Array.isArray(p) ? (p[0] as ProdutoJoin | undefined) ?? {} : (p as ProdutoJoin | null) ?? {};
 export default function RegularizacaoLoteDetalhe() {
   const { id } = useParams(); const qc = useQueryClient(); const [aba, setAba] = useAbaUrl("inventario"); const { podeEditar } = usePermissoesTela("tela.regularizacao_estoque");
-  const [buscaInventario, setBuscaInventario] = useState(""); const [paginaInventario, setPaginaInventario] = useState(1); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo()); const [cancelarAberto, setCancelarAberto] = useState(false);
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { prefixo: "inv", replaceKeys: ["busca"] });
+  const buscaInventario = nav.busca; const setBuscaInventario = (v: SetStateAction<typeof buscaInventario>) => setNav({ busca: resolverAcao(v, buscaInventario) as never }); const paginaInventario = nav.pagina; const setPaginaInventario = (v: SetStateAction<typeof paginaInventario>) => setNav({ pagina: resolverAcao(v, paginaInventario) as never }); const [tamanhoPagina, setTamanhoPagina] = useState<PageSizeOption>(() => lerTamanhoPaginaSalvo()); const [cancelarAberto, setCancelarAberto] = useState(false);
   const loteQ = useQuery({ queryKey: ["regularizacao", "lote", id], enabled: !!id, refetchInterval: 30_000, queryFn: async () => { const { data, error } = await supabase.from("vw_regularizacao_lote").select("*").eq("id", id ?? "").single(); if (error) throw error; return data as RegularizacaoLote; } });
   const itensQ = useQuery({ queryKey: ["regularizacao", "itens", id], enabled: !!id, queryFn: async () => { const { data, error } = await supabase.from("regularizacao_item").select("id,lote_id,sku,quantidade,quantidade_coberta,sncf_produtos(cod_cadastro,nome_comercial)").eq("lote_id", id ?? "").order("sku"); if (error) throw error; return (data ?? []).map((r) => { const produto = produtoJoin(r.sncf_produtos); return { id: r.id, lote_id: r.lote_id, sku: r.sku, quantidade: r.quantidade, quantidade_coberta: r.quantidade_coberta, cod_cadastro: produto.cod_cadastro ?? null, nome_comercial: produto.nome_comercial ?? null }; }) as RegularizacaoItem[]; } });
   const retornosQ = useQuery({ queryKey: ["regularizacao", "retornos", id], enabled: !!id, refetchInterval: 30_000, queryFn: async () => {
