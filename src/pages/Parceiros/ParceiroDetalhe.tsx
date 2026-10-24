@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { SmartBackButton } from "@/components/SmartBackButton";
 import { useParceiroDetalhe } from "@/hooks/parceiros/useParceiroDetalhe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,16 +34,6 @@ export default function ParceiroDetalhe() {
   const location = useLocation();
   const { data, isLoading } = useParceiroDetalhe(id);
   const enriquecer = useEnriquecerParceiro();
-
-  const handleVoltar = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const from = (location.state as any)?.from as string | undefined;
-    if (from) {
-      navigate(from);
-    } else {
-      navigate("/administrativo-fetely/parceiros");
-    }
-  };
 
   if (isLoading) {
     return (
@@ -82,10 +73,7 @@ export default function ParceiroDetalhe() {
 
   return (
     <PageShell>
-      <Button variant="ghost" size="sm" className="gap-2" onClick={handleVoltar}>
-        <ArrowLeft className="h-4 w-4" />
-        Voltar
-      </Button>
+      <SmartBackButton fallback="/administrativo-fetely/parceiros" fallbackLabel="Parceiros" />
 
       {/* Header */}
       <PageHeader
