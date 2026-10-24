@@ -68,7 +68,7 @@ export function usePedidosFila(opts: Opts = {}) {
         // CARD-TRAVADO: o card "Travado" do funil conta só os travados; cada card
         // de estágio conta `estagio = X` SEM travados. "Fila ativa" não recorta.
         if (opts.somenteTravados) q = q.eq("travado", true);
-        if (filtroEstagioExplicito) q = q.eq("travado", false);
+        if (filtroEstagioExplicito && !opts.comPagamentoSemVinculo) q = q.eq("travado", false);
 
         if (temBusca) {
           // Sanitiza: vírgula e parêntese quebram a sintaxe do .or() do PostgREST.
