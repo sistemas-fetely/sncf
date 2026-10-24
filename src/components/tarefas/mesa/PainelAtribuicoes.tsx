@@ -10,7 +10,8 @@
 //
 // Escrita SEMPRE por RPC (fn_atribuicao_salvar / fn_atribuicao_apagar): a regra de
 // escopo do líder, dono obrigatório e tempo > 0 vive no banco.
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type SetStateAction } from "react";
+import { useEstadoTela, resolverAcao, lerOrdemKD, escreverOrdemKD } from "@/lib/navegacao";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -228,12 +229,19 @@ export default function PainelAtribuicoes() {
   const [adotarTempo, setAdotarTempo] = useState(true);
   const [adotarVolume, setAdotarVolume] = useState(true);
   // Dois olhares sobre o mesmo catálogo: por macro processo (como se faz) ou por pessoa (quem faz).
-  const [eixo, setEixo] = useState<"macro" | "pessoa">("macro");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: eixo e ordenação na URL (prefixo "atr").
   // Gestão compara: tabela ordenável. Padrão = carga por dia, do maior para o menor.
-  const [sort, setSort] = useState<SortState<ColunaOrd> | null>({
-    column: "carga",
-    direction: "desc",
-  });
+  const [navAtr, setNavAtr] = useEstadoTela({ eixo: "macro", ordem: "carga:desc" }, { prefixo: "atr" });
+  const eixo = navAtr.eixo as "macro" | "pessoa";
+  const setEixo = (v: "macro" | "pessoa") => setNavAtr({ eixo: v });
+  const sort = useMemo<SortState<ColunaOrd> | null>(() => {
+    const o = lerOrdemKD(navAtr.ordem);
+    return o ? { column: o.key as ColunaOrd, direction: o.dir } : null;
+  }, [navAtr.ordem]);
+  const setSort = (v: SetStateAction<SortState<ColunaOrd> | null>) => {
+    const n = resolverAcao(v, sort);
+    setNavAtr({ ordem: escreverOrdemKD(n ? { key: n.column, dir: n.direction } : null) });
+  };
 
   // Só a RPC cria o processo esqueleto (status rascunho + narrativa + primeiro passo
   // ligado à atribuição). O front não replica nada disso. FAIL-LOUD: erro vira toast.
