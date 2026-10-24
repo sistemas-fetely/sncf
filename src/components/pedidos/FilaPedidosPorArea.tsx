@@ -518,6 +518,7 @@ export function FilaPedidosPorArea({
     busca: buscaDebounced || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
     incluirCancelados,
+    somenteTravados,
   });
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
