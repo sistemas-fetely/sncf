@@ -1,3 +1,6 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { useMemo, useState } from "react";
@@ -215,8 +218,12 @@ export default function Faturamento() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ mes: "" });
   const mes = nav.mes as string; const setMes = (v: SetStateAction<typeof mes>) => setNav({ mes: resolverAcao(v, mes) as never });
-  const [canal, setCanal] = useState<string>("todos");
-  const [componente, setComponente] = useState<Componente>("tudo");
+  const [__n_canal, __s_canal] = __uet({ canal: "todos" });
+  const canal: string = __n_canal.canal as string;
+  const setCanal = (v: __SSA<string>) => { const x = __ra(v, canal); __s_canal({ canal: x } as never); };
+  const [__n_componente, __s_componente] = __uet({ componente: "tudo" });
+  const componente: Componente = __n_componente.componente as Componente;
+  const setComponente = (v: __SSA<Componente>) => { const x = __ra(v, componente); __s_componente({ componente: x } as never); };
   const [aba, setAba] = useAbaUrl("nfs");
 
   const { data: mensal = [], isLoading: loadingMensal, isError: errMensal, error: errorMensal } =
@@ -548,7 +555,7 @@ export default function Faturamento() {
             canalOk={canalOk}
             componente={componente}
             mes={mesEfetivo}
-            onPedido={(id) => navigate(`/pedidos/${id}`)}
+            onPedido={(id) => __abrir(navigate, window.location, `/pedidos/${id}`, { label: "Faturamento" })}
           />
         </TabsContent>
 
@@ -868,8 +875,12 @@ function AbaProduto({
 }) {
   const { temNivel } = useNivel();
   const { resolver: resolverCod } = useCodigoProdutoMap();
-  const [busca, setBusca] = useState("");
-  const [colecao, setColecao] = useState("todas");
+  const [__n_busca, __s_busca] = __uet({ pr_busca: "" }, { replaceKeys: ["pr_busca"] });
+  const busca: string = __n_busca.pr_busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ pr_busca: x } as never); };
+  const [__n_colecao, __s_colecao] = __uet({ pr_colecao: "todas" });
+  const colecao: string = __n_colecao.pr_colecao as string;
+  const setColecao = (v: __SSA<string>) => { const x = __ra(v, colecao); __s_colecao({ pr_colecao: x } as never); };
   const [sortCol, setSortCol] = useState<ProdCol>("resultado");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 

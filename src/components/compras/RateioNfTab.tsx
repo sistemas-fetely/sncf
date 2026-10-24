@@ -1,3 +1,6 @@
+import { useRef as __useRef } from "react";
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
@@ -177,9 +180,15 @@ function useNfsPendencia() {
 }
 
 function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
-  const [busca, setBusca] = useState("");
-  const [modo, setModo] = useState<"pendentes" | "todas">("pendentes");
-  const [pagina, setPagina] = useState(1);
+  const [__n_busca, __s_busca] = __uet({ rn_busca: "" }, { replaceKeys: ["rn_busca"] });
+  const busca: string = __n_busca.rn_busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ rn_busca: x } as never); };
+  const [__n_modo, __s_modo] = __uet({ rn_modo: "pendentes" });
+  const modo: "pendentes" | "todas" = __n_modo.rn_modo as "pendentes" | "todas";
+  const setModo = (v: __SSA<"pendentes" | "todas">) => { const x = __ra(v, modo); __s_modo({ rn_modo: x } as never); };
+  const [__n_pagina, __s_pagina] = __uet({ rn_pagina: 1 });
+  const pagina: number = __n_pagina.rn_pagina as number;
+  const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ rn_pagina: x } as never); };
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const q = useNfsPendencia();
   const todasNfs = q.data ?? [];
@@ -191,7 +200,8 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
     if (!t) return todas;
     return todas.filter((n) => (n.numero ?? "").toLowerCase().includes(t));
   }, [todas, busca]);
-  useEffect(() => setPagina(1), [busca, modo, tamanho]);
+  const __pg1 = __useRef(false);
+  useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, modo, tamanho]);
   const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   return (
@@ -842,7 +852,9 @@ function LinhaExpandida({
 
 function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void }) {
   const qc = useQueryClient();
-  const [busca, setBusca] = useState("");
+  const [__n_busca, __s_busca] = __uet({ rw_busca: "" }, { replaceKeys: ["rw_busca"] });
+  const busca: string = __n_busca.rw_busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ rw_busca: x } as never); };
   const [aberta, setAberta] = useState<string | null>(null);
   const [previaAloc, setPreviaAloc] = useState<Previa>(null);
   const [carregandoPrevia, setCarregandoPrevia] = useState(false);
@@ -877,8 +889,12 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
     if (destinoQ.error) toast.error(formatError(destinoQ.error));
   }, [destinoQ.error]);
 
-  const [modo, setModo] = useState<"nao_alocadas" | "todas" | null>(null);
-  const [pagina, setPagina] = useState(1);
+  const [__n_modo, __s_modo] = __uet({ rw_modo: null });
+  const modo: "nao_alocadas" | "todas" | null = __n_modo.rw_modo as "nao_alocadas" | "todas" | null;
+  const setModo = (v: __SSA<"nao_alocadas" | "todas" | null>) => { const x = __ra(v, modo); __s_modo({ rw_modo: x } as never); };
+  const [__n_pagina, __s_pagina] = __uet({ rw_pagina: 1 });
+  const pagina: number = __n_pagina.rw_pagina as number;
+  const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ rw_pagina: x } as never); };
   const [tamanho, setTamanho] = useState<number>(DEFAULT_PAGE_SIZE);
   const todasLinhas = q.data ?? [];
   const naoAlocadas = useMemo(() => todasLinhas.filter((l) => !l.alocada), [todasLinhas]);
@@ -893,7 +909,8 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         (l.descricao ?? "").toLowerCase().includes(t),
     );
   }, [todas, busca]);
-  useEffect(() => setPagina(1), [busca, modoEf, tamanho]);
+  const __pg2 = __useRef(false);
+  useEffect(() => { if (!__pg2.current) { __pg2.current = true; return; } setPagina(1); }, [busca, modoEf, tamanho]);
   const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   function invalidar() {

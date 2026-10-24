@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -138,7 +140,9 @@ async function chamar(skus: string[], dry_run: boolean): Promise<ResultadoSku[]>
 export function ShopifyCadastroPainel() {
   const qc = useQueryClient();
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [filtro, setFiltro] = useState("todos");
+  const [__n_filtro, __s_filtro] = __uet({ filtro: "todos" }, { prefixo: "sc" });
+  const filtro: string = __n_filtro.filtro as string;
+  const setFiltro = (v: __SSA<string>) => { const x = __ra(v, filtro); __s_filtro({ filtro: x } as never); };
   const [previa, setPrevia] = useState<ResultadoSku[] | null>(null);
   const [dialogAberto, setDialogAberto] = useState(false);
   const [resultados, setResultados] = useState<ResultadoSku[] | null>(null);

@@ -39,3 +39,4 @@
 - `useRestaurarScroll` restores list scroll per URL (sessionStorage, the one sanctioned exception).
 - Every new screen is born with these pieces.
 - Non-scalar list state (sort, sets, setState updaters) goes to the URL through `codecUrl` helpers, so every screen encodes them the same way.
+- Checklist de tela nova: useEstadoTela (filtros), data-foco-id + useFocoAoVoltar + useRestaurarScroll (lista que abre rota), abrirDetalhe (abrir), SmartBackButton (voltar).

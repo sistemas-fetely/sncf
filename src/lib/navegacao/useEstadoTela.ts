@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 
 type Valor = string | number | boolean | null;
@@ -31,6 +31,9 @@ export type Ampliar<T> = {
  * página) vive na URL. Default não vai para a URL; chaves fora de `defaults`
  * (aba, estagio, foco) são preservadas.
  */
+/** Pendente COMPARTILHADO: várias instâncias do hook escrevem na mesma URL no mesmo clique. */
+const PENDENTE: { atual: URLSearchParams | null } = { atual: null };
+
 export function useEstadoTela<T extends Record<string, Valor>>(
   defaults: T,
   opts?: { replaceKeys?: (keyof T)[]; prefixo?: string },
@@ -48,7 +51,6 @@ export function useEstadoTela<T extends Record<string, Valor>>(
   }, [params, chaveDefaults, prefixo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const replaceKeys = opts?.replaceKeys;
-  const pendente = useRef<URLSearchParams | null>(null);
   const setEstado = useCallback(
     (patch: Partial<Ampliar<T>>) => {
       const chaves = Object.keys(patch);
@@ -58,14 +60,14 @@ export function useEstadoTela<T extends Record<string, Valor>>(
         (atual) => {
           // Duas chamadas no mesmo clique (ex.: busca + página): o setter funcional
           // do router lê o mesmo snapshot; acumula no pendente para não perder a 1ª.
-          const prox = new URLSearchParams(pendente.current ?? atual);
+          const prox = new URLSearchParams(PENDENTE.atual ?? atual);
           for (const k of chaves) {
             const txt = escreverValor((patch as Record<string, Valor>)[k], defaults[k]);
             if (txt === null) prox.delete(naUrl(k));
             else prox.set(naUrl(k), txt);
           }
-          if (!pendente.current) queueMicrotask(() => { pendente.current = null; });
-          pendente.current = prox;
+          if (!PENDENTE.atual) queueMicrotask(() => { PENDENTE.atual = null; });
+          PENDENTE.atual = prox;
           return prox;
         },
         { replace: soReplace },

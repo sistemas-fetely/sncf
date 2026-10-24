@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useState } from "react";
@@ -260,11 +261,11 @@ export default function ContasBancarias() {
                 tabIndex={0}
                 title="Ver extrato da conta"
                 className="cursor-pointer transition-colors hover:border-admin/50"
-                onClick={() => navigate(`/administrativo/caixa-banco/contas/${c.id}`)}
+                onClick={() => __abrir(navigate, window.location, `/administrativo/caixa-banco/contas/${c.id}`, { label: "Contas bancárias" })}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    navigate(`/administrativo/caixa-banco/contas/${c.id}`);
+                    __abrir(navigate, window.location, `/administrativo/caixa-banco/contas/${c.id}`, { label: "Contas bancárias" });
                   }
                 }}
               >

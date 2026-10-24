@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Fragment, useMemo, useState } from "react";
@@ -769,7 +770,7 @@ function AbaVincularVendas() {
                             <Button
                               variant="link"
                               className="h-auto p-0 font-mono text-xs"
-                              onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                              onClick={() => __abrir(navigate, window.location, `/pedidos/${c.pedido_id}`, { label: "Conciliação de cartão" })}
                             >
                               {c.pedido_ref}
                             </Button>
@@ -906,7 +907,7 @@ function AbaVincularVendas() {
                                       <Button
                                         variant="link"
                                         className="h-auto p-0 font-mono text-xs"
-                                        onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                        onClick={() => __abrir(navigate, window.location, `/pedidos/${c.pedido_id}`, { label: "Conciliação de cartão" })}
                                       >
                                         {c.pedido_ref}
                                       </Button>
@@ -953,7 +954,7 @@ function AbaVincularVendas() {
                                             <Button
                                               variant="link"
                                               className="h-auto p-0 font-mono text-xs"
-                                              onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                                              onClick={() => __abrir(navigate, window.location, `/pedidos/${c.pedido_id}`, { label: "Conciliação de cartão" })}
                                             >
                                               {c.pedido_ref}
                                             </Button>
@@ -1025,7 +1026,7 @@ function AbaVincularVendas() {
                           <Button
                             variant="link"
                             className="h-auto p-0 font-mono text-xs"
-                            onClick={() => navigate(`/pedidos/${c.pedido_id}`)}
+                            onClick={() => __abrir(navigate, window.location, `/pedidos/${c.pedido_id}`, { label: "Conciliação de cartão" })}
                           >
                             {c.pedido_ref}
                           </Button>

@@ -1,4 +1,7 @@
-import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
+import { useRef as __useRef } from "react";
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
+import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -126,19 +129,20 @@ function NfsSemEntrada({
       .sort((a, b) => Number(b.dias_parada ?? 0) - Number(a.dias_parada ?? 0));
   }, [q.data, pedidoFiltro, busca]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, pedidoFiltro, tamanho]);
+  const __pg1 = __useRef(false);
+  useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, pedidoFiltro, tamanho]);
 
   const totalPaginas = Math.max(1, Math.ceil(linhas.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
   const naPagina = linhas.slice((paginaAtual - 1) * tamanho, paginaAtual * tamanho);
 
+  useFocoAoVoltar({ pronto: !q.isLoading, idsVisiveis: naPagina.map((r) => String(r.pedido_id)), focoParam: "pd_foco" });
+
   const receber = (r: NfSemEntrada) => {
     if (r.rota_recebimento) {
       navigate(`${r.rota_recebimento}&pedido_ref=${encodeURIComponent(r.pedido_ref_xpm ?? "")}`);
     } else {
-      navigate(`/vendas/produto/chegada-mercadoria/${r.pedido_id}`);
+      abrirDetalhe(navigate, window.location, `/vendas/produto/chegada-mercadoria/${r.pedido_id}`, { foco: String(r.pedido_id), focoParam: "pd_foco", label: "Pendências" });
     }
   };
 
@@ -174,7 +178,7 @@ function NfsSemEntrada({
           </TableHeader>
           <TableBody>
             {naPagina.map((r, i) => (
-              <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`}>
+              <TableRow key={`${r.pedido_id}-${r.nf_numero}-${r.nf_serie}-${i}`} data-foco-id={r.pedido_id}>
                 <TableCell className="font-medium">{r.numero_pedido ?? "—"}</TableCell>
                 <TableCell className="whitespace-nowrap">
                   {r.nf_numero ?? "—"}
@@ -234,8 +238,12 @@ export default function PendenciasTab() {
     ? (tipoUrl as TipoPendencia)
     : "codigos_sem_sku";
   const pedidoFiltro = params.get("pedido") ?? "todos";
-  const [busca, setBusca] = useState("");
-  const [pagina, setPagina] = useState(1);
+  const [__n_busca, __s_busca] = __uet({ busca: "" }, { prefixo: "pe", replaceKeys: ["busca"] });
+  const busca: string = __n_busca.busca as string;
+  const setBusca = (v: __SSA<string>) => { const x = __ra(v, busca); __s_busca({ busca: x } as never); };
+  const [__n_pagina, __s_pagina] = __uet({ pagina: 1 }, { prefixo: "pe" });
+  const pagina: number = __n_pagina.pagina as number;
+  const setPagina = (v: __SSA<number>) => { const x = __ra(v, pagina); __s_pagina({ pagina: x } as never); };
   const [tamanho, setTamanho] = useState<PageSizeOption>(DEFAULT_PAGE_SIZE);
 
   const setTipo = (t: TipoPendencia) => {
@@ -345,9 +353,8 @@ export default function PendenciasTab() {
   }, [xpmQ.data, busca]);
 
   
-  useEffect(() => {
-    setPagina(1);
-  }, [tipo, pedidoFiltro, busca, tamanho]);
+  const __pg2 = __useRef(false);
+  useEffect(() => { if (!__pg2.current) { __pg2.current = true; return; } setPagina(1); }, [tipo, pedidoFiltro, busca, tamanho]);
 
   const totalDoTipo = totais[tipo];
 

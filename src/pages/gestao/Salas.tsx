@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Eye, Lock, Plus, Users } from "lucide-react";
@@ -174,7 +175,7 @@ export default function Salas() {
                     <Button
                       size="sm"
                       variant={ciclo?.reuniao_aberta_id ? "default" : "outline"}
-                      onClick={() => navigate(`/tarefas/gestao/sala/${s.id}`)}
+                      onClick={() => __abrir(navigate, window.location, `/tarefas/gestao/sala/${s.id}`, { label: "Salas" })}
                     >
                       {ciclo?.reuniao_aberta_id ? "Entrar na reunião" : "Abrir sala"}
                       <ArrowRight className="ml-1 h-3.5 w-3.5" />

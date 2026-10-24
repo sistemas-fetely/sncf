@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -100,24 +102,42 @@ export default function ExtratoConta() {
   const navigate = useNavigate();
   const { temNivel } = useNivel();
 
-  const [preset, setPreset] = useState<Preset>("este_mes");
-  const [dataInicio, setDataInicio] = useState<string>(
-    () => intervaloPreset("este_mes").inicio ?? "",
-  );
-  const [dataFim, setDataFim] = useState<string>(
-    () => intervaloPreset("este_mes").fim ?? "",
-  );
+  const [__n_preset, __s_preset] = __uet({ preset: "este_mes" });
+  const preset: Preset = __n_preset.preset as Preset;
+  const setPreset = (v: __SSA<Preset>) => { const x = __ra(v, preset); __s_preset({ preset: x } as never); };
+  const [__n_dataInicio, __s_dataInicio] = __uet({ de: "" });
+  const dataInicio: string = ((__n_dataInicio.de as string) || (intervaloPreset("este_mes").inicio ?? "")) as string;
+  const setDataInicio = (v: __SSA<string>) => { const x = __ra(v, dataInicio); __s_dataInicio({ de: x } as never); };
+  const [__n_dataFim, __s_dataFim] = __uet({ ate: "" });
+  const dataFim: string = ((__n_dataFim.ate as string) || (intervaloPreset("este_mes").fim ?? "")) as string;
+  const setDataFim = (v: __SSA<string>) => { const x = __ra(v, dataFim); __s_dataFim({ ate: x } as never); };
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
   const [nav, setNav] = useEstadoTela({ busca: "", pagina: 1 }, { replaceKeys: ["busca"] });
   const busca = nav.busca; const setBusca = (v: SetStateAction<typeof busca>) => setNav({ busca: resolverAcao(v, busca) as never });
-  const [sentido, setSentido] = useState<"todos" | "entrada" | "saida">("todos");
-  const [meios, setMeios] = useState<string[]>([]);
-  const [classes, setClasses] = useState<string[]>([]);
-  const [origens, setOrigens] = useState<string[]>([]);
-  const [valorMin, setValorMin] = useState("");
-  const [valorMax, setValorMax] = useState("");
-  const [conciliado, setConciliado] = useState<"todos" | "sim" | "nao">("todos");
-  const [mostrarDescartadas, setMostrarDescartadas] = useState(false);
+  const [__n_sentido, __s_sentido] = __uet({ sentido: "todos" });
+  const sentido: "todos" | "entrada" | "saida" = __n_sentido.sentido as "todos" | "entrada" | "saida";
+  const setSentido = (v: __SSA<"todos" | "entrada" | "saida">) => { const x = __ra(v, sentido); __s_sentido({ sentido: x } as never); };
+  const [__n_meios, __s_meios] = __uet({ meios: "" });
+  const meios: string[] = __useMemo(() => __ll(__n_meios.meios as string), [__n_meios.meios]);
+  const setMeios = (v: __SSA<string[]>) => { const x = __ra(v, meios); __s_meios({ meios: __el(x) } as never); };
+  const [__n_classes, __s_classes] = __uet({ classes: "" });
+  const classes: string[] = __useMemo(() => __ll(__n_classes.classes as string), [__n_classes.classes]);
+  const setClasses = (v: __SSA<string[]>) => { const x = __ra(v, classes); __s_classes({ classes: __el(x) } as never); };
+  const [__n_origens, __s_origens] = __uet({ origens: "" });
+  const origens: string[] = __useMemo(() => __ll(__n_origens.origens as string), [__n_origens.origens]);
+  const setOrigens = (v: __SSA<string[]>) => { const x = __ra(v, origens); __s_origens({ origens: __el(x) } as never); };
+  const [__n_valorMin, __s_valorMin] = __uet({ vmin: "" }, { replaceKeys: ["vmin"] });
+  const valorMin: string = __n_valorMin.vmin as string;
+  const setValorMin = (v: __SSA<string>) => { const x = __ra(v, valorMin); __s_valorMin({ vmin: x } as never); };
+  const [__n_valorMax, __s_valorMax] = __uet({ vmax: "" }, { replaceKeys: ["vmax"] });
+  const valorMax: string = __n_valorMax.vmax as string;
+  const setValorMax = (v: __SSA<string>) => { const x = __ra(v, valorMax); __s_valorMax({ vmax: x } as never); };
+  const [__n_conciliado, __s_conciliado] = __uet({ conciliado: "todos" });
+  const conciliado: "todos" | "sim" | "nao" = __n_conciliado.conciliado as "todos" | "sim" | "nao";
+  const setConciliado = (v: __SSA<"todos" | "sim" | "nao">) => { const x = __ra(v, conciliado); __s_conciliado({ conciliado: x } as never); };
+  const [__n_mostrarDescartadas, __s_mostrarDescartadas] = __uet({ descartadas: false });
+  const mostrarDescartadas: boolean = __n_mostrarDescartadas.descartadas as boolean;
+  const setMostrarDescartadas = (v: __SSA<boolean>) => { const x = __ra(v, mostrarDescartadas); __s_mostrarDescartadas({ descartadas: x } as never); };
   const [sort, setSort] = useState<SortState<ColunaSort> | null>({
     column: "data",
     direction: "desc",

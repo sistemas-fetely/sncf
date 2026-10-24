@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
@@ -485,7 +486,7 @@ function LinhaProblemas() {
                         <TableRow
                           key={r.pedido_id}
                           className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => navigate(`/pedidos/${r.pedido_id}`)}
+                          onClick={() => __abrir(navigate, window.location, `/pedidos/${r.pedido_id}`, { label: "Dash de pedidos" })}
                         >
                           <TableCell className="font-mono text-xs">
                             {r.id_externo ?? r.pedido_id.slice(0, 8)}

@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useQuery } from "@tanstack/react-query";
@@ -270,7 +272,9 @@ export function BlingCardPainel() {
     const outras = linhas.filter((x) => x.sku !== l.sku && x.cod_cadastro && cods.includes(x.cod_cadastro));
     setResolver([l, ...outras]);
   };
-  const [filtro, setFiltro] = useState<string>("todos");
+  const [__n_filtro, __s_filtro] = __uet({ filtro: "todos" }, { prefixo: "bc" });
+  const filtro: string = __n_filtro.filtro as string;
+  const setFiltro = (v: __SSA<string>) => { const x = __ra(v, filtro); __s_filtro({ filtro: x } as never); };
 
   const cartoes = useMemo(() => {
     const out: { chave: string; rotulo: string; qtd: number; tom?: "erro" | "aviso" | "ok" }[] = [];

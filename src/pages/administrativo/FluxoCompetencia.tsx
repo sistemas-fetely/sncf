@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -901,7 +902,7 @@ export default function FluxoCompetencia() {
                               <Button
                                 variant="link"
                                 className="h-auto p-0 font-mono text-xs"
-                                onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${p.pedido_id}`); }}
+                                onClick={(e) => { e.stopPropagation(); __abrir(navigate, window.location, `/pedidos/${p.pedido_id}`, { label: "Fluxo por competência" }); }}
                               >
                                 {p.pedido_ref ?? "ver"}
                               </Button>
@@ -1070,7 +1071,7 @@ export default function FluxoCompetencia() {
                           <Button
                             variant="link"
                             className="h-auto p-0 font-mono text-xs"
-                            onClick={() => navigate(`/pedidos/${r.pedido_id}`)}
+                            onClick={() => __abrir(navigate, window.location, `/pedidos/${r.pedido_id}`, { label: "Fluxo por competência" })}
                           >
                             {r.pedido_ref ?? "ver"}
                           </Button>

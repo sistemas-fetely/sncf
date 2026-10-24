@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -501,7 +502,7 @@ export default function Onboarding() {
               <Card
                 key={cl.id}
                 className="cursor-pointer hover:shadow-md transition-all"
-                onClick={() => navigate(`/onboarding/${cl.id}`)}
+                onClick={() => __abrir(navigate, window.location, `/onboarding/${cl.id}`, { label: "Onboarding" })}
               >
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4">

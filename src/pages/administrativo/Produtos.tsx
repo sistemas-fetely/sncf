@@ -1,3 +1,5 @@
+import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
+import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import type { SetStateAction } from "react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -360,7 +362,9 @@ export default function Produtos() {
   const colecaoFiltro = nav.colecao; const setColecaoFiltro = (v: SetStateAction<typeof colecaoFiltro>) => setNav({ colecao: resolverAcao(v, colecaoFiltro) as never });
   const grupoFiltro = nav.grupo; const setGrupoFiltro = (v: SetStateAction<typeof grupoFiltro>) => setNav({ grupo: resolverAcao(v, grupoFiltro) as never });
   const faseFiltro = nav.fase; const setFaseFiltro = (v: SetStateAction<typeof faseFiltro>) => setNav({ fase: resolverAcao(v, faseFiltro) as never });
-  const [ordenacao, setOrdenacao] = useState<OrdenacaoProduto>(ORDEM_PADRAO_PRODUTO);
+  const [__n_ordenacao, __s_ordenacao] = __uet({ ordem: "" });
+  const ordenacao: OrdenacaoProduto = __useMemo<OrdenacaoProduto>(() => { const t = __n_ordenacao.ordem as string; if (!t) return ORDEM_PADRAO_PRODUTO; try { return JSON.parse(t); } catch { return ORDEM_PADRAO_PRODUTO; } }, [__n_ordenacao.ordem]);
+  const setOrdenacao = (v: __SSA<OrdenacaoProduto>) => { const x = __ra(v, ordenacao); __s_ordenacao({ ordem: (JSON.stringify(x) === JSON.stringify(ORDEM_PADRAO_PRODUTO) ? "" : JSON.stringify(x)) } as never); };
   const pagina = nav.pagina; const setPagina = (v: SetStateAction<typeof pagina>) => setNav({ pagina: resolverAcao(v, pagina) as never });
   const [tamanhoPagina, setTamanhoPagina] = useState(() =>
     lerTamanhoPaginaSalvo(CHAVE_PAGINA_PRODUTOS),

@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Package, FileText, Code, AlertCircle } from "lucide-react";
@@ -120,7 +121,7 @@ export function PedidosDoParceiroSection({ parceiroId }: { parceiroId: string })
                   <TableRow
                     key={p.id}
                     className="cursor-pointer"
-                    onClick={() => navigate(`/pedidos/${p.id}`)}
+                    onClick={() => __abrir(navigate, window.location, `/pedidos/${p.id}`, { label: "Parceiro" })}
                   >
                     <TableCell>
                       <span className="font-mono text-xs">{p.id_externo}</span>

@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -390,7 +391,7 @@ export default function PessoaEntradaRapida() {
             )}
             <div className="flex flex-wrap gap-2 pt-2">
               <Button variant="ghost" onClick={() => navigate("/pessoas")}>Voltar para pessoas</Button>
-              <Button onClick={() => navigate(`/pessoas/${sucesso.pessoaId}/editar`)}>Completar cadastro</Button>
+              <Button onClick={() => __abrir(navigate, window.location, `/pessoas/${sucesso.pessoaId}/editar`, { label: "Entrada rápida" })}>Completar cadastro</Button>
             </div>
           </CardContent>
         </Card>

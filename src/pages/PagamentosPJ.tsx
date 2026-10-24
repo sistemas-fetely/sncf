@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useState, useEffect } from "react";
 import { useEstadoTela, resolverAcao, abrirDetalhe, useFocoAoVoltar, useRestaurarScroll } from "@/lib/navegacao";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -201,7 +202,7 @@ export default function PagamentosPJ() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => navigate(`/contratos-pj/${p.contrato_id}`)}><Eye className="mr-2 h-4 w-4" /> Ver Contrato</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => __abrir(navigate, window.location, `/contratos-pj/${p.contrato_id}`, { label: "Pagamentos PJ" })}><Eye className="mr-2 h-4 w-4" /> Ver Contrato</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
