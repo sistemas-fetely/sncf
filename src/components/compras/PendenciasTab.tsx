@@ -1,3 +1,4 @@
+import { useRef as __useRef } from "react";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
@@ -128,9 +129,8 @@ function NfsSemEntrada({
       .sort((a, b) => Number(b.dias_parada ?? 0) - Number(a.dias_parada ?? 0));
   }, [q.data, pedidoFiltro, busca]);
 
-  useEffect(() => {
-    setPagina(1);
-  }, [busca, pedidoFiltro, tamanho]);
+  const __pg1 = __useRef(false);
+  useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, pedidoFiltro, tamanho]);
 
   const totalPaginas = Math.max(1, Math.ceil(linhas.length / tamanho));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -351,9 +351,8 @@ export default function PendenciasTab() {
   }, [xpmQ.data, busca]);
 
   
-  useEffect(() => {
-    setPagina(1);
-  }, [tipo, pedidoFiltro, busca, tamanho]);
+  const __pg2 = __useRef(false);
+  useEffect(() => { if (!__pg2.current) { __pg2.current = true; return; } setPagina(1); }, [tipo, pedidoFiltro, busca, tamanho]);
 
   const totalDoTipo = totais[tipo];
 

@@ -1,3 +1,4 @@
+import { useRef as __useRef } from "react";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -199,7 +200,8 @@ function ListaNfs({ aoAbrir }: { aoAbrir: (nf: NfPendencia) => void }) {
     if (!t) return todas;
     return todas.filter((n) => (n.numero ?? "").toLowerCase().includes(t));
   }, [todas, busca]);
-  useEffect(() => setPagina(1), [busca, modo, tamanho]);
+  const __pg1 = __useRef(false);
+  useEffect(() => { if (!__pg1.current) { __pg1.current = true; return; } setPagina(1); }, [busca, modo, tamanho]);
   const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   return (
@@ -907,7 +909,8 @@ function WorklistNf({ nf, aoVoltar }: { nf: NfPendencia; aoVoltar: () => void })
         (l.descricao ?? "").toLowerCase().includes(t),
     );
   }, [todas, busca]);
-  useEffect(() => setPagina(1), [busca, modoEf, tamanho]);
+  const __pg2 = __useRef(false);
+  useEffect(() => { if (!__pg2.current) { __pg2.current = true; return; } setPagina(1); }, [busca, modoEf, tamanho]);
   const fatia = filtradas.slice((pagina - 1) * tamanho, pagina * tamanho);
 
   function invalidar() {
