@@ -292,6 +292,8 @@ function AbaNFs() {
     (paginaAtual - 1) * tamanhoPagina,
     paginaAtual * tamanhoPagina,
   );
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: paginaItens.map((n) => n.id), focoParam: "nf_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   const totalValor = useMemo(
     () => filtrados.reduce((sum, n) => sum + Number(n.valor_nota ?? 0), 0),

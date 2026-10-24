@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useEstadoTela, useFocoAoVoltar, useRestaurarScroll, abrirDetalhe } from "@/lib/navegacao";
 import { useParametros } from "@/hooks/useParametros";
 import {
   FileText, Search, MoreHorizontal, Eye, Edit, Trash2, Plus, Loader2,
@@ -121,10 +122,16 @@ export default function NotasFiscais() {
   const [notas, setNotas] = useState<NotaComContrato[]>([]);
   const [contratos, setContratos] = useState<ContratoPJOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("todos");
-  const [filterContrato, setFilterContrato] = useState("todos");
-  const [filterPeriodo, setFilterPeriodo] = useState("todos");
+  const location = useLocation();
+  const [nav, setNav] = useEstadoTela({ busca: "", status: "todos", contrato: "todos", periodo: "todos" });
+  const search = nav.busca;
+  const setSearch = (v: string) => setNav({ busca: v });
+  const filterStatus = nav.status;
+  const setFilterStatus = (v: string) => setNav({ status: v });
+  const filterContrato = nav.contrato;
+  const setFilterContrato = (v: string) => setNav({ contrato: v });
+  const filterPeriodo = nav.periodo;
+  const setFilterPeriodo = (v: string) => setNav({ periodo: v });
   const [formOpen, setFormOpen] = useState(false);
   const [editNota, setEditNota] = useState<NotaComContrato | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<NotaComContrato | null>(null);
@@ -203,6 +210,8 @@ export default function NotasFiscais() {
 
   // Dynamic: filtered stats
   const filteredTotal = filtered.length;
+  useFocoAoVoltar({ pronto: !loading, idsVisiveis: filtered.map((n) => n.id) });
+  useRestaurarScroll(null, !loading);
   const filteredValor = filtered.reduce((acc, n) => acc + Number(n.valor), 0);
   const filteredPagas = filtered.filter((n) => n.status === "paga").length;
   const filteredPendentes = filtered.filter((n) => ["pendente", "aprovada", "enviada_pagamento"].includes(n.status)).length;
@@ -400,7 +409,7 @@ export default function NotasFiscais() {
                 ) : filtered.length === 0 ? (
                   <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhuma nota fiscal encontrada.</TableCell></TableRow>
                 ) : filtered.map((n) => (
-                  <TableRow key={n.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => navigate(`/notas-fiscais/${n.id}`, { state: { from: "/notas-fiscais", fromLabel: "Notas Fiscais" } })}>
+                  <TableRow key={n.id} data-foco-id={n.id} className="hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => abrirDetalhe(navigate, location, `/notas-fiscais/${n.id}`, { foco: n.id, label: "Notas Fiscais" })}>
                     <TableCell className="font-medium">{n.numero}{n.serie ? `/${n.serie}` : ""}</TableCell>
                     <TableCell className="text-sm">{n.contrato_nome}</TableCell>
                     <TableCell className="text-sm hidden md:table-cell">{n.competencia ? format(parseISO(n.competencia), "MM/yyyy") : "—"}</TableCell>
@@ -414,7 +423,7 @@ export default function NotasFiscais() {
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => navigate(`/contratos-pj/${n.contrato_id}`)}><Eye className="mr-2 h-4 w-4" /> Ver Contrato</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => abrirDetalhe(navigate, location, `/contratos-pj/${n.contrato_id}`, { foco: n.id, label: "Notas Fiscais" })}><Eye className="mr-2 h-4 w-4" /> Ver Contrato</DropdownMenuItem>
                             {canEdit && <DropdownMenuItem onClick={() => { setEditNota(n); setFormOpen(true); }}><Edit className="mr-2 h-4 w-4" /> Editar</DropdownMenuItem>}
                             {canDelete && <DropdownMenuItem className="text-destructive" onClick={() => setDeleteTarget(n)}><Trash2 className="mr-2 h-4 w-4" /> Excluir</DropdownMenuItem>}
                           </DropdownMenuContent>
