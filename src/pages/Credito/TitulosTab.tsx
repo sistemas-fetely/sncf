@@ -442,6 +442,7 @@ function LinhaTitulo({
   const encerrada = t.eixo_status === "cancelado" || t.eixo_status === "devolvido";
   return (
     <TableRow
+      data-foco-id={t.id}
       className={cn(
         "cursor-pointer hover:bg-muted/50",
         aninhada && "bg-muted/10",
@@ -550,7 +551,7 @@ function LinhaGrupo({
   const c = g.cabeca;
   const regerado = g.totalParcelasDeclarado > 0 && g.titulos.length > g.totalParcelasDeclarado;
   return (
-    <TableRow className="cursor-pointer bg-muted/40 hover:bg-muted/60" onClick={onToggle}>
+    <TableRow data-foco-id={c.id} className="cursor-pointer bg-muted/40 hover:bg-muted/60" onClick={onToggle}>
       <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
         {selGrupo && (
           <Checkbox
@@ -818,13 +819,6 @@ export default function TitulosTab() {
     setPagina(1);
   }, [busca, vencDe, vencAte, tipoFiltro, estTela.cards, agrupado, estTela.ordem]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const idsFocaveis = useMemo(
-    () => (agrupado
-      ? gruposDaPaginaIds.current
-      : []),
-    [agrupado],
-  );
-
   const mesAtual = new Date().toISOString().slice(0, 7);
   const q = busca.trim().toLowerCase();
 
@@ -972,6 +966,13 @@ export default function TitulosTab() {
   const inicio = (paginaAtual - 1) * tamanhoPagina;
   const gruposPagina = gruposOrdenados.slice(inicio, inicio + tamanhoPagina);
   const titulosPagina = titulosOrdenados.slice(inicio, inicio + tamanhoPagina);
+
+  /* Foco ao voltar: agrupado, a linha visível é a do pedido (cabeça) ou o título único. */
+  const idsFocaveis = agrupado
+    ? gruposPagina.flatMap((g) => [g.cabeca.id, ...(abertos.has(g.chave) || g.titulos.length === 1 ? g.titulos.map((t) => t.id) : [])])
+    : titulosPagina.map((t) => t.id);
+  useFocoAoVoltar({ pronto: !isLoading, idsVisiveis: idsFocaveis, focoParam: "tit_foco" });
+  useRestaurarScroll(null, !isLoading);
 
   // 20/10/2026 (PIX): vw_titulos_cobranca não traz pix_token; busca numa única query
   // para os títulos PIX listados e copia a página pública /pagar/:token quando houver.
@@ -1243,6 +1244,7 @@ export default function TitulosTab() {
                     onAbrir={setDetalhe}
                     onPedido={(id) => abrirDetalhe(navigate, location, `/pedidos/${id}`, { label: "Títulos" })}
                     sel={selDe(t0)}
+                    focoId={t0.id}
                   />
                 );
               }
