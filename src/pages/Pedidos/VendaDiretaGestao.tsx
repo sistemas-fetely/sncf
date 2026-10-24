@@ -68,6 +68,8 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   fila_erro: string | null;
   bling_pedido_numero: string | number | null;
   nf_numero: string | number | null;
+  vendedor_id: string | null;
+  vendedor_nome: string | null;
   entrou_na_fase_em: string | null;
   situacao: Situacao;
   alerta_sem_pagamento: boolean | null;
@@ -355,6 +357,7 @@ export default function VendaDiretaGestao() {
                   <TableRow>
                     <TableHead>Nº</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Vendedora</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead>Entrega</TableHead>
                     <TableHead className="text-right">Frete</TableHead>
@@ -403,6 +406,9 @@ export default function VendaDiretaGestao() {
                         <TableCell>
                           <div>{l.cliente_nome ?? "—"}</div>
                           <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {l.vendedor_nome ?? <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
                           {reembolsoConcluido ? (

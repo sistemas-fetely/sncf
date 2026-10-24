@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AvisosFrete, CartoesEntrega, useFreteVendaDireta, type ModalVd } from "@/components/venda-direta/EntregaVendaDireta";
 import { ProdutoVarejoCombobox, type ProdutoVarejo } from "@/components/venda-direta/ProdutoVarejoCombobox";
 import { ProdutoMiniatura, useImagensProduto } from "@/components/venda-direta/ProdutoMiniatura";
@@ -139,6 +140,8 @@ export default function VendaDiretaNovo() {
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
   const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
+  // Vendedora do pedido: sem pré-seleção (decisão do Flavio — escolhe sempre).
+  const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
@@ -259,6 +262,18 @@ export default function VendaDiretaNovo() {
     },
   });
 
+  // Vendedoras ativas (RPC própria — RLS bloqueia leitura direta de `vendedores` aqui).
+  const vendedoresQ = useQuery({
+    queryKey: ["vd-vendedores-opcoes"],
+    enabled: !edicao,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("fn_vd_vendedores_opcoes");
+      if (error) throw error;
+      return (data ?? []) as { id: string; nome: string; tipo: string }[];
+    },
+  });
+
   const skus = itens.map((i) => i.sku);
   const saldoQ = useQuery({
     queryKey: ["venda-direta-saldo-site-sp", skus.slice().sort().join(",")],
@@ -350,6 +365,7 @@ export default function VendaDiretaNovo() {
   const rotPag = rotulosOpcaoPagamento(cfgPixNoLink, parcelasLink);
 
   const pendencia = useMemo((): string | null => {
+    if (!edicao && !vendedorId) return "Informe a vendedora.";
     if (!cliente && !novo) return "Selecione ou cadastre o cliente.";
     if (cliente && soDigitos(cliente.cpf).length !== 11) return "CPF obrigatório para a NF.";
     if (novo) {
@@ -369,7 +385,7 @@ export default function VendaDiretaNovo() {
     if (ben.ativo && beneficio.motivo.trim().length < 3) return "Informe o motivo do benefício.";
     if (edicao && motivo.trim().length < 3) return "Informe o motivo da alteração.";
     return null;
-  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo]);
+  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo, vendedorId]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -414,6 +430,7 @@ export default function VendaDiretaNovo() {
         p_entrega,
         p_pagamento: pagamento,
         p_observacao: observacao.trim() || null,
+        p_vendedor_id: vendedorId,
         ...(haverAtivo ? { p_haver_id: haverEscolhido!.haver_id } : {}),
       });
       if (error) throw error;
@@ -441,7 +458,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao("");
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao(""); setVendedorId(null);
     setResultado(null);
   };
 
@@ -591,6 +608,34 @@ export default function VendaDiretaNovo() {
       {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+      {/* 0. Vendedora — card próprio, só na criação */}
+      {!edicao && (
+        <Card className="bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Vendedora*</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {vendedoresQ.isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Carregando vendedoras" />
+            ) : vendedoresQ.isError ? (
+              <p className="text-sm text-destructive">Falha ao carregar vendedoras: {rawMessage(vendedoresQ.error)}</p>
+            ) : (vendedoresQ.data?.length ?? 0) === 0 ? (
+              <p className="text-sm text-destructive">Nenhuma vendedora ativa encontrada — avise Sistemas.</p>
+            ) : (
+              <Select value={vendedorId ?? ""} onValueChange={(v) => setVendedorId(v)}>
+                <SelectTrigger aria-label="Vendedora do pedido" className="w-full sm:max-w-xs">
+                  <SelectValue placeholder="Quem fez a venda?" />
+                </SelectTrigger>
+                <SelectContent>
+                  {vendedoresQ.data!.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+      )}
       {/* 1. Cliente */}
       <Card ref={itensRef}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
