@@ -241,7 +241,7 @@ function PedidosTabela({ linhas, vazio }: { linhas: PedidoLinhaComParcial[]; vaz
                   ev.stopPropagation();
                   abrirDetalhe(navigate, location, `/vendas/produto/chegada-mercadoria/${p.id}`, {
                     foco: String(p.id),
-                    label: "Compras",
+                    label: "Chegada de Mercadoria",
                     focoParam: "pl_foco",
                   });
                 }}
