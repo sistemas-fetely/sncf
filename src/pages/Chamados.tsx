@@ -1,5 +1,9 @@
 import { useMemo, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useEstadoTela } from "@/lib/navegacao/useEstadoTela";
+import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
+import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
+import { abrirDetalhe } from "@/lib/navegacao/abrirDetalhe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useChamadoRelacao, mensagemErroChamado, type ChamadoRelacao } from "@/hooks/useChamadoRelacao";
@@ -258,20 +262,31 @@ type AcaoTipo = "pegar" | "responder" | "pausar" | "retomar" | "passar" | "larga
 function ChamadosConteudo() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { podeEditar } = usePermissaoTelaContext();
   // Atalho para o Catálogo de Serviços — só quem tem direito de ver a tela.
   const podeVerCatalogo = usePermissoesTela("tela.chamados_catalogo").podeVer;
 
-  const [busca, setBusca] = useState("");
+  // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros da lista na URL.
+  const [f, setF] = useEstadoTela(
+    { busca: "", cadeira: "todas", prioridade: "todas", tipo: "todos", ordem: "antigo" },
+    { replaceKeys: ["busca"] },
+  );
+  const busca = f.busca;
+  const setBusca = (v: string) => setF({ busca: v });
   // Visão vem da URL (VISÃO-NA-URL): slug desconhecido cai no redirect abaixo.
   const { visao: visaoSlug } = useParams();
   const visao: Visao = SLUG_PARA_VISAO[visaoSlug ?? ""] ?? "abertos";
   const slugValido = visaoSlug == null || visaoSlug in SLUG_PARA_VISAO;
-  const [cadeira, setCadeira] = useState<string>("todas");
-  const [prioridade, setPrioridade] = useState<string>("todas");
-  const [tipo, setTipo] = useState<string>("todos");
-  const [ordem, setOrdem] = useState<"antigo" | "prioridade" | "vencimento">("antigo");
+  const cadeira = f.cadeira;
+  const setCadeira = (v: string) => setF({ cadeira: v });
+  const prioridade = f.prioridade;
+  const setPrioridade = (v: string) => setF({ prioridade: v });
+  const tipo = f.tipo;
+  const setTipo = (v: string) => setF({ tipo: v });
+  const ordem = f.ordem as "antigo" | "prioridade" | "vencimento";
+  const setOrdem = (v: "antigo" | "prioridade" | "vencimento") => setF({ ordem: v });
 
   const [acao, setAcao] = useState<AcaoTipo | null>(null);
   const [alvo, setAlvo] = useState<Chamado | null>(null);
@@ -670,7 +685,13 @@ function ChamadosConteudo() {
                   return (
                     <TableRow
                       key={c.chamado_id}
-                      onClick={() => navigate(`/chamados/${c.chamado_id}`)}
+                      data-foco-id={c.chamado_id}
+                      onClick={() =>
+                        abrirDetalhe(navigate, location, `/chamados/${c.chamado_id}`, {
+                          foco: c.chamado_id,
+                          label: "Chamados",
+                        })
+                      }
                       className={cn(
                         "cursor-pointer",
                         c.vencido && "border-l-2 border-l-destructive bg-destructive/[0.03]",
