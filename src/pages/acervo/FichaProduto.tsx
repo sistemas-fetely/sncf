@@ -1,3 +1,4 @@
+import { SmartBackButton } from "@/components/SmartBackButton";
 // Ficha do Produto — o lugar onde o bloco técnico do produto se edita no SNCF.
 // A tela inteira se monta a partir de produto_ficha_nascimento (campo, bloco, dono,
 // fase_exigida, obrigatorio, ordem, descricao): nenhuma lista de campo, dono ou bloco
@@ -10,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  AlertTriangle, ArrowDownCircle, ArrowLeft, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, Upload, X,
+  AlertTriangle, ArrowDownCircle, ArrowUpCircle, Check, ImageOff, Loader2, Lock, RefreshCw, Save, Upload, X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -497,10 +498,7 @@ export default function FichaProduto() {
           }
           acoes={
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => navigate("/vendas/produto/mesa")}>
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Mesa do Produto
-              </Button>
+              <SmartBackButton fallback="/vendas/produto/mesa" fallbackLabel="Mesa do Produto" />
               {produto?.sku && (
                 <BotaoGuardado
                   slug="acao.cadastrar_produto_xpm"
