@@ -23,3 +23,11 @@ export function lerConjunto<T extends string>(s: string): Set<T> {
 export function escreverConjunto(c: Set<string>): string {
   return c.size === 0 ? "nenhum" : [...c].sort().join(",");
 }
+
+/** Lista ↔ "a,b"; vazia = "" (fica fora da URL). Mantém a ordem escolhida. */
+export function lerLista(s: string): string[] {
+  return s ? s.split(",").filter(Boolean) : [];
+}
+export function escreverLista(a: string[]): string {
+  return a.join(",");
+}
