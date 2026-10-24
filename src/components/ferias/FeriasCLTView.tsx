@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useState } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
@@ -290,7 +291,7 @@ export function FeriasCLTView({ canManage, isAdmin }: Props) {
                     </TableCell>
                     {canManage && (
                       <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/ferias/colaborador/${p.colaborador_id}`)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => __abrir(navigate, window.location, `/ferias/colaborador/${p.colaborador_id}`, { label: "Férias" })}>
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button variant="outline" size="sm" onClick={() => { setSelectedPeriodo(p); setShowNovaProg(true); }}>

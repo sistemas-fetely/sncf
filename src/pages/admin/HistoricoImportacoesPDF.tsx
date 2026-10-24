@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEffect, useState } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
 import { useNavigate } from "react-router-dom";
@@ -139,7 +140,7 @@ export default function HistoricoImportacoesPDF() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/processos/${imp.processos_criados![0]}`)}
+                        onClick={() => __abrir(navigate, window.location, `/processos/${imp.processos_criados![0]}`, { label: "Importações de PDF" })}
                         className="gap-1 shrink-0"
                       >
                         Ver processo <ExternalLink className="h-3 w-3" />

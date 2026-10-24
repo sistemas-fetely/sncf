@@ -1,3 +1,4 @@
+import { abrirDetalhe as __abrir } from "@/lib/navegacao";
 import { useEstadoTela as __uet, resolverAcao as __ra, lerLista as __ll, escreverLista as __el } from "@/lib/navegacao";
 import { useMemo as __useMemo, type SetStateAction as __SSA } from "react";
 import { useEstadoTela, resolverAcao } from "@/lib/navegacao";
@@ -554,7 +555,7 @@ export default function Faturamento() {
             canalOk={canalOk}
             componente={componente}
             mes={mesEfetivo}
-            onPedido={(id) => navigate(`/pedidos/${id}`)}
+            onPedido={(id) => __abrir(navigate, window.location, `/pedidos/${id}`, { label: "Faturamento" })}
           />
         </TabsContent>
 
