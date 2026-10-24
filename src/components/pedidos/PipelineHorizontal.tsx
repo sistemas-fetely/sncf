@@ -83,6 +83,9 @@ interface Props {
   onToggleRiscoAlto?: () => void;
   /** Abre a aba Mesa Comercial — não filtra a fila. */
   onAbrirRecuperacao?: () => void;
+  /** CARD-TRAVADO: desvio vindo do pipeline (linha estagio='travado'). */
+  travadoAtivo?: boolean;
+  onClickTravado?: () => void;
 }
 
 const fmtBRL = new Intl.NumberFormat("pt-BR", {
@@ -100,8 +103,17 @@ export function PipelineHorizontal({
   riscoAltoAtivo = false,
   onToggleRiscoAlto,
   onAbrirRecuperacao,
+  travadoAtivo = false,
+  onClickTravado,
 }: Props) {
   const { data, isLoading, isError, error } = usePedidosPipeline();
+
+  // CARD-TRAVADO: o pipeline traz a linha estagio='travado' como desvio —
+  // o pedido sai da contagem do card do seu estágio real e conta só aqui.
+  const travadoRow = useMemo(
+    () => (data || []).find((r) => r.estagio === "travado") ?? null,
+    [data],
+  );
 
   const {
     data: pagamentoVencido,
@@ -332,6 +344,37 @@ export function PipelineHorizontal({
             {incluirCancelados ? "Ligado" : "Desligado"}
           </span>
         </button>
+
+        {/* CARD-TRAVADO (24/10/2026): desvio do pipeline, no tom de alerta dos desvios.
+            Posicionado entre a Fila ativa e Recebido; clicar filtra travado = true. */}
+        {travadoRow && (
+          <button
+            type="button"
+            onClick={() => onClickTravado?.()}
+            title={`${travadoRow.rotulo_catalogo ?? "Travado"}: ${Number(travadoRow.qtd || 0)} pedido${Number(travadoRow.qtd || 0) !== 1 ? "s" : ""} parados por bloqueio`}
+            className={cn(
+              "group relative flex-1 flex flex-col items-center justify-center rounded-md border py-2 px-1 transition-all duration-200 min-w-0",
+              "gold-border-hover focus-visible:outline-none",
+              travadoAtivo
+                ? "gold-border bg-gold-soft shadow-sm"
+                : "border-destructive/60 bg-destructive/10",
+              Number(travadoRow.qtd || 0) === 0 && !travadoAtivo && "opacity-40",
+            )}
+          >
+            <span className="mb-0.5 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            <span className="max-w-full truncate text-[10px] font-medium text-destructive uppercase tracking-wide">
+              {travadoRow.rotulo_catalogo ?? "Travado"}
+            </span>
+            <span className="text-lg font-medium tabular-nums text-destructive">
+              {Number(travadoRow.qtd || 0)}
+            </span>
+            <span className="text-[10px] tabular-nums text-muted-foreground">
+              {fmtBRL.format(Number(travadoRow.soma_valor || 0))}
+            </span>
+          </button>
+        )}
 
 
         {/* Cards por fase */}

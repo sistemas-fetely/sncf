@@ -53,6 +53,7 @@ import {
   TOM_CLASSES,
 } from "@/lib/pedidos/situacao-financeira";
 import { formatDateBR } from "@/lib/format-currency";
+import { fmtData } from "@/lib/data";
 import { ExcecaoRecebidoSelo, ExcecaoRecebidoBotao } from "@/components/pedidos/ExcecaoRecebido";
 import { EmpurrarXpmLinhaDialog } from "@/components/pedidos/dialogs/EmpurrarXpmLinhaDialog";
 import { DialogoDeclaracaoB2B, useB2bSaidaPermitida, type DeclaracaoB2B } from "@/components/pedidos/DialogoDeclaracaoB2B";
@@ -104,6 +105,8 @@ interface Props {
   incluirCancelados?: boolean;
   /** Espelha a tarja de risco alto do pipeline. */
   somenteRiscoAlto?: boolean;
+  /** CARD-TRAVADO: filtro vindo do card "Travado" do funil (travado = true). */
+  somenteTravados?: boolean;
 }
 
 interface EstadoVazioFilaProps {
@@ -309,6 +312,41 @@ function CelulaCobranca({ cobranca }: { cobranca: LastroCobranca | undefined }) 
   );
 }
 
+/** CARD-TRAVADO (24/10/2026): selo discreto do desvio na linha — o estágio real
+ *  continua visível; o selo diz por que o pedido está travado e desde quando. */
+function SeloTravado({ p }: { p: PedidoFilaItem }) {
+  if (!p.travado) return null;
+  const motivos = (p.travado_motivos ?? []).filter(Boolean);
+  const tooltip = [
+    ...motivos,
+    p.travado_desde ? `desde ${fmtData(p.travado_desde)}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge
+            variant="outline"
+            className="rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 min-w-0"
+          >
+            <AlertTriangle className="h-3 w-3 shrink-0" />
+            <span className="truncate">
+              Travado{p.travado_motivo ? ` · ${p.travado_motivo}` : ""}
+            </span>
+          </Badge>
+        </TooltipTrigger>
+        {tooltip && (
+          <TooltipContent>
+            <p className="text-xs max-w-[280px] whitespace-pre-line">{tooltip}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | undefined; estagio?: string | null; politica?: PoliticaCobertura; p: PedidoFilaItem }) {
   if (politica && !politica.mostra_na_fila) {
     return <span className="text-muted-foreground">—</span>;
@@ -428,6 +466,7 @@ export function FilaPedidosPorArea({
   apenasAtivos = true,
   incluirCancelados = false,
   somenteRiscoAlto = false,
+  somenteTravados = false,
   
 }: Props) {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros, ordem e página vivem na URL.
@@ -493,7 +532,7 @@ export function FilaPedidosPorArea({
       return;
     }
     if (pagina !== 1) setPagina(1);
-  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [buscaDebounced, estagioFilter, marcacaoFilter, formaPgtoFilter, situacaoFilter, liberacaoFilter, estadoTela.ordem, estagios, area, comPagamentoSemVinculo, somenteTravados]); // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const usarEstagiosMultiplos = !!(estagios && estagios.length > 0);
@@ -515,6 +554,7 @@ export function FilaPedidosPorArea({
     busca: buscaDebounced || undefined,
     apenasAtivos: apenasAtivos && !estagioEspecificoSelecionado,
     incluirCancelados,
+    somenteTravados,
   });
 
   // Farol de risco — fonte única: vw_pedido_risco + dimensão pedido_risco_faixa.
@@ -604,6 +644,9 @@ export function FilaPedidosPorArea({
         base = base.filter((p) => p.estagio !== est);
       }
     });
+    // CARD-TRAVADO: a perna extra da busca por apelido não sabe recortar travados —
+    // o guard no cliente mantém card e tabela contando a mesma coisa.
+    if (somenteTravados) base = base.filter((p) => !!p.travado);
     if (marcacaoFilter === "sem") base = base.filter((p) => !p.marcacao);
     else if (marcacaoFilter === "com") base = base.filter((p) => !!p.marcacao);
     else if (marcacaoFilter !== "todas") base = base.filter((p) => p.marcacao === marcacaoFilter);
@@ -649,7 +692,7 @@ export function FilaPedidosPorArea({
       if (db !== da) return db - da;
       return new Date(a.recebido_em).getTime() - new Date(b.recebido_em).getTime();
     });
-  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo]);
+  }, [data, pedidosPorApelido, termoBusca, ordenacao, riscoMap, marcacaoFilter, formaPgtoFilter, situacaoFilter, somenteRiscoAlto, somenteComAlerta, alertaMap, estagios, comPagamentoSemVinculo, somenteTravados]);
 
   const buscaGlobalAtiva = !!buscaDebounced.trim() && !estagioEspecificoSelecionado;
 
@@ -1191,6 +1234,7 @@ export function FilaPedidosPorArea({
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
                       <EstagioBadge estagio={p.estagio} />
+                      <SeloTravado p={p} />
                       <SeloCdExpedicao p={p} />
                       {p.estagio === "recebido" && <ExcecaoRecebidoSelo pedidoId={p.id} />}
                       {p.estagio === "pre_faturamento" && p.bling_id_destino && (
