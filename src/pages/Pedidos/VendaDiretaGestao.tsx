@@ -259,13 +259,13 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
+  }, [baseLista, filtro, filtroPagamento, busca, soAcaoEquipe]);
 
   const primeiraRender = useRef(true);
   useEffect(() => {
     if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, mostrarEntregues, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
   useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: pag.map((l) => l.id) });
   useRestaurarScroll(null, q.isSuccess);
@@ -395,6 +395,10 @@ export default function VendaDiretaGestao() {
               <div className="flex items-center gap-2">
                 <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
                 <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch id="vd-entregues" checked={mostrarEntregues} onCheckedChange={setMostrarEntregues} />
+                <Label htmlFor="vd-entregues" className="text-sm font-normal">Mostrar entregues <span className="tabular-nums text-muted-foreground">({nEntregues})</span></Label>
               </div>
             </div>
           }
