@@ -76,7 +76,8 @@ export default function ImpressaoPedidoVD() {
   const total = Number(p.valor_liquido ?? 0);
   const desconto = Math.max(valorItens + frete - total, 0);
   const pago = !!g.pagamento_confirmado_em;
-  const meio = (g.pagamento ?? p.forma_solicitada) === "pix" ? "PIX" : "Cartão";
+  const meioCod = g.pagamento ?? p.forma_solicitada;
+  const meio = meioCod === "pix" ? "PIX" : meioCod === "cartao_maquininha" ? "Cartão maquininha" : "Cartão";
   const data = p.data_pedido ? new Date(p.data_pedido).toLocaleDateString("pt-BR") : "—";
   const mapaImg = img.data;
 

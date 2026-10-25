@@ -31,7 +31,7 @@ export interface LinhaVD {
   cliente_telefone?: string | null;
   provisao_id?: string | null;
   link_pagamento?: string | null;
-  pagamento?: "pix" | "cartao" | string | null;
+  pagamento?: "pix" | "cartao" | "cartao_maquininha" | string | null;
 }
 
 export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD | null; onClose: () => void; payloadNovo?: string | null }) {

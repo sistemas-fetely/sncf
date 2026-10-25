@@ -60,7 +60,7 @@ export interface LinhaAviso {
   cliente_telefone?: string | null;
   situacao: string;
   modal: string | null;
-  pagamento: "pix" | "cartao" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
   link_pagamento?: string | null;
   codigo_rastreio?: string | null;
   rastreio_servico?: string | null;
@@ -102,6 +102,8 @@ export function montarMensagem(tpl: string, l: LinhaAviso, p: ParametrosVD, link
 }
 
 async function linkPagamentoDe(l: LinhaAviso): Promise<string | null> {
+  // Maquininha: sem link — o cliente paga na loja.
+  if (l.pagamento === "cartao_maquininha") return null;
   if (l.pagamento === "pix") return l.link_pagamento ?? null;
   if (l.pagamento === "cartao") {
     const { data, error } = await (supabase as any)

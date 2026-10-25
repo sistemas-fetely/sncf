@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -27,6 +27,8 @@ import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
+import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
+import { meioVD, ROTULO_MEIO_VD, type MeioVD } from "@/lib/pedidos/meioVD";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -139,7 +141,8 @@ export default function VendaDiretaNovo() {
   const [modo, setModo] = useState<ModalVd>("retirada");
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
-  const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
+  const [anexarComprovante, setAnexarComprovante] = useState(false);
+  const [pagamento, setPagamento] = useState<MeioVD>("pix");
   // Vendedora do pedido: sem pré-seleção (decisão do Flavio — escolhe sempre).
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   // CD que atende o pedido (centro_canal canal VD). Padrão: Site SP.
@@ -228,7 +231,7 @@ export default function VendaDiretaNovo() {
     if (!d) return;
     if (inicializado.current) return;
     inicializado.current = true;
-    setPagamento(d.linha.pagamento === "pix" ? "pix" : "cartao");
+    setPagamento(meioVD(d.linha.pagamento));
     setCliente(d.cliente); setItens(d.itens); setModo(d.modo); setEndereco(d.endereco);
     setEnderecoEditado(true); setBeneficio(d.beneficio); setObservacao(d.observacao);
   }, [edQ.data]);
@@ -488,7 +491,7 @@ export default function VendaDiretaNovo() {
 
   const telefoneCliente = soDigitos(cliente?.telefone ?? novo?.telefone ?? "");
   const primeiroNome = (cliente?.razao_social ?? novo?.nome ?? "").trim().split(/\s+/)[0] ?? "";
-  const pagamentoOriginal = edQ.data?.linha.pagamento === "pix" ? "pix" : "cartao";
+  const pagamentoOriginal = meioVD(edQ.data?.linha.pagamento);
   const pagamentoMudou = edicao && pagamento !== pagamentoOriginal;
   const totalMudou = edicao && Math.abs(total - Number(edQ.data?.linha.valor_liquido ?? 0)) > 0.009;
 
@@ -557,7 +560,7 @@ export default function VendaDiretaNovo() {
               <p className="rounded-md border border-warning/50 bg-warning/10 p-3 text-sm font-medium">
                 {Math.abs(Number(r.valor_anterior ?? 0) - Number(r.valor_total ?? 0)) > 0.009
                   ? `O valor mudou de ${formatBRL(r.valor_anterior ?? null)} para ${formatBRL(r.valor_total)}`
-                  : `O meio mudou para ${r.pagamento === "pix" ? "PIX" : "Cartão"}`} — envie o novo pagamento ao cliente
+                  : `O meio mudou para ${ROTULO_MEIO_VD[meioVD(r.pagamento)]}`} — envie o novo pagamento ao cliente
               </p>
             )}
           </CardHeader>
@@ -595,6 +598,20 @@ export default function VendaDiretaNovo() {
                 fallbackPayload={r.pix_copia_cola}
                 fallbackLink={r.link_pagamento}
               />
+            ) : r.pagamento === "cartao_maquininha" ? (
+              <div className="space-y-3 rounded-md border border-warning/50 bg-warning/10 p-3">
+                <p className="text-sm font-medium">Aguardando comprovante da maquininha — passe o cartão e anexe o comprovante para liberar o pedido.</p>
+                <Button onClick={() => setAnexarComprovante(true)}><Paperclip className="h-4 w-4" /> Anexar comprovante</Button>
+                {anexarComprovante && (
+                  <ConfirmarPagamentoDialog
+                    pedidoId={r.pedido_id}
+                    provisaoId={(r as Resultado & { provisao_id?: string | null }).provisao_id ?? undefined}
+                    aberto={anexarComprovante}
+                    modo="sops"
+                    aoFechar={() => { setAnexarComprovante(false); void invalidarVendaDireta(qc); }}
+                  />
+                )}
+              </div>
             ) : (
               <LinkCartaoPainel
                 pedidoId={r.pedido_id}
@@ -843,7 +860,7 @@ export default function VendaDiretaNovo() {
               {haverCobreTudo && <p className="text-muted-foreground">Pedido coberto pelo crédito — sem cobrança</p>}
             </div>
           )}
-          <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2">
+          <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-3">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
@@ -856,6 +873,13 @@ export default function VendaDiretaNovo() {
               <span>
                 <span className="flex items-center gap-1"><CreditCard className="h-3.5 w-3.5" />{rotPag.cartao}</span>
                 <span className="block text-xs text-muted-foreground">{rotPag.cartaoLegenda}</span>
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <RadioGroupItem value="cartao_maquininha" className="mt-0.5" />
+              <span>
+                <span className="flex items-center gap-1"><Smartphone className="h-3.5 w-3.5" />Cartão maquininha</span>
+                <span className="block text-xs text-muted-foreground">Passa na loja · sem link · anexar o comprovante</span>
               </span>
             </label>
           </RadioGroup>
@@ -927,12 +951,12 @@ export default function VendaDiretaNovo() {
                 <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : `Cartão · até ${parcelasLink}x`}
+                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">
-                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {pagamento === "pix" ? "PIX" : "Cartão"}
+                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {ROTULO_MEIO_VD[pagamento]}
                 </p>
               )}
               {edicao && (

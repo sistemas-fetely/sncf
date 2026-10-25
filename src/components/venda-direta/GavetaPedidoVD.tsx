@@ -23,7 +23,7 @@ export interface LinhaGaveta {
   modal: string | null;
   endereco_entrega?: Record<string, unknown> | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "cartao" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
   pagamento_confirmado_em?: string | null;
   link_pagamento: string | null;
   nf_numero: string | number | null;
