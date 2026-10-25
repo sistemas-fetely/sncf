@@ -10,8 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
   AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,
-} from "lucide-react";
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, Paperclip, type LucideIcon, } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog } from "@/components/venda-direta/MensagensVendaDireta";
 import {
   ALERTA_FALTA, FunilVD, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
@@ -58,7 +57,7 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   cancelado_em: string | null;
   modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; fonte?: string | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "cartao" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
   cliente_telefone: string | null;
   cliente_cpf_mascarado: string | null;
   endereco_entrega: Record<string, unknown> | null;
@@ -83,7 +82,7 @@ const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
 };
 const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
-const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "cartao" ? "Cartão" : "—";
+const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
 const soDigitos = (s: string) => s.replace(/\D/g, "");
@@ -291,6 +290,7 @@ export default function VendaDiretaGestao() {
     if (!podeEditar) return [];
     const a: Acao[] = [];
     if (l.situacao === "aguardando_pagamento") {
+      if (l.pagamento === "cartao_maquininha") a.push({ k: "conf", label: "Anexar comprovante", icon: Paperclip, onClick: () => setConfManual(l) });
       if (l.pagamento === "cartao" || (l.pagamento === "pix" && cfgPixNoLink)) a.push({ k: "link", label: "Link de pagamento", icon: Link2, onClick: () => setLinkCartao(l) });
       if (l.pagamento === "pix" && !l.pagamento_desatualizado) a.push({ k: "pix", label: "Ver PIX", icon: QrCode, onClick: () => setPix(l), disabled: !l.provisao_id });
       if (l.pagamento === "cartao") a.push({ k: "conf", label: "Confirmar pagamento manual", icon: Wallet, onClick: () => setConfManual(l) });

@@ -23,7 +23,7 @@ export interface LinhaGaveta {
   modal: string | null;
   endereco_entrega?: Record<string, unknown> | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "cartao" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
   pagamento_confirmado_em?: string | null;
   link_pagamento: string | null;
   nf_numero: string | number | null;
@@ -248,7 +248,7 @@ export function GavetaPedidoVD({ linha, modalLabel, onClose, acoes, devolucao, c
             </Secao>
 
             <Secao titulo="Pagamento">
-              <Par k="Forma" v={rotuloFormaPagamento(l.pagamento, cfgPixNoLink)} />
+              <Par k="Forma" v={l.pagamento === "cartao_maquininha" ? "Cartão maquininha" : rotuloFormaPagamento(l.pagamento, cfgPixNoLink)} />
               <Par k="Status" v={l.pagamento_confirmado_em ? `Confirmado em ${dataHora(l.pagamento_confirmado_em)}` : "Aguardando"} />
               {(l.pagamento === "cartao" || linkQ.data) && (
                 linkQ.isLoading ? <Skeleton className="h-10 w-full" /> : linkQ.isError ? <Erro e={linkQ.error} /> : !linkQ.data ? (

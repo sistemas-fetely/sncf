@@ -71,6 +71,20 @@
       "when": 1792779120054,
       "tag": "0009_shopify_endereco_parse_uf_pelo_cep",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792947271581,
+      "tag": "0010_cartao_maquininha_regra",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792947400388,
+      "tag": "0011_venda_direta_cartao_maquininha_funcoes",
+      "breakpoints": true
     }
   ]
 }
