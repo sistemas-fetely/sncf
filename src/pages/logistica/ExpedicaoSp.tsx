@@ -10,6 +10,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useEstadoTela } from "@/lib/navegacao";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
@@ -63,12 +65,33 @@ export default function ExpedicaoSp() {
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtro de CD na URL ("" = Todos; sem CD conta como Site SP).
   const [navMesa, setNavMesa] = useEstadoTela({ cd: "" });
   const filtroCd = navMesa.cd;
+  // Opções: CDs habilitados em algum canal (centro_canal) do mesmo estabelecimento do Site SP + os que aparecem nos pedidos.
+  const cdsMesaQ = useQuery({
+    queryKey: ["mesa-sp", "cds-filtro"],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+      const { data: cc, error } = await sb.from("centro_canal").select("centro_codigo").eq("habilitado", true);
+      if (error) throw error;
+      const cods = [...new Set(((cc ?? []) as { centro_codigo: string }[]).map((r) => r.centro_codigo))];
+      if (!cods.includes(CENTRO_SITE_SP)) cods.push(CENTRO_SITE_SP);
+      const { data: cds, error: e2 } = await sb.from("centro_distribuicao").select("id, codigo, nome, rotulo_curto, centro_fiscal_id").in("codigo", cods);
+      if (e2) throw e2;
+      const lista = (cds ?? []) as { id: string; codigo: string; nome: string | null; rotulo_curto: string | null; centro_fiscal_id: string | null }[];
+      const sp = lista.find((c) => c.codigo === CENTRO_SITE_SP);
+      const estabSp = sp ? (sp.centro_fiscal_id ?? sp.id) : null;
+      return lista.filter((c) => (c.centro_fiscal_id ?? c.id) === estabSp)
+        .map((c) => ({ codigo: c.codigo, rotulo: c.rotulo_curto ?? c.nome ?? c.codigo }));
+    },
+  });
   const opcoesCd = useMemo(() => {
-    const m = new Map<string, string>([[CENTRO_SITE_SP, "Site SP"]]);
+    const m = new Map<string, string>();
+    for (const c of cdsMesaQ.data ?? []) m.set(c.codigo, c.rotulo);
     for (const p of pedidosQ.data ?? []) if (p.cd_codigo) m.set(p.cd_codigo, p.cd_rotulo ?? p.cd_codigo);
     if (filtroCd && !m.has(filtroCd)) m.set(filtroCd, filtroCd);
     return [...m.entries()].map(([codigo, rotulo]) => ({ codigo, rotulo }));
-  }, [pedidosQ.data, filtroCd]);
+  }, [pedidosQ.data, filtroCd, cdsMesaQ.data]);
   const pedidos = useMemo(
     () => (pedidosQ.data ?? []).filter((p) => !filtroCd || (p.cd_codigo ?? CENTRO_SITE_SP) === filtroCd),
     [pedidosQ.data, filtroCd],
@@ -234,7 +257,7 @@ export default function ExpedicaoSp() {
     );
   }
 
-  const erro = pedidosQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? etapasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
+  const erro = pedidosQ.error ?? cdsMesaQ.error ?? eventosQ.error ?? identidadesQ.error ?? modaisQ.error ?? regrasQ.error ?? etapasQ.error ?? vdModosQ.error ?? cancelamentosQ.error;
 
   return (
     <PageShell variant="dados">
