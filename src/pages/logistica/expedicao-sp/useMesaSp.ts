@@ -359,6 +359,20 @@ export function useDocumentosMesa(pedidoId: string | null) {
   });
 }
 
+export function useDadosImpressao(pedidoId: string | null) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, "dados-impressao", pedidoId],
+    enabled: !!pedidoId,
+    staleTime: 0,
+    queryFn: async (): Promise<DadosImpressao> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_dados_impressao", { p_pedido_id: pedidoId });
+      if (error) throw new Error(`ler dados de impressão: ${mensagemErro(error)}`);
+      if (!data) throw new Error("ler dados de impressão: o banco não devolveu dados para este pedido.");
+      return data as DadosImpressao;
+    },
+  });
+}
+
 /** RPC miúda de documento (marcar/rastreio): toast de erro inteiro e relê os documentos. */
 function useRpcDocumento<TArgs extends { p_pedido_id: string }>(nome: string, sucesso: string | null) {
   const qc = useQueryClient();

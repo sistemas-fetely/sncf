@@ -39,7 +39,8 @@ export interface AguardandoNfMesa {
 export interface DocumentoMesa {
   documento_id: string;
   codigo: string;
-  tipo: "nf" | "rastreio" | "romaneio" | "etiqueta_volume" | "declaracao" | string;
+  tipo: "nf" | "rastreio" | "etiqueta_volume" | "etiqueta_entrega" | "etiqueta_retirada"
+    | "termo_retirada" | "comprovante_coleta" | "declaracao" | string;
   ordem: number;
   rotulo: string;
   observacao: string | null;
@@ -47,6 +48,32 @@ export interface DocumentoMesa {
   liberado: boolean;
   detalhe: string | null;
   url: string | null;
+  impressora: "a4" | "zebra" | "bling" | "nenhuma" | null;
+}
+
+export interface EnderecoImpressao {
+  nome: string | null;
+  logradouro: string | null;
+  numero: string | null;
+  complemento: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  uf: string | null;
+  cep: string | null;
+  telefone: string | null;
+}
+
+/** Retorno de `fn_mesa_sp_dados_impressao`: fonte única de toda impressão da estação Documentos. */
+export interface DadosImpressao {
+  pedido: string;
+  canal: string | null;
+  nf: string | null;
+  modal: string | null;
+  volumes: number | null;
+  peso_kg: number | null;
+  destinatario: EnderecoImpressao & { documento: string | null };
+  remetente: EnderecoImpressao & { completo: boolean };
+  itens: { sku: string | null; descricao: string; quantidade: number }[];
 }
 export type Estacao = (typeof ESTACOES)[number];
 
