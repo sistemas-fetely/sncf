@@ -1963,7 +1963,7 @@ function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
 
   if (p.cd_falta_aceita) {
     return (
-      <span className="inline-flex items-center text-[10px] rounded px-1 py-[1px] border border-border bg-muted text-muted-foreground whitespace-nowrap">
+      <span className="inline-flex items-center text-[10px] rounded px-1 py-[1px] border border-border bg-muted text-muted-foreground text-left">
         Saldo do CD em correção
       </span>
     );
@@ -1971,7 +1971,7 @@ function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
 
   const podeAgir = permSp.permitido || permXpm.permitido;
   const classe = cn(
-    "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
+    "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border text-left tabular-nums",
     "border-warning/50 text-warning",
     podeAgir && "hover:bg-warning/10 cursor-pointer",
   );
