@@ -1,32 +1,17 @@
 // Impressão da estação Documentos: janela própria (window.open + print), sem sidebar.
-// Padrão já usado na casa para impressões avulsas; não exige rota nova.
-import type { EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
+// Todos os dados vêm de `fn_mesa_sp_dados_impressao` (DadosImpressao) — a tela não monta endereço.
+import type { DadosImpressao, EnderecoImpressao } from "./tipos";
 
 const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-function campo(e: Record<string, unknown>, ...chaves: string[]): string | null {
-  for (const k of chaves) {
-    const v = e[k];
-    if ((typeof v === "string" && v.trim() !== "") || typeof v === "number") return String(v).trim();
-  }
-  return null;
-}
+const t = (v: string | null | undefined) => (v ?? "").trim();
 
-/** Linhas do endereço a partir do Json de entrega (sem contrato único: tenta chaves conhecidas). */
-export function linhasEndereco(endereco: unknown): { linhas: string[]; telefone: string | null; nome: string | null } {
-  if (!endereco || typeof endereco !== "object") return { linhas: [], telefone: null, nome: null };
-  const e = endereco as Record<string, unknown>;
-  const rua = [campo(e, "logradouro", "endereco", "address1", "rua", "street"), campo(e, "numero", "number")].filter(Boolean).join(", ");
-  const compl = campo(e, "complemento", "address2");
-  const bairro = campo(e, "bairro", "district", "neighborhood");
-  const cidade = [campo(e, "cidade", "municipio", "city"), campo(e, "uf", "estado", "province_code", "state")].filter(Boolean).join(" / ");
-  const cep = campo(e, "cep", "zip", "postal_code", "zipcode");
-  return {
-    linhas: [rua, compl, bairro, cidade, cep ? `CEP ${cep}` : null].filter((l): l is string => !!l && l.trim() !== ""),
-    telefone: campo(e, "telefone", "phone", "celular", "fone"),
-    nome: campo(e, "nome", "name", "destinatario"),
-  };
+/** Linhas de endereço (sem nome/telefone/CEP). */
+export function linhasDe(e: EnderecoImpressao): string[] {
+  const rua = [t(e.logradouro), t(e.numero)].filter(Boolean).join(", ");
+  const cidade = [t(e.cidade), t(e.uf)].filter(Boolean).join(" / ");
+  return [rua, t(e.complemento), t(e.bairro), cidade].filter(Boolean);
 }
 
 function abrir(titulo: string, css: string, corpo: string): boolean {
@@ -39,49 +24,121 @@ function abrir(titulo: string, css: string, corpo: string): boolean {
   return true;
 }
 
-export function imprimirRomaneio(p: {
-  pedido: PedidoMesa; itens: ItemPedidoMesa[]; embalagem: EmbalagemRegistrada | null; modalNome: string | null;
-}): boolean {
-  const end = linhasEndereco(p.pedido.endereco_entrega);
-  const linhas = p.itens.map((i) => `<tr><td>${esc(i.sku ?? "—")}</td><td>${esc(i.descricao)}</td><td class="n">${esc(i.quantidade)}</td></tr>`).join("");
-  const total = p.itens.reduce((s, i) => s + i.quantidade, 0);
-  return abrir(`Romaneio ${p.pedido.id_externo}`, `
-    @page{size:A4;margin:15mm} h1{font-size:20px;margin:0 0 4px} .sub{font-size:12px;color:#444;margin-bottom:16px}
-    .bloco{border:1px solid #000;padding:8px 10px;margin-bottom:12px;font-size:13px;line-height:1.4}
-    table{width:100%;border-collapse:collapse;font-size:12px} th,td{border:1px solid #000;padding:4px 6px;text-align:left} .n{text-align:right}
-  `, `
-    <h1>Romaneio · ${esc(p.pedido.id_externo)}</h1>
-    <div class="sub">Emitido em ${esc(new Date().toLocaleString("pt-BR"))}</div>
-    <div class="bloco"><strong>${esc(p.pedido.cliente_nome ?? end.nome ?? "Cliente")}</strong><br>
-      ${end.linhas.map(esc).join("<br>")}${end.telefone ? `<br>Telefone: ${esc(end.telefone)}` : ""}</div>
-    <div class="bloco">Modal: ${esc(p.modalNome ?? p.embalagem?.modal ?? "—")} ·
-      Volumes: ${esc(p.embalagem?.volumes ?? "—")} · Peso: ${p.embalagem?.peso_kg != null ? `${esc(p.embalagem.peso_kg.toLocaleString("pt-BR"))} kg` : "—"}</div>
-    <table><thead><tr><th>SKU</th><th>Descrição</th><th class="n">Qtd</th></tr></thead>
-      <tbody>${linhas}</tbody><tfoot><tr><th colspan="2">Total de peças</th><th class="n">${total}</th></tr></tfoot></table>
-  `);
+const CSS_ZEBRA = `
+  @page{size:100mm 150mm;margin:0}
+  .et{width:100mm;height:150mm;padding:5mm;page-break-after:always;display:flex;flex-direction:column;gap:2.5mm;font-size:12px;overflow:hidden}
+  .et:last-child{page-break-after:auto}
+  .lbl{font-size:9px;letter-spacing:.1em;color:#444;border-bottom:1px solid #000;padding-bottom:.5mm}
+  .dest{font-size:14px;line-height:1.3} .dest .nome{font-size:17px;font-weight:bold}
+  .cep{font-size:22px;font-weight:bold;letter-spacing:.05em;margin-top:1mm}
+  .rem{font-size:11px;line-height:1.3}
+  .pe{margin-top:auto;border-top:2px solid #000;padding-top:2.5mm;font-size:13px;display:grid;grid-template-columns:1fr 1fr;gap:1mm}
+  .vol{grid-column:1/-1;font-size:24px;font-weight:bold;margin-top:1mm}
+  .destaque{font-size:22px;font-weight:bold;text-align:center;border:3px solid #000;padding:3mm}
+  .grande{font-size:22px;font-weight:bold;line-height:1.2}
+`;
+
+const totalVolumes = (d: DadosImpressao) => Math.max(1, Math.floor(d.volumes ?? 1));
+
+function blocoRemetente(d: DadosImpressao): string {
+  const r = d.remetente;
+  const linhas = r.completo ? linhasDe(r) : [];
+  return `<div class="lbl">REMETENTE</div><div class="rem"><strong>${esc(t(r.nome) || "FETELY")}</strong>
+    ${linhas.map((l) => `<br>${esc(l)}`).join("")}${t(r.cep) ? `<br>CEP ${esc(r.cep)}` : ""}${r.completo && t(r.telefone) ? `<br>Tel.: ${esc(r.telefone)}` : ""}</div>`;
 }
 
-export function imprimirEtiquetas(p: {
-  pedido: PedidoMesa; volumes: number; nfNumero: string | null;
-}): boolean {
-  const end = linhasEndereco(p.pedido.endereco_entrega);
-  const n = Math.max(1, p.volumes);
-  const etiqueta = (x: number) => `
+/** Etiqueta de entrega/volume (Zebra 100×150), uma por volume. */
+export function imprimirEtiquetaEntrega(d: DadosImpressao): boolean {
+  const n = totalVolumes(d);
+  const dest = d.destinatario;
+  const et = (x: number) => `
     <section class="et">
       <div class="lbl">DESTINATÁRIO</div>
-      <div class="dest"><strong>${esc(p.pedido.cliente_nome ?? end.nome ?? "")}</strong><br>${end.linhas.map(esc).join("<br>")}
-        ${end.telefone ? `<br>Tel.: ${esc(end.telefone)}` : ""}</div>
-      <div class="lbl">REMETENTE</div><div>FETELY — Matriz SP</div>
+      <div class="dest"><div class="nome">${esc(dest.nome)}</div>${linhasDe(dest).map(esc).join("<br>")}
+        ${t(dest.cep) ? `<div class="cep">CEP ${esc(dest.cep)}</div>` : ""}
+        ${t(dest.telefone) ? `<div>Tel.: ${esc(dest.telefone)}</div>` : ""}</div>
+      ${blocoRemetente(d)}
       <div class="pe">
-        <div>NF: <strong>${esc(p.nfNumero ?? "—")}</strong></div>
-        <div>Pedido: <strong>${esc(p.pedido.id_externo)}</strong></div>
+        <div>Pedido: <strong>${esc(d.pedido)}</strong></div>
+        <div>NF: <strong>${esc(d.nf ?? "—")}</strong></div>
+        <div>Modal: <strong>${esc(d.modal ?? "—")}</strong></div>
         <div class="vol">Volume ${x} de ${n}</div>
       </div>
     </section>`;
-  return abrir(`Etiquetas ${p.pedido.id_externo}`, `
-    @page{size:100mm 150mm;margin:0} .et{width:100mm;height:150mm;padding:6mm;page-break-after:always;display:flex;flex-direction:column;gap:3mm;font-size:12px}
-    .et:last-child{page-break-after:auto} .lbl{font-size:9px;letter-spacing:.1em;color:#444;border-bottom:1px solid #000}
-    .dest{font-size:14px;line-height:1.35} .pe{margin-top:auto;border-top:2px solid #000;padding-top:3mm;font-size:13px}
-    .vol{font-size:22px;font-weight:bold;margin-top:2mm}
-  `, Array.from({ length: n }, (_, i) => etiqueta(i + 1)).join(""));
+  return abrir(`Etiquetas ${d.pedido}`, CSS_ZEBRA, Array.from({ length: n }, (_, i) => et(i + 1)).join(""));
+}
+
+/** Etiqueta de retirada no balcão (Zebra 100×150), uma por volume. */
+export function imprimirEtiquetaRetirada(d: DadosImpressao): boolean {
+  const n = totalVolumes(d);
+  const dest = d.destinatario;
+  const et = (x: number) => `
+    <section class="et">
+      <div class="destaque">RETIRADA NO BALCÃO</div>
+      <div class="lbl">CLIENTE</div>
+      <div class="grande">${esc(dest.nome)}</div>
+      ${t(dest.documento) ? `<div>Documento: <strong>${esc(dest.documento)}</strong></div>` : ""}
+      ${t(dest.telefone) ? `<div>Tel.: ${esc(dest.telefone)}</div>` : ""}
+      <div class="pe">
+        <div>Pedido: <strong>${esc(d.pedido)}</strong></div>
+        <div>NF: <strong>${esc(d.nf ?? "—")}</strong></div>
+        <div class="vol">Volume ${x} de ${n}</div>
+      </div>
+    </section>`;
+  return abrir(`Etiquetas retirada ${d.pedido}`, CSS_ZEBRA, Array.from({ length: n }, (_, i) => et(i + 1)).join(""));
+}
+
+const CSS_A4 = `
+  @page{size:A4;margin:15mm} h1{font-size:20px;margin:0 0 4px} .sub{font-size:12px;color:#444;margin-bottom:14px}
+  .bloco{border:1px solid #000;padding:8px 10px;margin-bottom:12px;font-size:13px;line-height:1.4}
+  table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px} th,td{border:1px solid #000;padding:4px 6px;text-align:left} .n{text-align:right}
+  .campos{margin-top:18px;font-size:13px} .campo{display:flex;gap:8px;align-items:flex-end;margin-bottom:18px}
+  .campo span{white-space:nowrap} .campo i{flex:1;border-bottom:1px solid #000;height:18px}
+  .ass{margin-top:40px} footer{margin-top:30px;border-top:1px solid #000;padding-top:6px;font-size:11px;color:#333}
+`;
+
+const campos = (rotulos: string[]) =>
+  `<div class="campos">${rotulos.map((r) => `<div class="campo${r === "Assinatura" ? " ass" : ""}"><span>${esc(r)}:</span><i></i></div>`).join("")}</div>`;
+
+function rodapeRemetente(d: DadosImpressao): string {
+  const r = d.remetente;
+  const partes = [t(r.nome), ...(r.completo ? linhasDe(r) : []), t(r.cep) ? `CEP ${t(r.cep)}` : "", r.completo ? t(r.telefone) : ""].filter(Boolean);
+  return `<footer>${partes.map(esc).join(" · ")}</footer>`;
+}
+
+function blocoDestinatario(d: DadosImpressao, comEndereco: boolean): string {
+  const dest = d.destinatario;
+  return `<div class="bloco"><strong>${esc(dest.nome)}</strong>
+    ${t(dest.documento) ? `<br>Documento: ${esc(dest.documento)}` : ""}
+    ${comEndereco ? linhasDe(dest).map((l) => `<br>${esc(l)}`).join("") + (t(dest.cep) ? `<br>CEP ${esc(dest.cep)}` : "") : ""}
+    ${t(dest.telefone) ? `<br>Telefone: ${esc(dest.telefone)}` : ""}</div>`;
+}
+
+/** Termo de retirada (A4). */
+export function imprimirTermoRetirada(d: DadosImpressao): boolean {
+  const linhas = d.itens.map((i) => `<tr><td>${esc(i.sku ?? "—")}</td><td>${esc(i.descricao)}</td><td class="n">${esc(i.quantidade)}</td></tr>`).join("");
+  const total = d.itens.reduce((s, i) => s + Number(i.quantidade || 0), 0);
+  return abrir(`Termo de Retirada ${d.pedido}`, CSS_A4, `
+    <h1>Termo de Retirada — Pedido ${esc(d.pedido)}</h1>
+    <div class="sub">Emitido em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+    ${blocoDestinatario(d, false)}
+    <div class="bloco">NF: <strong>${esc(d.nf ?? "—")}</strong> · Volumes: <strong>${esc(d.volumes ?? "—")}</strong></div>
+    <table><thead><tr><th>SKU</th><th>Descrição</th><th class="n">Qtd</th></tr></thead>
+      <tbody>${linhas}</tbody><tfoot><tr><th colspan="2">Total de peças</th><th class="n">${total}</th></tr></tfoot></table>
+    ${campos(["Nome de quem retirou", "Documento (RG/CPF)", "Data/hora", "Assinatura"])}
+    ${rodapeRemetente(d)}
+  `);
+}
+
+/** Comprovante de coleta pela transportadora (A4). */
+export function imprimirComprovanteColeta(d: DadosImpressao): boolean {
+  const peso = d.peso_kg != null ? `${Number(d.peso_kg).toLocaleString("pt-BR")} kg` : "—";
+  return abrir(`Comprovante de Coleta ${d.pedido}`, CSS_A4, `
+    <h1>Comprovante de Coleta — Pedido ${esc(d.pedido)}</h1>
+    <div class="sub">Emitido em ${esc(new Date().toLocaleString("pt-BR"))}</div>
+    ${blocoDestinatario(d, true)}
+    <div class="bloco">NF: <strong>${esc(d.nf ?? "—")}</strong> · Volumes: <strong>${esc(d.volumes ?? "—")}</strong> · Peso: <strong>${esc(peso)}</strong></div>
+    ${campos(["Transportadora", "Nome do motorista", "Documento", "Placa", "Data/hora", "Assinatura"])}
+    ${rodapeRemetente(d)}
+  `);
 }
