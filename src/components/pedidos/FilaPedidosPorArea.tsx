@@ -393,22 +393,24 @@ function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | u
   if (cob.cobertura_pedido === "separado") {
     return (
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge
-              variant="outline"
-              className="rounded px-1.5 py-0 text-[10px] border-border text-muted-foreground gap-1"
-            >
-              Separado
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-[220px] whitespace-pre-line">
-              {`Separacao fechada pela XPM · ${itensSeparados} de ${itensTotal} itens\nA peca ja saiu da prateleira, mesmo antes da NF.`}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-        {alertaCd}
+        <div className="space-y-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="rounded px-1.5 py-0 text-[10px] border-border text-muted-foreground gap-1"
+              >
+                Separado
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[220px] whitespace-pre-line">
+                {`Separacao fechada pela XPM · ${itensSeparados} de ${itensTotal} itens\nA peca ja saiu da prateleira, mesmo antes da NF.`}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+          {alertaCd}
+        </div>
       </TooltipProvider>
     );
   }
@@ -416,20 +418,22 @@ function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | u
   if (cob.cobertura_pedido === "coberto") {
     return (
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge
-              variant="outline"
-              className="rounded px-1.5 py-0 text-[10px] border-success/50 text-success gap-1"
-            >
-              100%
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-        {alertaCd}
+        <div className="space-y-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="rounded px-1.5 py-0 text-[10px] border-success/50 text-success gap-1"
+              >
+                100%
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+          {alertaCd}
+        </div>
       </TooltipProvider>
     );
   }
@@ -1152,7 +1156,7 @@ export function FilaPedidosPorArea({
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer h-20 [&>td]:py-2 [&>td]:align-top [&>td]:overflow-hidden"
+                  className="cursor-pointer [&>td]:py-2 [&>td]:align-top"
                   data-foco-id={p.id}
                   onClick={() => abrirDetalhe(navigate, location, `/pedidos/${p.id}`, { foco: p.id, label: "Casa dos Pedidos" })}
                 >
@@ -1243,7 +1247,7 @@ export function FilaPedidosPorArea({
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <EstagioBadge estagio={p.estagio} />
                       <SeloTravado p={p} />
                       <SeloCdExpedicao p={p} />
@@ -1963,7 +1967,7 @@ function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
 
   if (p.cd_falta_aceita) {
     return (
-      <span className="inline-flex items-center text-[10px] rounded px-1 py-[1px] border border-border bg-muted text-muted-foreground whitespace-nowrap">
+      <span className="inline-flex items-center text-[10px] rounded px-1 py-[1px] border border-border bg-muted text-muted-foreground text-left">
         Saldo do CD em correção
       </span>
     );
@@ -1971,7 +1975,7 @@ function AlertaCoberturaCd({ p }: { p: PedidoFilaItem }) {
 
   const podeAgir = permSp.permitido || permXpm.permitido;
   const classe = cn(
-    "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border whitespace-nowrap tabular-nums",
+    "inline-flex items-center gap-1 text-[10px] rounded px-1 py-[1px] border text-left tabular-nums",
     "border-warning/50 text-warning",
     podeAgir && "hover:bg-warning/10 cursor-pointer",
   );
