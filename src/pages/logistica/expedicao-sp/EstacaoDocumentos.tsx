@@ -14,7 +14,9 @@ import { useConcluirDocumentos, useDadosImpressao, useDocumentosMesa, useMarcarD
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
  * `fn_mesa_sp_documentos`: a tela só exibe e dispara as RPCs — DANFE e rastreio
- * são liberados pelo DADO, nunca por checkbox.
+ * são liberados pelo DADO, nunca por checkbox. Etiquetas, termos e comprovante
+ * são confirmados pelo operador: imprimir só abre a impressão; o checkbox marca.
+
  */
 const ROTULO_IMPRESSORA: Record<string, string> = { a4: "A4", zebra: "Zebra", bling: "Bling" };
 
