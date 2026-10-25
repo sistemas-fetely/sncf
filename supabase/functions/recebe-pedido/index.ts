@@ -101,8 +101,17 @@ Deno.serve(async (req) => {
         return jsonResponse(200, { ok: true, clientes: data ?? [] });
       }
 
+      if (body.tipo === "balcao_cds") {
+        const { data, error } = await supabase.rpc("fn_balcao_cds");
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, cds: data ?? [] });
+      }
+
       if (body.tipo === "balcao_produto_buscar") {
-        const { data, error } = await supabase.rpc("fn_balcao_produto_buscar", { p_termo: body.termo ?? "" });
+        const centro = typeof body.centro_codigo === "string" ? body.centro_codigo.trim() : "";
+        const { data, error } = centro
+          ? await supabase.rpc("fn_balcao_produto_buscar", { p_termo: body.termo ?? "", p_centro_codigo: centro })
+          : await supabase.rpc("fn_balcao_produto_buscar", { p_termo: body.termo ?? "" });
         if (error) return erroRpc(error);
         return jsonResponse(200, { ok: true, produtos: data ?? [] });
       }
@@ -112,17 +121,19 @@ Deno.serve(async (req) => {
         const endereco = body.endereco ?? null;
         const cepDestino = String(endereco?.cep ?? "").replace(/\D/g, "");
         const cepValido = cepDestino.length === 8;
+        const centroCodigo: string | null = body.centro_codigo ?? null;
+        const centroOrigem = centroCodigo || "SITE-SP";
         let cotacao_id: string | null = null;
         let valida_ate: string | null = null;
         let correios_erro: string | null = null;
 
         if (cepValido) {
           const { data: cd, error: eCd } = await supabase
-            .from("centro_distribuicao").select("cep").eq("codigo", "SITE-SP").maybeSingle();
+            .from("centro_distribuicao").select("cep").eq("codigo", centroOrigem).maybeSingle();
           if (eCd) return erroRpc(eCd);
           const cepOrigem = String(cd?.cep ?? "").replace(/\D/g, "");
           if (cepOrigem.length !== 8) {
-            correios_erro = "CEP de origem do SITE-SP não cadastrado em centro_distribuicao.";
+            correios_erro = `CEP de origem do ${centroOrigem} não cadastrado em centro_distribuicao.`;
           } else {
             const r = await chamarInterna("correios-cotar", {
               cep_origem: cepOrigem, cep_destino: cepDestino, itens, registrar: true, contexto: "venda_direta",
