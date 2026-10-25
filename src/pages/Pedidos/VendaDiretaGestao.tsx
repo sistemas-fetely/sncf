@@ -10,7 +10,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import {
   AlertTriangle, ArrowLeftRight, Ban, CheckCircle2, Link2, ExternalLink, List, PackageCheck, Plus, QrCode,
-  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, type LucideIcon,, Paperclip } from "lucide-react";
+  Pencil, Printer, RefreshCw, RotateCcw, Settings, ShoppingBag, Truck, Wallet, Paperclip, type LucideIcon, } from "lucide-react";
 import { AvisarClienteButton, ConfiguracoesVDDialog } from "@/components/venda-direta/MensagensVendaDireta";
 import {
   ALERTA_FALTA, FunilVD, estadoDoTom, naoMapeada, temAlerta, useDimensoesVD,
