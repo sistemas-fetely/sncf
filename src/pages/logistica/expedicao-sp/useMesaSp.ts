@@ -262,15 +262,17 @@ export function useCaixasSugeridas(pedidoId: string | null) {
 }
 
 /** Peso estimado pela ficha (itens + caixa). Só sugestão: a balança decide. */
-export function usePesoEstimado(pedidoId: string | null, caixaCodigo: string | null) {
+export function usePesoEstimado(pedidoId: string | null, caixaCodigo: string | null, volumes: number) {
+  const vol = Number.isFinite(volumes) && volumes >= 1 ? Math.floor(volumes) : 1;
   return useQuery({
-    queryKey: ["mesa-sp", "peso-estimado", pedidoId, caixaCodigo],
+    queryKey: ["mesa-sp", "peso-estimado", pedidoId, caixaCodigo, vol],
     enabled: !!pedidoId,
     staleTime: 60 * 1000,
     queryFn: async (): Promise<PesoEstimado | null> => {
       const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_peso_estimado", {
         p_pedido_id: pedidoId,
         p_caixa_codigo: caixaCodigo,
+        p_volumes: vol,
       });
       if (error) throw new Error(`estimar peso: ${mensagemErro(error)}`);
       return (data ?? null) as PesoEstimado | null;

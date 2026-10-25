@@ -305,6 +305,13 @@ export interface CaixaSugerida {
   sugerida: boolean;
   /** Quanto do volume útil o pedido ocupa, 0–100. */
   ocupacao_pct: number;
+  /** Quantos volumes desta caixa o pedido exige. */
+  volumes: number;
+  /** Volume externo total (todos os volumes), cm³. */
+  ext_cm3: number;
+  /** Acima de 30.000 cm³ externos — Correios cobra peso cúbico. */
+  acima_limite_correios: boolean;
+  jogo_americano_curvado: boolean;
 }
 
 /** Só dígitos; CEP brasileiro tem 8. Retorna null quando não dá para confiar. */
