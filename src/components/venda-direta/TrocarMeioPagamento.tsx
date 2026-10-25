@@ -13,7 +13,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
-import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas, type MeioLink } from "@/components/venda-direta/LinkCartao";
+import { LinkCartaoPainel, SelectParcelas, parcelasPadrao, textoPadraoParcelas, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
 import { PixPagamento } from "@/components/venda-direta/PixPagamento";
 
 interface TrocaResultado {
