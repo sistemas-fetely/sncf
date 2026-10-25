@@ -54,6 +54,7 @@ import { Eye, Loader2, PackageCheck } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { TransferenciasSemBaixaPainel } from "@/components/estoque/TransferenciasSemBaixaPainel";
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
+import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
 
 
@@ -545,6 +546,12 @@ export default function TransferenciasInternas() {
               </Table>
             </div>
           )}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Entre CDs de SP</CardTitle></CardHeader>
+        <CardContent>
+          <TransferenciaInternaPainel mostrarFormulario={false} tituloHistorico="Transferências sem NF" seloSemNf />
         </CardContent>
       </Card>
         </TabsContent>

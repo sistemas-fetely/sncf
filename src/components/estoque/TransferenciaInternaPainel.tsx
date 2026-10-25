@@ -5,6 +5,7 @@ import { ArrowLeftRight, ChevronDown, ChevronRight, Loader2, Trash2 } from "luci
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,7 +30,21 @@ interface Hist {
 const diasAtras = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
 const diaSeguinte = (iso: string) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + 1); return d.toISOString().slice(0, 10); };
 
-export function TransferenciaInternaPainel() {
+interface PainelProps {
+  /** Mostra o formulário de transferência (origem/destino, itens, botão). */
+  mostrarFormulario?: boolean;
+  /** Mostra o histórico agrupado por número (TI-000X). */
+  mostrarHistorico?: boolean;
+  rotuloBotao?: string;
+  tituloHistorico?: string;
+  /** Selo "Sem NF · entre CDs SP" em cada linha do histórico. */
+  seloSemNf?: boolean;
+}
+
+export function TransferenciaInternaPainel({
+  mostrarFormulario = true, mostrarHistorico = true, rotuloBotao = "Transferir",
+  tituloHistorico = "Histórico", seloSemNf = false,
+}: PainelProps = {}) {
   const qc = useQueryClient();
   const [nav, setNav] = useEstadoTela({ origem: "", destino: "", de: diasAtras(30), ate: hojeISO() }, { prefixo: "ti" });
   const [itens, setItens] = useState<Item[]>([]);
@@ -171,6 +186,7 @@ export function TransferenciaInternaPainel() {
 
   return (
     <section className="space-y-4">
+      {mostrarFormulario && (<>
       <p className="text-sm text-muted-foreground">
         Mova saldo entre centros do mesmo estabelecimento fiscal. Não gera nota — só muda onde a peça está.
       </p>
@@ -277,16 +293,17 @@ export function TransferenciaInternaPainel() {
               disabled={itens.length === 0 || !origemC || !destinoC || algumPassa || algumInvalido || saldoQ.isLoading || transferir.isPending}
               onClick={() => transferir.mutate()}
             >
-              {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} Transferir
+              {transferir.isPending && <Loader2 className="mr-1 h-4 w-4 animate-spin" />} {rotuloBotao}
             </Button>
           )}
         </div>
       </div>
       {algumPassa && <p className="text-sm text-destructive">Há itens com quantidade acima do disponível na origem.</p>}
+      </>)}
 
-      <div className="space-y-2 pt-4">
+      {mostrarHistorico && <div className={cn("space-y-2", mostrarFormulario && "pt-4")}>
         <div className="flex flex-wrap items-center gap-3">
-          <h2 className="text-base font-medium">Histórico</h2>
+          <h2 className="text-base font-medium">{tituloHistorico}</h2>
           <Input type="date" value={nav.de} max={nav.ate || undefined} onChange={(e) => setNav({ de: e.target.value })} className="w-[160px]" aria-label="De" />
           <span className="text-sm text-muted-foreground">até</span>
           <Input type="date" value={nav.ate} min={nav.de || undefined} onChange={(e) => setNav({ ate: e.target.value })} className="w-[160px]" aria-label="Até" />
@@ -298,7 +315,7 @@ export function TransferenciaInternaPainel() {
             <div className="rounded-md border">
               <Table className="text-[12px]">
                 <TableHeader><TableRow>
-                  <TableHead className="w-[140px]">Número</TableHead>
+                  <TableHead className={seloSemNf ? "w-[260px]" : "w-[140px]"}>Número</TableHead>
                   <TableHead className="w-[110px]">Data</TableHead>
                   <TableHead>Origem → Destino</TableHead>
                   <TableHead className="w-[80px] text-right">Itens</TableHead>
@@ -315,6 +332,7 @@ export function TransferenciaInternaPainel() {
                             <span className="inline-flex items-center gap-1">
                               {aberto ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}{g.numero}
                             </span>
+                            {seloSemNf && <Badge variant="secondary" className="ml-2 whitespace-nowrap">Sem NF · entre CDs SP</Badge>}
                           </TableCell>
                           <TableCell>{fmtData(g.cab.data)}</TableCell>
                           <TableCell>{g.cab.origem_rotulo ?? "—"} → {g.cab.destino_rotulo ?? "—"}</TableCell>
@@ -338,7 +356,7 @@ export function TransferenciaInternaPainel() {
               </Table>
             </div>
           )}
-      </div>
+      </div>}
     </section>
   );
 }
