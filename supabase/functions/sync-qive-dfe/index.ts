@@ -726,6 +726,8 @@ Deno.serve(async (req) => {
             };
 
             if (podeAvancar) {
+              // CURSOR-DA-QIVE-E-POSICAO-NA-JANELA: nao reaproveitar entre execucoes (25/10/2026)
+              // Guarda só para diagnóstico — a continuidade vem da janela created_at com sobreposição de 1h.
               updatePayload.ultimo_bling_id = cursor;
               updatePayload.ultima_data_corte = ate.toISOString();
               resumo.cursor_avancou = true;
