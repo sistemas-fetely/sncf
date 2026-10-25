@@ -248,6 +248,33 @@ export default function VendaDiretaGestao() {
   );
   const prodFalta = useProdutosPorSku(skusFalta);
 
+  // CD do pedido: rótulo curto de pedidos.origem_centro_id (só para a página visível).
+  const idsPag = pag.map((l) => l.id).sort().join(",");
+  const cdPedidoQ = useQuery({
+    queryKey: ["vd-gestao-cd-pedido", idsPag],
+    enabled: idsPag.length > 0,
+    queryFn: async (): Promise<Map<string, string>> => {
+      const ids = idsPag.split(",");
+      const { data: peds, error } = await (supabase as any).from("pedidos").select("id, origem_centro_id").in("id", ids);
+      if (error) throw error;
+      const centroIds = [...new Set(((peds ?? []) as { origem_centro_id: string | null }[]).map((p) => p.origem_centro_id).filter(Boolean))] as string[];
+      const rot = new Map<string, string>();
+      if (centroIds.length) {
+        const { data: cds, error: e2 } = await (supabase as any).from("centro_distribuicao").select("id, codigo, nome, rotulo_curto").in("id", centroIds);
+        if (e2) throw e2;
+        for (const c of cds ?? []) rot.set(c.id, c.rotulo_curto ?? c.nome ?? c.codigo);
+      }
+      const m = new Map<string, string>();
+      for (const p of (peds ?? []) as { id: string; origem_centro_id: string | null }[]) {
+        if (p.origem_centro_id && rot.has(p.origem_centro_id)) m.set(p.id, rot.get(p.origem_centro_id)!);
+      }
+      return m;
+    },
+  });
+  useEffect(() => {
+    if (cdPedidoQ.isError) toast.error(`Falha ao ler o CD dos pedidos: ${rawMessage(cdPedidoQ.error)}`);
+  }, [cdPedidoQ.isError, cdPedidoQ.error]);
+
   const gaveta = gavetaId ? (q.data ?? []).find((l) => l.id === gavetaId) ?? null : null;
 
   const tentarCancelar = (l: Linha) => {
@@ -358,6 +385,7 @@ export default function VendaDiretaGestao() {
                     <TableHead>Nº</TableHead>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Vendedora</TableHead>
+                    <TableHead>CD</TableHead>
                     <TableHead>Pagamento</TableHead>
                     <TableHead>Entrega</TableHead>
                     <TableHead className="text-right">Frete</TableHead>
@@ -409,6 +437,9 @@ export default function VendaDiretaGestao() {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {l.vendedor_nome ?? <span className="text-muted-foreground">—</span>}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {cdPedidoQ.data?.get(l.id) ?? <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
                           {reembolsoConcluido ? (
