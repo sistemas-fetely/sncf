@@ -221,6 +221,25 @@ export default function VendaDiretaGestao() {
   );
   const ativos = useMemo(() => visiveis.filter((l) => l.fase !== "cancelado"), [visiveis]);
   const nCancelados = visiveis.length - ativos.length;
+  const nEntregues = visiveis.filter((l) => l.fase === "entregue").length;
+
+  // Entregues escondidos por padrão; visíveis com o toggle, com busca ou com
+  // filtro que aponte para entregues (fase "entregue" ou etapa dela).
+  const filtroDeEntregue = useMemo(() => {
+    if (!filtro) return false;
+    if (filtro.tipo === "fase") return filtro.codigo === "entregue";
+    if (filtro.tipo === "etapa") return dimQ.data?.etapas.some((e) => e.codigo === filtro.codigo && e.fase_codigo === "entregue") ?? false;
+    return false;
+  }, [filtro, dimQ.data]);
+  const esconderEntregues = esconderEntreguesNaLista({
+    mostrarEntregues,
+    temBusca: busca.trim().length > 0,
+    filtroDeEntregue,
+  });
+  const baseLista = useMemo(() => {
+    const b = mostrarCancelados ? visiveis : ativos;
+    return esconderEntregues ? b.filter((l) => l.fase !== "entregue") : b;
+  }, [mostrarCancelados, visiveis, ativos, esconderEntregues]);
 
   const bate = (l: Linha, f: FiltroVD) =>
     f.tipo === "fase" ? l.fase === f.codigo : f.tipo === "etapa" ? l.etapa === f.codigo : temAlerta(l, f.codigo);
@@ -228,7 +247,7 @@ export default function VendaDiretaGestao() {
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     const td = soDigitos(t);
-    const base = mostrarCancelados ? visiveis : ativos;
+    const base = baseLista;
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
       if (soAcaoEquipe && !l.acao_equipe) return false;
