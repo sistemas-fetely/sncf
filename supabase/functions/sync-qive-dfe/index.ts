@@ -464,7 +464,11 @@ Deno.serve(async (req) => {
           .update({ em_execucao: true, iniciado_em: new Date().toISOString() })
           .eq("id", cur.id);
 
-        let cursor: string | null = cur.ultimo_bling_id ?? null;
+        // CURSOR-DA-QIVE-E-POSICAO-NA-JANELA: nao reaproveitar entre execucoes (25/10/2026)
+        // O cursor da Qive é posição dentro da janela created_at[from..to] desta consulta.
+        // Como cada execução abre uma janela nova, herdar o cursor anterior pularia os
+        // primeiros N documentos. A continuidade vem da sobreposição de 1h na janela.
+        let cursor: string | null = null;
         // SOBREPOSICAO-DE-1H: documentos capturados no exato instante do corte
         // podem cair fora dos dois intervalos. Reprocessar é inofensivo (RPC devolve
         // ja_existia), mas perder documento não é.
