@@ -129,16 +129,27 @@ export default function VendaDiretaGestao() {
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros de lista vivem na URL.
-  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, busca: "", pagamento: "todos", pagina: 1 });
+  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, entregues: false, busca: "", pagamento: "todos", pagina: 1 });
   const filtro = useMemo<FiltroVD | null>(() => {
     const [tipo, ...resto] = nav.filtro.split(":");
     return tipo && resto.length ? ({ tipo, codigo: resto.join(":") } as FiltroVD) : null;
   }, [nav.filtro]);
-  const setFiltro = (f: FiltroVD | null) => setNav({ filtro: f ? `${f.tipo}:${f.codigo}` : "" });
+  // Card "Entregue · 30 dias": clicar liga o toggle de entregues; clicar de
+  // novo / limpar volta ao normal (toggle desligado, entregues escondidos).
+  const setFiltro = (f: FiltroVD | null) => {
+    const clicouEntregue = !!f && f.tipo === "fase" && f.codigo === "entregue";
+    const limpouEntregue = f === null && filtro?.tipo === "fase" && filtro.codigo === "entregue";
+    setNav({
+      filtro: f ? `${f.tipo}:${f.codigo}` : "",
+      entregues: clicouEntregue ? true : limpouEntregue ? false : nav.entregues,
+    });
+  };
   const soAcaoEquipe = nav.acaoEquipe;
   const setSoAcaoEquipe = (v: boolean) => setNav({ acaoEquipe: v });
   const mostrarCancelados = nav.cancelados;
   const setMostrarCancelados = (v: boolean | ((p: boolean) => boolean)) => setNav({ cancelados: typeof v === "function" ? v(nav.cancelados) : v });
+  const mostrarEntregues = nav.entregues;
+  const setMostrarEntregues = (v: boolean) => setNav({ entregues: v });
   const [config, setConfig] = useState(false);
   const dimQ = useDimensoesVD();
   useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
