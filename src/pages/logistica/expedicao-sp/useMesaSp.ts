@@ -74,7 +74,7 @@ export function useEtapasMesaSp() {
     queryFn: async (): Promise<EtapaMesa[]> => {
       const { data, error } = await supabaseMesa
         .from("mesa_sp_etapa")
-        .select("canal, codigo, ordem, rotulo, limite_min")
+        .select("canal, codigo, ordem, rotulo, limite_min, coluna_quadro, ordem_quadro")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw new Error(`ler etapas da mesa: ${mensagemErro(error)}`);

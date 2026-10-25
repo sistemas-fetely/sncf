@@ -903,7 +903,7 @@ function LinhaPedido({
 function QuadroBancada({
   colunas, pedidos, cancelamentos, selecionadoId, onSelecionar,
 }: {
-  colunas: { codigo: string; rotulo: string }[];
+  colunas: ColunaQuadro[];
   pedidos: PedidoMesa[];
   cancelamentos: Map<string, CancelamentoMesa>;
   selecionadoId: string | null;
@@ -913,7 +913,7 @@ function QuadroBancada({
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {colunas.map((c) => {
-        const doGrupo = pedidos.filter((p) => p.etapa === c.codigo);
+        const doGrupo = pedidos.filter((p) => c.etapas.includes(p.etapa));
         return (
           <div
             key={c.codigo}
