@@ -78,6 +78,13 @@
       "when": 1792947271581,
       "tag": "0010_cartao_maquininha_regra",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792947400388,
+      "tag": "0011_venda_direta_cartao_maquininha_funcoes",
+      "breakpoints": true
     }
   ]
 }
