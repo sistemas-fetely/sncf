@@ -268,6 +268,57 @@ function parseXml(xml: string): XmlParsed {
   };
 }
 
+/** CT-e: tomador (Fetely) vai em destinatarioCnpj — mesma regra de getCteTomadorCnpj do front. */
+function parseCteXml(xml: string): XmlParsed {
+  const bloco = (nome: string) =>
+    xml.match(new RegExp(`<${nome}>([\\s\\S]*?)<\\/${nome}>`))?.[1] ?? "";
+  const cnpjDe = (b: string) => m1(b, /<CNPJ>(\d{14})<\/CNPJ>/);
+
+  const chave = m1(xml, /Id\s*=\s*"CTe(\d{44})"/);
+  const ide = bloco("ide");
+  const emit = bloco("emit");
+  const vPrest = bloco("vPrest");
+
+  let tomador: string | null = null;
+  const toma4 = bloco("toma4");
+  if (toma4) tomador = cnpjDe(toma4);
+  if (!tomador) {
+    const toma3 = bloco("toma3");
+    const codigo = m1(toma3 || ide, /<toma>(\d)<\/toma>/);
+    const mapa: Record<string, string> = { "0": "rem", "1": "exped", "2": "receb", "3": "dest" };
+    const nomeBloco = codigo ? mapa[codigo] : undefined;
+    if (nomeBloco) tomador = cnpjDe(bloco(nomeBloco));
+  }
+
+  const nCT = m1(ide, /<nCT>([^<]*)<\/nCT>/);
+  const valor = num(m1(vPrest, /<vTPrest>([\d.]+)<\/vTPrest>/));
+
+  return {
+    chave,
+    numero: nCT,
+    serie: m1(ide, /<serie>([^<]*)<\/serie>/),
+    data_emissao: dataEmissaoLocal(m1(ide, /<dhEmi>([^<]*)<\/dhEmi>/)),
+    natureza_operacao: m1(ide, /<natOp>([^<]*)<\/natOp>/),
+    fin_nfe: null,
+    tp_nf: null,
+    referenciada: null,
+    cnpj: cnpjDe(emit),
+    razao_social: m1(emit, /<xNome>([^<]*)<\/xNome>/),
+    destinatarioCnpj: tomador,
+    valor,
+    itens: [{
+      codigo: null,
+      descricao: "Frete CT-e " + (nCT ?? ""),
+      ncm: null,
+      cfop: m1(ide, /<CFOP>([^<]*)<\/CFOP>/),
+      unidade: "UN",
+      quantidade: 1,
+      valor_unitario: valor,
+      valor_total: valor,
+    }],
+  };
+}
+
 /* --------------------------------------------------------------------- main */
 
 Deno.serve(async (req) => {
@@ -417,19 +468,20 @@ Deno.serve(async (req) => {
             }
 
             let resp: Response;
-            if (entidade === "nfe") {
+            if (entidade === "nfe" || entidade === "cte") {
               const qs = new URLSearchParams({
                 limit: String(LIMIT_POR_PAGINA),
                 "created_at[from]": de.toISOString(),
                 "created_at[to]": ate.toISOString(),
               });
               if (cursor) qs.set("cursor", cursor);
-              resp = await fetch(`${base}/v1/nfe/received?${qs.toString()}`, {
+              const caminho = entidade === "nfe" ? "v1/nfe/received" : "v1/cte/taker";
+              resp = await fetch(`${base}/${caminho}?${qs.toString()}`, {
                 method: "GET",
                 headers,
               });
             } else {
-              // cte/nfse: rotas POST /v1/dfe/{entidade} — NÃO validadas (404 no sandbox)
+              // nfse: rota POST /v1/dfe/nfse — NÃO validada (404 no sandbox)
               resp = await fetch(`${base}/v1/dfe/${entidade}`, {
                 method: "POST",
                 headers,
@@ -456,7 +508,8 @@ Deno.serve(async (req) => {
                 let p: XmlParsed | null = null;
                 if (doc.xmlBase64) {
                   try {
-                    p = parseXml(decodificarBase64(doc.xmlBase64));
+                    const xmlDoc = decodificarBase64(doc.xmlBase64);
+                    p = entidade === "cte" ? parseCteXml(xmlDoc) : parseXml(xmlDoc);
                   } catch (e) {
                     console.error(`[${entidade}] XML ilegível (${doc.chave}):`, e);
                     anotarErro(resumo, `XML ilegível (${doc.chave}): ${e instanceof Error ? e.message : String(e)}`);
