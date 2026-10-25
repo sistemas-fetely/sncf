@@ -116,14 +116,8 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
       case "comprovante_coleta":
         return botaoImprimir(d, "Imprimir comprovante", imprimirComprovanteColeta);
       case "declaracao":
-        return (
-          <Checkbox
-            checked={d.liberado}
-            disabled={bloqueado || (marcar.isPending && marcar.variables?.p_documento_id === d.documento_id)}
-            onCheckedChange={(v) => marcar.mutate({ p_pedido_id: pedido.id, p_documento_id: d.documento_id, p_marcado: v === true })}
-            aria-label={d.rotulo}
-          />
-        );
+        return caixaMarcacao(d);
+
       default:
         return null;
     }
