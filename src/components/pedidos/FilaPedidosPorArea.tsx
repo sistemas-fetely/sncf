@@ -1152,7 +1152,7 @@ export function FilaPedidosPorArea({
               return (
                 <TableRow
                   key={p.id}
-                  className="cursor-pointer h-20 [&>td]:py-2 [&>td]:align-top [&>td]:overflow-hidden"
+                  className="cursor-pointer [&>td]:py-2 [&>td]:align-top"
                   data-foco-id={p.id}
                   onClick={() => abrirDetalhe(navigate, location, `/pedidos/${p.id}`, { foco: p.id, label: "Casa dos Pedidos" })}
                 >
@@ -1243,7 +1243,7 @@ export function FilaPedidosPorArea({
                     <CelulaCobranca cobranca={cobrancaMap?.get(p.id)} />
                   </TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap items-center gap-1.5 min-w-0 max-h-[68px] overflow-hidden">
+                    <div className="flex flex-wrap items-center gap-1.5 min-w-0">
                       <EstagioBadge estagio={p.estagio} />
                       <SeloTravado p={p} />
                       <SeloCdExpedicao p={p} />
