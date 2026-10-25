@@ -7,15 +7,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
-import { imprimirEtiquetas, imprimirRomaneio } from "./impressaoMesa";
-import type { DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
-import { useConcluirDocumentos, useDocumentosMesa, useMarcarDocumento, useRegistrarRastreio } from "./useMesaSp";
+import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
+import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
+import { useConcluirDocumentos, useDadosImpressao, useDocumentosMesa, useMarcarDocumento, useRegistrarRastreio } from "./useMesaSp";
 
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
  * `fn_mesa_sp_documentos`: a tela só exibe e dispara as RPCs — DANFE e rastreio
  * são liberados pelo DADO, nunca por checkbox.
  */
+const ROTULO_IMPRESSORA: Record<string, string> = { a4: "A4", zebra: "Zebra", bling: "Bling" };
+
 interface Props {
   pedido: PedidoMesa;
   itens: ItemPedidoMesa[];
@@ -24,15 +26,33 @@ interface Props {
   bloqueado?: boolean;
 }
 
-export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloqueado = false }: Props) {
+export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const docsQ = useDocumentosMesa(pedido.id);
   const marcar = useMarcarDocumento();
   const rastreio = useRegistrarRastreio();
   const concluir = useConcluirDocumentos();
   const [codigo, setCodigo] = useState("");
 
+  const dadosQ = useDadosImpressao(pedido.id);
   const docs = docsQ.data ?? [];
-  const nfNumero = docs.find((d) => d.tipo === "nf" && d.liberado)?.detalhe ?? null;
+  const dados = dadosQ.data ?? null;
+  const usaRemetente = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume");
+
+  function imprimir(d: DocumentoMesa, fn: (x: DadosImpressao) => boolean) {
+    if (!dados) {
+      toast.error(dadosQ.error ? formatError(dadosQ.error) : "Dados de impressão ainda carregando.");
+      return;
+    }
+    marcarAoAbrir(d, fn(dados));
+  }
+
+  function botaoImprimir(d: DocumentoMesa, rotulo: string, fn: (x: DadosImpressao) => boolean) {
+    return (
+      <Button size="sm" variant="outline" disabled={bloqueado || !dados} onClick={() => imprimir(d, fn)}>
+        {dadosQ.isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}{rotulo}
+      </Button>
+    );
+  }
 
   function marcarAoAbrir(d: DocumentoMesa, abriu: boolean) {
     if (!abriu) {
@@ -53,7 +73,7 @@ export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloquea
       case "nf":
         return d.url ? (
           <Button size="sm" variant="outline" asChild>
-            <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />Abrir DANFE</a>
+            <a href={d.url} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" />{d.impressora === "bling" ? "Abrir DANFE (consulta)" : "Abrir DANFE"}</a>
           </Button>
         ) : (
           <Button size="sm" variant="outline" disabled><ExternalLink aria-hidden="true" />Abrir DANFE</Button>
@@ -75,21 +95,15 @@ export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloquea
             </Button>
           </div>
         );
-      case "romaneio":
-        return (
-          <Button size="sm" variant="outline" disabled={bloqueado}
-            onClick={() => marcarAoAbrir(d, imprimirRomaneio({ pedido, itens, embalagem, modalNome }))}>
-            <Printer aria-hidden="true" />Imprimir romaneio
-          </Button>
-        );
+      case "etiqueta_entrega":
       case "etiqueta_volume":
-        return (
-          <Button size="sm" variant="outline" disabled={bloqueado || !embalagem?.volumes}
-            title={!embalagem?.volumes ? "Embalagem sem volumes registrados" : undefined}
-            onClick={() => marcarAoAbrir(d, imprimirEtiquetas({ pedido, volumes: embalagem?.volumes ?? 1, nfNumero }))}>
-            <Printer aria-hidden="true" />Imprimir etiquetas{embalagem?.volumes ? ` (${embalagem.volumes})` : ""}
-          </Button>
-        );
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, imprimirEtiquetaEntrega);
+      case "etiqueta_retirada":
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, imprimirEtiquetaRetirada);
+      case "termo_retirada":
+        return botaoImprimir(d, "Imprimir termo", imprimirTermoRetirada);
+      case "comprovante_coleta":
+        return botaoImprimir(d, "Imprimir comprovante", imprimirComprovanteColeta);
       case "declaracao":
         return (
           <Checkbox
@@ -108,6 +122,15 @@ export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloquea
     <Card>
       <CardContent className="space-y-4 p-4">
         <p className="text-sm font-medium">Documentos do pedido</p>
+
+        {dadosQ.error && (
+          <p className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {formatError(dadosQ.error)}
+          </p>
+        )}
+        {usaRemetente && dados && dados.remetente.completo === false && (
+          <p className="text-xs text-warning">Endereço do Site SP incompleto no cadastro — remetente sai só com nome e CEP.</p>
+        )}
 
         {docsQ.isLoading ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" aria-hidden="true" />
@@ -138,6 +161,11 @@ export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloquea
                       )}>
                         {d.liberado ? "ok" : "pendente"}
                       </span>
+                      {d.impressora && d.impressora !== "nenhuma" && (
+                        <span className="ml-1 rounded border border-border bg-muted px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+                          {ROTULO_IMPRESSORA[d.impressora] ?? d.impressora}
+                        </span>
+                      )}
                     </p>
                     {d.detalhe && (
                       <p className={cn("text-xs", semNf ? "font-medium text-warning" : "text-muted-foreground", d.tipo === "rastreio" && d.liberado && "font-mono")}>
@@ -145,6 +173,9 @@ export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloquea
                       </p>
                     )}
                     {d.observacao && <p className="text-xs text-muted-foreground">{d.observacao}</p>}
+                    {d.impressora === "bling" && (
+                      <p className="text-xs text-muted-foreground">Imprime no Bling — não há impressão por aqui.</p>
+                    )}
                   </div>
                   <div className="shrink-0">{acao(d)}</div>
                 </li>

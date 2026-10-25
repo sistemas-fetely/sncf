@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
 import {
   EVENTO_ROTEADO,
-  type AguardandoNfMesa, type CaixaSugerida, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
+  type AguardandoNfMesa, type CaixaSugerida, type DadosImpressao, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
   type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal, type PesoEstimado,
 } from "./tipos";
 
@@ -355,6 +355,20 @@ export function useDocumentosMesa(pedidoId: string | null) {
       const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_documentos", { p_pedido_id: pedidoId });
       if (error) throw new Error(`ler documentos do pedido: ${mensagemErro(error)}`);
       return ((data ?? []) as DocumentoMesa[]).slice().sort((a, b) => a.ordem - b.ordem);
+    },
+  });
+}
+
+export function useDadosImpressao(pedidoId: string | null) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, "dados-impressao", pedidoId],
+    enabled: !!pedidoId,
+    staleTime: 0,
+    queryFn: async (): Promise<DadosImpressao> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_dados_impressao", { p_pedido_id: pedidoId });
+      if (error) throw new Error(`ler dados de impressão: ${mensagemErro(error)}`);
+      if (!data) throw new Error("ler dados de impressão: o banco não devolveu dados para este pedido.");
+      return data as DadosImpressao;
     },
   });
 }
