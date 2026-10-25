@@ -26,7 +26,7 @@ interface Props {
   bloqueado?: boolean;
 }
 
-export function EstacaoDocumentos({ pedido, itens, embalagem, modalNome, bloqueado = false }: Props) {
+export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const docsQ = useDocumentosMesa(pedido.id);
   const marcar = useMarcarDocumento();
   const rastreio = useRegistrarRastreio();
