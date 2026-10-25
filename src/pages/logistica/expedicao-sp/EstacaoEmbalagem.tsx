@@ -68,6 +68,7 @@ export function EstacaoEmbalagem({
   const [peso, setPeso] = useState("");
   const [pesoEditado, setPesoEditado] = useState(false);
   const [volumes, setVolumes] = useState("1");
+  const [volumesEditado, setVolumesEditado] = useState(false);
   const [modal, setModal] = useState<string>("");
   const [modalPendente, setModalPendente] = useState<string | null>(null);
   const [caixa, setCaixa] = useState<string | null>(null);
@@ -96,6 +97,7 @@ export function EstacaoEmbalagem({
     setPeso("");
     setPesoEditado(false);
     setVolumes("1");
+    setVolumesEditado(false);
     setCaixa(null);
     setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
     setModalPendente(null);
@@ -114,7 +116,15 @@ export function EstacaoEmbalagem({
     [checklist, modal],
   );
 
-  const estimativaQ = usePesoEstimado(pedidoId, caixa);
+  // Volumes seguem a caixa escolhida, com a mesma regra do peso: só sobrescreve
+  // enquanto o operador não editou o campo.
+  const volumesSugestao = caixas.find((c) => c.codigo === caixa)?.volumes ?? null;
+  useEffect(() => {
+    if (volumesEditado || volumesSugestao === null) return;
+    setVolumes(String(volumesSugestao));
+  }, [volumesSugestao, volumesEditado]);
+
+  const estimativaQ = usePesoEstimado(pedidoId, caixa, Number.parseInt(volumes, 10));
   const est = estimativaQ.data ?? null;
   const estTexto = est && est.total_kg > 0 ? est.total_kg.toFixed(3).replace(".", ",") : null;
   useEffect(() => {
@@ -216,11 +226,22 @@ export function EstacaoEmbalagem({
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">{c.medidas}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {c.medidas}
+                        {c.volumes > 1 && <span className="ml-1 font-medium text-foreground">× {c.volumes} volumes</span>}
+                      </p>
+                      {c.jogo_americano_curvado && (
+                        <span className="mt-1 inline-block rounded-full bg-info/15 px-2 py-0.5 text-[11px] font-medium text-info">
+                          jogo americano curvado
+                        </span>
+                      )}
                       {c.cabe ? (
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          ocupa {Math.round(c.ocupacao_pct)}% da caixa
-                        </p>
+                        <>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            ocupa {Math.round(c.ocupacao_pct)}% da caixa
+                          </p>
+                          {c.motivo && <p className="mt-0.5 text-xs text-warning">{c.motivo}</p>}
+                        </>
                       ) : (
                         <p className="mt-0.5 text-xs text-muted-foreground">{c.motivo ?? "não cabe"}</p>
                       )}
@@ -279,8 +300,17 @@ export function EstacaoEmbalagem({
               id="mesa-sp-volumes"
               inputMode="numeric"
               value={volumes}
-              onChange={(e) => setVolumes(e.target.value)}
+              onChange={(e) => { setVolumes(e.target.value); setVolumesEditado(true); }}
             />
+            {volumesEditado && volumesSugestao !== null && volumes !== String(volumesSugestao) && (
+              <button
+                type="button"
+                className="text-xs text-primary underline"
+                onClick={() => { setVolumes(String(volumesSugestao)); setVolumesEditado(false); }}
+              >
+                usar sugestão ({volumesSugestao} {volumesSugestao === 1 ? "volume" : "volumes"})
+              </button>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
