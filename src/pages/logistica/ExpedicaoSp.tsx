@@ -31,7 +31,7 @@ import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import { SolicitacaoNf } from "./expedicao-sp/SolicitacaoNf";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
-  pedidoEhB2B, colunasQuadro, tempoParado,
+  pedidoEhB2B, colunasQuadro, tempoParado, CENTRO_SITE_SP,
   embalagemDoPedido, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
