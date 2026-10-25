@@ -43,24 +43,35 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
       toast.error(dadosQ.error ? formatError(dadosQ.error) : "Dados de impressão ainda carregando.");
       return;
     }
-    marcarAoAbrir(d, fn(dados));
+    // Imprimir só ABRE a impressão; quem deixa o documento "ok" é o checkbox.
+    if (!fn(dados)) {
+      toast.error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
+    }
+  }
+
+  /** Confirmação manual — único caminho que marca/desmarca o documento. */
+  function caixaMarcacao(d: DocumentoMesa) {
+    return (
+      <Checkbox
+        checked={d.liberado}
+        disabled={bloqueado || (marcar.isPending && marcar.variables?.p_documento_id === d.documento_id)}
+        onCheckedChange={(v) => marcar.mutate({ p_pedido_id: pedido.id, p_documento_id: d.documento_id, p_marcado: v === true })}
+        aria-label={d.rotulo}
+      />
+    );
   }
 
   function botaoImprimir(d: DocumentoMesa, rotulo: string, fn: (x: DadosImpressao) => boolean) {
     return (
-      <Button size="sm" variant="outline" disabled={bloqueado || !dados} onClick={() => imprimir(d, fn)}>
-        {dadosQ.isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}{rotulo}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="outline" disabled={bloqueado || !dados} onClick={() => imprimir(d, fn)}>
+          {dadosQ.isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}{rotulo}
+        </Button>
+        {caixaMarcacao(d)}
+      </div>
     );
   }
 
-  function marcarAoAbrir(d: DocumentoMesa, abriu: boolean) {
-    if (!abriu) {
-      toast.error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
-      return;
-    }
-    marcar.mutate({ p_pedido_id: pedido.id, p_documento_id: d.documento_id, p_marcado: true });
-  }
 
   function registrarRastreio() {
     const c = codigo.trim().toUpperCase();
