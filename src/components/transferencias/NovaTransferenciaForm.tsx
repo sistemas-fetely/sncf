@@ -7,6 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { useEstadoTela } from "@/lib/navegacao";
+import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -436,7 +438,12 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
     form.clearErrors("itens");
   };
 
+  // Tipo "Entre CDs de SP (sem NF)" vive na URL (?tipo=entre_cds) — a rota antiga redireciona para cá.
+  const [tipoNav, setTipoNav] = useEstadoTela({ tipo: "" });
+  const entreCds = !remessa && tipoNav.tipo === "entre_cds";
+
   const selecionarTipo = (novoRegularizacao: boolean) => {
+    if (entreCds) setTipoNav({ tipo: "" });
     if (novoRegularizacao === regularizacao) return;
     setRegularizacao(novoRegularizacao);
     if (novoRegularizacao && modo === "sugestao") trocarModo("item");
@@ -654,15 +661,15 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
             ) : (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Tipo</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-3 sm:grid-cols-3">
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={!regularizacao}
+                  aria-pressed={!entreCds && !regularizacao}
                   onClick={() => selecionarTipo(false)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -675,11 +682,11 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={regularizacao}
+                  aria-pressed={!entreCds && regularizacao}
                   onClick={() => selecionarTipo(true)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -689,10 +696,27 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                     </span>
                   </span>
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-pressed={entreCds}
+                  onClick={() => setTipoNav({ tipo: "entre_cds" })}
+                  className={cn(
+                    "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
+                    entreCds && "border-primary bg-primary/5 ring-1 ring-primary",
+                  )}
+                >
+                  <span>
+                    <span className="block font-medium">Entre CDs de SP (sem NF)</span>
+                    <span className="mt-1 block text-sm font-normal text-muted-foreground">
+                      Peças mudam entre Site SP e Show Room, no mesmo endereço e mesmo CNPJ: sem NF, sem viagem, baixa e entrada na hora.
+                    </span>
+                  </span>
+                </Button>
               </div>
             </fieldset>
             )}
-
+            {!entreCds && (<>
             <div className="grid gap-4 md:grid-cols-2">
               {!remessa && <div className="space-y-1.5">
                 <label htmlFor="destino" className="text-sm font-medium">
@@ -1163,7 +1187,9 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                 )}
               </div>
             </div>
+            </>)}
           </form>
+          {entreCds && <div className="mt-4"><TransferenciaInternaPainel mostrarHistorico={false} rotuloBotao="Transferir agora" /></div>}
         </CardContent>
       </Card>
     </>
