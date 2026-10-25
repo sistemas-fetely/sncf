@@ -870,27 +870,27 @@ function QuadroBancada({
           <div
             key={c.codigo}
             className={cn(
-              "min-w-[150px] flex-1 rounded-md border p-2",
+              "flex min-w-[150px] flex-1 flex-col rounded-md border p-1.5",
               doGrupo.length === 0 ? "bg-muted/40 text-muted-foreground" : "bg-card",
             )}
           >
-            <p className="mb-1.5 flex items-center justify-between text-xs font-medium">
+            <p className="mb-1 flex shrink-0 items-center justify-between text-xs font-medium">
               <span className="truncate">{c.rotulo}</span>
               <span>{doGrupo.length}</span>
             </p>
-            <ul className="space-y-1">
+            <ul className="h-[180px] space-y-0.5 overflow-y-auto pr-0.5 [scrollbar-width:thin]">
               {doGrupo.map((p) => (
                 <li key={p.id}>
                   <button
                     type="button"
                     onClick={() => onSelecionar(p.id)}
                     className={cn(
-                      "w-full rounded border px-1.5 py-1 text-left text-[11px] leading-tight transition-colors hover:bg-accent",
+                      "w-full rounded border px-1 py-0.5 text-left text-[11px] leading-tight transition-colors hover:bg-accent",
                       p.estourou_limite && "border-warning/60 bg-warning/10",
                       p.id === selecionadoId && "border-primary bg-accent",
                     )}
                   >
-                    <span className="flex flex-wrap items-center gap-1">
+                    <span className="flex flex-wrap items-center gap-0.5">
                       <span className="font-medium">{p.id_externo}</span>
                       {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
                       {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
