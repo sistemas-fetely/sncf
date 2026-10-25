@@ -798,6 +798,9 @@ export default function ExpedicaoSp() {
                   gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}
                   despachandoLote={despacharLote.isPending}
                   bloqueado={bloqueado}
+                  idExterno={selecionado.id_externo}
+                  clienteNome={selecionado.cliente_nome}
+                  onRetiradaRegistrada={() => setSelecionadoId(null)}
                   onDespacharLote={(modalCodigo, pedidoIds) =>
                     {
                       const ids = pedidoIds.filter((id) => !cancelamentos.has(id));

@@ -85,7 +85,7 @@ export function VerPixDialog({ linha, onClose, payloadNovo }: { linha: LinhaVD |
   );
 }
 
-export function RegistrarRetiradaDialog({ linha, onClose }: { linha: LinhaVD | null; onClose: () => void }) {
+export function RegistrarRetiradaDialog({ linha, onClose, onRegistrada }: { linha: LinhaVD | null; onClose: () => void; onRegistrada?: () => void }) {
   const qc = useQueryClient();
   const [quem, setQuem] = useState("");
   const [doc, setDoc] = useState("");
@@ -104,6 +104,7 @@ export function RegistrarRetiradaDialog({ linha, onClose }: { linha: LinhaVD | n
       toast.success(`Retirada registrada em ${linha?.id_externo ?? ""}`);
       void invalidarVendaDireta(qc);
       onClose();
+      onRegistrada?.();
     },
     onError: (e) => toast.error(rawMessage(e)),
   });
