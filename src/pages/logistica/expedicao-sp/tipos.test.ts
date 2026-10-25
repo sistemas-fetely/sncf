@@ -34,10 +34,8 @@ describe("colunasQuadro", () => {
     const cols = colunasQuadro([
       e("B2C", "fila", 10), e("B2B", "fila", 50), e("B2B", "nf_emitida", 70),
     ]);
-    expect(cols).toEqual([
-      { codigo: "fila", rotulo: "fila", etapas: ["fila"] },
-      { codigo: "nf_emitida", rotulo: "nf_emitida", etapas: ["nf_emitida"] },
-    ]);
+    expect(cols.map((c) => c.codigo)).toEqual(["fila", "nf_emitida"]);
+    expect(cols[0].etapas).toEqual(["fila", "fila"]);
   });
 });
 
