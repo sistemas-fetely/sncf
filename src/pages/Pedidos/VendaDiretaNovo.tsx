@@ -608,7 +608,7 @@ export default function VendaDiretaNovo() {
                     provisaoId={(r as Resultado & { provisao_id?: string | null }).provisao_id ?? undefined}
                     aberto={anexarComprovante}
                     modo="sops"
-                    aoFechar={() => { setAnexarComprovante(false); void invalidarVendaDireta(qc); }}
+                    aoFechar={() => { setAnexarComprovante(false); void invalidarVendaDireta(queryClient); }}
                   />
                 )}
               </div>
