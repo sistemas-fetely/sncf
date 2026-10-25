@@ -34,6 +34,7 @@ import {
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { cn } from "@/lib/utils";
+import { esconderEntreguesNaLista } from "@/lib/pedidos/entregues";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
@@ -407,7 +408,7 @@ export default function VendaDiretaGestao() {
           aoTentarNovamente={() => q.refetch()}
           vazio={{ mensagem: "Nenhum pedido do Site SP ainda.", acao: podeEditar ? <Button asChild><Link to="/pedidos/venda-direta/novo">Criar o primeiro pedido</Link></Button> : undefined }}
           semResultado="Nenhum pedido para esse filtro."
-          total={mostrarCancelados ? visiveis.length : ativos.length}
+          total={baseLista.length}
           exibidos={linhas.length}
           rotulo="pedidos"
         >
