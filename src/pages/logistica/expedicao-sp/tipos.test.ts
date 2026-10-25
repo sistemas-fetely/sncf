@@ -2,18 +2,42 @@ import { describe, expect, it } from "vitest";
 import {
   cepDoEndereco, colunasQuadro, modalSugerido, modoEntregaVendaDireta,
   pedidoEhVendaDireta, rotuloEntregaVendaDireta, tempoParado,
-  type ModalRegra,
+  type EtapaMesa, type ModalRegra,
 } from "./tipos";
 
 
 describe("colunasQuadro", () => {
-  it("une comuns por código e põe exclusivas do B2B depois de despacho", () => {
-    const e = (canal: string, codigo: string, ordem: number) => ({ canal, codigo, ordem, rotulo: codigo, limite_min: null });
+  const e = (
+    canal: string, codigo: string, ordem: number,
+    coluna_quadro: string | null = null, ordem_quadro: number | null = null,
+  ): EtapaMesa => ({ canal, codigo, ordem, rotulo: codigo, limite_min: null, coluna_quadro, ordem_quadro });
+
+  it("agrupa por coluna_quadro, ordena por ordem_quadro e une nf_emitida em despacho", () => {
+    const etapas = [
+      e("B2C", "fila", 10, null, 10),
+      e("B2C", "separacao", 20, null, 20),
+      e("B2C", "conferencia", 30, null, 30),
+      e("B2C", "embalagem", 40, null, 40),
+      e("B2B", "aguardando_nf", 45, null, 45),
+      e("B2C", "documentos", 50, null, 50),
+      e("B2C", "despacho", 60, null, 60),
+      e("B2B", "nf_emitida", 70, "despacho", 60),
+    ];
+    const cols = colunasQuadro(etapas);
+    expect(cols.map((c) => c.codigo)).toEqual([
+      "fila", "separacao", "conferencia", "embalagem", "aguardando_nf", "documentos", "despacho",
+    ]);
+    expect(cols.at(-1)!.etapas).toEqual(["despacho", "nf_emitida"]);
+  });
+
+  it("sem coluna_quadro cada etapa vira a própria coluna, rótulo da primeira ocorrência", () => {
     const cols = colunasQuadro([
-      e("B2B", "fila", 10), e("B2B", "aguardando_nf", 50), e("B2B", "nf_emitida", 70),
-      e("B2C", "fila", 10), e("B2C", "separacao", 20), e("B2C", "despacho", 60),
-    ]).map((c) => c.codigo);
-    expect(cols).toEqual(["fila", "separacao", "despacho", "aguardando_nf", "nf_emitida"]);
+      e("B2C", "fila", 10), e("B2B", "fila", 50), e("B2B", "nf_emitida", 70),
+    ]);
+    expect(cols).toEqual([
+      { codigo: "fila", rotulo: "fila", etapas: ["fila"] },
+      { codigo: "nf_emitida", rotulo: "nf_emitida", etapas: ["nf_emitida"] },
+    ]);
   });
 });
 
