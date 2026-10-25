@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { Selo } from "@/components/ui/selo";
 import type { ModalEntrega } from "./tipos";
+import { useQueryClient } from "@tanstack/react-query";
+import { RegistrarRetiradaDialog, type LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
 /**
  * Estação 5 — Despacho. O modal já vem do evento `mesa_embalado` (é o que a
@@ -56,6 +58,11 @@ interface Props {
   onDespacharLote: (modalCodigo: string, pedidoIds: string[]) => void;
   /** Cancelamento solicitado no pedido selecionado: não despacha. */
   bloqueado?: boolean;
+  /** Dados do pedido para o diálogo de retirada no balcão. */
+  idExterno?: string | null;
+  clienteNome?: string | null;
+  /** Retirada registrada: a Mesa limpa a seleção (pedido vira entregue). */
+  onRetiradaRegistrada?: () => void;
 }
 
 /** Espera em linguagem de bancada: minutos até 1h, depois horas, depois dias. */
@@ -78,7 +85,10 @@ function medidas(caixa: CaixaAguardandoColeta): string {
 export function EstacaoDespacho({
   pedidoId, modais, modalEmbalado, despachando, onDespachar,
   gruposColeta, despachandoLote, onDespacharLote, bloqueado = false,
+  idExterno = null, clienteNome = null, onRetiradaRegistrada,
 }: Props) {
+  const qc = useQueryClient();
+  const [retirada, setRetirada] = useState<LinhaVD | null>(null);
   const [modal, setModal] = useState<string>(modalEmbalado ?? "");
   const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
   const semPerm = perm.carregando || !perm.permitido;
@@ -107,11 +117,28 @@ export function EstacaoDespacho({
           <p className="text-sm text-muted-foreground">
             Entregar ao cliente e registrar em Pedidos Site SP.
           </p>
-          <Button asChild variant="outline">
-            <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
-              Abrir pedido em Pedidos Site SP
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={bloqueado || semPerm}
+              title={tituloPerm}
+              onClick={() => setRetirada({ id: pedidoId, id_externo: idExterno, cliente_nome: clienteNome, valor_liquido: null })}
+            >
+              Registrar retirada
+            </Button>
+            <Button asChild variant="outline">
+              <Link to={`/pedidos/venda-direta?pedido=${encodeURIComponent(pedidoId)}`}>
+                Abrir pedido em Pedidos Site SP
+              </Link>
+            </Button>
+          </div>
+          <RegistrarRetiradaDialog
+            linha={retirada}
+            onClose={() => setRetirada(null)}
+            onRegistrada={() => {
+              void qc.invalidateQueries({ queryKey: ["mesa-sp"] });
+              onRetiradaRegistrada?.();
+            }}
+          />
         </CardContent>
       </Card>
     );
