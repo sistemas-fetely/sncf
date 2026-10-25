@@ -136,20 +136,46 @@ export interface EtapaMesa {
   ordem: number;
   rotulo: string;
   limite_min: number | null;
+  /** Coluna do quadro de fases (null = coluna própria, código 1:1). */
+  coluna_quadro: string | null;
+  /** Ordem da coluna no quadro (null = usa `ordem`). */
+  ordem_quadro: number | null;
 }
 
-/** Colunas do quadro: etapas comuns unidas por código; exclusivas do B2B depois de `despacho`. */
-export function colunasQuadro(etapas: EtapaMesa[]): { codigo: string; rotulo: string }[] {
-  const b2c = etapas.filter((e) => e.canal.toUpperCase() !== "B2B").sort((a, b) => a.ordem - b.ordem);
-  const b2b = etapas.filter((e) => e.canal.toUpperCase() === "B2B").sort((a, b) => a.ordem - b.ordem);
-  const vistos = new Set<string>();
-  const out: { codigo: string; rotulo: string }[] = [];
-  for (const e of [...b2c, ...b2b]) {
-    if (vistos.has(e.codigo)) continue;
-    vistos.add(e.codigo);
-    out.push({ codigo: e.codigo, rotulo: e.rotulo });
+/** Coluna do quadro de fases: uma por valor distinto de `coluna_quadro`. */
+export interface ColunaQuadro {
+  codigo: string;
+  rotulo: string;
+  /** Códigos de etapa que caem nesta coluna (ex.: despacho → ['despacho','nf_emitida']). */
+  etapas: string[];
+}
+
+/**
+ * Agrupa as etapas por `coluna_quadro` (fallback: código próprio), ordena por
+ * `ordem_quadro` (fallback: menor `ordem` do grupo) e rotula pela etapa cujo
+ * `codigo === coluna_quadro` (fallback: primeira do grupo).
+ */
+export function colunasQuadro(etapas: EtapaMesa[]): ColunaQuadro[] {
+  const porChave = new Map<string, EtapaMesa[]>();
+  for (const e of etapas) {
+    const chave = e.coluna_quadro ?? e.codigo;
+    const grupo = porChave.get(chave) ?? [];
+    grupo.push(e);
+    porChave.set(chave, grupo);
   }
-  return out;
+  return [...porChave.entries()]
+    .map(([chave, grupo]) => {
+      const ordenado = [...grupo].sort((a, b) => (a.ordem_quadro ?? a.ordem) - (b.ordem_quadro ?? b.ordem));
+      const dona = ordenado.find((e) => e.codigo === chave);
+      return {
+        codigo: chave,
+        rotulo: dona?.rotulo ?? ordenado[0]?.rotulo ?? chave,
+        etapas: ordenado.map((e) => e.codigo),
+        ordem: dona?.ordem_quadro ?? ordenado[0]?.ordem ?? 0,
+      };
+    })
+    .sort((a, b) => a.ordem - b.ordem)
+    .map(({ codigo, rotulo, etapas }) => ({ codigo, rotulo, etapas }));
 }
 
 /** "há 12 min / há 3h / há 2d". */

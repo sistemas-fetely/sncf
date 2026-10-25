@@ -33,6 +33,7 @@ import { TrilhaPedido } from "./expedicao-sp/TrilhaPedido";
 import { SolicitacaoNf } from "./expedicao-sp/SolicitacaoNf";
 import type { GrupoColeta } from "./expedicao-sp/EstacaoDespacho";
 import {
+  ColunaQuadro,
   pedidoEhB2B, colunasQuadro, tempoParado, CENTRO_SITE_SP,
   embalagemDoPedido, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
@@ -903,7 +904,7 @@ function LinhaPedido({
 function QuadroBancada({
   colunas, pedidos, cancelamentos, selecionadoId, onSelecionar,
 }: {
-  colunas: { codigo: string; rotulo: string }[];
+  colunas: ColunaQuadro[];
   pedidos: PedidoMesa[];
   cancelamentos: Map<string, CancelamentoMesa>;
   selecionadoId: string | null;
@@ -913,7 +914,7 @@ function QuadroBancada({
   return (
     <div className="flex gap-2 overflow-x-auto pb-1">
       {colunas.map((c) => {
-        const doGrupo = pedidos.filter((p) => p.etapa === c.codigo);
+        const doGrupo = pedidos.filter((p) => c.etapas.includes(p.etapa));
         return (
           <div
             key={c.codigo}
