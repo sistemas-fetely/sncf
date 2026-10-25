@@ -919,7 +919,7 @@ function QuadroBancada({
                       <span className="font-medium">{p.id_externo}</span>
                       {pedidoEhVendaDireta(p.id_externo) && <Selo estado="info">VD</Selo>}
                       {pedidoEhB2B(p.canal) && <Selo estado="info">B2B</Selo>}
-                      {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="neutral">{p.cd_rotulo}</Selo>}
+                      {p.cd_codigo && p.cd_codigo !== CENTRO_SITE_SP && p.cd_rotulo && <Selo estado="info">{p.cd_rotulo}</Selo>}
                       {cancelamentos.has(p.id) && <Selo estado="destructive">Cancel.</Selo>}
                     </span>
                     <span className="block truncate text-muted-foreground">{p.cliente_nome ?? "cliente sem nome"}</span>
