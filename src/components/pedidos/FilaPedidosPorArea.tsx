@@ -393,22 +393,24 @@ function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | u
   if (cob.cobertura_pedido === "separado") {
     return (
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge
-              variant="outline"
-              className="rounded px-1.5 py-0 text-[10px] border-border text-muted-foreground gap-1"
-            >
-              Separado
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-[220px] whitespace-pre-line">
-              {`Separacao fechada pela XPM · ${itensSeparados} de ${itensTotal} itens\nA peca ja saiu da prateleira, mesmo antes da NF.`}
-            </p>
-          </TooltipContent>
-        </Tooltip>
-        {alertaCd}
+        <div className="space-y-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="rounded px-1.5 py-0 text-[10px] border-border text-muted-foreground gap-1"
+              >
+                Separado
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[220px] whitespace-pre-line">
+                {`Separacao fechada pela XPM · ${itensSeparados} de ${itensTotal} itens\nA peca ja saiu da prateleira, mesmo antes da NF.`}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+          {alertaCd}
+        </div>
       </TooltipProvider>
     );
   }
@@ -416,20 +418,22 @@ function CelulaEstoque({ cob, estagio, politica, p }: { cob: CoberturaPedido | u
   if (cob.cobertura_pedido === "coberto") {
     return (
       <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Badge
-              variant="outline"
-              className="rounded px-1.5 py-0 text-[10px] border-success/50 text-success gap-1"
-            >
-              100%
-            </Badge>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
-          </TooltipContent>
-        </Tooltip>
-        {alertaCd}
+        <div className="space-y-0.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge
+                variant="outline"
+                className="rounded px-1.5 py-0 text-[10px] border-success/50 text-success gap-1"
+              >
+                100%
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="text-xs max-w-[220px] whitespace-pre-line">{tooltip}</p>
+            </TooltipContent>
+          </Tooltip>
+          {alertaCd}
+        </div>
       </TooltipProvider>
     );
   }
