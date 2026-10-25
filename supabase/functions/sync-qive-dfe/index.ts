@@ -339,19 +339,32 @@ Deno.serve(async (req) => {
     const tokenChamador = (authHeader ?? "").replace("Bearer ", "");
     if (!tokenChamador) return json({ ok: false, error: "Não autorizado" }, 401);
     if (!(serviceKey && tokenChamador === serviceKey)) {
-      const sbUser = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader! } } },
-      );
-      const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
-        p_slug: "acao.nf_stage_operar",
-      });
-      if (ePerm || permitido !== true) {
-        return json(
-          { error: "Sem permissão (acao.nf_stage_operar). Concessão é feita no Console de Acesso." },
-          403,
+      // PORTA DE MÁQUINA (x-cron-secret): agendamentos chamam via fn_cron_chamar_edge
+      // (anon key + x-cron-secret), validado contra o vault (SYNC_CRON_SECRET).
+      const cronSecretHeader = req.headers.get("x-cron-secret");
+      if (cronSecretHeader) {
+        const sbMaquina = createClient(Deno.env.get("SUPABASE_URL")!, serviceKey);
+        const { data: segredo, error: eSeg } = await sbMaquina.rpc("get_vault_secret", {
+          p_name: "SYNC_CRON_SECRET",
+        });
+        if (eSeg || !segredo || segredo !== cronSecretHeader) {
+          return json({ ok: false, error: "Credencial de máquina inválida (x-cron-secret)." }, 403);
+        }
+      } else {
+        const sbUser = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader! } } },
         );
+        const { data: permitido, error: ePerm } = await sbUser.rpc("usuario_tem_acao", {
+          p_slug: "acao.nf_stage_operar",
+        });
+        if (ePerm || permitido !== true) {
+          return json(
+            { error: "Sem permissão (acao.nf_stage_operar). Concessão é feita no Console de Acesso." },
+            403,
+          );
+        }
       }
     }
 
