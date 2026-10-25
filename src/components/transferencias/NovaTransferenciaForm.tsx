@@ -88,6 +88,7 @@ interface FinalidadeTransferencia {
 
 interface ProdutoCatalogo {
   sku: string;
+  ean?: string | null;
   nome_completo: string | null;
   preco_custo: number | null;
 }
@@ -106,36 +107,79 @@ function SkuCombobox({
   onSelect,
   invalido,
   ariaLabel,
+  buscaEan = false,
+  onEanExato,
 }: {
   value: string;
   nome?: string;
   onSelect: (p: ProdutoCatalogo) => void;
   invalido?: boolean;
   ariaLabel: string;
+  /** Liga busca por EAN (substring) e leitura de EAN completo. Padrão desligado. */
+  buscaEan?: boolean;
+  onEanExato?: (p: ProdutoCatalogo) => void;
 }) {
   const [aberto, setAberto] = useState(false);
   const [termo, setTermo] = useState("");
   const [debounced, setDebounced] = useState("");
+  const [eanNaoCadastrado, setEanNaoCadastrado] = useState<string | null>(null);
   useEffect(() => {
     const t = setTimeout(() => setDebounced(termo.trim()), 300);
     return () => clearTimeout(t);
   }, [termo]);
 
+  async function buscar(bruto: string): Promise<ProdutoCatalogo[]> {
+    const t = bruto.replace(/[,()%*]/g, " ").trim();
+    const dig = bruto.replace(/\D/g, "");
+    const filtros = [`sku.ilike.%${t}%`, `cod_cadastro.ilike.%${t}%`, `nome_completo.ilike.%${t}%`];
+    if (buscaEan && dig.length >= 2) filtros.push(`ean.ilike.%${dig}%`);
+    const { data, error } = await supabase
+      .from("sncf_produtos")
+      .select(buscaEan ? "sku, cod_cadastro, nome_completo, preco_custo, ean, ativo" : "sku, cod_cadastro, nome_completo, preco_custo")
+      .or(filtros.join(","))
+      .order("sku")
+      .limit(20);
+    if (error) throw error;
+    return (data ?? []) as unknown as ProdutoCatalogo[];
+  }
+
   const buscaQ = useQuery({
-    queryKey: ["transferencia-busca-sku", debounced],
+    queryKey: ["transferencia-busca-sku", buscaEan, debounced],
     enabled: aberto && debounced.length >= 2,
-    queryFn: async (): Promise<ProdutoCatalogo[]> => {
-      const t = debounced.replace(/[,()%*]/g, " ").trim();
+    queryFn: () => buscar(debounced),
+  });
+
+  async function aoEnter() {
+    if (!buscaEan || !onEanExato) return false;
+    const dig = termo.replace(/\D/g, "");
+    if (![8, 12, 13, 14].includes(dig.length) || /[^\d\s]/.test(termo.trim())) return false;
+    try {
       const { data, error } = await supabase
         .from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_completo, preco_custo")
-        .or(`sku.ilike.%${t}%,cod_cadastro.ilike.%${t}%,nome_completo.ilike.%${t}%`)
-        .order("sku")
-        .limit(20);
+        .select("sku, cod_cadastro, nome_completo, preco_custo, ean, ativo")
+        .eq("ativo", true)
+        .ilike("ean", `%${dig.replace(/^0+/, "")}%`)
+        .limit(50);
       if (error) throw error;
-      return (data ?? []) as ProdutoCatalogo[];
-    },
-  });
+      const alvo = dig.replace(/^0+/, "");
+      const exatos = ((data ?? []) as unknown as ProdutoCatalogo[]).filter(
+        (p) => (p.ean ?? "").replace(/\D/g, "").replace(/^0+/, "") === alvo
+      );
+      if (exatos.length === 1) {
+        onEanExato(exatos[0]);
+        setTermo("");
+        setDebounced("");
+        setEanNaoCadastrado(null);
+        setAberto(false);
+        return true;
+      }
+      if (exatos.length === 0) setEanNaoCadastrado(dig);
+      return false;
+    } catch (e) {
+      toast.error(`Falha na busca por EAN: ${(e as Error).message}`);
+      return false;
+    }
+  }
 
   return (
     <Popover open={aberto} onOpenChange={setAberto}>
@@ -152,15 +196,30 @@ function SkuCombobox({
             invalido && "border-destructive"
           )}
         >
-          <span className="truncate">{value || "Buscar SKU ou nome…"}</span>
+          <span className="truncate">{value || (buscaEan ? "Buscar SKU, nome ou EAN…" : "Buscar SKU ou nome…")}</span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[420px] p-0" align="start">
+      <PopoverContent className="w-[480px] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Digite SKU ou nome…" value={termo} onValueChange={setTermo} />
+          <CommandInput
+            placeholder={buscaEan ? "Buscar SKU, nome ou EAN…" : "Digite SKU ou nome…"}
+            value={termo}
+            onValueChange={(v) => { setTermo(v); setEanNaoCadastrado(null); }}
+            onKeyDown={(e) => {
+              if (e.key !== "Enter" || !buscaEan) return;
+              const dig = termo.replace(/\D/g, "");
+              if ([8, 12, 13, 14].includes(dig.length)) {
+                e.preventDefault();
+                e.stopPropagation();
+                void aoEnter();
+              }
+            }}
+          />
           <CommandList>
-            {debounced.length < 2 ? (
+            {eanNaoCadastrado && termo.replace(/\D/g, "") === eanNaoCadastrado ? (
+              <p className="p-3 text-sm text-destructive">EAN não cadastrado</p>
+            ) : debounced.length < 2 ? (
               <CommandEmpty>Digite ao menos 2 caracteres.</CommandEmpty>
             ) : buscaQ.isFetching ? (
               <div className="flex justify-center p-4">
@@ -188,6 +247,9 @@ function SkuCombobox({
                       <span className="font-mono font-medium tabular-nums">{(p as any).cod_cadastro ?? p.sku}</span>
                       {(p as any).cod_cadastro && <span className="font-mono text-xs text-muted-foreground">{p.sku}</span>}
                       <span className="truncate text-muted-foreground">{p.nome_completo ?? ""}</span>
+                      {buscaEan && p.ean && (
+                        <span className="ml-auto shrink-0 font-mono text-xs tabular-nums text-muted-foreground">EAN {p.ean}</span>
+                      )}
                     </CommandItem>
                   ))}
                 </CommandGroup>
@@ -915,9 +977,24 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                               nome={nome}
                               invalido={!!erroSku}
                               ariaLabel={`SKU do item ${index + 1}`}
+                              buscaEan={!remessa}
                               onSelect={(p) => {
                                 form.setValue(`itens.${index}.sku`, p.sku, { shouldValidate: true });
                                 form.setValue(`itens.${index}.nome`, p.nome_completo ?? "");
+                              }}
+                              onEanExato={(p) => {
+                                const atuais = form.getValues("itens");
+                                const ja = atuais.findIndex((i) => i.sku?.trim() === p.sku);
+                                if (ja >= 0) {
+                                  form.setValue(`itens.${ja}.quantidade`, (Number(atuais[ja].quantidade) || 0) + 1, { shouldValidate: true });
+                                } else if (!atuais[index]?.sku?.trim()) {
+                                  form.setValue(`itens.${index}.sku`, p.sku, { shouldValidate: true });
+                                  form.setValue(`itens.${index}.nome`, p.nome_completo ?? "");
+                                  form.setValue(`itens.${index}.quantidade`, 1, { shouldValidate: true });
+                                } else {
+                                  append({ sku: p.sku, nome: p.nome_completo ?? "", quantidade: 1 });
+                                }
+                                form.clearErrors("itens");
                               }}
                             />
                             {erroSku && <p className="mt-1 text-xs text-destructive">{erroSku.message}</p>}
