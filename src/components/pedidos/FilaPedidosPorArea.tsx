@@ -319,6 +319,9 @@ function SeloTravado({ p }: { p: PedidoFilaItem }) {
   const location = useLocation();
   if (!p.travado) return null;
   const motivos = (p.travado_motivos ?? []).filter(Boolean);
+  const curto = p.travado_motivo_curto ?? p.travado_motivo ?? null;
+  const qtd = p.travado_motivos_qtd ?? motivos.length;
+  const extras = qtd > 1 ? qtd - 1 : 0;
   const tooltip = [
     ...motivos,
     p.travado_desde ? `desde ${fmtData(p.travado_desde)}` : null,
@@ -336,11 +339,12 @@ function SeloTravado({ p }: { p: PedidoFilaItem }) {
               e.stopPropagation();
               abrirDetalhe(navigate, location, `/pedidos/${p.id}#bloco-travado`, { foco: p.id, label: "Casa dos Pedidos" });
             }}
-            className="cursor-pointer rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 min-w-0"
+            className="cursor-pointer rounded px-1.5 py-0 text-[10px] border-destructive/40 text-destructive gap-1 shrink-0 whitespace-nowrap"
           >
             <AlertTriangle className="h-3 w-3 shrink-0" />
-            <span className="truncate">
-              Travado{p.travado_motivo ? ` · ${p.travado_motivo}` : ""}
+            <span className="whitespace-nowrap">
+              Travado{curto ? ` · ${curto}` : ""}
+              {extras > 0 && <span className="text-destructive/70"> +{extras}</span>}
             </span>
           </Badge>
         </TooltipTrigger>
@@ -1104,7 +1108,7 @@ export function FilaPedidosPorArea({
               <TableHead className="w-[130px]">Pagamento</TableHead>
               <CabecalhoOrdenavel rotulo="Estoque" className="w-[100px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estoque" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estoque")} />
               <CabecalhoOrdenavel rotulo="Cobrança" className="w-[130px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "cobranca" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("cobranca")} />
-              <CabecalhoOrdenavel rotulo="Estágio" className="w-[140px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
+              <CabecalhoOrdenavel rotulo="Estágio" className="w-[210px]" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "estagio" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("estagio")} />
               <CabecalhoOrdenavel rotulo="Entrega" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "entrega" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("entrega")} />
               <CabecalhoOrdenavel rotulo="Na fase" className="w-[96px] whitespace-nowrap" dir={ordenacao.tipo === "coluna" && ordenacao.coluna === "na_fase" ? ordenacao.dir : null} onOrdenar={() => alternarOrdenacaoColuna("na_fase")} />
               <TableHead className="w-[136px] text-right text-[11px] text-muted-foreground">Ações</TableHead>

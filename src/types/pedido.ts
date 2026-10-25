@@ -209,6 +209,10 @@ export interface PedidoFilaItem {
   travado_motivo?: string | null;
   travado_motivos?: string[] | null;
   travado_desde?: string | null;
+  /** Rótulo curto do motivo principal, pronto do banco ("Sem NF", "Faturado parado"). */
+  travado_motivo_curto?: string | null;
+  /** Quantos motivos compõem o travamento (>1 vira sufixo "+N" no selo). */
+  travado_motivos_qtd?: number | null;
 }
 
 export type PagamentoStatus =
