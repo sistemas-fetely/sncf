@@ -34,6 +34,7 @@ import {
 import { TabelaFetely } from "@/components/ui/tabela-fetely";
 import { RodapePaginacao, DEFAULT_PAGE_SIZE } from "@/components/tabela/RodapePaginacao";
 import { cn } from "@/lib/utils";
+import { esconderEntreguesNaLista } from "@/lib/pedidos/entregues";
 import { formatBRL } from "@/lib/format-currency";
 import { rawMessage } from "@/lib/format-error";
 import { usePermissoesTela } from "@/hooks/usePermissoesTela";
@@ -129,16 +130,27 @@ export default function VendaDiretaGestao() {
   const devolucaoPorPedido = useMemo(() => new Map((devolucoesQ.data ?? []).map((d) => [d.pedido_id, d])), [devolucoesQ.data]);
   useEffect(() => { if (devolucoesQ.error) toast.error(rawMessage(devolucoesQ.error)); }, [devolucoesQ.error]);
   // TELA-LEMBRA-ONDE-EU-ESTAVA: filtros de lista vivem na URL.
-  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, busca: "", pagamento: "todos", pagina: 1 });
+  const [nav, setNav] = useEstadoTela({ filtro: "", acaoEquipe: false, cancelados: false, entregues: false, busca: "", pagamento: "todos", pagina: 1 });
   const filtro = useMemo<FiltroVD | null>(() => {
     const [tipo, ...resto] = nav.filtro.split(":");
     return tipo && resto.length ? ({ tipo, codigo: resto.join(":") } as FiltroVD) : null;
   }, [nav.filtro]);
-  const setFiltro = (f: FiltroVD | null) => setNav({ filtro: f ? `${f.tipo}:${f.codigo}` : "" });
+  // Card "Entregue · 30 dias": clicar liga o toggle de entregues; clicar de
+  // novo / limpar volta ao normal (toggle desligado, entregues escondidos).
+  const setFiltro = (f: FiltroVD | null) => {
+    const clicouEntregue = !!f && f.tipo === "fase" && f.codigo === "entregue";
+    const limpouEntregue = f === null && filtro?.tipo === "fase" && filtro.codigo === "entregue";
+    setNav({
+      filtro: f ? `${f.tipo}:${f.codigo}` : "",
+      entregues: clicouEntregue ? true : limpouEntregue ? false : nav.entregues,
+    });
+  };
   const soAcaoEquipe = nav.acaoEquipe;
   const setSoAcaoEquipe = (v: boolean) => setNav({ acaoEquipe: v });
   const mostrarCancelados = nav.cancelados;
   const setMostrarCancelados = (v: boolean | ((p: boolean) => boolean)) => setNav({ cancelados: typeof v === "function" ? v(nav.cancelados) : v });
+  const mostrarEntregues = nav.entregues;
+  const setMostrarEntregues = (v: boolean) => setNav({ entregues: v });
   const [config, setConfig] = useState(false);
   const dimQ = useDimensoesVD();
   useEffect(() => { if (dimQ.error) toast.error(rawMessage(dimQ.error)); }, [dimQ.error]);
@@ -210,6 +222,25 @@ export default function VendaDiretaGestao() {
   );
   const ativos = useMemo(() => visiveis.filter((l) => l.fase !== "cancelado"), [visiveis]);
   const nCancelados = visiveis.length - ativos.length;
+  const nEntregues = visiveis.filter((l) => l.fase === "entregue").length;
+
+  // Entregues escondidos por padrão; visíveis com o toggle, com busca ou com
+  // filtro que aponte para entregues (fase "entregue" ou etapa dela).
+  const filtroDeEntregue = useMemo(() => {
+    if (!filtro) return false;
+    if (filtro.tipo === "fase") return filtro.codigo === "entregue";
+    if (filtro.tipo === "etapa") return dimQ.data?.etapas.some((e) => e.codigo === filtro.codigo && e.fase_codigo === "entregue") ?? false;
+    return false;
+  }, [filtro, dimQ.data]);
+  const esconderEntregues = esconderEntreguesNaLista({
+    mostrarEntregues,
+    temBusca: busca.trim().length > 0,
+    filtroDeEntregue,
+  });
+  const baseLista = useMemo(() => {
+    const b = mostrarCancelados ? visiveis : ativos;
+    return esconderEntregues ? b.filter((l) => l.fase !== "entregue") : b;
+  }, [mostrarCancelados, visiveis, ativos, esconderEntregues]);
 
   const bate = (l: Linha, f: FiltroVD) =>
     f.tipo === "fase" ? l.fase === f.codigo : f.tipo === "etapa" ? l.etapa === f.codigo : temAlerta(l, f.codigo);
@@ -217,7 +248,7 @@ export default function VendaDiretaGestao() {
   const linhas = useMemo(() => {
     const t = busca.trim().toLowerCase();
     const td = soDigitos(t);
-    const base = mostrarCancelados ? visiveis : ativos;
+    const base = baseLista;
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
       if (soAcaoEquipe && !l.acao_equipe) return false;
@@ -229,13 +260,13 @@ export default function VendaDiretaGestao() {
         (td.length >= 3 && soDigitos(l.cliente_telefone ?? "").includes(td));
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visiveis, ativos, filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]);
+  }, [baseLista, filtro, filtroPagamento, busca, soAcaoEquipe]);
 
   const primeiraRender = useRef(true);
   useEffect(() => {
     if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [nav.filtro, filtroPagamento, busca, mostrarCancelados, mostrarEntregues, soAcaoEquipe]); // eslint-disable-line react-hooks/exhaustive-deps
   const pag = linhas.slice((pagina - 1) * tamanho, pagina * tamanho);
   useFocoAoVoltar({ pronto: q.isSuccess, idsVisiveis: pag.map((l) => l.id) });
   useRestaurarScroll(null, q.isSuccess);
@@ -366,6 +397,10 @@ export default function VendaDiretaGestao() {
                 <Switch id="vd-cancelados" checked={mostrarCancelados} onCheckedChange={setMostrarCancelados} />
                 <Label htmlFor="vd-cancelados" className="text-sm font-normal">Mostrar cancelados <span className="tabular-nums text-muted-foreground">({nCancelados})</span></Label>
               </div>
+              <div className="flex items-center gap-2">
+                <Switch id="vd-entregues" checked={mostrarEntregues} onCheckedChange={setMostrarEntregues} />
+                <Label htmlFor="vd-entregues" className="text-sm font-normal">Mostrar entregues <span className="tabular-nums text-muted-foreground">({nEntregues})</span></Label>
+              </div>
             </div>
           }
           carregando={q.isLoading}
@@ -373,7 +408,7 @@ export default function VendaDiretaGestao() {
           aoTentarNovamente={() => q.refetch()}
           vazio={{ mensagem: "Nenhum pedido do Site SP ainda.", acao: podeEditar ? <Button asChild><Link to="/pedidos/venda-direta/novo">Criar o primeiro pedido</Link></Button> : undefined }}
           semResultado="Nenhum pedido para esse filtro."
-          total={mostrarCancelados ? visiveis.length : ativos.length}
+          total={baseLista.length}
           exibidos={linhas.length}
           rotulo="pedidos"
         >
