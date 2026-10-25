@@ -77,12 +77,22 @@ export function EstacaoEmbalagem({
 
   const sugeridaCodigo = caixas.find((c) => c.sugerida)?.codigo ?? null;
 
+  // Ao trocar de pedido, zera o que o operador digitou. Declarado ANTES da
+  // pré-seleção da caixa, para o estado novo nascer limpo e a sugerida vir.
+  useEffect(() => {
+    setPeso("");
+    setPesoEditado(false);
+    setVolumes("1");
+    setVolumesEditado(false);
+    setCaixa(null);
+  }, [pedidoId]);
+
   // A sugerida vem pré-selecionada uma vez; depois disso a escolha é do operador
   // (SISTEMA SUGERE / HUMANO DECIDE) — recalcular por cima seria roubo de foco.
   useEffect(() => {
     if (caixa !== null || !sugeridaCodigo) return;
     setCaixa(sugeridaCodigo);
-  }, [sugeridaCodigo, caixa]);
+  }, [pedidoId, sugeridaCodigo, caixa]);
 
   const cep = cepDoEndereco(enderecoEntrega);
   const sugerido = modoVendaDireta ? modalVendaDireta : modalPreferido ?? modalSugerido(cep, regras);
@@ -91,14 +101,9 @@ export function EstacaoEmbalagem({
   const caixaDiferenteDaSugerida =
     caixa !== null && sugeridaCodigo !== null && caixa !== sugeridaCodigo;
 
-  // A sugestão preenche uma vez, quando as dimensões chegam. Depois disso quem
-  // manda é o operador — recalcular por cima da escolha dele seria roubo de foco.
+  // Modal acompanha pedido e sugestão; refetch de modais não apaga a caixa nem
+  // o que o operador já digitou.
   useEffect(() => {
-    setPeso("");
-    setPesoEditado(false);
-    setVolumes("1");
-    setVolumesEditado(false);
-    setCaixa(null);
     setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
     setModalPendente(null);
   }, [pedidoId, sugerido, modais]);
