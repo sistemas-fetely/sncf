@@ -112,6 +112,9 @@ export interface PedidoMesa {
   estagio: string;
   canal: string;
   cliente_nome: string | null;
+  /** CD do pedido (`vw_mesa_sp_quadro`); null = sem CD gravado. */
+  cd_codigo: string | null;
+  cd_rotulo: string | null;
   valor_liquido: number;
   recebido_em: string;
   /** Json cru do pedido — o CEP sai daqui para sugerir o modal. */

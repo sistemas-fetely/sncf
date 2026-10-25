@@ -142,6 +142,8 @@ export default function VendaDiretaNovo() {
   const [pagamento, setPagamento] = useState<"pix" | "cartao">("pix");
   // Vendedora do pedido: sem pré-seleção (decisão do Flavio — escolhe sempre).
   const [vendedorId, setVendedorId] = useState<string | null>(null);
+  // CD que atende o pedido (centro_canal canal VD). Padrão: Site SP.
+  const [cdCodigo, setCdCodigo] = useState<string>("SITE-SP");
   const [observacao, setObservacao] = useState("");
   const [resultado, setResultado] = useState<Resultado | null>(null);
 
@@ -274,15 +276,36 @@ export default function VendaDiretaNovo() {
     },
   });
 
+  // CDs habilitados para Venda Direta (centro_canal + rótulo de centro_distribuicao).
+  const cdsQ = useQuery({
+    queryKey: ["vd-cds-opcoes"],
+    enabled: !edicao,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data: cc, error } = await (supabase as any)
+        .from("centro_canal").select("centro_codigo").eq("canal", "VD").eq("habilitado", true);
+      if (error) throw error;
+      const cods = [...new Set(((cc ?? []) as { centro_codigo: string }[]).map((r) => r.centro_codigo))];
+      if (cods.length === 0) return [] as { codigo: string; rotulo: string }[];
+      const { data: cds, error: e2 } = await (supabase as any)
+        .from("centro_distribuicao").select("codigo, nome, rotulo_curto").in("codigo", cods);
+      if (e2) throw e2;
+      return ((cds ?? []) as { codigo: string; nome: string | null; rotulo_curto: string | null }[])
+        .map((c) => ({ codigo: c.codigo, rotulo: c.rotulo_curto ?? c.nome ?? c.codigo }))
+        .sort((a, b) => a.rotulo.localeCompare(b.rotulo));
+    },
+  });
+  const cdRotulo = cdsQ.data?.find((c) => c.codigo === cdCodigo)?.rotulo ?? (cdCodigo === "SITE-SP" ? "Site SP" : cdCodigo);
+
   const skus = itens.map((i) => i.sku);
   const saldoQ = useQuery({
-    queryKey: ["venda-direta-saldo-site-sp", skus.slice().sort().join(",")],
+    queryKey: ["venda-direta-saldo-cd", cdCodigo, skus.slice().sort().join(",")],
     enabled: skus.length > 0,
     queryFn: async (): Promise<Map<string, number>> => {
       const { data, error } = await (supabase as any)
         .from("vw_estoque_centro")
         .select("sku, disponivel")
-        .eq("centro", "SITE-SP")
+        .eq("centro", cdCodigo)
         .in("sku", skus);
       if (error) throw error;
       const m = new Map<string, number>();
@@ -291,7 +314,7 @@ export default function VendaDiretaNovo() {
     },
   });
   useEffect(() => {
-    if (saldoQ.isError) toast.error(`Falha ao ler saldo do Site SP: ${rawMessage(saldoQ.error)}`);
+    if (saldoQ.isError) toast.error(`Falha ao ler saldo do ${cdRotulo}: ${rawMessage(saldoQ.error)}`);
   }, [saldoQ.isError, saldoQ.error]);
   const imgsQ = useImagensProduto(skus);
 
@@ -409,9 +432,10 @@ export default function VendaDiretaNovo() {
       const beneficioPayload = payloadBeneficio(beneficio, modo !== "retirada");
       const p_entrega =
         modo === "retirada"
-          ? { modo: "retirada", beneficio: beneficioPayload }
+          ? { modo: "retirada", beneficio: beneficioPayload, ...(edicao ? {} : { centro_codigo: cdCodigo }) }
           : {
               modo, cotacao_id,
+              ...(edicao ? {} : { centro_codigo: cdCodigo }),
               endereco: { ...endereco, cep: soDigitos(endereco.cep) },
               beneficio: beneficioPayload,
             };
@@ -459,7 +483,7 @@ export default function VendaDiretaNovo() {
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
     setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao(""); setVendedorId(null);
-    setResultado(null);
+    setCdCodigo("SITE-SP"); setResultado(null);
   };
 
   const telefoneCliente = soDigitos(cliente?.telefone ?? novo?.telefone ?? "");
@@ -584,7 +608,7 @@ export default function VendaDiretaNovo() {
             )}
             {r.avisos && r.avisos.length > 0 && (
               <p className="text-sm text-warning">
-                Itens sem saldo no Site SP: {r.avisos.map((a, k) => <span key={a.sku}>{k > 0 && ", "}<CodProduto chave={a.sku} variant="compacto" /></span>)}
+                {r.avisos.map((a) => <span key={a.sku} className="block">{a.aviso}</span>)}
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -608,6 +632,33 @@ export default function VendaDiretaNovo() {
       {/* Grade em 2 colunas a partir de lg: cliente/itens à esquerda, entrega/pagamento/observação à direita */}
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">
+      {/* 0a. CD — de onde sai o pedido, só na criação */}
+      {!edicao && (
+        <Card className="bg-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">CD</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {cdsQ.isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-label="Carregando CDs" />
+            ) : cdsQ.isError ? (
+              <p className="text-sm text-destructive">Falha ao carregar CDs: {rawMessage(cdsQ.error)}</p>
+            ) : (cdsQ.data?.length ?? 0) === 0 ? (
+              <p className="text-sm text-destructive">Nenhum CD habilitado para Venda Direta — avise Sistemas.</p>
+            ) : (
+              <Select value={cdCodigo} onValueChange={(v) => setCdCodigo(v)}>
+                <SelectTrigger aria-label="CD do pedido" className="w-full sm:max-w-xs">
+                  <SelectValue placeholder="CD" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cdsQ.data!.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.rotulo}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* 0. Vendedora — card próprio, só na criação */}
       {!edicao && (
         <Card className="bg-card">
@@ -723,10 +774,10 @@ export default function VendaDiretaNovo() {
                       <p className="line-clamp-2 text-base font-medium">{i.nome ?? i.sku}</p>
                       <CodProduto chave={i.sku} />
                       {semSaldo ? (
-                        <Badge variant="outline" className="border-warning/50 text-warning">Sem saldo no Site SP</Badge>
+                        <Badge variant="outline" className="border-warning/50 text-warning">Sem saldo no {cdRotulo}</Badge>
                       ) : (
                         <Badge variant="outline" className="font-normal text-muted-foreground tabular-nums">
-                          Site SP: {saldoQ.isLoading ? "…" : (disp ?? 0)} disp.
+                          {cdRotulo}: {saldoQ.isLoading ? "…" : (disp ?? 0)} disp.
                         </Badge>
                       )}
                     </div>
