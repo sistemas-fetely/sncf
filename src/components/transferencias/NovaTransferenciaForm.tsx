@@ -726,7 +726,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCr
                   )}
                 >
                   <span>
-                    <span className="block font-medium">Baixa para uso</span>
+                    <span className="block font-medium">Baixa para uso e feira</span>
                     <span className="mt-1 block text-sm font-normal text-muted-foreground">
                       Peças saem do estoque vendável de SP para uso da Fetely (mostruário, uso interno, brinde, feira). Sem viagem.
                     </span>

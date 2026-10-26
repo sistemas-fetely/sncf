@@ -257,7 +257,7 @@ export default function TransferenciasInternas() {
             {qtdNfsOrfas > 0 && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{qtdNfsOrfas}</Badge>}
           </TabsTrigger>
           <TabsTrigger value="baixas_uso" className="gap-1.5">
-            Baixas para uso
+            Baixas para uso e feira
             {qtdEmEvento > 0 && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{qtdEmEvento}</Badge>}
           </TabsTrigger>
         </TabsList>
