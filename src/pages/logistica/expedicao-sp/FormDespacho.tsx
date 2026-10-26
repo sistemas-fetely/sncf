@@ -34,10 +34,12 @@ interface Props {
   bloqueado?: boolean;
   /** Nome do cliente (razão social) — pré-preenche "Quem retirou". */
   clienteNome?: string | null;
+  /** Presente quando o form vive num diálogo: mostra "Cancelar" no rodapé. */
+  onCancelar?: () => void;
   onDespachar: (referencia: string | null, executor: string | null, modal: string) => void;
 }
 
-export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onDespachar }: Props) {
+export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onCancelar, onDespachar }: Props) {
   const qc = useQueryClient();
   // Modal vigente: considera troca registrada depois da embalagem.
   const vigenteQ = useQuery({
@@ -122,12 +124,12 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
     }
   } else if (ehCorreios) {
     if (!codigoRegistrado) {
-      campo = { id: "ref-correios", rotulo: "Código do comprovante de postagem", placeholder: "AA123456789BR", obrigatorio: true };
+      campo = { id: "ref-correios", rotulo: "Código do comprovante", placeholder: "AA123456789BR", obrigatorio: true };
     }
   } else if (modal?.sem_despacho) {
-    campo = { id: "ref-retirada", rotulo: "Quem retirou (nome / transportadora do cliente)", placeholder: "Obrigatório", obrigatorio: true };
+    campo = { id: "ref-retirada", rotulo: "Quem retirou", placeholder: "Nome de quem retira", obrigatorio: true };
   } else {
-    campo = { id: "ref-coleta", rotulo: "Referência da coleta (nº coleta / CT-e)", placeholder: "Obrigatório", obrigatorio: true };
+    campo = { id: "ref-coleta", rotulo: "Referência da coleta", placeholder: "Nº da coleta ou CT-e", obrigatorio: true };
   }
 
   const ref = campo?.id === "ref-correios" ? normalizarCodigoCorreios(referencia) : referencia.trim();
