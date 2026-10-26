@@ -104,13 +104,15 @@ export function PreFaturamentoCard({
     );
   }
 
+  const jaEnviado = blingIdDestino != null && String(blingIdDestino) !== "";
   const itens = (data.itens ?? []).map((i) =>
-    !exigeExpedicao && ITENS_FISICOS.has(i.codigo)
+    jaEnviado && i.codigo === "envio_bling"
+      ? { ...i, ok: true, naoSeAplica: false, detalhe: `Já enviado ao Bling (id ${blingIdDestino})` }
+      : !exigeExpedicao && ITENS_FISICOS.has(i.codigo)
       ? { ...i, ok: true, naoSeAplica: true, detalhe: "Não se aplica — natureza sem movimento físico" }
       : { ...i, naoSeAplica: false },
   );
   const bloqueadores = itens.filter((i) => i.bloqueia && !i.ok);
-  const jaEnviado = blingIdDestino != null && String(blingIdDestino) !== "";
   // Itens físicos "não se aplica" não contam como aviso.
   const exigeMotivo = exigeExpedicao
     ? data.exige_motivo
@@ -149,7 +151,7 @@ export function PreFaturamentoCard({
       {enviar.isPending
         ? <Loader2 className="h-4 w-4 animate-spin" />
         : <Send className="h-4 w-4" />}
-      Enviar ao Bling
+      {jaEnviado ? `Já enviado ao Bling (id ${blingIdDestino})` : "Enviar ao Bling"}
     </Button>
   );
 
