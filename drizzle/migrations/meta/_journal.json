@@ -99,6 +99,13 @@
       "when": 1793017714555,
       "tag": "0013_nf_fetely_orfa_inline",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793054169149,
+      "tag": "0014_mv_b2c_faturado_vs_recebido",
+      "breakpoints": true
     }
   ]
 }
