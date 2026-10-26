@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
+import { DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -141,81 +142,91 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-1.5">
+        <Label htmlFor="mesa-sp-modal">Modal</Label>
+        <Select value={modalCodigo} onValueChange={(v) => { setEscolhido(v); setErroTroca(null); }} disabled={bloqueado}>
+          <SelectTrigger id="mesa-sp-modal"><SelectValue placeholder="Escolher" /></SelectTrigger>
+          <SelectContent>
+            {opcoesModal.map((m) => <SelectItem key={m.codigo} value={m.codigo}>{m.nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {houveTroca && (
         <div className="space-y-1.5">
-          <Label htmlFor="mesa-sp-modal">Modal</Label>
-          <Select value={modalCodigo} onValueChange={(v) => { setEscolhido(v); setErroTroca(null); }} disabled={bloqueado}>
-            <SelectTrigger id="mesa-sp-modal"><SelectValue placeholder="Escolher" /></SelectTrigger>
+          <Label htmlFor="mesa-sp-troca-motivo">
+            Motivo da troca <span className="text-destructive" aria-hidden="true">*</span>
+          </Label>
+          <Textarea id="mesa-sp-troca-motivo" rows={2} value={motivoTroca} onChange={(e) => setMotivoTroca(e.target.value)} placeholder="Explique por que o modal mudou" />
+          {erroTroca && <p className="whitespace-pre-wrap text-xs text-destructive">{erroTroca}</p>}
+        </div>
+      )}
+
+      {usaExecutor && (
+        <div className="space-y-1.5">
+          <Label htmlFor="mesa-sp-executor">Quem entrega</Label>
+          <Select value={executor} onValueChange={setExecutor}>
+            <SelectTrigger id="mesa-sp-executor">
+              <SelectValue placeholder="Escolher" />
+            </SelectTrigger>
             <SelectContent>
-              {opcoesModal.map((m) => <SelectItem key={m.codigo} value={m.codigo}>{m.nome}</SelectItem>)}
+              {executores.map((e) => (
+                <SelectItem key={e.codigo} value={e.codigo}>{e.nome}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+      )}
 
-        {houveTroca && (
-          <div className="space-y-1.5 sm:col-span-2 sm:order-last">
-            <Label htmlFor="mesa-sp-troca-motivo">Motivo da troca</Label>
-            <Textarea id="mesa-sp-troca-motivo" rows={2} value={motivoTroca} onChange={(e) => setMotivoTroca(e.target.value)} placeholder="Obrigatório" />
-            {erroTroca && <p className="whitespace-pre-wrap text-xs text-destructive">{erroTroca}</p>}
-          </div>
-        )}
+      {ehCorreios && codigoRegistrado && (
+        <div className="space-y-1.5">
+          <Label>Código de rastreio</Label>
+          <p className="flex h-10 items-center font-mono text-sm">{codigoRegistrado}</p>
+        </div>
+      )}
 
-        {usaExecutor && (
-          <div className="space-y-1.5">
-            <Label htmlFor="mesa-sp-executor">Quem entrega</Label>
-            <Select value={executor} onValueChange={setExecutor}>
-              <SelectTrigger id="mesa-sp-executor">
-                <SelectValue placeholder="Escolher" />
-              </SelectTrigger>
-              <SelectContent>
-                {executores.map((e) => (
-                  <SelectItem key={e.codigo} value={e.codigo}>{e.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {ehCorreios && codigoRegistrado && (
-          <div className="space-y-1.5">
-            <Label>Código de rastreio</Label>
-            <p className="flex h-10 items-center font-mono text-sm">{codigoRegistrado}</p>
-          </div>
-        )}
-
-        {campo && (
-          <div className="space-y-1.5">
-            <Label htmlFor={`mesa-sp-${campo.id}`}>{campo.rotulo}</Label>
-            <Input
-              id={`mesa-sp-${campo.id}`}
-              className={campo.id === "ref-correios" ? "font-mono uppercase" : undefined}
-              value={referencia}
-              onChange={(e) => setReferencia(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && pode) {
-                  e.preventDefault();
-                  void despachar(ref || null, execEscolhido?.codigo ?? null);
-                }
-              }}
-              placeholder={campo.placeholder}
-              autoFocus={campo.id === "ref-correios"}
-            />
-          </div>
-        )}
-      </div>
+      {campo && (
+        <div className="space-y-1.5">
+          <Label htmlFor={`mesa-sp-${campo.id}`}>
+            {campo.rotulo}
+            {campo.obrigatorio && <span className="ml-0.5 text-destructive" aria-hidden="true">*</span>}
+          </Label>
+          <Input
+            id={`mesa-sp-${campo.id}`}
+            className={campo.id === "ref-correios" ? "font-mono uppercase" : undefined}
+            value={referencia}
+            onChange={(e) => setReferencia(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && pode) {
+                e.preventDefault();
+                void despachar(ref || null, execEscolhido?.codigo ?? null);
+              }
+            }}
+            placeholder={campo.placeholder}
+            autoFocus={campo.id === "ref-correios"}
+          />
+        </div>
+      )}
 
       {execQ.error && <p className="text-xs text-destructive">{formatError(execQ.error)}</p>}
       {docsQ.error && <p className="text-xs text-destructive">{formatError(docsQ.error)}</p>}
 
-      <BotaoGuardado
-        slug="acao.expedicao_sp_operar"
-        rotuloAcao="Despachar pedido"
-        onClick={() => void despachar(ref || null, execEscolhido?.codigo ?? null)}
-        disabled={!pode}
-      >
-        {despachando || salvandoTroca ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
-        {modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
-      </BotaoGuardado>
+      <DialogFooter className="gap-2">
+        {onCancelar && (
+          <Button type="button" variant="outline" onClick={onCancelar}>
+            Cancelar
+          </Button>
+        )}
+        <BotaoGuardado
+          slug="acao.expedicao_sp_operar"
+          rotuloAcao="Despachar pedido"
+          onClick={() => void despachar(ref || null, execEscolhido?.codigo ?? null)}
+          disabled={!pode}
+        >
+          {despachando || salvandoTroca ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
+          {modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
+        </BotaoGuardado>
+      </DialogFooter>
     </div>
   );
 }
