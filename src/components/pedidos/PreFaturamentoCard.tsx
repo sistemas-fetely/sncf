@@ -151,7 +151,7 @@ export function PreFaturamentoCard({
       {enviar.isPending
         ? <Loader2 className="h-4 w-4 animate-spin" />
         : <Send className="h-4 w-4" />}
-      {jaEnviado ? `Já enviado ao Bling (id ${blingIdDestino})` : "Enviar ao Bling"}
+      {jaEnviado ? "Já enviado ao Bling" : "Enviar ao Bling"}
     </Button>
   );
 
