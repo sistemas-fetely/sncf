@@ -106,7 +106,7 @@ export function PreFaturamentoCard({
 
   const jaEnviado = blingIdDestino != null && String(blingIdDestino) !== "";
   const itens = (data.itens ?? []).map((i) =>
-    jaEnviado && i.codigo === "envio_bling"
+    jaEnviado && i.codigo === "bling"
       ? { ...i, ok: true, naoSeAplica: false, detalhe: `Já enviado ao Bling (id ${blingIdDestino})` }
       : !exigeExpedicao && ITENS_FISICOS.has(i.codigo)
       ? { ...i, ok: true, naoSeAplica: true, detalhe: "Não se aplica — natureza sem movimento físico" }
