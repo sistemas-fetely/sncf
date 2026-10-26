@@ -85,6 +85,13 @@
       "when": 1792947400388,
       "tag": "0011_venda_direta_cartao_maquininha_funcoes",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793017681560,
+      "tag": "0012_nf_fetely_orfa",
+      "breakpoints": true
     }
   ]
 }
