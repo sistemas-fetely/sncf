@@ -55,6 +55,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
   const [desfecho, setDesfecho] = useState<string>("");
   const [previa, setPrevia] = useState<any | null>(null);
   const [previaErro, setPreviaErro] = useState<string | null>(null);
+  const [previaIniciada, setPreviaIniciada] = useState(false);
   const [previando, setPreviando] = useState(false);
   const [executando, setExecutando] = useState(false);
   const [erroExec, setErroExec] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
 
   function reset() {
     setBusca(""); setOpcoes(null); setSelId(pedidoId ?? null); setTipo("total"); setQtds({});
-    setMotivoCodigo(""); setMotivo(""); setDesfecho(""); setPrevia(null); setPreviaErro(null); setErroExec(null); setErroXpm(null);
+    setMotivoCodigo(""); setMotivo(""); setDesfecho(""); setPrevia(null); setPreviaErro(null); setPreviaIniciada(false); setErroExec(null); setErroXpm(null);
   }
 
   const momentoQ = useQuery({
@@ -154,18 +155,17 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
   }
 
   // Recalcula a prévia (debounce 400ms) depois da primeira vez.
-  const jaPreviu = previa !== null || previaErro !== null;
   const chave = JSON.stringify([selId, tipo, itens, motivo.trim(), motivoCodigo, desfecho]);
   const ultimaChave = useRef(chave);
   useEffect(() => {
-    if (!jaPreviu || chave === ultimaChave.current) return;
+    if (!previaIniciada || chave === ultimaChave.current) return;
     ultimaChave.current = chave;
     seq.current++; // invalida prévia anterior
-    setPrevia(null);
+    setPrevia(null); setPreviaErro(null);
     const t = setTimeout(() => { void verPrevia(); }, 400);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chave, jaPreviu]);
+  }, [chave, previaIniciada]);
 
   async function cortarXpm(motivoTxt: string) {
     const { data: ped, error: e1 } = await supabase.from("pedidos").select("xpm_expedicao_codigo").eq("id", selId!).maybeSingle();
@@ -352,13 +352,13 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
                   </div>
                 )}
 
-                {!jaPreviu && (
-                  <Button variant="outline" onClick={() => { ultimaChave.current = chave; void verPrevia(); }} disabled={!podePrevia || previando}>
+                {!previaIniciada && (
+                  <Button variant="outline" onClick={() => { setPreviaIniciada(true); ultimaChave.current = chave; void verPrevia(); }} disabled={!podePrevia || previando}>
                     {previando && <Loader2 className="h-4 w-4 animate-spin mr-2" />}Ver o que vai acontecer
                   </Button>
                 )}
 
-                {previando && jaPreviu && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Atualizando prévia…</div>}
+                {previando && previaIniciada && <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Atualizando prévia…</div>}
                 {previaErro && <Alert variant="destructive"><AlertDescription className="whitespace-pre-wrap">{previaErro}</AlertDescription></Alert>}
                 {previa && (
                   <div className="rounded-md border bg-card p-3 space-y-2 text-sm">
