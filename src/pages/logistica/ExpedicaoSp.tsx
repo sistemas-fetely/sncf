@@ -40,7 +40,7 @@ import {
 } from "./expedicao-sp/tipos";
 import {
   useAguardandoNfMesa, useCancelamentosMesaSp, useCaixasSugeridas, useChecklistEmbalagem, useDevolverFila, useDespachar, useDespacharLote, useEmbalar, useEncerrarCancelado, useEventosMesaSp,
-  useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega,
+  useIdentidadesMesaSp, useImagensProdutosMesa, useItensPedidoMesa, useMarcacoesEmbalagem, useMarcarRotina, useModaisEntrega, useTrocarModal,
   useEtapasMesaSp, useIniciarConferencia, usePedidosMesaSp, usePuxarPedido, useVoltarSeparacao, useRegistrarConferencia, useRegrasModal, useVdModosModal,
 } from "./expedicao-sp/useMesaSp";
 
@@ -201,6 +201,7 @@ export default function ExpedicaoSp() {
   const puxar = usePuxarPedido();
   const conferir = useRegistrarConferencia();
   const embalar = useEmbalar();
+  const trocarModal = useTrocarModal();
   const despachar = useDespachar();
   const despacharLote = useDespacharLote();
   const devolver = useDevolverFila();
@@ -653,16 +654,19 @@ export default function ExpedicaoSp() {
                 const nf = identidadesSelecionado?.nf_refs;
                 return (
                   <DespachoB2b
+                    pedidoId={selecionado.id}
+                    modalCodigo={emb?.modal ?? null}
                     modais={modaisQ.data ?? []}
                     medidas={`Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`}
                     nfRotulo={nf ? `NF ${nf}` : null}
                     despachando={despachar.isPending}
                     bloqueado={bloqueado}
-                    onDespachar={(modal, referencia) =>
+                    onDespachar={(modal, referencia, executor) =>
                       despachar.mutate({
                         p_pedido_id: selecionado.id,
                         p_modal: modal,
                         p_referencia: referencia,
+                        p_executor: executor,
                       })
                     }
                   />
@@ -754,18 +758,26 @@ export default function ExpedicaoSp() {
                   caixas={caixasQ.data ?? []}
                   carregandoCaixas={caixasQ.isLoading}
                   erroCaixas={caixasQ.error ? formatError(caixasQ.error) : null}
-                  salvando={embalar.isPending}
+                  salvando={embalar.isPending || trocarModal.isPending}
                   bloqueado={bloqueado}
-                  onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo) =>
-                    embalar.mutate({
+                  onEmbalar={(pesoKg, volumes, modal, checklist, caixaCodigo, motivoTroca) => {
+                    const args = {
                       p_pedido_id: selecionado.id,
                       p_peso_kg: pesoKg,
                       p_volumes: volumes,
                       p_modal: modal,
                       p_checklist: checklist,
                       p_caixa_codigo: caixaCodigo,
-                    })
-                  }
+                    };
+                    if (motivoTroca) {
+                      trocarModal.mutate(
+                        { p_pedido_id: selecionado.id, p_modal: modal, p_motivo: motivoTroca },
+                        { onSuccess: () => embalar.mutate(args) },
+                      );
+                    } else {
+                      embalar.mutate(args);
+                    }
+                  }}
                 />
               )}
 
@@ -788,11 +800,12 @@ export default function ExpedicaoSp() {
                   modais={modaisQ.data ?? []}
                   modalEmbalado={modalDoEmbalado(eventosSelecionado)}
                   despachando={despachar.isPending}
-                  onDespachar={(modal, referencia) =>
+                  onDespachar={(modal, referencia, executor) =>
                     despachar.mutate({
                       p_pedido_id: selecionado.id,
                       p_modal: modal,
                       p_referencia: referencia,
+                      p_executor: executor,
                     })
                   }
                   gruposColeta={selecionadoAguardandoRetirada ? [] : gruposColeta}

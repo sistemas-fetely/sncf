@@ -1,45 +1,32 @@
-import { useEffect, useState } from "react";
-import { Loader2, Truck } from "lucide-react";
+import { useState } from "react";
+import { Truck } from "lucide-react";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { FormDespacho } from "./FormDespacho";
 import type { ModalEntrega } from "./tipos";
 
 /**
  * Despacho do B2B expedido pelo Site SP: só em `faturado` (depois da NF), só
- * individual (não entra no despacho em lote). Referência obrigatória — é o
- * CT-e / nº da coleta que acompanha a carga.
+ * individual. O modal é o da embalagem (fixo); os campos seguem o modal —
+ * Retirada pede "quem retirou" e fecha o pedido como entregue.
  */
 interface Props {
+  pedidoId: string;
+  modalCodigo: string | null;
   modais: ModalEntrega[];
   medidas: string;
   nfRotulo: string | null;
   despachando: boolean;
-  onDespachar: (modal: string, referencia: string) => void;
+  onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   bloqueado?: boolean;
 }
 
-const MODAL_PADRAO = "TRANSPORTADORA";
-
-export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false }: Props) {
+export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false }: Props) {
   const [aberto, setAberto] = useState(false);
-  const [modal, setModal] = useState(MODAL_PADRAO);
-  const [referencia, setReferencia] = useState("");
-
-  useEffect(() => {
-    if (aberto) setModal(MODAL_PADRAO);
-  }, [aberto]);
-
-  const opcoes = modais.filter((m) => !m.sem_despacho);
-  const pode = modal !== "" && referencia.trim() !== "" && !despachando && !bloqueado;
+  const nome = modais.find((m) => m.codigo === modalCodigo)?.nome ?? modalCodigo ?? "sem modal";
 
   return (
     <>
@@ -47,12 +34,12 @@ export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespacha
         <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
           <p className="text-sm">
             {medidas}
-            {nfRotulo ? ` — ${nfRotulo}` : ""} — pronto para despacho.
+            {nfRotulo ? ` — ${nfRotulo}` : ""} — {nome} — pronto para despacho.
           </p>
           <BotaoGuardado
             slug="acao.expedicao_sp_operar"
             rotuloAcao="Despachar pedido B2B"
-            onClick={() => { setReferencia(""); setAberto(true); }}
+            onClick={() => setAberto(true)}
           >
             <Truck aria-hidden="true" />
             Despachar
@@ -64,46 +51,22 @@ export function DespachoB2b({ modais, medidas, nfRotulo, despachando, onDespacha
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Despachar pedido B2B</DialogTitle>
-            <DialogDescription>
-              Informe a transportadora e a referência da coleta. O pedido sai da Mesa.
-            </DialogDescription>
+            <DialogDescription>O pedido sai da Mesa pelo modal da embalagem.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="b2b-despacho-modal">Modal</Label>
-              <Select value={modal} onValueChange={setModal}>
-                <SelectTrigger id="b2b-despacho-modal">
-                  <SelectValue placeholder="Escolher modal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {opcoes.map((m) => (
-                    <SelectItem key={m.codigo} value={m.codigo}>{m.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="b2b-despacho-ref">CT-e / nº da coleta / transportadora</Label>
-              <Input
-                id="b2b-despacho-ref"
-                value={referencia}
-                onChange={(e) => setReferencia(e.target.value)}
-                placeholder="Obrigatório"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAberto(false)} disabled={despachando}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={!pode}
-              onClick={() => { onDespachar(modal, referencia.trim()); setAberto(false); }}
-            >
-              {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
-              Despachar
-            </Button>
-          </DialogFooter>
+          {aberto && (
+            <FormDespacho
+              pedidoId={pedidoId}
+              modalCodigo={modalCodigo}
+              modais={modais}
+              despachando={despachando}
+              bloqueado={bloqueado}
+              onDespachar={(ref, exec) => {
+                if (!modalCodigo) return;
+                onDespachar(modalCodigo, ref, exec);
+                setAberto(false);
+              }}
+            />
+          )}
         </DialogContent>
       </Dialog>
     </>
