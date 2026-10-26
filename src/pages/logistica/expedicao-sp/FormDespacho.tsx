@@ -15,8 +15,8 @@ import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } f
 import { useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 
 /**
- * Despacho individual (B2C e B2B). O modal NÃO se escolhe aqui: é o da
- * embalagem, mostrado fixo. Os campos dependem do modal; quem valida de
+ * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;
+ * trocar exige motivo e chama fn_mesa_sp_trocar_modal antes do despacho. Os campos dependem do modal; quem valida de
  * verdade é `fn_mesa_sp_despachar` — o erro dela sobe como está (FAIL-LOUD).
  *
  * - Modal com executores em `mesa_sp_executor` (Frete Fetely): "Quem entrega";
@@ -192,7 +192,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
               onKeyDown={(e) => {
                 if (e.key === "Enter" && pode) {
                   e.preventDefault();
-                  onDespachar(ref || null, execEscolhido?.codigo ?? null, modalCodigo);
+                  void despachar(ref || null, execEscolhido?.codigo ?? null);
                 }
               }}
               placeholder={campo.placeholder}
@@ -208,10 +208,10 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
       <BotaoGuardado
         slug="acao.expedicao_sp_operar"
         rotuloAcao="Despachar pedido"
-        onClick={() => onDespachar(ref || null, execEscolhido?.codigo ?? null, modalCodigo)}
+        onClick={() => void despachar(ref || null, execEscolhido?.codigo ?? null)}
         disabled={!pode}
       >
-        {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
+        {despachando || salvandoTroca ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
         {modal?.sem_despacho ? "Registrar retirada" : "Despachar"}
       </BotaoGuardado>
     </div>

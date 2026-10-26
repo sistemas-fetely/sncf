@@ -52,7 +52,7 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Despachar pedido B2B</DialogTitle>
-            <DialogDescription>O pedido sai da Mesa pelo modal da embalagem.</DialogDescription>
+            <DialogDescription>Confira o modal e informe a referência. O pedido sai da Mesa.</DialogDescription>
           </DialogHeader>
           {aberto && (
             <FormDespacho
