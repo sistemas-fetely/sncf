@@ -22,6 +22,33 @@ interface EnviarBlingParams {
   motivo?: string;
 }
 
+/** Falha em que o servidor pode ter concluído o envio sem a resposta chegar
+ *  (corte de ~150s do gateway, queda de rede, 5xx). */
+function respostaIncerta(error: any): boolean {
+  const nome = String(error?.name ?? "");
+  if (nome === "FunctionsFetchError" || nome === "FunctionsRelayError") return true;
+  const status = Number(error?.context?.status ?? 0);
+  return status === 0 || status >= 500;
+}
+
+const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Relê o pedido até o envio aparecer gravado (a edge grava só no fim). */
+async function aguardarEnvioGravado(pedidoId: string, limiteMs = 180_000): Promise<number | null> {
+  const fim = Date.now() + limiteMs;
+  while (Date.now() < fim) {
+    const { data } = await supabase
+      .from("pedidos")
+      .select("bling_id_destino")
+      .eq("id", pedidoId)
+      .maybeSingle();
+    const id = (data as any)?.bling_id_destino;
+    if (id) return Number(id);
+    await espera(5000);
+  }
+  return null;
+}
+
 export function useEnviarBling() {
   const qc = useQueryClient();
   const { toast } = useToast();
@@ -36,6 +63,17 @@ export function useEnviarBling() {
         "enviar-pedido-bling",
         { body },
       );
+      if (error && respostaIncerta(error)) {
+        // Pedido grande (ex.: TRS com centenas de itens) passa do tempo máximo da
+        // conexão: a tela recebia erro e rebuscava ANTES da edge gravar o envio.
+        const blingId = await aguardarEnvioGravado(pedido_id);
+        if (blingId) {
+          return { sucesso: true, bling_id: blingId, proximo_passo: "confirmado após resposta demorada" };
+        }
+        throw new Error(
+          "O Bling demorou e a resposta não chegou. Recarregue o pedido e confira se já foi enviado antes de tentar de novo.",
+        );
+      }
       if (error) {
         let msg = error.message;
         try {
