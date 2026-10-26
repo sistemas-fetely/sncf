@@ -20,6 +20,13 @@ function hojeBR(): string {
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date());
 }
 
+function ehNaoEncontrado(e: unknown): boolean {
+  if (e instanceof BlingHttpError && e.status === 404) return true;
+  if ((e as any)?.status === 404) return true;
+  const msg = e instanceof Error ? e.message : String(e);
+  return msg.includes("Bling 404") || msg.includes("RESOURCE_NOT_FOUND");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   const inicio = Date.now();
