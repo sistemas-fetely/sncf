@@ -33,12 +33,12 @@ async function resolvePedidoId(supabase: any, ref: any): Promise<string | null> 
 
 export function parseBlingDate(val: unknown): string | null { if (!val) return null; const s = String(val).split(/[T ]/)[0]; return s.startsWith("0000") ? null : s; }
 
-const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "cancelada", 3: "pendente", 4: "rejeitada", 5: "autorizada", 6: "autorizada", 7: "registrada", 8: "pendente", 9: "denegada", 10: "pendente", 11: "bloqueada", };
+export const SITUACAO_MAP: Record<number, string> = { 1: "pendente", 2: "cancelada", 3: "pendente", 4: "rejeitada", 5: "autorizada", 6: "autorizada", 7: "registrada", 8: "pendente", 9: "denegada", 10: "pendente", 11: "bloqueada", };
 
 // Deteccao de cancelamento: Bling devolve situacao=5 (autorizada) na listagem mesmo
 // para nota cancelada. A verdade vem no detalhe, em situacaoCancelamento (numero,
 // string ou objeto com .valor) e/ou cancelamento (objeto com dataCancelamento etc).
-function detectarCancelamento(d: any): { cancelada: boolean; raw: any } {
+export function detectarCancelamento(d: any): { cancelada: boolean; raw: any } {
   const sc = d?.situacaoCancelamento;
   const scVal = sc != null && typeof sc === "object" ? sc.valor : sc;
   let porSituacaoCancelamento = false;
@@ -67,7 +67,9 @@ export function novoEstadoNfe(limite90d?: string): EstadoNfe {
 }
 
 // Porta unica: processa UMA NF (item da listagem ou detalhe) com a mesma regra da varredura.
-export async function processarNfItem(supabase: any, client: BlingClient, nf: any, st: EstadoNfe) {
+// opts.forcarDetalhe: reabre o detalhe mesmo com a NF completa (reconferencia de
+// status, inclusive 'pendente'). Sem opts o comportamento e o de sempre.
+export async function processarNfItem(supabase: any, client: BlingClient, nf: any, st: EstadoNfe, opts?: { forcarDetalhe?: boolean }) {
 
   try {
     const blingId = String(nf.id);
@@ -108,7 +110,7 @@ export async function processarNfItem(supabase: any, client: BlingClient, nf: an
     let pedidoVendaBlingIdRaw: string | null = null;
     let serieDetalhe: string | null = null;
 
-    if (semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || semDuplicatas || revalidarCancelamento) {
+    if (opts?.forcarDetalhe || semValor || semFrete || semPedido || semTransporte || semSerie || semArquivo || semDuplicatas || revalidarCancelamento) {
 
       if (revalidarCancelamento) st.revalidados++;
 
@@ -337,4 +339,11 @@ export async function sincronizarNfePorId(supabase: any, client: BlingClient, bl
   await processarNfItem(supabase, client, nf, st);
   if (st.erros > 0) throw new Error(st.ultimoErro || `falha ao gravar NF ${blingId}`);
   return { criada: st.criados > 0, atualizada: st.atualizados > 0, erroDetalhe: st.errosDetalhe > 0 };
+}
+
+// Situacao real a partir do detalhe — mesma regra do processarNfItem (cancelamento tem precedencia).
+export function situacaoRealDetalhe(d: any): string | null {
+  const n = typeof d?.situacao === "object" ? d.situacao?.valor : d?.situacao;
+  if (detectarCancelamento(d).cancelada || SITUACAO_MAP[Number(n)] === "cancelada") return "cancelada";
+  return n != null ? (SITUACAO_MAP[Number(n)] ?? null) : null;
 }
