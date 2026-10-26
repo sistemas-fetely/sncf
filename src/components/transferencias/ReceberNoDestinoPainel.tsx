@@ -9,7 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ReceberTransferenciaDialog } from "@/components/estoque/ReceberTransferenciaDialog";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useTrsAtrasados, useTrsNaturezaDivergente } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { GavetaTransferencia } from "@/components/transferencias/GavetaTransferencia";
 import { formatError } from "@/lib/format-error";
 import { fmtData } from "@/lib/data";
@@ -164,6 +166,22 @@ export function ReceberNoDestinoPainel() {
   }, [recebidasQ.isError, recebidasQ.error]);
 
   const pendentes = pendentesQ.data ?? [];
+  const atrasQ = useTrsAtrasados();
+  const divQ = useTrsNaturezaDivergente();
+  const diasAtraso = new Map((atrasQ.data ?? []).map((a) => [a.id_externo, a.dias_em_transito]));
+  const divergentes = new Set((divQ.data ?? []).map((d) => d.id_externo));
+
+  // Link vindo do alerta do Painel: ?receber_trs=TRS-xxxx abre o recebimento desse TRS.
+  const [params, setParams] = useSearchParams();
+  const alvoTrs = params.get("receber_trs");
+  useEffect(() => {
+    if (!alvoTrs || !pendentesQ.isSuccess) return;
+    const l = pendentes.find((p) => p.id_externo === alvoTrs);
+    if (l && !divergentes.has(alvoTrs)) setReceber(l);
+    else if (!l) toast.error(`${alvoTrs} não está na lista a receber.`);
+    setParams((p) => { const n = new URLSearchParams(p); n.delete("receber_trs"); return n; }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [alvoTrs, pendentesQ.isSuccess, divQ.isSuccess]);
   const recebidas = recebidasQ.data ?? [];
 
   return (
@@ -205,12 +223,28 @@ export function ReceberNoDestinoPainel() {
                     <TableCell className="tabular-nums">{p.nf_numero ?? "—"}</TableCell>
                     <TableCell className="text-sm">{p.nf_data_emissao ? fmtData(p.nf_data_emissao) : "—"}</TableCell>
                     <TableCell className="text-sm">{p.finalidade ?? "—"}</TableCell>
-                    <TableCell><SeloEstagio estagio={p.estagio} /></TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap items-center gap-1">
+                        <SeloEstagio estagio={p.estagio} />
+                        {p.id_externo && diasAtraso.has(p.id_externo) && (
+                          <Badge variant="outline" className="border-warning/50 bg-warning/10 text-warning-foreground">há {diasAtraso.get(p.id_externo)} dias</Badge>
+                        )}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">{p.itens}</TableCell>
                     <TableCell className="text-right tabular-nums">{p.pecas}</TableCell>
                     <TableCell>{p.destinoRotulo ?? p.destinoCodigo ?? "—"}</TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                      <BotaoGuardado slug="acao.trs_receber_destino" rotuloAcao="Receber transferência no centro de destino" size="sm" onClick={() => setReceber(p)}>Receber</BotaoGuardado>
+                      {p.id_externo && divergentes.has(p.id_externo) ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span tabIndex={0}><Button size="sm" disabled>Receber</Button></span>
+                          </TooltipTrigger>
+                          <TooltipContent>NF com natureza errada — fale com o fiscal</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <BotaoGuardado slug="acao.trs_receber_destino" rotuloAcao="Receber transferência no centro de destino" size="sm" onClick={() => setReceber(p)}>Receber</BotaoGuardado>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -267,7 +301,7 @@ export function ReceberNoDestinoPainel() {
         pedidoId={gaveta?.id ?? null}
         onClose={() => setGaveta(null)}
         recebimento={gaveta?.rec ?? null}
-        onReceber={gaveta?.linha ? () => { const l = gaveta.linha!; setGaveta(null); setReceber(l); } : undefined}
+        onReceber={gaveta?.linha && !(gaveta.linha.id_externo && divergentes.has(gaveta.linha.id_externo)) ? () => { const l = gaveta.linha!; setGaveta(null); setReceber(l); } : undefined}
       />
 
       {receber && (
@@ -277,6 +311,7 @@ export function ReceberNoDestinoPainel() {
           pedidoId={receber.id}
           titulo={receber.id_externo ?? receber.id.slice(0, 8)}
           destinoCodigo={receber.destinoCodigo}
+          destinoRotulo={receber.destinoRotulo}
           onRecebido={() => {
             void qc.invalidateQueries({ queryKey: ["recebimento-loja"] });
             void qc.invalidateQueries({ queryKey: ["transferencias-internas"] });

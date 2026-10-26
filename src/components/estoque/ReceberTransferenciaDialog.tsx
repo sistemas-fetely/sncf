@@ -15,6 +15,7 @@ import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { formatError } from "@/lib/format-error";
 import { hojeISO } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { LeitorCodigoBarras, type LeituraCodigo } from "@/components/estoque/LeitorCodigoBarras";
 
@@ -42,10 +43,12 @@ interface Props {
   pedidoId: string;
   titulo: string;
   destinoCodigo: string | null;
+  destinoRotulo?: string | null;
   onRecebido: () => void;
 }
 
-export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, onRecebido }: Props) {
+export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo, destinoCodigo, destinoRotulo, onRecebido }: Props) {
+  const [confirmando, setConfirmando] = useState(false);
   const [data, setData] = useState(hojeISO());
   const [centro, setCentro] = useState("SITE-SP");
   const [recebido, setRecebido] = useState<Record<string, string>>({});
@@ -376,7 +379,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                 rotuloAcao="Confirmar recebimento"
                 contexto={{ pedido_id: pedidoId }}
                 disabled={receber.isPending || itens.length === 0 || invalido || futuro || semDestino}
-                onClick={() => receber.mutate()}
+                onClick={() => setConfirmando(true)}
               >
                 {receber.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar recebimento
@@ -385,6 +388,20 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
           </div>
         )}
       </DialogContent>
+      <AlertDialog open={confirmando} onOpenChange={setConfirmando}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar chegada física</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirma que a carga do {titulo} chegou fisicamente em {destinoRotulo ?? destinoCodigo ?? centro}? As peças passam a vender.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmando(false); receber.mutate(); }}>Sim, chegou</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
