@@ -7,7 +7,7 @@ import { formatBRL, formatDateBR } from "@/lib/format-currency";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Selo } from "@/components/ui/selo";
 import { RegularizacaoStatus } from "@/components/regularizacao/RegularizacaoStatus";
-import type { RegularizacaoLote, RegularizacaoRetorno, TrsNf } from "@/components/regularizacao/types";
+import { ordenarRetornos, rotuloNfOrigem, type RegularizacaoLote, type RegularizacaoRetorno, type TrsNf } from "@/components/regularizacao/types";
 
 const n = (v: number | null | undefined) => Number(v ?? 0).toLocaleString("pt-BR");
 const autorizada = (s: string | null) => /autoriz|emitid/i.test(s ?? "");
@@ -25,7 +25,7 @@ export function TrilhaLote({ lote, retornos }: { lote: RegularizacaoLote; retorn
   return <div className="space-y-5">
     <section className="space-y-2"><h3 className="text-sm font-semibold">Ida e retorno</h3>
       <div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>NF origem</TableHead><TableHead>Data</TableHead><TableHead className="text-right">Peças</TableHead><TableHead /><TableHead>NF de retorno</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
-        <TableBody>{retornos.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">Nenhuma NF de origem distribuída.</TableCell></TableRow> : retornos.map((r) => <TableRow key={r.id}><TableCell className="font-mono text-xs">{r.nf_origem_numero}</TableCell><TableCell>{formatDateBR(r.nf_origem_data)}</TableCell><TableCell className="text-right tabular-nums">{n(r.pecas)}</TableCell><TableCell><ArrowRight className="h-4 w-4 text-muted-foreground" /></TableCell><TableCell className="font-mono text-xs">{r.nf_retorno_numero ?? "—"}</TableCell><TableCell><RegularizacaoStatus status={r.status} /></TableCell></TableRow>)}</TableBody></Table></div>
+        <TableBody>{retornos.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground">Nenhuma NF de origem distribuída.</TableCell></TableRow> : ordenarRetornos(retornos).map((r) => <TableRow key={r.id}><TableCell className="whitespace-nowrap font-mono text-xs">{rotuloNfOrigem(r)}</TableCell><TableCell>{formatDateBR(r.nf_origem_data)}</TableCell><TableCell className="text-right tabular-nums">{n(r.pecas)}</TableCell><TableCell><ArrowRight className="h-4 w-4 text-muted-foreground" /></TableCell><TableCell className="font-mono text-xs">{r.nf_retorno_numero ?? "—"}</TableCell><TableCell><RegularizacaoStatus status={r.status} /></TableCell></TableRow>)}</TableBody></Table></div>
     </section>
     <section className="space-y-2"><h3 className="text-sm font-semibold">Transferência 6152{lote.trs_numero ? ` · ${lote.trs_numero}` : ""}</h3>
       <div className="overflow-x-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>NF</TableHead><TableHead>Situação</TableHead><TableHead>Data</TableHead><TableHead className="text-right">Valor</TableHead><TableHead className="text-right">Peças da NF</TableHead><TableHead className="text-right">Entraram no estoque</TableHead></TableRow></TableHeader>

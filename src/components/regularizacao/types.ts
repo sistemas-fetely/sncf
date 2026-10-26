@@ -38,5 +38,10 @@ export interface RegularizacaoRetornoItem {
 export interface RegularizacaoRetorno {
   id: string; lote_id: string; nf_origem_numero: string; nf_origem_chave: string; nf_origem_data: string | null;
   linhas: number; pecas: number; valor: number; status: string; bling_nfe_id: number | null;
-  nf_retorno_numero: string | null; erro: string | null; itens?: RegularizacaoRetornoItem[];
+  nf_retorno_numero: string | null; erro: string | null; parte?: number | null; partes?: number | null; itens?: RegularizacaoRetornoItem[];
 }
+
+/** "000779 · parte 1/2" quando o retorno da NF de origem foi dividido. */
+export const rotuloNfOrigem = (r: Pick<RegularizacaoRetorno, "nf_origem_numero" | "parte" | "partes">) => Number(r.partes ?? 1) > 1 ? `${r.nf_origem_numero} · parte ${r.parte ?? 1}/${r.partes}` : r.nf_origem_numero;
+/** Ordena por NF de origem e parte. */
+export const ordenarRetornos = <T extends Pick<RegularizacaoRetorno, "nf_origem_numero" | "parte">>(lista: T[]) => [...lista].sort((a, b) => a.nf_origem_numero.localeCompare(b.nf_origem_numero, "pt-BR", { numeric: true }) || Number(a.parte ?? 1) - Number(b.parte ?? 1));

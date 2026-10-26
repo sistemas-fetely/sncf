@@ -44677,6 +44677,7 @@ export type Database = {
           observacoes: string | null
           origem: string | null
           parceiro_id: string | null
+          parte_faturamento_dividido: boolean
           pdf_url: string | null
           pedido_venda_id: string | null
           raw: Json | null
@@ -44726,6 +44727,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           parceiro_id?: string | null
+          parte_faturamento_dividido?: boolean
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
@@ -44775,6 +44777,7 @@ export type Database = {
           observacoes?: string | null
           origem?: string | null
           parceiro_id?: string | null
+          parte_faturamento_dividido?: boolean
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
@@ -68186,6 +68189,8 @@ export type Database = {
           nf_origem_numero: string
           nf_retorno_id: string | null
           nf_retorno_numero: string | null
+          parte: number
+          partes: number
           pecas: number
           rascunho_em: string | null
           rascunho_por: string | null
@@ -68205,6 +68210,8 @@ export type Database = {
           nf_origem_numero: string
           nf_retorno_id?: string | null
           nf_retorno_numero?: string | null
+          parte?: number
+          partes?: number
           pecas?: number
           rascunho_em?: string | null
           rascunho_por?: string | null
@@ -68224,6 +68231,8 @@ export type Database = {
           nf_origem_numero?: string
           nf_retorno_id?: string | null
           nf_retorno_numero?: string | null
+          parte?: number
+          partes?: number
           pecas?: number
           rascunho_em?: string | null
           rascunho_por?: string | null
@@ -146192,6 +146201,10 @@ export type Database = {
         Returns: string
       }
       fn_refresh_dre: { Args: never; Returns: undefined }
+      fn_reg_lote_concluir_se_completo: {
+        Args: { p_lote_id: string }
+        Returns: boolean
+      }
       fn_registrar_contagem: {
         Args: {
           p_centro_codigo: string
@@ -147608,6 +147621,10 @@ export type Database = {
       }
       reg_lote_criar_trs: { Args: { p_lote_id: string }; Returns: Json }
       reg_lote_distribuir: { Args: { p_lote_id: string }; Returns: Json }
+      reg_retorno_dividir_planejadas: {
+        Args: { p_lote_id: string }
+        Returns: number
+      }
       reg_retorno_registrar: {
         Args: {
           p_bling_nfe_id?: number
