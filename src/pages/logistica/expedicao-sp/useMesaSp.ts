@@ -6,7 +6,7 @@ import { formatError } from "@/lib/format-error";
 import {
   EVENTO_ROTEADO,
   type AguardandoNfMesa, type CaixaSugerida, type DadosImpressao, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
-  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal, type PesoEstimado,
+  type ImagemProdutoMesa, type ModalEntrega, type ModalRegra, type PedidoMesa, type VdModoModal, type PesoEstimado, type ModalSugerido, type ExecutorMesa,
 } from "./tipos";
 
 /**
@@ -208,7 +208,10 @@ export function useImagensProdutosMesa(skus: string[]) {
   });
 }
 
-/** Dimensão de modais ativos — o select da embalagem lê daqui, nunca de lista fixa. */
+/**
+ * Dimensão de modais (ativos E inativos): opções de escolha filtram `ativo`;
+ * nomes no histórico (MOTOBOY/LALAMOVE antigos) continuam resolvendo.
+ */
 export function useModaisEntrega() {
   return useQuery({
     queryKey: ["mesa-sp", "modais"],
@@ -216,8 +219,7 @@ export function useModaisEntrega() {
     queryFn: async (): Promise<ModalEntrega[]> => {
       const { data, error } = await supabaseMesa
         .from("b2c_modal_entrega")
-        .select("codigo, nome, tem_rastreio_automatico, exige_etiqueta_correios, sem_despacho")
-        .eq("ativo", true)
+        .select("codigo, nome, tem_rastreio_automatico, exige_etiqueta_correios, sem_despacho, ativo")
         .order("nome", { ascending: true });
       if (error) throw new Error(`ler modais de entrega: ${mensagemErro(error)}`);
       return (data ?? []) as ModalEntrega[];
@@ -600,6 +602,7 @@ export function useDespachar() {
     p_pedido_id: string;
     p_modal: string;
     p_referencia: string | null;
+    p_executor: string | null;
   }>("fn_mesa_sp_despachar", () => "Pedido despachado — saiu da mesa.");
 }
 
@@ -634,5 +637,51 @@ export function useEncerrarCancelado() {
   return useRpcMesa<{ p_pedido_id: string }>(
     "fn_mesa_sp_encerrar_cancelado",
     () => "Pedido encerrado — itens de volta à prateleira.",
+  );
+}
+
+/** Modal sugerido pelo banco para o pedido (`fn_mesa_sp_modal_sugerido`); null = escolha livre. */
+export function useModalSugerido(pedidoId: string | null) {
+  return useQuery({
+    queryKey: ["mesa-sp", "modal-sugerido", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async (): Promise<ModalSugerido | null> => {
+      const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_modal_sugerido", { p_pedido_id: pedidoId });
+      if (error) throw new Error(`ler modal sugerido: ${mensagemErro(error)}`);
+      const r = data as ModalSugerido | null;
+      return r && r.modal ? r : null;
+    },
+  });
+}
+
+/** Executores ativos do Frete Fetely (`mesa_sp_executor`), na ordem do banco. */
+export function useExecutoresMesa() {
+  return useQuery({
+    queryKey: ["mesa-sp", "executores"],
+    staleTime: 10 * 60 * 1000,
+    queryFn: async (): Promise<ExecutorMesa[]> => {
+      const { data, error } = await supabaseMesa
+        .from("mesa_sp_executor")
+        .select("codigo, modal_codigo, nome, rotulo_cliente, exige_referencia, ordem")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw new Error(`ler executores: ${mensagemErro(error)}`);
+      return (data ?? []) as ExecutorMesa[];
+    },
+  });
+}
+
+/** Troca de modal com motivo — precisa vir ANTES de `fn_mesa_sp_embalar`. */
+export function useTrocarModal() {
+  return useRpcMesa<{ p_pedido_id: string; p_modal: string; p_motivo: string }>(
+    "fn_mesa_sp_trocar_modal",
+    () => "Troca de modal registrada.",
+  );
+}
+
+export function usePostarAgencia() {
+  return useRpcDocumento<{ p_pedido_id: string }>(
+    "fn_mesa_sp_postar_agencia",
+    "Postagem na agência marcada — bipe o código do comprovante no despacho.",
   );
 }
