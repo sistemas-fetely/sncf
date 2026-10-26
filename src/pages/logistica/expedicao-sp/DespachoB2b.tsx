@@ -49,7 +49,7 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
       </Card>
 
       <Dialog open={aberto} onOpenChange={setAberto}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Despachar pedido B2B</DialogTitle>
             <DialogDescription>Confira o modal e informe a referência. O pedido sai da Mesa.</DialogDescription>
@@ -62,6 +62,7 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
               despachando={despachando}
               bloqueado={bloqueado}
               clienteNome={clienteNome}
+              onCancelar={() => setAberto(false)}
               onDespachar={(ref, exec, modal) => {
                 onDespachar(modal, ref, exec);
                 setAberto(false);
