@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
           d = det?.data ?? null;
           if (!d) notFound = true;
         } catch (e) {
-          if (e instanceof BlingHttpError && e.status === 404) notFound = true;
+          if (ehNaoEncontrado(e)) notFound = true;
           else throw e;
         }
 
