@@ -39,6 +39,7 @@ import { InfoMetrica } from "@/components/metricas/InfoMetrica";
 import { useDevolucoesRetornoPendente } from "@/hooks/estoque/useDevolucoesRetornoPendente";
 import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialog";
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
+import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
@@ -284,9 +285,15 @@ export default function RetornoDevolucao() {
           title="Devoluções"
           subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
-            <Button variant="outline" size="sm" onClick={() => { void funilQ.refetch(); void pendQ.refetch(); }} disabled={isFetching} className="gap-2">
-              <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />Atualizar
-            </Button>
+            <div className="flex items-center gap-2">
+              <DeclararCancelamentoDialog
+                trigger={<Button size="sm" className="gap-2"><Undo2 className="h-4 w-4" />Cancelar / Devolver pedido</Button>}
+                onConcluido={() => { void funilQ.refetch(); void pendQ.refetch(); }}
+              />
+              <Button variant="outline" size="sm" onClick={() => { void funilQ.refetch(); void pendQ.refetch(); }} disabled={isFetching} className="gap-2">
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />Atualizar
+              </Button>
+            </div>
           }
         />
 
