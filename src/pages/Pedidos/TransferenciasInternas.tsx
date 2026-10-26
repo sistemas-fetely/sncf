@@ -56,6 +56,7 @@ import { TransferenciasSemBaixaPainel } from "@/components/estoque/Transferencia
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
 import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
+import { AlertasTransferenciaFisica } from "@/components/transferencias/AlertasTransferenciaFisica";
 import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
 
 
@@ -268,6 +269,7 @@ export default function TransferenciasInternas() {
           </TabsContent>
         )}
         <TabsContent value="transferencias" className="space-y-6">
+      <AlertasTransferenciaFisica />
       {temPendencia && (
         <div className="flex flex-wrap gap-3">
           {nSemBaixa > 0 && (
