@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send, MinusCircle } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useRemessas } from "@/hooks/pedidos/useRemessas";
+import { pedidoDividido as ehPedidoDividido, remessasAtivas } from "@/lib/pedidos/remessasDivididas";
 import { useNivel } from "@/hooks/useNivel";
 
 /**
@@ -71,6 +73,7 @@ export function PreFaturamentoCard({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
+  const { data: remessas } = useRemessas(pedidoId);
 
   const { data, isLoading, error } = useQuery({
     queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId),
