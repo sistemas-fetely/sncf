@@ -7714,8 +7714,16 @@ export type Database = {
           finalidade_codigo: string
           id: string
           modo: string
+          nf_retorno_bling_id: number | null
+          nf_retorno_erro: string | null
           nf_retorno_id: string | null
+          nf_retorno_numero: string | null
+          nf_retorno_status: string | null
+          nf_saida_bling_id: number | null
+          nf_saida_erro: string | null
           nf_saida_id: string | null
+          nf_saida_numero: string | null
+          nf_saida_status: string | null
           status: string
         }
         Insert: {
@@ -7734,8 +7742,16 @@ export type Database = {
           finalidade_codigo: string
           id?: string
           modo: string
+          nf_retorno_bling_id?: number | null
+          nf_retorno_erro?: string | null
           nf_retorno_id?: string | null
+          nf_retorno_numero?: string | null
+          nf_retorno_status?: string | null
+          nf_saida_bling_id?: number | null
+          nf_saida_erro?: string | null
           nf_saida_id?: string | null
+          nf_saida_numero?: string | null
+          nf_saida_status?: string | null
           status: string
         }
         Update: {
@@ -7754,8 +7770,16 @@ export type Database = {
           finalidade_codigo?: string
           id?: string
           modo?: string
+          nf_retorno_bling_id?: number | null
+          nf_retorno_erro?: string | null
           nf_retorno_id?: string | null
+          nf_retorno_numero?: string | null
+          nf_retorno_status?: string | null
+          nf_saida_bling_id?: number | null
+          nf_saida_erro?: string | null
           nf_saida_id?: string | null
+          nf_saida_numero?: string | null
+          nf_saida_status?: string | null
           status?: string
         }
         Relationships: [
@@ -94622,11 +94646,16 @@ export type Database = {
           finalidade_rotulo: string | null
           id: string | null
           modo: string | null
+          nf_retorno_erro: string | null
+          nf_retorno_numero: string | null
+          nf_saida_erro: string | null
+          nf_saida_numero: string | null
           origem: string | null
           origem_rotulo: string | null
           pecas: number | null
           pecas_retornadas: number | null
           situacao_fiscal: string | null
+          situacao_fiscal_retorno: string | null
           skus: number | null
           status: string | null
           valor_custo: number | null
@@ -122040,14 +122069,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -123173,14 +123202,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -125707,14 +125736,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["estagio"]
+            columns: ["filho_estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "pedidos_estagio_fkey"
-            columns: ["filho_estagio"]
+            columns: ["estagio"]
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
@@ -139004,14 +139033,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -146608,6 +146637,17 @@ export type Database = {
           p_uid: string
         }
         Returns: undefined
+      }
+      fn_baixa_uso_nf_registrar: {
+        Args: {
+          p_baixa_id: string
+          p_bling_id?: number
+          p_erro?: string
+          p_numero?: string
+          p_qual: string
+          p_status: string
+        }
+        Returns: Json
       }
       fn_balcao_cds: {
         Args: never

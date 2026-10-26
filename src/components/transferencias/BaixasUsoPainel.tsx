@@ -14,11 +14,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface BaixaUso {
   id: string; codigo: string; status: string; criado_em: string; origem_rotulo: string | null;
   finalidade: string; finalidade_rotulo: string | null; evento_nome: string | null;
   pecas: number | null; valor_custo: number | null; situacao_fiscal: string | null;
+  nf_saida_numero: string | null; nf_saida_erro: string | null;
 }
 interface ItemBaixa { sku: string; quantidade: number; quantidade_retornada: number | null }
 
@@ -28,7 +30,7 @@ export function useBaixasUso() {
     queryFn: async (): Promise<BaixaUso[]> => {
       const { data, error } = await supabase
         .from("vw_baixa_uso")
-        .select("id, codigo, status, criado_em, origem_rotulo, finalidade, finalidade_rotulo, evento_nome, pecas, valor_custo, situacao_fiscal")
+        .select("id, codigo, status, criado_em, origem_rotulo, finalidade, finalidade_rotulo, evento_nome, pecas, valor_custo, situacao_fiscal, nf_saida_numero, nf_saida_erro")
         .order("criado_em", { ascending: false });
       if (error) throw error;
       return (data ?? []) as BaixaUso[];
@@ -154,6 +156,43 @@ function DialogoCancelar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
   );
 }
 
+async function gerarNfSaida(baixaId: string) {
+  const { data, error } = await supabase.functions.invoke("baixa-uso-gerar-rascunho", { body: { baixa_id: baixaId, qual: "saida" } });
+  if (error) {
+    const resposta = (error as { context?: unknown }).context;
+    if (resposta instanceof Response) {
+      const corpo = await resposta.clone().json().catch(() => null) as { erro?: string } | null;
+      if (corpo?.erro) throw new Error(corpo.erro);
+    }
+    throw error;
+  }
+  if (!data?.ok) throw new Error(data?.erro ?? "Falha ao gerar a NF.");
+  return data as { numero: string | null; recuperado?: boolean };
+}
+
+function CelulaFiscal({ b }: { b: BaixaUso }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: () => gerarNfSaida(b.id),
+    onSuccess: (r) => toast.success(r.recuperado ? `Rascunho ${r.numero} já existia no Bling e foi ligado à ${b.codigo}.` : `Rascunho ${r.numero ?? ""} criado no Bling para ${b.codigo}.`),
+    onError: (e) => toast.error(rawMessage(e)),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["baixa-uso"] }),
+  });
+  const s = b.situacao_fiscal;
+  if (m.isPending || s === "gerando") return <span className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Gerando…</span>;
+  if (s === "pendente_definicao_fiscal") return <Badge variant="outline" className="bg-muted text-muted-foreground">NF aguardando definição fiscal</Badge>;
+  if (s === "a_gerar") return <Button size="sm" variant="outline" onClick={() => m.mutate()}>Gerar NF</Button>;
+  if (s === "rascunho") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Rascunho {b.nf_saida_numero} — Eva transmite no Bling</Badge>;
+  if (s === "autorizada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">NF {b.nf_saida_numero}</Badge>;
+  if (s === "erro") return (
+    <div className="flex items-center gap-2">
+      <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="cursor-help bg-destructive/10 text-destructive border-destructive/30">Erro na NF</Badge></TooltipTrigger><TooltipContent className="max-w-sm whitespace-pre-wrap">{b.nf_saida_erro ?? "Erro sem mensagem"}</TooltipContent></Tooltip>
+      <Button size="sm" variant="outline" onClick={() => m.mutate()}>Tentar de novo</Button>
+    </div>
+  );
+  return <span>{s ?? "—"}</span>;
+}
+
 export function BaixasUsoPainel() {
   const q = useBaixasUso();
   const [nav, setNav] = useEstadoTela({ status: "todos", finalidade: "todas" }, { prefixo: "bu" });
@@ -208,10 +247,12 @@ export function BaixasUsoPainel() {
                       <TableCell className="text-right tabular-nums">{Number(b.pecas ?? 0).toLocaleString("pt-BR")}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatBRL(b.valor_custo)}</TableCell>
                       <TableCell><Badge variant="outline" className={st.cls}>{st.rotulo}</Badge></TableCell>
-                      <TableCell>{b.situacao_fiscal === "pendente_definicao_fiscal" ? <Badge variant="outline" className="bg-muted text-muted-foreground">NF aguardando definição fiscal</Badge> : (b.situacao_fiscal ?? "—")}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}><CelulaFiscal b={b} /></TableCell>
                       <TableCell className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         {b.status === "em_evento" && <Button size="sm" variant="outline" className="mr-2" onClick={() => setEncerrar(b)}>Encerrar evento</Button>}
-                        {(b.status === "efetivada" || b.status === "em_evento") && <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setCancelar(b)}>Cancelar</Button>}
+                        {(b.status === "efetivada" || b.status === "em_evento") && (b.situacao_fiscal === "rascunho" || b.situacao_fiscal === "autorizada" ? (
+                          <Tooltip><TooltipTrigger asChild><span tabIndex={0}><Button size="sm" variant="ghost" className="text-destructive" disabled>Cancelar</Button></span></TooltipTrigger><TooltipContent>Já tem NF no Bling — exclua/cancele lá antes</TooltipContent></Tooltip>
+                        ) : <Button size="sm" variant="ghost" className="text-destructive" onClick={() => setCancelar(b)}>Cancelar</Button>)}
                       </TableCell>
                     </TableRow>
                     {exp && <TableRow><TableCell colSpan={10} className="bg-muted/30"><ItensBaixa id={b.id} /></TableCell></TableRow>}
