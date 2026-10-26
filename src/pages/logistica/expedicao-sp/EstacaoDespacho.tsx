@@ -202,7 +202,8 @@ export function EstacaoDespacho({
             modais={modais}
             despachando={despachando}
             bloqueado={bloqueado}
-            onDespachar={(ref, exec) => modalEmbalado && onDespachar(modalEmbalado, ref, exec)}
+            clienteNome={clienteNome}
+            onDespachar={(ref, exec, modal) => onDespachar(modal, ref, exec)}
           />
         </CardContent>
       </Card>

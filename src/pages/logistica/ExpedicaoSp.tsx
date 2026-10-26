@@ -659,6 +659,7 @@ export default function ExpedicaoSp() {
                     modais={modaisQ.data ?? []}
                     medidas={`Embalado ${emb?.volumes ?? "?"} vol · ${emb?.peso_kg ?? "?"} kg`}
                     nfRotulo={nf ? `NF ${nf}` : null}
+                    clienteNome={selecionado.cliente_nome}
                     despachando={despachar.isPending}
                     bloqueado={bloqueado}
                     onDespachar={(modal, referencia, executor) =>
