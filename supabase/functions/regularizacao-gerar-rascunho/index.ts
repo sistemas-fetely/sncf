@@ -36,10 +36,14 @@ serve(async (req) => {
     const { data, error } = await db.rpc("reg_retorno_registrar", { p_retorno_nf_id: retornoId, p_status: status, p_bling_nfe_id: blingId, p_numero: numero, p_erro: erro });
     if (error) throw error; return data;
   };
+  // Status antes desta chamada: se veio de 'erro', a NF pode já existir no Bling (POST anterior incerto).
+  const { data: antes, error: antesError } = await db.from("regularizacao_retorno_nf").select("status").eq("id", retornoId).maybeSingle();
+  if (antesError) return json({ ok: false, erro: antesError.message }, 500);
+  const vinhaDeErro = antes?.status === "erro";
   try { await registrar("gerando"); } catch (e) { return json({ ok: false, erro: mensagem(e) }, 409); }
 
   try {
-    const { data: retorno, error: retError } = await db.from("regularizacao_retorno_nf").select("id,lote_id,valor,nf_origem_numero,nf_origem_chave").eq("id", retornoId).single();
+    const { data: retorno, error: retError } = await db.from("regularizacao_retorno_nf").select("id,lote_id,valor,nf_origem_numero,nf_origem_chave,parte,partes").eq("id", retornoId).single();
     if (retError) throw retError;
     const [{ data: itens, error: itensError }, { data: lote, error: loteError }, { data: cfg, error: cfgError }] = await Promise.all([
       db.from("regularizacao_retorno_item").select("sku,descricao_origem,ncm,unidade,quantidade,valor_unit_origem").eq("retorno_nf_id", retornoId).order("sku"),
@@ -62,21 +66,11 @@ serve(async (req) => {
       documentoReferenciado: { modelo: "55", chaveAcesso: retorno.nf_origem_chave },
       itens: itens.map((i) => ({ codigo: i.sku, descricao: i.descricao_origem, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor_unit_origem, tipo: "P", classificacaoFiscal: i.ncm, origem: 2 })),
       parcelas: [], transporte: { fretePorConta: 9 },
-      observacoes: `Retorno simbólico de simples remessa referente à NF ${retorno.nf_origem_numero} (chave ${retorno.nf_origem_chave}). Mercadoria permanece fisicamente em ${centro.rotulo_curto ?? centro.nome}. Lote ${lote.codigo} — SNCF.`,
+      observacoes: `Retorno simbólico de simples remessa referente à NF ${retorno.nf_origem_numero} (chave ${retorno.nf_origem_chave}). Mercadoria permanece fisicamente em ${centro.rotulo_curto ?? centro.nome}. Lote ${lote.codigo} — SNCF.${Number(retorno.partes ?? 1) > 1 ? ` Parte ${retorno.parte}/${retorno.partes}.` : ""}`,
     };
-    // Criação de NF não é idempotente: nunca repetir o POST automaticamente.
-    let resposta: any;
-    try {
-      resposta = await bling.post("/nfe", payload, { retry: false });
-    } catch (postErro) {
-      const txt = mensagem(postErro).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-      const duplicidade = txt.includes("ja existe uma nota fiscal cadastrada");
-      // Sem resposta HTTP (rede/timeout) ou 5xx/429: a NF pode ter sido criada mesmo assim.
-      const incerto = !(postErro instanceof BlingHttpError) || postErro.status >= 500 || postErro.status === 429;
-      if (!duplicidade && !incerto) throw postErro;
-
-      // Procurar a NF criada entre as pendentes do destinatário, ainda não vinculadas a nenhum retorno.
-      const docEsperado = digitos((lote.destinatario_retorno as { numeroDocumento?: string } | null)?.numeroDocumento);
+    // Busca NFs pendentes no Bling que batem com este retorno e ainda não estão vinculadas a nenhum retorno.
+    const docEsperado = digitos((lote.destinatario_retorno as { numeroDocumento?: string } | null)?.numeroDocumento);
+    const buscarCandidatas = async () => {
       const { data: usados, error: usadosError } = await db.from("regularizacao_retorno_nf").select("nf_retorno_numero").not("nf_retorno_numero", "is", null);
       if (usadosError) throw usadosError;
       const numerosUsados = new Set((usados ?? []).map((u: { nf_retorno_numero: string | null }) => semZeros(u.nf_retorno_numero)));
@@ -97,12 +91,41 @@ serve(async (req) => {
         }
         if (lista.length < 100) break;
       }
-      if (candidatas.length !== 1) {
-        throw new Error(`Bling informou duplicidade e não foi possível identificar a NF criada — confira os pendentes no Bling. (${candidatas.length} candidata(s); erro original: ${mensagem(postErro)})`);
-      }
-      const achada = candidatas[0];
+      return candidatas;
+    };
+    const duplicadas = (n: number) => new Error(`Há ${n} notas iguais pendentes no Bling — exclua as duplicadas e tente de novo`);
+    const recuperar = async (achada: { id: number; numero: string }) => {
       await registrar("rascunho", achada.id, achada.numero, null);
       return json({ ok: true, numero: achada.numero, bling_nfe_id: achada.id, recuperado: true, alertas: [] }, 201);
+    };
+
+    // Retry após erro: procurar antes de criar, para não duplicar a NF.
+    if (vinhaDeErro) {
+      const previas = await buscarCandidatas();
+      if (previas.length === 1) return await recuperar(previas[0]);
+      if (previas.length > 1) throw duplicadas(previas.length);
+    }
+
+    // Criação de NF não é idempotente: nunca repetir o POST automaticamente.
+    let resposta: any;
+    try {
+      resposta = await bling.post("/nfe", payload, { retry: false });
+    } catch (postErro) {
+      const txt = mensagem(postErro).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      const duplicidade = txt.includes("ja existe uma nota fiscal cadastrada");
+      // Sem resposta HTTP (rede/timeout) ou 5xx/429: a NF pode ter sido criada mesmo assim.
+      const incerto = !(postErro instanceof BlingHttpError) || postErro.status >= 500 || postErro.status === 429;
+      if (!duplicidade && !incerto) throw postErro;
+      // A NF demora a aparecer na listagem: até 4 tentativas, 5s entre elas.
+      let candidatas: Array<{ id: number; numero: string }> = [];
+      for (let tentativa = 1; tentativa <= 4; tentativa++) {
+        if (tentativa > 1) await new Promise((r) => setTimeout(r, 5000));
+        candidatas = await buscarCandidatas();
+        if (candidatas.length > 0) break;
+      }
+      if (candidatas.length === 1) return await recuperar(candidatas[0]);
+      if (candidatas.length > 1) throw duplicadas(candidatas.length);
+      throw new Error(`Bling não confirmou a criação e a NF não apareceu nos pendentes após 4 buscas — confira no Bling antes de tentar de novo. (erro original: ${mensagem(postErro)})`);
     }
     const blingId = Number(resposta?.data?.id); const numero = String(resposta?.data?.numero ?? "");
     if (!Number.isFinite(blingId)) throw new Error(`Bling retornou sucesso sem data.id: ${JSON.stringify(resposta).slice(0, 500)}`);
