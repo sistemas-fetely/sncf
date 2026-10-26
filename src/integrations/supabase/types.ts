@@ -6549,6 +6549,21 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_fn_lastro_lote_20261026: {
+        Row: {
+          def: string | null
+          em: string | null
+        }
+        Insert: {
+          def?: string | null
+          em?: string | null
+        }
+        Update: {
+          def?: string | null
+          em?: string | null
+        }
+        Relationships: []
+      }
       backup_funcdef_20261020: {
         Row: {
           criado_em: string | null
@@ -92598,6 +92613,34 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_b2c_faturado_vs_recebido: {
+        Row: {
+          bruto_shopify: number | null
+          cidade: string | null
+          cliente: string | null
+          data_emissao: string | null
+          data_recebimento: string | null
+          delta_bruto_vs_faturado: number | null
+          faturado: number | null
+          financial_status: string | null
+          liquido_mp: number | null
+          mes_caixa: string | null
+          mes_competencia: string | null
+          movimentacoes: number | null
+          nf_refs: string | null
+          nfs: number | null
+          pedido_ref: string | null
+          receita_frete: number | null
+          receita_produto: number | null
+          situacao: string | null
+          taxa_mp: number | null
+          tem_nf: boolean | null
+          tem_recebimento: boolean | null
+          tipo_meio: string | null
+          uf: string | null
+        }
+        Relationships: []
+      }
       onboarding_tarefas_view: {
         Row: {
           checklist_id: string | null
@@ -122561,14 +122604,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -123694,14 +123737,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -139546,14 +139589,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -149176,6 +149219,7 @@ export type Database = {
         Args: { p_meio: string; p_ref: string }
         Returns: string
       }
+      fn_refresh_b2c_faturado_vs_recebido: { Args: never; Returns: undefined }
       fn_refresh_dre: { Args: never; Returns: undefined }
       fn_reg_lote_concluir_se_completo: {
         Args: { p_lote_id: string }
