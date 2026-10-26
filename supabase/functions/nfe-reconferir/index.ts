@@ -58,9 +58,9 @@ Deno.serve(async (req) => {
       if (!dirigido) return json({ ok: false, erro: "Apenas super_admin." }, 403);
       const us = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
       const [a, b, c] = await Promise.all([
-        us.rpc("tem_permissao", { _slug: "tela.regularizacao_estoque" } as any),
-        us.rpc("usuario_tem_acao", { _slug: "acao.estoque_contagem_registrar" } as any),
-        us.rpc("usuario_tem_acao", { _slug: "acao.expedicao_sp_operar" } as any),
+        us.rpc("tem_permissao", { p_slug: "tela.regularizacao_estoque" } as any),
+        us.rpc("usuario_tem_acao", { p_slug: "acao.estoque_contagem_registrar" } as any),
+        us.rpc("usuario_tem_acao", { p_slug: "acao.expedicao_sp_operar" } as any),
       ]);
       const errs = [a.error, b.error, c.error].filter(Boolean);
       if (errs.length && !(a.data || b.data || c.data)) return json({ ok: false, erro: `Falha ao checar permissão: ${errs[0]!.message}` }, 500);
