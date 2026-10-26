@@ -343,14 +343,37 @@ Deno.serve(async (req) => {
 
             const meta = (d.metadata ?? {}) as Record<string, unknown>;
             const modal = String(meta.modal ?? "").trim().toUpperCase();
+            const referencia = String(meta.referencia ?? "").trim();
+            const shopifyId = pedidoParaShopify.get(interno)!;
+
+            // FRETE_FETELY (modal de negocio): quem entregou vem de
+            // `metadata.executor`; o rotulo ao cliente sai de `mesa_sp_executor`.
+            if (modal === MODAL_FRETE_FETELY) {
+              const executores = await carregarExecutores();
+              const codExec = String(meta.executor ?? "").trim().toUpperCase();
+              const exec = executores.get(codExec);
+              if (!exec) continue; // executor ausente/desconhecido: nao inventa transportadora
+              vistos.add(interno);
+              candidatos.push({
+                pedido_id: interno,
+                shopify_pedido_id: shopifyId,
+                order_name: abertos.get(shopifyId) ?? null,
+                fonte: "mesa_sp",
+                modal: `${MODAL_FRETE_FETELY}:${codExec}`,
+                codigo_rastreio: exec.exige_referencia ? referencia : "",
+                servico: null,
+                company: exec.rotulo_cliente,
+              });
+              if (candidatos.length >= lote) break;
+              continue;
+            }
+
             if (!(MODAIS_MULTIMODAIS as readonly string[]).includes(modal)) continue;
             vistos.add(interno);
 
-            const referencia = String(meta.referencia ?? "").trim();
             // A RPC ja exige referencia para modal sem rastreio automatico; se
             // ela faltar aqui, o Motoboy segue (fulfillment simples de "enviado")
             // e a Lalamove tambem — sem number, mas notificando o cliente.
-            const shopifyId = pedidoParaShopify.get(interno)!;
             candidatos.push({
               pedido_id: interno,
               shopify_pedido_id: shopifyId,
