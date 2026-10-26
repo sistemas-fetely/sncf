@@ -22,9 +22,10 @@ interface Props {
   despachando: boolean;
   onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   bloqueado?: boolean;
+  clienteNome?: string | null;
 }
 
-export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false }: Props) {
+export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, despachando, onDespachar, bloqueado = false, clienteNome = null }: Props) {
   const [aberto, setAberto] = useState(false);
   const nome = modais.find((m) => m.codigo === modalCodigo)?.nome ?? modalCodigo ?? "sem modal";
 
@@ -60,9 +61,9 @@ export function DespachoB2b({ pedidoId, modalCodigo, modais, medidas, nfRotulo, 
               modais={modais}
               despachando={despachando}
               bloqueado={bloqueado}
-              onDespachar={(ref, exec) => {
-                if (!modalCodigo) return;
-                onDespachar(modalCodigo, ref, exec);
+              clienteNome={clienteNome}
+              onDespachar={(ref, exec, modal) => {
+                onDespachar(modal, ref, exec);
                 setAberto(false);
               }}
             />

@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Truck } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,10 +32,50 @@ interface Props {
   modais: ModalEntrega[];
   despachando: boolean;
   bloqueado?: boolean;
-  onDespachar: (referencia: string | null, executor: string | null) => void;
+  /** Nome do cliente (razão social) — pré-preenche "Quem retirou". */
+  clienteNome?: string | null;
+  onDespachar: (referencia: string | null, executor: string | null, modal: string) => void;
 }
 
-export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqueado = false, onDespachar }: Props) {
+export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, despachando, bloqueado = false, clienteNome = null, onDespachar }: Props) {
+  const qc = useQueryClient();
+  // Modal vigente: considera troca registrada depois da embalagem.
+  const vigenteQ = useQuery({
+    queryKey: ["mesa-sp", "modal-do-pedido", pedidoId],
+    enabled: !!pedidoId,
+    queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)("fn_mesa_sp_modal_do_pedido", { p_pedido_id: pedidoId });
+      if (error) throw new Error(error.message);
+      return (data as string | null) ?? null;
+    },
+  });
+  const modalCodigo = vigenteQ.data ?? modalEmbalagem;
+  const [trocando, setTrocando] = useState(false);
+  const [novoModal, setNovoModal] = useState("");
+  const [motivoTroca, setMotivoTroca] = useState("");
+  const [salvandoTroca, setSalvandoTroca] = useState(false);
+  const [erroTroca, setErroTroca] = useState<string | null>(null);
+  const opcoesTroca = modais.filter((m) => m.ativo && m.codigo !== modalCodigo);
+
+  async function confirmarTroca() {
+    setSalvandoTroca(true); setErroTroca(null);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)("fn_mesa_sp_trocar_modal", {
+        p_pedido_id: pedidoId, p_modal: novoModal, p_motivo: motivoTroca.trim(),
+      });
+      if (error) throw new Error(error.message);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["mesa-sp"] }),
+        qc.invalidateQueries({ predicate: (q) => JSON.stringify(q.queryKey).includes(pedidoId) }),
+      ]);
+      setTrocando(false); setNovoModal(""); setMotivoTroca("");
+    } catch (e) {
+      setErroTroca(e instanceof Error ? e.message : String(e));
+    } finally { setSalvandoTroca(false); }
+  }
+
   const execQ = useExecutoresMesa();
   const modal = modais.find((m) => m.codigo === modalCodigo) ?? null;
   const executores = useMemo(
@@ -43,7 +87,11 @@ export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqu
   const [executor, setExecutor] = useState("");
   const [referencia, setReferencia] = useState("");
 
-  useEffect(() => { setExecutor(""); setReferencia(""); }, [pedidoId, modalCodigo]);
+  const ehRetirada = modal?.sem_despacho === true && executores.length === 0 && !ehCorreios;
+  useEffect(() => {
+    setExecutor("");
+    setReferencia(ehRetirada ? (clienteNome ?? "") : "");
+  }, [pedidoId, modalCodigo, ehRetirada, clienteNome]);
 
   const codigoRegistrado = useMemo(() => {
     const linha = (docsQ.data ?? []).find((d) => d.tipo === "rastreio");
@@ -51,6 +99,9 @@ export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqu
     return PADRAO_CODIGO_CORREIOS.test(det) ? det : null;
   }, [docsQ.data]);
 
+  if (!modalCodigo && vigenteQ.isLoading) {
+    return <p className="text-sm text-muted-foreground">Carregando modal…</p>;
+  }
   if (!modalCodigo) {
     return <p className="text-sm text-destructive">Embalagem sem modal registrado — não há como despachar.</p>;
   }
@@ -78,17 +129,45 @@ export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqu
   const pode =
     (!usaExecutor || execEscolhido !== null) &&
     (!campo?.obrigatorio || ref !== "") &&
-    !despachando && !bloqueado && !execQ.isLoading && !(ehCorreios && docsQ.isLoading);
+    !trocando && !despachando && !bloqueado && !execQ.isLoading && !(ehCorreios && docsQ.isLoading);
 
   return (
     <div className="space-y-4">
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label>Modal</Label>
+          <div className="flex items-center justify-between">
+            <Label>Modal</Label>
+            {!trocando && opcoesTroca.length > 0 && (
+              <Button type="button" variant="link" size="sm" className="h-auto p-0" disabled={bloqueado} onClick={() => setTrocando(true)}>
+                Trocar
+              </Button>
+            )}
+          </div>
           <p className="flex h-10 items-center rounded-md border border-border bg-muted/40 px-3 text-sm font-medium">
             {modal?.nome ?? modalCodigo}
           </p>
         </div>
+
+        {trocando && (
+          <div className="space-y-2 rounded-md border border-border bg-card p-3 sm:col-span-2">
+            <Label htmlFor="mesa-sp-troca-modal">Novo modal</Label>
+            <Select value={novoModal} onValueChange={setNovoModal}>
+              <SelectTrigger id="mesa-sp-troca-modal"><SelectValue placeholder="Escolher" /></SelectTrigger>
+              <SelectContent>
+                {opcoesTroca.map((m) => <SelectItem key={m.codigo} value={m.codigo}>{m.nome}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Label htmlFor="mesa-sp-troca-motivo">Motivo da troca</Label>
+            <Textarea id="mesa-sp-troca-motivo" rows={2} value={motivoTroca} onChange={(e) => setMotivoTroca(e.target.value)} placeholder="Obrigatório" />
+            {erroTroca && <p className="whitespace-pre-wrap text-xs text-destructive">{erroTroca}</p>}
+            <div className="flex gap-2">
+              <Button type="button" size="sm" onClick={() => void confirmarTroca()} disabled={!novoModal || !motivoTroca.trim() || salvandoTroca}>
+                {salvandoTroca && <Loader2 className="animate-spin" aria-hidden="true" />}Confirmar troca
+              </Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => { setTrocando(false); setErroTroca(null); }}>Cancelar</Button>
+            </div>
+          </div>
+        )}
 
         {usaExecutor && (
           <div className="space-y-1.5">
@@ -124,7 +203,7 @@ export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqu
               onKeyDown={(e) => {
                 if (e.key === "Enter" && pode) {
                   e.preventDefault();
-                  onDespachar(ref || null, execEscolhido?.codigo ?? null);
+                  onDespachar(ref || null, execEscolhido?.codigo ?? null, modalCodigo);
                 }
               }}
               placeholder={campo.placeholder}
@@ -140,7 +219,7 @@ export function FormDespacho({ pedidoId, modalCodigo, modais, despachando, bloqu
       <BotaoGuardado
         slug="acao.expedicao_sp_operar"
         rotuloAcao="Despachar pedido"
-        onClick={() => onDespachar(ref || null, execEscolhido?.codigo ?? null)}
+        onClick={() => onDespachar(ref || null, execEscolhido?.codigo ?? null, modalCodigo)}
         disabled={!pode}
       >
         {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
