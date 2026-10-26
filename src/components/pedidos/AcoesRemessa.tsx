@@ -372,6 +372,8 @@ export function AcoesRemessa({
         // Vocabulario de UI: linha de `pedido_remessa` e TENTATIVA de envio, nunca /NN.
         // /NN pertence so ao split. Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
         const tentativa = `tentativa ${Number(rem.sequencia)}`;
+        // Código curto da remessa: R01, R02… (zero-padded a 2 dígitos pela sequência).
+        const codigoRemessa = `R${String(Number(rem.sequencia)).padStart(2, "0")}`;
         const codigo = `${id_externo} · ${tentativa}`;
 
         const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
