@@ -124,7 +124,11 @@ export function PreFaturamentoCard({
   const exigeMotivo = exigeExpedicao
     ? data.exige_motivo
     : data.exige_motivo && itens.some((i) => !i.ok && !i.bloqueia);
-  const podeEnviar = data.pode_enviar && !jaEnviado;
+  // 2+ remessas ativas: a edge recusa o envio inicial genérico (409 "remessa(s)
+  // ativa(s)") — desabilitar ANTES do clique e apontar os botões por remessa.
+  const pedidoDividido = ehPedidoDividido(remessas);
+  const qtdRemessas = remessasAtivas(remessas).length;
+  const podeEnviar = data.pode_enviar && !jaEnviado && !pedidoDividido;
   const podeEscrever = temNivel(2);
   const motivoValido = motivo.trim().length >= MIN_MOTIVO;
 
