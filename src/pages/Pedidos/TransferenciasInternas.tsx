@@ -236,7 +236,7 @@ export default function TransferenciasInternas() {
   const temPendencia = nSemBaixa > 0 || nAReceber > 0 || nOrfaos > 0;
 
   return (
-    <PageShell>
+    <PageShell className="superficie-tabelas">
       <PageHeader
         titulo="Transferências Internas"
         breadcrumb={[{ label: "Operação" }, { label: "Transferências Internas" }]}

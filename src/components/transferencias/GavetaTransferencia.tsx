@@ -79,7 +79,7 @@ export function GavetaTransferencia({ pedidoId, onClose, onReceber, recebimento 
 
   return (
     <Sheet open={!!pedidoId} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">
+      <SheetContent className="superficie-tabelas w-full overflow-y-auto sm:max-w-2xl">
         <SheetHeader>
           <SheetTitle>{v?.id_externo ?? "Transferência"}</SheetTitle>
         </SheetHeader>
