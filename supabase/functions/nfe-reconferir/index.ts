@@ -183,7 +183,8 @@ async function modoDirigido(sb: any, blingIdsIn: string[], pedidoBlingId: string
         if (nfId && String(nfId) !== "0") ids.push(String(nfId));
       } catch (e) { if (!ehNaoEncontrado(e)) throw e; }
       // 2) NFs já conhecidas no SNCF ligadas a esse pedido
-      const { data: conhecidas } = await sb.from("nfs_emitidas").select("bling_id").eq("bling_pedido_id", pedidoBlingId);
+      const { data: conhecidas, error: eConhecidas } = await sb.from("nfs_emitidas").select("bling_id").eq("bling_pedido_venda_id", pedidoBlingId);
+      if (eConhecidas) throw new Error(`NFs do pedido: ${eConhecidas.message}`);
       for (const c of (conhecidas ?? []) as any[]) if (c.bling_id) ids.push(String(c.bling_id));
       // 3) fallback: saídas dos últimos 3 dias cujo detalhe aponta para o pedido
       if (ids.length === 0) {
