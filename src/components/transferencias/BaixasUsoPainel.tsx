@@ -22,6 +22,7 @@ export interface BaixaUso {
   pecas: number | null; valor_custo: number | null; situacao_fiscal: string | null;
   nf_saida_numero: string | null; nf_saida_erro: string | null;
   situacao_fiscal_retorno: string | null; nf_retorno_numero: string | null; nf_retorno_erro: string | null;
+  pecas_baixadas: number | null; situacao_fiscal_baixa: string | null; nf_baixa_numero: string | null; nf_baixa_erro: string | null;
 }
 interface ItemBaixa { sku: string; quantidade: number; quantidade_retornada: number | null }
 
@@ -31,7 +32,7 @@ export function useBaixasUso() {
     queryFn: async (): Promise<BaixaUso[]> => {
       const { data, error } = await supabase
         .from("vw_baixa_uso")
-        .select("id, codigo, status, criado_em, origem_rotulo, finalidade, finalidade_rotulo, evento_nome, pecas, valor_custo, situacao_fiscal, nf_saida_numero, nf_saida_erro, situacao_fiscal_retorno, nf_retorno_numero, nf_retorno_erro")
+        .select("id, codigo, status, criado_em, origem_rotulo, finalidade, finalidade_rotulo, evento_nome, pecas, valor_custo, situacao_fiscal, nf_saida_numero, nf_saida_erro, situacao_fiscal_retorno, nf_retorno_numero, nf_retorno_erro, pecas_baixadas, situacao_fiscal_baixa, nf_baixa_numero, nf_baixa_erro")
         .order("criado_em", { ascending: false });
       if (error) throw error;
       return (data ?? []) as BaixaUso[];
@@ -87,6 +88,8 @@ function DialogoEncerrar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
   useEffect(() => {
     if (q.data) setVoltou(Object.fromEntries(q.data.map((i) => [i.sku, i.quantidade])));
   }, [q.data]);
+  const voltam = (q.data ?? []).reduce((s, i) => s + (voltou[i.sku] ?? 0), 0);
+  const baixadas = (q.data ?? []).reduce((s, i) => s + i.quantidade - (voltou[i.sku] ?? 0), 0);
   const invalido = (q.data ?? []).some((i) => { const v = voltou[i.sku]; return !Number.isFinite(v) || v < 0 || v > i.quantidade; });
   const m = useMutation({
     mutationFn: async () => {
@@ -97,8 +100,8 @@ function DialogoEncerrar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
       if (error) throw error;
     },
     onSuccess: async () => {
-      const algumVoltou = (q.data ?? []).some((i) => (voltou[i.sku] ?? 0) > 0);
-      toast.success(algumVoltou ? "Evento encerrado. Gere a NF de retorno na lista." : `Evento ${baixa.codigo} encerrado.`); await qc.invalidateQueries({ queryKey: ["baixa-uso"] }); onClose(); },
+      const nfs = [voltam > 0 && "de retorno", baixadas > 0 && "de baixa"].filter(Boolean);
+      toast.success(nfs.length === 2 ? "Evento encerrado. Gere as NFs de retorno e de baixa na lista." : nfs.length === 1 ? `Evento encerrado. Gere a NF ${nfs[0]} na lista.` : `Evento ${baixa.codigo} encerrado.`); await qc.invalidateQueries({ queryKey: ["baixa-uso"] }); onClose(); },
     onError: (e) => toast.error(rawMessage(e)),
   });
   return (
@@ -124,6 +127,9 @@ function DialogoEncerrar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
           </Table>
         )}
         <p className="text-xs text-muted-foreground">Baixado = enviado − voltou.</p>
+        {q.data && !invalido && (
+          <p className="text-sm">Voltam {voltam.toLocaleString("pt-BR")} peças (NF de retorno) · Baixa de {baixadas.toLocaleString("pt-BR")} peças por consumo interno (NF de baixa)</p>
+        )}
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={m.isPending}>Voltar</Button>
           <Button onClick={() => m.mutate()} disabled={m.isPending || !q.data || invalido}>{m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Encerrar evento</Button>
@@ -159,7 +165,7 @@ function DialogoCancelar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
   );
 }
 
-async function gerarNf(baixaId: string, qual: "saida" | "retorno") {
+async function gerarNf(baixaId: string, qual: "saida" | "retorno" | "baixa") {
   const { data, error } = await supabase.functions.invoke("baixa-uso-gerar-rascunho", { body: { baixa_id: baixaId, qual } });
   if (error) {
     const resposta = (error as { context?: unknown }).context;
@@ -221,6 +227,31 @@ function CelulaFiscalRetorno({ b }: { b: BaixaUso }) {
   return <span>{s}</span>;
 }
 
+function CelulaFiscalBaixa({ b }: { b: BaixaUso }) {
+  const qc = useQueryClient();
+  const m = useMutation({
+    mutationFn: () => gerarNf(b.id, "baixa"),
+    onSuccess: (r) => toast.success(r.recuperado ? `Rascunho de baixa ${r.numero} já existia no Bling e foi ligado à ${b.codigo}.` : `Rascunho de baixa ${r.numero ?? ""} criado no Bling para ${b.codigo}.`),
+    onError: (e) => toast.error(rawMessage(e)),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["baixa-uso"] }),
+  });
+  const s = b.situacao_fiscal_baixa;
+  if (!s) return null;
+  if (m.isPending || s === "gerando") return <span className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Gerando baixa…</span>;
+  if (s === "aguardando_remessa") return <Badge variant="outline" className="bg-muted text-muted-foreground">Baixa da diferença aguarda NF de remessa</Badge>;
+  if (s === "pendente_definicao_fiscal") return <Badge variant="outline" className="bg-muted text-muted-foreground">Baixa da diferença aguardando definição fiscal</Badge>;
+  if (s === "a_gerar") return <Button size="sm" variant="outline" onClick={() => m.mutate()}>Gerar NF de baixa da diferença ({Number(b.pecas_baixadas ?? 0).toLocaleString("pt-BR")} pç)</Button>;
+  if (s === "rascunho") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Baixa {b.nf_baixa_numero} — Eva transmite</Badge>;
+  if (s === "autorizada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">Baixa {b.nf_baixa_numero}</Badge>;
+  if (s === "erro") return (
+    <div className="flex items-center gap-2">
+      <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="cursor-help bg-destructive/10 text-destructive border-destructive/30">Erro na NF de baixa</Badge></TooltipTrigger><TooltipContent className="max-w-sm whitespace-pre-wrap">{b.nf_baixa_erro ?? "Erro sem mensagem"}</TooltipContent></Tooltip>
+      <Button size="sm" variant="outline" onClick={() => m.mutate()}>Tentar de novo</Button>
+    </div>
+  );
+  return <span>{s}</span>;
+}
+
 export function BaixasUsoPainel() {
   const q = useBaixasUso();
   const [nav, setNav] = useEstadoTela({ status: "todos", finalidade: "todas" }, { prefixo: "bu" });
@@ -275,7 +306,7 @@ export function BaixasUsoPainel() {
                       <TableCell className="text-right tabular-nums">{Number(b.pecas ?? 0).toLocaleString("pt-BR")}</TableCell>
                       <TableCell className="text-right tabular-nums">{formatBRL(b.valor_custo)}</TableCell>
                       <TableCell><Badge variant="outline" className={st.cls}>{st.rotulo}</Badge></TableCell>
-                      <TableCell onClick={(e) => e.stopPropagation()}><div className="flex flex-col items-start gap-1"><CelulaFiscal b={b} /><CelulaFiscalRetorno b={b} /></div></TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}><div className="flex flex-col items-start gap-1"><CelulaFiscal b={b} /><CelulaFiscalRetorno b={b} /><CelulaFiscalBaixa b={b} /></div></TableCell>
                       <TableCell className="whitespace-nowrap text-right" onClick={(e) => e.stopPropagation()}>
                         {b.status === "em_evento" && <Button size="sm" variant="outline" className="mr-2" onClick={() => setEncerrar(b)}>Encerrar evento</Button>}
                         {(b.status === "efetivada" || b.status === "em_evento") && (b.situacao_fiscal === "rascunho" || b.situacao_fiscal === "autorizada" ? (

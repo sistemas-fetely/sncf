@@ -29,22 +29,23 @@ serve(async (req) => {
     qual = typeof body?.qual === "string" ? body.qual : "";
   } catch { return json({ ok: false, erro: "Corpo JSON malformado" }, 400); }
   if (!UUID.test(baixaId)) return json({ ok: false, erro: "baixa_id inválido" }, 400);
-  if (qual !== "saida" && qual !== "retorno") return json({ ok: false, erro: "qual deve ser 'saida' ou 'retorno'" }, 400);
+  if (qual !== "saida" && qual !== "retorno" && qual !== "baixa") return json({ ok: false, erro: "qual deve ser 'saida', 'retorno' ou 'baixa'" }, 400);
 
   const db = createClient(url, service);
   const { data: baixa, error: bErr } = await db.from("baixa_uso")
-    .select("id,codigo,finalidade_codigo,descricao,evento_nome,centro_origem_id,status,nf_saida_id,nf_saida_numero,nf_saida_status,nf_retorno_status").eq("id", baixaId).maybeSingle();
+    .select("id,codigo,finalidade_codigo,descricao,evento_nome,centro_origem_id,status,nf_saida_id,nf_saida_numero,nf_saida_status,nf_retorno_status,nf_baixa_status").eq("id", baixaId).maybeSingle();
   if (bErr) return json({ ok: false, erro: bErr.message }, 500);
   if (!baixa) return json({ ok: false, erro: "Baixa não encontrada" }, 404);
   const { data: fin, error: fErr } = await db.from("baixa_finalidade")
-    .select("rotulo,natureza_operacao_id,natureza_retorno_operacao_id").eq("codigo", baixa.finalidade_codigo).single();
+    .select("rotulo,natureza_operacao_id,natureza_retorno_operacao_id,natureza_baixa_operacao_id").eq("codigo", baixa.finalidade_codigo).single();
   if (fErr) return json({ ok: false, erro: fErr.message }, 500);
-  const naturezaId = qual === "saida" ? fin.natureza_operacao_id : fin.natureza_retorno_operacao_id;
-  if (!naturezaId) return json({ ok: false, erro: qual === "retorno" ? "Natureza de retorno não definida para esta finalidade." : "Natureza de saída não definida para esta finalidade." }, 422);
+  const naturezaId = qual === "saida" ? fin.natureza_operacao_id : qual === "retorno" ? fin.natureza_retorno_operacao_id : fin.natureza_baixa_operacao_id;
+  if (!naturezaId) return json({ ok: false, erro: qual === "retorno" ? "Natureza de retorno não definida para esta finalidade." : qual === "baixa" ? "Natureza de baixa da diferença não definida para esta finalidade." : "Natureza de saída não definida para esta finalidade." }, 422);
   const ehRetorno = qual === "retorno";
+  const ehBaixa = qual === "baixa";
   let chaveRemessa: string | null = null;
-  if (ehRetorno) {
-    if (baixa.status !== "encerrada") return json({ ok: false, erro: "A NF de retorno só pode ser gerada depois de encerrar o evento." }, 422);
+  if (ehRetorno || ehBaixa) {
+    if (baixa.status !== "encerrada") return json({ ok: false, erro: `A NF de ${ehBaixa ? "baixa da diferença" : "retorno"} só pode ser gerada depois de encerrar o evento.` }, 422);
     const { data: vw, error: vErr } = await db.from("vw_baixa_uso").select("nf_saida_chave").eq("id", baixaId).maybeSingle();
     if (vErr) return json({ ok: false, erro: vErr.message }, 500);
     chaveRemessa = vw?.nf_saida_chave ?? null;
@@ -56,7 +57,7 @@ serve(async (req) => {
     const { error } = await jwtClient.rpc("fn_baixa_uso_nf_registrar", { p_baixa_id: baixaId, p_qual: qual, p_status: status, p_bling_id: blingId, p_numero: numero, p_erro: erro });
     if (error) throw error;
   };
-  const vinhaDeErro = (ehRetorno ? baixa.nf_retorno_status : baixa.nf_saida_status) === "erro";
+  const vinhaDeErro = (ehRetorno ? baixa.nf_retorno_status : ehBaixa ? baixa.nf_baixa_status : baixa.nf_saida_status) === "erro";
   try { await registrar("gerando"); } catch (e) { return json({ ok: false, erro: mensagem(e) }, 409); }
 
   try {
@@ -73,8 +74,10 @@ serve(async (req) => {
     if (!itensRaw?.length) throw new Error("Baixa sem itens.");
     const itensBase = ehRetorno
       ? itensRaw.filter((i) => Number(i.quantidade_retornada ?? 0) > 0).map((i) => ({ ...i, quantidade: Number(i.quantidade_retornada) }))
-      : itensRaw;
-    if (!itensBase.length) throw new Error("Nenhuma peça voltou do evento — não há NF de retorno a gerar.");
+      : ehBaixa
+        ? itensRaw.map((i) => ({ ...i, quantidade: Number(i.quantidade) - Number(i.quantidade_retornada ?? 0) })).filter((i) => i.quantidade > 0)
+        : itensRaw;
+    if (!itensBase.length) throw new Error(ehBaixa ? "Todas as peças voltaram do evento — não há baixa da diferença a gerar." : "Nenhuma peça voltou do evento — não há NF de retorno a gerar.");
     if (!cfg?.access_token) throw new Error("Bling não conectado.");
 
     // Contato: Fetely matriz SP (parceiros_comerciais), endereço completado pelo CD SITE-SP quando faltar.
@@ -119,9 +122,11 @@ serve(async (req) => {
     const payload = {
       tipo: ehRetorno ? 0 : 1, dataOperacao: agora, contato, naturezaOperacao: { id: Number(nat.bling_natureza_id) }, finalidade: 1,
       itens, parcelas: [], transporte: { fretePorConta: 9 },
-      ...(ehRetorno ? { documentoReferenciado: { modelo: "55", chaveAcesso: chaveRemessa } } : {}),
+      ...(ehRetorno || ehBaixa ? { documentoReferenciado: { modelo: "55", chaveAcesso: chaveRemessa } } : {}),
       observacoes: ehRetorno
         ? `Retorno de exposição/feira — baixa ${baixa.codigo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}. Ref. NF ${baixa.nf_saida_numero ?? ""}. SNCF.`
+        : ehBaixa
+        ? `Baixa por consumo interno — itens não retornados da feira · baixa ${baixa.codigo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}. Ref. NF ${baixa.nf_saida_numero ?? ""}. SNCF.`
         : `Baixa para uso ${baixa.codigo} — ${fin.rotulo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}.${baixa.descricao ? ` ${baixa.descricao}.` : ""} Origem: ${origemRotulo}. SNCF.`,
     };
 
@@ -136,10 +141,12 @@ serve(async (req) => {
       return true;
     };
     const buscarCandidatas = async () => {
-      const colUsada = ehRetorno ? "nf_retorno_numero" : "nf_saida_numero";
-      const { data: usados, error: uErr } = await db.from("baixa_uso").select(colUsada).not(colUsada, "is", null);
+      // Saída e baixa são ambas NF de saída: uma não pode reaproveitar a nota da outra.
+      const cols = ehRetorno ? ["nf_retorno_numero"] : ["nf_saida_numero", "nf_baixa_numero"];
+      const { data: usados, error: uErr } = await db.from("baixa_uso").select(cols.join(","));
       if (uErr) throw uErr;
-      const numerosUsados = new Set((usados ?? []).map((u: Record<string, string | null>) => semZeros(u[colUsada])));
+      const numerosUsados = new Set<string>();
+      for (const u of (usados ?? []) as Array<Record<string, string | null>>) for (const c of cols) if (u[c]) numerosUsados.add(semZeros(u[c]));
       const candidatas: Array<{ id: number; numero: string }> = [];
       for (let pagina = 1; pagina <= 50; pagina++) {
         const res = await bling.get(`/nfe?tipo=${ehRetorno ? 0 : 1}&situacao=1&pagina=${pagina}&limite=100`);
