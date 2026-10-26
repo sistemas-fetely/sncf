@@ -33,7 +33,7 @@ serve(async (req) => {
 
   const db = createClient(url, service);
   const { data: baixa, error: bErr } = await db.from("baixa_uso")
-    .select("id,codigo,finalidade_codigo,descricao,evento_nome,centro_origem_id,nf_saida_status,nf_retorno_status").eq("id", baixaId).maybeSingle();
+    .select("id,codigo,finalidade_codigo,descricao,evento_nome,centro_origem_id,status,nf_saida_id,nf_saida_numero,nf_saida_status,nf_retorno_status").eq("id", baixaId).maybeSingle();
   if (bErr) return json({ ok: false, erro: bErr.message }, 500);
   if (!baixa) return json({ ok: false, erro: "Baixa não encontrada" }, 404);
   const { data: fin, error: fErr } = await db.from("baixa_finalidade")
@@ -41,20 +41,28 @@ serve(async (req) => {
   if (fErr) return json({ ok: false, erro: fErr.message }, 500);
   const naturezaId = qual === "saida" ? fin.natureza_operacao_id : fin.natureza_retorno_operacao_id;
   if (!naturezaId) return json({ ok: false, erro: qual === "retorno" ? "Natureza de retorno não definida para esta finalidade." : "Natureza de saída não definida para esta finalidade." }, 422);
-  if (qual === "retorno") return json({ ok: false, erro: "NF de retorno ainda não implementada." }, 422);
+  const ehRetorno = qual === "retorno";
+  let chaveRemessa: string | null = null;
+  if (ehRetorno) {
+    if (baixa.status !== "encerrada") return json({ ok: false, erro: "A NF de retorno só pode ser gerada depois de encerrar o evento." }, 422);
+    const { data: vw, error: vErr } = await db.from("vw_baixa_uso").select("nf_saida_chave").eq("id", baixaId).maybeSingle();
+    if (vErr) return json({ ok: false, erro: vErr.message }, 500);
+    chaveRemessa = vw?.nf_saida_chave ?? null;
+    if (!baixa.nf_saida_id || !chaveRemessa) return json({ ok: false, erro: "A NF de remessa da feira ainda não está autorizada" }, 422);
+  }
 
   // Registro passa pelo token do usuário: a RPC confere a permissão da baixa (fn_baixa_uso_exigir).
   const registrar = async (status: string, blingId: number | null = null, numero: string | null = null, erro: string | null = null) => {
     const { error } = await jwtClient.rpc("fn_baixa_uso_nf_registrar", { p_baixa_id: baixaId, p_qual: qual, p_status: status, p_bling_id: blingId, p_numero: numero, p_erro: erro });
     if (error) throw error;
   };
-  const vinhaDeErro = baixa.nf_saida_status === "erro";
+  const vinhaDeErro = (ehRetorno ? baixa.nf_retorno_status : baixa.nf_saida_status) === "erro";
   try { await registrar("gerando"); } catch (e) { return json({ ok: false, erro: mensagem(e) }, 409); }
 
   try {
     const [{ data: nat, error: natErr }, { data: itensRaw, error: iErr }, { data: matriz, error: mErr }, { data: origem, error: oErr }, { data: siteSp, error: sErr }, { data: cfg, error: cfgErr }] = await Promise.all([
       db.from("naturezas_operacao").select("bling_natureza_id,nome").eq("id", naturezaId).single(),
-      db.from("baixa_uso_item").select("sku,quantidade,custo_unitario").eq("baixa_id", baixaId).order("sku"),
+      db.from("baixa_uso_item").select("sku,quantidade,quantidade_retornada,custo_unitario").eq("baixa_id", baixaId).order("sku"),
       db.from("parceiros_comerciais").select("razao_social,inscricao_estadual,logradouro,numero,endereco_complemento,bairro,cep,cidade,uf").eq("cnpj", CNPJ_MATRIZ).eq("ativo", true).order("created_at").limit(1).maybeSingle(),
       db.from("centro_distribuicao").select("nome,rotulo_curto").eq("id", baixa.centro_origem_id).maybeSingle(),
       db.from("centro_distribuicao").select("logradouro,numero,complemento,bairro,cep,cidade,uf").eq("codigo", "SITE-SP").maybeSingle(),
@@ -63,6 +71,10 @@ serve(async (req) => {
     for (const e of [natErr, iErr, mErr, oErr, sErr, cfgErr]) if (e) throw e;
     if (!nat?.bling_natureza_id) throw new Error(`Natureza "${nat?.nome ?? naturezaId}" sem id do Bling.`);
     if (!itensRaw?.length) throw new Error("Baixa sem itens.");
+    const itensBase = ehRetorno
+      ? itensRaw.filter((i) => Number(i.quantidade_retornada ?? 0) > 0).map((i) => ({ ...i, quantidade: Number(i.quantidade_retornada) }))
+      : itensRaw;
+    if (!itensBase.length) throw new Error("Nenhuma peça voltou do evento — não há NF de retorno a gerar.");
     if (!cfg?.access_token) throw new Error("Bling não conectado.");
 
     // Contato: Fetely matriz SP (parceiros_comerciais), endereço completado pelo CD SITE-SP quando faltar.
@@ -78,12 +90,12 @@ serve(async (req) => {
     if (faltando.length) throw new Error(`Endereço da Fetely matriz incompleto (${faltando.join(", ")}). Corrija o cadastro antes de gerar a NF.`);
     const contato = { nome: matriz.razao_social, numeroDocumento: CNPJ_MATRIZ, tipoPessoa: "J", contribuinte: 1, ie, endereco: end };
 
-    const skus = itensRaw.map((i) => i.sku);
+    const skus = itensBase.map((i) => i.sku);
     const { data: prods, error: pErr } = await db.from("sncf_produtos").select("sku,nome_operacional,nome_completo,ncm,origem_fisc,preco_custo").in("sku", skus);
     if (pErr) throw pErr;
     const porSku = new Map((prods ?? []).map((p) => [p.sku, p]));
     const semCusto: string[] = []; const semNcm: string[] = []; const semCadastro: string[] = []; const semOrigem: string[] = [];
-    const itens = itensRaw.map((i) => {
+    const itens = itensBase.map((i) => {
       const p = porSku.get(i.sku);
       if (!p) semCadastro.push(i.sku);
       const valor = i.custo_unitario ?? p?.preco_custo ?? null;
@@ -105,9 +117,12 @@ serve(async (req) => {
     const agora = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()).replace(",", "");
     const origemRotulo = origem?.rotulo_curto ?? origem?.nome ?? "—";
     const payload = {
-      tipo: 1, dataOperacao: agora, contato, naturezaOperacao: { id: Number(nat.bling_natureza_id) }, finalidade: 1,
+      tipo: ehRetorno ? 0 : 1, dataOperacao: agora, contato, naturezaOperacao: { id: Number(nat.bling_natureza_id) }, finalidade: 1,
       itens, parcelas: [], transporte: { fretePorConta: 9 },
-      observacoes: `Baixa para uso ${baixa.codigo} — ${fin.rotulo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}.${baixa.descricao ? ` ${baixa.descricao}.` : ""} Origem: ${origemRotulo}. SNCF.`,
+      ...(ehRetorno ? { documentoReferenciado: { modelo: "55", chaveAcesso: chaveRemessa } } : {}),
+      observacoes: ehRetorno
+        ? `Retorno de exposição/feira — baixa ${baixa.codigo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}. Ref. NF ${baixa.nf_saida_numero ?? ""}. SNCF.`
+        : `Baixa para uso ${baixa.codigo} — ${fin.rotulo}${baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}.${baixa.descricao ? ` ${baixa.descricao}.` : ""} Origem: ${origemRotulo}. SNCF.`,
     };
 
     // Anti-duplicata: NFs pendentes para a matriz, não usadas em outra baixa, com os mesmos SKUs/quantidades.
@@ -121,12 +136,13 @@ serve(async (req) => {
       return true;
     };
     const buscarCandidatas = async () => {
-      const { data: usados, error: uErr } = await db.from("baixa_uso").select("nf_saida_numero").not("nf_saida_numero", "is", null);
+      const colUsada = ehRetorno ? "nf_retorno_numero" : "nf_saida_numero";
+      const { data: usados, error: uErr } = await db.from("baixa_uso").select(colUsada).not(colUsada, "is", null);
       if (uErr) throw uErr;
-      const numerosUsados = new Set((usados ?? []).map((u: { nf_saida_numero: string | null }) => semZeros(u.nf_saida_numero)));
+      const numerosUsados = new Set((usados ?? []).map((u: Record<string, string | null>) => semZeros(u[colUsada])));
       const candidatas: Array<{ id: number; numero: string }> = [];
       for (let pagina = 1; pagina <= 50; pagina++) {
-        const res = await bling.get(`/nfe?tipo=1&situacao=1&pagina=${pagina}&limite=100`);
+        const res = await bling.get(`/nfe?tipo=${ehRetorno ? 0 : 1}&situacao=1&pagina=${pagina}&limite=100`);
         const lista: Array<{ id: number; numero: string; contato?: { numeroDocumento?: string } }> = res?.data ?? [];
         for (const n of lista) {
           if (digitos(n.contato?.numeroDocumento) !== CNPJ_MATRIZ) continue;
