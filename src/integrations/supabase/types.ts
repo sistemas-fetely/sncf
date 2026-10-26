@@ -46083,6 +46083,7 @@ export type Database = {
           pdf_url: string | null
           pedido_venda_id: string | null
           raw: Json | null
+          reconferida_em: string | null
           serie: string | null
           situacao: string | null
           substituicao_canal: string | null
@@ -46133,6 +46134,7 @@ export type Database = {
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
+          reconferida_em?: string | null
           serie?: string | null
           situacao?: string | null
           substituicao_canal?: string | null
@@ -46183,6 +46185,7 @@ export type Database = {
           pdf_url?: string | null
           pedido_venda_id?: string | null
           raw?: Json | null
+          reconferida_em?: string | null
           serie?: string | null
           situacao?: string | null
           substituicao_canal?: string | null
@@ -148656,6 +148659,16 @@ export type Database = {
       }
       fn_nf_itens_hash: { Args: { p_itens: Json }; Returns: string }
       fn_nf_pos_rateio: { Args: { p_nf_id: number }; Returns: Json }
+      fn_nf_vinculada_processo: { Args: { p_nf_id: string }; Returns: string }
+      fn_nfe_reconferir_fila: {
+        Args: { p_limite?: number }
+        Returns: {
+          bling_id: string
+          id: string
+          numero: string
+          situacao: string
+        }[]
+      }
       fn_nfs_stage_destino: { Args: { p_stage_id: string }; Returns: string }
       fn_nfs_stage_destino_calc: {
         Args: {
