@@ -246,7 +246,7 @@ export default function TransferenciasInternas() {
           <TabsTrigger value="nova">Nova transferência</TabsTrigger>
           <TabsTrigger value="receber">Receber no destino</TabsTrigger>
           {permRetorno.podeVer && (
-            <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
+            <TabsTrigger value="retorno">Transferência Fiscal</TabsTrigger>
           )}
           <TabsTrigger value="nfs_sem_pedido" className="gap-1.5">
             NFs sem pedido
