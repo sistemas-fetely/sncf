@@ -6,6 +6,7 @@ import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { BaixasUsoPainel, useBaixasUso } from "@/components/transferencias/BaixasUsoPainel";
 
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -129,10 +130,12 @@ export default function TransferenciasInternas() {
   const [abaUrl, setAba] = useAbaUrl("transferencias");
   // Aba válida: "nova"/"receber"; "retorno" só com permissão; qualquer outra → "transferencias".
   const aba =
-    abaUrl === "nova" || abaUrl === "receber" || abaUrl === "nfs_sem_pedido" ? abaUrl
+    abaUrl === "nova" || abaUrl === "receber" || abaUrl === "nfs_sem_pedido" || abaUrl === "baixas_uso" ? abaUrl
     : abaUrl === "retorno" && permRetorno.podeVer ? "retorno"
     : "transferencias";
   const nfsOrfas = useNfsFetelyOrfas();
+  const baixasQ = useBaixasUso();
+  const qtdEmEvento = (baixasQ.data ?? []).filter((b) => b.status === "em_evento").length;
   const qtdNfsOrfas = (nfsOrfas.data ?? []).filter((n) => !n.ignorada).length;
   const location = useLocation();
   // Filtros da lista (aba Transferências) na URL, prefixo "tr".
@@ -253,9 +256,16 @@ export default function TransferenciasInternas() {
             NFs sem pedido
             {qtdNfsOrfas > 0 && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{qtdNfsOrfas}</Badge>}
           </TabsTrigger>
+          <TabsTrigger value="baixas_uso" className="gap-1.5">
+            Baixas para uso
+            {qtdEmEvento > 0 && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{qtdEmEvento}</Badge>}
+          </TabsTrigger>
         </TabsList>
+        <TabsContent value="baixas_uso">
+          <BaixasUsoPainel />
+        </TabsContent>
         <TabsContent value="nova">
-          <NovaTransferenciaForm onCriado={() => setAba("transferencias")} onCancelar={() => setAba("transferencias")} />
+          <NovaTransferenciaForm onCriado={() => setAba("transferencias")} onCancelar={() => setAba("transferencias")} onBaixaCriada={() => setAba("baixas_uso")} />
         </TabsContent>
         <TabsContent value="nfs_sem_pedido">
           <NfsFetelySemPedidoPainel />

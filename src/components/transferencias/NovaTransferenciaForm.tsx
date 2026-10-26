@@ -9,6 +9,7 @@ import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useEstadoTela } from "@/lib/navegacao";
 import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
+import { BaixaUsoForm } from "@/components/transferencias/BaixaUsoForm";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -103,7 +104,7 @@ interface LinhaColada {
 }
 
 /** Combobox de SKU: só aceita SKU vindo de uma seleção real do catálogo. */
-function SkuCombobox({
+export function SkuCombobox({
   value,
   nome,
   onSelect,
@@ -265,7 +266,7 @@ function SkuCombobox({
 }
 
 /** Quebra o texto colado do Excel: TAB; senão vírgula/;; senão múltiplos espaços. */
-function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
+export function parsearColagem(texto: string): { sku: string; qtdTexto: string }[] {
   return texto
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -348,7 +349,7 @@ export interface ModoRemessa {
 
 const schemaRemessa = schema.extend({ destino: z.string() });
 
-export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa }) {
+export function NovaTransferenciaForm({ onCriado, onCancelar, remessa, onBaixaCriada }: { onCriado: () => void; onCancelar: () => void; remessa?: ModoRemessa; onBaixaCriada?: () => void }) {
   const qc = useQueryClient();
 
   // Regras dinâmicas (regularização / finalidade) lidas por ref no resolver.
@@ -441,9 +442,10 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
   // Tipo "Entre CDs de SP (sem NF)" vive na URL (?tipo=entre_cds) — a rota antiga redireciona para cá.
   const [tipoNav, setTipoNav] = useEstadoTela({ tipo: "" });
   const entreCds = !remessa && tipoNav.tipo === "entre_cds";
+  const baixaUso = !remessa && tipoNav.tipo === "baixa_uso";
 
   const selecionarTipo = (novoRegularizacao: boolean) => {
-    if (entreCds) setTipoNav({ tipo: "" });
+    if (entreCds || baixaUso) setTipoNav({ tipo: "" });
     if (novoRegularizacao === regularizacao) return;
     setRegularizacao(novoRegularizacao);
     if (novoRegularizacao && modo === "sugestao") trocarModo("item");
@@ -661,15 +663,15 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
             ) : (
             <fieldset className="space-y-2">
               <legend className="text-sm font-medium">Tipo</legend>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={!entreCds && !regularizacao}
+                  aria-pressed={!entreCds && !baixaUso && !regularizacao}
                   onClick={() => selecionarTipo(false)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    !entreCds && !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && !baixaUso && !regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -682,11 +684,11 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                 <Button
                   type="button"
                   variant="outline"
-                  aria-pressed={!entreCds && regularizacao}
+                  aria-pressed={!entreCds && !baixaUso && regularizacao}
                   onClick={() => selecionarTipo(true)}
                   className={cn(
                     "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
-                    !entreCds && regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
+                    !entreCds && !baixaUso && regularizacao && "border-primary bg-primary/5 ring-1 ring-primary",
                   )}
                 >
                   <span>
@@ -713,10 +715,27 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
                     </span>
                   </span>
                 </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  aria-pressed={baixaUso}
+                  onClick={() => setTipoNav({ tipo: "baixa_uso" })}
+                  className={cn(
+                    "h-auto min-h-24 items-start justify-start whitespace-normal p-4 text-left",
+                    baixaUso && "border-primary bg-primary/5 ring-1 ring-primary",
+                  )}
+                >
+                  <span>
+                    <span className="block font-medium">Baixa para uso</span>
+                    <span className="mt-1 block text-sm font-normal text-muted-foreground">
+                      Peças saem do estoque vendável de SP para uso da Fetely (mostruário, uso interno, brinde, feira). Sem viagem.
+                    </span>
+                  </span>
+                </Button>
               </div>
             </fieldset>
             )}
-            {!entreCds && (<>
+            {!entreCds && !baixaUso && (<>
             <div className="grid gap-4 md:grid-cols-2">
               {!remessa && <div className="space-y-1.5">
                 <label htmlFor="destino" className="text-sm font-medium">
@@ -1190,6 +1209,7 @@ export function NovaTransferenciaForm({ onCriado, onCancelar, remessa }: { onCri
             </>)}
           </form>
           {entreCds && <div className="mt-4"><TransferenciaInternaPainel mostrarHistorico={false} rotuloBotao="Transferir agora" /></div>}
+          {baixaUso && <div className="mt-4"><BaixaUsoForm onCriado={() => { setTipoNav({ tipo: "" }); (onBaixaCriada ?? onCriado)(); }} /></div>}
         </CardContent>
       </Card>
     </>
