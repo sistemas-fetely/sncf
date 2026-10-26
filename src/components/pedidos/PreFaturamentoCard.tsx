@@ -196,6 +196,8 @@ export function PreFaturamentoCard({
               <TooltipContent>
                 {jaEnviado
                   ? `Já enviado ao Bling (id ${blingIdDestino}) — emitir a NF lá`
+                  : pedidoDividido
+                  ? `Pedido dividido em ${qtdRemessas} remessas — envie cada uma pelos botões abaixo.`
                   : bloqueadores.length > 0
                   ? `Bloqueado por: ${bloqueadores.map((b) => b.rotulo).join(", ")}`
                   : "Envio bloqueado pela conferência."}
@@ -203,6 +205,13 @@ export function PreFaturamentoCard({
             </Tooltip>
           </TooltipProvider>
         ) : botao
+      )}
+
+      {podeEscrever && pedidoDividido && (
+        <p className="text-xs text-muted-foreground leading-snug">
+          Este pedido foi dividido em {qtdRemessas} remessas — envie cada uma nos botões
+          “Enviar pro Bling (tentativa X)” abaixo.
+        </p>
       )}
 
       {podeEscrever && (
