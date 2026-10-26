@@ -1,15 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
 import { Loader2, Store, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { FormDespacho } from "./FormDespacho";
 import { Selo } from "@/components/ui/selo";
 import type { ModalEntrega } from "./tipos";
 import { useQueryClient } from "@tanstack/react-query";
@@ -52,7 +48,7 @@ interface Props {
   /** Modal registrado na embalagem — `metadata->>'modal'` do evento mesa_embalado. */
   modalEmbalado: string | null;
   despachando: boolean;
-  onDespachar: (modal: string, referencia: string | null) => void;
+  onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   gruposColeta: GrupoColeta[];
   despachandoLote: boolean;
   onDespacharLote: (modalCodigo: string, pedidoIds: string[]) => void;
@@ -89,21 +85,10 @@ export function EstacaoDespacho({
 }: Props) {
   const qc = useQueryClient();
   const [retirada, setRetirada] = useState<LinhaVD | null>(null);
-  const [modal, setModal] = useState<string>(modalEmbalado ?? "");
   const perm = usePermissaoAcaoOuSuperAdmin("acao.expedicao_sp_operar");
   const semPerm = perm.carregando || !perm.permitido;
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.expedicao_sp_operar" : undefined;
-  const [referencia, setReferencia] = useState("");
-
-  useEffect(() => {
-    if (modalEmbalado) setModal(modalEmbalado);
-  }, [modalEmbalado]);
-
-  const escolhido = modais.find((m) => m.codigo === modal) ?? null;
-  const exigeReferencia = escolhido != null && !escolhido.tem_rastreio_automatico;
-  const podeDespachar =
-    modal !== "" && (!exigeReferencia || referencia.trim() !== "");
-  const temRastreioAutomatico = escolhido?.tem_rastreio_automatico === true;
+  const escolhido = modais.find((m) => m.codigo === modalEmbalado) ?? null;
   const semDespacho = escolhido?.sem_despacho === true;
 
   if (semDespacho) {
@@ -144,8 +129,6 @@ export function EstacaoDespacho({
     );
   }
 
-  if (gruposColeta.length === 0 && temRastreioAutomatico) return null;
-
   return (
     <div className="space-y-4">
       {gruposColeta.length > 0 && (
@@ -183,8 +166,7 @@ export function EstacaoDespacho({
 
                 {!grupo.temRastreioAutomatico && (
                   <p className="text-xs text-muted-foreground">
-                    Sem rastreio automático: não há despacho em lote — cada pedido sai
-                    abaixo, um a um, com a referência da corrida.
+                    Sem despacho em lote — cada pedido sai abaixo, um a um.
                   </p>
                 )}
 
@@ -212,50 +194,18 @@ export function EstacaoDespacho({
         </Card>
       )}
 
-      {!temRastreioAutomatico && (
-        <Card>
-          <CardContent className="space-y-4 p-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="mesa-sp-despacho-modal">Modal</Label>
-                <Select value={modal} onValueChange={setModal}>
-                  <SelectTrigger id="mesa-sp-despacho-modal">
-                    <SelectValue placeholder="Escolher modal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {modais.filter((m) => !m.sem_despacho).map((m) => (
-                      <SelectItem key={m.codigo} value={m.codigo}>
-                        {m.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {exigeReferencia && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="mesa-sp-referencia">Referência do despacho</Label>
-                  <Input
-                    id="mesa-sp-referencia"
-                    value={referencia}
-                    onChange={(e) => setReferencia(e.target.value)}
-                    placeholder="ID da corrida (Lalamove) ou nome do portador"
-                  />
-                </div>
-              )}
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Sem rastreio automático: a referência é o que o cliente vai ver no e-mail do Shopify.
-            </p>
-
-            <BotaoGuardado slug="acao.expedicao_sp_operar" rotuloAcao="Despachar pedido" onClick={() => onDespachar(modal, referencia.trim() || null)} disabled={!podeDespachar || despachando || bloqueado}>
-              {despachando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Truck aria-hidden="true" />}
-              Despachar
-            </BotaoGuardado>
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardContent className="p-4">
+          <FormDespacho
+            pedidoId={pedidoId}
+            modalCodigo={modalEmbalado}
+            modais={modais}
+            despachando={despachando}
+            bloqueado={bloqueado}
+            onDespachar={(ref, exec) => modalEmbalado && onDespachar(modalEmbalado, ref, exec)}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

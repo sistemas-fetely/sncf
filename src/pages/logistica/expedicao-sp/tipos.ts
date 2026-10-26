@@ -245,7 +245,31 @@ export interface ModalEntrega {
   exige_etiqueta_correios: boolean;
   /** Modal encerrado fora da Mesa (ex.: retirada registrada em Pedidos Site SP). */
   sem_despacho: boolean;
+  /** Inativos (MOTOBOY/LALAMOVE antigos) só servem para nome no histórico. */
+  ativo: boolean;
 }
+
+/** `fn_mesa_sp_modal_sugerido`. */
+export interface ModalSugerido {
+  modal: string;
+  origem: string | null;
+}
+
+/** `mesa_sp_executor`: quem entrega dentro de um modal (ex.: Frete Fetely). */
+export interface ExecutorMesa {
+  codigo: string;
+  modal_codigo: string;
+  nome: string;
+  rotulo_cliente: string;
+  exige_referencia: boolean;
+  ordem: number;
+}
+
+/** Código de rastreio dos Correios (AA123456789BR) — normaliza bipagem. */
+export function normalizarCodigoCorreios(v: string): string {
+  return v.toUpperCase().replace(/\s+/g, "");
+}
+export const PADRAO_CODIGO_CORREIOS = /^[A-Z]{2}\d{9}[A-Z]{2}$/;
 
 /** Mapeamento mantido no banco entre a entrega vendida e o modal da bancada. */
 export interface VdModoModal {

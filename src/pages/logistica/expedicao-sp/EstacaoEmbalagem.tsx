@@ -10,15 +10,11 @@ import { cn } from "@/lib/utils";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  cepDoEndereco, modalSugerido, rotuloEntregaVendaDireta,
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
-import { usePesoEstimado } from "./useMesaSp";
+import { useModalSugerido, usePesoEstimado } from "./useMesaSp";
 
 /**
  * Estação 4 — Embalagem. Peso REAL e volumes reais: a RPC recusa peso <= 0
@@ -56,12 +52,13 @@ interface Props {
   salvando: boolean;
   /** Cancelamento solicitado: não embala. */
   bloqueado?: boolean;
-  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null) => void;
+  /** `motivoTroca` preenchido = modal diferente do sugerido; a tela registra a troca antes de embalar. */
+  onEmbalar: (pesoKg: number, volumes: number, modal: string, checklist: string[], caixaCodigo: string | null, motivoTroca: string | null) => void;
 }
 
 
 export function EstacaoEmbalagem({
-  pedidoId, enderecoEntrega, modoVendaDireta, modalVendaDireta, modalPreferido = null, itens, modais, regras, checklist,
+  pedidoId, itens, modais, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
   caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false,
 }: Props) {
@@ -70,7 +67,7 @@ export function EstacaoEmbalagem({
   const [volumes, setVolumes] = useState("1");
   const [volumesEditado, setVolumesEditado] = useState(false);
   const [modal, setModal] = useState<string>("");
-  const [modalPendente, setModalPendente] = useState<string | null>(null);
+  const [motivoTroca, setMotivoTroca] = useState("");
   const [caixa, setCaixa] = useState<string | null>(null);
 
   const marcadosSet = useMemo(() => new Set(marcados), [marcados]);
@@ -94,8 +91,10 @@ export function EstacaoEmbalagem({
     setCaixa(sugeridaCodigo);
   }, [pedidoId, sugeridaCodigo, caixa]);
 
-  const cep = cepDoEndereco(enderecoEntrega);
-  const sugerido = modoVendaDireta ? modalVendaDireta : modalPreferido ?? modalSugerido(cep, regras);
+  const sugestaoQ = useModalSugerido(pedidoId);
+  const sugestao = sugestaoQ.data ?? null;
+  const sugerido = sugestao?.modal ?? null;
+  const modaisAtivos = useMemo(() => modais.filter((m) => m.ativo), [modais]);
 
   const nenhumaCabe = caixas.length > 0 && caixas.every((c) => !c.cabe);
   const caixaDiferenteDaSugerida =
@@ -104,17 +103,11 @@ export function EstacaoEmbalagem({
   // Modal acompanha pedido e sugestão; refetch de modais não apaga a caixa nem
   // o que o operador já digitou.
   useEffect(() => {
-    setModal(sugerido && modais.some((m) => m.codigo === sugerido) ? sugerido : "");
-    setModalPendente(null);
-  }, [pedidoId, sugerido, modais]);
+    setModal(sugerido && modaisAtivos.some((m) => m.codigo === sugerido) ? sugerido : "");
+    setMotivoTroca("");
+  }, [pedidoId, sugerido, modaisAtivos]);
 
-  function escolherModal(proximo: string) {
-    if (modoVendaDireta && sugerido && proximo !== sugerido) {
-      setModalPendente(proximo);
-      return;
-    }
-    setModal(proximo);
-  }
+  const trocou = sugerido !== null && modal !== "" && modal !== sugerido;
 
   const itensDoModal = useMemo(
     () => checklist.filter((i) => i.modal_codigo === modal),
@@ -146,6 +139,7 @@ export function EstacaoEmbalagem({
     Number.isFinite(pesoNum) && pesoNum > 0 &&
     Number.isFinite(volumesNum) && volumesNum >= 1 &&
     modal !== "" &&
+    (!trocou || motivoTroca.trim() !== "") &&
     faltando.length === 0;
 
   return (
@@ -319,12 +313,12 @@ export function EstacaoEmbalagem({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="mesa-sp-modal">Modal</Label>
-            <Select value={modal} onValueChange={escolherModal}>
+            <Select value={modal} onValueChange={setModal} disabled={sugestaoQ.isLoading}>
               <SelectTrigger id="mesa-sp-modal">
                 <SelectValue placeholder="Escolher modal" />
               </SelectTrigger>
               <SelectContent>
-                {modais.map((m) => (
+                {modaisAtivos.map((m) => (
                   <SelectItem key={m.codigo} value={m.codigo}>
                     {m.nome}
                   </SelectItem>
@@ -334,13 +328,29 @@ export function EstacaoEmbalagem({
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          {modoVendaDireta
-            ? `Venda feita com ${rotuloEntregaVendaDireta(modoVendaDireta)}${sugerido ? ` · modal sugerido ${sugerido}` : " · sem modal mapeado"}`
-            : cep
-            ? `CEP de entrega ${cep}${sugerido ? ` · regra sugere ${sugerido}` : " · sem regra aplicável"}`
-            : "Pedido sem CEP legível no endereço de entrega — a sugestão caiu na regra default."}
-        </p>
+        {sugestaoQ.error ? (
+          <p className="text-xs text-destructive">{sugestaoQ.error instanceof Error ? sugestaoQ.error.message : String(sugestaoQ.error)}</p>
+        ) : sugestao ? (
+          <p className="text-xs text-muted-foreground">
+            Sugerido: {modais.find((m) => m.codigo === sugestao.modal)?.nome ?? sugestao.modal}
+            {sugestao.origem ? ` · ${sugestao.origem}` : ""}
+          </p>
+        ) : !sugestaoQ.isLoading ? (
+          <p className="text-xs text-muted-foreground">Sem sugestão de modal — escolha livre.</p>
+        ) : null}
+
+        {trocou && (
+          <div className="space-y-1.5">
+            <Label htmlFor="mesa-sp-motivo-troca">Motivo da troca</Label>
+            <Textarea
+              id="mesa-sp-motivo-troca"
+              value={motivoTroca}
+              onChange={(e) => setMotivoTroca(e.target.value)}
+              placeholder="Por que sai por outro modal? (obrigatório)"
+              rows={2}
+            />
+          </div>
+        )}
 
         {/* Documentos (DANFE, etiqueta, romaneio) saíram daqui: são a estação seguinte. Sem rotina, sem bloco. */}
         {modal !== "" && itensDoModal.length > 0 && (
@@ -383,7 +393,7 @@ export function EstacaoEmbalagem({
 
         <div className="flex flex-wrap items-center gap-3">
           <Button
-            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa)}
+            onClick={() => onEmbalar(pesoNum, volumesNum, modal, rotulosMarcados, caixa, trocou ? motivoTroca.trim() : null)}
             disabled={!podeSalvar || salvando || bloqueado}
           >
             {salvando && <Loader2 className="animate-spin" aria-hidden="true" />}
@@ -396,27 +406,6 @@ export function EstacaoEmbalagem({
           )}
         </div>
       </CardContent>
-      <AlertDialog open={modalPendente !== null} onOpenChange={(aberto) => !aberto && setModalPendente(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Trocar o modal da venda?</AlertDialogTitle>
-            <AlertDialogDescription>
-              A venda foi feita com {rotuloEntregaVendaDireta(modoVendaDireta)}. Trocar mesmo?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Manter modal</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (modalPendente) setModal(modalPendente);
-                setModalPendente(null);
-              }}
-            >
-              Trocar modal
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 }

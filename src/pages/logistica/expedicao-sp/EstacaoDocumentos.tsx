@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
-import { useConcluirDocumentos, useDadosImpressao, useDocumentosMesa, useMarcarDocumento, useRegistrarRastreio } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, useRegistrarRastreio } from "./useMesaSp";
 
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
@@ -33,6 +33,7 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const marcar = useMarcarDocumento();
   const rastreio = useRegistrarRastreio();
   const concluir = useConcluirDocumentos();
+  const postar = usePostarAgencia();
   const [codigo, setCodigo] = useState("");
 
   const dadosQ = useDadosImpressao(pedido.id);
@@ -106,6 +107,17 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
               {rastreio.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {d.liberado ? "Registrar outro" : "Registrar"}
             </Button>
+            {!d.liberado && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => postar.mutate({ p_pedido_id: pedido.id })}
+                disabled={bloqueado || postar.isPending}
+              >
+                {postar.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
+                Postar na agência
+              </Button>
+            )}
           </div>
         );
       case "etiqueta_entrega":
@@ -177,6 +189,11 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
                     {d.detalhe && (
                       <p className={cn("text-xs", semNf ? "font-medium text-warning" : "text-muted-foreground", d.tipo === "rastreio" && d.liberado && "font-mono")}>
                         {d.detalhe}
+                      </p>
+                    )}
+                    {d.tipo === "rastreio" && !d.liberado && (
+                      <p className="text-xs text-muted-foreground">
+                        Etiqueta não imprimiu? Poste no balcão dos Correios e bipe o código do comprovante no despacho.
                       </p>
                     )}
                     {d.observacao && <p className="text-xs text-muted-foreground">{d.observacao}</p>}
