@@ -77,6 +77,9 @@ const TRANSPORTADORA_POR_MODAL: Record<ModalMultimodal, string> = {
   MOTOBOY: "Entrega Fetély",
 };
 
+/** Modal de negocio da Mesa SP: quem entrega vem de `metadata.executor`. */
+const MODAL_FRETE_FETELY = "FRETE_FETELY";
+
 /** Modais da Mesa SP tratados pela fonte entrega_sncf (3c). */
 const MODAIS_ENTREGA_SNCF = ["RETIRADA", "TRANSPORTADORA"] as const;
 // A Admin API sem o escopo `read_all_orders` nao devolve pedidos com mais de 60
@@ -106,6 +109,8 @@ type Candidato = {
   /** SRO (Correios) ou referencia da corrida (Lalamove). Vazio no Motoboy. */
   codigo_rastreio: string;
   servico: string | null;
+  /** Rotulo ao cliente ja resolvido (FRETE_FETELY via `mesa_sp_executor`). */
+  company?: string;
 };
 
 type Detalhe = {
@@ -273,6 +278,23 @@ Deno.serve(async (req) => {
       .not("codigo_rastreio", "is", null)
       .order("atualizado_em", { ascending: false });
     if (eRas) throw new Error(`ler pedido_rastreamento: ${eRas.message}`);
+
+    // `mesa_sp_executor` lido UMA vez por execucao, so se algum FRETE_FETELY aparecer.
+    let executoresCache: Map<string, { rotulo_cliente: string; exige_referencia: boolean }> | null = null;
+    const carregarExecutores = async () => {
+      if (executoresCache) return executoresCache;
+      const { data: ex, error: eEx } = await supabase
+        .from("mesa_sp_executor")
+        .select("codigo, rotulo_cliente, exige_referencia");
+      if (eEx) throw new Error(`ler mesa_sp_executor: ${eEx.message}`);
+      executoresCache = new Map(
+        (ex ?? []).map((e: { codigo: string; rotulo_cliente: string; exige_referencia: boolean }) => [
+          String(e.codigo).toUpperCase(),
+          { rotulo_cliente: e.rotulo_cliente, exige_referencia: e.exige_referencia === true },
+        ]),
+      );
+      return executoresCache;
+    };
 
     const candidatos: Candidato[] = [];
     const vistos = new Set<string>();
@@ -528,7 +550,7 @@ Deno.serve(async (req) => {
           ? { company: COMPANY_TRANSPORTADORA, number: c.codigo_rastreio, url: c.codigo_rastreio }
           : { company: COMPANY_TRANSPORTADORA, number: c.codigo_rastreio };
       }
-      const company = TRANSPORTADORA_POR_MODAL[c.modal as ModalMultimodal];
+      const company = c.company ?? TRANSPORTADORA_POR_MODAL[c.modal as ModalMultimodal];
       // Motoboy: fulfillment simples de "enviado" — sem number, sem URL.
       // Inventar um codigo so para preencher campo viraria rastreio que nao rastreia.
       if (!c.codigo_rastreio) return { company };
