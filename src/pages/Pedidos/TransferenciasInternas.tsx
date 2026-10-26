@@ -56,6 +56,7 @@ import { TransferenciasSemBaixaPainel } from "@/components/estoque/Transferencia
 import { NovaTransferenciaForm } from "@/components/transferencias/NovaTransferenciaForm";
 import { TransferenciaInternaPainel } from "@/components/estoque/TransferenciaInternaPainel";
 import { ReceberNoDestinoPainel } from "@/components/transferencias/ReceberNoDestinoPainel";
+import { NfsFetelySemPedidoPainel, useNfsFetelyOrfas } from "@/components/transferencias/NfsFetelySemPedidoPainel";
 
 
 interface CentroDestino {
@@ -127,9 +128,11 @@ export default function TransferenciasInternas() {
   const [abaUrl, setAba] = useAbaUrl("transferencias");
   // Aba válida: "nova"/"receber"; "retorno" só com permissão; qualquer outra → "transferencias".
   const aba =
-    abaUrl === "nova" || abaUrl === "receber" ? abaUrl
+    abaUrl === "nova" || abaUrl === "receber" || abaUrl === "nfs_sem_pedido" ? abaUrl
     : abaUrl === "retorno" && permRetorno.podeVer ? "retorno"
     : "transferencias";
+  const nfsOrfas = useNfsFetelyOrfas();
+  const qtdNfsOrfas = (nfsOrfas.data ?? []).filter((n) => !n.ignorada).length;
   const location = useLocation();
   // Filtros da lista (aba Transferências) na URL, prefixo "tr".
   const [nav, setNav] = useEstadoTela({ orfaos: false, vendaFora: false, finalidade: "todas" }, { prefixo: "tr" });
@@ -245,9 +248,16 @@ export default function TransferenciasInternas() {
           {permRetorno.podeVer && (
             <TabsTrigger value="retorno">Com retorno de remessa</TabsTrigger>
           )}
+          <TabsTrigger value="nfs_sem_pedido" className="gap-1.5">
+            NFs sem pedido
+            {qtdNfsOrfas > 0 && <Badge variant="secondary" className="h-4 px-1.5 text-[10px]">{qtdNfsOrfas}</Badge>}
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="nova">
           <NovaTransferenciaForm onCriado={() => setAba("transferencias")} onCancelar={() => setAba("transferencias")} />
+        </TabsContent>
+        <TabsContent value="nfs_sem_pedido">
+          <NfsFetelySemPedidoPainel />
         </TabsContent>
         <TabsContent value="receber">
           <ReceberNoDestinoPainel />

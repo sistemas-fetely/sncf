@@ -5352,12 +5352,14 @@ export type Database = {
           codigo_compra: string | null
           comprimento_cm: number
           criado_em: string
+          eh_referencia_cubagem: boolean
           id: string
           largura_cm: number
           nome: string
           observacao: string | null
           ordem: number
           parede_cm: number
+          peso_cubado_rotulo: number | null
           peso_g: number | null
         }
         Insert: {
@@ -5369,12 +5371,14 @@ export type Database = {
           codigo_compra?: string | null
           comprimento_cm: number
           criado_em?: string
+          eh_referencia_cubagem?: boolean
           id?: string
           largura_cm: number
           nome: string
           observacao?: string | null
           ordem?: number
           parede_cm?: number
+          peso_cubado_rotulo?: number | null
           peso_g?: number | null
         }
         Update: {
@@ -5386,12 +5390,14 @@ export type Database = {
           codigo_compra?: string | null
           comprimento_cm?: number
           criado_em?: string
+          eh_referencia_cubagem?: boolean
           id?: string
           largura_cm?: number
           nome?: string
           observacao?: string | null
           ordem?: number
           parede_cm?: number
+          peso_cubado_rotulo?: number | null
           peso_g?: number | null
         }
         Relationships: []
@@ -6037,6 +6043,13 @@ export type Database = {
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
           },
+          {
+            foreignKeyName: "b2c_roteamento_regra_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
         ]
       }
       backup_campo_destino_bloco_20261020: {
@@ -6339,6 +6352,54 @@ export type Database = {
           status?: string | null
           tipo?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      backup_embalagens_expedicao_20261025: {
+        Row: {
+          altura_cm: number
+          ativo: boolean
+          codigo: string
+          comprimento_cm: number
+          eh_referencia_cubagem: boolean
+          folga_cm: number
+          largura_cm: number
+          observacao: string | null
+          ordem: number
+          peso_cubado_rotulo: number | null
+          updated_at: string
+          volume_externo_l: number | null
+          volume_util_l: number | null
+        }
+        Insert: {
+          altura_cm: number
+          ativo?: boolean
+          codigo: string
+          comprimento_cm: number
+          eh_referencia_cubagem?: boolean
+          folga_cm?: number
+          largura_cm: number
+          observacao?: string | null
+          ordem: number
+          peso_cubado_rotulo?: number | null
+          updated_at?: string
+          volume_externo_l?: number | null
+          volume_util_l?: number | null
+        }
+        Update: {
+          altura_cm?: number
+          ativo?: boolean
+          codigo?: string
+          comprimento_cm?: number
+          eh_referencia_cubagem?: boolean
+          folga_cm?: number
+          largura_cm?: number
+          observacao?: string | null
+          ordem?: number
+          peso_cubado_rotulo?: number | null
+          updated_at?: string
+          volume_externo_l?: number | null
+          volume_util_l?: number | null
         }
         Relationships: []
       }
@@ -8322,6 +8383,13 @@ export type Database = {
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
           },
+          {
+            foreignKeyName: "bling_deposito_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
         ]
       }
       bling_envios_log: {
@@ -8998,6 +9066,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "bling_pedido_fila_b2c_centro_id_resolvido_fkey"
+            columns: ["centro_id_resolvido"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "bling_pedido_fila_b2c_pedido_id_fkey"
@@ -12202,6 +12277,13 @@ export type Database = {
             foreignKeyName: "centro_canal_centro_codigo_fkey"
             columns: ["centro_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "centro_canal_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_quarentena_fila"
             referencedColumns: ["centro"]
           },
@@ -12361,6 +12443,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "centro_distribuicao_centro_fiscal_id_fkey"
+            columns: ["centro_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "centro_distribuicao_parceiro_id_fkey"
@@ -12670,6 +12759,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "cfop_natureza_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "cfop_natureza_centro_origem_id_fkey"
             columns: ["centro_origem_id"]
             isOneToOne: false
@@ -12682,6 +12778,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "cfop_natureza_centro_origem_id_fkey"
+            columns: ["centro_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "cfop_natureza_classe_fkey"
@@ -14716,6 +14819,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "comissao_apuracao_nf_id_fkey"
@@ -19366,6 +19476,13 @@ export type Database = {
             foreignKeyName: "consignado_acerto_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -20378,6 +20495,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "consignado_ciclo_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "consignado_ciclo_parceiro_id_fkey"
             columns: ["parceiro_id"]
             isOneToOne: false
@@ -20536,6 +20660,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "consignado_contrato_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "consignado_contrato_modelo_fkey"
@@ -22256,6 +22387,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "contagem_estoque_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "contagem_estoque_classe_fkey"
@@ -26144,6 +26282,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "devolucao_haver_id_fkey"
             columns: ["haver_id"]
             isOneToOne: false
@@ -26268,6 +26413,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_original_id_fkey"
+            columns: ["nf_original_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "devolucao_nf_original_id_fkey"
@@ -28568,6 +28720,53 @@ export type Database = {
         }
         Relationships: []
       }
+      embalagem_caixa_centro: {
+        Row: {
+          caixa_id: string
+          centro_id: string
+          criado_em: string
+        }
+        Insert: {
+          caixa_id: string
+          centro_id: string
+          criado_em?: string
+        }
+        Update: {
+          caixa_id?: string
+          centro_id?: string
+          criado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embalagem_caixa_centro_caixa_id_fkey"
+            columns: ["caixa_id"]
+            isOneToOne: false
+            referencedRelation: "b2c_embalagem_caixa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embalagem_caixa_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embalagem_caixa_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "embalagem_caixa_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+        ]
+      }
       embalagem_calibracao_execucao: {
         Row: {
           atingiu_n_minimo: boolean
@@ -28697,54 +28896,6 @@ export type Database = {
           updated_at?: string
           valor?: number
           vigencia_inicio?: string
-        }
-        Relationships: []
-      }
-      embalagens_expedicao: {
-        Row: {
-          altura_cm: number
-          ativo: boolean
-          codigo: string
-          comprimento_cm: number
-          eh_referencia_cubagem: boolean
-          folga_cm: number
-          largura_cm: number
-          observacao: string | null
-          ordem: number
-          peso_cubado_rotulo: number | null
-          updated_at: string
-          volume_externo_l: number | null
-          volume_util_l: number | null
-        }
-        Insert: {
-          altura_cm: number
-          ativo?: boolean
-          codigo: string
-          comprimento_cm: number
-          eh_referencia_cubagem?: boolean
-          folga_cm?: number
-          largura_cm: number
-          observacao?: string | null
-          ordem: number
-          peso_cubado_rotulo?: number | null
-          updated_at?: string
-          volume_externo_l?: number | null
-          volume_util_l?: number | null
-        }
-        Update: {
-          altura_cm?: number
-          ativo?: boolean
-          codigo?: string
-          comprimento_cm?: number
-          eh_referencia_cubagem?: boolean
-          folga_cm?: number
-          largura_cm?: number
-          observacao?: string | null
-          ordem?: number
-          peso_cubado_rotulo?: number | null
-          updated_at?: string
-          volume_externo_l?: number | null
-          volume_util_l?: number | null
         }
         Relationships: []
       }
@@ -38985,6 +39136,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "importacao_pedido_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "importacao_pedido_fabrica_id_fkey"
             columns: ["fabrica_id"]
             isOneToOne: false
@@ -41409,6 +41567,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "movimentacao_estoque_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "movimentacao_estoque_classe_fkey"
             columns: ["classe"]
             isOneToOne: false
@@ -41638,6 +41803,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacao_estoque_nf_saida_id_fkey"
@@ -43066,6 +43238,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "naturezas_operacao_estoque_centro_destino_id_fkey"
+            columns: ["estoque_centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "naturezas_operacao_estoque_centro_origem_id_fkey"
             columns: ["estoque_centro_origem_id"]
             isOneToOne: false
@@ -43078,6 +43257,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_estoque_centro_origem_id_fkey"
+            columns: ["estoque_centro_origem_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "naturezas_operacao_estoque_consumo_centro_custo_id_fkey"
@@ -43317,6 +43503,13 @@ export type Database = {
             foreignKeyName: "naturezas_operacao_cd_centro_codigo_fkey"
             columns: ["centro_codigo"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_codigo"]
+          },
+          {
+            foreignKeyName: "naturezas_operacao_cd_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
             referencedRelation: "vw_quarentena_fila"
             referencedColumns: ["centro"]
           },
@@ -43501,6 +43694,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "nf_destino_declarado_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
         ]
       }
@@ -43708,6 +43908,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
+            columns: ["nf_saida_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nf_devolucao_vinculo_nf_saida_id_fkey"
@@ -44363,6 +44570,9 @@ export type Database = {
           substituida_por_nf_id: string | null
           tipo: string | null
           tipo_venda: string | null
+          transferencia_ignorada_em: string | null
+          transferencia_ignorada_motivo: string | null
+          transferencia_ignorada_por: string | null
           transportadora_cnpj: string | null
           transportadora_nome: string | null
           transporte_raw: Json | null
@@ -44409,6 +44619,9 @@ export type Database = {
           substituida_por_nf_id?: string | null
           tipo?: string | null
           tipo_venda?: string | null
+          transferencia_ignorada_em?: string | null
+          transferencia_ignorada_motivo?: string | null
+          transferencia_ignorada_por?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           transporte_raw?: Json | null
@@ -44455,6 +44668,9 @@ export type Database = {
           substituida_por_nf_id?: string | null
           tipo?: string | null
           tipo_venda?: string | null
+          transferencia_ignorada_em?: string | null
+          transferencia_ignorada_motivo?: string | null
+          transferencia_ignorada_por?: string | null
           transportadora_cnpj?: string | null
           transportadora_nome?: string | null
           transporte_raw?: Json | null
@@ -45117,6 +45333,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
@@ -45888,6 +46111,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "nfs_stage_venda_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_venda_nf_id_fkey"
@@ -49372,6 +49602,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "pedido_cd_falta_aceite_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "pedido_cd_falta_aceite_pedido_id_fkey"
@@ -57818,6 +58055,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "pedidos_estagio_fkey"
             columns: ["estagio"]
             isOneToOne: false
@@ -57858,6 +58102,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "pedidos_parceiro_id_fkey"
@@ -66779,6 +67030,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "regularizacao_lote_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "regularizacao_lote_trs_pedido_id_fkey"
             columns: ["trs_pedido_id"]
             isOneToOne: false
@@ -67696,6 +67954,13 @@ export type Database = {
             foreignKeyName: "regularizacao_retorno_nf_nf_origem_id_fkey"
             columns: ["nf_origem_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_nf_nf_origem_id_fkey"
+            columns: ["nf_origem_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -67859,6 +68124,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "regularizacao_retorno_nf_nf_retorno_id_fkey"
+            columns: ["nf_retorno_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "regularizacao_retorno_nf_nf_retorno_id_fkey"
@@ -68226,6 +68498,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
             columns: ["origem_centro_id"]
             isOneToOne: false
@@ -68238,6 +68517,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
         ]
       }
@@ -70465,6 +70751,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "shopify_location_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
         ]
       }
@@ -75566,6 +75859,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "termo_entrada_porta_codigo_fkey"
             columns: ["porta_codigo"]
             isOneToOne: false
@@ -76602,6 +76902,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
@@ -79236,6 +79543,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "transferencia_remessa_vinculo_nf_remessa_id_fkey"
+            columns: ["nf_remessa_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "transferencia_remessa_vinculo_nf_remessa_id_fkey"
@@ -82225,6 +82539,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "trs_recebimento_centro_destino_id_fkey"
+            columns: ["centro_destino_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "trs_recebimento_pedido_id_fkey"
@@ -86172,6 +86493,13 @@ export type Database = {
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
           },
+          {
+            foreignKeyName: "xpm_estoque_snapshot_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
         ]
       }
       xpm_expedicao: {
@@ -87292,6 +87620,13 @@ export type Database = {
             foreignKeyName: "xpm_nf_fila_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "xpm_nf_fila_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -87973,6 +88308,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "xpm_pedido_fila_b2c_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "xpm_pedido_fila_b2c_nf_id_fkey"
@@ -89369,6 +89711,54 @@ export type Database = {
           },
         ]
       }
+      embalagens_expedicao: {
+        Row: {
+          altura_cm: number | null
+          ativo: boolean | null
+          codigo: string | null
+          comprimento_cm: number | null
+          eh_referencia_cubagem: boolean | null
+          folga_cm: number | null
+          largura_cm: number | null
+          observacao: string | null
+          ordem: number | null
+          peso_cubado_rotulo: number | null
+          updated_at: string | null
+          volume_externo_l: number | null
+          volume_util_l: number | null
+        }
+        Insert: {
+          altura_cm?: never
+          ativo?: boolean | null
+          codigo?: string | null
+          comprimento_cm?: never
+          eh_referencia_cubagem?: boolean | null
+          folga_cm?: never
+          largura_cm?: never
+          observacao?: string | null
+          ordem?: number | null
+          peso_cubado_rotulo?: number | null
+          updated_at?: string | null
+          volume_externo_l?: never
+          volume_util_l?: never
+        }
+        Update: {
+          altura_cm?: never
+          ativo?: boolean | null
+          codigo?: string | null
+          comprimento_cm?: never
+          eh_referencia_cubagem?: boolean | null
+          folga_cm?: never
+          largura_cm?: never
+          observacao?: string | null
+          ordem?: number | null
+          peso_cubado_rotulo?: number | null
+          updated_at?: string | null
+          volume_externo_l?: never
+          volume_util_l?: never
+        }
+        Relationships: []
+      }
       expedicao_b2b_cd: {
         Row: {
           atualizado_em: string | null
@@ -89545,6 +89935,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_mesa_sp_quadro"
             referencedColumns: ["cd_codigo"]
+          },
+          {
+            foreignKeyName: "centro_canal_centro_codigo_fkey"
+            columns: ["centro_codigo"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_codigo"]
           },
           {
             foreignKeyName: "centro_canal_centro_codigo_fkey"
@@ -90642,6 +91039,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "pedidos_destino_centro_id_fkey"
+            columns: ["destino_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "pedidos_estagio_fkey"
             columns: ["estagio"]
             isOneToOne: false
@@ -90661,6 +91065,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "pedidos_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
         ]
       }
@@ -97698,6 +98109,13 @@ export type Database = {
             foreignKeyName: "comissao_apuracao_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comissao_apuracao_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -101580,6 +101998,13 @@ export type Database = {
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
           },
+          {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
         ]
       }
       vw_demanda_por_assunto: {
@@ -102845,6 +103270,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "devolucao_destino_retorno_fkey"
+            columns: ["destino_retorno"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
           {
             foreignKeyName: "devolucao_haver_id_fkey"
@@ -108635,6 +109067,27 @@ export type Database = {
             referencedColumns: ["pedido_id"]
           },
         ]
+      }
+      vw_fila_frete_cubado_indevido: {
+        Row: {
+          caixa_inferida: string | null
+          caixa_que_cabia: string | null
+          canal: string | null
+          custo: number | null
+          custo_peso_real_estimado: number | null
+          data_postagem: string | null
+          etiqueta: string | null
+          id: string | null
+          id_externo: string | null
+          litros_pedido: number | null
+          pago_a_mais: number | null
+          pedido_id: string | null
+          peso_real_kg: number | null
+          servico: string | null
+          taxado_kg: number | null
+          uf: string | null
+        }
+        Relationships: []
       }
       vw_fila_medida: {
         Row: {
@@ -114634,6 +115087,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "importacao_pedido_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "importacao_pedido_fabrica_id_fkey"
             columns: ["fabrica_id"]
             isOneToOne: false
@@ -118305,6 +118765,13 @@ export type Database = {
             foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
             columns: ["substituida_por_nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "nfs_emitidas_substituida_por_nf_id_fkey"
+            columns: ["substituida_por_nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -118358,6 +118825,30 @@ export type Database = {
             referencedColumns: ["nf_id"]
           },
         ]
+      }
+      vw_nf_fetely_orfa: {
+        Row: {
+          cfops: string[] | null
+          chave_acesso: string | null
+          data_emissao: string | null
+          emitente_cnpj: string | null
+          id: string | null
+          ignorada: boolean | null
+          numero: string | null
+          origem_centro_id: string | null
+          origem_codigo: string | null
+          origem_rotulo: string | null
+          pdf_url: string | null
+          pecas: number | null
+          qtd_itens: number | null
+          serie: string | null
+          situacao: string | null
+          transferencia_ignorada_em: string | null
+          transferencia_ignorada_motivo: string | null
+          transferencia_ignorada_por: string | null
+          valor_nota: number | null
+        }
+        Relationships: []
       }
       vw_nf_orfa_candidata: {
         Row: {
@@ -118971,14 +119462,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -120090,14 +120581,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -121906,6 +122397,31 @@ export type Database = {
             referencedColumns: ["cliente_id"]
           },
         ]
+      }
+      vw_pedido_caixa_inferida: {
+        Row: {
+          caixa_inferida: string | null
+          caixa_que_cabia: string | null
+          canal: string | null
+          cobranca: string | null
+          cubado_indevido: boolean | null
+          custo: number | null
+          custo_peso_real_estimado: number | null
+          data_postagem: string | null
+          etiqueta: string | null
+          fonte_id: string | null
+          id_externo: string | null
+          itens_sem_dimensao: number | null
+          litros_pedido: number | null
+          maior_lado_item_cm: number | null
+          pago_a_mais: number | null
+          pedido_id: string | null
+          peso_real_g: number | null
+          servico_curto: string | null
+          taxado_g: number | null
+          uf_destino: string | null
+        }
+        Relationships: []
       }
       vw_pedido_cobertura: {
         Row: {
@@ -130872,6 +131388,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -132010,6 +132533,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
@@ -133353,6 +133883,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "reposicao_parametro_centro_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
             columns: ["origem_centro_id"]
             isOneToOne: false
@@ -133365,6 +133902,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_consignado_estoque_parceiro"
             referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "reposicao_parametro_centro_origem_centro_id_fkey"
+            columns: ["origem_centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
           },
         ]
       }
@@ -135868,6 +136412,13 @@ export type Database = {
             referencedColumns: ["centro_id"]
           },
           {
+            foreignKeyName: "termo_entrada_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+          {
             foreignKeyName: "termo_entrada_porta_codigo_fkey"
             columns: ["porta_codigo"]
             isOneToOne: false
@@ -137509,6 +138060,13 @@ export type Database = {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
             columns: ["nf_id"]
             isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
             referencedRelation: "vw_nf_orfa_candidata"
             referencedColumns: ["nf_id"]
           },
@@ -138763,6 +139321,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_nf_estado"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "titulo_a_receber_nf_id_fkey"
+            columns: ["nf_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "titulo_a_receber_nf_id_fkey"
@@ -141261,6 +141826,8 @@ export type Database = {
         Returns: Json
       }
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
+      _nf_fetely_exigir_permissao: { Args: never; Returns: undefined }
+      _nf_fetely_parceiro: { Args: { p: string }; Returns: boolean }
       abater_conta_corrente: {
         Args: { p_mov_id: string; p_user_id?: string }
         Returns: Json
@@ -142867,6 +143434,14 @@ export type Database = {
         Args: { p_pendencia_id: string }
         Returns: Json
       }
+      fn_balcao_cds: {
+        Args: never
+        Returns: {
+          codigo: string
+          padrao: boolean
+          rotulo: string
+        }[]
+      }
       fn_balcao_cliente_buscar: {
         Args: { p_termo: string }
         Returns: {
@@ -142888,19 +143463,35 @@ export type Database = {
         Args: { p_dias?: number; p_fop_profile_id: string }
         Returns: Json[]
       }
-      fn_balcao_produto_buscar: {
-        Args: { p_termo: string }
-        Returns: {
-          cod_cadastro: string
-          colecao: string
-          cor_nome: string
-          disponivel_site_sp: number
-          ean: string
-          nome: string
-          preco_varejo: number
-          sku: string
-        }[]
-      }
+      fn_balcao_produto_buscar:
+        | {
+            Args: { p_termo: string }
+            Returns: {
+              cod_cadastro: string
+              colecao: string
+              cor_nome: string
+              disponivel_site_sp: number
+              ean: string
+              nome: string
+              preco_varejo: number
+              sku: string
+            }[]
+          }
+        | {
+            Args: { p_centro_codigo: string; p_termo: string }
+            Returns: {
+              centro: string
+              cod_cadastro: string
+              colecao: string
+              cor_nome: string
+              disponivel: number
+              disponivel_site_sp: number
+              ean: string
+              nome: string
+              preco_varejo: number
+              sku: string
+            }[]
+          }
       fn_balcao_vd_criar: {
         Args: {
           p_cliente: Json
@@ -144308,6 +144899,24 @@ export type Database = {
       }
       fn_nf_eh_venda: { Args: { p_nf_id: string }; Returns: boolean }
       fn_nf_estado_terminal: { Args: { p_nf_id: string }; Returns: string }
+      fn_nf_fetely_desfazer_ignorar: {
+        Args: { p_nf_id: string }
+        Returns: Json
+      }
+      fn_nf_fetely_ignorar: {
+        Args: { p_motivo: string; p_nf_id: string }
+        Returns: Json
+      }
+      fn_nf_fetely_virar_transferencia: {
+        Args: {
+          p_destino_codigo: string
+          p_dry_run?: boolean
+          p_finalidade_codigo: string
+          p_nf_id: string
+          p_observacao: string
+        }
+        Returns: Json
+      }
       fn_nf_gerar_titulo: { Args: { p_nf_id: string }; Returns: Json }
       fn_nf_gerar_titulos_lote: {
         Args: { p_dry_run?: boolean; p_nf_ids?: string[] }
