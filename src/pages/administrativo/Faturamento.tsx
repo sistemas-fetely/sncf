@@ -28,10 +28,11 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import {
-  useFaturamentoMensal, useFaturamentoNf, useFaturamentoProduto,
+  useFaturamentoMensal, useFaturamentoMensalEstab, useFaturamentoNf, useFaturamentoProduto,
   type FaturamentoMensal, type FaturamentoNf, type FaturamentoProduto,
 
 } from "@/hooks/financas/useFaturamento";
+import { reagregarProdutoPorSkuCanal } from "@/lib/faturamento/reagregarProduto";
 import { PageShell } from "@/components/layout/PageShell";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useNivel } from "@/hooks/useNivel";
@@ -135,7 +136,7 @@ type CascataLinha = {
   tipo: "linha" | "deducao" | "subtotal" | "resultado";
 };
 
-function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Componente }) {
+function CascataCard({ agg, componente, semFrete = false }: { agg: CascataAgg; componente: Componente; semFrete?: boolean }) {
   const base = agg.faturamento;
   const linhas: CascataLinha[] =
     componente === "tudo"
@@ -147,7 +148,7 @@ function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Compone
         { label: "= Margem bruta", valor: agg.margemBruta, tipo: "subtotal" },
         { label: "(−) ICMS", valor: agg.icms, tipo: "deducao" },
         { label: "(−) Frete pago", valor: agg.custo_frete_pago, tipo: "deducao" },
-        { label: "= Resultado", valor: agg.resultado, tipo: "resultado" },
+        { label: semFrete ? "= Resultado antes do frete pago" : "= Resultado", valor: agg.resultado, tipo: "resultado" },
       ]
       : componente === "produto"
         ? [
@@ -195,18 +196,23 @@ function CascataCard({ agg, componente }: { agg: CascataAgg; componente: Compone
                   <TableCell
                     className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
                   >
-                    {l.tipo === "deducao" ? `(${fmtBRL(l.valor)})` : fmtBRL(l.valor)}
+                    {semFrete && l.label === "(−) Frete pago" ? "—" : l.tipo === "deducao" ? `(${fmtBRL(l.valor)})` : fmtBRL(l.valor)}
                   </TableCell>
                   <TableCell
                     className={cn("text-right tabular-nums", l.tipo === "deducao" && "text-muted-foreground")}
                   >
-                    {l.tipo === "deducao" ? `(${pct(l.valor)})` : pct(l.valor)}
+                    {semFrete && l.label === "(−) Frete pago" ? "—" : l.tipo === "deducao" ? `(${pct(l.valor)})` : pct(l.valor)}
                   </TableCell>
                 </TableRow>
               );
             })}
           </TableBody>
         </Table>
+        {semFrete && (
+          <p className="text-xs text-muted-foreground pt-2">
+            Frete pago não é atribuído por estabelecimento — o resultado com frete aparece em Todos.
+          </p>
+        )}
       </CardContent>
     </Card>
   );
@@ -224,10 +230,39 @@ export default function Faturamento() {
   const [__n_componente, __s_componente] = __uet({ componente: "tudo" });
   const componente: Componente = __n_componente.componente as Componente;
   const setComponente = (v: __SSA<Componente>) => { const x = __ra(v, componente); __s_componente({ componente: x } as never); };
+  const [__n_estab, __s_estab] = __uet({ estab: "todos" });
+  const estab: string = __n_estab.estab as string;
+  const setEstab = (v: __SSA<string>) => { const x = __ra(v, estab); __s_estab({ estab: x } as never); };
+  const porEstab = estab !== "todos";
   const [aba, setAba] = useAbaUrl("nfs");
 
   const { data: mensal = [], isLoading: loadingMensal, isError: errMensal, error: errorMensal } =
     useFaturamentoMensal();
+  const { data: mensalEstab = [], isLoading: loadingEstab, isError: errEstab, error: errorEstab } =
+    useFaturamentoMensalEstab();
+
+  const estabelecimentos = useMemo(
+    () => Array.from(new Set(mensalEstab.map((r) => r.estabelecimento).filter(Boolean) as string[]))
+      .sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [mensalEstab],
+  );
+
+  // Fonte dos agregados: com estabelecimento, a view por estabelecimento (sem frete pago — não é atribuível).
+  const fonteMensal: FaturamentoMensal[] = useMemo(() => {
+    if (!porEstab) return mensal;
+    return mensalEstab.filter((r) => r.estabelecimento === estab).map((r) => ({
+      mes: r.mes, canal: r.canal, nfs: r.nfs, itens: null, unidades: r.unidades,
+      receita_produto: r.receita_produto, receita_frete: r.receita_frete, receita_total: r.receita_total,
+      cmv: r.cmv, icms: r.icms, margem_produto: r.margem_produto,
+      custo_frete_pago: null, resultado_frete: null,
+      margem_sem_frete_pago: r.margem_sem_frete_pago, margem_com_frete_pago: r.margem_sem_frete_pago,
+      ticket_medio: null, valor_nao_receita: null,
+      nfs_divergencia_canal: r.nfs_divergencia_canal, nfs_sem_pedido: r.nfs_sem_pedido,
+      itens_sem_custo: r.itens_sem_custo, itens_cfop_orfao: r.itens_cfop_orfao,
+      lancamentos_frete: null, somente_frete: null,
+    }));
+  }, [porEstab, mensal, mensalEstab, estab]);
+  const loadingAgg = loadingMensal || (porEstab && loadingEstab);
 
   const mesesComReceita = useMemo(
     () =>
@@ -253,11 +288,18 @@ export default function Faturamento() {
   }, [produtos, nfs]);
 
   const canalOk = (c: string | null | undefined) => canal === "todos" || (c ?? "SEM CANAL") === canal;
+  const estabOk = (e: string | null | undefined) => !porEstab || e === estab;
+
+  const nfsFiltradas = useMemo(() => nfs.filter((r) => estabOk(r.estabelecimento)), [nfs, estab]);
+  const produtosFiltrados = useMemo(
+    () => porEstab ? produtos.filter((r) => r.estabelecimento === estab) : reagregarProdutoPorSkuCanal(produtos),
+    [produtos, porEstab, estab],
+  );
 
   // ── Agregados do mês/canal
   const mesRows = useMemo(
-    () => mensal.filter((r) => String(r.mes).slice(0, 10) === mesEfetivo && canalOk(r.canal)),
-    [mensal, mesEfetivo, canal],
+    () => fonteMensal.filter((r) => String(r.mes).slice(0, 10) === mesEfetivo && canalOk(r.canal)),
+    [fonteMensal, mesEfetivo, canal],
   );
 
   const agg = useMemo(() => {
@@ -306,9 +348,9 @@ export default function Faturamento() {
 
   // ── Gráfico (todos os meses)
   const chart = useMemo(() => {
-    const meses = Array.from(new Set(mensal.map((r) => String(r.mes).slice(0, 10)))).sort();
+    const meses = Array.from(new Set(fonteMensal.map((r) => String(r.mes).slice(0, 10)))).sort();
     return meses.map((m) => {
-      const rows = mensal.filter((r) => String(r.mes).slice(0, 10) === m && canalOk(r.canal));
+      const rows = fonteMensal.filter((r) => String(r.mes).slice(0, 10) === m && canalOk(r.canal));
       const linha: Record<string, string | number> = { mes: mesLabel(m) };
       for (const c of CANAIS) {
         if (canal !== "todos" && c !== canal) continue;
@@ -324,7 +366,7 @@ export default function Faturamento() {
       linha["Resultado do frete"] = rows.reduce((s, r) => s + n(r.resultado_frete), 0);
       return linha;
     });
-  }, [mensal, canal, componente]);
+  }, [fonteMensal, canal, componente]);
 
   const canaisNoGrafico = canal === "todos" ? [...CANAIS] : [canal];
   const CORES: Record<string, string> = {
@@ -333,15 +375,15 @@ export default function Faturamento() {
     "SEM CANAL": "hsl(var(--muted-foreground) / 0.5)",
   };
 
-  const filtrosAlterados = (mes && mes !== mesesComReceita[0]) || canal !== "todos" || componente !== "tudo";
+  const filtrosAlterados = (mes && mes !== mesesComReceita[0]) || canal !== "todos" || componente !== "tudo" || estab !== "todos";
 
-  if (errMensal) {
+  if (errMensal || (porEstab && errEstab)) {
     return (
       <PageShell>
         <PageHeader titulo="Faturamento" icone={Receipt} />
         <Card className="border-destructive/50">
           <CardContent className="py-6 text-sm text-destructive">
-            Falha ao carregar o faturamento mensal: {(errorMensal as any)?.message ?? String(errorMensal)}
+            Falha ao carregar o faturamento mensal: {((errorMensal ?? errorEstab) as any)?.message ?? String(errorMensal ?? errorEstab)}
           </CardContent>
         </Card>
       </PageShell>
@@ -393,9 +435,24 @@ export default function Faturamento() {
                 size="sm"
                 className="h-9"
                 variant={componente === v ? "default" : "outline"}
+                disabled={v === "frete" && porEstab}
                 onClick={() => setComponente(v)}
               >
                 {label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {["todos", ...estabelecimentos].map((e) => (
+              <Button
+                key={e}
+                size="sm"
+                className="h-9"
+                variant={estab === e ? "default" : "outline"}
+                onClick={() => { setEstab(e); if (e !== "todos" && componente === "frete") setComponente("tudo"); setEstab("todos"); }}
+              >
+                {e === "todos" ? "Todos" : e}
               </Button>
             ))}
           </div>
@@ -412,7 +469,7 @@ export default function Faturamento() {
         </CardContent>
       </Card>
 
-      {loadingMensal ? (
+      {loadingAgg ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-6 w-6 animate-spin text-gold" />
         </div>
@@ -442,20 +499,20 @@ export default function Faturamento() {
           <KpiCard
             label="Resultado"
             value={fmtBRL(agg.resultado)}
-            sub={`${fmtPct(agg.pct(agg.resultado))} da receita`}
+            sub={porEstab && componente === "tudo" ? "antes do frete pago" : `${fmtPct(agg.pct(agg.resultado))} da receita`}
             className={agg.resultado < 0 ? "border-destructive/40" : "border-gold/40"}
             alerta={agg.resultado < 0}
           />
           <KpiCard
             label="Resultado do frete"
-            value={fmtBRL(agg.resultado_frete)}
-            sub={`${fmtPct(agg.pct(agg.resultado_frete))} da receita`}
-            alerta={agg.resultado_frete < 0}
+            value={porEstab ? "—" : fmtBRL(agg.resultado_frete)}
+            sub={porEstab ? "frete pago não tem estabelecimento" : `${fmtPct(agg.pct(agg.resultado_frete))} da receita`}
+            alerta={!porEstab && agg.resultado_frete < 0}
           />
         </div>
       )}
 
-      {!loadingMensal && <CascataCard agg={agg} componente={componente} />}
+      {!loadingAgg && <CascataCard agg={agg} componente={componente} semFrete={porEstab && componente === "tudo"} />}
 
 
       {/* Gráfico */}
@@ -466,7 +523,7 @@ export default function Faturamento() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loadingMensal ? (
+          {loadingAgg ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-gold" />
             </div>
@@ -548,7 +605,7 @@ export default function Faturamento() {
 
         <TabsContent value="nfs" className="mt-4">
           <AbaNfs
-            rows={nfs}
+            rows={nfsFiltradas}
             isLoading={loadingNfs}
             isError={errNfs}
             error={errorNfs}
@@ -562,7 +619,7 @@ export default function Faturamento() {
         {componente !== "frete" && (
           <TabsContent value="produto" className="mt-4">
             <AbaProduto
-              rows={produtos}
+              rows={produtosFiltrados}
               isLoading={loadingProd}
               isError={errProd}
               error={errorProd}
@@ -639,7 +696,7 @@ function somarLinhas(rows: LinhaBase[], componente: Componente) {
 // Aba NFs consideradas
 // ════════════════════════════════════════════════
 type NfCol =
-  | "nf_ref" | "data_emissao" | "cliente" | "uf" | "canal" | "cfop"
+  | "nf_ref" | "data_emissao" | "cliente" | "uf" | "canal" | "estab" | "cfop"
   | "unidades" | "receita" | "cmv_pct" | "icms_pct" | "margem_bruta_pct"
   | "resultado" | "resultado_pct";
 
@@ -674,6 +731,7 @@ function AbaNfs({
         case "cliente": return x.r.cliente;
         case "uf": return x.r.uf;
         case "canal": return x.r.canal;
+        case "estab": return x.r.estabelecimento;
         case "cfop": return x.r.cfops;
         case "unidades": return n(x.r.unidades);
         case "receita": return x.d.receita;
@@ -697,6 +755,7 @@ function AbaNfs({
       Cliente: r.cliente ?? "",
       UF: r.uf ?? "",
       Canal: r.canal ?? "",
+      "Estab.": r.estabelecimento ?? "",
       CFOP: r.cfops ?? "",
       Unidades: n(r.unidades),
       "Receita produto": n(r.receita_produto),
@@ -759,6 +818,7 @@ function AbaNfs({
                   <SortHead col="cliente" label="Cliente" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="uf" label="UF" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="canal" label="Canal" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
+                  <SortHead col="estab" label="Estab." sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="cfop" label="CFOP" sortCol={sortCol} sortDir={sortDir} onSort={toggle} />
                   <SortHead col="unidades" label="Unidades" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
                   <SortHead col="receita" label="Receita" sortCol={sortCol} sortDir={sortDir} onSort={toggle} className="text-right" />
@@ -816,6 +876,9 @@ function AbaNfs({
                       <TableCell>
                         <Badge variant="outline" className="font-normal text-xs">{r.canal ?? "SEM CANAL"}</Badge>
                       </TableCell>
+                      <TableCell>
+                        {r.estabelecimento ? <Badge variant="outline" className="font-normal text-xs">{r.estabelecimento}</Badge> : "—"}
+                      </TableCell>
                       <TableCell className="font-mono text-xs max-w-[120px] truncate" title={r.cfops ?? undefined}>
                         {r.cfops ?? "—"}
                       </TableCell>
@@ -834,7 +897,7 @@ function AbaNfs({
                   );
                 })}
                 <TableRow className="font-medium bg-muted/40">
-                  <TableCell colSpan={7}>Total</TableCell>
+                  <TableCell colSpan={8}>Total</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtInt(total.unidades)}</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtBRL(total.receita)}</TableCell>
                   <TableCell className="text-right text-xs tabular-nums">{fmtPct(total.cmv_pct)}</TableCell>

@@ -58,6 +58,27 @@ export interface FaturamentoNf {
   itens_sem_custo: number | null;
   nf_valor_nota: number | null;
   custo_safra: string | null;
+  estabelecimento_id: string | null;
+  estabelecimento: string | null;
+}
+
+export interface FaturamentoMensalEstab {
+  mes: string;
+  estabelecimento: string | null;
+  canal: string;
+  nfs: number | null;
+  unidades: number | null;
+  receita_produto: number | null;
+  receita_frete: number | null;
+  receita_total: number | null;
+  cmv: number | null;
+  icms: number | null;
+  margem_produto: number | null;
+  margem_sem_frete_pago: number | null;
+  nfs_divergencia_canal: number | null;
+  nfs_sem_pedido: number | null;
+  itens_sem_custo: number | null;
+  itens_cfop_orfao: number | null;
 }
 
 export interface FaturamentoProduto {
@@ -83,6 +104,7 @@ export interface FaturamentoProduto {
   preco_medio_un: number | null;
   nfs: number | null;
   clientes: number | null;
+  estabelecimento: string | null;
 }
 
 const COLS_MENSAL =
@@ -90,10 +112,13 @@ const COLS_MENSAL =
 
 
 const COLS_NF =
-  "nf_id, nf_ref, data_emissao, mes, pedido_venda_id, pedido_ref, canal, canal_fiscal, divergencia_canal, sem_canal, cliente, cliente_cnpj, uf, cidade, cfops, naturezas, itens, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem, margem_pct, tem_nao_venda, valor_nao_receita, itens_sem_custo, nf_valor_nota, custo_safra";
+  "nf_id, nf_ref, data_emissao, mes, pedido_venda_id, pedido_ref, canal, canal_fiscal, divergencia_canal, sem_canal, cliente, cliente_cnpj, uf, cidade, cfops, naturezas, itens, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem, margem_pct, tem_nao_venda, valor_nao_receita, itens_sem_custo, nf_valor_nota, custo_safra, estabelecimento_id, estabelecimento";
 
 const COLS_PRODUTO =
-  "mes, canal, sku, produto, colecao, linha, grupo, cor_nome, sku_sem_cadastro, sem_custo, custo_unit, custo_safra, unidades, receita_produto, receita_frete, cmv, icms, margem, margem_pct, preco_medio_un, nfs, clientes";
+  "mes, canal, sku, produto, colecao, linha, grupo, cor_nome, sku_sem_cadastro, sem_custo, custo_unit, custo_safra, unidades, receita_produto, receita_frete, cmv, icms, margem, margem_pct, preco_medio_un, nfs, clientes, estabelecimento";
+
+const COLS_MENSAL_ESTAB =
+  "mes, estabelecimento, canal, nfs, unidades, receita_produto, receita_frete, receita_total, cmv, icms, margem_produto, margem_sem_frete_pago, nfs_divergencia_canal, nfs_sem_pedido, itens_sem_custo, itens_cfop_orfao";
 
 export function useFaturamentoMensal() {
   return useQuery({
@@ -105,6 +130,20 @@ export function useFaturamentoMensal() {
         .order("mes", { ascending: false });
       if (error) throw error;
       return (data ?? []) as FaturamentoMensal[];
+    },
+  });
+}
+
+export function useFaturamentoMensalEstab() {
+  return useQuery({
+    queryKey: ["faturamento-mensal-estab"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("vw_faturamento_mensal_estab")
+        .select(COLS_MENSAL_ESTAB)
+        .order("mes", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as FaturamentoMensalEstab[];
     },
   });
 }
