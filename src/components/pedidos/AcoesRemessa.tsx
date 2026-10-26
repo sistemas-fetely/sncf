@@ -372,6 +372,8 @@ export function AcoesRemessa({
         // Vocabulario de UI: linha de `pedido_remessa` e TENTATIVA de envio, nunca /NN.
         // /NN pertence so ao split. Ver sncf_documentacao `decisao-remessa-e-tentativa-envio`.
         const tentativa = `tentativa ${Number(rem.sequencia)}`;
+        // Código curto da remessa: R01, R02… (zero-padded a 2 dígitos pela sequência).
+        const codigoRemessa = `R${String(Number(rem.sequencia)).padStart(2, "0")}`;
         const codigo = `${id_externo} · ${tentativa}`;
 
         const itens: any[] = Array.isArray(rem.itens_json) ? rem.itens_json : [];
@@ -402,14 +404,14 @@ export function AcoesRemessa({
                 <Button
                   size="sm"
                   className="w-full gap-1.5"
-                  title={podeEnviarBling ? `Enviar ${codigo} pro Bling` : MOTIVO_SEM_ACAO}
+                  title={podeEnviarBling ? `Enviar ${codigoRemessa} (${codigo}) pro Bling` : MOTIVO_SEM_ACAO}
                   disabled={enviar.isPending || !podeEnviarBling}
                   onClick={() => enviar.mutate({ pedido_id, remessa_id: rem.id })}
                 >
                   {enviar.isPending ? (
                     <><Loader2 className="h-4 w-4 animate-spin" />Enviando…</>
                   ) : (
-                    <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling ({tentativa})</>
+                    <><Send className="h-4 w-4 shrink-0" />Enviar pro Bling · {codigoRemessa} ({tentativa})</>
                   )}
                 </Button>
               </>

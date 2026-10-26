@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/tooltip";
 import { CheckCircle2, AlertTriangle, XCircle, Loader2, Send, MinusCircle } from "lucide-react";
 import { useEnviarBling } from "@/hooks/pedidos/useEnviarBling";
+import { useRemessas } from "@/hooks/pedidos/useRemessas";
+import { pedidoDividido as ehPedidoDividido, remessasAtivas } from "@/lib/pedidos/remessasDivididas";
 import { useNivel } from "@/hooks/useNivel";
 
 /**
@@ -71,6 +73,7 @@ export function PreFaturamentoCard({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [motivo, setMotivo] = useState("");
   const enviar = useEnviarBling();
+  const { data: remessas } = useRemessas(pedidoId);
 
   const { data, isLoading, error } = useQuery({
     queryKey: PRE_FATURAMENTO_CHECKLIST_KEY(pedidoId),
@@ -121,7 +124,11 @@ export function PreFaturamentoCard({
   const exigeMotivo = exigeExpedicao
     ? data.exige_motivo
     : data.exige_motivo && itens.some((i) => !i.ok && !i.bloqueia);
-  const podeEnviar = data.pode_enviar && !jaEnviado;
+  // 2+ remessas ativas: a edge recusa o envio inicial genérico (409 "remessa(s)
+  // ativa(s)") — desabilitar ANTES do clique e apontar os botões por remessa.
+  const pedidoDividido = ehPedidoDividido(remessas);
+  const qtdRemessas = remessasAtivas(remessas).length;
+  const podeEnviar = data.pode_enviar && !jaEnviado && !pedidoDividido;
   const podeEscrever = temNivel(2);
   const motivoValido = motivo.trim().length >= MIN_MOTIVO;
 
@@ -189,6 +196,8 @@ export function PreFaturamentoCard({
               <TooltipContent>
                 {jaEnviado
                   ? `Já enviado ao Bling (id ${blingIdDestino}) — emitir a NF lá`
+                  : pedidoDividido
+                  ? `Pedido dividido em ${qtdRemessas} remessas — envie cada uma pelos botões abaixo.`
                   : bloqueadores.length > 0
                   ? `Bloqueado por: ${bloqueadores.map((b) => b.rotulo).join(", ")}`
                   : "Envio bloqueado pela conferência."}
@@ -196,6 +205,13 @@ export function PreFaturamentoCard({
             </Tooltip>
           </TooltipProvider>
         ) : botao
+      )}
+
+      {podeEscrever && pedidoDividido && (
+        <p className="text-xs text-muted-foreground leading-snug">
+          Este pedido foi dividido em {qtdRemessas} remessas — envie cada uma nos botões
+          “Enviar pro Bling (tentativa X)” abaixo.
+        </p>
       )}
 
       {podeEscrever && (
