@@ -14,6 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { BotaoVerificarBling } from "@/components/bling/BotaoVerificarBling";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export interface BaixaUso {
@@ -23,6 +24,7 @@ export interface BaixaUso {
   nf_saida_numero: string | null; nf_saida_erro: string | null;
   situacao_fiscal_retorno: string | null; nf_retorno_numero: string | null; nf_retorno_erro: string | null;
   pecas_baixadas: number | null; situacao_fiscal_baixa: string | null; nf_baixa_numero: string | null; nf_baixa_erro: string | null;
+  nf_saida_bling_id?: string | number | null; nf_retorno_bling_id?: string | number | null; nf_baixa_bling_id?: string | number | null;
 }
 interface ItemBaixa { sku: string; quantidade: number; quantidade_retornada: number | null }
 
@@ -35,7 +37,14 @@ export function useBaixasUso() {
         .select("id, codigo, status, criado_em, origem_rotulo, finalidade, finalidade_rotulo, evento_nome, pecas, valor_custo, situacao_fiscal, nf_saida_numero, nf_saida_erro, situacao_fiscal_retorno, nf_retorno_numero, nf_retorno_erro, pecas_baixadas, situacao_fiscal_baixa, nf_baixa_numero, nf_baixa_erro")
         .order("criado_em", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as BaixaUso[];
+      const ids = (data ?? []).map((r: any) => r.id);
+      const blingPorId = new Map<string, any>();
+      if (ids.length) {
+        const { data: bl, error: eBl } = await supabase.from("baixa_uso").select("id, nf_saida_bling_id, nf_retorno_bling_id, nf_baixa_bling_id").in("id", ids);
+        if (eBl) throw eBl;
+        for (const r of bl ?? []) blingPorId.set((r as any).id, r);
+      }
+      return (data ?? []).map((r: any) => ({ ...r, ...(blingPorId.get(r.id) ?? {}) })) as BaixaUso[];
     },
   });
   useEffect(() => {
@@ -191,7 +200,7 @@ function CelulaFiscal({ b }: { b: BaixaUso }) {
   if (m.isPending || s === "gerando") return <span className="inline-flex items-center gap-1 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Gerando…</span>;
   if (s === "pendente_definicao_fiscal") return <Badge variant="outline" className="bg-muted text-muted-foreground">NF aguardando definição fiscal</Badge>;
   if (s === "a_gerar") return <Button size="sm" variant="outline" onClick={() => m.mutate()}>Gerar NF</Button>;
-  if (s === "rascunho") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Rascunho {b.nf_saida_numero} — Eva transmite no Bling</Badge>;
+  if (s === "rascunho") return <span className="inline-flex items-center gap-1"><Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Rascunho {b.nf_saida_numero} — Eva transmite no Bling</Badge><BotaoVerificarBling blingId={b.nf_saida_bling_id} /></span>;
   if (s === "autorizada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">NF {b.nf_saida_numero}</Badge>;
   if (s === "erro") return (
     <div className="flex items-center gap-2">
@@ -216,7 +225,7 @@ function CelulaFiscalRetorno({ b }: { b: BaixaUso }) {
   if (s === "aguardando_remessa") return <Badge variant="outline" className="bg-muted text-muted-foreground">Retorno aguarda NF de remessa autorizada</Badge>;
   if (s === "pendente_definicao_fiscal") return <Badge variant="outline" className="bg-muted text-muted-foreground">Retorno aguardando definição fiscal</Badge>;
   if (s === "a_gerar") return <Button size="sm" variant="outline" onClick={() => m.mutate()}>Gerar NF de retorno</Button>;
-  if (s === "rascunho") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Retorno {b.nf_retorno_numero} — Eva transmite</Badge>;
+  if (s === "rascunho") return <span className="inline-flex items-center gap-1"><Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Retorno {b.nf_retorno_numero} — Eva transmite</Badge><BotaoVerificarBling blingId={b.nf_retorno_bling_id} /></span>;
   if (s === "autorizada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">Retorno {b.nf_retorno_numero}</Badge>;
   if (s === "erro") return (
     <div className="flex items-center gap-2">
@@ -241,7 +250,7 @@ function CelulaFiscalBaixa({ b }: { b: BaixaUso }) {
   if (s === "aguardando_remessa") return <Badge variant="outline" className="bg-muted text-muted-foreground">Baixa da diferença aguarda NF de remessa</Badge>;
   if (s === "pendente_definicao_fiscal") return <Badge variant="outline" className="bg-muted text-muted-foreground">Baixa da diferença aguardando definição fiscal</Badge>;
   if (s === "a_gerar") return <Button size="sm" variant="outline" onClick={() => m.mutate()}>Gerar NF de baixa da diferença ({Number(b.pecas_baixadas ?? 0).toLocaleString("pt-BR")} pç)</Button>;
-  if (s === "rascunho") return <Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Baixa {b.nf_baixa_numero} — Eva transmite</Badge>;
+  if (s === "rascunho") return <span className="inline-flex items-center gap-1"><Badge variant="outline" className="bg-warning/15 text-warning border-warning/40">Baixa {b.nf_baixa_numero} — Eva transmite</Badge><BotaoVerificarBling blingId={b.nf_baixa_bling_id} /></span>;
   if (s === "autorizada") return <Badge variant="outline" className="bg-success/15 text-success border-success/30">Baixa {b.nf_baixa_numero}</Badge>;
   if (s === "erro") return (
     <div className="flex items-center gap-2">
