@@ -1,4 +1,5 @@
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
+import { BotaoVerificarNfsPedido } from "@/components/bling/BotaoVerificarNfsPedido";
 import { SmartBackButton } from "@/components/SmartBackButton";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { rotuloDestinoLiberacao } from "@/lib/pedidoLiberacaoEstoque";
@@ -1968,6 +1969,7 @@ export default function PedidoDetalhe() {
                         Enviado em {fmtDateTime(pedido.bling_enviado_em)}
                       </p>
                     )}
+                    <BotaoVerificarNfsPedido pedidoBlingId={String(pedido.bling_id_destino)} />
                     <p className="text-sm mt-2 text-muted-foreground">
                       A NF é emitida dentro do Bling. Quando ela for ingerida, o pedido avança para Faturado automaticamente.
                     </p>

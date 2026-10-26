@@ -104,10 +104,14 @@ export function PreFaturamentoCard({
     );
   }
 
-  const jaEnviado = blingIdDestino != null && String(blingIdDestino) !== "";
+  // O checklist do banco marca "bling" como não-ok quando já desceu; aqui já enviado é ✓.
+  const itemBling = (data.itens ?? []).find((i) => i.codigo === "bling");
+  const idDoDetalhe = itemBling?.detalhe?.match(/id\s+(\d+)/i)?.[1] ?? null;
+  const idEnviado = blingIdDestino != null && String(blingIdDestino) !== "" ? String(blingIdDestino) : idDoDetalhe;
+  const jaEnviado = idEnviado != null;
   const itens = (data.itens ?? []).map((i) =>
     jaEnviado && i.codigo === "bling"
-      ? { ...i, ok: true, naoSeAplica: false, detalhe: `Já enviado ao Bling (id ${blingIdDestino})` }
+      ? { ...i, ok: true, bloqueia: false, naoSeAplica: false, detalhe: `Enviado ao Bling (id ${idEnviado}) — emitir a NF lá` }
       : !exigeExpedicao && ITENS_FISICOS.has(i.codigo)
       ? { ...i, ok: true, naoSeAplica: true, detalhe: "Não se aplica — natureza sem movimento físico" }
       : { ...i, naoSeAplica: false },
