@@ -115,7 +115,7 @@ function DialogoEncerrar({ baixa, onClose }: { baixa: BaixaUso; onClose: () => v
   });
   return (
     <Dialog open onOpenChange={(v) => !v && !m.isPending && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="superficie-tabelas sm:max-w-2xl">
         <DialogHeader><DialogTitle>Encerrar evento · {baixa.codigo}{baixa.evento_nome ? ` · ${baixa.evento_nome}` : ""}</DialogTitle></DialogHeader>
         {q.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : q.isError ? <p className="text-sm text-destructive">{formatError(q.error)}</p> : (
           <Table>

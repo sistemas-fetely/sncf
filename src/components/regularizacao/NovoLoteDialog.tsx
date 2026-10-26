@@ -67,7 +67,7 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
     const { error: distError } = await supabase.rpc("reg_lote_distribuir", { p_lote_id: id }); if (distError) throw distError; return { id, codigo: String((out as { codigo?: string } | null)?.codigo ?? "") };
   }, onSuccess: ({ id, codigo }) => aoCriar({ id, codigo }), onError: (e) => toast.error(rawMessage(e)) });
   const aoCriar = ({ id, codigo }: { id: string; codigo: string }) => { toast.success(`Lote ${codigo || ""} criado e distribuído.`.replace(/\s+\./, ".")); onOpenChange(false); navigate(`/pedidos/transferencias/retorno/${id}`); };
-  return <Dialog open={aberto} onOpenChange={onOpenChange}><DialogContent className={modo === "nf" ? "sm:max-w-5xl" : "sm:max-w-2xl"}><DialogHeader><DialogTitle>Novo lote</DialogTitle></DialogHeader>
+  return <Dialog open={aberto} onOpenChange={onOpenChange}><DialogContent className={`superficie-tabelas ${modo === "nf" ? "sm:max-w-5xl" : "sm:max-w-2xl"}`}><DialogHeader><DialogTitle>Novo lote</DialogTitle></DialogHeader>
     <ToggleGroup type="single" value={modo} onValueChange={(v) => v && setModo(v as "nf" | "inventario")} className="justify-start"><ToggleGroupItem value="nf" variant="outline">Por NF de remessa</ToggleGroupItem><ToggleGroupItem value="inventario" variant="outline">Colar inventário</ToggleGroupItem></ToggleGroup>
     {modo === "nf" ? <NovoLotePorNf centros={centrosQ.data ?? []} onCancelar={() => onOpenChange(false)} onCriado={aoCriar} /> : <>
     <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label>Título *</Label><Input value={titulo} onChange={(e) => setTitulo(e.target.value)} /></div>

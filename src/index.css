@@ -302,3 +302,17 @@
   100% { background-color: transparent; box-shadow: inset 0 0 0 2px transparent; }
 }
 .foco-navegacao { animation: foco-pulse 2s ease-out; }
+
+/* Superfície de card para tabelas/listas: nunca na cor do papel de fundo (módulo Transferências Internas). */
+@layer components {
+  .superficie-tabelas :is(.rounded-md, .rounded-lg).border:not([class*="bg-"]) {
+    background-color: hsl(var(--card));
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+  }
+  .superficie-tabelas div:has(> table):not(:is(.rounded-md, .rounded-lg).border div, .bg-card div) {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: var(--radius);
+    box-shadow: 0 1px 2px 0 hsl(var(--foreground) / 0.05);
+  }
+}

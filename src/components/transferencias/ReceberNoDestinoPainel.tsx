@@ -253,7 +253,7 @@ export function ReceberNoDestinoPainel() {
           </div>
         )}
 
-        <Collapsible>
+        <Collapsible className="rounded-lg border bg-card p-1 shadow-sm">
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm" className="gap-1">
               <ChevronDown className="h-4 w-4" /> Recebidas ({recebidas.length})
