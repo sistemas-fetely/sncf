@@ -5,7 +5,24 @@ export interface RegularizacaoLote {
   nfs_planejadas: number; nfs_rascunho: number; nfs_autorizadas: number; nfs_erro: number;
   valor_retorno: number; trs_pedido_id: string | null; trs_numero: string | null;
   trs_estagio: string | null; nf_6152_numero: string | null; entradas_site: number;
+  modo?: string | null; nfs_origem_vinculadas?: string[] | string | null; nfs_6152_total?: number | null;
+  nfs_6152_autorizadas?: number | null; nfs_6152_pendentes?: string[] | string | number | null;
+  pecas_entradas?: number | null; etapa5_completa?: boolean | null;
 }
+
+export interface RemessaSaldo {
+  nf_id: string; numero: string | null; data_emissao: string | null; pedido: string | null;
+  centro_sugerido_codigo: string | null; centro_sugerido_rotulo: string | null;
+  pecas_remetidas: number; pecas_retornadas: number; pecas_disponiveis: number; valor_disponivel: number; lotes: string | null;
+}
+
+export interface TrsNf {
+  lote_id: string; nf_id: string; numero: string | null; situacao: string | null; data_emissao: string | null;
+  valor_nota: number | null; pecas_nf: number | null; pecas_entradas: number | null;
+}
+
+/** Lista de NFs (array ou texto) para exibição. */
+export const listaNfs = (v: unknown): string[] => Array.isArray(v) ? v.map(String).filter(Boolean) : typeof v === "string" && v.trim() ? v.split(/[,;]\s*/).filter(Boolean) : [];
 
 export interface RegularizacaoItem {
   id: string; lote_id: string; sku: string; quantidade: number; quantidade_coberta: number;

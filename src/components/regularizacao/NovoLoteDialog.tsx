@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { NovoLotePorNf } from "@/components/regularizacao/NovoLotePorNf";
 
 interface Props { aberto: boolean; onOpenChange: (v: boolean) => void; }
 function parseInventario(texto: string) {
@@ -30,7 +32,7 @@ function parseInventario(texto: string) {
 }
 
 export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
-  const navigate = useNavigate();
+  const navigate = useNavigate(); const [modo, setModo] = useState<"nf" | "inventario">("nf");
   const [titulo, setTitulo] = useState(""); const [centro, setCentro] = useState("");
   const [data, setData] = useState(""); const [observacao, setObservacao] = useState("");
   const [texto, setTexto] = useState("");
@@ -63,8 +65,11 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
     const { data: out, error } = await supabase.rpc("reg_lote_criar", { p_titulo: titulo.trim(), p_centro_destino_codigo: centro, p_data_inventario: data, p_itens: previa.itens, p_observacao: observacao.trim() || undefined });
     if (error) throw error; const id = String((out as { lote_id?: string } | null)?.lote_id ?? ""); if (!id) throw new Error("O banco não retornou o lote criado.");
     const { error: distError } = await supabase.rpc("reg_lote_distribuir", { p_lote_id: id }); if (distError) throw distError; return { id, codigo: String((out as { codigo?: string } | null)?.codigo ?? "") };
-  }, onSuccess: ({ id, codigo }) => { toast.success(`Lote ${codigo || ""} criado e distribuído.`.replace(/\s+\./, ".")); onOpenChange(false); navigate(`/estoque/regularizacao/${id}`); }, onError: (e) => toast.error(rawMessage(e)) });
-  return <Dialog open={aberto} onOpenChange={onOpenChange}><DialogContent className="sm:max-w-2xl"><DialogHeader><DialogTitle>Novo lote</DialogTitle></DialogHeader>
+  }, onSuccess: ({ id, codigo }) => aoCriar({ id, codigo }), onError: (e) => toast.error(rawMessage(e)) });
+  const aoCriar = ({ id, codigo }: { id: string; codigo: string }) => { toast.success(`Lote ${codigo || ""} criado e distribuído.`.replace(/\s+\./, ".")); onOpenChange(false); navigate(`/pedidos/transferencias/retorno/${id}`); };
+  return <Dialog open={aberto} onOpenChange={onOpenChange}><DialogContent className={modo === "nf" ? "sm:max-w-5xl" : "sm:max-w-2xl"}><DialogHeader><DialogTitle>Novo lote</DialogTitle></DialogHeader>
+    <ToggleGroup type="single" value={modo} onValueChange={(v) => v && setModo(v as "nf" | "inventario")} className="justify-start"><ToggleGroupItem value="nf" variant="outline">Por NF de remessa</ToggleGroupItem><ToggleGroupItem value="inventario" variant="outline">Colar inventário</ToggleGroupItem></ToggleGroup>
+    {modo === "nf" ? <NovoLotePorNf centros={centrosQ.data ?? []} onCancelar={() => onOpenChange(false)} onCriado={aoCriar} /> : <>
     <div className="grid gap-4 sm:grid-cols-2"><div className="space-y-1.5"><Label>Título *</Label><Input value={titulo} onChange={(e) => setTitulo(e.target.value)} /></div>
       <div className="space-y-1.5"><Label>Centro destino *</Label><Select value={centro} onValueChange={setCentro}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent>{centrosQ.data?.map((c) => <SelectItem key={c.codigo} value={c.codigo}>{c.rotulo_curto ?? c.nome}</SelectItem>)}</SelectContent></Select></div>
       <div className="space-y-1.5"><Label>Data do inventário *</Label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
@@ -73,6 +78,6 @@ export function NovoLoteDialog({ aberto, onOpenChange }: Props) {
         <p className="text-xs text-muted-foreground">{produtosQ.isFetching ? "Validando produtos…" : `${previa.itens.length} produtos · ${pecas.toLocaleString("pt-BR")} peças`}</p>
         {previa.invalidas.length > 0 && <div className="text-xs text-destructive">{previa.invalidas.map((l) => <div key={l}>{l}</div>)}</div>}
       </div></div>
-    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={() => criar.mutate()} disabled={criar.isPending}>{criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar lote</Button></DialogFooter>
+    <DialogFooter><Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button><Button onClick={() => criar.mutate()} disabled={criar.isPending}>{criar.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar lote</Button></DialogFooter></>}
   </DialogContent></Dialog>;
 }
