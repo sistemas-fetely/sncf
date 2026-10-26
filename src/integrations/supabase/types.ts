@@ -7715,9 +7715,11 @@ export type Database = {
           id: string
           modo: string
           nf_retorno_bling_id: number | null
+          nf_retorno_chave: string | null
           nf_retorno_erro: string | null
           nf_retorno_id: string | null
           nf_retorno_numero: string | null
+          nf_retorno_stage_id: string | null
           nf_retorno_status: string | null
           nf_saida_bling_id: number | null
           nf_saida_erro: string | null
@@ -7743,9 +7745,11 @@ export type Database = {
           id?: string
           modo: string
           nf_retorno_bling_id?: number | null
+          nf_retorno_chave?: string | null
           nf_retorno_erro?: string | null
           nf_retorno_id?: string | null
           nf_retorno_numero?: string | null
+          nf_retorno_stage_id?: string | null
           nf_retorno_status?: string | null
           nf_saida_bling_id?: number | null
           nf_saida_erro?: string | null
@@ -7771,9 +7775,11 @@ export type Database = {
           id?: string
           modo?: string
           nf_retorno_bling_id?: number | null
+          nf_retorno_chave?: string | null
           nf_retorno_erro?: string | null
           nf_retorno_id?: string | null
           nf_retorno_numero?: string | null
+          nf_retorno_stage_id?: string | null
           nf_retorno_status?: string | null
           nf_saida_bling_id?: number | null
           nf_saida_erro?: string | null
@@ -94648,6 +94654,7 @@ export type Database = {
           modo: string | null
           nf_retorno_erro: string | null
           nf_retorno_numero: string | null
+          nf_saida_chave: string | null
           nf_saida_erro: string | null
           nf_saida_numero: string | null
           origem: string | null
