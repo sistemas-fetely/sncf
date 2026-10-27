@@ -127,6 +127,13 @@
       "when": 1793106871990,
       "tag": "0017_confirmar_acerto_consignado_prazo_nf",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793106903790,
+      "tag": "0018_fn_faturar_pedido_consignado_prazo_nf",
+      "breakpoints": true
     }
   ]
 }
