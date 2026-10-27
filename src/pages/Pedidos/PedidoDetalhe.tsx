@@ -75,6 +75,7 @@ import { BadgesContextuais } from "@/components/credito/BadgesContextuais";
 import { EditarProgramaInline } from "@/components/credito/EditarProgramaInline";
 import { ExcecaoRecebidoPainel } from "@/components/pedidos/ExcecaoRecebido";
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
+import { BotaoCorrigirNf } from "@/components/devolucao/CorrigirNfDialog";
 import { ConsolidarPedidoDialog } from "@/components/pedidos/dialogs/ConsolidarPedidoDialog";
 import { ReterEstoqueDialog } from "@/components/pedidos/dialogs/ReterEstoqueDialog";
 import { DesvincularBlingDialog } from "@/components/pedidos/dialogs/DesvincularBlingDialog";
@@ -3241,11 +3242,12 @@ export default function PedidoDetalhe() {
                 <BotaoMigrarComercial pedido={pedido} />
               )}
               {estagio !== "cancelado" && temNivel(4) && (
-                <div className="pt-3 mt-1 border-t border-border/40">
+                <div className="pt-3 mt-1 border-t border-border/40 space-y-2">
                   <DeclararCancelamentoDialog
                     pedidoId={pedido.id}
                     trigger={<Button variant="outline" size="sm" className="w-full">Cancelar / Devolver</Button>}
                   />
+                  <BotaoCorrigirNf pedido={pedido as any} />
                 </div>
               )}
               {estagio !== "cancelado" && (

@@ -145,6 +145,15 @@ export default function RetornoDevolucao() {
       return out;
     },
   });
+  // CORRIGIR-NF (27/10/2026): a view do funil não expõe finalidade; o selo "Correção de NF" vem da tabela.
+  const refaturarQ = useQuery({
+    queryKey: [...QK_FUNIL, "refaturar"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("devolucao").select("id").eq("finalidade", "refaturar");
+      if (error) throw error;
+      return new Set(((data ?? []) as { id: string }[]).map((x) => x.id));
+    },
+  });
   const etapasQ = useQuery({
     queryKey: ["devolucao_etapa"],
     staleTime: 10 * 60 * 1000,
@@ -415,6 +424,7 @@ export default function RetornoDevolucao() {
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
+                          {refaturarQ.data?.has(d.id) && <Badge variant="outline" className="font-normal">Correção de NF</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
