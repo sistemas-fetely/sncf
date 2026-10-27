@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 import { Copy, Loader2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { rawMessage } from "@/lib/format-error";
@@ -15,6 +17,8 @@ import { NfDevolucaoBloco } from "./NfDevolucaoBloco";
 type FiscalDevolucao = {
   id: string; fiscal_acao: "cancelar_nf" | "nf_devolucao" | "nota_credito" | null; pedido_ref: string | null;
   nf_numero: string | null; nf_situacao: string | null; prazo: string | null;
+  finalidade: string | null; reenvio_status: string | null; reenvio_erro: string | null;
+  nf_substituta_numero: string | null; chamado_id: string | null;
 };
 
 const sb = supabase as any;
@@ -25,19 +29,24 @@ export function useFiscalDevolucao(devolucaoId: string) {
   return useQuery({
     queryKey: ["devolucao-fiscal", devolucaoId],
     queryFn: async (): Promise<FiscalDevolucao> => {
-      const { data: d, error } = await sb.from("devolucao").select("id,fiscal_acao,nf_original_id,pedido_id").eq("id", devolucaoId).maybeSingle();
+      const { data: d, error } = await sb.from("devolucao").select("id,fiscal_acao,nf_original_id,pedido_id,finalidade,reenvio_status,reenvio_erro,nf_substituta_id,chamado_id").eq("id", devolucaoId).maybeSingle();
       if (error) throw error;
       if (!d) throw new Error("Devolução não encontrada.");
-      const [nfR, pedR] = await Promise.all([
+      const [nfR, pedR, subR] = await Promise.all([
         d.nf_original_id ? sb.from("nfs_emitidas").select("numero,situacao,autorizada_em,emitida_em,data_emissao").eq("id", d.nf_original_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
         d.pedido_id ? sb.from("pedidos").select("id_externo").eq("id", d.pedido_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
+        d.nf_substituta_id ? sb.from("nfs_emitidas").select("numero").eq("id", d.nf_substituta_id).maybeSingle() : Promise.resolve({ data: null, error: null }),
       ]);
+      if (subR.error) throw subR.error;
       if (nfR.error) throw nfR.error;
       if (pedR.error) throw pedR.error;
       const nf = nfR.data as any;
-      const base = nf?.autorizada_em ?? nf?.emitida_em ?? nf?.data_emissao ?? null;
+      // CORRIGIR-NF (27/10/2026): o prazo de 24h conta da emissão da NF original (fallback autorização, depois data de emissão).
+      const base = nf?.emitida_em ?? nf?.autorizada_em ?? nf?.data_emissao ?? null;
       const prazo = d.fiscal_acao === "cancelar_nf" && base ? new Date(new Date(base).getTime() + 24 * 3600_000).toISOString() : null;
-      return { id: d.id, fiscal_acao: d.fiscal_acao, pedido_ref: pedR.data?.id_externo ?? null, nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_situacao: nf?.situacao ?? null, prazo };
+      return { id: d.id, fiscal_acao: d.fiscal_acao, pedido_ref: pedR.data?.id_externo ?? null, nf_numero: nf?.numero != null ? String(nf.numero) : null, nf_situacao: nf?.situacao ?? null, prazo,
+        finalidade: d.finalidade ?? null, reenvio_status: d.reenvio_status ?? null, reenvio_erro: d.reenvio_erro ?? null,
+        nf_substituta_numero: subR.data?.numero != null ? String(subR.data.numero) : null, chamado_id: d.chamado_id ?? null };
     },
   });
 }
@@ -94,12 +103,14 @@ function ConfirmarVinculo({ vinculoId, nfNumero, grauSugerido, onMudou }: { vinc
 export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugeridoId, nfRetornoSugerida, grauSugerido, onMudou }: PropsBloco) {
   const q = useFiscalDevolucao(devolucaoId);
   const temCapturada = !!vinculoSugeridoId && !nfResolvida;
-  const confirmar = temCapturada ? <ConfirmarVinculo vinculoId={vinculoSugeridoId!} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={onMudou} /> : null;
+  const refaturar = q.data?.finalidade === "refaturar";
+  const confirmar = temCapturada && !refaturar ? <ConfirmarVinculo vinculoId={vinculoSugeridoId!} nfNumero={nfRetornoSugerida ?? null} grauSugerido={grauSugerido ?? null} onMudou={onMudou} /> : null;
   const mudou = () => { void q.refetch(); void onMudou?.(); };
   if (q.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
   if (q.isError) return <div className="text-sm text-destructive">{rawMessage(q.error)}</div>;
   const f = q.data!;
   const nf = f.nf_numero ?? "?";
+  if (refaturar) return <BlocoRefaturar f={f} nfResolvida={nfResolvida} mudou={mudou} />;
   if (f.fiscal_acao === "cancelar_nf") {
     const cancelada = nfResolvida || f.nf_situacao === "cancelada";
     const expirou = !cancelada && !!f.prazo && Date.now() > new Date(f.prazo).getTime();
@@ -125,4 +136,86 @@ export function BlocoFiscalDevolucao({ devolucaoId, nfResolvida, vinculoSugerido
     return <div className="space-y-2">{confirmar}<NfDevolucaoBloco devolucaoId={devolucaoId} nf={nf} onMudou={mudou} documento="nota_credito" ocultarGerar={temCapturada} /></div>;
   }
   return confirmar ?? <div className="text-sm text-muted-foreground">Sem ação fiscal registrada.</div>;
+}
+
+const REENVIO_TXT: Record<string, string> = {
+  aguardando_anulacao: "Aguardando anular a NF original",
+  enviando: "Reenviando ao Bling…",
+  enviado: "Pedido reenviado — aguardando a NF nova",
+};
+
+function AcaoRpc({ rotulo, rpc, devolucaoId, confirmar, descricao, variant = "outline", onFeito }: {
+  rotulo: string; rpc: string; devolucaoId: string; confirmar?: string; descricao?: string;
+  variant?: "outline" | "default"; onFeito: () => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [rodando, setRodando] = useState(false);
+  const rodar = async () => {
+    setRodando(true);
+    try {
+      const { data, error } = await sb.rpc(rpc, { p_devolucao_id: devolucaoId });
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data.erro ?? "O banco recusou a ação.");
+      toast.success(data?.mensagem ?? `${rotulo}: feito`);
+      setAberto(false);
+      onFeito();
+    } catch (e) { toast.error(rawMessage(e)); } finally { setRodando(false); }
+  };
+  if (!confirmar) {
+    return <Button size="sm" variant={variant} onClick={rodar} disabled={rodando}>{rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{rotulo}</Button>;
+  }
+  return (
+    <>
+      <Button size="sm" variant={variant} onClick={() => setAberto(true)}>{rotulo}</Button>
+      <Dialog open={aberto} onOpenChange={(o) => { if (!rodando) setAberto(o); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{confirmar}</DialogTitle>{descricao && <DialogDescription>{descricao}</DialogDescription>}</DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAberto(false)} disabled={rodando}>Cancelar</Button>
+            <Button onClick={rodar} disabled={rodando}>{rodando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+// CORRIGIR-NF / REFATURAR (27/10/2026): correção fiscal — sem NF de retorno do cliente; o banco reenvia o pedido sozinho.
+function BlocoRefaturar({ f, nfResolvida, mudou }: { f: FiscalDevolucao; nfResolvida: boolean; mudou: () => void }) {
+  const nf = f.nf_numero ?? "?";
+  const st = f.reenvio_status;
+  const statusTxt = st === "concluido" ? `Concluída — NF nova nº ${f.nf_substituta_numero ?? "?"}`
+    : st === "erro" ? `Reenvio com erro: ${f.reenvio_erro ?? "sem detalhe"}`
+    : st ? (REENVIO_TXT[st] ?? st) : null;
+  const cancelada = nfResolvida || f.nf_situacao === "cancelada";
+  const expirou = f.fiscal_acao === "cancelar_nf" && !cancelada && !!f.prazo && Date.now() > new Date(f.prazo).getTime();
+  return (
+    <div className="space-y-2 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline" className="font-normal">Correção de NF</Badge>
+        {f.chamado_id && <Link to={`/chamados/${f.chamado_id}`} className="text-xs text-primary underline-offset-2 hover:underline">Ver chamado</Link>}
+      </div>
+      {f.fiscal_acao === "cancelar_nf" && (cancelada
+        ? <div className="text-success">NF nº {nf} cancelada.</div>
+        : <>
+            <div><span className="font-medium">Fiscal:</span> cancelar a NF nº {nf} no Bling até {f.prazo ? ddMMHHmm(f.prazo) : "—"}</div>
+            {expirou && (
+              <div className="space-y-2">
+                <Alert variant="destructive"><AlertDescription>Prazo de cancelamento vencido.</AlertDescription></Alert>
+                <AcaoRpc rotulo="Trocar para NF de entrada" rpc="fn_refaturar_trocar_para_nf_entrada" devolucaoId={f.id}
+                  confirmar="Trocar para NF de entrada?" descricao="O caminho passa a ser a NF de entrada (sem retorno físico); o Fiscal autoriza no Bling e o sistema reenvia o pedido." onFeito={mudou} />
+              </div>
+            )}
+          </>)}
+      {(f.fiscal_acao === "nf_devolucao" || f.fiscal_acao === "nota_credito") && (
+        <NfDevolucaoBloco devolucaoId={f.id} nf={nf} onMudou={mudou} {...(f.fiscal_acao === "nota_credito" ? { documento: "nota_credito" as const } : {})} />
+      )}
+      {statusTxt && (
+        <div className={`rounded-md border p-2 ${st === "erro" ? "border-destructive/40 text-destructive" : st === "concluido" ? "text-success" : "bg-muted/30"}`}>
+          <div>{statusTxt}</div>
+          {st === "erro" && <div className="mt-2"><AcaoRpc rotulo="Tentar reenvio de novo" rpc="fn_refaturar_retentar_reenvio" devolucaoId={f.id} onFeito={mudou} /></div>}
+        </div>
+      )}
+    </div>
+  );
 }
