@@ -16,7 +16,12 @@ export interface FreteComparativoOpcao {
   icms_aliquota?: number | null;
   fonte?: string | null;
   servico?: string | null;
+  /** Só em itens de fonte='tabela': a tabela é calibrada e entra na sugestão automática. */
+  elegivel_default?: boolean | null;
+  /** Só em itens de fonte='tabela': o porquê de entrar (ou não) na sugestão automática. */
+  calibracao_motivo?: string | null;
 }
+
 
 export interface FreteComparativoResult {
   ok?: boolean;

@@ -230,7 +230,32 @@ export function CompararTransportadorasDialog({
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-medium text-foreground">{o.transportadora_nome}</span>
                               {isMenor && <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-success/40 text-success">Mais barata</Badge>}
-                              {isSugerida && <Badge className="text-[10px] px-1.5 py-0">Sugerida</Badge>}
+                              {isSugerida && (o.fonte === "tabela" ? (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Badge className="text-[10px] px-1.5 py-0 cursor-help">Sugerida · calibrada</Badge>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm text-xs">{o.calibracao_motivo ?? "Motivo não informado."}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <Badge className="text-[10px] px-1.5 py-0">Sugerida</Badge>
+                              ))}
+                              {naoCalibrada && (
+                                <TooltipProvider>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex items-center gap-1 cursor-help">
+                                        <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-warning/40 text-warning">Não calibrada</Badge>
+                                        <Info className="h-3.5 w-3.5 text-muted-foreground" aria-label="Por que esta tabela não entra na sugestão" />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm text-xs">{o.calibracao_motivo ?? "Motivo não informado."}</TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              )}
+
                               {(oc || o.fonte === "api_cache") && <Badge variant="outline" className="text-[10px] px-1.5 py-0">{oc ? "via API" : "API (cache)"}</Badge>}
                               {oc && oc.situacao === "improvavel" && (
                                 <TooltipProvider>
