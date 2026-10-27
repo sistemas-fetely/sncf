@@ -134,6 +134,13 @@
       "when": 1793106903790,
       "tag": "0018_fn_faturar_pedido_consignado_prazo_nf",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793114777063,
+      "tag": "0019_consignado_nf_retorno_pix_obs",
+      "breakpoints": true
     }
   ]
 }
