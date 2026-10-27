@@ -47,7 +47,7 @@ import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCance
 import { useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
 import { ClienteVDSheet } from "@/components/venda-direta/ClienteVDSheet";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
-import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 // `situacao` segue alimentando só as AÇÕES; exibição (fase/etapa/rótulo/quem age) vem da view + dimensões.
 type Situacao =
