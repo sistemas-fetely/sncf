@@ -60,7 +60,7 @@ export interface LinhaAviso {
   cliente_telefone?: string | null;
   situacao: string;
   modal: string | null;
-  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
   link_pagamento?: string | null;
   codigo_rastreio?: string | null;
   rastreio_servico?: string | null;
