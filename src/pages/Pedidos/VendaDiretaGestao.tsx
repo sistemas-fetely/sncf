@@ -45,6 +45,7 @@ import {
 import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
 import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
+import { ClienteVDSheet } from "@/components/venda-direta/ClienteVDSheet";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
 import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
@@ -467,7 +468,14 @@ export default function VendaDiretaGestao() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div>{l.cliente_nome ?? "—"}</div>
+                          {l.cliente_id ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button type="button" className="cursor-pointer text-left text-primary underline-offset-2 hover:underline" onClick={() => setClienteSheet({ parceiroId: l.cliente_id!, pedidoId: l.id, filaId: l.fila_erro ? l.fila_id ?? undefined : undefined, filaErro: l.fila_erro })}>{l.cliente_nome ?? "—"}</button>
+                              </TooltipTrigger>
+                              <TooltipContent>Editar cliente</TooltipContent>
+                            </Tooltip>
+                          ) : <div>{l.cliente_nome ?? "—"}</div>}
                           <div className="text-xs tabular-nums text-muted-foreground">{l.cliente_telefone ?? ""}</div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
