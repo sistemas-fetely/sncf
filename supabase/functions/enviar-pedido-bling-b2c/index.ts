@@ -228,10 +228,25 @@ Deno.serve(async (req) => {
   // NATUREZA-POR-CANAL-E-CD (19/10/2026): natureza do Bling por canal B2C × CD.
   // Sem linha → null (payload igual ao de antes). Erro de leitura → lança.
   async function resolverNaturezaB2C(centroId: string | null, naturezaOperacaoId: string | null): Promise<number | null> {
-    if (!centroId) return null;
+    // BONIFICAÇÃO-FAIL-LOUD (27/10/2026): natureza explícita diferente de `venda` sem
+    // linha no de-para lança — senão o Bling emitiria NF de VENDA para um bonificado.
+    let codigoNat: string | null = null;
+    if (naturezaOperacaoId) {
+      const { data: natRow, error: eNatRow } = await supabase.from("naturezas_operacao").select("codigo").eq("id", naturezaOperacaoId).maybeSingle();
+      if (eNatRow) throw new Error(`ler naturezas_operacao: ${eNatRow.message}`);
+      codigoNat = natRow?.codigo ?? null;
+    }
+    const exigeDePara = !!naturezaOperacaoId && codigoNat !== "venda";
+    if (!centroId) {
+      if (exigeDePara) throw new Error(`Natureza "${codigoNat}" sem CD definido para resolver a natureza Bling B2C. Nada enviado ao Bling.`);
+      return null;
+    }
     const { data: cd, error: eCd } = await supabase.from("centro_distribuicao").select("codigo").eq("id", centroId).maybeSingle();
     if (eCd) throw new Error(`ler centro_distribuicao: ${eCd.message}`);
-    if (!cd?.codigo) return null;
+    if (!cd?.codigo) {
+      if (exigeDePara) throw new Error(`Natureza "${codigoNat}": centro ${centroId} não encontrado. Nada enviado ao Bling.`);
+      return null;
+    }
     let natId = naturezaOperacaoId;
     if (!natId) {
       const { data: nat, error: eNat } = await supabase.from("naturezas_operacao").select("id").eq("codigo", "venda").maybeSingle();
@@ -247,6 +262,9 @@ Deno.serve(async (req) => {
       .eq("natureza_operacao_id", natId)
       .maybeSingle();
     if (eLinha) throw new Error(`ler naturezas_operacao_cd: ${eLinha.message}`);
+    if (exigeDePara && linha?.bling_natureza_id == null) {
+      throw new Error(`Natureza "${codigoNat}" sem natureza Bling para B2C no CD ${cd.codigo} (cadastrar em naturezas_operacao_cd). Nada enviado ao Bling.`);
+    }
     return linha?.bling_natureza_id != null ? Number(linha.bling_natureza_id) : null;
   }
 
