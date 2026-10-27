@@ -47,6 +47,7 @@ import { ContratoConsignadoDialog } from "@/components/consignado/ContratoConsig
 import { RemessasAVincularPainel } from "@/components/consignado/RemessasAVincularPainel";
 import { RetornosALancarPainel } from "@/components/consignado/RetornosALancarPainel";
 import { FecharCicloVendaForaPainel } from "@/components/consignado/FecharCicloVendaForaPainel";
+import { NfRetornoAcertoBloco } from "@/components/consignado/NfRetornoAcertoBloco";
 import { urlTitulo } from "@/hooks/tarefas/useTitulosParaVinculo";
 
 /**
@@ -140,6 +141,7 @@ interface RemessaRow {
 }
 
 interface AcertoRow {
+  nf_retorno_stage_id?: string | null;
   id: string;
   numero: string | null;
   competencia: string | null;
@@ -478,7 +480,7 @@ export default function ConsignadoDetalhe() {
     queryFn: async (): Promise<AcertoRow[]> => {
       const { data, error } = await (supabase as any)
         .from("consignado_acerto")
-        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path, titulo_acerto_id, valor_abatimento")
+        .select("id, numero, competencia, status, valor_total, pedido_sintetico_id, data_confirmacao, periodo_inicio, periodo_fim, relatorio_path, titulo_acerto_id, valor_abatimento, nf_retorno_stage_id")
         .eq("parceiro_id", parceiroId)
         .order("competencia", { ascending: false, nullsFirst: false });
       if (error) throw error;
@@ -2260,6 +2262,14 @@ export default function ConsignadoDetalhe() {
                   </div>
                 )}
               </div>
+
+              {modelo === "consignacao_fiscal" && acertoAberto.status !== "cancelado" && (
+                <NfRetornoAcertoBloco
+                  acertoId={acertoAberto.id}
+                  acertoNumero={acertoAberto.numero ?? ""}
+                  vinculoStageId={acertoAberto.nf_retorno_stage_id ?? null}
+                />
+              )}
 
               {acertoAberto.status === "confirmado" && acertoAberto.titulo_acerto_id && (
                 <TituloDoAcerto tituloId={acertoAberto.titulo_acerto_id} />
