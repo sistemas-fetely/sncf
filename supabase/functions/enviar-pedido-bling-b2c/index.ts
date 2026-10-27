@@ -760,7 +760,7 @@ Deno.serve(async (req) => {
             }
             if (!munVd || munVd.length === 0) {
               await falharVd(
-                `Endereço incoerente: cidade "${endVd.municipio}" não existe na UF ${endVd.uf} (CEP ${endVd.cep}). Corrija o endereço no pedido do SNCF e reprocesse. Nada foi enviado ao Bling.`,
+                `Endereço incoerente: cidade "${endVd.municipio}" não existe na UF ${endVd.uf} (CEP ${endVd.cep}). ${retirada ? "Corrija o endereço no cadastro do cliente (clique no nome do cliente em Pedidos Site SP) e reprocesse." : "Corrija o endereço no pedido do SNCF e reprocesse."} Nada foi enviado ao Bling.`,
               );
               continue;
             }
