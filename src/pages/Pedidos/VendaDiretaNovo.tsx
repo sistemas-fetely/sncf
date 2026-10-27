@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -28,7 +28,7 @@ import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
-import { meioVD, ROTULO_MEIO_VD, type MeioVD } from "@/lib/pedidos/meioVD";
+import { meioVD, ROTULO_MEIO_VD, rotuloPagamentoVD, type PagamentoVD } from "@/lib/pedidos/meioVD";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
@@ -142,7 +142,21 @@ export default function VendaDiretaNovo() {
   const [endereco, setEndereco] = useState<Endereco>(ENDERECO_VAZIO);
   const [beneficio, setBeneficio] = useState<BeneficioEstado>(BENEFICIO_VAZIO);
   const [anexarComprovante, setAnexarComprovante] = useState(false);
-  const [pagamento, setPagamento] = useState<MeioVD>("pix");
+  const [pagamento, setPagamento] = useState<PagamentoVD>("pix");
+  // Bonificação: quem autorizou, motivo (motivos_concessao) e observação.
+  const [bonifAutorizado, setBonifAutorizado] = useState("");
+  const [bonifMotivo, setBonifMotivo] = useState("brinde");
+  const [bonifObs, setBonifObs] = useState("");
+  const bonif = pagamento === "bonificacao";
+  const motivosBonifQ = useQuery({
+    queryKey: ["motivos-concessao-ativos"],
+    enabled: bonif,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("motivos_concessao").select("codigo, nome").eq("ativo", true).order("nome");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as { codigo: string; nome: string }[];
+    },
+  });
   // Vendedora do pedido: sem pré-seleção (decisão do Flavio — escolhe sempre).
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   // CD que atende o pedido (centro_canal canal VD). Padrão: Site SP.
@@ -356,7 +370,7 @@ export default function VendaDiretaNovo() {
   const frete = useFreteVendaDireta(soDigitos(endereco.cep), itens);
   const opcaoSel = frete.opcoes.find((o) => o.modal === modo);
   const freteCotado = modo === "retirada" ? 0 : (opcaoSel?.cobrado ?? 0);
-  const ben = calcularBeneficio(beneficio, valorItens, freteCotado, modo !== "retirada");
+  const ben = calcularBeneficio(bonif ? BENEFICIO_VAZIO : beneficio, valorItens, freteCotado, modo !== "retirada");
   const freteCobrado = ben.freteCobrado;
   // Opção escolhida ficou indisponível (CEP/itens mudaram) → volta para retirada.
   useEffect(() => {
@@ -409,9 +423,11 @@ export default function VendaDiretaNovo() {
       if (!opcaoSel?.disponivel) return opcaoSel?.motivo ?? "Modalidade de entrega indisponível.";
     }
     if (ben.ativo && beneficio.motivo.trim().length < 3) return "Informe o motivo do benefício.";
+    if (bonif && bonifAutorizado.trim().length < 2) return "Informe quem autorizou a bonificação.";
+    if (bonif && !bonifMotivo) return "Informe o motivo da bonificação.";
     if (edicao && motivo.trim().length < 3) return "Informe o motivo da alteração.";
     return null;
-  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo, vendedorId]);
+  }, [cliente, novo, itens, modo, endereco, frete.cotando, opcaoSel, ben.ativo, beneficio.motivo, edicao, motivo, vendedorId, bonif, bonifAutorizado, bonifMotivo]);
 
   const criar = useMutation({
     mutationFn: async (): Promise<Resultado> => {
@@ -432,7 +448,7 @@ export default function VendaDiretaNovo() {
         }
         if (modo === "pac" && !cotacao_id) throw new Error("PAC indisponível sem cotação dos Correios.");
       }
-      const beneficioPayload = payloadBeneficio(beneficio, modo !== "retirada");
+      const beneficioPayload = payloadBeneficio(bonif ? BENEFICIO_VAZIO : beneficio, modo !== "retirada");
       const p_entrega =
         modo === "retirada"
           ? { modo: "retirada", beneficio: beneficioPayload, ...(edicao ? {} : { centro_codigo: cdCodigo }) }
@@ -458,7 +474,8 @@ export default function VendaDiretaNovo() {
         p_pagamento: pagamento,
         p_observacao: observacao.trim() || null,
         p_vendedor_id: vendedorId,
-        ...(haverAtivo ? { p_haver_id: haverEscolhido!.haver_id } : {}),
+        ...(bonif ? { p_bonificacao: { autorizado_por: bonifAutorizado.trim(), motivo: bonifMotivo, observacao: bonifObs.trim() || null } } : {}),
+        ...(haverAtivo && !bonif ? { p_haver_id: haverEscolhido!.haver_id } : {}),
       });
       if (error) throw error;
       if (!data) throw new Error("A criação do pedido não devolveu resultado.");
@@ -485,7 +502,7 @@ export default function VendaDiretaNovo() {
 
   const limparTudo = () => {
     setTermo(""); setCliente(null); setNovo(null); setItens([]); setModo("retirada"); setEndereco(ENDERECO_VAZIO);
-    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setObservacao(""); setVendedorId(null);
+    setEnderecoEditado(false); setBeneficio(BENEFICIO_VAZIO); setPagamento("pix"); setBonifAutorizado(""); setBonifMotivo("brinde"); setBonifObs(""); setObservacao(""); setVendedorId(null);
     setCdCodigo("SITE-SP"); setResultado(null);
   };
 
@@ -548,7 +565,7 @@ export default function VendaDiretaNovo() {
         {cabecalho}
         <Card>
           <CardHeader>
-            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — {r.pagamento === "haver" ? "coberto pelo crédito do cliente" : "aguardando pagamento"}</CardTitle>
+            <CardTitle>{r.id_externo} {edicao ? "atualizado" : "criado"} — {r.pagamento === "bonificacao" ? "bonificado" : r.pagamento === "haver" ? "coberto pelo crédito do cliente" : "aguardando pagamento"}</CardTitle>
             <p className="text-2xl font-semibold tabular-nums">{formatBRL(r.valor_total)}</p>
             {Number(r.valor_haver ?? 0) > 0 && (
               <p className="text-sm text-muted-foreground">
@@ -575,7 +592,9 @@ export default function VendaDiretaNovo() {
                 {r.frete.motivo && <> · {r.frete.motivo}</>}
               </p>
             )}
-            {r.pagamento === "haver" ? (
+            {r.pagamento === "bonificacao" ? (
+              <p className="rounded-md border bg-muted/40 p-3 text-sm font-medium">Pedido bonificado criado — segue para faturamento.</p>
+            ) : r.pagamento === "haver" ? (
               <p className="rounded-md border bg-muted/40 p-3 text-sm">Pedido coberto pelo crédito — sem cobrança.</p>
             ) : r.pagamento === "pix" && cfgPixNoLink ? (
               <LinkCartaoPainel
@@ -841,7 +860,7 @@ export default function VendaDiretaNovo() {
       </Card>
 
       <div ref={beneficioRef}>
-        <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />
+        {!bonif && <BeneficioCard v={beneficio} onChange={setBeneficio} comEntrega={modo !== "retirada"} />}
       </div>
 
       {/* 4. Pagamento */}
@@ -860,7 +879,7 @@ export default function VendaDiretaNovo() {
               {haverCobreTudo && <p className="text-muted-foreground">Pedido coberto pelo crédito — sem cobrança</p>}
             </div>
           )}
-          <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-3">
+          <RadioGroup disabled={haverCobreTudo} value={pagamento} onValueChange={(v) => setPagamento(v as typeof pagamento)} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <label className="flex items-start gap-2 text-sm">
               <RadioGroupItem value="pix" className="mt-0.5" />
               <span>
@@ -882,7 +901,41 @@ export default function VendaDiretaNovo() {
                 <span className="block text-xs text-muted-foreground">Passa na loja · sem link · anexar o comprovante</span>
               </span>
             </label>
+            {!edicao && (
+              <label className="flex items-start gap-2 text-sm">
+                <RadioGroupItem value="bonificacao" className="mt-0.5" />
+                <span>
+                  <span className="flex items-center gap-1"><Gift className="h-3.5 w-3.5" />Bonificação</span>
+                  <span className="block text-xs text-muted-foreground">Sem cobrança · direto para faturamento</span>
+                </span>
+              </label>
+            )}
           </RadioGroup>
+          {bonif && (
+            <div className="space-y-3 pt-2">
+              <p className="rounded-md border border-info/50 bg-info/10 p-3 text-sm">Pedido sem cobrança. Preço de tabela com desconto de bonificação; frete por conta da Fetely. Segue direto para faturamento.</p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="bonif-aut">Autorizado por *</Label>
+                  <Input id="bonif-aut" value={bonifAutorizado} onChange={(e) => setBonifAutorizado(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Motivo *</Label>
+                  <Select value={bonifMotivo} onValueChange={setBonifMotivo}>
+                    <SelectTrigger><SelectValue placeholder={motivosBonifQ.isLoading ? "Carregando…" : "Escolha"} /></SelectTrigger>
+                    <SelectContent>
+                      {(motivosBonifQ.data ?? []).map((m) => <SelectItem key={m.codigo} value={m.codigo}>{m.nome}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  {motivosBonifQ.isError && <p className="text-xs text-destructive">{(motivosBonifQ.error as Error).message}</p>}
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="bonif-obs">Observação da bonificação</Label>
+                <Textarea id="bonif-obs" rows={2} value={bonifObs} onChange={(e) => setBonifObs(e.target.value)} />
+              </div>
+            </div>
+          )}
           {pagamento === "cartao" && (
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Label className="text-sm">Parcelas no link</Label>
@@ -951,12 +1004,12 @@ export default function VendaDiretaNovo() {
                 <span className="text-3xl font-semibold tabular-nums">{formatBRL(total)}</span>
               </div>
               <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                {pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
-                {pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
+                {bonif ? <Gift className="h-4 w-4" /> : pagamento === "pix" ? <QrCode className="h-4 w-4" /> : pagamento === "cartao_maquininha" ? <Smartphone className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                {bonif ? "Bonificação · sem cobrança" : pagamento === "pix" ? (cfgPixNoLink ? "PIX · link Safrapay" : "PIX · QR na conta") : pagamento === "cartao_maquininha" ? "Cartão maquininha · comprovante" : `Cartão · até ${parcelasLink}x`}
               </p>
               {edicao && (pagamentoMudou || totalMudou) && (
                 <p className="rounded-md border border-warning/50 bg-warning/10 p-2 text-sm font-medium">
-                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {ROTULO_MEIO_VD[pagamento]}
+                  Pagamento será refeito: {formatBRL(edQ.data?.linha.valor_liquido ?? 0)} → {formatBRL(total)} · {rotuloPagamentoVD(pagamento)}
                 </p>
               )}
               {edicao && (

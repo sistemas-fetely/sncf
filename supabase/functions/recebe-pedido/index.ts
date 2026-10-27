@@ -184,6 +184,7 @@ Deno.serve(async (req) => {
           p_entrega: body.entrega,
           p_pagamento: body.pagamento,
           p_observacao: body.observacao ?? null,
+          p_bonificacao: body.bonificacao ?? null,
         });
         if (error) return erroRpc(error);
         const res: any = data ?? {};
@@ -210,6 +211,12 @@ Deno.serve(async (req) => {
           ok: true, ...res, link_pagamento, link_erro,
           ...(body.pagamento === "cartao" ? { link_expira_em, max_parcelas } : {}),
         });
+      }
+
+      if (body.tipo === "balcao_bonif_motivos") {
+        const { data, error } = await supabase.rpc("fn_balcao_bonificacao_motivos");
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, motivos: data ?? [] });
       }
 
       if (body.tipo === "balcao_meus_pedidos") {
