@@ -39,11 +39,18 @@ async function rpc(nome: string, args: Record<string, unknown>) {
   return data as any;
 }
 
-interface Props { pedidoId?: string; trigger?: ReactNode; onConcluido?: () => void }
+interface Props {
+  pedidoId?: string; trigger?: ReactNode; onConcluido?: () => void;
+  /** Modo controlado: quando `open` vem, o diálogo não renderiza gatilho próprio. */
+  open?: boolean; onOpenChange?: (o: boolean) => void;
+}
 
-export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: Props) {
+export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, open: openProp, onOpenChange }: Props) {
   const qc = useQueryClient();
-  const [open, setOpen] = useState(false);
+  const controlado = openProp !== undefined;
+  const [openInterno, setOpenInterno] = useState(false);
+  const open = controlado ? !!openProp : openInterno;
+  const setOpen = (o: boolean) => { if (!controlado) setOpenInterno(o); onOpenChange?.(o); };
   const [busca, setBusca] = useState("");
   const [opcoes, setOpcoes] = useState<{ id: string; id_externo: string }[] | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -66,6 +73,12 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
     setBusca(""); setOpcoes(null); setSelId(pedidoId ?? null); setTipo("total"); setQtds({});
     setMotivoCodigo(""); setMotivo(""); setDesfecho(""); setPrevia(null); setPreviaErro(null); setPreviaIniciada(false); setErroExec(null); setErroXpm(null);
   }
+
+  // Ao abrir (ou trocar de pedido no modo controlado), começa limpo com o pedido recebido.
+  useEffect(() => {
+    if (open) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pedidoId]);
 
   const momentoQ = useQuery({
     queryKey: ["fn_pedido_momento", selId],
@@ -222,7 +235,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido }: P
 
   return (
     <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) reset(); }}>
-      <DialogTrigger asChild>{trigger ?? <Button size="sm">Cancelar / Devolver</Button>}</DialogTrigger>
+      {(!controlado || trigger) && <DialogTrigger asChild>{trigger ?? <Button size="sm">Cancelar / Devolver</Button>}</DialogTrigger>}
       <DialogContent className="max-w-[640px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Cancelar / Devolver pedido</DialogTitle>

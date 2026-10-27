@@ -69,9 +69,7 @@ import { RegistrarRecebimentoDialog } from "@/components/financeiro/RegistrarRec
 import { ConverterTituloHaverDialog } from "@/components/credito/ConverterTituloHaverDialog";
 import { ReemitirBoletoDialog } from "@/components/credito/ReemitirBoletoDialog";
 import { ProrrogarVencimentoDialog } from "@/components/credito/ProrrogarVencimentoDialog";
-import { CancelarPedidoDialog } from "@/components/credito/CancelarPedidoDialog";
-import { RegistrarDevolucaoDialog } from "@/components/credito/RegistrarDevolucaoDialog";
-import { DevolucaoParcialDialog } from "@/components/credito/DevolucaoParcialDialog";
+import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BaixarPorPerdaDialog } from "@/components/credito/BaixarPorPerdaDialog";
 import { RenegociarTituloDialog } from "@/components/credito/RenegociarTituloDialog";
 import { CriarAcordoDialog, tituloElegivelAcordo } from "@/components/credito/CriarAcordoDialog";
@@ -1913,43 +1911,23 @@ export default function TitulosTab() {
         />
       )}
 
-      {cancelandoPedido && (
-        <CancelarPedidoDialog
-          pedidoId={cancelandoPedido.pedido_id}
-          pedidoIdExterno={cancelandoPedido.pedido_id_externo}
-          open={!!cancelandoPedido}
-          onClose={() => {
-            setCancelandoPedido(null);
-            setDetalhe(null);
-          }}
-        />
-      )}
-
-      {devolvendo && (
-        <RegistrarDevolucaoDialog
-          pedidoId={devolvendo.pedido_id}
-          pedidoIdExterno={devolvendo.pedido_id_externo}
-          open={!!devolvendo}
-          onClose={() => {
-            setDevolvendo(null);
-            setDetalhe(null);
-          }}
-        />
-      )}
-
-      {devolvendoParcial && (
-        <DevolucaoParcialDialog
-          pedidoId={devolvendoParcial.pedido_id}
-          pedidoIdExterno={devolvendoParcial.pedido_id_externo}
-          parceiroId={devolvendoParcial.parceiro_id}
-          open={!!devolvendoParcial}
-          onClose={() => {
-            setDevolvendoParcial(null);
-            setDetalhe(null);
-          }}
-        />
-      )}
-
+      {(() => {
+        const alvo = cancelandoPedido ?? devolvendo ?? devolvendoParcial;
+        return (
+          <DeclararCancelamentoDialog
+            pedidoId={alvo?.pedido_id ?? undefined}
+            open={!!alvo?.pedido_id}
+            onOpenChange={(o) => {
+              if (!o) {
+                setCancelandoPedido(null);
+                setDevolvendo(null);
+                setDevolvendoParcial(null);
+                setDetalhe(null);
+              }
+            }}
+          />
+        );
+      })()}
 
       {baixandoPerda && (
         <BaixarPorPerdaDialog

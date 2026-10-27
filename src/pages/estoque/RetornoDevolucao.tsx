@@ -27,7 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAbaUrl } from "@/hooks/useAbaUrl";
 import { QuarentenaEstoquePainel, buscarQuarentenaFila } from "@/components/estoque/QuarentenaEstoquePainel";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronDown, ChevronRight, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, ExternalLink, Loader2, PackageCheck, RefreshCw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { formatBRL } from "@/lib/format-currency";
@@ -589,6 +589,7 @@ export default function RetornoDevolucao() {
 
         <RodapePaginacao total={filtrados.length} pagina={paginaAtual} tamanhoPagina={tamanhoPagina}
           chavePreferencia={CHAVE_PAGINA_DEVOLUCAO} onPagina={setPagina} onTamanhoPagina={(n) => setTamanhoPagina(n as PageSizeOption)} />
+        <NfsARegularizar />
           </TabsContent>
 
           <TabsContent value="quarentena" className="mt-4">
@@ -807,5 +808,88 @@ function VincularTransferenciaDialog({ d, onFechar, onOk }: DlgProps) {
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+type NfRegularizar = {
+  nf_id: string; pedido: string | null; numero: string | null; serie: string | null; data_emissao: string | null;
+  valor_nota: number | null; cancelado_em: string | null; fonte_cancelamento: string | null; refunded_amount: number | null;
+  horas_desde_emissao: number | null; chave_acesso: string | null; pdf_url: string | null;
+};
+const ORIGEM_CANCEL: Record<string, string> = { pedido_sncf: "SNCF", sncf: "SNCF", shopify: "Shopify" };
+
+/** NF autorizada em pedido já cancelado: precisa de cancelamento (≤24h) ou nota de entrada no Bling. */
+function NfsARegularizar() {
+  const q = useQuery({
+    queryKey: ["vw_nf_em_pedido_cancelado", "a-regularizar"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("vw_nf_em_pedido_cancelado")
+        .select("nf_id, pedido, numero, serie, data_emissao, valor_nota, cancelado_em, fonte_cancelamento, refunded_amount, horas_desde_emissao, chave_acesso, pdf_url")
+        .eq("regularizada", false).order("data_emissao", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as NfRegularizar[];
+    },
+  });
+  const lista = q.data ?? [];
+  const copiar = async (t: string) => {
+    try { await navigator.clipboard.writeText(t); toast.success("Chave copiada"); }
+    catch (e) { toast.error(`Não foi possível copiar: ${formatError(e)}`); }
+  };
+  return (
+    <section className="mt-6 space-y-3">
+      <div className="flex items-center gap-2">
+        <h2 className="text-base font-medium">NFs a regularizar</h2>
+        <Badge variant="secondary" className="font-normal tabular-nums">{q.isLoading ? "…" : lista.length}</Badge>
+      </div>
+      <p className="text-sm text-muted-foreground">NF autorizada em pedido cancelado. Emita no Bling a nota de entrada referenciando a chave (ou cancele a NF dentro de 24h); o vínculo aparece aqui na Mesa para confirmar.</p>
+      <div className="overflow-auto rounded-lg border bg-card shadow-sm">
+        <Table>
+          <TableHeader><TableRow className="bg-muted/50 hover:bg-muted/50">
+            <TableHead>Pedido</TableHead><TableHead>NF</TableHead><TableHead>Emissão</TableHead>
+            <TableHead className="text-right">Valor</TableHead><TableHead>Cancelado em</TableHead><TableHead>Origem</TableHead>
+            <TableHead className="text-right">Estorno</TableHead><TableHead>Ação fiscal</TableHead><TableHead />
+          </TableRow></TableHeader>
+          <TableBody>
+            {q.isLoading ? (
+              <TableRow><TableCell colSpan={9} className="py-6 text-center text-muted-foreground"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></TableCell></TableRow>
+            ) : q.error ? (
+              <TableRow><TableCell colSpan={9}><Alert variant="destructive"><AlertDescription>{formatError(q.error)}</AlertDescription></Alert></TableCell></TableRow>
+            ) : lista.length === 0 ? (
+              <TableRow><TableCell colSpan={9} className="py-6 text-center text-sm text-muted-foreground">Nenhuma NF a regularizar.</TableCell></TableRow>
+            ) : lista.map((n) => {
+              const dentro24h = n.horas_desde_emissao != null && n.horas_desde_emissao <= 24;
+              return (
+                <TableRow key={n.nf_id} className="hover:bg-muted/40 [&>td]:whitespace-nowrap">
+                  <TableCell className="font-mono text-xs">{n.pedido ?? "—"}</TableCell>
+                  <TableCell className="font-mono text-xs">{n.numero ?? "—"}{n.serie ? `/${n.serie}` : ""}</TableCell>
+                  <TableCell>{fmtDataHora(n.data_emissao)}</TableCell>
+                  <TableCell className="text-right tabular-nums">{formatBRL(n.valor_nota)}</TableCell>
+                  <TableCell>{fmtDataHora(n.cancelado_em)}</TableCell>
+                  <TableCell>{n.fonte_cancelamento ? (ORIGEM_CANCEL[n.fonte_cancelamento] ?? n.fonte_cancelamento) : "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{n.refunded_amount ? formatBRL(n.refunded_amount) : "—"}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className={dentro24h ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10 text-warning"}>
+                      {dentro24h ? "Cancelar NF no Bling" : "Nota de entrada"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-right">
+                    {n.chave_acesso && (
+                      <Tooltip><TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Copiar chave de acesso" onClick={() => void copiar(n.chave_acesso!)}><Copy className="h-3.5 w-3.5" /></Button>
+                      </TooltipTrigger><TooltipContent>Copiar chave de acesso</TooltipContent></Tooltip>
+                    )}
+                    {n.pdf_url && (
+                      <Tooltip><TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" asChild><a href={n.pdf_url} target="_blank" rel="noreferrer" aria-label="Abrir PDF da NF"><ExternalLink className="h-3.5 w-3.5" /></a></Button>
+                      </TooltipTrigger><TooltipContent>Abrir PDF da NF</TooltipContent></Tooltip>
+                    )}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+    </section>
   );
 }

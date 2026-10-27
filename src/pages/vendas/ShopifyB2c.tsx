@@ -5,7 +5,9 @@ import { useFocoAoVoltar } from "@/lib/navegacao/useFocoAoVoltar";
 import { useRestaurarScroll } from "@/lib/navegacao/useRestaurarScroll";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
+import { AlertTriangle, Ban, Copy, ExternalLink, Loader2, RotateCcw } from "lucide-react";
+import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
+import { useNivel } from "@/hooks/useNivel";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/PageShell";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -305,6 +307,8 @@ export default function ShopifyB2c() {
   const ordenacao = useMemo(() => textoParaOrdem(estadoTela.ordem), [estadoTela.ordem]);
   const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
+  const [cancelarPedidoId, setCancelarPedidoId] = useState<string | null>(null);
+  const { temNivel } = useNivel();
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [gravandoCd, setGravandoCd] = useState(false);
   const [confirmacao, setConfirmacao] = useState<{
@@ -1603,6 +1607,18 @@ export default function ShopifyB2c() {
                               <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center gap-0.5">
                                 <EncerrarCasoB2c pedido={p} />
+                                {temNivel(4) && p.pedido_id && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive"
+                                        aria-label={`Cancelar ou devolver pedido ${p.order_name ?? ""}`}
+                                        onClick={() => setCancelarPedidoId(p.pedido_id!)}>
+                                        <Ban className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Cancelar / Devolver</TooltipContent>
+                                  </Tooltip>
+                                )}
                                 {podeReprocessar(p) && (
                                    <Tooltip>
                                      <TooltipTrigger asChild>
@@ -1731,6 +1747,11 @@ export default function ShopifyB2c() {
         </DialogContent>
       </Dialog>
 
+      <DeclararCancelamentoDialog
+        pedidoId={cancelarPedidoId ?? undefined}
+        open={!!cancelarPedidoId}
+        onOpenChange={(o) => { if (!o) setCancelarPedidoId(null); }}
+      />
       <PedidoB2cDrawer
         pedido={selecionado}
         open={selecionado !== null}

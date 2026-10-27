@@ -43,11 +43,11 @@ import {
   RegistrarRetiradaDialog, RegistrarEntregaDialog, VerPixDialog, type LinhaVD,
 } from "@/components/venda-direta/AcoesVendaDireta";
 import { QK_VD_GESTAO, invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
-import { CancelarVendaDiretaDialog } from "@/components/venda-direta/CancelarVendaDiretaDialog";
-import { SolicitarCancelamentoComNfDialog, useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
+import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
+import { useCancelamentosComNfSP } from "@/components/venda-direta/CancelamentoComNfVD";
 import { ClienteVDSheet } from "@/components/venda-direta/ClienteVDSheet";
 import { GavetaPedidoVD, useProdutosPorSku } from "@/components/venda-direta/GavetaPedidoVD";
-import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, SolicitarDevolucaoDialog, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
+import { DEVOLUCAO_ATIVA, QK_VD_DEVOLUCOES, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 // `situacao` segue alimentando só as AÇÕES; exibição (fase/etapa/rótulo/quem age) vem da view + dimensões.
 type Situacao =
@@ -173,8 +173,6 @@ export default function VendaDiretaGestao() {
   const [trocarMeio, setTrocarMeio] = useState<Linha | null>(null);
   const [pixNovo, setPixNovo] = useState<string | null>(null);
   const [cancelar, setCancelar] = useState<Linha | null>(null);
-  const [devolver, setDevolver] = useState<Linha | null>(null);
-  const [cancelarNf, setCancelarNf] = useState<Linha | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [clienteSheet, setClienteSheet] = useState<{ parceiroId: string; pedidoId: string; filaId?: string; filaErro: string | null } | null>(null);
   const [gavetaId, setGavetaIdState] = useState<string | null>(() => searchParams.get("pedido"));
@@ -310,14 +308,8 @@ export default function VendaDiretaGestao() {
 
   const gaveta = gavetaId ? (q.data ?? []).find((l) => l.id === gavetaId) ?? null : null;
 
-  const tentarCancelar = (l: Linha) => {
-    if (l.nf_numero) { setCancelarNf(l); return; }
-    if (l.pagamento_confirmado_em) {
-      setDevolver(l);
-      return;
-    }
-    setCancelar(l);
-  };
+  // Entrada única: o orquestrador lê o momento do pedido e escolhe a esteira.
+  const tentarCancelar = (l: Linha) => setCancelar(l);
 
   /** Ações de etapa (sem Avisar — ele é um componente próprio). */
   const acoesEtapa = (l: Linha, naGaveta: boolean): Acao[] => {
@@ -669,9 +661,12 @@ export default function VendaDiretaGestao() {
       <ConfiguracoesVDDialog aberto={config} onClose={() => setConfig(false)} />
       <LinkCartaoDialog linha={linkCartao} onClose={fechar(setLinkCartao)} />
       <TrocarMeioPagamentoDialog linha={trocarMeio} onClose={fechar(setTrocarMeio)} />
-      <CancelarVendaDiretaDialog linha={cancelar} onClose={fechar(setCancelar)} />
-      <SolicitarCancelamentoComNfDialog linha={cancelarNf} produtoSaiuPadrao={cancelarNf?.situacao === "em_transporte" || cancelarNf?.situacao === "entregue"} onClose={() => setCancelarNf(null)} />
-      <SolicitarDevolucaoDialog linha={devolver} onClose={() => { setDevolver(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); }} />
+      <DeclararCancelamentoDialog
+        pedidoId={cancelar?.id}
+        open={!!cancelar}
+        onOpenChange={(o) => { if (!o) { setCancelar(null); qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); } }}
+        onConcluido={() => { qc.invalidateQueries({ queryKey: QK_VD_DEVOLUCOES }); void invalidarVendaDireta(qc); }}
+      />
     </PageShell>
   );
 }
