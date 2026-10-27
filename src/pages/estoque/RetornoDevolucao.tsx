@@ -42,6 +42,7 @@ import { CancelamentoReembolsoPainel } from "@/components/devolucao/Cancelamento
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
 import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
+import { CorrecoesNfLista, contarCorrecoesAbertas, useCorrecoesNf } from "@/components/devolucao/CorrecoesNfLista";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
@@ -193,12 +194,18 @@ export default function RetornoDevolucao() {
   const pendQ = useDevolucoesRetornoPendente();
   const [aba, setAba] = useAbaUrl("funil");
 
-  const devolucoes = funilQ.data ?? [];
+  // DUAS ABAS (27/10/2026): a aba de devoluções só mostra finalidade 'devolucao'; correções de NF têm aba própria.
+  const devolucoes = useMemo(() => (funilQ.data ?? []).filter((d) => !finalidadeQ.data?.has(d.id)), [funilQ.data, finalidadeQ.data]);
+  const ehFinalStatus = useMemo(() => (s: string | null) => statusMap.get(String(s ?? ""))?.eh_final === true, [statusMap]);
+  const correcoesQ = useCorrecoesNf();
+  const correcoesAbertas = contarCorrecoesAbertas(correcoesQ.data, ehFinalStatus);
+  const nfResolvidaMap = useMemo(() => new Map((funilQ.data ?? []).map((d) => [d.id, !!d.e5_nf_resolvida])), [funilQ.data]);
+  const rotuloFin = (c: string, padrao: string) => rotulosFinalidadeQ.data?.get(c) ?? padrao;
   const etapas = etapasQ.data ?? [];
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: busca (`q`, link antigo), canal, só abertas e página na URL.
-  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1 }, { replaceKeys: ["q"] });
+  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1, cor: "abertas" }, { replaceKeys: ["q"] });
   const busca = nav.q;
   const setBusca = (v: string) => setNav({ q: v });
   const canal = nav.canal as "todos" | "b2b" | "b2c" | "site_sp";
@@ -305,7 +312,7 @@ export default function RetornoDevolucao() {
         <CasaPageHeader
           breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções e Correções de NF" }]}
           title="Devoluções e Correções de NF"
-          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
+          subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "correcoes" ? "Correções fiscais: a NF original é anulada e o pedido é reenviado ao Bling." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <div className="flex items-center gap-2">
               <DeclararCancelamentoDialog
@@ -321,7 +328,8 @@ export default function RetornoDevolucao() {
 
         <Tabs value={aba} onValueChange={setAba}>
           <TabsList>
-            <TabsTrigger value="funil">Cancelamento com NF</TabsTrigger>
+            <TabsTrigger value="funil">{rotuloFin("devolucao", "Devoluções")}{abertas.length > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{abertas.length}</Badge>}</TabsTrigger>
+            <TabsTrigger value="correcoes">{rotuloFin("refaturar", "Correções de NF")}{correcoesAbertas > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{correcoesAbertas}</Badge>}</TabsTrigger>
             <TabsTrigger value="quarentena">Quarentena</TabsTrigger>
             <TabsTrigger value="reembolso">Cancelamento sem NF{reembolsosPendentes > 0 && <Badge variant="secondary" className="ml-2 font-normal tabular-nums">{reembolsosPendentes}</Badge>}</TabsTrigger>
           </TabsList>
@@ -417,7 +425,7 @@ export default function RetornoDevolucao() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {funilQ.isLoading ? (
+              {funilQ.isLoading || finalidadeQ.isLoading ? (
                 <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground">Carregando…</TableCell></TableRow>
               ) : filtrados.length === 0 ? (
                 <TableRow><TableCell colSpan={9} className="text-center py-12 text-muted-foreground"><PackageCheck className="h-5 w-5 mx-auto mb-2 opacity-60" />Nenhuma devolução encontrada.</TableCell></TableRow>
@@ -425,8 +433,6 @@ export default function RetornoDevolucao() {
                 const aberto = expandido === d.id;
                 const dias = d.dias_desde ?? 0;
                 const p = pendMap.get(d.id);
-                const fin = finalidadeQ.data?.get(d.id);
-                const finRotulo = fin ? (rotulosFinalidadeQ.data?.get(fin) ?? fin) : null;
                 return (
                   <Fragment key={d.id}>
                     <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : d.id)}>
@@ -436,7 +442,6 @@ export default function RetornoDevolucao() {
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
-                          {finRotulo && <Badge variant="outline" className="font-normal">{finRotulo}</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
@@ -614,6 +619,11 @@ export default function RetornoDevolucao() {
         <NfsARegularizar />
           </TabsContent>
 
+          <TabsContent value="correcoes" className="mt-4">
+            <CorrecoesNfLista ehFinal={ehFinalStatus} nfResolvida={(id) => nfResolvidaMap.get(id) ?? false}
+              filtro={nav.cor === "concluidas" ? "concluidas" : "abertas"} setFiltro={(v) => setNav({ cor: v })}
+              onMudou={invalidar} />
+          </TabsContent>
           <TabsContent value="quarentena" className="mt-4">
             <QuarentenaEstoquePainel />
           </TabsContent>
