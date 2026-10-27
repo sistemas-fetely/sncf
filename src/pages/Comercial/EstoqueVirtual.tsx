@@ -27,6 +27,10 @@ import { formatError } from "@/lib/format-error";
 import { PageShell } from "@/components/layout/PageShell";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DETALHE_ZERO, detalhePartes, detalheQtd, somarDetalhe, temDesvio, tooltipDetalhe,
+  type DetalheQtd,
+} from "@/lib/estoque/cockpit-detalhe";
 
 /** Uma linha por SKU × centro (centro null = produto sem razão). */
 interface LinhaCockpit {
@@ -38,6 +42,10 @@ interface LinhaCockpit {
   colecao: string | null;
   centro: string | null;
   contabil: number | null;
+  /** Vendável (fiscal sadio). */
+  fiscal_sadio: number | null;
+  /** Transferência com NF autorizada aguardando conferência de chegada. */
+  a_caminho: number | null;
   virtual: number | null;
   reservado: number | null;
   custo_unitario: number | null;
@@ -55,7 +63,7 @@ interface LinhaCockpit {
 }
 
 const COLS =
-  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
+  "cod_cadastro,sku,nome_comercial,cor_nome,fase,colecao,centro,contabil,fiscal_sadio,a_caminho,virtual,reservado,custo_unitario,valor_custo,vendas_janela,janela_dias,tempo_estoque_dias,situacao,em_transito,eta_embarque,ticket_medio,fonte_ticket,valor_venda,valor_empenhado";
 
 /** Linha exibida: produto (Centro = Todos) ou produto no centro escolhido. */
 interface LinhaTabela {
@@ -84,6 +92,10 @@ interface LinhaTabela {
   por_centro: Record<string, number>;
   /** Vendas na janela por centro (código → un). */
   por_centro_vendas: Record<string, number>;
+  /** Sadio/a caminho/bloqueado da linha (centro único ou soma dos centros). */
+  detalhe: DetalheQtd;
+  /** Sadio/a caminho/bloqueado por centro (código → detalhe). */
+  por_centro_detalhe: Record<string, DetalheQtd>;
 }
 
 interface CentroAtivo {
@@ -415,12 +427,13 @@ export default function EstoqueVirtual() {
   );
 
   const resumoCentros = useMemo(() => {
-    const m = new Map<string, { un: number; valor: number }>();
+    const m = new Map<string, { un: number; valor: number; detalhe: DetalheQtd }>();
     for (const l of recorteSemCentro) {
       if (!l.centro) continue;
-      const a = m.get(l.centro) ?? { un: 0, valor: 0 };
+      const a = m.get(l.centro) ?? { un: 0, valor: 0, detalhe: DETALHE_ZERO };
       a.un += n(l.contabil);
       a.valor += n(l.valor_custo);
+      a.detalhe = somarDetalhe(a.detalhe, detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho));
       m.set(l.centro, a);
     }
     return m;
@@ -440,6 +453,8 @@ export default function EstoqueVirtual() {
         ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
         por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
         por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
+        detalhe: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho),
+        por_centro_detalhe: l.centro ? { [l.centro]: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho) } : {},
       }));
     }
     const fonte = visao === "centros" ? recorteSemCentro : recorte;
@@ -447,6 +462,7 @@ export default function EstoqueVirtual() {
     for (const l of fonte) {
       const k = chaveProduto(l);
       const a = m.get(k);
+      const d = detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho);
       if (!a) {
         m.set(k, {
           chave: k, cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial,
@@ -458,12 +474,16 @@ export default function EstoqueVirtual() {
           ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
           por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
           por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
+          detalhe: d,
+          por_centro_detalhe: l.centro ? { [l.centro]: d } : {},
         });
       } else {
         if (l.centro) {
           a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
           a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
+          a.por_centro_detalhe[l.centro] = somarDetalhe(a.por_centro_detalhe[l.centro] ?? DETALHE_ZERO, d);
         }
+        a.detalhe = somarDetalhe(a.detalhe, d);
         a.contabil += n(l.contabil);
         a.virtual += n(l.virtual);
         a.reservado += n(l.reservado);
@@ -765,8 +785,9 @@ export default function EstoqueVirtual() {
           aria-label="Estoque por centro"
         >
           {centros.map((c) => {
-            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0 };
+            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0, detalhe: DETALHE_ZERO };
             const sel = centroFiltro === c.codigo;
+            const desvio = temDesvio(r.detalhe);
             return (
               <button
                 key={c.codigo}
@@ -782,10 +803,23 @@ export default function EstoqueVirtual() {
               >
                 <div className="text-[11px] text-muted-foreground truncate">{c.rotulo_curto ?? c.codigo}</div>
                 <div className="text-base font-medium tabular-nums">{formatNum(r.un)} un</div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
-                  <span className="truncate">{formatBRL(r.valor)}</span>
-                  {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
-                </div>
+                {desvio ? (
+                  <>
+                    <div className="truncate text-[11px] text-muted-foreground tabular-nums">{formatBRL(r.valor)}</div>
+                    <div className="flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground tabular-nums">
+                      <span>{formatNum(r.detalhe.sadio)}</span>
+                      {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                      {detalhePartes(r.detalhe).map((t) => (
+                        <span key={t} className="whitespace-nowrap">· {t}</span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+                    <span className="truncate">{formatBRL(r.valor)}</span>
+                    {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -975,7 +1009,15 @@ export default function EstoqueVirtual() {
                   </TableCell>
                 </>}
                 {visao === "estoque" && <>
-                  <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title={centroFiltro !== "todos" && temDesvio(p.detalhe) ? tooltipDetalhe(p.detalhe) : undefined}
+                  >
+                    {formatNum(p.contabil)}
+                    {centroFiltro !== "todos" && temDesvio(p.detalhe) && detalhePartes(p.detalhe, true).map((t) => (
+                      <div key={t} className="whitespace-nowrap text-[10px] font-normal leading-tight text-muted-foreground">{t}</div>
+                    ))}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {(() => {
@@ -1013,11 +1055,18 @@ export default function EstoqueVirtual() {
                   </TableCell>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
+                    const d = p.por_centro_detalhe[c.codigo] ?? DETALHE_ZERO;
                     const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
                       <Fragment key={c.codigo}>
-                        <TableCell className="!px-1.5 text-right tabular-nums border-l border-border/60">
+                        <TableCell
+                          className="!px-1.5 text-right tabular-nums border-l border-border/60"
+                          title={temDesvio(d) ? tooltipDetalhe(d) : undefined}
+                        >
                           {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                          {temDesvio(d) && detalhePartes(d, true).map((t) => (
+                            <div key={t} className="whitespace-nowrap text-[9px] font-normal leading-tight text-muted-foreground">{t}</div>
+                          ))}
                         </TableCell>
                         <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                           {formatGiro(g)}
