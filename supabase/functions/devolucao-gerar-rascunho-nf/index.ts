@@ -15,6 +15,7 @@ type Dados = {
   destinatario: { id?: number | string | null; nome: string; numeroDocumento: string; tipoPessoa: string } | null; itens: ItemDados[]; valor: number;
   valor_frete: number | string | null;
   fiscal_acao: "nf_devolucao" | "nota_credito" | null; finalidade: number | null; tipo_credito: string | null; justificativa: string | null;
+  loja_bling_id: number | null;
 };
 
 /** Conferidor local: NF de ENTRADA pendente que bate com a devolução. null = bate. */
@@ -119,10 +120,13 @@ serve(async (req) => {
     if (!d.natureza_bling_id) throw new Error(`Canal sem natureza de ${ehCredito ? "nota de crédito" : "devolução"} configurada no Bling.`);
     if (!d.destinatario?.numeroDocumento) throw new Error("Devolução sem destinatário com documento.");
     if (!d.nf_origem_chave) throw new Error("NF original sem chave de acesso.");
+    // Loja da NF de origem: no Bling é a LOJA que define o estabelecimento emitente (SC/SP).
+    if (!d.loja_bling_id) throw new Error("NF de origem sem loja do Bling — não dá para garantir o estabelecimento emitente.");
     const bling = await blingCliente();
     const agora = new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(new Date()).replace(",", "");
     const payload: Record<string, any> = {
       tipo: 0, finalidade: d.finalidade ?? 4, dataOperacao: agora, contato: d.destinatario,
+      loja: { id: Number(d.loja_bling_id) },
       naturezaOperacao: { id: d.natureza_bling_id },
       documentoReferenciado: { modelo: "55", chaveAcesso: d.nf_origem_chave },
       itens: d.itens.map((i) => ({ codigo: i.sku, descricao: i.descricao, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P", classificacaoFiscal: i.ncm, origem: i.origem })),
