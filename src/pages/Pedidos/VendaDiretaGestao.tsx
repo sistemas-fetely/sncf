@@ -55,6 +55,7 @@ type Situacao =
   | "pronto_retirada" | "em_transporte" | "travado" | "pausado" | "entregue" | "cancelado" | "outro";
 
 interface Linha extends LinhaVD, ClassificacaoVD {
+  cliente_id?: string | null;
   recebido_em: string | null;
   cancelado_em: string | null;
   modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
@@ -175,6 +176,7 @@ export default function VendaDiretaGestao() {
   const [devolver, setDevolver] = useState<Linha | null>(null);
   const [cancelarNf, setCancelarNf] = useState<Linha | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [clienteSheet, setClienteSheet] = useState<{ parceiroId: string; pedidoId: string; filaId?: string; filaErro: string | null } | null>(null);
   const [gavetaId, setGavetaIdState] = useState<string | null>(() => searchParams.get("pedido"));
   // ?pedido={id} abre a gaveta; fechar remove o parâmetro.
   const setGavetaId = (id: string | null) => {
@@ -594,6 +596,17 @@ export default function VendaDiretaGestao() {
             />
           </div>
         </TabelaFetely>
+
+        {clienteSheet && (
+          <ClienteVDSheet
+            parceiroId={clienteSheet.parceiroId}
+            pedidoId={clienteSheet.pedidoId}
+            filaId={clienteSheet.filaId}
+            filaErro={clienteSheet.filaErro}
+            open
+            onOpenChange={(v) => { if (!v) setClienteSheet(null); }}
+          />
+        )}
 
         <GavetaPedidoVD
           linha={gaveta}
