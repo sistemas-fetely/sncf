@@ -40,3 +40,4 @@
 - Every new screen is born with these pieces.
 - Non-scalar list state (sort, sets, setState updaters) goes to the URL through `codecUrl` helpers, so every screen encodes them the same way.
 - Checklist de tela nova: useEstadoTela (filtros), data-foco-id + useFocoAoVoltar + useRestaurarScroll (lista que abre rota), abrirDetalhe (abrir), SmartBackButton (voltar).
+- Consignment model-2 NF complementary info (referenced NFs + PIX) is built only by `fn_consignado_obs_nf`; `enviar-pedido-bling` appends it to `observacoes` and refuses the send when it returns ok=false, so the text and its preconditions live in one place.
