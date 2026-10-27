@@ -162,6 +162,8 @@ export function CompararTransportadorasDialog({
             {sug && sug.correios_avaliado === false && sug.motivo_exclusao && (
               <p className="text-xs text-muted-foreground">Correios não avaliados: {sug.motivo_exclusao}</p>
             )}
+            <p className="text-xs text-muted-foreground">A sugestão considera só tabelas calibradas (cotação conferida contra CT-e real).</p>
+
             {sugestao?.error && (
               <p className="text-xs text-destructive">Sugestão automática: {sugestao.error.message}</p>
             )}
