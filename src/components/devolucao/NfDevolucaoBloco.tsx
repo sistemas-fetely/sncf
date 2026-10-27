@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 const sb = supabase as any;
 type Estado = { nf_dev_status: "gerando" | "rascunho" | "autorizada" | "erro" | null; nf_dev_numero: string | null; nf_dev_erro: string | null };
 
+/** Chamada única à edge do rascunho/verificação da NF de entrada da devolução (reusada fora da Mesa). */
+export async function chamarRascunhoNfDevolucao(devolucao_id: string, acao: "gerar" | "verificar") {
+  return chamar(devolucao_id, acao);
+}
+
 async function chamar(devolucao_id: string, acao: "gerar" | "verificar") {
   const { data, error } = await supabase.functions.invoke("devolucao-gerar-rascunho-nf", { body: { devolucao_id, acao } });
   if (error) {

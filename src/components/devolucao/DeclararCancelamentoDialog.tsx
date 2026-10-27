@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
 import { Link } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -209,8 +210,22 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
         try { await cortarXpm(motivo.trim()); }
         catch (e) { falhaXpm = e instanceof Error ? e.message : String(e); }
       }
-      const dev = d?.resultado?.devolucao_numero;
+      const dev = d?.resultado?.devolucao_numero ?? d?.resultado?.devolucao?.devolucao_numero;
       toast.success(dev ? `${dev} aberta` : `Pedido ${d?.pedido ?? m?.id_externo} cancelado`);
+      // NF de entrada no Bling (27/10/2026): mesma edge da Mesa de Devoluções.
+      const fiscal = d?.resultado?.devolucao?.gerar_nf_no_bling === true ? d.resultado.devolucao
+        : d?.resultado?.gerar_nf_no_bling === true ? d.resultado : null;
+      const fiscalAcao = d?.resultado?.devolucao?.fiscal_acao ?? d?.resultado?.fiscal_acao;
+      if (fiscal?.devolucao_id) {
+        try {
+          await chamarRascunhoNfDevolucao(fiscal.devolucao_id, "gerar");
+          toast.success(`${fiscal.devolucao_numero ?? dev ?? "Devolução"}: rascunho da NF de entrada gerado no Bling`);
+        } catch (e) {
+          toast.error(`${fiscal.devolucao_numero ?? dev ?? "Devolução"}: falha ao gerar a NF de entrada no Bling — ${e instanceof Error ? e.message : String(e)}`, { duration: 15000 });
+        }
+      } else if (fiscalAcao === "cancelar_nf") {
+        toast.warning("NF com menos de 24h: cancele a NF no Bling em até 24h.", { duration: 15000 });
+      }
       await Promise.all([
         qc.invalidateQueries({ queryKey: ["vw_devolucao_funil"] }),
         qc.invalidateQueries({ queryKey: ["fn_pedido_momento"] }),
