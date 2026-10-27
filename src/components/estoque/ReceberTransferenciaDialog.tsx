@@ -3,8 +3,8 @@ import * as XLSX from "xlsx";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, Loader2, Upload, X } from "lucide-react";
-import { gerarPlanilhaConferencia, validarPlanilhaConferencia } from "@/components/estoque/conferenciaPlanilha";
+import { Download, FileText, Loader2, Upload, X } from "lucide-react";
+import { gerarFolhaContagemPdf, gerarPlanilhaConferencia, validarPlanilhaConferencia } from "@/components/estoque/conferenciaPlanilha";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,11 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
   const [avariado, setAvariado] = useState<Record<string, string>>({});
   const [resultado, setResultado] = useState<Resultado | null>(null);
   const [bipando, setBipando] = useState(false);
+  const [cega, setCega] = useState(true);
+  const [etapa, setEtapa] = useState<"grade" | "recontagem" | "revisao">("grade");
+  const [listaRecontagem, setListaRecontagem] = useState<string[]>([]);
+  const [recontagem, setRecontagem] = useState<Record<string, string>>({});
+  const [mostrarFaltas, setMostrarFaltas] = useState(false);
   const [errosPlanilha, setErrosPlanilha] = useState<string[]>([]);
   const arquivoRef = useRef<HTMLInputElement>(null);
 
@@ -113,16 +118,37 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     if (!aberto) return;
     setResultado(null);
     setBipando(false);
+    setCega(true);
+    setEtapa("grade");
+    setListaRecontagem([]);
+    setRecontagem({});
+    setMostrarFaltas(false);
+    setRecebido({});
+    setAvariado({});
     setData(hojeISO());
   }, [aberto, pedidoId]);
 
   async function baixarPlanilha() {
     try {
-      const blob = await gerarPlanilhaConferencia(itens, { titulo, pedidoId, destino: destinoCodigo ?? centro ?? "" });
+      const blob = await gerarPlanilhaConferencia(itens, { titulo, pedidoId, destino: destinoCodigo ?? centro ?? "" }, { cega });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `conferencia_${titulo}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      toast.error(formatError(e));
+    }
+  }
+
+  async function baixarFolhaPdf() {
+    try {
+      const blob = await gerarFolhaContagemPdf(itens, { titulo, destino: destinoRotulo ?? destinoCodigo ?? centro ?? "" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `contagem_cega_${titulo}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {
@@ -146,6 +172,10 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
       setRecebido(r.recebido);
       setAvariado(r.avariado);
       setErrosPlanilha([]);
+      if (cega) {
+        toast.success("Planilha importada — revise e clique em Conferir contagem");
+        return;
+      }
       const comDif = itens.filter((i) => Number(r.recebido[i.sku]) + Number(r.avariado[i.sku]) !== i.enviado || Number(r.avariado[i.sku]) > 0).length;
       toast.success(`Planilha importada — ${comDif} itens com diferença. Revise e confirme.`);
     } catch (e) {
@@ -153,7 +183,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
     }
   }
   useEffect(() => {
-    if (!aberto) return;
+    if (!aberto || cega) return;
     tudoConforme();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, itensQ.data]);
@@ -174,9 +204,36 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
       const r: Record<string, string> = {};
       itens.forEach((i) => { r[i.sku] = "0"; });
       setRecebido(r);
+    } else if (cega) {
+      setRecebido({});
     } else {
       tudoConforme();
     }
+  }
+  function alternarCega(v: boolean) {
+    setCega(v);
+    setEtapa("grade");
+    setListaRecontagem([]);
+    setRecontagem({});
+    setMostrarFaltas(false);
+    if (bipando) return;
+    if (v) { setRecebido({}); setAvariado({}); } else tudoConforme();
+  }
+  const vazio = (v: string | undefined) => v === undefined || v.trim() === "";
+  const semContagem = cega ? itens.filter((i) => vazio(recebido[i.sku])) : [];
+  /** Recebido efetivo: a recontagem substitui a 1ª contagem do item. */
+  const efetivo = (sku: string) =>
+    listaRecontagem.includes(sku) && !vazio(recontagem[sku]) ? num(recontagem[sku]) : num(recebido[sku]);
+  const divergentesRevisao = itens.filter((i) => efetivo(i.sku) + num(avariado[i.sku]) !== i.enviado);
+  const faltaRecontagem = listaRecontagem.filter((s) => vazio(recontagem[s])).length;
+
+  function conferirContagem() {
+    if (semContagem.length) { setMostrarFaltas(true); return; }
+    setMostrarFaltas(false);
+    const div = itens.filter((i) => num(recebido[i.sku]) + num(avariado[i.sku]) !== i.enviado).map((i) => i.sku);
+    setListaRecontagem(div);
+    setRecontagem((s) => Object.fromEntries(div.map((k) => [k, s[k] ?? ""])));
+    setEtapa(div.length ? "recontagem" : "revisao");
   }
   const somarRecebido = (sku: string, delta: number) =>
     setRecebido((s) => ({ ...s, [sku]: String(Math.max(0, num(s[sku]) + delta)) }));
@@ -194,7 +251,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
       const { data: r, error } = await (supabase as any).rpc("fn_trs_receber_destino", {
         p_pedido_id: pedidoId,
         p_data: data,
-        p_itens: (bipando ? itens : alterados).map((i) => ({ sku: i.sku, recebido: num(recebido[i.sku]), avariado: num(avariado[i.sku]) })),
+        p_itens: (cega || bipando ? itens : alterados).map((i) => ({ sku: i.sku, recebido: cega ? efetivo(i.sku) : num(recebido[i.sku]), avariado: num(avariado[i.sku]) })),
         p_centro_destino: destinoCodigo ? null : centro,
       });
       if (error) throw error;
@@ -259,6 +316,91 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
               <Button onClick={onFechar}>Fechar</Button>
             </DialogFooter>
           </div>
+        ) : cega && etapa === "recontagem" ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">{listaRecontagem.length} itens precisam ser recontados. Conte de novo só estes.</p>
+            <div className="max-h-[360px] overflow-auto rounded-md border">
+              <Table>
+                <TableHeader className="sticky top-0 z-10 bg-background">
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead className="w-28 text-right">Recontagem</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {itens.filter((i) => listaRecontagem.includes(i.sku)).map((i) => (
+                    <TableRow key={i.sku}>
+                      <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
+                      <TableCell className="text-sm">{i.nome ?? "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <Input type="number" min={0} className="h-8 w-24 text-right tabular-nums"
+                          aria-label={`Recontagem de ${i.sku}`}
+                          value={recontagem[i.sku] ?? ""}
+                          onChange={(e) => setRecontagem((s) => ({ ...s, [i.sku]: e.target.value }))} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            {faltaRecontagem > 0 && <p className="text-sm text-muted-foreground">Faltam {faltaRecontagem} itens sem recontagem.</p>}
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="ghost" onClick={() => setEtapa("grade")}>Voltar</Button>
+              <Button type="button" disabled={faltaRecontagem > 0} onClick={() => setEtapa("revisao")}>Revisar</Button>
+            </DialogFooter>
+          </div>
+        ) : cega && etapa === "revisao" ? (
+          <div className="space-y-3">
+            <p className="text-sm font-medium">
+              {itens.length - divergentesRevisao.length} itens OK · {divergentesRevisao.length} com diferença confirmada
+            </p>
+            {divergentesRevisao.length > 0 && (
+              <div className="max-h-[360px] overflow-auto rounded-md border">
+                <Table>
+                  <TableHeader className="sticky top-0 z-10 bg-background">
+                    <TableRow>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Produto</TableHead>
+                      <TableHead className="text-right">Enviado</TableHead>
+                      <TableHead className="text-right">1ª contagem</TableHead>
+                      <TableHead className="text-right">Recontagem</TableHead>
+                      <TableHead className="text-right">Avariado</TableHead>
+                      <TableHead className="text-right">Diferença</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {divergentesRevisao.map((i) => (
+                      <TableRow key={i.sku}>
+                        <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
+                        <TableCell className="text-sm">{i.nome ?? "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{i.enviado}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(recebido[i.sku])}</TableCell>
+                        <TableCell className="text-right tabular-nums">{listaRecontagem.includes(i.sku) ? num(recontagem[i.sku]) : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">{num(avariado[i.sku])}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium text-destructive">
+                          {efetivo(i.sku) + num(avariado[i.sku]) - i.enviado}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="ghost" onClick={() => setEtapa(listaRecontagem.length ? "recontagem" : "grade")}>Voltar</Button>
+              <BotaoGuardado
+                slug="acao.estoque_contagem_registrar"
+                rotuloAcao="Confirmar recebimento"
+                contexto={{ pedido_id: pedidoId }}
+                disabled={receber.isPending || itens.length === 0 || invalido || futuro || semDestino}
+                onClick={() => setConfirmando(true)}
+              >
+                {receber.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Confirmar recebimento
+              </BotaoGuardado>
+            </DialogFooter>
+          </div>
         ) : (
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -287,7 +429,16 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                   <Switch checked={bipando} onCheckedChange={alternarBipando} disabled={itens.length === 0} />
                   Conferir bipando
                 </label>
-                <div className="flex gap-2">
+                <label className="flex items-center gap-2 text-sm font-medium">
+                  <Switch checked={cega} onCheckedChange={alternarCega} />
+                  Contagem cega
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {cega && (
+                    <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarFolhaPdf()}>
+                      <FileText className="mr-2 h-4 w-4" />Folha de contagem (PDF)
+                    </Button>
+                  )}
                   <Button type="button" variant="outline" size="sm" disabled={itens.length === 0} onClick={() => void baixarPlanilha()}>
                     <Download className="mr-2 h-4 w-4" />Baixar planilha
                   </Button>
@@ -318,7 +469,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                     onDesfazer={(l: LeituraCodigo) => somarRecebido(l.sku, -l.unidades)}
                     validarSku={validarSku}
                   />
-                  <p className="text-sm text-muted-foreground tabular-nums">Bipado {totalRecebido} de {totalEnviado} peças</p>
+                  <p className="text-sm text-muted-foreground tabular-nums">{cega ? `Bipado ${totalRecebido} peças` : `Bipado ${totalRecebido} de ${totalEnviado} peças`}</p>
                 </>
               )}
             </div>
@@ -334,20 +485,22 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                     <TableRow>
                       <TableHead>Código</TableHead>
                       <TableHead>Produto</TableHead>
-                      <TableHead className="text-right">Enviado</TableHead>
+                      {!cega && <TableHead className="text-right">Enviado</TableHead>}
                       <TableHead className="w-28 text-right">Recebido</TableHead>
                       <TableHead className="w-28 text-right">Avariado</TableHead>
-                      <TableHead className="text-right">Diferença</TableHead>
+                      {!cega && <TableHead className="text-right">Diferença</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {itens.map((i) => {
                       const dif = num(recebido[i.sku]) + num(avariado[i.sku]) - i.enviado;
                       return (
-                        <TableRow key={i.sku} className={cn(num(recebido[i.sku]) !== i.enviado && "bg-warning/10")}>
+                        <TableRow key={i.sku} className={cn(
+                          cega ? mostrarFaltas && vazio(recebido[i.sku]) && "bg-destructive/10" : num(recebido[i.sku]) !== i.enviado && "bg-warning/10",
+                        )}>
                           <TableCell><CodProduto chave={i.sku} variant="compacto" /></TableCell>
                           <TableCell className="text-sm">{i.nome ?? "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{i.enviado}</TableCell>
+                          {!cega && <TableCell className="text-right tabular-nums">{i.enviado}</TableCell>}
                           <TableCell className="text-right">
                             <Input type="number" min={0} className="h-8 w-24 text-right tabular-nums"
                               aria-label={`Recebido de ${i.sku}`}
@@ -360,9 +513,11 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                               value={avariado[i.sku] ?? ""}
                               onChange={(e) => setAvariado((s) => ({ ...s, [i.sku]: e.target.value }))} />
                           </TableCell>
-                          <TableCell className={cn("text-right tabular-nums font-medium", dif === 0 ? "text-success" : "text-destructive")}>
-                            {dif}
-                          </TableCell>
+                          {!cega && (
+                            <TableCell className={cn("text-right tabular-nums font-medium", dif === 0 ? "text-success" : "text-destructive")}>
+                              {dif}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}
@@ -371,9 +526,17 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
               </div>
             )}
 
+            {cega && mostrarFaltas && semContagem.length > 0 && (
+              <p className="text-sm text-destructive">Faltam {semContagem.length} itens sem contagem</p>
+            )}
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={() => { setBipando(false); tudoConforme(); }}>Tudo conforme</Button>
+              {!cega && <Button type="button" variant="outline" onClick={() => { setBipando(false); tudoConforme(); }}>Tudo conforme</Button>}
               <Button type="button" variant="ghost" onClick={onFechar}>Cancelar</Button>
+              {cega ? (
+                <Button type="button" disabled={itens.length === 0 || invalido || futuro || semDestino} onClick={conferirContagem}>
+                  Conferir contagem
+                </Button>
+              ) : (
               <BotaoGuardado
                 slug="acao.estoque_contagem_registrar"
                 rotuloAcao="Confirmar recebimento"
@@ -384,6 +547,7 @@ export function ReceberTransferenciaDialog({ aberto, onFechar, pedidoId, titulo,
                 {receber.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Confirmar recebimento
               </BotaoGuardado>
+              )}
             </DialogFooter>
           </div>
         )}
