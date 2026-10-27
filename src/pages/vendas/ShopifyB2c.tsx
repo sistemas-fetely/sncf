@@ -307,6 +307,8 @@ export default function ShopifyB2c() {
   const ordenacao = useMemo(() => textoParaOrdem(estadoTela.ordem), [estadoTela.ordem]);
   const navigate = useNavigate();
   const [selecionado, setSelecionado] = useState<PedidoB2cRow | null>(null);
+  const [cancelarPedidoId, setCancelarPedidoId] = useState<string | null>(null);
+  const { temNivel } = useNivel();
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [gravandoCd, setGravandoCd] = useState(false);
   const [confirmacao, setConfirmacao] = useState<{
@@ -1745,6 +1747,11 @@ export default function ShopifyB2c() {
         </DialogContent>
       </Dialog>
 
+      <DeclararCancelamentoDialog
+        pedidoId={cancelarPedidoId ?? undefined}
+        open={!!cancelarPedidoId}
+        onOpenChange={(o) => { if (!o) setCancelarPedidoId(null); }}
+      />
       <PedidoB2cDrawer
         pedido={selecionado}
         open={selecionado !== null}
