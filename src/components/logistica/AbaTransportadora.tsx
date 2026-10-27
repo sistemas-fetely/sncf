@@ -2,10 +2,11 @@ import { useState } from "react";
 import { nomeExibicao } from "@/lib/parceiros/nome";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2, Upload } from "lucide-react";
+import { Building2, Truck, Cloud, AlertTriangle, CloudOff, Loader2, Upload, FileCode } from "lucide-react";
 import { EntregasRemessas } from "./EntregasRemessas";
 import { ImportarRastreioDialog } from "./ImportarRastreioDialog";
 import { ImportarFretesDialog } from "./ImportarFretesDialog";
+import { ImportarCteXmlDialog } from "./ImportarCteXmlDialog";
 import { PainelRemessas } from "./PainelRemessas";
 import { CustosFaturasTransportadora, TabelasCotacaoTransportadora } from "./ConteudoPorPerfil";
 import { useUltimaSincronizacao } from "@/hooks/logistica/useUltimaSincronizacao";
@@ -123,6 +124,7 @@ export function AbaTransportadora({ transportadora, aba }: { transportadora: Tra
   const perfil = cadastrado ?? { transportadora_id: transportadora.id, ...PERFIL_SEM_CADASTRO };
   const [abrirRastreio, setAbrirRastreio] = useState(false);
   const [abrirFatura, setAbrirFatura] = useState(false);
+  const [abrirCte, setAbrirCte] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -156,9 +158,14 @@ export function AbaTransportadora({ transportadora, aba }: { transportadora: Tra
                 </Button>
               )}
               {perfil.importa_fatura && (
-                <Button onClick={() => setAbrirFatura(true)} className="gap-2">
-                  <Upload className="h-4 w-4" /> Importar fatura
-                </Button>
+                <>
+                  <Button variant="outline" onClick={() => setAbrirCte(true)} className="gap-2">
+                    <FileCode className="h-4 w-4" /> Importar XML de CT-e
+                  </Button>
+                  <Button onClick={() => setAbrirFatura(true)} className="gap-2">
+                    <Upload className="h-4 w-4" /> Importar fatura
+                  </Button>
+                </>
               )}
             </>
           )}
@@ -178,6 +185,7 @@ export function AbaTransportadora({ transportadora, aba }: { transportadora: Tra
         <ImportarFretesDialog open={abrirFatura} onOpenChange={setAbrirFatura}
           transportadoraId={transportadora.id} transportadoraNome={nome} />
       )}
+      {abrirCte && <ImportarCteXmlDialog open={abrirCte} onOpenChange={setAbrirCte} />}
     </div>
   );
 }
