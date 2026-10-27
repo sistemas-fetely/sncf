@@ -72,7 +72,7 @@ export function SolicitarDevolucaoDialog({ linha, onClose }: { linha: LinhaVD | 
   return <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}><DialogContent><DialogHeader><DialogTitle>Solicitar cancelamento com reembolso · {linha?.id_externo}</DialogTitle><DialogDescription>O cliente pagou {formatBRL(linha?.valor_liquido)} por {linha?.pagamento === "pix" ? "PIX" : "cartão"}. A equipe de SOPs executa o reembolso; depois o pedido é cancelado aqui e no Bling.</DialogDescription></DialogHeader><div className="space-y-2"><Label>Como devolver</Label><RadioGroup value={desfecho} onValueChange={(v) => setDesfecho(v as "reembolso" | "haver")}><label className="flex items-start gap-2 text-sm"><RadioGroupItem value="reembolso" className="mt-0.5" />Reembolso (estorno no cartão / PIX de devolução)</label><label className="flex items-start gap-2 text-sm"><RadioGroupItem value="haver" className="mt-0.5" />Crédito para o cliente — fica disponível no próximo pedido Site SP, sem estorno</label></RadioGroup></div><div className="space-y-1"><Label>Motivo *</Label><Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Mínimo de 5 caracteres" /></div><DialogFooter><Button variant="outline" onClick={onClose}>Voltar</Button><Button onClick={() => m.mutate()} disabled={motivo.trim().length < 5 || m.isPending}>{m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar cancelamento com reembolso</Button></DialogFooter></DialogContent></Dialog>;
 }
 
-export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
+export function BotoesComprovante({ devolucao, aoEnviarWhatsApp, extra }: { devolucao: DevolucaoVD; aoEnviarWhatsApp?: () => void; extra?: ReactNode }) {
   if (devolucao.status !== "concluida") return null;
   if (!devolucao.comprovante_token) return <div className="text-xs text-muted-foreground">Comprovante ainda não disponível.</div>;
   const url = publicUrl(`/reembolso/${devolucao.comprovante_token}`);
@@ -80,7 +80,8 @@ export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
   const msg = `Olá ${primeiro}! O reembolso do seu pedido ${devolucao.pedido?.id_externo ?? ""} na Fetely, de ${formatBRL(devolucao.valor)}, foi realizado. Seu comprovante: ${url}`;
   return <div className="flex flex-wrap gap-2 pt-1">
     <Button asChild size="sm" variant="outline"><a href={`/reembolso/${devolucao.comprovante_token}`} target="_blank" rel="noopener noreferrer">Ver comprovante</a></Button>
-    <Button asChild size="sm" variant="outline"><a href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Enviar no WhatsApp</a></Button>
+    <Button asChild size="sm" variant="outline"><a href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer" onClick={() => aoEnviarWhatsApp?.()}>Enviar no WhatsApp</a></Button>
+    {extra}
   </div>;
 }
 
