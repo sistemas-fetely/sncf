@@ -87,6 +87,9 @@ Deno.serve(async (req) => {
         if (error?.code === "22023" || error?.code === "P0001") {
           return jsonResponse(400, { ok: false, error: error.message });
         }
+        if (error?.code === "42501") {
+          return jsonResponse(403, { ok: false, error: error.message });
+        }
         return jsonResponse(500, { ok: false, error: error?.message ?? String(error) });
       };
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -246,6 +249,68 @@ Deno.serve(async (req) => {
         });
         return jsonResponse(r.status, r.json);
       }
+
+      // ── Balcão: abrir/editar pedido (27/10/2026) ──
+      // Regra toda no banco (fn_balcao_*): só o vendedor dono edita; janela por pedido_edicao_campo.
+      const linkCartaoSePreciso = async (res: any, pedidoId: string) => {
+        const meio = res?.pagamento ?? res?.meio;
+        const precisa = meio === "cartao" &&
+          (res?.pagamento_refeito === true || res?.meio_trocado === true || res?.precisa_novo_link_cartao === true ||
+           (res?.meio_anterior !== undefined && res?.meio_anterior !== "cartao"));
+        if (!precisa) return { link_pagamento: res?.link_pagamento ?? null, link_erro: null as string | null };
+        const r = await chamarInterna("safrapay-link", { pedido_id: pedidoId, forcar_novo: true });
+        if (r.json?.ok) return { link_pagamento: r.json.url ?? null, link_erro: null, link_expira_em: r.json.expira_em ?? null };
+        const link_erro = r.json?.erro ?? r.json?.error ?? `safrapay-link HTTP ${r.status}`;
+        console.error("[recebe-pedido] balcao edicao: link falhou", pedidoId, link_erro);
+        return { link_pagamento: null, link_erro };
+      };
+
+      if (body.tipo === "balcao_detalhe") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_pedido_detalhe", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+
+      if (body.tipo === "balcao_editar") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_vd_editar", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_itens: body.itens, p_entrega: body.entrega, p_observacao: body.observacao ?? null,
+          p_motivo: body.motivo ?? "", p_meio: body.meio ?? null,
+        });
+        if (error) return erroRpc(error);
+        const res: any = data ?? {};
+        return jsonResponse(200, { ok: true, ...res, ...(await linkCartaoSePreciso(res, body.pedido_id)) });
+      }
+
+      if (body.tipo === "balcao_trocar_meio") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_vd_trocar_meio", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_meio: body.meio, p_motivo: body.motivo ?? "",
+        });
+        if (error) return erroRpc(error);
+        const res: any = data ?? {};
+        return jsonResponse(200, { ok: true, ...res, ...(await linkCartaoSePreciso(res, body.pedido_id)) });
+      }
+
+      if (body.tipo === "balcao_cliente_atualizar") {
+        const inv = exigeUuid(body.fop_profile_id, "fop_profile_id") ?? exigeUuid(body.pedido_id, "pedido_id");
+        if (inv) return inv;
+        const { data, error } = await supabase.rpc("fn_balcao_cliente_atualizar", {
+          p_fop_profile_id: body.fop_profile_id, p_pedido_id: body.pedido_id,
+          p_cliente: body.cliente ?? {}, p_motivo: body.motivo ?? "",
+        });
+        if (error) return erroRpc(error);
+        return jsonResponse(200, { ok: true, ...((data as any) ?? {}) });
+      }
+      // ── fim Balcão editar ──
 
       return jsonResponse(400, { ok: false, error: `tipo '${body.tipo}' desconhecido.` });
     }
