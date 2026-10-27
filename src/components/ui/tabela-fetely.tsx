@@ -28,6 +28,8 @@ interface TabelaFetelyProps {
   /** plural minusculo: "entregas", "pedidos", "titulos" */
   rotulo?: string;
   rodapeDireita?: ReactNode;
+  /** substitui o texto "N rotulo" do rodapé */
+  resumo?: ReactNode;
   children: ReactNode;
   className?: string;
 }
@@ -50,7 +52,7 @@ function EsqueletoTabela() {
 export function TabelaFetely({
   busca, filtros, carregando, erro, aoTentarNovamente,
   vazio, semResultado, total, exibidos, rotulo = "registros",
-  rodapeDireita, children, className,
+  rodapeDireita, resumo, children, className,
 }: TabelaFetelyProps) {
   const semNada = !carregando && !erro && total === 0;
   const filtroVazio = !carregando && !erro && total > 0 && exibidos === 0;
@@ -102,8 +104,7 @@ export function TabelaFetely({
       {!carregando && !erro && total > 0 && (
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>
-            {total} {rotulo}
-            {exibidos !== total && ` · ${exibidos} exibidos`}
+            {resumo ?? <>{total} {rotulo}{exibidos !== total && ` · ${exibidos} exibidos`}</>}
           </span>
           {rodapeDireita}
         </div>

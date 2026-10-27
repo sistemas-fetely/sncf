@@ -1,5 +1,5 @@
 import { publicUrl } from "@/lib/urls";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -26,6 +26,7 @@ export interface DevolucaoVD {
   pedido?: { id_externo: string | null; cliente_nome_snapshot: string | null; parceiros_comerciais?: { razao_social: string | null } | null } | null;
   solicitante?: string | null; decisor?: string | null; prova_pagamento?: string | null;
   devolucao_id?: string | null; bling_status?: string | null; bling_erro?: string | null; comprovante_token?: string | null;
+  comprovante_enviado_em?: string | null; comprovante_enviado_por?: string | null; comprovante_enviado_canal?: string | null; comprovante_enviado_obs?: string | null;
 }
 
 export const DEVOLUCAO_ATIVA = new Set<StatusDevolucao>(["solicitada", "aprovada", "aguardando_devolucao", "estorno_enviado", "falhou"]);
@@ -72,7 +73,7 @@ export function SolicitarDevolucaoDialog({ linha, onClose }: { linha: LinhaVD | 
   return <Dialog open={!!linha} onOpenChange={(v) => !v && !m.isPending && onClose()}><DialogContent><DialogHeader><DialogTitle>Solicitar cancelamento com reembolso · {linha?.id_externo}</DialogTitle><DialogDescription>O cliente pagou {formatBRL(linha?.valor_liquido)} por {linha?.pagamento === "pix" ? "PIX" : "cartão"}. A equipe de SOPs executa o reembolso; depois o pedido é cancelado aqui e no Bling.</DialogDescription></DialogHeader><div className="space-y-2"><Label>Como devolver</Label><RadioGroup value={desfecho} onValueChange={(v) => setDesfecho(v as "reembolso" | "haver")}><label className="flex items-start gap-2 text-sm"><RadioGroupItem value="reembolso" className="mt-0.5" />Reembolso (estorno no cartão / PIX de devolução)</label><label className="flex items-start gap-2 text-sm"><RadioGroupItem value="haver" className="mt-0.5" />Crédito para o cliente — fica disponível no próximo pedido Site SP, sem estorno</label></RadioGroup></div><div className="space-y-1"><Label>Motivo *</Label><Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Mínimo de 5 caracteres" /></div><DialogFooter><Button variant="outline" onClick={onClose}>Voltar</Button><Button onClick={() => m.mutate()} disabled={motivo.trim().length < 5 || m.isPending}>{m.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Solicitar cancelamento com reembolso</Button></DialogFooter></DialogContent></Dialog>;
 }
 
-export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
+export function BotoesComprovante({ devolucao, aoEnviarWhatsApp, extra }: { devolucao: DevolucaoVD; aoEnviarWhatsApp?: () => void; extra?: ReactNode }) {
   if (devolucao.status !== "concluida") return null;
   if (!devolucao.comprovante_token) return <div className="text-xs text-muted-foreground">Comprovante ainda não disponível.</div>;
   const url = publicUrl(`/reembolso/${devolucao.comprovante_token}`);
@@ -80,7 +81,8 @@ export function BotoesComprovante({ devolucao }: { devolucao: DevolucaoVD }) {
   const msg = `Olá ${primeiro}! O reembolso do seu pedido ${devolucao.pedido?.id_externo ?? ""} na Fetely, de ${formatBRL(devolucao.valor)}, foi realizado. Seu comprovante: ${url}`;
   return <div className="flex flex-wrap gap-2 pt-1">
     <Button asChild size="sm" variant="outline"><a href={`/reembolso/${devolucao.comprovante_token}`} target="_blank" rel="noopener noreferrer">Ver comprovante</a></Button>
-    <Button asChild size="sm" variant="outline"><a href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer">Enviar no WhatsApp</a></Button>
+    <Button asChild size="sm" variant="outline"><a href={`https://wa.me/?text=${encodeURIComponent(msg)}`} target="_blank" rel="noopener noreferrer" onClick={() => aoEnviarWhatsApp?.()}>Enviar no WhatsApp</a></Button>
+    {extra}
   </div>;
 }
 
@@ -95,6 +97,6 @@ function AnexoDevolucao({ devolucao }: { devolucao: DevolucaoVD }) {
   return <Button variant="link" className="h-auto p-0" onClick={() => void abrir()}>Ver comprovante da devolução (anexo)</Button>;
 }
 
-export function TrilhaDevolucao({ devolucao, mostrarLinkEsteira = true }: { devolucao: DevolucaoVD; mostrarLinkEsteira?: boolean }) {
-  return <div className="space-y-2 rounded-md border bg-card p-3 text-sm"><div className="flex items-center justify-between"><span className="flex items-center gap-2 font-medium">{ROTULO_DEVOLUCAO[devolucao.status]}{devolucao.desfecho === "haver" && <Badge variant="secondary">Crédito</Badge>}</span><span className="tabular-nums">{formatBRL(devolucao.valor)}</span></div><div><span className="text-muted-foreground">Solicitada:</span> {dataHora(devolucao.solicitado_em)} · {devolucao.solicitante ?? "—"}</div><div className="text-muted-foreground">{devolucao.motivo_solicitacao}</div>{devolucao.decidido_em && <div><span className="text-muted-foreground">Decidida:</span> {dataHora(devolucao.decidido_em)} · {devolucao.decisor ?? "—"}{devolucao.motivo_decisao ? ` · ${devolucao.motivo_decisao}` : ""}</div>}{devolucao.concluido_em && <div><span className="text-muted-foreground">Concluída:</span> {dataHora(devolucao.concluido_em)} · prova {devolucao.prova_tipo ?? "—"} · {devolucao.prova_ref ?? "—"}</div>}{devolucao.erro && <div className="text-destructive">{devolucao.erro}</div>}<div><span className="text-muted-foreground">Bling:</span> {devolucao.bling_status ?? "sem envio"}{devolucao.bling_erro ? ` · ${devolucao.bling_erro}` : ""}</div><AnexoDevolucao devolucao={devolucao} /><BotoesComprovante devolucao={devolucao} />{mostrarLinkEsteira && <Button asChild variant="link" className="h-auto p-0"><Link to={devolucao.devolucao_id ? `/devolucoes?aba=funil&q=${encodeURIComponent(devolucao.pedido?.id_externo ?? "")}` : `/devolucoes?aba=reembolso&pedido=${devolucao.pedido_id}`}>Abrir na esteira de Devoluções</Link></Button>}</div>;
+export function TrilhaDevolucao({ devolucao, mostrarLinkEsteira = true, mostrarComprovante = true, linhaComprovanteEnviado }: { devolucao: DevolucaoVD; mostrarLinkEsteira?: boolean; mostrarComprovante?: boolean; linhaComprovanteEnviado?: string | null }) {
+  return <div className="space-y-2 rounded-md border bg-card p-3 text-sm"><div className="flex items-center justify-between"><span className="flex items-center gap-2 font-medium">{ROTULO_DEVOLUCAO[devolucao.status]}{devolucao.desfecho === "haver" && <Badge variant="secondary">Crédito</Badge>}</span><span className="tabular-nums">{formatBRL(devolucao.valor)}</span></div><div><span className="text-muted-foreground">Solicitada:</span> {dataHora(devolucao.solicitado_em)} · {devolucao.solicitante ?? "—"}</div><div className="text-muted-foreground">{devolucao.motivo_solicitacao}</div>{devolucao.decidido_em && <div><span className="text-muted-foreground">Decidida:</span> {dataHora(devolucao.decidido_em)} · {devolucao.decisor ?? "—"}{devolucao.motivo_decisao ? ` · ${devolucao.motivo_decisao}` : ""}</div>}{devolucao.concluido_em && <div><span className="text-muted-foreground">Concluída:</span> {dataHora(devolucao.concluido_em)} · prova {devolucao.prova_tipo ?? "—"} · {devolucao.prova_ref ?? "—"}</div>}{linhaComprovanteEnviado && <div><span className="text-muted-foreground">Comprovante enviado:</span> {linhaComprovanteEnviado}</div>}{devolucao.erro && <div className="text-destructive">{devolucao.erro}</div>}<div><span className="text-muted-foreground">Bling:</span> {devolucao.bling_status ?? "sem envio"}{devolucao.bling_erro ? ` · ${devolucao.bling_erro}` : ""}</div><AnexoDevolucao devolucao={devolucao} />{mostrarComprovante && <BotoesComprovante devolucao={devolucao} />}{mostrarLinkEsteira && <Button asChild variant="link" className="h-auto p-0"><Link to={devolucao.devolucao_id ? `/devolucoes?aba=funil&q=${encodeURIComponent(devolucao.pedido?.id_externo ?? "")}` : `/devolucoes?aba=reembolso&pedido=${devolucao.pedido_id}`}>Abrir na esteira de Devoluções</Link></Button>}</div>;
 }
