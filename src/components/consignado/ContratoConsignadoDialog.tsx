@@ -43,6 +43,9 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
   const [dia, setDia] = useState("");
   const [exposicaoMaxima, setExposicaoMaxima] = useState("");
   const [obs, setObs] = useState("");
+  // Cobrança do acerto (modelo 2): vazio = comportamento padrão (boleto / dia de acerto)
+  const [instrumento, setInstrumento] = useState<string>("");
+  const [prazoNf, setPrazoNf] = useState("");
   const [salvando, setSalvando] = useState(false);
 
   const modelosQ = useQuery({
@@ -69,7 +72,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
     queryKey: ["consignado-contrato-dialog", parceiroId],
     enabled: aberto && !!parceiroId,
     queryFn: async () => {
-      const { data: p, error: e1 } = await sb.from("parceiros_comerciais").select("id, razao_social, nome_fantasia, cnpj").eq("id", parceiroId).maybeSingle();
+      const { data: p, error: e1 } = await sb.from("parceiros_comerciais").select("id, razao_social, nome_fantasia, cnpj, consignado_instrumento, consignado_prazo_dias_nf").eq("id", parceiroId).maybeSingle();
       if (e1) throw e1;
       const { data: c, error: e2 } = await sb.from("consignado_contrato").select("*").eq("parceiro_id", parceiroId).eq("ativo", true).maybeSingle();
       if (e2) throw e2;
@@ -101,7 +104,7 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
   useEffect(() => {
     if (!aberto) return;
     setParceiro(null); setBusca(""); setModelo(""); setCentro(""); setInicio(hojeISO()); setMeses("12");
-    setRenova(true); setPct(""); setDia(""); setExposicaoMaxima(""); setObs(""); setSalvando(false);
+    setRenova(true); setPct(""); setDia(""); setExposicaoMaxima(""); setObs(""); setInstrumento(""); setPrazoNf(""); setSalvando(false);
   }, [aberto]);
 
   // preenche com contrato ativo
@@ -109,6 +112,9 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
     const d = parceiroFixoQ.data;
     if (!aberto || !d) return;
     setParceiro(d.parceiro);
+    const pc: any = d.parceiro;
+    setInstrumento(pc?.consignado_instrumento ?? "");
+    setPrazoNf(pc?.consignado_prazo_dias_nf != null ? String(pc.consignado_prazo_dias_nf) : "");
     const c = d.contrato;
     if (c) {
       setModelo(c.modelo ?? "");
@@ -135,6 +141,8 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
     if (!Number.isInteger(nMeses) || nMeses <= 0) return toast.error("Duração deve ser um número inteiro de meses maior que zero.");
     if (nPct != null && (isNaN(nPct) || nPct < 0 || nPct > 99.999)) return toast.error("% retido deve estar entre 0 e 99,999.");
     if (nDia != null && (!Number.isInteger(nDia) || nDia < 1 || nDia > 31)) return toast.error("Dia do repasse deve ser entre 1 e 31.");
+    const nPrazoNf = prazoNf.trim() === "" ? null : Number(prazoNf);
+    if (nPrazoNf != null && (!Number.isInteger(nPrazoNf) || nPrazoNf <= 0)) return toast.error("Prazo após a NF deve ser um número inteiro de dias maior que zero.");
     if (nExposicaoMaxima != null && (!Number.isFinite(nExposicaoMaxima) || nExposicaoMaxima < 0)) return toast.error("Exposição máxima deve ser um valor válido maior ou igual a zero.");
     setSalvando(true);
     try {
@@ -152,6 +160,14 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
       });
       if (error) throw error;
       if (data?.ok === false) throw new Error(data?.erro ?? "O banco recusou o contrato.");
+      if (modelo === "consignacao_fiscal") {
+        const { error: eCob } = await sb.rpc("fn_consignado_cobranca_salvar", {
+          p_parceiro_id: parceiro.id,
+          p_instrumento: instrumento || null,
+          p_prazo_dias_nf: nPrazoNf,
+        });
+        if (eCob) throw new Error(`Contrato salvo, mas a cobrança do acerto não: ${eCob.message}`);
+      }
       toast.success(`Contrato salvo: ${data?.parceiro ?? parceiro.razao_social} · ${data?.centro ?? centro}`);
       onSalvo();
     } catch (e) {
@@ -233,6 +249,27 @@ export function ContratoConsignadoDialog({ aberto, onFechar, parceiroId, onSalvo
             </div>
             <div className="space-y-1"><Label>Dia do repasse</Label><Input type="number" min={1} max={31} value={dia} onChange={e => setDia(e.target.value)} /></div>
           </div>
+
+          {modelo === "consignacao_fiscal" && (
+            <div className="space-y-3 rounded border p-3">
+              <div className="space-y-1">
+                <Label>Instrumento de cobrança</Label>
+                <Select value={instrumento || "padrao"} onValueChange={v => setInstrumento(v === "padrao" ? "" : v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="padrao">Padrão (boleto)</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="boleto">Boleto</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Prazo (dias após NF de venda)</Label>
+                <Input type="number" min={1} step={1} value={prazoNf} onChange={e => setPrazoNf(e.target.value)} placeholder="Usa o dia de acerto" />
+                <p className="text-xs text-muted-foreground">Vencimento do acerto = emissão da NF de venda + estes dias. Vazio mantém o dia de acerto.</p>
+              </div>
+            </div>
+          )}
 
           <div className={cn("space-y-1 rounded border p-3", modelo === "venda_fora" && "border-warning/60 bg-warning/5")}>
             <Label htmlFor="exposicao-maxima">Exposição máxima na loja (R$, a custo){modelo === "venda_fora" ? " *" : ""}</Label>
