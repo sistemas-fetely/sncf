@@ -145,13 +145,23 @@ export default function RetornoDevolucao() {
       return out;
     },
   });
-  // CORRIGIR-NF (27/10/2026): a view do funil não expõe finalidade; o selo "Correção de NF" vem da tabela.
-  const refaturarQ = useQuery({
-    queryKey: [...QK_FUNIL, "refaturar"],
+  // DIMENSÃO VIA TABELA (27/10/2026): o selo da lista mostra o rótulo de devolucao_finalidade.
+  const rotulosFinalidadeQ = useQuery({
+    queryKey: ["devolucao_finalidade"],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await sb.from("devolucao").select("id").eq("finalidade", "refaturar");
+      const { data, error } = await sb.from("devolucao_finalidade").select("codigo, rotulo");
       if (error) throw error;
-      return new Set(((data ?? []) as { id: string }[]).map((x) => x.id));
+      return new Map(((data ?? []) as { codigo: string; rotulo: string }[]).map((f) => [f.codigo, f.rotulo]));
+    },
+  });
+  // A view do funil não expõe finalidade; buscamos só as devoluções cuja finalidade difere de 'devolucao'.
+  const finalidadeQ = useQuery({
+    queryKey: [...QK_FUNIL, "finalidade"],
+    queryFn: async () => {
+      const { data, error } = await sb.from("devolucao").select("id, finalidade").neq("finalidade", "devolucao");
+      if (error) throw error;
+      return new Map(((data ?? []) as { id: string; finalidade: string }[]).map((x) => [x.id, x.finalidade]));
     },
   });
   const etapasQ = useQuery({
@@ -293,8 +303,8 @@ export default function RetornoDevolucao() {
       <TooltipProvider delayDuration={150}>
       <div style={{ "--fila-topo-colado": `${ALTURA_CASA_HEADER + alturaKpis}px` } as CSSProperties}>
         <CasaPageHeader
-          breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções" }]}
-          title="Devoluções"
+          breadcrumb={[{ label: "Casa", to: "/" }, { label: "SOPs" }, { label: "Produto" }, { label: "Estoque" }, { label: "Devoluções e Correções de NF" }]}
+          title="Devoluções e Correções de NF"
           subtitle={aba === "reembolso" ? "Sem NF: pedido pago e não faturado — só o dinheiro volta." : aba === "funil" ? "Com NF: da abertura ao encerramento — produto e nota voltam." : "Funil completo: da abertura ao encerramento. Retorno parcial é normal."}
           actions={
             <div className="flex items-center gap-2">
@@ -415,6 +425,8 @@ export default function RetornoDevolucao() {
                 const aberto = expandido === d.id;
                 const dias = d.dias_desde ?? 0;
                 const p = pendMap.get(d.id);
+                const fin = finalidadeQ.data?.get(d.id);
+                const finRotulo = fin ? (rotulosFinalidadeQ.data?.get(fin) ?? fin) : null;
                 return (
                   <Fragment key={d.id}>
                     <TableRow className="cursor-pointer" onClick={() => setExpandido(aberto ? null : d.id)}>
@@ -424,7 +436,7 @@ export default function RetornoDevolucao() {
                           <span className="font-medium">{d.numero ?? "—"}</span>
                           {d.canal === "b2c" && <Badge variant="outline" className="font-normal">B2C</Badge>}
                           {d.canal === "site_sp" && <Badge variant="outline" className="font-normal">Site SP</Badge>}
-                          {refaturarQ.data?.has(d.id) && <Badge variant="outline" className="font-normal">Correção de NF</Badge>}
+                          {finRotulo && <Badge variant="outline" className="font-normal">{finRotulo}</Badge>}
                         </div>
                         <div className="text-xs text-muted-foreground">Pedido {d.pedido_ref ?? "—"}</div>
                       </TableCell>
