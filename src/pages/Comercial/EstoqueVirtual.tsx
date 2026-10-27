@@ -427,12 +427,13 @@ export default function EstoqueVirtual() {
   );
 
   const resumoCentros = useMemo(() => {
-    const m = new Map<string, { un: number; valor: number }>();
+    const m = new Map<string, { un: number; valor: number; detalhe: DetalheQtd }>();
     for (const l of recorteSemCentro) {
       if (!l.centro) continue;
-      const a = m.get(l.centro) ?? { un: 0, valor: 0 };
+      const a = m.get(l.centro) ?? { un: 0, valor: 0, detalhe: DETALHE_ZERO };
       a.un += n(l.contabil);
       a.valor += n(l.valor_custo);
+      a.detalhe = somarDetalhe(a.detalhe, detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho));
       m.set(l.centro, a);
     }
     return m;
@@ -452,6 +453,8 @@ export default function EstoqueVirtual() {
         ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
         por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
         por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
+        detalhe: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho),
+        por_centro_detalhe: l.centro ? { [l.centro]: detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho) } : {},
       }));
     }
     const fonte = visao === "centros" ? recorteSemCentro : recorte;
@@ -459,6 +462,7 @@ export default function EstoqueVirtual() {
     for (const l of fonte) {
       const k = chaveProduto(l);
       const a = m.get(k);
+      const d = detalheQtd(l.contabil, l.fiscal_sadio, l.a_caminho);
       if (!a) {
         m.set(k, {
           chave: k, cod_cadastro: l.cod_cadastro, sku: l.sku, nome_comercial: l.nome_comercial,
@@ -470,12 +474,16 @@ export default function EstoqueVirtual() {
           ticket: l.ticket_medio, fonte_ticket: l.fonte_ticket, em_transito: n(l.em_transito),
           por_centro: l.centro ? { [l.centro]: n(l.contabil) } : {},
           por_centro_vendas: l.centro ? { [l.centro]: n(l.vendas_janela) } : {},
+          detalhe: d,
+          por_centro_detalhe: l.centro ? { [l.centro]: d } : {},
         });
       } else {
         if (l.centro) {
           a.por_centro[l.centro] = (a.por_centro[l.centro] ?? 0) + n(l.contabil);
           a.por_centro_vendas[l.centro] = (a.por_centro_vendas[l.centro] ?? 0) + n(l.vendas_janela);
+          a.por_centro_detalhe[l.centro] = somarDetalhe(a.por_centro_detalhe[l.centro] ?? DETALHE_ZERO, d);
         }
+        a.detalhe = somarDetalhe(a.detalhe, d);
         a.contabil += n(l.contabil);
         a.virtual += n(l.virtual);
         a.reservado += n(l.reservado);
