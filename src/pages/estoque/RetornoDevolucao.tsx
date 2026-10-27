@@ -61,11 +61,11 @@ type Funil = {
   e5_nf_resolvida: boolean; e6_ressarcida: boolean; e7_encerrada: boolean;
   nf_vinculo_confirmado: boolean | null; nf_retorno_sugerida: string | null;
   nf_vinculo_sugerido_id: string | null; grau_sugerido?: string | null;
-  desfecho: string | null; e_decisao_comercial: boolean | null;
+  desfecho: string | null; e_decisao_comercial: boolean | null; e_estoque_ajustado: boolean | null;
   refund_ok: boolean | null; refund_valor: number | null;
   recebido_em: string | null; criado_em: string | null; encerrado_em: string | null;
 };
-type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean };
+type Etapa = { codigo: string; rotulo: string; ordem: number; natureza: string | null; descricao: string | null; obrigatoria_encerramento: boolean; campo_funil: string | null; nao_aplica_sem_retorno: boolean | null };
 
 const QK_FUNIL = ["vw_devolucao_funil"];
 const DESFECHO_ROTULO: Record<string, string> = { reenvio: "Reenvio ao cliente", reembolso: "Reembolso", haver: "Haver", troca: "Troca", nenhum: "Sem decisão" };
@@ -73,9 +73,6 @@ const DESFECHO_BOTOES: { codigo: string; rotulo: string }[] = [
   { codigo: "reenvio", rotulo: "Reenviar" }, { codigo: "reembolso", rotulo: "Reembolsar" }, { codigo: "haver", rotulo: "Gerar haver" }, { codigo: "troca", rotulo: "Troca" },
 ];
 const QK_QUARENTENA = ["vw_quarentena_fila"] as const;
-const ETAPA_CAMPO: Record<number, keyof Funil> = {
-  1: "e1_aberta", 2: "e2_reversa", 3: "e3_recebida", 4: "e4_conferida", 5: "e5_nf_resolvida", 6: "e6_ressarcida", 7: "e7_encerrada",
-};
 const ALTURA_CASA_HEADER = 64;
 const CHAVE_PAGINA_DEVOLUCAO = "fetely:estoque:retorno-devolucao:page-size";
 const sb = supabase as any;
@@ -109,11 +106,11 @@ async function rpc(nome: string, args: Record<string, unknown>) {
 function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
   return (
     <div className="flex items-center gap-1">
-      {etapas.map((e) => {
-        const campo = ETAPA_CAMPO[e.ordem];
-        const feito = campo ? Boolean(d[campo]) : false;
-        const sugerida = e.ordem === 5 && !feito && !!d.nf_retorno_sugerida;
-        const naoAplica = !!d.sem_retorno_fisico && e.ordem >= 2 && e.ordem <= 4;
+      {etapas.map((e, idx) => {
+        // DIMENSÃO VIA TABELA: a coluna do funil que marca a etapa vem de devolucao_etapa.campo_funil.
+        const feito = e.campo_funil ? Boolean((d as Record<string, unknown>)[e.campo_funil]) : false;
+        const sugerida = e.codigo === "nf_resolvida" && !feito && !!d.nf_retorno_sugerida;
+        const naoAplica = !!d.sem_retorno_fisico && !!e.nao_aplica_sem_retorno;
         return (
           <Tooltip key={e.codigo}>
             <TooltipTrigger asChild>
@@ -121,7 +118,7 @@ function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
                 naoAplica ? "border-dashed bg-background border-muted-foreground/40" : feito ? "bg-primary border-primary" : sugerida ? "bg-warning border-warning" : "bg-muted border-border")} />
             </TooltipTrigger>
             <TooltipContent className="max-w-xs">
-              <div className="font-medium">{e.ordem}. {e.rotulo}</div>
+              <div className="font-medium">{idx + 1}. {e.rotulo}</div>
               {naoAplica && <div className="text-xs">Não se aplica — sem retorno físico (o produto não saiu do Site SP).</div>}
               {!naoAplica && e.descricao && <div className="text-xs">{e.descricao}</div>}
               {sugerida && <div className="text-xs mt-1">NF de retorno {d.nf_retorno_sugerida} capturada — confirme o vínculo na mesa fiscal</div>}
@@ -153,7 +150,7 @@ export default function RetornoDevolucao() {
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await sb.from("devolucao_etapa")
-        .select("codigo, rotulo, ordem, natureza, descricao, obrigatoria_encerramento")
+        .select("codigo, rotulo, ordem, natureza, descricao, obrigatoria_encerramento, campo_funil, nao_aplica_sem_retorno")
         .eq("ativo", true)
         .order("ordem");
       if (error) throw error;
@@ -358,14 +355,14 @@ export default function RetornoDevolucao() {
                       <div className="space-y-2">
                         <div>
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">O que é</div>
-                          <div className="mt-0.5">As 7 etapas da devolução, da abertura ao encerramento. Cada bolinha é uma etapa.</div>
+                          <div className="mt-0.5">As {etapas.length} etapas da devolução, da abertura ao encerramento. Cada bolinha é uma etapa.</div>
                         </div>
                         <div>
                           <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Etapas</div>
                           <ol className="mt-0.5 space-y-1">
-                            {etapas.map((etapa) => (
+                            {etapas.map((etapa, idx) => (
                               <li key={etapa.codigo}>
-                                <span className="font-medium">{etapa.ordem}. {etapa.rotulo}</span>
+                                <span className="font-medium">{idx + 1}. {etapa.rotulo}</span>
                                 {etapa.obrigatoria_encerramento && (
                                   <Badge variant="outline" className="ml-1.5 h-4 px-1 py-0 align-middle text-[9px] font-normal text-muted-foreground">obrigatória</Badge>
                                 )}
@@ -497,7 +494,9 @@ export default function RetornoDevolucao() {
                             </div>
                             <div className="space-y-1">
                               <div className="text-xs font-medium text-muted-foreground">Recebimento</div>
-                              {d.e3_recebida ? (
+                              {d.sem_retorno_fisico ? (
+                                <div className="text-muted-foreground">Sem retorno físico</div>
+                              ) : d.e3_recebida ? (
                                 <>
                                   <div>{d.destino_codigo ?? "—"} · {fmtDataHora(d.recebido_em)}</div>
                                   {d.exige_transferencia_cd && d.recebido_em != null && (
