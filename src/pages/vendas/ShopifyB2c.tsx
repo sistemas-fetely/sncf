@@ -375,6 +375,8 @@ export default function ShopifyB2c() {
 
   // SÓ-VÁLIDO-NA-FILA: cancelado e não pago não são trabalho da mesa. O dado
   // segue na view e na aba Dash; a fila operacional só mostra o que tem ação.
+  // 27/10/2026: cancelado aparece só via card Cancelado ou busca por texto; a
+  // fila padrão continua sem ele.
   const listaValida = useMemo(
     () => lista.filter((p) => p.estagio !== "cancelado" && p.estagio !== "aguardando_pagamento"),
     [lista],
@@ -731,7 +733,10 @@ export default function ShopifyB2c() {
 
 
   const filtrados = useMemo(() => {
-    let r = listaValida;
+    // Base: busca com texto acha o pedido em qualquer estágio (inclusive
+    // cancelado e aguardando_pagamento); o card Cancelado também puxa a lista
+    // inteira. Fora desses dois casos vale a fila padrão, sem cancelados.
+    let r = busca.trim() || estagioParam === "cancelado" ? lista : listaValida;
     if (estagioParam) r = r.filter((p) => p.estagio === estagioParam);
     if (uf !== "todas") r = r.filter((p) => p.shipping_province === uf);
     if (alerta !== "todos") r = r.filter((p) => p.alerta === alerta);
@@ -747,15 +752,17 @@ export default function ShopifyB2c() {
       );
     }
     return r;
-  }, [listaValida, estagioParam, uf, alerta, busca, cdFiltro]);
+  }, [lista, listaValida, estagioParam, uf, alerta, busca, cdFiltro]);
 
   // Funil respeita o toggle de CD: com filtro ativo, conta a MESMA lista que a
   // tabela mostra (ignorando só o filtro de fase); em Total, a view manda.
   const listaDoCd = useMemo(() => {
-    let r = listaValida;
+    // Com CD filtrado, o funil conta a lista inteira menos aguardando_pagamento
+    // (inclui cancelado), para o card Cancelado contar certo.
+    let r = lista.filter((p) => p.estagio !== "aguardando_pagamento");
     if (cdFiltro !== "todos") r = r.filter((p) => p.cd_efetivo_codigo === cdFiltro);
     return r;
-  }, [listaValida, cdFiltro]);
+  }, [lista, cdFiltro]);
 
   const contagensPorEstagio = useMemo(() => {
     if (cdFiltro === "todos") return null;
