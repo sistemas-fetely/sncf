@@ -121,7 +121,7 @@ function FunilSteps({ d, etapas }: { d: Funil; etapas: Etapa[] }) {
               <div className="font-medium">{idx + 1}. {e.rotulo}</div>
               {naoAplica && <div className="text-xs">Não se aplica — sem retorno físico (o produto não saiu do Site SP).</div>}
               {!naoAplica && e.descricao && <div className="text-xs">{e.descricao}</div>}
-              {sugerida && <div className="text-xs mt-1">NF de retorno {d.nf_retorno_sugerida} capturada — confirme o vínculo na mesa fiscal</div>}
+              {sugerida && <div className="text-xs mt-1">NF de retorno {d.nf_retorno_sugerida} capturada — confirme o vínculo na área fiscal de Devoluções e Correções</div>}
             </TooltipContent>
           </Tooltip>
         );

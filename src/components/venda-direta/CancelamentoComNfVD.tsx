@@ -106,7 +106,7 @@ export function SecaoCancelamentoNf({ c, idExterno }: { c: CancelamentoNfSP; idE
     <div className="space-y-1 rounded-md border bg-card p-3 text-sm">
       <div className="font-medium">{c.numero ?? "—"}</div>
       <div className="text-muted-foreground">{c.etapa}</div>
-      <Button asChild variant="link" className="h-auto p-0"><Link to={linkEsteiraNf(idExterno)}>Abrir na esteira de Devoluções</Link></Button>
+      <Button asChild variant="link" className="h-auto p-0"><Link to={linkEsteiraNf(idExterno)}>Abrir em Devoluções e Correções</Link></Button>
     </div>
   );
 }

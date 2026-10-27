@@ -525,8 +525,8 @@ export default function VendaDiretaGestao() {
                           ) : reembolsoAtivo && !cancelNfAberto ? (
                             <Link
                               to={`/devolucoes?aba=reembolso&pedido=${l.id}`}
-                              title="Abrir reembolso em Devoluções › Cancelamento sem NF"
-                              aria-label="Abrir reembolso em Devoluções › Cancelamento sem NF"
+                              title="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
+                              aria-label="Abrir reembolso em Devoluções e Correções › Cancelamento sem NF"
                               className="inline-block cursor-pointer rounded-sm hover:underline focus-visible:ring-2 focus-visible:ring-ring"
                             >
                               <Selo estado={estadoDoTom(l.etapa_tom)}>{l.etapa_rotulo}</Selo>

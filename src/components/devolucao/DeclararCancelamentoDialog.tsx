@@ -294,7 +294,7 @@ export function DeclararCancelamentoDialog({ pedidoId, trigger, onConcluido, ope
               <Alert>
                 <AlertDescription>
                   Já existe a devolução {m.devolucao_aberta.numero} ({m.devolucao_aberta.status}).{" "}
-                  <Link to="/devolucoes" className="underline">Abrir Devoluções</Link>
+                  <Link to="/devolucoes" className="underline">Abrir Devoluções e Correções</Link>
                 </AlertDescription>
               </Alert>
             ) : (
