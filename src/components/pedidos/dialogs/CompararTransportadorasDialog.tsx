@@ -212,6 +212,8 @@ export function CompararTransportadorasDialog({
                       const temErro = !!o.erro || o.valor_estimado == null;
                       const isMenor = !temErro && menorValor != null && o.valor_estimado === menorValor;
                       const isSugerida = !temErro && ehSugerida(o);
+                      const naoCalibrada = o.fonte === "tabela" && o.elegivel_default === false;
+
                       const pct = o.pct_sobre_pedido != null ? Number(o.pct_sobre_pedido) : null;
                       const pctAlto = pct != null && pct > 20;
                       const diff = !temErro && valorAtual > 0 && o.valor_estimado != null ? o.valor_estimado - valorAtual : null;
