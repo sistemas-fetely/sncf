@@ -60,7 +60,7 @@ interface Linha extends LinhaVD, ClassificacaoVD {
   cancelado_em: string | null;
   modal: "retirada" | "sedex" | "pac" | "frete_fetely" | "entrega" | null;
   frete: { servico?: string | null; custo?: number | null; cobrado?: number | null; fonte?: string | null; gratis?: boolean | null } | null;
-  pagamento: "pix" | "cartao" | "cartao_maquininha" | null;
+  pagamento: "pix" | "cartao" | "cartao_maquininha" | "bonificacao" | null;
   cliente_telefone: string | null;
   cliente_cpf_mascarado: string | null;
   endereco_entrega: Record<string, unknown> | null;
@@ -85,7 +85,7 @@ const MODAL_LABEL: Record<string, string> = {
   retirada: "Retirada", sedex: "SEDEX", pac: "PAC", entrega: "PAC", frete_fetely: "Frete Fetely",
 };
 const modalLabel = (m: string | null) => (m ? (MODAL_LABEL[m] ?? m) : "—");
-const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : "—";
+const pagamentoLabel = (p: Linha["pagamento"]) => p === "pix" ? "PIX" : p === "cartao" ? "Cartão" : p === "cartao_maquininha" ? "Maquininha" : p === "bonificacao" ? "Bonificação" : "—";
 const FONTE_LABEL: Record<string, string> = { api: "cotação Correios", plano_b: "tabela (plano B)", tabela: "tabela Fetely" };
 
 const soDigitos = (s: string) => s.replace(/\D/g, "");
@@ -254,7 +254,9 @@ export default function VendaDiretaGestao() {
       if (filtro && !bate(l, filtro)) return false;
       if (soAcaoEquipe && !l.acao_equipe) return false;
       if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em) return false;
-      if (filtroPagamento === "nao_pagos" && l.pagamento_confirmado_em) return false;
+      // Bonificado não tem cobrança: não conta como aguardando pagamento.
+      if (filtroPagamento === "pagos" && l.pagamento === "bonificacao") return true;
+      if (filtroPagamento === "nao_pagos" && (l.pagamento_confirmado_em || l.pagamento === "bonificacao")) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
         (l.cliente_nome ?? "").toLowerCase().includes(t) ||
@@ -483,6 +485,11 @@ export default function VendaDiretaGestao() {
                             <div>
                               <div className="text-muted-foreground">Devolvido</div>
                               <div className="text-xs tabular-nums text-muted-foreground">{formatBRL(devolucao.valor)}</div>
+                            </div>
+                          ) : l.pagamento === "bonificacao" ? (
+                            <div>
+                              <Badge variant="outline" className="border-info/50 bg-info/10 text-foreground">Bonificação</Badge>
+                              <div className="text-xs text-muted-foreground">sem cobrança</div>
                             </div>
                           ) : l.pagamento_confirmado_em ? (
                             <div>

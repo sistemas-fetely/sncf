@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CreditCard, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
+import { CreditCard, Gift, Paperclip, Smartphone, Loader2, Minus, PackageSearch, Plus, Printer, QrCode, Search, ShoppingBag, Trash2, UserPlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { PageShell } from "@/components/layout/PageShell";
@@ -28,7 +28,7 @@ import { rawMessage } from "@/lib/format-error";
 import { fetchCep } from "@/lib/viacep";
 import { invalidarVendaDireta } from "@/components/venda-direta/queryKeys";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
-import { meioVD, ROTULO_MEIO_VD, type MeioVD } from "@/lib/pedidos/meioVD";
+import { meioVD, ROTULO_MEIO_VD, rotuloPagamentoVD, type PagamentoVD } from "@/lib/pedidos/meioVD";
 import { abrirImpressaoVD } from "@/components/venda-direta/ImpressaoPedidoVD";
 import type { LinhaVD } from "@/components/venda-direta/AcoesVendaDireta";
 
