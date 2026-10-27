@@ -30,7 +30,7 @@ export function caminhoCorrecaoTexto(acao: string | undefined, prazo: string | n
   if (acao === "cancelar_nf")
     return `A NF ainda pode ser cancelada (até ${ddMMHHmm(prazo)}). O Fiscal cancela no Bling; o sistema reenvia o pedido e vincula a NF nova sozinho.`;
   if (acao === "nf_devolucao")
-    return "Prazo de cancelamento vencido ou mercadoria já saiu. O sistema gera a NF de entrada (sem retorno físico) na Mesa de Devoluções; o Fiscal autoriza no Bling; o sistema reenvia o pedido e vincula a NF nova sozinho.";
+    return "Prazo de cancelamento vencido ou mercadoria já saiu. O sistema gera a NF de entrada (sem retorno físico) em Devoluções e Correções; o Fiscal autoriza no Bling; o sistema reenvia o pedido e vincula a NF nova sozinho.";
   return "Caminho fiscal não informado pelo banco.";
 }
 
