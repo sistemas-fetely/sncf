@@ -181,13 +181,16 @@ export default function RetornoDevolucao() {
   const pendMap = useMemo(() => new Map((pendQ.data ?? []).map((p) => [p.devolucao_id, p])), [pendQ.data]);
 
   // TELA-LEMBRA-ONDE-EU-ESTAVA: busca (`q`, link antigo), canal, só abertas e página na URL.
-  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", abertas: true, pagina: 1 }, { replaceKeys: ["q"] });
+  const [nav, setNav] = useEstadoTela({ q: "", canal: "todos", fin: false, card: "", pagina: 1 }, { replaceKeys: ["q"] });
   const busca = nav.q;
   const setBusca = (v: string) => setNav({ q: v });
   const canal = nav.canal as "todos" | "b2b" | "b2c" | "site_sp";
   const setCanal = (v: "todos" | "b2b" | "b2c" | "site_sp") => setNav({ canal: v });
-  const soAbertas = nav.abertas;
-  const setSoAbertas = (v: boolean) => setNav({ abertas: v });
+  // Em andamento por padrão; finalizado = devolucao_status.eh_final na dimensão.
+  const soAbertas = !nav.fin;
+  const setMostrarFinalizados = (v: boolean) => setNav({ fin: v });
+  const cardAtivo = nav.card as "" | "abertas" | "paradas";
+  const clicarCard = (c: "abertas" | "paradas") => setNav({ card: cardAtivo === c ? "" : c });
   const [expandido, setExpandido] = useState<string | null>(null);
   const [conferirId, setConferirId] = useState<string | null>(null);
   const [receber, setReceber] = useState<Funil | null>(null);
@@ -216,7 +219,7 @@ export default function RetornoDevolucao() {
   useEffect(() => {
     if (primeiraRender.current) { primeiraRender.current = false; return; }
     setPagina(1);
-  }, [busca, canal, soAbertas]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [busca, canal, soAbertas, cardAtivo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpisRef = useRef<HTMLDivElement>(null);
   const [alturaKpis, setAlturaKpis] = useState(0);
@@ -235,6 +238,8 @@ export default function RetornoDevolucao() {
     return devolucoes.filter((d) => {
       if (canal !== "todos" && d.canal !== canal) return false;
       if (soAbertas && !ehAberta(d)) return false;
+      if (cardAtivo && !ehAberta(d)) return false;
+      if (cardAtivo === "paradas" && (d.dias_desde ?? 0) <= 30) return false;
       if (!q) return true;
       const p = pendMap.get(d.id);
       return (
@@ -244,7 +249,7 @@ export default function RetornoDevolucao() {
         p?.itens.some((i) => i.sku.toLowerCase().includes(q) || i.nome_comercial?.toLowerCase().includes(q))
       );
     });
-  }, [devolucoes, busca, canal, soAbertas, pendMap, statusMap]);
+  }, [devolucoes, busca, canal, soAbertas, cardAtivo, pendMap, statusMap]);
 
   const totalPaginas = Math.max(1, Math.ceil(filtrados.length / tamanhoPagina));
   const paginaAtual = Math.min(pagina, totalPaginas);
@@ -305,8 +310,8 @@ export default function RetornoDevolucao() {
           </TabsList>
           <TabsContent value="funil" className="mt-4">
         <div ref={kpisRef} className="sticky top-16 z-20 -mx-6 grid grid-cols-2 gap-3 bg-background px-6 py-2 lg:grid-cols-5">
-          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Devoluções abertas</div><div className="text-2xl font-medium tabular-nums">{formatNum(abertas.length)}</div></div>
-          <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Paradas há +30d</div><div className="text-2xl font-medium tabular-nums">{formatNum(paradas)}</div></div>
+          <div role="button" tabIndex={0} aria-pressed={cardAtivo === "abertas"} onClick={() => clicarCard("abertas")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); clicarCard("abertas"); } }} className={cn("cursor-pointer rounded-md border bg-card p-4 transition-colors hover:bg-muted/50", cardAtivo === "abertas" && "ring-2 ring-primary")}><div className="text-xs text-muted-foreground">Devoluções abertas</div><div className="text-2xl font-medium tabular-nums">{formatNum(abertas.length)}</div></div>
+          <div role="button" tabIndex={0} aria-pressed={cardAtivo === "paradas"} onClick={() => clicarCard("paradas")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); clicarCard("paradas"); } }} className={cn("cursor-pointer rounded-md border bg-card p-4 transition-colors hover:bg-muted/50", cardAtivo === "paradas" && "ring-2 ring-primary")}><div className="text-xs text-muted-foreground">Paradas há +30d</div><div className="text-2xl font-medium tabular-nums">{formatNum(paradas)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Unidades pendentes</div><div className="text-2xl font-medium tabular-nums">{formatNum(totalUnidades)}</div></div>
           <div className="rounded-md border bg-card p-4"><div className="text-xs text-muted-foreground">Custo parado</div><div className="text-2xl font-medium tabular-nums">{formatBRL(totalValor)}</div></div>
           <div role="button" tabIndex={0} aria-label="Abrir quarentena" onClick={() => setAba("quarentena")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setAba("quarentena"); } }} className={cn("cursor-pointer rounded-md border bg-card p-4 transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", quarentena.unidades > 0 && "border-warning/30 bg-warning/10")}>
@@ -327,8 +332,8 @@ export default function RetornoDevolucao() {
             <ToggleGroupItem value="b2c">B2C</ToggleGroupItem>
             <ToggleGroupItem value="site_sp">Site SP</ToggleGroupItem>
           </ToggleGroup>
-          <label className="flex items-center gap-2 text-sm"><Switch checked={soAbertas} onCheckedChange={setSoAbertas} />Só abertas</label>
-          <span className="text-xs text-muted-foreground ml-auto">{filtrados.length} {filtrados.length === 1 ? "devolução" : "devoluções"}</span>
+          <label className="flex items-center gap-2 text-sm"><Switch checked={!soAbertas} onCheckedChange={setMostrarFinalizados} />Mostrar finalizados</label>
+          <span className="text-xs text-muted-foreground ml-auto">{formatNum(abertas.length)} em andamento · {formatNum(devolucoes.length - abertas.length)} finalizados</span>
         </div>
 
         {(funilQ.isError || etapasQ.isError || pendQ.isError) && (
