@@ -327,6 +327,20 @@ serve(async (req) => {
       }
     }
 
+    // ACERTO-NF-SAI-REFERENCIADA (27/10/2026): pedido sintético de acerto consignado modelo 2
+    // leva nas observações (→ informações complementares da NF) as NFs referenciadas
+    // (retorno simbólico + remessas) e o PIX copia e cola. O texto nasce no banco
+    // (fn_consignado_obs_nf); sem NF de retorno vinculada ou sem PIX, o envio é recusado.
+    const { data: obsAce, error: obsAceErr } = await supabase.rpc("fn_consignado_obs_nf", { p_pedido_id: pedido_id });
+    if (obsAceErr) return err(`Falha ao montar as observações do acerto consignado: ${obsAceErr.message}`, 500);
+    const obsAcerto: string | null = (obsAce as any)?.eh_acerto && (obsAce as any)?.ok ? String((obsAce as any).texto) : null;
+    if ((obsAce as any)?.eh_acerto && !(obsAce as any)?.ok) {
+      const msg = String((obsAce as any)?.erro ?? "Acerto consignado sem dados para a NF. Nada foi enviado ao Bling.");
+      const { error: upErr } = await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
+      if (upErr) return err(`${msg} (e falhou ao gravar o erro no pedido: ${upErr.message})`, 409);
+      return err(msg, 409);
+    }
+
     // Guard de estágio. Os estágios permitidos refletem a evolução do desenho de envio:
     //   pre_separacao   — envio inicial (comportamento atual, será aposentado).
     //   em_separacao    — envio de remessa adicional (/02+) em split.
@@ -1321,7 +1335,8 @@ if (itensSemProdutoBling.length > 0) {
       parcelas: blingParcelas,
       totalProdutos: totalProdutosPayload,
       total: totalExato,
-      observacoes: pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`,
+      // Soma as referências do acerto à observação que o pedido já mandaria, sem apagar.
+      observacoes: [pedido.contexto_anotacoes || `Pedido ${remessaCodigo} via SNCF`, obsAcerto].filter(Boolean).join(" "),
       ...(obsInternas ? { observacoesInternas: obsInternas } : {}),
       // Natureza de operação (ex.: transferência interna → CFOP 6152 da filial).
       // Id vem de naturezas_operacao.bling_natureza_id; sem id na dimensão, a chave
@@ -1527,6 +1542,24 @@ if (itensSemProdutoBling.length > 0) {
         }
       }
 
+      // OBSERVACAO-LEITURA-DE-VOLTA (27/10/2026): 200 não prova que o texto ficou gravado.
+      // Relê o pedido e confere se as referências do acerto chegaram. Falha não derruba o envio.
+      let obsAcertoConfirmada: boolean | null = null;
+      if (sucesso && obsAcerto) {
+        try {
+          const resObs = await client.get(`/pedidos/vendas/${blingId}`);
+          const lido = String(resObs?.data?.observacoes ?? "");
+          obsAcertoConfirmada = lido.includes(obsAcerto.slice(0, 60)) && lido.includes("PIX copia e cola") === obsAcerto.includes("PIX copia e cola");
+        } catch (eObs) {
+          obsAcertoConfirmada = null;
+          console.warn("[enviar-pedido-bling] leitura de volta das observações falhou", { pedido_id, erro: (eObs as Error).message });
+        }
+        if (obsAcertoConfirmada !== true) console.warn("[enviar-pedido-bling] observações do acerto NÃO confirmadas no Bling", { pedido_id, bling_id: blingId });
+      }
+      const avisoObs = obsAcerto && obsAcertoConfirmada !== true
+        ? "ATENÇÃO: o Bling não confirmou as observações do acerto (referências e PIX) — confira as informações complementares antes de emitir a NF."
+        : null;
+
       // TRANSPORTADORA-APRENDE-BLING-ID (17/10/2026): transportadora sem bling_id desce
       // por nome (transporte.contato.nome) e o checklist do pré-faturamento acusa aviso
       // ("sem bling_id") em todo envio. Depois de um envio OK, relê o pedido no Bling e
@@ -1560,8 +1593,11 @@ if (itensSemProdutoBling.length > 0) {
           (motivoOverride ? ` · override declarado: "${motivoOverride}"` : "") +
           (blingNaturezaId && naturezaConfirmada !== true
             ? ` · ATENÇÃO: o Bling não confirmou a natureza de operação — ao emitir a NF, selecione a natureza "${naturezaNome ?? "do pedido"}"`
-            : ""),
+            : "") +
+          (avisoObs ? ` · ${avisoObs}` : ""),
         metadata: {
+          observacoes_acerto: obsAcerto,
+          observacoes_acerto_confirmadas: obsAcertoConfirmada,
           bling_id: String(blingId),
           remessa_id: remessa.id,
           remessa_codigo: remessaCodigo,
@@ -1584,6 +1620,7 @@ if (itensSemProdutoBling.length > 0) {
         mensagem: `Remessa ${remessaCodigo} enviada pro Bling (id ${blingId})`,
         duracao_ms: duracaoMs,
         proximo_passo: "Emitir a NF no Bling. O pedido avanca para Faturado sozinho quando a NF for ingerida.",
+        ...(obsAcerto ? { observacoes_acerto_confirmadas: obsAcertoConfirmada, aviso: avisoObs } : {}),
       });
     } else {
       await supabase.from("pedidos").update({
