@@ -58,8 +58,10 @@ async function pedidoLiberaRefaturamento(
   return { ok: true, ...(data as any) };
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+// CORRIGIR-NF / REFATURAR (27/10/2026): contexto do modo sistema (ver wrapper no fim do arquivo).
+type ModoSistema = { devolucaoId: string; criadoPor: string; body: any };
+
+async function handle(req: Request, sis: ModoSistema | null): Promise<Response> {
 
   const t0 = Date.now();
   // Compensação de remessa órfã acessível pelo catch externo (erro inesperado antes do POST).
@@ -71,27 +73,34 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Auth
-    const auth = req.headers.get("Authorization");
-    if (!auth) return err("Não autorizado", 401);
-    const { data: userData, error: userErr } = await supabase.auth.getUser(
-      auth.replace("Bearer ", ""),
-    );
-    if (userErr || !userData.user) return err("Não autorizado", 401);
-    const userId = userData.user.id;
+    // Auth — CORRIGIR-NF / REFATURAR: em modo sistema o ator é devolucao.criado_por
+    // (validado no wrapper) e não há usuário/papéis a conferir.
+    const auth = req.headers.get("Authorization") ?? "";
+    let userId: string;
+    let ehSuperAdmin = false;
+    if (sis) {
+      userId = sis.criadoPor;
+    } else {
+      if (!auth) return err("Não autorizado", 401);
+      const { data: userData, error: userErr } = await supabase.auth.getUser(
+        auth.replace("Bearer ", ""),
+      );
+      if (userErr || !userData.user) return err("Não autorizado", 401);
+      userId = userData.user.id;
 
-    // Role: super_admin, admin_rh, sops
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
-    const rolesArr = (roles || []).map((r: any) => String(r.role));
-    const ehSuperAdmin = rolesArr.includes("super_admin");
-    const allowed = rolesArr.some((r) => ["super_admin", "admin_rh", "sops"].includes(r));
-    if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
+      // Role: super_admin, admin_rh, sops
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId);
+      const rolesArr = (roles || []).map((r: any) => String(r.role));
+      ehSuperAdmin = rolesArr.includes("super_admin");
+      const allowed = rolesArr.some((r) => ["super_admin", "admin_rh", "sops"].includes(r));
+      if (!allowed) return err("Sem permissão (sops, admin_rh ou super_admin)", 403);
+    }
 
-    // Input
-    const body = await req.json().catch(() => ({}));
+    // Input (modo sistema: o wrapper já leu o body)
+    const body = sis ? sis.body : await req.json().catch(() => ({}));
     const pedido_id = body?.pedido_id;
     let remessa_id_input: string | null = body?.remessa_id ?? null;
     // CONFERENCIA-E-A-PORTA: override declarado do pre-faturamento, em escopo geral
@@ -102,7 +111,7 @@ serve(async (req) => {
     // Permissão nominal de AÇÃO (DIMENSAO-VIA-TABELA), por cima do papel.
     // Vale para os caminhos que EMPURRAM pedido pro Bling (envio e reenvio);
     // a coleta de anexos de NF (`anexos_nf`) é leitura e segue liberada.
-    if (body?.acao !== "anexos_nf") {
+    if (!sis && body?.acao !== "anexos_nf") {
       const guardaAcao = await exigirAcao(
         supabase,
         auth,
@@ -374,7 +383,7 @@ serve(async (req) => {
     // inalcançável do único lugar onde deveria valer: o envio é recusado por estágio antes de
     // qualquer checagem de portão.
     const estagiosPermitidos = ["pre_separacao", "em_separacao", "pre_faturamento"];
-    if (!estagiosPermitidos.includes(pedido.estagio)) {
+    if (!sis && !estagiosPermitidos.includes(pedido.estagio)) {
       // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): problema declarado pode liberar refaturamento
       // mesmo em estágios avançados (ex.: em_transporte), porque a carga já foi e o
       // pedido não retrocede de estágio.
@@ -404,8 +413,8 @@ serve(async (req) => {
     // descido de volta ficava sem saida: "Enviar pro Bling" exige !bling_id_destino e
     // o reenvio exigia em_separacao. Cobranca segue barrada pelo guard de estagio acima.
     if (body?.acao === "reenviar") {
-      if (!ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
-      if (pedido.estagio !== "em_separacao" && pedido.estagio !== "pre_separacao") {
+      if (!sis && !ehSuperAdmin) return err("Reenvio ao Bling é exclusivo de super_admin", 403);
+      if (!sis && pedido.estagio !== "em_separacao" && pedido.estagio !== "pre_separacao") {
         // BOTÃO-SEGUE-O-PROBLEMA (PED-2174): mesmo em reenvio, problema declarado
         // libera o pedido em qualquer estágio desde que a RPC confirme.
         const libRef = await pedidoLiberaRefaturamento(supabase, pedido_id);
@@ -433,7 +442,7 @@ serve(async (req) => {
 
       // AVISO, NÃO BLOQUEIO — SISTEMA SUGERE / HUMANO DECIDE.
       // Reenviar um pedido que NÃO foi cancelado no Bling cria pedido DUPLICADO lá.
-      if (!body?.confirmar_nao_cancelado) {
+      if (!sis && !body?.confirmar_nao_cancelado) {
         let situacaoAviso: string | null = null;
         try {
           const { data: cfgChk } = await supabase
@@ -509,6 +518,7 @@ serve(async (req) => {
         p_pedido_id: pedido_id,
         p_motivo: motivo,
         p_ator: userId,
+        ...(sis ? { p_devolucao_id: sis.devolucaoId } : {}),
       });
       if (prepErr) return err(`Falha ao preparar reenvio: ${prepErr.message}`, 500);
       if (!prep?.ok) return err(String(prep?.erro ?? "Falha ao preparar reenvio"), 409);
@@ -1651,4 +1661,74 @@ if (itensSemProdutoBling.length > 0) {
     if (cleanupRemessaOrfa) await cleanupRemessaOrfa();
     return err(`Erro inesperado: ${(e as Error).message}`, 500);
   }
+}
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const cronSecret = req.headers.get("x-cron-secret");
+  if (!cronSecret) return handle(req, null);
+
+  // CORRIGIR-NF / REFATURAR (27/10/2026): reenvio disparado pelo banco (fn_refaturar_original_anulada) quando a NF original de uma correção fiscal é anulada.
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+  const { data: esperado, error: eVault } = await supabase.rpc("get_vault_secret", { p_name: "SYNC_CRON_SECRET" });
+  if (eVault || !esperado) return err("Não foi possível validar o x-cron-secret.", 401);
+  if (cronSecret !== esperado) return err("x-cron-secret inválido.", 401);
+
+  const body = await req.json().catch(() => ({}));
+  const devolucaoId = body?.refaturar_devolucao_id ? String(body.refaturar_devolucao_id) : "";
+  if (body?.acao !== "reenviar" || !devolucaoId) {
+    return err("Modo sistema aceita apenas acao='reenviar' com refaturar_devolucao_id", 403);
+  }
+
+  const registrar = async (okRes: boolean, msg: string | null) => {
+    try {
+      const { error } = await supabase.rpc("fn_refaturar_registrar_reenvio" as string, {
+        p_devolucao_id: devolucaoId, p_ok: okRes, p_msg: msg,
+      });
+      if (error) console.error("[refaturar] falha ao registrar reenvio:", error.message);
+    } catch (e) {
+      console.error("[refaturar] falha ao registrar reenvio:", (e as Error).message);
+    }
+  };
+
+  let res: Response;
+  try {
+    const { data: dev, error: devErr } = await supabase
+      .from("devolucao")
+      .select("id, finalidade, pedido_id, criado_por")
+      .eq("id", devolucaoId)
+      .maybeSingle();
+    if (devErr) {
+      res = err(`Falha ao ler correção fiscal: ${devErr.message}`, 500);
+    } else if (!dev || dev.finalidade !== "refaturar" || dev.pedido_id !== body?.pedido_id) {
+      res = err("Correção fiscal inválida: exige finalidade='refaturar' e o mesmo pedido_id", 409);
+    } else if (!dev.criado_por) {
+      res = err("Correção fiscal sem criado_por — não há ator para o reenvio", 409);
+    } else {
+      res = await handle(req, {
+        devolucaoId,
+        criadoPor: String(dev.criado_por),
+        body: { ...body, confirmar_nao_cancelado: true },
+      });
+    }
+  } catch (e) {
+    res = err(`Erro inesperado: ${(e as Error).message}`, 500);
+  }
+
+  // Registro do resultado: nunca altera a resposta.
+  try {
+    const j: any = await res.clone().json().catch(() => ({}));
+    const sucesso = res.ok && j?.sucesso !== false && j?.ok !== false && !j?.requer_confirmacao;
+    const msg = sucesso
+      ? (j?.aviso ? String(j.aviso) : null)
+      : String(j?.erro ?? j?.mensagem ?? j?.message ?? `HTTP ${res.status}`);
+    await registrar(sucesso, msg);
+  } catch (e) {
+    console.error("[refaturar] falha ao inspecionar resposta:", (e as Error).message);
+  }
+  return res;
 });
