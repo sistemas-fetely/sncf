@@ -859,7 +859,7 @@ function NfsARegularizar() {
             ) : lista.map((n) => {
               const dentro24h = n.horas_desde_emissao != null && n.horas_desde_emissao <= 24;
               return (
-                <TableRow key={n.nf_id} className="hover:bg-muted/40">
+                <TableRow key={n.nf_id} className="hover:bg-muted/40 [&>td]:whitespace-nowrap">
                   <TableCell className="font-mono text-xs">{n.pedido ?? "—"}</TableCell>
                   <TableCell className="font-mono text-xs">{n.numero ?? "—"}{n.serie ? `/${n.serie}` : ""}</TableCell>
                   <TableCell>{fmtDataHora(n.data_emissao)}</TableCell>
