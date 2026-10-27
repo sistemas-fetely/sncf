@@ -981,8 +981,29 @@ serve(async (req) => {
     // faturamento) ou, no titulo, o recalculo com ancora na NF. Fallback na planejada so para
     // contrato antigo. ANCORA-E-DECLARADA-NO-PRE-FATURAMENTO: a data que desce e a que o humano
     // decidiu, nao a que a Cobranca chutou dias antes (medido: 27 de 39 planejadas ja vencidas).
+    // PRAZO-CONTADO-DA-NF (27/10/2026): pedido sintetico de acerto consignado de parceiro com
+    // consignado_prazo_dias_nf vence em emissao + N dias. A API do Bling so aceita data, entao a
+    // data desce como HOJE (America/Sao_Paulo, dia do envio = dia da NF) + N — nunca a estimativa
+    // gravada na confirmacao. fn_faturar_pedido aplica a mesma regra e registra divergencia.
+    const { data: aceRow, error: aceErr } = await supabase
+      .from("consignado_acerto")
+      .select("id, parceiros_comerciais!inner(consignado_prazo_dias_nf)")
+      .eq("pedido_sintetico_id", pedido_id)
+      .not("parceiros_comerciais.consignado_prazo_dias_nf", "is", null)
+      .limit(1)
+      .maybeSingle();
+    if (aceErr) throw new Error(`Falha ao ler acerto consignado do pedido: ${aceErr.message}`);
+    const prazoNfDias: number | null = (aceRow as any)?.parceiros_comerciais?.consignado_prazo_dias_nf ?? null;
+    let vencPrazoNf: string | null = null;
+    if (prazoNfDias != null) {
+      const hojeSp = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+      const d = new Date(`${hojeSp}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + prazoNfDias);
+      vencPrazoNf = d.toISOString().slice(0, 10);
+      console.log("[parcelas] consignado prazo da NF", { pedido_id, prazoNfDias, vencPrazoNf });
+    }
     const blingParcelas = titulosAPrazo.map((t: any) => ({
-      dataVencimento: t.data_vencimento_efetiva ?? t.data_vencimento_original,
+      dataVencimento: vencPrazoNf ?? t.data_vencimento_efetiva ?? t.data_vencimento_original,
       valor: parseFloat((Number(t.valor_bruto) * fatorRemessa).toFixed(2)),
       formaPagamento: { id: Number(blingFormaId) },
     }));
