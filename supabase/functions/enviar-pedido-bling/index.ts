@@ -307,18 +307,35 @@ serve(async (req) => {
         return await recusarCd(`Pedido sem natureza de operação — obrigatória para expedir pelo CD ${cdCodigo}.`);
       }
     }
-    // NATUREZA-POR-CANAL-E-CD (19/10/2026): de-para canal B2B × CD × natureza, para todo CD.
+    // NATUREZA-PELO-DESTINATARIO (27/10/2026): canal fiscal da natureza = B2C quando
+    // o cliente é PF (tipo_pessoa), senão B2B. O canal do pedido continua B2B
+    // (título/CPR/Mesa). de-para canal fiscal × CD × natureza, para todo CD.
+    let canalFiscal = "B2B";
+    if (pedido.parceiro_id) {
+      const { data: parc, error: parcErr } = await supabase
+        .from("parceiros_comerciais")
+        .select("tipo_pessoa")
+        .eq("id", pedido.parceiro_id)
+        .maybeSingle();
+      if (parcErr) return err(`Falha ao ler o parceiro do pedido: ${parcErr.message}`, 500);
+      if (parc) canalFiscal = parc.tipo_pessoa === "PF" ? "B2C" : "B2B";
+    }
     if (pedido.natureza_operacao_id) {
       const { data: natCd, error: natCdErr } = await supabase
         .from("naturezas_operacao_cd")
         .select("bling_natureza_id")
-        .eq("canal", "B2B")
+        .eq("canal", canalFiscal)
         .eq("natureza_operacao_id", pedido.natureza_operacao_id)
         .eq("centro_codigo", cdCodigo)
         .maybeSingle();
       if (natCdErr) return err(`Falha ao ler naturezas_operacao_cd: ${natCdErr.message}`, 500);
       if (natCd) {
         blingNaturezaId = natCd.bling_natureza_id != null ? Number(natCd.bling_natureza_id) : null;
+      } else if (canalFiscal === "B2C") {
+        const msg = `Cliente pessoa física: natureza "${naturezaNome}" sem de-para B2C para o CD ${cdCodigo} (naturezas_operacao_cd). Nada foi enviado ao Bling.`;
+        const { error: upErr } = await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
+        if (upErr) return err(`${msg} (e falhou ao gravar o erro no pedido: ${upErr.message})`, 409);
+        return err(msg, 409);
       } else if (cdCodigo !== "XPM-SC") {
         const msg = `Natureza "${naturezaNome}" sem de-para para o CD ${cdCodigo} (naturezas_operacao_cd). Nada foi enviado ao Bling.`;
         const { error: upErr } = await supabase.from("pedidos").update({ bling_envio_erro: msg }).eq("id", pedido_id);
