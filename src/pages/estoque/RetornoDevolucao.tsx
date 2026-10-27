@@ -41,6 +41,7 @@ import { ConferirRetornoDialog } from "@/components/estoque/ConferirRetornoDialo
 import { CancelamentoReembolsoPainel } from "@/components/devolucao/CancelamentoReembolsoPainel";
 import { DeclararCancelamentoDialog } from "@/components/devolucao/DeclararCancelamentoDialog";
 import { BlocoFiscalDevolucao } from "@/components/devolucao/FiscalDevolucao";
+import { chamarRascunhoNfDevolucao } from "@/components/devolucao/NfDevolucaoBloco";
 import { DEVOLUCAO_ATIVA, useDevolucoesVD } from "@/components/venda-direta/DevolucaoVendaDireta";
 
 type Funil = {
@@ -815,16 +816,56 @@ type NfRegularizar = {
   nf_id: string; pedido: string | null; numero: string | null; serie: string | null; data_emissao: string | null;
   valor_nota: number | null; cancelado_em: string | null; fonte_cancelamento: string | null; refunded_amount: number | null;
   horas_desde_emissao: number | null; chave_acesso: string | null; pdf_url: string | null;
+  devolucao_id: string | null; devolucao_numero: string | null; devolucao_fiscal_acao: "cancelar_nf" | "nf_devolucao" | null;
+  nf_entrada_status: "gerando" | "rascunho" | "autorizada" | "erro" | null; nf_entrada_numero: string | null; nf_entrada_erro: string | null;
 };
 const ORIGEM_CANCEL: Record<string, string> = { pedido_sncf: "SNCF", sncf: "SNCF", shopify: "Shopify" };
 
 /** NF autorizada em pedido já cancelado: precisa de cancelamento (≤24h) ou nota de entrada no Bling. */
 function NfsARegularizar() {
+  const qc = useQueryClient();
+  const [alvo, setAlvo] = useState<NfRegularizar | null>(null);
+  const [motivoReg, setMotivoReg] = useState("NF não expedida em pedido cancelado");
+  const [ocupado, setOcupado] = useState<string | null>(null);
+  const invalidarReg = () => Promise.all([
+    qc.invalidateQueries({ queryKey: ["vw_nf_em_pedido_cancelado"] }),
+    qc.invalidateQueries({ queryKey: ["vw_devolucao_funil"] }),
+    qc.invalidateQueries({ queryKey: ["devolucoes"] }),
+    qc.invalidateQueries({ predicate: (x) => String(x.queryKey[0] ?? "").startsWith("devolucao") }),
+  ]);
+  async function edge(n: NfRegularizar, devId: string, acao: "gerar" | "verificar", numero?: string | null) {
+    setOcupado(n.nf_id);
+    try {
+      const d = await chamarRascunhoNfDevolucao(devId, acao);
+      if (acao === "gerar") toast.success(`${numero ?? n.devolucao_numero ?? "Devolução"}: rascunho da NF de entrada gerado no Bling`);
+      else if (d.autorizada) toast.success(`NF de entrada ${d.numero} autorizada`);
+      else toast.info(`Ainda não autorizada (situação ${d.situacao}${d.cancelada ? ", cancelada" : ""})`);
+    } catch (e) { toast.error(formatError(e), { duration: 15000 }); }
+    finally { setOcupado(null); await invalidarReg(); }
+  }
+  async function confirmarAbrir() {
+    const n = alvo!;
+    setOcupado(n.nf_id);
+    try {
+      const { data, error } = await sb.rpc("abrir_devolucao_nf_nao_expedida", { p_nf_id: n.nf_id, p_motivo: motivoReg.trim() });
+      if (error) throw error;
+      if (data?.ok === false) throw new Error(data.erro ?? "Abertura recusada");
+      toast.success(`${data.devolucao_numero} aberta`);
+      setAlvo(null);
+      if (data.fiscal_acao === "cancelar_nf") {
+        toast.warning("NF com menos de 24h: cancele a NF no Bling", { duration: 15000 });
+      } else if (data.gerar_nf_no_bling === true) {
+        await edge(n, data.devolucao_id, "gerar", data.devolucao_numero);
+        return;
+      }
+    } catch (e) { toast.error(formatError(e), { duration: 15000 }); }
+    setOcupado(null); await invalidarReg();
+  }
   const q = useQuery({
     queryKey: ["vw_nf_em_pedido_cancelado", "a-regularizar"],
     queryFn: async () => {
       const { data, error } = await sb.from("vw_nf_em_pedido_cancelado")
-        .select("nf_id, pedido, numero, serie, data_emissao, valor_nota, cancelado_em, fonte_cancelamento, refunded_amount, horas_desde_emissao, chave_acesso, pdf_url")
+        .select("nf_id, pedido, numero, serie, data_emissao, valor_nota, cancelado_em, fonte_cancelamento, refunded_amount, horas_desde_emissao, chave_acesso, pdf_url, devolucao_id, devolucao_numero, devolucao_fiscal_acao, nf_entrada_status, nf_entrada_numero, nf_entrada_erro")
         .eq("regularizada", false).order("data_emissao", { ascending: true });
       if (error) throw error;
       return (data ?? []) as NfRegularizar[];
@@ -841,13 +882,13 @@ function NfsARegularizar() {
         <h2 className="text-base font-medium">NFs a regularizar</h2>
         <Badge variant="secondary" className="font-normal tabular-nums">{q.isLoading ? "…" : lista.length}</Badge>
       </div>
-      <p className="text-sm text-muted-foreground">NF autorizada em pedido cancelado. Emita no Bling a nota de entrada referenciando a chave (ou cancele a NF dentro de 24h); o vínculo aparece aqui na Mesa para confirmar.</p>
+      <p className="text-sm text-muted-foreground">NF autorizada em pedido cancelado sem saída do CD. O SNCF abre a devolução sem retorno físico e gera a NF de entrada no Bling; a Eva só autoriza o rascunho.</p>
       <div className="overflow-auto rounded-lg border bg-card shadow-sm">
         <Table>
           <TableHeader><TableRow className="bg-muted/50 hover:bg-muted/50">
             <TableHead>Pedido</TableHead><TableHead>NF</TableHead><TableHead>Emissão</TableHead>
             <TableHead className="text-right">Valor</TableHead><TableHead>Cancelado em</TableHead><TableHead>Origem</TableHead>
-            <TableHead className="text-right">Estorno</TableHead><TableHead>Ação fiscal</TableHead><TableHead />
+            <TableHead className="text-right">Estorno</TableHead><TableHead>Situação</TableHead><TableHead />
           </TableRow></TableHeader>
           <TableBody>
             {q.isLoading ? (
@@ -857,7 +898,7 @@ function NfsARegularizar() {
             ) : lista.length === 0 ? (
               <TableRow><TableCell colSpan={9} className="py-6 text-center text-sm text-muted-foreground">Nenhuma NF a regularizar.</TableCell></TableRow>
             ) : lista.map((n) => {
-              const dentro24h = n.horas_desde_emissao != null && n.horas_desde_emissao <= 24;
+              const spin = ocupado === n.nf_id ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : null;
               return (
                 <TableRow key={n.nf_id} className="hover:bg-muted/40 [&>td]:whitespace-nowrap">
                   <TableCell className="font-mono text-xs">{n.pedido ?? "—"}</TableCell>
@@ -868,9 +909,28 @@ function NfsARegularizar() {
                   <TableCell>{n.fonte_cancelamento ? (ORIGEM_CANCEL[n.fonte_cancelamento] ?? n.fonte_cancelamento) : "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{n.refunded_amount ? formatBRL(n.refunded_amount) : "—"}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={dentro24h ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-warning/40 bg-warning/10 text-warning"}>
-                      {dentro24h ? "Cancelar NF no Bling" : "Nota de entrada"}
-                    </Badge>
+                    {!n.devolucao_id ? (
+                      <Button size="sm" variant="outline" disabled={!!ocupado} onClick={() => { setMotivoReg("NF não expedida em pedido cancelado"); setAlvo(n); }}>{spin}Gerar NF de entrada</Button>
+                    ) : n.devolucao_fiscal_acao === "cancelar_nf" ? (
+                      <Badge variant="outline" className="border-destructive/40 bg-destructive/10 text-destructive">Cancelar NF no Bling (≤24h)</Badge>
+                    ) : n.nf_entrada_status === "gerando" ? (
+                      <Badge variant="outline" className="border-info/40 bg-info/10 text-foreground">Gerando…</Badge>
+                    ) : n.nf_entrada_status === "rascunho" ? (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="border-warning/40 bg-warning/10 text-warning">Rascunho no Bling — autorizar</Badge>
+                        <Button size="sm" variant="outline" disabled={!!ocupado} onClick={() => void edge(n, n.devolucao_id!, "verificar")}>{spin}Verificar</Button>
+                      </div>
+                    ) : n.devolucao_fiscal_acao === "nf_devolucao" && (n.nf_entrada_status == null || n.nf_entrada_status === "erro") ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs">{n.devolucao_numero ?? "—"}</span>
+                          <Button size="sm" variant="outline" disabled={!!ocupado} onClick={() => void edge(n, n.devolucao_id!, "gerar")}>{spin}Gerar no Bling</Button>
+                        </div>
+                        {n.nf_entrada_status === "erro" && n.nf_entrada_erro && <p className="max-w-xs whitespace-normal text-xs text-destructive">{n.nf_entrada_erro}</p>}
+                      </div>
+                    ) : (
+                      <span className="font-mono text-xs">{n.devolucao_numero ?? "—"}</span>
+                    )}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
                     {n.chave_acesso && (
@@ -890,6 +950,34 @@ function NfsARegularizar() {
           </TableBody>
         </Table>
       </div>
+      <Dialog open={!!alvo} onOpenChange={(o) => { if (!o && !ocupado) setAlvo(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gerar NF de entrada</DialogTitle>
+            <DialogDescription>O SNCF abre a devolução sem retorno físico e gera o rascunho da NF de entrada no Bling, referenciando a chave.</DialogDescription>
+          </DialogHeader>
+          {alvo && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-3 gap-2 rounded-md border bg-muted/40 p-3">
+                <div><div className="text-xs text-muted-foreground">Pedido</div><div className="font-mono">{alvo.pedido ?? "—"}</div></div>
+                <div><div className="text-xs text-muted-foreground">NF</div><div className="font-mono">{alvo.numero ?? "—"}{alvo.serie ? `/${alvo.serie}` : ""}</div></div>
+                <div><div className="text-xs text-muted-foreground">Valor</div><div className="tabular-nums">{formatBRL(alvo.valor_nota)}</div></div>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="motivo-reg">Motivo *</Label>
+                <Textarea id="motivo-reg" rows={2} value={motivoReg} onChange={(e) => setMotivoReg(e.target.value)} />
+                {motivoReg.trim().length < 5 && <p className="text-xs text-destructive">Mínimo de 5 caracteres.</p>}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" disabled={!!ocupado} onClick={() => setAlvo(null)}>Cancelar</Button>
+            <Button disabled={!!ocupado || motivoReg.trim().length < 5} onClick={() => void confirmarAbrir()}>
+              {ocupado ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
