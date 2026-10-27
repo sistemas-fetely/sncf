@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { ConfirmarPagamentoDialog } from "@/components/pedidos/dialogs/ConfirmarPagamentoDialog";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { LinkCartaoDialog, useCfgParcelas } from "@/components/venda-direta/LinkCartao";
@@ -253,9 +254,8 @@ export default function VendaDiretaGestao() {
     return base.filter((l) => {
       if (filtro && !bate(l, filtro)) return false;
       if (soAcaoEquipe && !l.acao_equipe) return false;
-      if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em) return false;
       // Bonificado não tem cobrança: não conta como aguardando pagamento.
-      if (filtroPagamento === "pagos" && l.pagamento === "bonificacao") return true;
+      if (filtroPagamento === "pagos" && !l.pagamento_confirmado_em && l.pagamento !== "bonificacao") return false;
       if (filtroPagamento === "nao_pagos" && (l.pagamento_confirmado_em || l.pagamento === "bonificacao")) return false;
       if (!t) return true;
       return (l.id_externo ?? "").toLowerCase().includes(t) ||
