@@ -50806,7 +50806,9 @@ export type Database = {
           consignado_cadencia_dias: number | null
           consignado_dia_acerto: number | null
           consignado_dia_fechamento: number | null
+          consignado_instrumento: string | null
           consignado_modelo: string | null
+          consignado_prazo_dias_nf: number | null
           contatos: Json | null
           contexto_bureau: Json | null
           cpf: string | null
@@ -50872,7 +50874,9 @@ export type Database = {
           consignado_cadencia_dias?: number | null
           consignado_dia_acerto?: number | null
           consignado_dia_fechamento?: number | null
+          consignado_instrumento?: string | null
           consignado_modelo?: string | null
+          consignado_prazo_dias_nf?: number | null
           contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
@@ -50938,7 +50942,9 @@ export type Database = {
           consignado_cadencia_dias?: number | null
           consignado_dia_acerto?: number | null
           consignado_dia_fechamento?: number | null
+          consignado_instrumento?: string | null
           consignado_modelo?: string | null
+          consignado_prazo_dias_nf?: number | null
           contatos?: Json | null
           contexto_bureau?: Json | null
           cpf?: string | null
@@ -82974,6 +82980,51 @@ export type Database = {
             referencedColumns: ["cliente_id"]
           },
         ]
+      }
+      transp_cte_importacao_log: {
+        Row: {
+          arquivo: string | null
+          chave: string | null
+          criado_em: string
+          cte_numero: string | null
+          dry_run: boolean
+          erro: string | null
+          id: string
+          lote: string | null
+          origem: string
+          resultado: Json | null
+          status: string
+          transportadora_id: string | null
+        }
+        Insert: {
+          arquivo?: string | null
+          chave?: string | null
+          criado_em?: string
+          cte_numero?: string | null
+          dry_run?: boolean
+          erro?: string | null
+          id?: string
+          lote?: string | null
+          origem: string
+          resultado?: Json | null
+          status: string
+          transportadora_id?: string | null
+        }
+        Update: {
+          arquivo?: string | null
+          chave?: string | null
+          criado_em?: string
+          cte_numero?: string | null
+          dry_run?: boolean
+          erro?: string | null
+          id?: string
+          lote?: string | null
+          origem?: string
+          resultado?: Json | null
+          status?: string
+          transportadora_id?: string | null
+        }
+        Relationships: []
       }
       transp_fretes: {
         Row: {
@@ -147647,6 +147698,15 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_balcao_carimbar_evento: {
+        Args: {
+          p_desde: string
+          p_fop_profile_id: string
+          p_pedido_id: string
+          p_vendedor_id: string
+        }
+        Returns: undefined
+      }
       fn_balcao_cds: {
         Args: never
         Returns: {
@@ -147654,6 +147714,15 @@ export type Database = {
           padrao: boolean
           rotulo: string
         }[]
+      }
+      fn_balcao_cliente_atualizar: {
+        Args: {
+          p_cliente: Json
+          p_fop_profile_id: string
+          p_motivo: string
+          p_pedido_id: string
+        }
+        Returns: Json
       }
       fn_balcao_cliente_buscar: {
         Args: { p_termo: string }
@@ -147675,6 +147744,10 @@ export type Database = {
       fn_balcao_meus_pedidos: {
         Args: { p_dias?: number; p_fop_profile_id: string }
         Returns: Json[]
+      }
+      fn_balcao_pedido_detalhe: {
+        Args: { p_fop_profile_id: string; p_pedido_id: string }
+        Returns: Json
       }
       fn_balcao_produto_buscar:
         | {
@@ -147705,6 +147778,10 @@ export type Database = {
               sku: string
             }[]
           }
+      fn_balcao_validar_dono: {
+        Args: { p_fop_profile_id: string; p_pedido_id: string }
+        Returns: string
+      }
       fn_balcao_vd_criar: {
         Args: {
           p_cliente: Json
@@ -147715,6 +147792,27 @@ export type Database = {
           p_pagamento: string
           p_vendedor_email: string
           p_vendedor_nome: string
+        }
+        Returns: Json
+      }
+      fn_balcao_vd_editar: {
+        Args: {
+          p_entrega: Json
+          p_fop_profile_id: string
+          p_itens: Json
+          p_meio?: string
+          p_motivo: string
+          p_observacao: string
+          p_pedido_id: string
+        }
+        Returns: Json
+      }
+      fn_balcao_vd_trocar_meio: {
+        Args: {
+          p_fop_profile_id: string
+          p_meio: string
+          p_motivo: string
+          p_pedido_id: string
         }
         Returns: Json
       }
@@ -148007,6 +148105,14 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_consignado_cobranca_salvar: {
+        Args: {
+          p_instrumento: string
+          p_parceiro_id: string
+          p_prazo_dias_nf: number
+        }
+        Returns: Json
+      }
       fn_consignado_contrato_salvar: {
         Args: {
           p_centro_codigo: string
@@ -148216,6 +148322,16 @@ export type Database = {
       }
       fn_cte_xml_importar: {
         Args: { p_arquivo?: string; p_dry_run?: boolean; p_xml: string }
+        Returns: Json
+      }
+      fn_cte_xml_registrar: {
+        Args: {
+          p_arquivo?: string
+          p_dry_run?: boolean
+          p_lote?: string
+          p_origem: string
+          p_xml: string
+        }
         Returns: Json
       }
       fn_custo_recalcular: {
@@ -151968,6 +152084,11 @@ export type Database = {
         }
         Returns: Json
       }
+      vd_atualizar_cliente: {
+        Args: { p_dados: Json; p_parceiro_id: string; p_pedido_id?: string }
+        Returns: Json
+      }
+      vd_cliente_ficha: { Args: { p_parceiro_id: string }; Returns: Json }
       vd_concluir_devolucao: {
         Args: {
           p_devolucao_id: string
