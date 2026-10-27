@@ -129,11 +129,12 @@ export function CorrigirNfDialog({ pedidoId, open, onOpenChange }: { pedidoId: s
   );
 }
 
-/** Botão + diálogo. Aparece só em pedido B2B, não cancelado, com NF e sem devolução aberta. */
+/** Botão + diálogo. Aparece só em pedido B2B, não cancelado, já faturado (etapa) e sem devolução aberta. */
 export function BotaoCorrigirNf({ pedido }: { pedido: { id: string; canal?: string | null; estagio?: string | null; cancelado_em?: string | null; nf_numero?: string | null } }) {
   const [aberto, setAberto] = useState(false);
   const perm = usePermissoesTela("tela.devolucoes");
-  const elegivelBase = pedido.canal === "B2B" && pedido.estagio !== "cancelado" && !pedido.cancelado_em && !!pedido.nf_numero;
+  // NF pode estar autorizada com pedido.nf_numero nulo (ex.: PED-2352) — a etapa é o sinal, e a prévia do banco é o juiz final.
+  const elegivelBase = pedido.canal === "B2B" && pedido.estagio !== "cancelado" && !pedido.cancelado_em && ["faturado", "em_transporte", "entregue"].includes(pedido.estagio ?? "");
   const abertaQ = useQuery({
     queryKey: ["devolucao-aberta-pedido", pedido.id],
     enabled: elegivelBase && perm.podeVer,
