@@ -11865,6 +11865,80 @@ export type Database = {
         }
         Relationships: []
       }
+      cancelamento_esteira: {
+        Row: {
+          ativo: boolean
+          canal: string
+          esteira: string
+          implementado: boolean
+          lacuna: string | null
+          momento: string
+          o_que_acontece: string
+          permitido: boolean
+          rotulo: string
+          rpc_alvo: string | null
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          canal?: string
+          esteira: string
+          implementado: boolean
+          lacuna?: string | null
+          momento: string
+          o_que_acontece: string
+          permitido: boolean
+          rotulo: string
+          rpc_alvo?: string | null
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          canal?: string
+          esteira?: string
+          implementado?: boolean
+          lacuna?: string | null
+          momento?: string
+          o_que_acontece?: string
+          permitido?: boolean
+          rotulo?: string
+          rpc_alvo?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cancelamento_esteira_momento_fkey"
+            columns: ["momento"]
+            isOneToOne: false
+            referencedRelation: "cancelamento_momento"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      cancelamento_momento: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          descricao: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          descricao: string
+          ordem: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          descricao?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       captura_cartao: {
         Row: {
           adquirente_id: string | null
@@ -28898,6 +28972,32 @@ export type Database = {
         }
         Relationships: []
       }
+      devolucao_canal_origem: {
+        Row: {
+          canal: string
+          descricao: string | null
+          origem: string
+        }
+        Insert: {
+          canal: string
+          descricao?: string | null
+          origem: string
+        }
+        Update: {
+          canal?: string
+          descricao?: string | null
+          origem?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "devolucao_canal_origem_canal_fkey"
+            columns: ["canal"]
+            isOneToOne: false
+            referencedRelation: "devolucao_canal"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
       devolucao_etapa: {
         Row: {
           aplica_fiscal_acao: string[] | null
@@ -42685,6 +42785,164 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pedido_estagio"
             referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      mesa_sp_executor: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          criado_em: string
+          exige_referencia: boolean
+          modal_codigo: string
+          nome: string
+          ordem: number
+          rotulo_cliente: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          criado_em?: string
+          exige_referencia?: boolean
+          modal_codigo: string
+          nome: string
+          ordem?: number
+          rotulo_cliente: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          criado_em?: string
+          exige_referencia?: boolean
+          modal_codigo?: string
+          nome?: string
+          ordem?: number
+          rotulo_cliente?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mesa_sp_executor_modal_codigo_fkey"
+            columns: ["modal_codigo"]
+            isOneToOne: false
+            referencedRelation: "b2c_modal_entrega"
+            referencedColumns: ["codigo"]
+          },
+        ]
+      }
+      mesa_sp_transportadora_modal: {
+        Row: {
+          criado_em: string
+          modal_codigo: string
+          parceiro_id: string
+        }
+        Insert: {
+          criado_em?: string
+          modal_codigo: string
+          parceiro_id: string
+        }
+        Update: {
+          criado_em?: string
+          modal_codigo?: string
+          parceiro_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_modal_codigo_fkey"
+            columns: ["modal_codigo"]
+            isOneToOne: false
+            referencedRelation: "b2c_modal_entrega"
+            referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "mesa_sp_transportadora_modal_parceiro_id_fkey"
+            columns: ["parceiro_id"]
+            isOneToOne: true
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
           },
         ]
       }
@@ -82592,6 +82850,131 @@ export type Database = {
           },
         ]
       }
+      transp_cte_componente_depara: {
+        Row: {
+          ativo: boolean
+          coluna: string
+          criado_em: string
+          id: string
+          observacao: string | null
+          padrao: string
+          prioridade: number
+          transportadora_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          coluna: string
+          criado_em?: string
+          id?: string
+          observacao?: string | null
+          padrao: string
+          prioridade?: number
+          transportadora_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          coluna?: string
+          criado_em?: string
+          id?: string
+          observacao?: string | null
+          padrao?: string
+          prioridade?: number
+          transportadora_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "parceiros_comerciais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "v_credito_resumo_financeiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_limite"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_parceiro_resumo"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_valor_a_acertar"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conta_corrente_cliente"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_estoque_estimado_parceiro"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_limite_a_vencer"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_oportunidades_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_historico_comercial"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_parceiro_nome"
+            referencedColumns: ["parceiro_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_recebivel_por_conta"
+            referencedColumns: ["conta_id"]
+          },
+          {
+            foreignKeyName: "transp_cte_componente_depara_transportadora_id_fkey"
+            columns: ["transportadora_id"]
+            isOneToOne: false
+            referencedRelation: "vw_venda_direta_gestao"
+            referencedColumns: ["cliente_id"]
+          },
+        ]
+      }
       transp_fretes: {
         Row: {
           ad_valorem: number | null
@@ -85712,10 +86095,35 @@ export type Database = {
           },
         ]
       }
+      vd_comprovante_canal: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          ordem: number
+          rotulo: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          ordem?: number
+          rotulo: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          ordem?: number
+          rotulo?: string
+        }
+        Relationships: []
+      }
       vd_devolucao: {
         Row: {
           atualizado_em: string
           charge_id: string | null
+          comprovante_enviado_canal: string | null
+          comprovante_enviado_em: string | null
+          comprovante_enviado_obs: string | null
+          comprovante_enviado_por: string | null
           comprovante_token: string | null
           concluido_em: string | null
           decidido_em: string | null
@@ -85741,6 +86149,10 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           charge_id?: string | null
+          comprovante_enviado_canal?: string | null
+          comprovante_enviado_em?: string | null
+          comprovante_enviado_obs?: string | null
+          comprovante_enviado_por?: string | null
           comprovante_token?: string | null
           concluido_em?: string | null
           decidido_em?: string | null
@@ -85766,6 +86178,10 @@ export type Database = {
         Update: {
           atualizado_em?: string
           charge_id?: string | null
+          comprovante_enviado_canal?: string | null
+          comprovante_enviado_em?: string | null
+          comprovante_enviado_obs?: string | null
+          comprovante_enviado_por?: string | null
           comprovante_token?: string | null
           concluido_em?: string | null
           decidido_em?: string | null
@@ -85789,6 +86205,13 @@ export type Database = {
           valor?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "vd_devolucao_comprovante_enviado_canal_fkey"
+            columns: ["comprovante_enviado_canal"]
+            isOneToOne: false
+            referencedRelation: "vd_comprovante_canal"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "vd_devolucao_devolucao_id_fkey"
             columns: ["devolucao_id"]
@@ -146593,6 +147016,18 @@ export type Database = {
           modo: string
         }[]
       }
+      declarar_cancelamento: {
+        Args: {
+          p_desfecho?: string
+          p_dry_run?: boolean
+          p_itens?: Json
+          p_motivo: string
+          p_motivo_codigo?: string
+          p_pedido_id: string
+          p_tipo: string
+        }
+        Returns: Json
+      }
       declarar_recebimento_devolucao: {
         Args: {
           p_centro?: string
@@ -147779,6 +148214,10 @@ export type Database = {
           parcela: number
         }[]
       }
+      fn_cte_xml_importar: {
+        Args: { p_arquivo?: string; p_dry_run?: boolean; p_xml: string }
+        Returns: Json
+      }
       fn_custo_recalcular: {
         Args: { p_skus?: string[] }
         Returns: {
@@ -147883,9 +148322,17 @@ export type Database = {
         Args: { p_motivo: string; p_vinculo_id: string }
         Returns: Json
       }
+      fn_devolucao_gerar_haver: {
+        Args: { p_devolucao_id: string }
+        Returns: Json
+      }
       fn_devolucao_gerar_numero: {
         Args: { p_canal: string; p_pedido_id: string; p_shopify_id?: string }
         Returns: string
+      }
+      fn_devolucao_haver_disponivel_b2b: {
+        Args: { p_pedido_id: string }
+        Returns: Json
       }
       fn_devolucao_nf_registrar: {
         Args: {
@@ -148452,7 +148899,12 @@ export type Database = {
         Returns: Json
       }
       fn_mesa_sp_despachar: {
-        Args: { p_modal: string; p_pedido_id: string; p_referencia?: string }
+        Args: {
+          p_executor?: string
+          p_modal: string
+          p_pedido_id: string
+          p_referencia?: string
+        }
         Returns: Json
       }
       fn_mesa_sp_despachar_lote: {
@@ -148539,12 +148991,20 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: string
       }
+      fn_mesa_sp_modal_sugerido: {
+        Args: { p_pedido_id: string }
+        Returns: Json
+      }
       fn_mesa_sp_peso_estimado: {
         Args: {
           p_caixa_codigo?: string
           p_pedido_id: string
           p_volumes?: number
         }
+        Returns: Json
+      }
+      fn_mesa_sp_postar_agencia: {
+        Args: { p_pedido_id: string }
         Returns: Json
       }
       fn_mesa_sp_puxar_pedido: { Args: { p_pedido_id: string }; Returns: Json }
@@ -148568,6 +149028,10 @@ export type Database = {
       fn_mesa_sp_trava_cancelamento: {
         Args: { p_pedido_id: string }
         Returns: undefined
+      }
+      fn_mesa_sp_trocar_modal: {
+        Args: { p_modal: string; p_motivo: string; p_pedido_id: string }
+        Returns: Json
       }
       fn_mesa_sp_voltar_separacao: {
         Args: { p_pedido_id: string }
@@ -148878,6 +149342,7 @@ export type Database = {
         Returns: Json
       }
       fn_pedido_mesa_sp_status: { Args: { p_pedido_id: string }; Returns: Json }
+      fn_pedido_momento: { Args: { p_pedido_id: string }; Returns: Json }
       fn_pedido_na_bancada_sp: {
         Args: { p_pedido_id: string }
         Returns: boolean
@@ -151525,6 +151990,15 @@ export type Database = {
           p_motivo: string
           p_observacao: string
           p_pedido_id: string
+        }
+        Returns: Json
+      }
+      vd_marcar_comprovante_enviado: {
+        Args: {
+          p_canal: string
+          p_desfazer?: boolean
+          p_devolucao_id: string
+          p_obs?: string
         }
         Returns: Json
       }
