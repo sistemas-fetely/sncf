@@ -217,6 +217,7 @@ Deno.serve(async (req) => {
         if (inv) return inv;
         const { data, error } = await supabase.rpc("fn_balcao_meus_pedidos", {
           p_fop_profile_id: body.fop_profile_id, p_dias: body.dias ?? 90,
+          p_escopo: body.escopo === "todos" ? "todos" : "meus",
         });
         if (error) return erroRpc(error);
         return jsonResponse(200, { ok: true, pedidos: data ?? [] });
