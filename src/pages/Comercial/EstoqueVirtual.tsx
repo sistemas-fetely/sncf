@@ -785,8 +785,9 @@ export default function EstoqueVirtual() {
           aria-label="Estoque por centro"
         >
           {centros.map((c) => {
-            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0 };
+            const r = resumoCentros.get(c.codigo) ?? { un: 0, valor: 0, detalhe: DETALHE_ZERO };
             const sel = centroFiltro === c.codigo;
+            const desvio = temDesvio(r.detalhe);
             return (
               <button
                 key={c.codigo}
@@ -802,10 +803,23 @@ export default function EstoqueVirtual() {
               >
                 <div className="text-[11px] text-muted-foreground truncate">{c.rotulo_curto ?? c.codigo}</div>
                 <div className="text-base font-medium tabular-nums">{formatNum(r.un)} un</div>
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
-                  <span className="truncate">{formatBRL(r.valor)}</span>
-                  {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
-                </div>
+                {desvio ? (
+                  <>
+                    <div className="truncate text-[11px] text-muted-foreground tabular-nums">{formatBRL(r.valor)}</div>
+                    <div className="flex flex-wrap items-center gap-x-1 text-[11px] text-muted-foreground tabular-nums">
+                      <span>{formatNum(r.detalhe.sadio)}</span>
+                      {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                      {detalhePartes(r.detalhe).map((t) => (
+                        <span key={t} className="whitespace-nowrap">· {t}</span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground tabular-nums">
+                    <span className="truncate">{formatBRL(r.valor)}</span>
+                    {c.vende && <span className="rounded border px-1 leading-4">vende</span>}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -995,7 +1009,15 @@ export default function EstoqueVirtual() {
                   </TableCell>
                 </>}
                 {visao === "estoque" && <>
-                  <TableCell className="text-right tabular-nums">{formatNum(p.contabil)}</TableCell>
+                  <TableCell
+                    className="text-right tabular-nums"
+                    title={centroFiltro !== "todos" && temDesvio(p.detalhe) ? tooltipDetalhe(p.detalhe) : undefined}
+                  >
+                    {formatNum(p.contabil)}
+                    {centroFiltro !== "todos" && temDesvio(p.detalhe) && detalhePartes(p.detalhe, true).map((t) => (
+                      <div key={t} className="whitespace-nowrap text-[10px] font-normal leading-tight text-muted-foreground">{t}</div>
+                    ))}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums font-medium">{formatNum(p.virtual)}</TableCell>
                   <TableCell className="text-right tabular-nums">
                     {(() => {
@@ -1033,11 +1055,18 @@ export default function EstoqueVirtual() {
                   </TableCell>
                   {centros.map((c) => {
                     const v = p.por_centro[c.codigo] ?? 0;
+                    const d = p.por_centro_detalhe[c.codigo] ?? DETALHE_ZERO;
                     const g = giroAnual(p.por_centro_vendas[c.codigo] ?? 0, v, p.janela_dias);
                     return (
                       <Fragment key={c.codigo}>
-                        <TableCell className="!px-1.5 text-right tabular-nums border-l border-border/60">
+                        <TableCell
+                          className="!px-1.5 text-right tabular-nums border-l border-border/60"
+                          title={temDesvio(d) ? tooltipDetalhe(d) : undefined}
+                        >
                           {v === 0 ? <span className="text-muted-foreground">—</span> : formatNum(v)}
+                          {temDesvio(d) && detalhePartes(d, true).map((t) => (
+                            <div key={t} className="whitespace-nowrap text-[9px] font-normal leading-tight text-muted-foreground">{t}</div>
+                          ))}
                         </TableCell>
                         <TableCell className="!px-1.5 text-right tabular-nums text-muted-foreground">
                           {formatGiro(g)}
