@@ -437,6 +437,9 @@ Deno.serve(async (req) => {
       nfse: novoResumo(simular),
 
     };
+    // Lote do run para transp_cte_importacao_log; contagem por status do frete.
+    const loteRun = `qive-${new Date(t0).toISOString()}`;
+    const cteFrete: Record<string, any> = { importado: 0, duplicado: 0, erro: 0, primeiro_erro: null };
 
     for (const entidade of ENTIDADES) {
       const resumo = por_entidade[entidade];
@@ -523,9 +526,11 @@ Deno.serve(async (req) => {
             for (const doc of docs) {
               try {
                 let p: XmlParsed | null = null;
+                let xmlTexto: string | null = null;
                 if (doc.xmlBase64) {
                   try {
                     const xmlDoc = decodificarBase64(doc.xmlBase64);
+                    xmlTexto = xmlDoc;
                     p = entidade === "cte" ? parseCteXml(xmlDoc) : parseXml(xmlDoc);
                   } catch (e) {
                     console.error(`[${entidade}] XML ilegível (${doc.chave}):`, e);
@@ -681,6 +686,33 @@ Deno.serve(async (req) => {
                     console.error(`[${entidade}] destinatário falhou (${chave}):`, destErr.message);
                   }
                 }
+
+                // CTE-QIVE-VIRA-FRETE (27/10/2026): depois do nfs_stage, o XML original
+                // do CT-e vai para transp_fretes. Falha aqui NÃO derruba a captura nem
+                // trava o cursor — mas é contada no resumo (cte_frete), nunca muda.
+                if (entidade === "cte" && xmlTexto) {
+                  try {
+                    const { data: rf, error: rfErr } = await supabase.rpc("fn_cte_xml_registrar", {
+                      p_xml: xmlTexto,
+                      p_origem: "qive",
+                      p_arquivo: `${chave}.xml`,
+                      p_lote: loteRun,
+                      p_dry_run: false,
+                    });
+                    const st = rfErr ? "erro" : String((rf as any)?.status ?? "erro");
+                    cteFrete[st] = (cteFrete[st] ?? 0) + 1;
+                    const msg = rfErr?.message ?? (rf as any)?.erro ?? null;
+                    if (st === "erro") {
+                      if (!cteFrete.primeiro_erro) cteFrete.primeiro_erro = `${chave}: ${msg ?? "sem retorno"}`;
+                      console.error(`[cte] fn_cte_xml_registrar erro (${chave}):`, msg);
+                    }
+                  } catch (e) {
+                    cteFrete.erro = (cteFrete.erro ?? 0) + 1;
+                    const msg = e instanceof Error ? e.message : String(e);
+                    if (!cteFrete.primeiro_erro) cteFrete.primeiro_erro = `${chave}: ${msg}`;
+                    console.error(`[cte] fn_cte_xml_registrar exceção (${chave}):`, msg);
+                  }
+                }
               } catch (e) {
                 anotarErro(resumo, e instanceof Error ? e.message : String(e));
                 console.error(`[${entidade}] erro no documento:`, e);
@@ -755,7 +787,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ ok: true, ambiente, simulado: simular, por_entidade, duracao_ms: Date.now() - t0 });
+    return json({ ok: true, ambiente, simulado: simular, por_entidade, cte_frete: { lote: loteRun, ...cteFrete }, duracao_ms: Date.now() - t0 });
   } catch (e) {
     console.error("[sync-qive-dfe] erro geral:", e);
     return json(
