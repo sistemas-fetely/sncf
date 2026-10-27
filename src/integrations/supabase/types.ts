@@ -20566,6 +20566,11 @@ export type Database = {
           data_liquidacao: string | null
           id: string
           nf_id: string | null
+          nf_retorno_chave: string | null
+          nf_retorno_data: string | null
+          nf_retorno_numero: string | null
+          nf_retorno_stage_id: string | null
+          nfs_remessa_ref: Json | null
           numero: string | null
           observacao: string | null
           parceiro_id: string
@@ -20589,6 +20594,11 @@ export type Database = {
           data_liquidacao?: string | null
           id?: string
           nf_id?: string | null
+          nf_retorno_chave?: string | null
+          nf_retorno_data?: string | null
+          nf_retorno_numero?: string | null
+          nf_retorno_stage_id?: string | null
+          nfs_remessa_ref?: Json | null
           numero?: string | null
           observacao?: string | null
           parceiro_id: string
@@ -20612,6 +20622,11 @@ export type Database = {
           data_liquidacao?: string | null
           id?: string
           nf_id?: string | null
+          nf_retorno_chave?: string | null
+          nf_retorno_data?: string | null
+          nf_retorno_numero?: string | null
+          nf_retorno_stage_id?: string | null
+          nfs_remessa_ref?: Json | null
           numero?: string | null
           observacao?: string | null
           parceiro_id?: string
@@ -20836,6 +20851,111 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vw_trs_nf_natureza_divergente"
             referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_stage"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_conciliacao_furos"
+            referencedColumns: ["sugestao_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_retorno_sem_baixa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_contas_pagar_consolidado"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_cpr_indevida_alvo"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_despesas_match_nf_sugestoes"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_documentos_envio_estados"
+            referencedColumns: ["nf_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nfs_mercadoria"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_a_gerar_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_pessoa"
+            referencedColumns: ["stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_completude"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_mercadoria_pendente"
+            referencedColumns: ["nfs_stage_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nfs_stage_roteada"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pj_notas_fiscais"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "consignado_acerto_nf_retorno_stage_id_fkey"
+            columns: ["nf_retorno_stage_id"]
+            isOneToOne: false
+            referencedRelation: "vw_sugestao_amarra_cartao"
+            referencedColumns: ["nf_stage_id"]
           },
           {
             foreignKeyName: "consignado_acerto_parceiro_id_fkey"
@@ -27509,12 +27629,14 @@ export type Database = {
           cancelado_em: string | null
           cancelado_motivo: string | null
           cancelado_por: string | null
+          chamado_id: string | null
           criado_em: string
           criado_por: string | null
           desfecho: string | null
           destino_retorno: string | null
           encerrado_em: string | null
           encerrado_por: string | null
+          finalidade: string
           fiscal_acao: string | null
           haver_id: string | null
           id: string
@@ -27528,6 +27650,7 @@ export type Database = {
           nf_dev_status: string | null
           nf_devolucao: string | null
           nf_original_id: string | null
+          nf_substituta_id: string | null
           numero: string
           observacao: string | null
           parceiro_id: string | null
@@ -27535,6 +27658,9 @@ export type Database = {
           rastreio_reverso: string | null
           recebido_em: string | null
           recebido_por: string | null
+          reenvio_em: string | null
+          reenvio_erro: string | null
+          reenvio_status: string | null
           reversa_origem: string | null
           sem_retorno_fisico: boolean
           shopify_pedido_id: string | null
@@ -27549,12 +27675,14 @@ export type Database = {
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
+          chamado_id?: string | null
           criado_em?: string
           criado_por?: string | null
           desfecho?: string | null
           destino_retorno?: string | null
           encerrado_em?: string | null
           encerrado_por?: string | null
+          finalidade?: string
           fiscal_acao?: string | null
           haver_id?: string | null
           id?: string
@@ -27568,6 +27696,7 @@ export type Database = {
           nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
+          nf_substituta_id?: string | null
           numero: string
           observacao?: string | null
           parceiro_id?: string | null
@@ -27575,6 +27704,9 @@ export type Database = {
           rastreio_reverso?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
+          reenvio_em?: string | null
+          reenvio_erro?: string | null
+          reenvio_status?: string | null
           reversa_origem?: string | null
           sem_retorno_fisico?: boolean
           shopify_pedido_id?: string | null
@@ -27589,12 +27721,14 @@ export type Database = {
           cancelado_em?: string | null
           cancelado_motivo?: string | null
           cancelado_por?: string | null
+          chamado_id?: string | null
           criado_em?: string
           criado_por?: string | null
           desfecho?: string | null
           destino_retorno?: string | null
           encerrado_em?: string | null
           encerrado_por?: string | null
+          finalidade?: string
           fiscal_acao?: string | null
           haver_id?: string | null
           id?: string
@@ -27608,6 +27742,7 @@ export type Database = {
           nf_dev_status?: string | null
           nf_devolucao?: string | null
           nf_original_id?: string | null
+          nf_substituta_id?: string | null
           numero?: string
           observacao?: string | null
           parceiro_id?: string | null
@@ -27615,6 +27750,9 @@ export type Database = {
           rastreio_reverso?: string | null
           recebido_em?: string | null
           recebido_por?: string | null
+          reenvio_em?: string | null
+          reenvio_erro?: string | null
+          reenvio_status?: string | null
           reversa_origem?: string | null
           sem_retorno_fisico?: boolean
           shopify_pedido_id?: string | null
@@ -27631,6 +27769,69 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "devolucao_canal"
             referencedColumns: ["codigo"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_lista"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_problema_aberto"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_chamado_problema_aberto"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_chamados_sem_dono"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_demanda_sem_motivo"
+            referencedColumns: ["solicitacao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_problemas_esquecidos"
+            referencedColumns: ["chamado_id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_problemas_esquecidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_solicitacoes_comercial"
+            referencedColumns: ["solicitacao_id"]
           },
           {
             foreignKeyName: "devolucao_destino_retorno_fkey"
@@ -27873,6 +28074,209 @@ export type Database = {
           {
             foreignKeyName: "devolucao_nf_original_id_fkey"
             columns: ["nf_original_id"]
+            isOneToOne: false
+            referencedRelation: "vw_trs_nf_natureza_divergente"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "nfs_emitidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_braspress_rastreio_fila"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_ciclo_titulo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_a_apurar"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_candidata"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_comissao_detalhe"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_devolucao_vinculo_mesa"
+            referencedColumns: ["nf_saida_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fato_faturamento"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_faturamento_nf"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_braspress_rastreio"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fila_nf_fora_do_cd"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frete_pedido"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_frete_pedido_link"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_duplicidade_suspeita"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_estado"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_orfa_candidata"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_pedido_resolvido"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_substituicao_sugerida"
+            referencedColumns: ["nf_substituida_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_substituicao_sugerida"
+            referencedColumns: ["nf_substituta_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vinculo_excecao"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_vs_boleto_divergencia"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_pedido_nf_arquivo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reg_remessa_saldo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_reg_remessa_saldo_item"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_regularizacao_trs_nf"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
+            isOneToOne: false
+            referencedRelation: "vw_remessa_venda_fora_sem_vinculo"
+            referencedColumns: ["nf_id"]
+          },
+          {
+            foreignKeyName: "devolucao_nf_substituta_id_fkey"
+            columns: ["nf_substituta_id"]
             isOneToOne: false
             referencedRelation: "vw_trs_nf_natureza_divergente"
             referencedColumns: ["nf_id"]
@@ -29002,9 +29406,11 @@ export type Database = {
         Row: {
           aplica_fiscal_acao: string[] | null
           ativo: boolean
+          campo_funil: string | null
           codigo: string
           descricao: string | null
           fonte: string
+          nao_aplica_sem_retorno: boolean
           natureza: string
           obrigatoria_encerramento: boolean
           ordem: number
@@ -29013,9 +29419,11 @@ export type Database = {
         Insert: {
           aplica_fiscal_acao?: string[] | null
           ativo?: boolean
+          campo_funil?: string | null
           codigo: string
           descricao?: string | null
           fonte: string
+          nao_aplica_sem_retorno?: boolean
           natureza: string
           obrigatoria_encerramento?: boolean
           ordem: number
@@ -29024,9 +29432,11 @@ export type Database = {
         Update: {
           aplica_fiscal_acao?: string[] | null
           ativo?: boolean
+          campo_funil?: string | null
           codigo?: string
           descricao?: string | null
           fonte?: string
+          nao_aplica_sem_retorno?: boolean
           natureza?: string
           obrigatoria_encerramento?: boolean
           ordem?: number
@@ -29099,6 +29509,13 @@ export type Database = {
             columns: ["devolucao_id"]
             isOneToOne: false
             referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "devolucao_item_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
             referencedColumns: ["devolucao_id"]
           },
         ]
@@ -43305,6 +43722,13 @@ export type Database = {
             referencedColumns: ["devolucao_id"]
           },
           {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
             foreignKeyName: "movimentacao_estoque_importacao_pedido_id_fkey"
             columns: ["importacao_pedido_id"]
             isOneToOne: false
@@ -45561,6 +45985,13 @@ export type Database = {
             columns: ["devolucao_id"]
             isOneToOne: false
             referencedRelation: "vw_devolucao_retorno_pendente"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
+            foreignKeyName: "nf_devolucao_vinculo_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
             referencedColumns: ["devolucao_id"]
           },
           {
@@ -86292,6 +86723,13 @@ export type Database = {
             referencedColumns: ["devolucao_id"]
           },
           {
+            foreignKeyName: "vd_devolucao_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["devolucao_id"]
+          },
+          {
             foreignKeyName: "vd_devolucao_pedido_id_fkey"
             columns: ["pedido_id"]
             isOneToOne: false
@@ -121634,16 +122072,26 @@ export type Database = {
       vw_nf_em_pedido_cancelado: {
         Row: {
           cancelado_em: string | null
+          chave_acesso: string | null
           data_emissao: string | null
+          devolucao_fiscal_acao: string | null
+          devolucao_id: string | null
+          devolucao_numero: string | null
           financial_status: string | null
           fonte_cancelamento: string | null
+          horas_desde_emissao: number | null
           ja_substituida: boolean | null
           nf_apos_cancelamento: boolean | null
+          nf_entrada_erro: string | null
+          nf_entrada_numero: string | null
+          nf_entrada_status: string | null
           nf_id: string | null
           numero: string | null
           numero_pedido_loja: string | null
+          pdf_url: string | null
           pedido: string | null
           refunded_amount: number | null
+          regularizada: boolean | null
           serie: string | null
           situacao: string | null
           titulos_indevidos: number | null
@@ -134227,6 +134675,13 @@ export type Database = {
             referencedRelation: "vw_devolucao_retorno_pendente"
             referencedColumns: ["devolucao_id"]
           },
+          {
+            foreignKeyName: "movimentacao_estoque_devolucao_id_fkey"
+            columns: ["devolucao_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_em_pedido_cancelado"
+            referencedColumns: ["devolucao_id"]
+          },
         ]
       }
       vw_rastreio_sem_dimensao: {
@@ -146019,6 +146474,10 @@ export type Database = {
       }
     }
     Functions: {
+      _consignado_remessas_ref: {
+        Args: { p_parceiro_id: string; p_stage_id: string }
+        Returns: Json
+      }
       _fn_comissao_documento_gravar: {
         Args: {
           p_arquivo_path: string
@@ -146031,6 +146490,10 @@ export type Database = {
           p_valor: number
           p_vendedor_id: string
         }
+        Returns: Json
+      }
+      _gerar_pix_provisao_core: {
+        Args: { p_provisao_id: string }
         Returns: Json
       }
       _meio_pagamento_nascida_paga: { Args: never; Returns: string }
@@ -146052,6 +146515,14 @@ export type Database = {
           p_pedido_ref?: string
           p_tipo?: string
         }
+        Returns: Json
+      }
+      abrir_correcao_nf: {
+        Args: { p_dry_run?: boolean; p_motivo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      abrir_devolucao_nf_nao_expedida: {
+        Args: { p_motivo: string; p_nf_id: string }
         Returns: Json
       }
       abrir_incidente_de_achado: {
@@ -146441,7 +146912,7 @@ export type Database = {
         Returns: number
       }
       cancelar_pedido: {
-        Args: { p_motivo: string; p_pedido_id: string }
+        Args: { p_com_nf?: boolean; p_motivo: string; p_pedido_id: string }
         Returns: Json
       }
       cancelar_pedido_inteiro_via_cpr: {
@@ -146937,6 +147408,7 @@ export type Database = {
       }
       criar_pedido_venda_direta: {
         Args: {
+          p_bonificacao?: Json
           p_cliente: Json
           p_entrega: Json
           p_haver_id?: string
@@ -147698,6 +148170,7 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_balcao_bonificacao_motivos: { Args: never; Returns: Json }
       fn_balcao_carimbar_evento: {
         Args: {
           p_desde: string
@@ -147742,7 +148215,7 @@ export type Database = {
         }[]
       }
       fn_balcao_meus_pedidos: {
-        Args: { p_dias?: number; p_fop_profile_id: string }
+        Args: { p_dias?: number; p_escopo?: string; p_fop_profile_id: string }
         Returns: Json[]
       }
       fn_balcao_pedido_detalhe: {
@@ -147784,6 +148257,7 @@ export type Database = {
       }
       fn_balcao_vd_criar: {
         Args: {
+          p_bonificacao?: Json
           p_cliente: Json
           p_entrega: Json
           p_fop_profile_id: string
@@ -148128,6 +148602,11 @@ export type Database = {
         }
         Returns: Json
       }
+      fn_consignado_nf_retorno_candidatas: {
+        Args: { p_acerto_id: string }
+        Returns: Json
+      }
+      fn_consignado_obs_nf: { Args: { p_pedido_id: string }; Returns: Json }
       fn_consignado_remessa_vincular: {
         Args: {
           p_dry_run?: boolean
@@ -148155,6 +148634,10 @@ export type Database = {
           p_obs?: string
           p_parceiro_id: string
         }
+        Returns: Json
+      }
+      fn_consignado_vincular_nf_retorno: {
+        Args: { p_acerto_id: string; p_stage_id: string }
         Returns: Json
       }
       fn_conta_cliente_classe: {
@@ -149257,6 +149740,10 @@ export type Database = {
       }
       fn_nf_eh_venda: { Args: { p_nf_id: string }; Returns: boolean }
       fn_nf_estado_terminal: { Args: { p_nf_id: string }; Returns: string }
+      fn_nf_estornar_estoque: {
+        Args: { p_nf_id: string; p_origem: string }
+        Returns: number
+      }
       fn_nf_fetely_desfazer_ignorar: {
         Args: { p_nf_id: string }
         Returns: Json
@@ -149799,6 +150286,22 @@ export type Database = {
       fn_ref_dinheiro_norm: {
         Args: { p_meio: string; p_ref: string }
         Returns: string
+      }
+      fn_refaturar_original_anulada: {
+        Args: { p_devolucao_id: string; p_origem: string }
+        Returns: Json
+      }
+      fn_refaturar_registrar_reenvio: {
+        Args: { p_devolucao_id: string; p_msg?: string; p_ok: boolean }
+        Returns: Json
+      }
+      fn_refaturar_retentar_reenvio: {
+        Args: { p_devolucao_id: string }
+        Returns: Json
+      }
+      fn_refaturar_trocar_para_nf_entrada: {
+        Args: { p_devolucao_id: string }
+        Returns: Json
       }
       fn_refresh_b2c_faturado_vs_recebido: { Args: never; Returns: undefined }
       fn_refresh_dre: { Args: never; Returns: undefined }
@@ -151192,7 +151695,12 @@ export type Database = {
         Returns: Json
       }
       reenviar_pedido_bling: {
-        Args: { p_ator?: string; p_motivo: string; p_pedido_id: string }
+        Args: {
+          p_ator?: string
+          p_devolucao_id?: string
+          p_motivo: string
+          p_pedido_id: string
+        }
         Returns: Json
       }
       reg_exigir_permissao: { Args: never; Returns: string }
