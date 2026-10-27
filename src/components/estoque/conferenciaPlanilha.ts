@@ -21,18 +21,32 @@ const rotuloItem = (i: ItemConferencia) => i.cod ?? i.sku;
 export async function gerarPlanilhaConferencia(
   itens: ItemConferencia[],
   cab: { titulo: string; pedidoId: string; destino: string },
+  opcoes: { cega?: boolean } = {},
 ): Promise<Blob> {
+  const cega = !!opcoes.cega;
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet("Conferência");
   ws.addRow(["Pedido", cab.titulo]);
   ws.addRow(["Pedido ID", cab.pedidoId]);
   ws.addRow(["Destino", cab.destino]);
   ws.addRow([]);
-  const h = ws.addRow(["Código", "SKU", "Produto", "Enviado", "Recebido", "Avariado", "Diferença"]);
+  const h = ws.addRow(cega
+    ? ["Código", "SKU", "Produto", "Recebido", "Avariado"]
+    : ["Código", "SKU", "Produto", "Enviado", "Recebido", "Avariado", "Diferença"]);
   h.font = { bold: true };
   [1, 2, 3].forEach((r) => (ws.getCell(r, 1).font = { bold: true }));
   ws.columns = [{ width: 12 }, { width: 22 }, { width: 44 }, { width: 11 }, { width: 11 }, { width: 11 }, { width: 11 }];
   itens.forEach((i) => {
+    if (cega) {
+      const row = ws.addRow([i.cod ?? "", i.sku, i.nome ?? "", null, null]);
+      row.getCell(1).numFmt = "@";
+      [4, 5].forEach((c) => {
+        const cell = row.getCell(c);
+        cell.protection = { locked: false };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFFF7D6" } };
+      });
+      return;
+    }
     const row = ws.addRow([i.cod ?? "", i.sku, i.nome ?? "", i.enviado, i.enviado, 0, null]);
     const n = row.number;
     row.getCell(1).numFmt = "@";
@@ -103,7 +117,7 @@ export function validarPlanilhaConferencia(
     const rv = linha[col.rec];
     const av = linha[col.ava];
     const rn = inteiro(rv);
-    const an = inteiro(av);
+    const an = txt(av) === "" ? 0 : inteiro(av);
     if (rn === null) erros.push(`Linha ${nLinha}: Recebido inválido (${txt(rv) || "em branco"})`);
     if (an === null) erros.push(`Linha ${nLinha}: Avariado inválido (${txt(av) || "em branco"})`);
     if (rn !== null) recebido[item.sku] = String(rn);
@@ -115,4 +129,53 @@ export function validarPlanilhaConferencia(
   });
 
   return { erros, recebido, avariado };
+}
+
+/** Folha de contagem cega (A4 retrato) — sem Enviado nem SKU, mesma ordem da grade. */
+export async function gerarFolhaContagemPdf(
+  itens: ItemConferencia[],
+  cab: { titulo: string; destino: string },
+): Promise<Blob> {
+  const { jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const larg = doc.internal.pageSize.getWidth();
+  const alt = doc.internal.pageSize.getHeight();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text(`CONTAGEM CEGA — ${cab.titulo}`, 12, 15);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Destino: ${cab.destino}   Data: ___/___/_____   Conferente: ____________`, 12, 22);
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(9);
+  doc.text("Conte na embalagem de venda (ex.: \u201c(6un.)\u201d = 1 pacote). Item não encontrado = 0. Não deixe linha em branco.", 12, 28);
+  autoTable(doc, {
+    startY: 32,
+    margin: { left: 12, right: 12, bottom: 16 },
+    head: [["Nº", "Código", "Produto", "Contado", "Avariado", "Recontagem", "Obs"]],
+    body: itens.map((i, k) => [String(k + 1), i.cod ?? "", i.nome ?? "", "", "", "", ""]),
+    showHead: "everyPage",
+    theme: "grid",
+    styles: { fontSize: 8.5, minCellHeight: 8, valign: "middle", lineWidth: 0.1, lineColor: [120, 120, 120], textColor: [0, 0, 0] },
+    headStyles: { fillColor: [235, 235, 235], textColor: [0, 0, 0], fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 9, halign: "right" },
+      1: { cellWidth: 18, fontStyle: "bold" },
+      2: { cellWidth: "auto" },
+      3: { cellWidth: 18 },
+      4: { cellWidth: 18 },
+      5: { cellWidth: 22, fillColor: [238, 238, 238] },
+      6: { cellWidth: 28 },
+    },
+  });
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.text(`${cab.titulo} · Assinatura: ________________`, 12, alt - 8);
+    doc.text(`Pág. ${p} de ${total}`, larg - 12, alt - 8, { align: "right" });
+  }
+  return doc.output("blob");
 }

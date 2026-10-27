@@ -27,4 +27,11 @@ describe("validarPlanilhaConferencia", () => {
     expect(r.erros.some((e) => e.startsWith("Linha 8: Item não pertence"))).toBe(true);
     expect(r.erros).toContain("Item B2 ausente na planilha");
   });
+  it("planilha cega: Avariado em branco vira 0, Recebido em branco continua erro", () => {
+    const cabCega = [...cab.slice(0, 4), ["Código", "SKU", "Produto", "Recebido", "Avariado"]];
+    const r = validarPlanilhaConferencia([...cabCega, ["01000", "A1", "X", 9, null], ["", "B2", "Y", null, null]], itens, "p1");
+    expect(r.avariado).toEqual({ A1: "0", B2: "0" });
+    expect(r.recebido).toEqual({ A1: "9" });
+    expect(r.erros).toEqual(["Linha 7: Recebido inválido (em branco)"]);
+  });
 });
