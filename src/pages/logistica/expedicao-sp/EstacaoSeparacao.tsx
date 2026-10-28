@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { CodProduto } from "@/components/produto/CodProduto";
 import { ArrowRight, ImageOff, Loader2, PackageSearch, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -84,24 +85,23 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
     <Card>
       {/* Folha de impressão: escondida na tela, única coisa visível no papel. */}
       <style>{`
+        .folha-separacao-print { display: none; }
         @media print {
-          body * { visibility: hidden; }
-          .folha-separacao, .folha-separacao * { visibility: visible; }
-          .folha-separacao {
+          body > *:not(.folha-separacao-print) { display: none !important; }
+          .folha-separacao-print {
             display: block !important;
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
             font-family: "DM Sans", system-ui, sans-serif;
             color: #000;
             background: #fff;
           }
+          .folha-separacao-print thead { display: table-header-group; }
+          .folha-separacao-print tr { break-inside: avoid; page-break-inside: avoid; }
           @page { size: A4; margin: 15mm; }
         }
       `}</style>
 
-      <div className="hidden folha-separacao" aria-hidden="true">
+      {createPortal(
+      <div className="folha-separacao folha-separacao-print" aria-hidden="true">
         {/* ── Faixa de identificação da caixa (recorte) ── */}
         <div style={{ textAlign: "center" }}>
           <p style={{ fontSize: "12pt", letterSpacing: "0.05em" }}>
@@ -187,7 +187,9 @@ export function EstacaoSeparacao({ itens, carregando, pedido, identidades, onCon
           Pedido {pedido?.id_externo ?? "—"} · {itens.length} {itens.length === 1 ? "linha" : "linhas"} · {totalPecas} peças
          {identidadesPapel.length > 0 ? ` · ${identidadesPapel.join(" · ")}` : ""}
         </p>
-      </div>
+      </div>,
+      document.body,
+      )}
 
       <CardContent className="space-y-4 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
