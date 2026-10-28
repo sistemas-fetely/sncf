@@ -99,7 +99,8 @@ serve(async (req) => {
       let nf: any = null; let excluida = false;
       try { nf = (await bling.get(`/nfe/${dev.nf_dev_bling_id}`))?.data; }
       catch (ge) { if (ge instanceof BlingHttpError && ge.status === 404) excluida = true; else throw ge; }
-      if (excluida || (nf && cancelada(nf))) {
+      // Na API v3 do Bling, situação 2 da NF-e = "Cancelada".
+      if (excluida || (nf && (cancelada(nf) || Number(nf.situacao) === 2))) {
         await registrar("erro", null, null, `NF ${dev.nf_dev_numero ?? "?"} (Bling ${dev.nf_dev_bling_id}) cancelada/excluída no Bling — gere de novo.`);
         return json({ ok: true, autorizada: false, cancelada: true });
       }
