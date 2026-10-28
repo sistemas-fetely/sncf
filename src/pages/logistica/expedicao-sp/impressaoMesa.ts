@@ -47,7 +47,7 @@ function blocoRemetente(d: DadosImpressao): string {
     ${linhas.map((l) => `<br>${esc(l)}`).join("")}${t(r.cep) ? `<br>CEP ${esc(r.cep)}` : ""}${r.completo && t(r.telefone) ? `<br>Tel.: ${esc(r.telefone)}` : ""}</div>`;
 }
 
-/** Etiqueta Fetely (Zebra 100×150), uma por volume. Sem telefone do cliente (dado restrito). */
+/** Etiqueta Fetely (Zebra 100×150), uma por volume. Sem telefone nem documento do cliente (dado sensível fora da caixa). */
 function etiquetaFetely(d: DadosImpressao, faixa?: string): string {
   const n = totalVolumes(d);
   const dest = d.destinatario;
@@ -56,7 +56,6 @@ function etiquetaFetely(d: DadosImpressao, faixa?: string): string {
       ${faixa ? `<div class="destaque">${esc(faixa)}</div>` : ""}
       <div class="lbl">DESTINATÁRIO</div>
       <div class="dest"><div class="nome">${esc(dest.nome)}</div>
-        ${t(dest.documento) ? `<div>Documento: <strong>${esc(dest.documento)}</strong></div>` : ""}
         ${linhasDe(dest).map(esc).join("<br>")}
         ${t(dest.cep) ? `<div class="cep">CEP ${esc(dest.cep)}</div>` : ""}</div>
       ${blocoRemetente(d)}
