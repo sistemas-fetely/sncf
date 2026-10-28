@@ -544,7 +544,6 @@ const App = () => (
                     só como redirecionamento de link antigo. */}
                 <Route path="/expedicao-sp" element={<ExpedicaoSpRedirect />} />
                 <Route path="/logistica/expedicao-sp" element={<ExpedicaoSp />} />
-                
 
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
                 <Route path="/estoque/regularizacao" element={<Navigate to="/pedidos/transferencias?aba=retorno" replace />} />
