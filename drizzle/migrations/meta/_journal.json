@@ -162,6 +162,13 @@
       "when": 1793202844512,
       "tag": "0022_mesa_sp_trava_eventos_postagem_agencia",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793204328835,
+      "tag": "0023_mesa_sp_servico_correios",
+      "breakpoints": true
     }
   ]
 }
