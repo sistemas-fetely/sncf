@@ -291,31 +291,33 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
             ) : comprasQ.error ? (
               <p className="p-4 text-sm text-destructive">Erro: {(comprasQ.error as Error).message}</p>
             ) : (
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Coleção</TableHead>
-                  <TableHead className="text-right">Faturado</TableHead>
-                  <TableHead className="text-right">Kits</TableHead>
-                  <TableHead className="text-right">NFs</TableHead>
-                  <TableHead className="text-right">% do cliente</TableHead>
-                  <TableHead className="text-right">Última compra</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {(comprasQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">Nenhuma compra nesta seleção.</TableCell></TableRow>
-                  )}
-                  {(comprasQ.data ?? []).map((l) => (
-                    <TableRow key={l.chave}>
-                      <TableCell className="font-medium">{l.nome ?? l.chave}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatBRL(l.faturado)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(l.unidades)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(l.nfs)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(l.pct_total, 1)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.ultima_compra ? formatDateBR(l.ultima_compra) : "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="w-full max-w-full overflow-x-auto">
+                <Table className="whitespace-nowrap">
+                  <TableHeader><TableRow>
+                    <TableHead>Coleção</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                    <TableHead className="text-right">Kits</TableHead>
+                    <TableHead className="text-right">NFs</TableHead>
+                    <TableHead className="text-right">% do cliente</TableHead>
+                    <TableHead className="text-right">Última compra</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(comprasQ.data ?? []).length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">Nenhuma compra nesta seleção.</TableCell></TableRow>
+                    )}
+                    {(comprasQ.data ?? []).map((l) => (
+                      <TableRow key={l.chave}>
+                        <TableCell className="max-w-[16rem] truncate font-medium" title={l.nome ?? l.chave}>{l.nome ?? l.chave}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatBRL(l.faturado)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(l.unidades)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(l.nfs)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtPct(l.pct_total, 1)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{l.ultima_compra ? formatDateBR(l.ultima_compra) : "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>
