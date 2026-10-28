@@ -17,6 +17,8 @@
 export type FonteResolucaoCard = "canonico" | "cache" | "api";
 
 /** Chave de casamento: SKU sem espaço/tab e em caixa alta (o Bling grava com tab invisível). */
+// SKU É SÓ INTERNO: as colunas `sku` de bling_produtos_cache / bling_card_canonico guardam o
+// CÓDIGO EXTERNO (sncf_produtos.codigo_externo). Quem chama passa códigos externos, nunca SKU interno.
 export function chaveSku(sku: unknown): string {
   return String(sku ?? "").trim().toUpperCase();
 }
