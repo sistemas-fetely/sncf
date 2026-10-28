@@ -47,16 +47,18 @@ function blocoRemetente(d: DadosImpressao): string {
     ${linhas.map((l) => `<br>${esc(l)}`).join("")}${t(r.cep) ? `<br>CEP ${esc(r.cep)}` : ""}${r.completo && t(r.telefone) ? `<br>Tel.: ${esc(r.telefone)}` : ""}</div>`;
 }
 
-/** Etiqueta de entrega/volume (Zebra 100×150), uma por volume. */
-export function imprimirEtiquetaEntrega(d: DadosImpressao): boolean {
+/** Etiqueta Fetely (Zebra 100×150), uma por volume. Sem telefone do cliente (dado restrito). */
+function etiquetaFetely(d: DadosImpressao, faixa?: string): string {
   const n = totalVolumes(d);
   const dest = d.destinatario;
   const et = (x: number) => `
     <section class="et">
+      ${faixa ? `<div class="destaque">${esc(faixa)}</div>` : ""}
       <div class="lbl">DESTINATÁRIO</div>
-      <div class="dest"><div class="nome">${esc(dest.nome)}</div>${linhasDe(dest).map(esc).join("<br>")}
-        ${t(dest.cep) ? `<div class="cep">CEP ${esc(dest.cep)}</div>` : ""}
-        ${t(dest.telefone) ? `<div>Tel.: ${esc(dest.telefone)}</div>` : ""}</div>
+      <div class="dest"><div class="nome">${esc(dest.nome)}</div>
+        ${t(dest.documento) ? `<div>Documento: <strong>${esc(dest.documento)}</strong></div>` : ""}
+        ${linhasDe(dest).map(esc).join("<br>")}
+        ${t(dest.cep) ? `<div class="cep">CEP ${esc(dest.cep)}</div>` : ""}</div>
       ${blocoRemetente(d)}
       <div class="pe">
         <div>Pedido: <strong>${esc(d.pedido)}</strong></div>
@@ -65,27 +67,17 @@ export function imprimirEtiquetaEntrega(d: DadosImpressao): boolean {
         <div class="vol">Volume ${x} de ${n}</div>
       </div>
     </section>`;
-  return abrir(`Etiquetas ${d.pedido}`, CSS_ZEBRA, Array.from({ length: n }, (_, i) => et(i + 1)).join(""));
+  return Array.from({ length: n }, (_, i) => et(i + 1)).join("");
 }
 
-/** Etiqueta de retirada no balcão (Zebra 100×150), uma por volume. */
+/** Etiqueta de entrega/volume — todos os modais (inclusive Correios, como etiqueta lateral). */
+export function imprimirEtiquetaEntrega(d: DadosImpressao): boolean {
+  return abrir(`Etiquetas ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d));
+}
+
+/** Retirada: mesma etiqueta completa, com faixa "RETIRADA NO BALCÃO" no topo. */
 export function imprimirEtiquetaRetirada(d: DadosImpressao): boolean {
-  const n = totalVolumes(d);
-  const dest = d.destinatario;
-  const et = (x: number) => `
-    <section class="et">
-      <div class="destaque">RETIRADA NO BALCÃO</div>
-      <div class="lbl">CLIENTE</div>
-      <div class="grande">${esc(dest.nome)}</div>
-      ${t(dest.documento) ? `<div>Documento: <strong>${esc(dest.documento)}</strong></div>` : ""}
-      ${t(dest.telefone) ? `<div>Tel.: ${esc(dest.telefone)}</div>` : ""}
-      <div class="pe">
-        <div>Pedido: <strong>${esc(d.pedido)}</strong></div>
-        <div>NF: <strong>${esc(d.nf ?? "—")}</strong></div>
-        <div class="vol">Volume ${x} de ${n}</div>
-      </div>
-    </section>`;
-  return abrir(`Etiquetas retirada ${d.pedido}`, CSS_ZEBRA, Array.from({ length: n }, (_, i) => et(i + 1)).join(""));
+  return abrir(`Etiquetas retirada ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d, "RETIRADA NO BALCÃO"));
 }
 
 const CSS_A4 = `
