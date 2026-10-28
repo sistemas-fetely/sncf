@@ -121399,12 +121399,15 @@ export type Database = {
           etapa: string | null
           etapa_ordem: number | null
           etapa_rotulo: string | null
+          frete_cliente_valor: number | null
+          frete_gratis: boolean | null
           id_externo: string | null
           limite_min: number | null
           minutos_parado: number | null
           pedido_id: string | null
           puxado_em: string | null
           recebido_em: string | null
+          servico_correios: string | null
           ultimo_evento: string | null
           ultimo_evento_em: string | null
           valor_liquido: number | null
@@ -123775,14 +123778,14 @@ export type Database = {
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["categoria_id"]
+            columns: ["plano_contas_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "nfs_stage_plano_contas_id_fkey"
-            columns: ["plano_contas_id"]
+            columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "plano_contas"
             referencedColumns: ["id"]
@@ -124908,14 +124911,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_origem_id"]
+            columns: ["conta_destino_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "movimentacoes_bancarias_conta_bancaria_id_fkey"
-            columns: ["conta_destino_id"]
+            columns: ["conta_origem_id"]
             isOneToOne: false
             referencedRelation: "contas_bancarias"
             referencedColumns: ["id"]
@@ -149879,6 +149882,10 @@ export type Database = {
       }
       fn_mesa_sp_registrar_rastreio: {
         Args: { p_codigo: string; p_pedido_id: string }
+        Returns: Json
+      }
+      fn_mesa_sp_servico_correios: {
+        Args: { p_pedido_id: string }
         Returns: Json
       }
       fn_mesa_sp_solicitar_nf: {

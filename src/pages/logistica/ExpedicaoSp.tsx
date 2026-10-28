@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { EstadoVazio } from "@/components/ui/estado-vazio";
 import { Selo } from "@/components/ui/selo";
+import { SeloServicoCorreios } from "./expedicao-sp/SeloServicoCorreios";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { PageShell } from "@/components/layout/PageShell";
@@ -515,6 +516,19 @@ export default function ExpedicaoSp() {
                          </span>
                        </div>
                      )}
+                     {(() => {
+                       const embSel = embalagemDoPedido(eventosSelecionado);
+                       const correios = embSel?.modal
+                         ? modalPorCodigo.get(embSel.modal)?.exige_etiqueta_correios === true
+                         : !!selecionado.servico_correios;
+                       return correios ? (
+                         <SeloServicoCorreios
+                           servico={selecionado.servico_correios}
+                           freteValor={selecionado.frete_cliente_valor}
+                           freteGratis={selecionado.frete_gratis}
+                         />
+                       ) : null;
+                     })()}
                      {selecionadoEhVD && (
                        <div className="flex flex-wrap items-center gap-2">
                          <Selo estado="info">Site SP · venda direta</Selo>
@@ -743,6 +757,7 @@ export default function ExpedicaoSp() {
                   modoVendaDireta={modoEntregaSelecionado}
                   modalVendaDireta={modalVdSelecionado}
                   modalPreferido={selecionadoEhB2B ? "TRANSPORTADORA" : null}
+                  servicoCorreios={{ servico: selecionado.servico_correios, freteValor: selecionado.frete_cliente_valor, freteGratis: selecionado.frete_gratis }}
                   itens={itensQ.data ?? []}
                   modais={modaisQ.data ?? []}
                   regras={regrasQ.data ?? []}

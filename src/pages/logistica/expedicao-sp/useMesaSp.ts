@@ -52,7 +52,7 @@ export function usePedidosMesaSp() {
       const { data, error } = await supabaseMesa
         .from("vw_mesa_sp_quadro")
         .select(
-          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite",
+          "pedido_id, id_externo, canal, estagio, valor_liquido, recebido_em, endereco_entrega, cliente_nome, cd_codigo, cd_rotulo, etapa, etapa_ordem, etapa_rotulo, limite_min, entrou_em, minutos_parado, estourou_limite, servico_correios, frete_cliente_valor, frete_gratis",
         )
         .order("recebido_em", { ascending: true });
       if (error) throw new Error(`ler quadro da mesa: ${mensagemErro(error)}`);
@@ -62,6 +62,7 @@ export function usePedidosMesaSp() {
         valor_liquido: Number(p.valor_liquido ?? 0),
         minutos_parado: p.minutos_parado == null ? null : Number(p.minutos_parado),
         estourou_limite: p.estourou_limite === true,
+        frete_cliente_valor: p.frete_cliente_valor == null ? null : Number(p.frete_cliente_valor),
       }));
     },
   });

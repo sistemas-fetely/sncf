@@ -15,6 +15,7 @@ import {
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 import { useModalSugerido, usePesoEstimado } from "./useMesaSp";
+import { SeloServicoCorreios } from "./SeloServicoCorreios";
 
 /**
  * Estação 4 — Embalagem. Peso REAL e volumes reais: a RPC recusa peso <= 0
@@ -36,6 +37,8 @@ interface Props {
   modalVendaDireta: string | null;
   /** Modal pré-selecionado fora da venda direta (ex.: B2B → TRANSPORTADORA). Operador pode trocar. */
   modalPreferido?: string | null;
+  /** MESA-SP-SERVICO-CORREIOS: PAC/SEDEX e frete do banco, mostrado quando o modal escolhido é Correios. */
+  servicoCorreios?: { servico: string | null; freteValor: number | null; freteGratis: boolean | null };
   itens: ItemPedidoMesa[];
   modais: ModalEntrega[];
   regras: ModalRegra[];
@@ -60,7 +63,7 @@ interface Props {
 export function EstacaoEmbalagem({
   pedidoId, itens, modais, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
-  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, servicoCorreios,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [pesoEditado, setPesoEditado] = useState(false);
@@ -325,6 +328,13 @@ export function EstacaoEmbalagem({
                 ))}
               </SelectContent>
             </Select>
+            {servicoCorreios && modais.find((m) => m.codigo === modal)?.exige_etiqueta_correios === true && (
+              <SeloServicoCorreios
+                servico={servicoCorreios.servico}
+                freteValor={servicoCorreios.freteValor}
+                freteGratis={servicoCorreios.freteGratis}
+              />
+            )}
           </div>
         </div>
 

@@ -69,6 +69,9 @@ export interface DadosImpressao {
   canal: string | null;
   nf: string | null;
   modal: string | null;
+  servico_correios: string | null;
+  frete_cliente_valor: number | null;
+  frete_gratis: boolean | null;
   volumes: number | null;
   peso_kg: number | null;
   destinatario: EnderecoImpressao & { documento: string | null };
@@ -127,6 +130,10 @@ export interface PedidoMesa {
   entrou_em: string | null;
   minutos_parado: number | null;
   estourou_limite: boolean;
+  /** MESA-SP-SERVICO-CORREIOS: 'PAC' | 'SEDEX' | null, do banco. */
+  servico_correios: string | null;
+  frete_cliente_valor: number | null;
+  frete_gratis: boolean | null;
 }
 
 /** Linha ativa de `mesa_sp_etapa`. */
