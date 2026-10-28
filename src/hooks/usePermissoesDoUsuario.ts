@@ -21,12 +21,13 @@ export function temPermissaoTela(
 }
 
 export function usePermissoesDoUsuario() {
-  const { user, roles } = useAuth();
-  const isSuperAdmin = (roles ?? []).includes("super_admin");
+  const { user } = useAuth();
 
   return useQuery({
     queryKey: ["permissoes-telas", user?.id],
-    enabled: !!user?.id && !isSuperAdmin,
+    // Carrega tambem para super_admin: apps exclusivos exigem a concessao
+    // REAL (o RPC le vw_concessao_viva, sem bypass), e nao o atalho de papel.
+    enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<Set<string>> => {
       const { data, error } = await supabase.rpc("usuario_telas_permitidas", {

@@ -7,6 +7,8 @@ export interface RegraNavegacao {
   status: StatusRota;
   tela_slug: string | null;
   apenas_super_admin: boolean;
+  /** tela_slug do app exclusivo dono da rota; null = rota comum. */
+  exclusivo_slug: string | null;
 }
 
 /**
@@ -22,7 +24,7 @@ export function useNavegacaoPortao() {
     queryFn: async (): Promise<RegraNavegacao[]> => {
       const { data, error } = await (supabase as any).rpc("listar_navegacao_portao");
       if (error) throw error;
-      return (data ?? []) as RegraNavegacao[];
+      return ((data ?? []) as any[]).map((r) => ({ ...r, exclusivo_slug: r.exclusivo_slug ?? null })) as RegraNavegacao[];
     },
   });
 }
