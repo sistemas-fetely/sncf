@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
@@ -81,14 +82,14 @@ export default function ImpressaoPedidoVD() {
   const data = p.data_pedido ? new Date(p.data_pedido).toLocaleDateString("pt-BR") : "—";
   const mapaImg = img.data;
 
-  return (
-    <div className="impressao-vd mx-auto max-w-[210mm] bg-background p-8 text-sm text-foreground">
+  return createPortal(
+    <div className="impressao-vd impressao-vd-print mx-auto max-w-[210mm] bg-background p-8 text-sm text-foreground">
       <style>{`
         @page { size: A4 portrait; margin: 12mm; }
         @media print {
-          body * { visibility: hidden !important; }
-          .impressao-vd, .impressao-vd * { visibility: visible !important; }
-          .impressao-vd { position: absolute; left: 0; top: 0; width: 100%; max-width: none; padding: 0; }
+          body > *:not(.impressao-vd-print) { display: none !important; }
+          .impressao-vd { width: 100%; max-width: none; padding: 0; margin: 0; }
+          .impressao-vd thead { display: table-header-group; }
           .impressao-vd tr { break-inside: avoid; }
           .nao-imprimir { display: none !important; }
         }
@@ -182,6 +183,7 @@ export default function ImpressaoPedidoVD() {
         <div className="border-t pt-1 text-xs text-muted-foreground">Separado por</div>
         <div className="border-t pt-1 text-xs text-muted-foreground">Conferido por</div>
       </footer>
-    </div>
+    </div>,
+    document.body,
   );
 }
