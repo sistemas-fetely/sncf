@@ -1,4 +1,3 @@
-import { useQueryClient } from "@tanstack/react-query";
 import { useEstadoTela } from "@/lib/navegacao";
 import { PageShell } from "@/components/layout/PageShell";
 import { CasaPageHeader } from "@/components/casa/CasaPageHeader";
@@ -7,20 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Lock } from "lucide-react";
-import { atalhoPeriodo, SemAcessoIC } from "./icDados";
+import { atalhoPeriodo, SemAcessoIC, useGiro } from "./icDados";
 import { AbaGiro } from "./AbaGiro";
 import { AbaRanking } from "./AbaRanking";
 
 export default function InteligenciaComercial() {
   const [nav, setNav] = useEstadoTela({ aba: "giro", ini: "", fim: "" });
-  const qc = useQueryClient();
-  const semAcesso = qc
-    .getQueryCache()
-    .getAll()
-    .some((q) => String(q.queryKey[0]).startsWith("ic_rpc_") && q.state.error instanceof SemAcessoIC);
-
   const ini = nav.ini || null;
   const fim = nav.fim || null;
+  // Mesma chave que a aba de giro usa para os KPIs — sonda de acesso sem chamada extra.
+  const sonda = useGiro(ini, fim, "total");
+  const semAcesso = sonda.error instanceof SemAcessoIC;
   const aplicar = (t: Parameters<typeof atalhoPeriodo>[0]) => setNav(atalhoPeriodo(t));
 
   return (
