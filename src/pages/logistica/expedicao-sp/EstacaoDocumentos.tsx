@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
+import { SeloServicoCorreios } from "./SeloServicoCorreios";
 import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, useRegistrarRastreio } from "./useMesaSp";
 
 /**
@@ -42,7 +43,10 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const usaZebra = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume" || d.tipo === "etiqueta_retirada");
   const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
-  const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(x, danfeQ.data); };
+  // Serviço (PAC/SEDEX) só vai ao rodapé da etiqueta quando o modal é Correios (exige rastreio).
+  const ehCorreios = docs.some((d) => d.tipo === "rastreio");
+  const comServico = (x: DadosImpressao): DadosImpressao => (ehCorreios ? x : { ...x, servico_correios: null });
+  const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(comServico(x), danfeQ.data); };
   const etiquetaZebraRetirada = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); };
   const usaRemetente = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume");
 
@@ -103,7 +107,8 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
         );
       case "rastreio":
         return (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <SeloServicoCorreios servico={pedido.servico_correios} freteValor={pedido.frete_cliente_valor} freteGratis={pedido.frete_gratis} />
             <Input
               className="h-8 w-44 font-mono uppercase"
               placeholder="AA123456789BR"
