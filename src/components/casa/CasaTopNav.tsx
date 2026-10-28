@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useCasaApp } from "@/hooks/useCasaApp";
+import { useAppDaRota } from "@/hooks/useAppDaRota";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
 import { useNavegacaoPortao, resolverRegraNavegacao } from "@/hooks/useNavegacaoPortao";
@@ -22,6 +23,7 @@ import { cn } from "@/lib/utils";
  */
 export function CasaTopNav({ className }: { className?: string }) {
   const activeApp = useCasaApp();
+  const appDaRota = useAppDaRota();
   const { pathname } = useLocation();
   const { roles } = useAuth();
   const isSuperAdmin = (roles ?? []).includes("super_admin");
