@@ -730,10 +730,26 @@ export default function CobrancaDetalhe() {
   const pedidoHidratadoRef = useRef<string | null>(null);
   const lastCreditoAplicadoRef = useRef<number>(0);
   const lastJaPagoPedidoRef = useRef<number>(0);
+  // DEFASAGEM: proposta em cache calculada com outro valor do pedido → relê.
+  const valorLiquidoAtual = pedidoQ.data?.valor_liquido;
+  const valorDaProposta = propostaQ.data?.valor_total;
+  useEffect(() => {
+    if (valorLiquidoAtual == null || valorDaProposta == null || propostaQ.isFetching) return;
+    if (Math.abs(Number(valorLiquidoAtual) - Number(valorDaProposta)) > 0.005) {
+      pedidoHidratadoRef.current = null;
+      propostaQ.refetch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valorLiquidoAtual, valorDaProposta]);
+
   useEffect(() => {
     if (!propostaQ.data?.titulos_propostos) return;
     if (!pedidoId) return;
     if (pedidoHidratadoRef.current === pedidoId) return;
+    if (
+      pedidoQ.data?.valor_liquido != null &&
+      Math.abs(Number(pedidoQ.data.valor_liquido) - Number(propostaQ.data.valor_total)) > 0.005
+    ) return; // espera a proposta relida
     if (paramDiasQ.isLoading || paramIntervaloQ.isLoading) return;
 
     const vDiasParam = Number(paramDiasQ.data?.[0]?.valor);
@@ -962,17 +978,40 @@ export default function CobrancaDetalhe() {
   };
 
 
-  const handleRecalcular = () => {
-    if (!propostaQ.data?.titulos_propostos) return;
-    const novos = montarLinhasDaProposta(propostaQ.data.titulos_propostos, diasPrimeiroPagamento, intervaloDias);
-    setTitulos((prev) => {
-      if (parcelasIguais) {
-        return redistribuirValoresIguais(novos, valorTotalCobrar);
+  // RECALCULAR-RELÊ-O-PEDIDO: relê pedido e proposta no banco (o valor vem do
+  // total atual do pedido) e refaz as linhas mantendo a condição aprovada.
+  // A checagem de crédito acompanha sozinha, pois mede as linhas em tela.
+  const [recalculando, setRecalculando] = useState(false);
+  const handleRecalcular = async () => {
+    setRecalculando(true);
+    try {
+      const [ped, prop] = await Promise.all([pedidoQ.refetch(), propostaQ.refetch()]);
+      if (ped.error) throw ped.error;
+      if (prop.error) throw prop.error;
+      if (!prop.data?.titulos_propostos) return;
+      const novos = montarLinhasDaProposta(prop.data.titulos_propostos, diasPrimeiroPagamento, intervaloDias);
+      const comLinkMudou = titulos.filter((t) => {
+        if (!t.link_pagamento) return false;
+        const nova = novos.find((n) => n.numero_parcela === t.numero_parcela);
+        return !nova || Math.abs(Number(nova.valor_bruto) - Number(t.valor_bruto)) > 0.005;
+      });
+      setTitulos(novos);
+      const total = Math.max(0, Number(ped.data?.valor_liquido ?? prop.data.valor_total ?? 0) - creditoAplicado);
+      setValorTotalCobrar(Math.round(total * 100) / 100);
+      setParcelasIguais(false);
+      setPlanoEditado(false);
+      if (comLinkMudou.length > 0) {
+        toast({
+          title: "Valor de parcela com link mudou",
+          description: `Parcela(s) ${comLinkMudou.map((t) => t.numero_parcela).join(", ")} tinha(m) link de pagamento e o valor mudou — gere o link de novo.`,
+          variant: "destructive",
+        });
       }
-      return novos;
-    });
-    setParcelasIguais(false);
-    setPlanoEditado(false);
+    } catch (e) {
+      toast({ title: "Erro ao recalcular", description: (e as Error).message, variant: "destructive" });
+    } finally {
+      setRecalculando(false);
+    }
   };
 
   // Loading
