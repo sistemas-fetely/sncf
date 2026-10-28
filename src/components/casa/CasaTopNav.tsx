@@ -2,7 +2,8 @@ import { useMemo } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { useCasaApp } from "@/hooks/useCasaApp";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissoesDoUsuario, TELAS_PUBLICAS } from "@/hooks/usePermissoesDoUsuario";
+import { usePermissoesDoUsuario, TELAS_PUBLICAS, temPermissaoTela } from "@/hooks/usePermissoesDoUsuario";
+import { useNavegacaoPortao, resolverRegraNavegacao } from "@/hooks/useNavegacaoPortao";
 import { useNavegacaoMenu, type LinhaMenu } from "@/hooks/useMenuApp";
 import { useTelasVisiveis } from "@/hooks/useTelasVisiveis";
 import { CASA_APPS, type CasaApp } from "./CasaApps";
@@ -26,6 +27,14 @@ export function CasaTopNav({ className }: { className?: string }) {
   const isSuperAdmin = (roles ?? []).includes("super_admin");
   const { data: permitidas } = usePermissoesDoUsuario();
   const { data: linhas } = useNavegacaoMenu();
+  const { data: nav } = useNavegacaoPortao();
+
+  /** tela_slugs de apps exclusivos: o atalho de super_admin nao vale para eles. */
+  const slugsExclusivos = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of nav ?? []) if (r.exclusivo_slug) set.add(r.exclusivo_slug);
+    return set;
+  }, [nav]);
 
   /** chave da tabela -> entrada legada de CASA_APPS (fallback de rota/matchers) */
   const legadoPorChave = useMemo(() => {
@@ -46,6 +55,11 @@ export function CasaTopNav({ className }: { className?: string }) {
   const visibleApps = useMemo(
     () =>
       appsTop.filter((app) => {
+        const exclusivo =
+          (app.tela_slug && slugsExclusivos.has(app.tela_slug) ? app.tela_slug : null) ??
+          (app.rota ? resolverRegraNavegacao(app.rota, nav)?.exclusivo_slug ?? null : null);
+        // App exclusivo: so com concessao real, sem atalho de super_admin.
+        if (exclusivo) return temPermissaoTela(exclusivo, permitidas);
         if (isSuperAdmin) return true;
         if (app.apenas_super_admin) return false;
         // tela_slug nulo => app publico da barra, aparece normalmente.
@@ -59,7 +73,7 @@ export function CasaTopNav({ className }: { className?: string }) {
         }
         return false;
       }),
-    [appsTop, isSuperAdmin, permitidas, legadoPorChave]
+    [appsTop, isSuperAdmin, permitidas, legadoPorChave, slugsExclusivos, nav]
   );
 
   /** rotas de sidebar de cada app, na ordem grupo -> item */
