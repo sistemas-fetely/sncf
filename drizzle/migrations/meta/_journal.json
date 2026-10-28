@@ -141,6 +141,13 @@
       "when": 1793114777063,
       "tag": "0019_consignado_nf_retorno_pix_obs",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793194940465,
+      "tag": "0020_mesa_sp_caixa_aprende",
+      "breakpoints": true
     }
   ]
 }
