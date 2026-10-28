@@ -81,12 +81,10 @@ export default function FluxoRecebimentos() {
   const futuros = useMemo(() => noHorizonte(filtrados, hoje, horizonte), [filtrados, hoje, horizonte]);
   const periodos = useMemo(() => agruparPeriodos(futuros, ver), [futuros, ver]);
   const canaisVis = useMemo(() => canaisTodos.filter((c) => periodos.some((p) => p.porCanal[c])), [canaisTodos, periodos]);
-  const atrasados = useMemo(
-    () => filtrados.filter((r) => r.eh_atrasado).sort((a, b) => (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0)),
-    [filtrados],
-  );
-  const totAtrasado = somar(atrasados).total;
   const temTaxaAusente = filtrados.some((r) => r.taxa_ausente);
+
+  // Tela da cobrança programada A VENCER: nada atrasado entra em card, gráfico, tabela ou drawer.
+  const aVencer = useMemo(() => todos.filter((r) => !r.eh_atrasado), [todos]);
 
   const cards = [7, 30, 90].map((d) => ({ d, ...somar(noHorizonte(filtrados, hoje, d)) }));
 
@@ -109,7 +107,7 @@ export default function FluxoRecebimentos() {
     <PageShell className="min-w-0 max-w-full">
       <PageHeader
         titulo={nav?.label ?? ""}
-        estado={q.data ? `${todos.length} recebíveis em aberto · horizonte de ${horizonte} dias` : undefined}
+        estado={q.data ? `${aVencer.length} recebíveis a vencer · horizonte de ${horizonte} dias` : undefined}
       />
 
       {q.error ? (
@@ -122,7 +120,7 @@ export default function FluxoRecebimentos() {
       ) : (
         <div className="space-y-4">
           {/* Cards */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             {cards.map((c, i) => (
               <Card key={c.d}>
                 <CardContent className="p-4">
@@ -136,17 +134,6 @@ export default function FluxoRecebimentos() {
                 </CardContent>
               </Card>
             ))}
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Atrasado a cobrar</p>
-                {q.isLoading ? <Skeleton className="mt-2 h-7 w-28" /> : (
-                  <>
-                    <p className="mt-1 truncate text-xl font-semibold text-destructive md:text-2xl">{formatBRL(totAtrasado)}</p>
-                    <p className="text-xs text-muted-foreground">{atrasados.length} recebíveis</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Controles */}
@@ -197,7 +184,7 @@ export default function FluxoRecebimentos() {
           <Card className="min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Entradas por {GRANS.find((g) => g.v === ver)!.l.toLowerCase()}</CardTitle>
-              <p className="text-xs text-muted-foreground">Cor cheia = firme · cor clara = incerto. Atrasados não entram.</p>
+              <p className="text-xs text-muted-foreground">Cor cheia = firme · cor clara = incerto (a vencer).</p>
             </CardHeader>
             <CardContent className="h-72 min-w-0">
               {q.isLoading ? <Skeleton className="h-full w-full" /> : periodos.length === 0 ? (
@@ -254,43 +241,6 @@ export default function FluxoRecebimentos() {
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Atrasados */}
-          <Card className="min-w-0">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base">Atrasados</CardTitle>
-              <span className="text-sm font-semibold text-destructive">{formatBRL(totAtrasado)}</span>
-            </CardHeader>
-            <CardContent className="min-w-0 p-0">
-              {atrasados.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground">{q.isLoading ? "Carregando…" : "Nenhum recebível atrasado."}</p>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <Table className="whitespace-nowrap">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead><TableHead>Título</TableHead><TableHead>Canal</TableHead>
-                        <TableHead>Crédito esperado</TableHead><TableHead className="text-right">Dias de atraso</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {atrasados.map((r) => (
-                        <TableRow key={`${r.origem}-${r.origem_id}`}>
-                          <TableCell className="max-w-[16rem] truncate" title={r.cliente ?? ""}>{r.cliente ?? "—"}</TableCell>
-                          <TableCell>{r.numero_titulo ?? "—"}</TableCell>
-                          <TableCell>{canalDe(r)}</TableCell>
-                          <TableCell>{r.dia_credito ? ddmm(r.dia_credito) : "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{r.dias_atraso ?? 0}</TableCell>
-                          <TableCell className="text-right tabular-nums">{formatBRL(valor(r))}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>

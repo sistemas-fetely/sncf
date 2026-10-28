@@ -90,7 +90,10 @@ export function somar(rs: Recebivel[]) {
   return { total, firme };
 }
 
-/** Agrupa (já filtrados, sem atrasados) por período em ordem cronológica, com acumulado. */
+/** Agrupa (já filtrados, sem atrasados) por período em ordem cronológica, com acumulado.
+ * Ponto de extensão (futuro, não implementado): o domínio do agrupamento é a chave de período +
+ * canal, então uma segunda série (saídas de contas a pagar) pode reaproveitar a mesma estrutura
+ * de período, e um `saldo` por dia sai da diferença entradas − saídas antes do acumulado. */
 export function agruparPeriodos(rs: Recebivel[], g: Granularidade): Periodo[] {
   const mapa = new Map<string, Periodo>();
   for (const r of rs) {
