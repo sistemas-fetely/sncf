@@ -214,6 +214,7 @@ const ClientesLista = lazy(() => import("@/pages/clientes/ClientesLista"));
 const EstoqueVirtual = lazy(() => import("@/pages/Comercial/EstoqueVirtual"));
 const ConsignadoDetalhe = lazy(() => import("@/pages/Comercial/ConsignadoDetalhe"));
 const Consignados = lazy(() => import("@/pages/Comercial/Consignados"));
+const InteligenciaComercial = lazy(() => import("@/pages/Comercial/inteligencia/InteligenciaComercial"));
 const RepresentantesPainel = lazy(() => import("@/pages/Comercial/representantes/RepresentantesPainel"));
 const RepresentanteFicha = lazy(() => import("@/pages/Comercial/representantes/RepresentanteFicha"));
 const ExtratosLoteImpressao = lazy(() => import("@/pages/Comercial/representantes/ExtratosLoteImpressao"));
@@ -572,6 +573,7 @@ const App = () => (
                   do layout, sem o menu lateral. */}
               <Route element={<VendasLayout />}>
                 <Route path="/comercial/consignados" element={<Consignados />} />
+                <Route path="/comercial/inteligencia" element={<InteligenciaComercial />} />
                 <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
                 {/* Comercial — Comissões de Representante (menu comercial.comissoes):
                     MESMA-CASCA-DO-PILAR — movidas para dentro do VendasLayout para
