@@ -192,15 +192,15 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
   return (
     <div className="mt-4 space-y-6">
       {/* a) filtros */}
-      <Card>
-        <CardContent className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-4">
+      <Card className="min-w-0">
+        <CardContent className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4 p-4">
           {opQ.isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando filtros…</div>
           ) : opQ.error ? (
             <p className="text-sm text-destructive">Erro: {(opQ.error as Error).message}</p>
           ) : (
             <>
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <Bloco titulo="Categoria" ativo={cats.length > 0} onLimpar={() => mudarCats([])}>
                   <div className="flex flex-wrap gap-1">
                     {categorias.map((c) => (
@@ -222,8 +222,8 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
                     <div key={g.cat}>
                       <div className="text-xs font-semibold text-muted-foreground">{g.cat}</div>
                       {g.cols.map((c) => (
-                        <label key={c} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
-                          <Checkbox checked={cols.includes(c)} onCheckedChange={() => mudarCols(alternar(cols, c))} />{c}
+                        <label key={c} className="flex min-w-0 cursor-pointer items-center gap-2 py-0.5 text-sm" title={c}>
+                          <Checkbox checked={cols.includes(c)} onCheckedChange={() => mudarCols(alternar(cols, c))} /><span className="min-w-0 truncate">{c}</span>
                         </label>
                       ))}
                     </div>
@@ -235,8 +235,8 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
                   {cols.length === 0 ? <p className="text-sm text-muted-foreground">Escolha uma coleção</p>
                     : modelos.length === 0 ? <p className="text-sm text-muted-foreground">Sem modelos</p>
                     : modelos.map((m) => (
-                      <label key={m} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
-                        <Checkbox checked={mods.includes(m)} onCheckedChange={() => setNav({ mods: juntar(alternar(mods, m)) })} />{m}
+                      <label key={m} className="flex min-w-0 cursor-pointer items-center gap-2 py-0.5 text-sm" title={m}>
+                        <Checkbox checked={mods.includes(m)} onCheckedChange={() => setNav({ mods: juntar(alternar(mods, m)) })} /><span className="min-w-0 truncate">{m}</span>
                       </label>
                     ))}
                 </div>
