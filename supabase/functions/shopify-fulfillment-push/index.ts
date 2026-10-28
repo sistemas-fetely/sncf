@@ -33,6 +33,11 @@
 // do Shopify — se o pedido ja tem fulfillment com esse rastreio, pula em silencio.
 // `shopify_fulfillments` (espelho do webhook) e usado so como pre-filtro barato.
 //
+// CORRECAO DE RASTREIO (28/10/2026): envio Correios ja existente com codigo diferente do
+// vigente no SNCF (o antigo saiu de pedido_rastreamento) -> fulfillmentTrackingInfoUpdate
+// notificando o cliente + evento `shopify_rastreio_atualizado`. Pedidos ja fulfillados
+// nos ultimos 30 dias entram so para isso.
+//
 // Auth: `x-cron-secret` contra `get_vault_secret('SYNC_CRON_SECRET')`, ou usuario
 //       autenticado para disparo manual.
 //
