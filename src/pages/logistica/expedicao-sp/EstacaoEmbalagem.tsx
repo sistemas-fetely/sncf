@@ -15,6 +15,7 @@ import {
   type CaixaSugerida, type ItemChecklistEmbalagem, type ItemPedidoMesa, type ModalEntrega, type ModalRegra,
 } from "./tipos";
 import { useModalSugerido, usePesoEstimado } from "./useMesaSp";
+import { SeloServicoCorreios } from "./SeloServicoCorreios";
 
 /**
  * Estação 4 — Embalagem. Peso REAL e volumes reais: a RPC recusa peso <= 0
@@ -62,7 +63,7 @@ interface Props {
 export function EstacaoEmbalagem({
   pedidoId, itens, modais, checklist,
   marcados, marcandoItemId, onAlternarMarcacao,
-  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false,
+  caixas, carregandoCaixas, erroCaixas, salvando, onEmbalar, bloqueado = false, servicoCorreios,
 }: Props) {
   const [peso, setPeso] = useState("");
   const [pesoEditado, setPesoEditado] = useState(false);
