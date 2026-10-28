@@ -825,6 +825,10 @@ export default function CobrancaDetalhe() {
       })),
     [titulos],
   );
+  const impactoPlanoQ = useAvaliarImpactoPlano({
+    pedidoId: pedidoQ.data?.id,
+    linhas: linhasParaImpacto,
+  );
   const valorACobrar = Math.max(0, valorPedido - creditoAplicado);
   const diff = totalEditado - valorACobrar;
   const pctDiff = valorACobrar > 0 ? Math.abs(diff) / valorACobrar : 0;
