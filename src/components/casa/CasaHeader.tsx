@@ -13,11 +13,16 @@ import { RecentesEFavoritos } from "@/components/navegacao/RecentesEFavoritos";
 import { ReportarErroBotao } from "@/components/shared/ReportarErroBotao";
 import { SinoNotificacoes } from "@/components/shared/SinoNotificacoes";
 import { useCasaApp } from "@/hooks/useCasaApp";
+import { useAppDaRota } from "@/hooks/useAppDaRota";
 
 
 export function CasaHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const activeApp = useCasaApp();
+  const appDaRota = useAppDaRota();
+  // APP-DONO-DA-ROTA (28/10/2026): o rótulo ao lado da marca vem do app dono da
+  // rota na tabela — senão a marca diria "Finanças" enquanto a aba acesa é outra.
+  const rotuloApp = appDaRota?.appLinha?.label ?? activeApp.label;
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background">
