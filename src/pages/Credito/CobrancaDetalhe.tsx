@@ -30,6 +30,7 @@ import {
 import { useLinhasCobrancaPedido, type LinhaCobrancaPedido } from "@/hooks/pedidos/useLinhasCobrancaPedido";
 
 import { usePropostaCobranca } from "@/hooks/credito/usePropostaCobranca";
+import { useAvaliarImpactoPlano } from "@/hooks/credito/useAvaliarImpactoPlano";
 import { useMaterializarCobranca } from "@/hooks/credito/useMaterializarCobranca";
 import { useMaterializarComHaver } from "@/hooks/credito/useMaterializarComHaver";
 import { useHaverDisponivelCliente } from "@/hooks/credito/useHaverDisponivelCliente";
@@ -924,6 +925,12 @@ export default function CobrancaDetalhe() {
     });
   };
 
+  // CRÉDITO: mesma medição do banner (cache compartilhado). Acima do disponível sem
+  // alçada → bloqueia; a saída é o "Devolver para análise de crédito" do banner.
+  const envPlano = impactoPlanoQ.data?.envelope;
+  const acimaDoDisponivel =
+    envPlano?.cabe_no_limite_disponivel === false && envPlano?.alcada_cobre !== true;
+
   const podeMaterializar =
     !!pedidoId && titulos.length > 0 && !temValorInvalido && !temDataPassada;
 
@@ -1298,11 +1305,20 @@ export default function CobrancaDetalhe() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-base">Proposta de títulos</CardTitle>
-          <Button variant="outline" size="sm" onClick={handleRecalcular} title="Volta ao plano de vencimentos aprovado pelo crédito, descartando edições manuais">
-            <RefreshCcw className="h-4 w-4" /> Recalcular
+          <Button variant="outline" size="sm" onClick={handleRecalcular} disabled={recalculando} title="Relê o valor atual do pedido e refaz o plano pela condição aprovada, descartando edições manuais">
+            {recalculando ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCcw className="h-4 w-4" />} Recalcular
           </Button>
         </CardHeader>
         <CardContent>
+          {propostaQ.data?.plano_recalculado && propostaQ.data.valor_aprovado_plano != null && (
+            <Alert className="mb-2 border-info/40 bg-info/5">
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Valor do pedido mudou de {fmtBRL.format(Number(propostaQ.data.valor_aprovado_plano))} para{" "}
+                {fmtBRL.format(Number(propostaQ.data.valor_total))} desde a aprovação — plano recalculado.
+              </AlertDescription>
+            </Alert>
+          )}
           <ImpactoEdicaoBanner
             pedidoId={pedidoQ.data?.id}
             linhas={linhasParaImpacto}
@@ -1694,9 +1710,11 @@ export default function CobrancaDetalhe() {
             </Button>
             <Button
               onClick={handleAceitar}
-              disabled={!podeMaterializar || montarPlano.isPending || !coberturaPortaoOk}
+              disabled={!podeMaterializar || montarPlano.isPending || !coberturaPortaoOk || acimaDoDisponivel || recalculando}
               title={
-                !coberturaPortaoOk
+                acimaDoDisponivel
+                  ? "O plano passa do crédito disponível — devolva para nova análise de crédito."
+                  : !coberturaPortaoOk
                   ? `Faltam ${fmtBRL.format(faltaPortaoRS)} marcados como pagamento antecipado para atingir o mínimo de ${portaoMinimoPct.toFixed(0)}% exigido neste pedido.`
                   : undefined
               }
