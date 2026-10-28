@@ -42,6 +42,8 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const usaZebra = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume" || d.tipo === "etiqueta_retirada");
   const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
+  const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(x, danfeQ.data); };
+  const etiquetaZebraRetirada = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); };
   const usaRemetente = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume");
 
   function imprimir(d: DocumentoMesa, fn: (x: DadosImpressao) => boolean) {
@@ -74,6 +76,10 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
           {dadosQ.isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}{rotulo}
         </Button>
         {caixaMarcacao(d)}
+        {fn === etiquetaZebraEntrega || fn === etiquetaZebraRetirada ? (
+          danfeQ.isFetching ? <span className="text-xs text-muted-foreground">Lendo DANFE etiqueta…</span>
+          : avisoDanfe ? <span className="text-xs text-warning" title={danfeQ.error ? formatError(danfeQ.error) : undefined}>{avisoDanfe}</span> : null
+        ) : null}
       </div>
     );
   }
@@ -125,9 +131,9 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
         );
       case "etiqueta_entrega":
       case "etiqueta_volume":
-        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, (x) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(x, danfeQ.data); });
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, etiquetaZebraEntrega);
       case "etiqueta_retirada":
-        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, (x) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); });
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, etiquetaZebraRetirada);
       case "termo_retirada":
         return botaoImprimir(d, "Imprimir termo", imprimirTermoRetirada);
       case "comprovante_coleta":
