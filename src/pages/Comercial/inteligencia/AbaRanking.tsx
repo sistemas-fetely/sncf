@@ -25,10 +25,10 @@ function dataCurta(d: string | null) {
 
 function Bloco({ titulo, onLimpar, ativo, children }: { titulo: string; onLimpar: () => void; ativo: boolean; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{titulo}</span>
-        {ativo && <button type="button" className="text-xs text-primary hover:underline" onClick={onLimpar}>limpar</button>}
+    <div className="min-w-0 space-y-2">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">{titulo}</span>
+        {ativo && <button type="button" className="shrink-0 text-xs text-primary hover:underline" onClick={onLimpar}>limpar</button>}
       </div>
       {children}
     </div>
@@ -70,14 +70,14 @@ function ListaRanking({
   const max = Math.max(1, ...linhas.map((l) => l.faturado));
   const vis = todos ? linhas : linhas.slice(0, 15);
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base">{titulo}</CardTitle>
-        <Button size="sm" variant="outline" disabled={!linhas.length} onClick={() => exportarCsv(arquivo, linhas, cliente)}>
+    <Card className="min-w-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+        <CardTitle className="min-w-0 truncate text-base">{titulo}</CardTitle>
+        <Button size="sm" variant="outline" className="shrink-0" disabled={!linhas.length} onClick={() => exportarCsv(arquivo, linhas, cliente)}>
           <Download className="mr-1 h-4 w-4" />CSV
         </Button>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="min-w-0 space-y-1">
         {q.isLoading ? (
           <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando…</div>
         ) : q.error ? (
@@ -94,19 +94,25 @@ function ListaRanking({
               className={cn("relative block w-full overflow-hidden rounded px-2 py-1.5 text-left", onClicar && "hover:bg-muted", selecionado === l.chave && "bg-muted ring-1 ring-primary")}
             >
               <div className="absolute inset-y-0 left-0 bg-primary/10" style={{ width: `${(l.faturado / max) * 100}%` }} />
-              <div className="relative flex items-center gap-2">
+              <div className="relative flex min-w-0 items-center gap-2">
                 <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{l.posicao}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">
+                  <div
+                    className="truncate text-sm font-medium"
+                    title={cliente ? [l.nome, l.tipo_pessoa === "PJ" && l.documento ? formatCNPJ(l.documento) : null].filter(Boolean).join(" · ") : undefined}
+                  >
                     {cliente ? l.nome ?? "—" : l.chave}
-                    {cliente && l.tipo_pessoa === "PJ" && l.documento && <span className="ml-2 text-xs font-normal text-muted-foreground">{formatCNPJ(l.documento)}</span>}
                   </div>
-                  <div className="truncate text-xs text-muted-foreground">
+                  <div
+                    className="truncate text-xs text-muted-foreground"
+                    title={cliente ? `${l.tipo_pessoa === "PJ" ? "Lojista" : "Consumidor"} · ${[l.cidade, l.uf].filter(Boolean).join("/") || "—"} · ${l.tipo_pessoa === "PJ" && l.documento ? formatCNPJ(l.documento) + " · " : ""}${fmtInt(l.nfs)} NFs · última ${dataCurta(l.ultima_compra)}` : undefined}
+                  >
+                    {cliente && l.tipo_pessoa === "PJ" && l.documento && <>{formatCNPJ(l.documento)} · </>}
                     {cliente && <>{l.tipo_pessoa === "PJ" ? "Lojista" : "Consumidor"} · {[l.cidade, l.uf].filter(Boolean).join("/") || "—"} · </>}
                     {fmtInt(l.nfs)} NFs · última {dataCurta(l.ultima_compra)}
                   </div>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="shrink-0 whitespace-nowrap text-right">
                   <div className="text-sm tabular-nums">{formatBRL(l.faturado)}</div>
                   <div className="text-xs tabular-nums text-muted-foreground">{fmtPct(l.pct_total, 1)}</div>
                 </div>
@@ -184,17 +190,17 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
   const mudarCols = (v: string[]) => setNav({ cols: juntar(v), mods: "", nums: "" });
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-4 min-w-0 max-w-full space-y-6">
       {/* a) filtros */}
-      <Card>
-        <CardContent className="grid gap-4 p-4 lg:grid-cols-2 xl:grid-cols-4">
+      <Card className="min-w-0">
+        <CardContent className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4 p-4">
           {opQ.isLoading ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando filtros…</div>
           ) : opQ.error ? (
             <p className="text-sm text-destructive">Erro: {(opQ.error as Error).message}</p>
           ) : (
             <>
-              <div className="space-y-4">
+              <div className="min-w-0 space-y-4">
                 <Bloco titulo="Categoria" ativo={cats.length > 0} onLimpar={() => mudarCats([])}>
                   <div className="flex flex-wrap gap-1">
                     {categorias.map((c) => (
@@ -216,8 +222,8 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
                     <div key={g.cat}>
                       <div className="text-xs font-semibold text-muted-foreground">{g.cat}</div>
                       {g.cols.map((c) => (
-                        <label key={c} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
-                          <Checkbox checked={cols.includes(c)} onCheckedChange={() => mudarCols(alternar(cols, c))} />{c}
+                        <label key={c} className="flex min-w-0 cursor-pointer items-center gap-2 py-0.5 text-sm" title={c}>
+                          <Checkbox checked={cols.includes(c)} onCheckedChange={() => mudarCols(alternar(cols, c))} /><span className="min-w-0 truncate">{c}</span>
                         </label>
                       ))}
                     </div>
@@ -229,8 +235,8 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
                   {cols.length === 0 ? <p className="text-sm text-muted-foreground">Escolha uma coleção</p>
                     : modelos.length === 0 ? <p className="text-sm text-muted-foreground">Sem modelos</p>
                     : modelos.map((m) => (
-                      <label key={m} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
-                        <Checkbox checked={mods.includes(m)} onCheckedChange={() => setNav({ mods: juntar(alternar(mods, m)) })} />{m}
+                      <label key={m} className="flex min-w-0 cursor-pointer items-center gap-2 py-0.5 text-sm" title={m}>
+                        <Checkbox checked={mods.includes(m)} onCheckedChange={() => setNav({ mods: juntar(alternar(mods, m)) })} /><span className="min-w-0 truncate">{m}</span>
                       </label>
                     ))}
                 </div>
@@ -250,7 +256,7 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
       </Card>
 
       {/* b) KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3">
         {[
           ["Faturado", formatBRL(totalFat)],
           ["Kits", fmtInt(totalKits)],
@@ -258,15 +264,15 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
           ["Estados", fmtInt((ufQ.data ?? []).length)],
           ["% dos 5 maiores", fmtPct(top5, 1)],
         ].map(([r, v]) => (
-          <Card key={r}><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{r}</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{cliQ.isLoading ? "…" : v}</div>
+          <Card key={r} className="min-w-0"><CardContent className="min-w-0 p-4">
+            <div className="truncate text-xs text-muted-foreground" title={r}>{r}</div>
+            <div className="mt-1 truncate whitespace-nowrap text-lg font-semibold tabular-nums md:text-xl" title={String(cliQ.isLoading ? "…" : v)}>{cliQ.isLoading ? "…" : v}</div>
           </CardContent></Card>
         ))}
       </div>
 
       {/* c) listas */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-4">
         <ListaRanking titulo="Top clientes" q={cliQ} cliente selecionado={nav.cli}
           onClicar={(l) => setNav({ cli: nav.cli === l.chave ? "" : l.chave })} arquivo="top_clientes.csv" />
         <ListaRanking titulo="Top estados" q={ufQ} cliente={false} arquivo="top_estados.csv" />
@@ -274,42 +280,44 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
 
       {/* d) compras do cliente */}
       {nav.cli && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">Compras de {clienteSel?.nome ?? "cliente"}</CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setNav({ cli: "" })}><X className="mr-1 h-4 w-4" />Fechar</Button>
+        <Card className="min-w-0">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="min-w-0 truncate text-base">Compras de {clienteSel?.nome ?? "cliente"}</CardTitle>
+            <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setNav({ cli: "" })}><X className="mr-1 h-4 w-4" />Fechar</Button>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="min-w-0 p-0">
             {comprasQ.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando…</div>
             ) : comprasQ.error ? (
               <p className="p-4 text-sm text-destructive">Erro: {(comprasQ.error as Error).message}</p>
             ) : (
-              <Table>
-                <TableHeader><TableRow>
-                  <TableHead>Coleção</TableHead>
-                  <TableHead className="text-right">Faturado</TableHead>
-                  <TableHead className="text-right">Kits</TableHead>
-                  <TableHead className="text-right">NFs</TableHead>
-                  <TableHead className="text-right">% do cliente</TableHead>
-                  <TableHead className="text-right">Última compra</TableHead>
-                </TableRow></TableHeader>
-                <TableBody>
-                  {(comprasQ.data ?? []).length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">Nenhuma compra nesta seleção.</TableCell></TableRow>
-                  )}
-                  {(comprasQ.data ?? []).map((l) => (
-                    <TableRow key={l.chave}>
-                      <TableCell className="font-medium">{l.nome ?? l.chave}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatBRL(l.faturado)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(l.unidades)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(l.nfs)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtPct(l.pct_total, 1)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{l.ultima_compra ? formatDateBR(l.ultima_compra) : "—"}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="w-full max-w-full overflow-x-auto">
+                <Table className="whitespace-nowrap">
+                  <TableHeader><TableRow>
+                    <TableHead>Coleção</TableHead>
+                    <TableHead className="text-right">Faturado</TableHead>
+                    <TableHead className="text-right">Kits</TableHead>
+                    <TableHead className="text-right">NFs</TableHead>
+                    <TableHead className="text-right">% do cliente</TableHead>
+                    <TableHead className="text-right">Última compra</TableHead>
+                  </TableRow></TableHeader>
+                  <TableBody>
+                    {(comprasQ.data ?? []).length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="py-6 text-center text-muted-foreground">Nenhuma compra nesta seleção.</TableCell></TableRow>
+                    )}
+                    {(comprasQ.data ?? []).map((l) => (
+                      <TableRow key={l.chave}>
+                        <TableCell className="max-w-[16rem] truncate font-medium" title={l.nome ?? l.chave}>{l.nome ?? l.chave}</TableCell>
+                        <TableCell className="text-right tabular-nums">{formatBRL(l.faturado)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(l.unidades)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtInt(l.nfs)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{fmtPct(l.pct_total, 1)}</TableCell>
+                        <TableCell className="text-right tabular-nums">{l.ultima_compra ? formatDateBR(l.ultima_compra) : "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             )}
           </CardContent>
         </Card>

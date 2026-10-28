@@ -20,7 +20,7 @@ export default function InteligenciaComercial() {
   const aplicar = (t: Parameters<typeof atalhoPeriodo>[0]) => setNav(atalhoPeriodo(t));
 
   return (
-    <PageShell className="md:p-8">
+    <PageShell className="min-w-0 max-w-full overflow-x-hidden md:p-8">
       <CasaPageHeader
         breadcrumb={[{ label: "Comercial" }, { label: "Inteligência" }]}
         title="Inteligência comercial"
@@ -32,11 +32,11 @@ export default function InteligenciaComercial() {
         <>
           <Card className="mb-4">
             <CardContent className="flex flex-wrap items-end gap-3 p-4">
-              <label className="text-xs text-muted-foreground">De
-                <Input type="date" className="h-8 w-40" value={nav.ini} onChange={(e) => setNav({ ini: e.target.value })} />
+              <label className="min-w-0 text-xs text-muted-foreground">De
+                <Input type="date" className="h-8 w-full sm:w-40" value={nav.ini} onChange={(e) => setNav({ ini: e.target.value })} />
               </label>
-              <label className="text-xs text-muted-foreground">Até
-                <Input type="date" className="h-8 w-40" value={nav.fim} onChange={(e) => setNav({ fim: e.target.value })} />
+              <label className="min-w-0 text-xs text-muted-foreground">Até
+                <Input type="date" className="h-8 w-full sm:w-40" value={nav.fim} onChange={(e) => setNav({ fim: e.target.value })} />
               </label>
               <div className="flex flex-wrap gap-1">
                 <Button size="sm" variant={!nav.ini && !nav.fim ? "default" : "outline"} onClick={() => aplicar("todo")}>Todo o período</Button>
@@ -46,13 +46,13 @@ export default function InteligenciaComercial() {
               </div>
             </CardContent>
           </Card>
-          <Tabs value={nav.aba} onValueChange={(v) => setNav({ aba: v })}>
-            <TabsList>
+          <Tabs value={nav.aba} onValueChange={(v) => setNav({ aba: v })} className="min-w-0 max-w-full">
+            <TabsList className="h-auto max-w-full flex-wrap justify-start">
               <TabsTrigger value="giro">Giro por coleção</TabsTrigger>
               <TabsTrigger value="ranking">Ranking de vendas</TabsTrigger>
             </TabsList>
-            <TabsContent value="giro"><AbaGiro ini={ini} fim={fim} /></TabsContent>
-            <TabsContent value="ranking"><AbaRanking ini={ini} fim={fim} /></TabsContent>
+            <TabsContent value="giro" className="min-w-0"><AbaGiro ini={ini} fim={fim} /></TabsContent>
+            <TabsContent value="ranking" className="min-w-0"><AbaRanking ini={ini} fim={fim} /></TabsContent>
           </Tabs>
         </>
       )}
