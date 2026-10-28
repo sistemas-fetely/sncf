@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { formatError } from "@/lib/format-error";
 import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } from "./tipos";
+import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 
 /**
@@ -133,9 +134,11 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
   }
 
   const ref = campo?.id === "ref-correios" ? normalizarCodigoCorreios(referencia) : referencia.trim();
+  const erroSro = campo?.id === "ref-correios" && ref !== "" ? erroCodigoSro(ref) : null;
   const pode =
     (!usaExecutor || execEscolhido !== null) &&
     (!campo?.obrigatorio || ref !== "") &&
+    erroSro === null &&
     (!houveTroca || motivoTroca.trim() !== "") &&
     !salvandoTroca && !despachando && !bloqueado && !execQ.isLoading && !(ehCorreios && docsQ.isLoading);
 
@@ -203,6 +206,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
             placeholder={campo.placeholder}
             autoFocus={campo.id === "ref-correios"}
           />
+          {erroSro && <p className="text-xs text-destructive">{erroSro}</p>}
         </div>
       )}
 

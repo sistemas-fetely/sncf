@@ -150829,6 +150829,7 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_sro_codigo_valido: { Args: { p_codigo: string }; Returns: boolean }
       fn_sugerir_ancora_faturamento: {
         Args: {
           p_data_faturamento?: string
