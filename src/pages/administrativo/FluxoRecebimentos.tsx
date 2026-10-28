@@ -81,12 +81,10 @@ export default function FluxoRecebimentos() {
   const futuros = useMemo(() => noHorizonte(filtrados, hoje, horizonte), [filtrados, hoje, horizonte]);
   const periodos = useMemo(() => agruparPeriodos(futuros, ver), [futuros, ver]);
   const canaisVis = useMemo(() => canaisTodos.filter((c) => periodos.some((p) => p.porCanal[c])), [canaisTodos, periodos]);
-  const atrasados = useMemo(
-    () => filtrados.filter((r) => r.eh_atrasado).sort((a, b) => (b.dias_atraso ?? 0) - (a.dias_atraso ?? 0)),
-    [filtrados],
-  );
-  const totAtrasado = somar(atrasados).total;
   const temTaxaAusente = filtrados.some((r) => r.taxa_ausente);
+
+  // Tela da cobrança programada A VENCER: nada atrasado entra em card, gráfico, tabela ou drawer.
+  const aVencer = useMemo(() => todos.filter((r) => !r.eh_atrasado), [todos]);
 
   const cards = [7, 30, 90].map((d) => ({ d, ...somar(noHorizonte(filtrados, hoje, d)) }));
 
