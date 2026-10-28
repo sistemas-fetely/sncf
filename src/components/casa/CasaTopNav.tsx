@@ -52,36 +52,12 @@ export function CasaTopNav({ className }: { className?: string }) {
     return apps.sort((a, b) => a.ordem - b.ordem || a.label.localeCompare(b.label));
   }, [linhas]);
 
-  const visibleApps = useMemo(
-    () =>
-      appsTop.filter((app) => {
-        const exclusivo =
-          (app.tela_slug && slugsExclusivos.has(app.tela_slug) ? app.tela_slug : null) ??
-          (app.rota ? resolverRegraNavegacao(app.rota, nav)?.exclusivo_slug ?? null : null);
-        // App exclusivo: so com concessao real, sem atalho de super_admin.
-        if (exclusivo) return temPermissaoTela(exclusivo, permitidas);
-        if (isSuperAdmin) return true;
-        if (app.apenas_super_admin) return false;
-        // tela_slug nulo => app publico da barra, aparece normalmente.
-        if (!app.tela_slug) return true;
-        if (TELAS_PUBLICAS.has(app.tela_slug)) return true;
-        if (permitidas?.has(app.tela_slug)) return true;
-        // Acesso granular preservado (ex: tela.fin_* libera Financas).
-        const prefixo = legadoPorChave.get(app.chave)?.slugPrefix;
-        if (prefixo && permitidas) {
-          for (const s of permitidas) if (s.startsWith(prefixo)) return true;
-        }
-        return false;
-      }),
-    [appsTop, isSuperAdmin, permitidas, legadoPorChave, slugsExclusivos, nav]
-  );
-
-  /** rotas de sidebar de cada app, na ordem grupo -> item */
+  /** rotas de sidebar de cada app do topo, na ordem grupo -> item */
   const rotasPorApp = useMemo(() => {
     const map = new Map<string, string[]>();
     if (!linhas) return map;
 
-    for (const app of visibleApps) {
+    for (const app of appsTop) {
       const candidatos: { rota: string; ordemGrupo: number; ordemItem: number }[] = [];
       for (const linha of linhas) {
         if (linha.app_chave !== app.chave) continue;
@@ -102,20 +78,50 @@ export function CasaTopNav({ className }: { className?: string }) {
       map.set(app.chave, candidatos.map((c) => c.rota));
     }
     return map;
-  }, [linhas, visibleApps]);
+  }, [linhas, appsTop]);
 
   const todasRotasCandidatas = useMemo(() => {
     const rotas = new Set<string>();
-    for (const app of visibleApps) {
+    for (const app of appsTop) {
       if (app.rota) rotas.add(app.rota);
       for (const r of rotasPorApp.get(app.chave) ?? []) rotas.add(r);
       const fallback = legadoPorChave.get(app.chave)?.defaultRoute;
       if (fallback) rotas.add(fallback);
     }
     return Array.from(rotas);
-  }, [visibleApps, rotasPorApp, legadoPorChave]);
+  }, [appsTop, rotasPorApp, legadoPorChave]);
 
   const visiveisRotas = useTelasVisiveis(todasRotasCandidatas);
+
+  const visibleApps = useMemo(
+    () =>
+      appsTop.filter((app) => {
+        const exclusivo =
+          (app.tela_slug && slugsExclusivos.has(app.tela_slug) ? app.tela_slug : null) ??
+          (app.rota ? resolverRegraNavegacao(app.rota, nav)?.exclusivo_slug ?? null : null);
+        // App exclusivo: so com concessao real, sem atalho de super_admin.
+        if (exclusivo) return temPermissaoTela(exclusivo, permitidas);
+        if (isSuperAdmin) return true;
+        if (app.apenas_super_admin) return false;
+        // App sem tela_slug (ou que so passaria pelo slugPrefix) aparece apenas
+        // se ao menos 1 rota de sidebar dele estiver visivel.
+        const temRotaVisivel = (rotasPorApp.get(app.chave) ?? []).some((r) =>
+          visiveisRotas.has(r)
+        );
+        if (!app.tela_slug) return temRotaVisivel;
+        if (TELAS_PUBLICAS.has(app.tela_slug)) return true;
+        if (permitidas?.has(app.tela_slug)) return true;
+        // Acesso granular preservado (ex: tela.fin_* libera Financas).
+        const prefixo = legadoPorChave.get(app.chave)?.slugPrefix;
+        if (prefixo && permitidas) {
+          for (const s of permitidas) {
+            if (s.startsWith(prefixo)) return temRotaVisivel;
+          }
+        }
+        return false;
+      }),
+    [appsTop, isSuperAdmin, permitidas, legadoPorChave, slugsExclusivos, nav, rotasPorApp, visiveisRotas]
+  );
 
   const destinoDoApp = (app: LinhaMenu): string => {
     // `rota` na tabela manda.

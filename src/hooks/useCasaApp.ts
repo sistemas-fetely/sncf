@@ -1,9 +1,20 @@
 import { useLocation } from "react-router-dom";
 import { CASA_APPS, type CasaApp } from "@/components/casa/CasaApps";
+import { useAppDaRota } from "@/hooks/useAppDaRota";
 
-/** Retorna o App ativo baseado na rota atual. Casa é o fallback. */
+/**
+ * Retorna o App ativo baseado na rota atual. Casa é o fallback.
+ * Fonte primária: app dono da rota em sncf_navegacao (useAppDaRota);
+ * routeMatchers de CASA_APPS só para rota que não está na tabela.
+ */
 export function useCasaApp(): CasaApp {
   const { pathname } = useLocation();
+  const daRota = useAppDaRota();
+
+  if (daRota) {
+    const legado = CASA_APPS.find((a) => (a.appChaves ?? [a.id]).includes(daRota.appChave));
+    if (legado) return legado;
+  }
 
   // Match mais específico vence (string mais longa primeiro)
   const sorted = [...CASA_APPS]

@@ -1,4 +1,4 @@
-import { Wallet, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -14,6 +14,11 @@ import { FinancasSidebarSection } from "./FinancasSidebarSection";
 import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
 import { resolverIcone } from "@/config/iconesNavegacao";
+import { useAppDaRota } from "@/hooks/useAppDaRota";
+import { useNavegacaoMenu } from "@/hooks/useMenuApp";
+
+/** Apps de primeiro nível renderizados pelo FinancasLayout. */
+export const APPS_DO_FINANCAS_LAYOUT = ["financas", "adm", "controladoria"] as const;
 
 /**
  * Sidebar de Finanças — MENU-VIA-TABELA.
@@ -31,7 +36,15 @@ import { resolverIcone } from "@/config/iconesNavegacao";
  * O `exato` de cada item agora vem derivado do próprio hook.
  */
 export function FinancasContextSidebar() {
-  const { grupos, soltos, isLoading, isError, refetch } = useMenuApp("financas");
+  const daRota = useAppDaRota();
+  const appChave =
+    daRota && (APPS_DO_FINANCAS_LAYOUT as readonly string[]).includes(daRota.appChave)
+      ? daRota.appChave
+      : "financas";
+  const { data: linhas } = useNavegacaoMenu();
+  const appLinha = (linhas ?? []).find((l) => l.nivel === "app" && l.chave === appChave);
+  const IconeApp = resolverIcone(appLinha?.icone ?? null);
+  const { grupos, soltos, isLoading, isError, refetch } = useMenuApp(appChave);
 
   const renderItem = (i: ItemMenu) => (
     <FinancasSidebarItem
@@ -45,7 +58,7 @@ export function FinancasContextSidebar() {
 
   // Itens pendurados direto no app (sem grupo) vêm primeiro, sem cabeçalho.
   const blocos: Array<{ chave: string; label: string | null; itens: ItemMenu[] }> = [
-    ...(soltos.length ? [{ chave: "financas::soltos", label: null, itens: soltos }] : []),
+    ...(soltos.length ? [{ chave: `${appChave}::soltos`, label: null, itens: soltos }] : []),
     ...grupos.map((g) => ({ chave: g.chave, label: g.label, itens: g.itens })),
   ];
 
@@ -53,9 +66,9 @@ export function FinancasContextSidebar() {
     <Sidebar collapsible="icon">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-1.5 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-1">
-          <Wallet className="h-5 w-5 text-gold flex-shrink-0 group-data-[collapsible=icon]:hidden" />
+          <IconeApp className="h-5 w-5 text-gold flex-shrink-0 group-data-[collapsible=icon]:hidden" />
           <span className="font-serif text-lg text-foreground group-data-[collapsible=icon]:hidden">
-            Finanças
+            {appLinha?.label ?? ""}
           </span>
           <SidebarTrigger className="ml-auto h-7 w-7 text-sidebar-muted hover:text-sidebar-foreground group-data-[collapsible=icon]:ml-0" />
         </div>
