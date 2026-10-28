@@ -5,6 +5,7 @@
 // Nunca cria anúncio. FAIL-LOUD por SKU + integracoes_sync_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
+import { mapaCodigoExterno, exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -88,11 +89,15 @@ Deno.serve(async (req) => {
     // Peso gravado no Shopify → espelho shopify_variante_peso (lido pela Conciliação).
     const pesoPlanejado = new Map<string, { produtoId: string; invId: string; peso_g: number }>();
 
+    const codigosPorSku = await mapaCodigoExterno(supabase, skus);
     for (const sku of skus) {
       const f = porSku.get(sku);
       if (!f) { resultados.push({ sku, status: "sem_ficha_sncf" }); continue; }
+      let codigo_externo: string;
+      try { codigo_externo = exigirCodigoExterno(sku, codigosPorSku.get(sku)); }
+      catch (e) { resultados.push({ sku, status: "erro", erro: (e as Error).message }); continue; }
 
-      const termos = [`sku:"${sku.replace(/"/g, '\\"')}"`];
+      const termos = [`sku:"${codigo_externo.replace(/"/g, '\\"')}"`];
       const ean = soDig(f.ean);
       if (ean) { termos.push(`barcode:${ean}`); if (semZero(ean) !== ean) termos.push(`barcode:${semZero(ean)}`); }
       const q = await shop.gql<Linha>(Q_VAR, { q: termos.join(" OR ") });
@@ -101,7 +106,7 @@ Deno.serve(async (req) => {
         continue;
       }
       const nodes: Linha[] = q.data?.productVariants?.nodes ?? [];
-      const v = nodes.find((n) => txt(n.sku).toUpperCase() === sku.toUpperCase())
+      const v = nodes.find((n) => txt(n.sku).toUpperCase() === codigo_externo.toUpperCase())
         ?? nodes.find((n) => ean && semZero(n.barcode) === semZero(ean));
       if (!v) { resultados.push({ sku, status: "sem_anuncio" }); continue; }
 
@@ -122,9 +127,9 @@ Deno.serve(async (req) => {
         inputVar.barcode = txt(f.ean);
       }
       // SKU do anúncio (achado por EAN com outro SKU)
-      if (txt(v.sku).toUpperCase() !== sku.toUpperCase()) {
-        de_para.push({ campo: "SKU do anúncio", shopify: v.sku ?? null, novo: sku });
-        inv.sku = sku;
+      if (txt(v.sku).toUpperCase() !== codigo_externo.toUpperCase()) {
+        de_para.push({ campo: "SKU do anúncio", shopify: v.sku ?? null, novo: codigo_externo });
+        inv.sku = codigo_externo;
       }
       // Peso
       const pesoSncf = f.peso_g === null || f.peso_g === undefined ? null : Number(f.peso_g);

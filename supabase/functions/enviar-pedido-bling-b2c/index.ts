@@ -34,6 +34,7 @@ import {
   escolherCandidatoApi,
 } from "../_shared/bling/card-canonico.ts";
 import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
+import { mapaCodigoExterno } from "../_shared/produto-codigo.ts";
 
 
 const corsHeaders = {
@@ -682,6 +683,13 @@ Deno.serve(async (req) => {
 
           // Produtos — MESMA resolução do ramo Shopify (fn_bling_resolver_produto → API).
           const skusVd: string[] = [...new Set(itensVd.map((it) => it.sku))];
+          // SKU É SÓ INTERNO: o código enviado ao Bling é o codigo_externo do SKU.
+          const codExtVd = await mapaCodigoExterno(supabase, skusVd);
+          const semCodVd = skusVd.filter((s) => !codExtVd.get(s));
+          if (semCodVd.length > 0) {
+            await falharVd(`SKU sem codigo_externo: ${semCodVd.join(", ")} — item recusado. Nada foi criado no Bling.`);
+            continue;
+          }
           const mapaVd: Record<string, number> = {};
           const fonteVd: Record<string, string> = {};
           const bloqueiosVd: string[] = [];
@@ -724,8 +732,8 @@ Deno.serve(async (req) => {
             if (mapaVd[sku]) continue;
             await dormir(ESPERA_ENTRE_CHAMADAS_MS);
             try {
-              const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(sku)}&limite=100`);
-              const escolha = escolherCandidatoApi(resp?.data ?? [], sku, nomesCatVd[chaveSku(sku)] ?? null);
+              const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(codExtVd.get(sku)!)}&limite=100`);
+              const escolha = escolherCandidatoApi(resp?.data ?? [], codExtVd.get(sku)!, nomesCatVd[chaveSku(sku)] ?? null);
               if (escolha) {
                 if (escolha.total > 1) {
                   console.warn("[b2c-descida][vd] card duplicado no Bling", {
@@ -739,7 +747,7 @@ Deno.serve(async (req) => {
                 mapaVd[sku] = escolha.id;
                 fonteVd[sku] = "api";
                 novosCacheVd.push({
-                  sku,
+                  sku: codExtVd.get(sku)!,
                   bling_produto_id: escolha.id,
                   nome: itensVd.find((it) => it.sku === sku)?.nome ?? sku,
                 });
@@ -911,7 +919,7 @@ Deno.serve(async (req) => {
             continue;
           }
           const blingItensVd = itensVd.map((it) => ({
-            codigo: it.sku,
+            codigo: codExtVd.get(it.sku)!,
             descricao: it.nome || it.sku,
             produto: { id: mapaVd[it.sku] },
             unidade: "UN",
@@ -1208,6 +1216,13 @@ Deno.serve(async (req) => {
         //    VEM ANTES DO CONTATO de proposito: codigo nao resolvido aborta o item sem ter
         //    criado NADA no Bling — contato orfao de pedido que nunca desceu e lixo.
         const skus: string[] = [...new Set(itens.map((it) => it.sku))];
+        // SKU É SÓ INTERNO: o código enviado ao Bling é o codigo_externo do SKU.
+        const codExt = await mapaCodigoExterno(supabase, skus);
+        const semCod = skus.filter((s) => !codExt.get(s));
+        if (semCod.length > 0) {
+          await falhar(`SKU sem codigo_externo: ${semCod.join(", ")} — item recusado. Nada foi criado no Bling.`);
+          continue;
+        }
 
         const mapaProduto: Record<string, number> = {};
         const fonteResolucao: Record<string, string> = {};
@@ -1260,10 +1275,10 @@ Deno.serve(async (req) => {
           if (mapaProduto[sku]) continue;
           await dormir(ESPERA_ENTRE_CHAMADAS_MS);
           try {
-            const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(sku)}&limite=100`);
+            const resp = await bling.get(`/produtos?codigo=${encodeURIComponent(codExt.get(sku)!)}&limite=100`);
             const escolha = escolherCandidatoApi(
               resp?.data ?? [],
-              sku,
+              codExt.get(sku)!,
               nomesCatalogo[chaveSku(sku)] ?? null,
             );
             if (escolha) {
@@ -1280,7 +1295,7 @@ Deno.serve(async (req) => {
               mapaProduto[sku] = escolha.id;
               fonteResolucao[sku] = "api";
               novosCache.push({
-                sku,
+                sku: codExt.get(sku)!,
                 bling_produto_id: escolha.id,
                 nome: itens.find((it) => it.sku === sku)?.nome ?? sku,
               });
@@ -1521,7 +1536,7 @@ Deno.serve(async (req) => {
         }
 
         const blingItens = linhas.map((l) => ({
-          codigo: l.sku,
+          codigo: codExt.get(l.sku)!,
           descricao: l.nome || l.sku,
           produto: { id: mapaProduto[l.sku] },
           unidade: "UN",

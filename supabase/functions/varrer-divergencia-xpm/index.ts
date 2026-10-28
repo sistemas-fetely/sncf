@@ -8,6 +8,7 @@
 // Universo = vw_produto_conciliacao com xpm_codigo. Pagina e se re-encadeia no mesmo lote_id.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { difere, num, txt, vazio } from "../_shared/bling/montar-valores-produto.ts";
+import { mapaCodigoExterno, exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -220,6 +221,7 @@ Deno.serve(async (req) => {
     const { data: universo, error: uErr } = await q;
     if (uErr) throw new Error(`vw_produto_conciliacao: ${uErr.message}`);
     const linhas = universo ?? [];
+    const codigosExternos = await mapaCodigoExterno(sb, linhas.map((l: Any) => String(l.sku)));
 
     let lidos = 0, comDiv = 0, divs = 0, erros = 0;
     if (linhas.length) {
@@ -232,8 +234,9 @@ Deno.serve(async (req) => {
       for (const l of linhas as Any[]) {
         lidos++;
         try {
-          const item = catalogo.get(up(l.xpm_codigo) ?? "");
-          if (!item?.id) throw new Error(`código ${l.xpm_codigo} não encontrado no XPM (Produto/GetAll)`);
+          const codigoExterno = exigirCodigoExterno(l.sku, codigosExternos.get(l.sku));
+          const item = catalogo.get(up(codigoExterno) ?? "");
+          if (!item?.id) throw new Error(`código ${codigoExterno} (SKU ${l.sku}) não encontrado no XPM (Produto/GetAll)`);
           const { data: pay, error: ePay } = await sb.rpc("fn_xpm_payload_cadastro", { p_sku: l.sku });
           if (ePay) throw new Error(`fn_xpm_payload_cadastro: ${ePay.message}`);
           const p1 = pay?.passo_1_produto, p2 = pay?.passo_2_produto_sku;

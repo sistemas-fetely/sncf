@@ -89,12 +89,13 @@ serve(async (req) => {
     // 3. Cobertura vs SNCF ativo
     const { data: ativos } = await supabase
       .from("sncf_produtos")
-      .select("sku")
+      .select("sku, codigo_externo")
       .eq("ativo", true);
+    // SKU É SÓ INTERNO: o código no Bling é o codigo_externo; exemplos seguem no SKU interno.
     const skusBling = new Set(distintos.map((p) => p.sku));
     const naoCasados = (ativos ?? [])
-      .map((a: any) => a.sku)
-      .filter((sku: string) => !skusBling.has(sku));
+      .filter((a: any) => !skusBling.has(String(a.codigo_externo ?? "").trim()))
+      .map((a: any) => a.sku);
 
     const cobertura = {
       bling_total: produtos.length,

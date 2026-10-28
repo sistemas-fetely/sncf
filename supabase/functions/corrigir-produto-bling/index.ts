@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient, BLING_BASE, BlingHttpError } from "../_shared/bling/bling-client.ts";
 import { TOL, vazio, num, txt, soDig, pesoGParaKg, situacaoPelaFase, carregarFaseDestino, FaseSemRegra } from "../_shared/bling/montar-valores-produto.ts";
+import { mapaCodigoExterno, exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -48,10 +49,12 @@ serve(async (req) => {
     if (!skus.length) return json({ ok: false, erro: "Informe ao menos um SKU em skus." }, 400);
     if (skus.length > TETO) return json({ ok: false, erro: `Teto de ${TETO} SKUs por chamada (recebido ${skus.length}).` }, 400);
 
+    // SKU É SÓ INTERNO: bling_produtos_cache.sku guarda o código do Bling (= codigo_externo).
+    const codigos = await mapaCodigoExterno(supabase, skus);
     const [cacheQ, fichaQ, faseQ] = await Promise.all([
-      supabase.from("bling_produtos_cache").select("sku, bling_produto_id").in("sku", skus),
+      supabase.from("bling_produtos_cache").select("sku, bling_produto_id").in("sku", [...new Set(codigos.values())]),
       supabase.from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest")
+        .select("sku, codigo_externo, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest")
         .in("sku", skus),
       supabase.from("vw_produto_mesa_lista").select("sku, fase").in("sku", skus),
     ]);
@@ -60,7 +63,9 @@ serve(async (req) => {
     if (faseQ.error) return json({ ok: false, erro: `vw_produto_mesa_lista: ${faseQ.error.message}` }, 500);
 
     const blingIds = new Map<string, string>();
-    for (const c of cacheQ.data ?? []) if (c.bling_produto_id) blingIds.set(c.sku, String(c.bling_produto_id));
+    const idsPorCodigo = new Map<string, string>();
+    for (const c of cacheQ.data ?? []) if (c.bling_produto_id) idsPorCodigo.set(c.sku, String(c.bling_produto_id));
+    for (const sku of skus) { const cod = codigos.get(sku); const id = cod ? idsPorCodigo.get(cod) : undefined; if (id) blingIds.set(sku, id); }
     const fichas = new Map<string, any>((fichaQ.data ?? []).map((f: any) => [f.sku, f]));
     const faseDestino = await carregarFaseDestino(supabase, "Bling");
     const fases = new Map<string, string | null>((faseQ.data ?? []).map((f: any) => [f.sku, f.fase]));
@@ -94,6 +99,9 @@ serve(async (req) => {
 
     let primeiro = true;
     for (const sku of skus) {
+      let codigoExterno: string;
+      try { codigoExterno = exigirCodigoExterno(sku, codigos.get(sku)); }
+      catch (e) { resultados.push({ sku, status: "pulado", erro: (e as Error).message }); continue; }
       const blingId = blingIds.get(sku);
       if (!blingId) { resultados.push({ sku, status: "sem_cadastro_no_bling" }); continue; }
       const f = fichas.get(sku);
@@ -125,6 +133,7 @@ serve(async (req) => {
         if (a === null || Math.abs(a - valor) > TOL) { de_para.push({ campo, bling: get() ?? null, novo: valor }); set(valor); }
       };
 
+      setTxt("codigo", () => atual.codigo, (v) => (novo.codigo = v), codigoExterno);
       setTxt("nome", () => atual.nome, (v) => (novo.nome = v), f.nome_operacional);
       setNum("preco", () => atual.preco, (v) => (novo.preco = v), num(f.preco_varejo));
       setTxt("gtin", () => atual.gtin, (v) => (novo.gtin = v), f.ean);
@@ -181,7 +190,7 @@ serve(async (req) => {
       if (putErro) { resultados.push({ sku, bling_id: blingId, status: "erro_put", de_para, erro: putErro }); continue; }
 
       const { error: upErr } = await supabase.from("bling_produtos_cache")
-        .update({ nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("sku", sku);
+        .update({ nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("sku", codigoExterno);
 
       // Espelho em dia na hora: re-GET do Bling e grava na tabela `produtos`
       // (espelho do Bling, chave bling_id) TODAS as colunas espelhadas derivadas

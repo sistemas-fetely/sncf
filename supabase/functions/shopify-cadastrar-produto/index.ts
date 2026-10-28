@@ -5,6 +5,7 @@
 // FAIL-LOUD: cada SKU volta com status próprio e a rodada real grava integracoes_sync_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
+import { mapaCodigoExterno, exigirCodigoExterno, mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -36,7 +37,7 @@ type Linha = any;
 function montarInput(l: Linha, colecaoIds: string[], locais: string[]) {
   const variante: Record<string, unknown> = {
     optionValues: [{ optionName: "Title", name: "Default Title" }],
-    sku: String(l.sku).trim(),
+    sku: exigirCodigoExterno(String(l.sku), (l as any).codigo_externo),
     price: Number(l.preco_varejo).toFixed(2),
     inventoryPolicy: "DENY",
     // Nasce estocado em TODOS os locais amarrados a um centro (XPM e SP), com 0.
@@ -171,9 +172,14 @@ Deno.serve(async (req) => {
       if (k && !colecaoPorNome.has(k)) colecaoPorNome.set(k, c.id);
     }
 
+    const codigosPorSku = await mapaCodigoExterno(supabase, skus);
     for (const sku of skus) {
       const l = porSku.get(sku);
       if (!l) { resultados.push({ sku, status: "fora_da_fila", erro: "SKU não está na fila (fase/canal não elegível ou já existe no Shopify)." }); continue; }
+      let codigo_externo: string;
+      try { codigo_externo = exigirCodigoExterno(sku, codigosPorSku.get(sku)); }
+      catch (e) { resultados.push({ sku, status: "bloqueado", erro: (e as Error).message }); continue; }
+      (l as any).codigo_externo = codigo_externo;
       if (!l.pode_enviar) { resultados.push({ sku, status: "bloqueado", erro: `Bloqueado pela fila: ${(l.avisos ?? []).join(", ") || "falta preço de varejo ou nome comercial"}`, avisos: l.avisos }); continue; }
       const mRow = medPorSku.get(sku) ?? {};
       const faltaMedir = camposMed.filter((c) => vazioMed((mRow as Linha)[c.campo]));
@@ -188,7 +194,7 @@ Deno.serve(async (req) => {
       // cortar variantes (>100) ou o produto existir no Shopify com outro SKU e o mesmo EAN.
       const eanNorm = (l.ean ?? "").replace(/\D/g, "");
       const eanSemZero = eanNorm.replace(/^0+/, "");
-      const termos = [`sku:"${sku.replace(/"/g, '\\"')}"`];
+      const termos = [`sku:"${codigo_externo.replace(/"/g, '\\"')}"`];
       if (eanNorm) termos.push(`barcode:${eanNorm}`);
       if (eanSemZero && eanSemZero !== eanNorm) termos.push(`barcode:${eanSemZero}`);
       const q = await shop.gql<Linha>(Q_SKU, { q: termos.join(" OR ") });
@@ -198,11 +204,11 @@ Deno.serve(async (req) => {
       }
       const normBar = (b: unknown) => String(b ?? "").replace(/\D/g, "").replace(/^0+/, "");
       const achados = (q.data?.productVariants?.nodes ?? []).filter((n: Linha) =>
-        String(n.sku ?? "").trim().toUpperCase() === sku.toUpperCase() ||
+        String(n.sku ?? "").trim().toUpperCase() === codigo_externo.toUpperCase() ||
         (!!eanSemZero && normBar(n.barcode) === eanSemZero));
       if (achados.length > 0) {
         const a = achados[0];
-        const porEan = String(a.sku ?? "").trim().toUpperCase() !== sku.toUpperCase();
+        const porEan = String(a.sku ?? "").trim().toUpperCase() !== codigo_externo.toUpperCase();
         resultados.push({
           sku, status: "ja_existe",
           motivo: porEan ? "mesmo_ean_outro_sku" : "mesmo_sku",

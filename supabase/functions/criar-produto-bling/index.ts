@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra, grupoTributarioDaFicha, carregarGruposBling } from "../_shared/bling/montar-valores-produto.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client.ts";
+import { exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -123,7 +124,7 @@ serve(async (req) => {
     const { data: cache, error: cacheErr } = await supabase
       .from("bling_produtos_cache")
       .select("sku, bling_produto_id")
-      .in("sku", skus);
+      .in("sku", [...new Set((fichas ?? []).map((f: any) => String(f.codigo_externo ?? "").trim()).filter(Boolean))]);
     if (cacheErr) return json({ ok: false, erro: `Falha ao ler bling_produtos_cache: ${cacheErr.message}` }, 500);
     const jaExiste = new Set<string>((cache || []).map((c: any) => c.sku));
 
@@ -171,7 +172,8 @@ serve(async (req) => {
       const n = norm(porSku.get(sku)?.nome_operacional);
       if (!n) return [];
       const out = new Set<string>();
-      for (const c of repetidoCom.get(n) ?? []) if (c !== sku) out.add(c);
+      const proprio = String(porSku.get(sku)?.codigo_externo ?? "").trim();
+      for (const c of repetidoCom.get(n) ?? []) if (c !== sku && c !== proprio) out.add(c);
       for (const c of nomesLote.get(n) ?? []) if (c !== sku) out.add(c);
       return [...out];
     }
@@ -188,7 +190,11 @@ serve(async (req) => {
         console.log(`[criar-produto-bling] ${sku}: recusado — sem ficha`);
         continue;
       }
-      if (jaExiste.has(sku)) {
+      // SKU É SÓ INTERNO: o código no Bling é o codigo_externo.
+      let codigoExterno: string;
+      try { codigoExterno = exigirCodigoExterno(sku, f.codigo_externo); }
+      catch (e) { recusados.push({ sku, motivo: (e as Error).message }); continue; }
+      if (jaExiste.has(codigoExterno)) {
         recusados.push({ sku, motivo: "já existe no Bling" });
         console.log(`[criar-produto-bling] ${sku}: recusado — já existe no Bling`);
         continue;
@@ -233,7 +239,7 @@ serve(async (req) => {
       const pesoKg = num(f.peso_g) !== null ? Number(f.peso_g) / 1000 : null;
       const payload: any = {
         nome,
-        codigo: sku,
+        codigo: codigoExterno,
         tipo: "P",
         formato: "S",
         situacao: situacaoCard, // situação da fase via produto_fase_destino (15/10)
@@ -330,7 +336,7 @@ serve(async (req) => {
         .from("bling_produtos_cache")
         .upsert(
           {
-            sku,
+            sku: payload.codigo,
             bling_produto_id: Number(blingId),
             nome: payload.nome,
             atualizado_em: new Date().toISOString(),
@@ -347,7 +353,7 @@ serve(async (req) => {
         .from("produtos")
         .upsert(
           {
-            codigo: sku,
+            codigo: payload.codigo,
             nome: payload.nome,
             bling_id: String(blingId),
             ativo: payload.situacao === "A",

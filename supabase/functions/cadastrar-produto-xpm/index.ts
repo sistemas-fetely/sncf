@@ -5,6 +5,7 @@
 // Sucesso é lido no CORPO da resposta (result.id), nunca só no status HTTP.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
+import { exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
@@ -50,6 +51,10 @@ Deno.serve(async (req) => {
     if (!pv?.passo_1_produto || !pv?.passo_2_produto_sku) {
       return json({ ok: false, erro: "payload da RPC sem passo_1_produto/passo_2_produto_sku", payload: pv }, 500);
     }
+    // SKU É SÓ INTERNO: o código no XPM é o codigo_externo (vem do payload).
+    let codigoExterno: string;
+    try { codigoExterno = exigirCodigoExterno(sku, pv.passo_1_produto.codigo); }
+    catch (e) { return json({ ok: false, erro: (e as Error).message }, 400); }
 
     const { data: cfgRow, error: eCfg } = await supabase
       .from("integracoes_config").select("config").eq("sistema", "zenlog_prd").single();
@@ -86,7 +91,7 @@ Deno.serve(async (req) => {
     const p1 = pv.passo_1_produto;
     const espelho = async (skuEan: string | null, extra: Record<string, unknown>) => {
       const { error } = await supabase.from("xpm_produtos_cache").upsert({
-        xpm_produto_id: produtoId, codigo: sku, descricao: p1.descricao ?? null,
+        xpm_produto_id: produtoId, codigo: codigoExterno, descricao: p1.descricao ?? null,
         descricao_reduzida: p1.descricaoReduzida ?? null, ncm: p1.classificacaoFiscalNCM ?? null,
         unidade_medida: p1.codigoUnidadeMedida ?? null, peso_unitario_kg: p1.pesoUnitario ?? null,
         altura_m: p1.altura ?? null, largura_m: p1.largura ?? null, comprimento_m: p1.comprimento ?? null,

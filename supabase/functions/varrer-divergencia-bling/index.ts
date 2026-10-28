@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
     if (linhas.length) {
       const lista = linhas.map((l: Any) => l.sku);
       const { data: fichas, error: fErr } = await sb.from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest, origem_fisc, grupo_tributario_bling")
+        .select("sku, codigo_externo, cod_cadastro, nome_operacional, preco_varejo, ean, dun, peso_g, largura_cm, altura_cm, profundidade_cm, ncm, cest, origem_fisc, grupo_tributario_bling")
         .in("sku", lista);
       if (fErr) throw new Error(`sncf_produtos: ${fErr.message}`);
       const fichaPorSku = new Map((fichas ?? []).map((f: Any) => [f.sku, f]));
