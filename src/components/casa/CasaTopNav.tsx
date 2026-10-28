@@ -145,6 +145,14 @@ export function CasaTopNav({ className }: { className?: string }) {
   };
 
   const estaAtivo = (app: LinhaMenu): boolean => {
+    // APP-DONO-DA-ROTA (28/10/2026): a tabela decide qual aba acende. Se
+    // sncf_navegacao diz quem é o dono da rota atual e esse app está no topo,
+    // só ele acende — sem isso o prefixo legado de /administrativo acendia
+    // Finanças junto com Controladoria (bug em /administrativo/motor-classificacao).
+    if (appDaRota && appsTop.some((a) => a.chave === appDaRota.appChave)) {
+      return app.chave === appDaRota.appChave;
+    }
+    // Sem dono na tabela: comportamento legado (routeMatchers / prefixos).
     const legado = legadoPorChave.get(app.chave);
     if (legado) return activeApp.id === legado.id;
     // Apps que so existem na tabela: casa pelo prefixo da propria rota ou das
