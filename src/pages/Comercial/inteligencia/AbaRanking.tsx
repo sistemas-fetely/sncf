@@ -25,10 +25,10 @@ function dataCurta(d: string | null) {
 
 function Bloco({ titulo, onLimpar, ativo, children }: { titulo: string; onLimpar: () => void; ativo: boolean; children: React.ReactNode }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{titulo}</span>
-        {ativo && <button type="button" className="text-xs text-primary hover:underline" onClick={onLimpar}>limpar</button>}
+    <div className="min-w-0 space-y-2">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-xs font-medium text-muted-foreground">{titulo}</span>
+        {ativo && <button type="button" className="shrink-0 text-xs text-primary hover:underline" onClick={onLimpar}>limpar</button>}
       </div>
       {children}
     </div>
@@ -70,14 +70,14 @@ function ListaRanking({
   const max = Math.max(1, ...linhas.map((l) => l.faturado));
   const vis = todos ? linhas : linhas.slice(0, 15);
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-base">{titulo}</CardTitle>
-        <Button size="sm" variant="outline" disabled={!linhas.length} onClick={() => exportarCsv(arquivo, linhas, cliente)}>
+    <Card className="min-w-0">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+        <CardTitle className="min-w-0 truncate text-base">{titulo}</CardTitle>
+        <Button size="sm" variant="outline" className="shrink-0" disabled={!linhas.length} onClick={() => exportarCsv(arquivo, linhas, cliente)}>
           <Download className="mr-1 h-4 w-4" />CSV
         </Button>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="min-w-0 space-y-1">
         {q.isLoading ? (
           <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando…</div>
         ) : q.error ? (
