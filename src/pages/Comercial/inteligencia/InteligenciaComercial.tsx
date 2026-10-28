@@ -22,8 +22,8 @@ export default function InteligenciaComercial() {
   return (
     <PageShell className="min-w-0 max-w-full overflow-x-hidden md:p-8">
       <CasaPageHeader
-        breadcrumb={[{ label: "Comercial" }, { label: "Inteligência" }]}
-        title="Inteligência comercial"
+        breadcrumb={[{ label: "BI" }, { label: "Giro e Ranking" }]}
+        title="Giro e Ranking"
         subtitle="Giro por coleção e ranking de vendas"
       />
       {semAcesso ? (

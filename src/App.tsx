@@ -237,6 +237,7 @@ const DestinosCadastro = lazy(() => import("@/pages/acervo/DestinosCadastro"));
 const CartorioCodigos = lazy(() => import("@/pages/acervo/CartorioCodigos"));
 const VendasLayout = lazy(() => import("@/layouts/VendasLayout"));
 const ChamadosLayout = lazy(() => import("@/layouts/ChamadosLayout"));
+const BILayout = lazy(() => import("@/layouts/BILayout"));
 const ProdutoEstoqueLayout = lazy(() => import("@/layouts/ProdutoEstoqueLayout"));
 const NfsDeVenda = lazy(() => import("@/pages/Vendas/NfsDeVenda"));
 
@@ -348,6 +349,11 @@ function ConciliacaoRecebiveisRedirect() {
 function ExpedicaoSpRedirect() {
   const location = useLocation();
   return <Navigate to={"/logistica/expedicao-sp" + location.search} replace />;
+}
+// BI (28/10/2026): /comercial/inteligencia → /bi/giro-ranking, preservando a query.
+function InteligenciaRedirect() {
+  const location = useLocation();
+  return <Navigate to={"/bi/giro-ranking" + location.search} replace />;
 }
 function ChegadaMercadoriaIdRedirect() {
   const { id } = useParams();
@@ -555,6 +561,11 @@ const App = () => (
                   CHAMADOS-É-APP-PRÓPRIO (15/09/2026): antes morava no
                   VendasLayout e abria com a sidebar do SOPs.
                   ═══════════════════════════════════════════════ */}
+              {/* App BI — sidebar própria (raiz 'bi' na sncf_navegacao). */}
+              <Route element={<BILayout />}>
+                <Route path="/bi" element={<Navigate to="/bi/giro-ranking" replace />} />
+                <Route path="/bi/giro-ranking" element={<InteligenciaComercial />} />
+              </Route>
               <Route element={<ChamadosLayout />}>
                 <Route path="/chamados" element={<Navigate to="/chamados/fila/abertos" replace />} />
                 <Route path="/chamados/fila/:visao" element={<Chamados />} />
@@ -574,7 +585,6 @@ const App = () => (
                   do layout, sem o menu lateral. */}
               <Route element={<VendasLayout />}>
                 <Route path="/comercial/consignados" element={<Consignados />} />
-                <Route path="/comercial/inteligencia" element={<InteligenciaComercial />} />
                 <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
                 {/* Comercial — Comissões de Representante (menu comercial.comissoes):
                     MESMA-CASCA-DO-PILAR — movidas para dentro do VendasLayout para
@@ -1077,6 +1087,7 @@ const App = () => (
 
             {/* CHAMADOS-É-APP-PRÓPRIO (15/09/2026): link antigo do Canal CPO → Central de Chamados */}
             <Route path="/canal-cpo" element={<Navigate to="/chamados" replace />} />
+            <Route path="/comercial/inteligencia" element={<InteligenciaRedirect />} />
 
             {/* 404 — dentro do PublicLayout pra reaproveitar a boundary de Suspense */}
             <Route element={<PublicLayout />}>
