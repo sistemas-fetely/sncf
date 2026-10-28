@@ -183,6 +183,13 @@
       "when": 1793217313870,
       "tag": "0025_rastreio_mesa_sp_correcao",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1793219215151,
+      "tag": "0026_mesa_sp_lote_bipe",
+      "breakpoints": true
     }
   ]
 }
