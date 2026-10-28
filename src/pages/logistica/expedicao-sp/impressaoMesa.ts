@@ -113,7 +113,7 @@ function etiquetaFetely(d: DadosImpressao, faixa?: string): string {
       <div class="pe">
         <div>Pedido: <strong>${esc(d.pedido)}</strong></div>
         <div>NF: <strong>${esc(d.nf ?? "—")}</strong></div>
-        <div>Modal: <strong>${esc(d.modal ?? "—")}</strong></div>
+        <div>Modal: <strong>${esc(d.modal ?? "—")}${d.servico_correios && /correios/i.test(d.modal ?? "") ? ` · ${esc(d.servico_correios)}` : ""}</strong></div>
         <div class="vol">Volume ${x} de ${n}</div>
       </div>
     </section>`;
