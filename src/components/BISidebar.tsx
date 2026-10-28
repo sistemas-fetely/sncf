@@ -4,10 +4,9 @@ import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { useMenuApp, type ItemMenu } from "@/hooks/useMenuApp";
-import { useFavoritos } from "@/hooks/useFavoritos";
 import { resolverIcone } from "@/config/iconesNavegacao";
 import { AtalhosFixos } from "@/components/navegacao/AtalhosFixos";
-import { BarChart3, Star } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -19,7 +18,6 @@ export function BISidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { grupos, isLoading } = useMenuApp("bi");
-  const { favoritos } = useFavoritos();
 
   const isItemActive = (rota: string) => location.pathname.startsWith(rota);
 
@@ -73,38 +71,6 @@ export function BISidebar() {
         {/* ATALHO-APONTA-PRO-PILAR (23/08/2026): Casa e Meu Espaço no topo. */}
         <AtalhosFixos />
         <div className="mx-4 border-t border-sidebar-border/40" />
-
-        {/* FIXOS — favoritos do próprio usuário, no topo. Vêm da
-            usuario_paginas_favoritas, com rótulo/ícone resolvidos da
-            sncf_navegacao. Ordem definida por ele no popover do header. */}
-        {favoritos.length > 0 && (
-          <SidebarGroup>
-            {!collapsed && (
-              <SidebarGroupLabel className="text-sidebar-muted text-[10px] uppercase tracking-widest font-medium mb-1 px-4 flex items-center gap-1.5">
-                <Star className="h-3 w-3 fill-gold text-gold" />
-                Fixos
-              </SidebarGroupLabel>
-            )}
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {favoritos.map((f) => {
-                  const active = isItemActive(f.rota);
-                  const Icone = resolverIcone(f.icone);
-                  return (
-                    <SidebarMenuItem key={f.id}>
-                      <SidebarMenuButton asChild>
-                        <NavLink to={f.rota} className={linhaClasse(active)}>
-                          <Icone className={cn("h-[18px] w-[18px] shrink-0", active && "text-gold")} />
-                          {!collapsed && <span className="truncate">{f.titulo}</span>}
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         {!isLoading && grupos.map((g) => (
           <SidebarGroup key={g.chave}>
