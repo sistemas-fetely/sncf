@@ -169,6 +169,13 @@
       "when": 1793204328835,
       "tag": "0023_mesa_sp_servico_correios",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793204361963,
+      "tag": "0024_mesa_sp_servico_correios_despacho",
+      "breakpoints": true
     }
   ]
 }
