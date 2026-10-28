@@ -109,10 +109,10 @@ serve(async (req) => {
         const chunk = codigos.slice(i, i + 200);
         const { data: fs, error: fErr } = await supabase
           .from("sncf_produtos")
-          .select("sku, nome_operacional")
-          .in("sku", chunk);
+          .select("sku, codigo_externo, nome_operacional")
+          .in("codigo_externo", chunk); // SKU É SÓ INTERNO: produtos.codigo = codigo_externo
         if (fErr) return json({ ok: false, erro: `Falha ao ler sncf_produtos: ${fErr.message}` }, 500);
-        for (const f of fs || []) fichas.set(f.sku, f.nome_operacional ?? null);
+        for (const f of fs || []) fichas.set(f.codigo_externo, f.nome_operacional ?? null);
       }
 
       // guardrails avaliados no laço (com log)

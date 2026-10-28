@@ -94,21 +94,25 @@ serve(async (req) => {
     const contato = { nome: matriz.razao_social, numeroDocumento: CNPJ_MATRIZ, tipoPessoa: "J", contribuinte: 1, ie, endereco: end };
 
     const skus = itensBase.map((i) => i.sku);
-    const { data: prods, error: pErr } = await db.from("sncf_produtos").select("sku,nome_operacional,nome_completo,ncm,origem_fisc,preco_custo").in("sku", skus);
+    const { data: prods, error: pErr } = await db.from("sncf_produtos").select("sku,codigo_externo,nome_operacional,nome_completo,ncm,origem_fisc,preco_custo").in("sku", skus);
     if (pErr) throw pErr;
     const porSku = new Map((prods ?? []).map((p) => [p.sku, p]));
-    const semCusto: string[] = []; const semNcm: string[] = []; const semCadastro: string[] = []; const semOrigem: string[] = [];
+    const semCodExt: string[] = []; const semCusto: string[] = []; const semNcm: string[] = []; const semCadastro: string[] = []; const semOrigem: string[] = [];
     const itens = itensBase.map((i) => {
       const p = porSku.get(i.sku);
       if (!p) semCadastro.push(i.sku);
+      // SKU É SÓ INTERNO: o código na NF do Bling é o codigo_externo.
+      const codExt = String(p?.codigo_externo ?? "").trim();
+      if (p && !codExt) semCodExt.push(i.sku);
       const valor = i.custo_unitario ?? p?.preco_custo ?? null;
       if (valor == null) semCusto.push(i.sku);
       if (p && !p.ncm) semNcm.push(i.sku);
       if (p && (p.origem_fisc == null || p.origem_fisc === "")) semOrigem.push(i.sku);
-      return { codigo: i.sku, descricao: p?.nome_operacional || p?.nome_completo || i.sku, unidade: "UN", quantidade: Number(i.quantidade), valor: Number(valor ?? 0), tipo: "P", classificacaoFiscal: p?.ncm ?? null, origem: Number(p?.origem_fisc ?? 0) };
+      return { codigo: codExt || i.sku, descricao: p?.nome_operacional || p?.nome_completo || i.sku, unidade: "UN", quantidade: Number(i.quantidade), valor: Number(valor ?? 0), tipo: "P", classificacaoFiscal: p?.ncm ?? null, origem: Number(p?.origem_fisc ?? 0) };
     });
     const problemas = [
       semCadastro.length && `sem cadastro: ${semCadastro.join(", ")}`,
+      semCodExt.length && `sem codigo_externo: ${semCodExt.join(", ")}`,
       semCusto.length && `sem custo: ${semCusto.join(", ")}`,
       semNcm.length && `sem NCM: ${semNcm.join(", ")}`,
       semOrigem.length && `sem origem fiscal: ${semOrigem.join(", ")}`,
