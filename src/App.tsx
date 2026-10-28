@@ -140,6 +140,7 @@ const GestaoAVista = lazy(() => import("@/pages/GestaoAVista"));
 const DocumentacaoGeral = lazy(() => import("@/pages/DocumentacaoGeral"));
 const PlanoDeContas = lazy(() => import("@/pages/administrativo/PlanoDeContas"));
 const FluxoCaixa = lazy(() => import("@/pages/administrativo/FluxoCaixa"));
+const FluxoRecebimentos = lazy(() => import("@/pages/administrativo/FluxoRecebimentos"));
 const ContasPagar = lazy(() => import("@/pages/administrativo/ContasPagar"));
 const ContasReceber = lazy(() => import("@/pages/administrativo/ContasReceber"));
 const RecebimentosConciliar = lazy(() => import("@/pages/administrativo/RecebimentosConciliar"));
@@ -900,6 +901,7 @@ const App = () => (
                 <Route path="plano-contas" element={<PlanoDeContas />} />
 
                 <Route path="fluxo-caixa" element={<FluxoCaixa />} />
+                <Route path="fluxo-recebimentos" element={<RotaGate><FluxoRecebimentos /></RotaGate>} />
                 <Route path="contas-pagar" element={<ContasPagar />} />
                 <Route path="contas-receber" element={<ContasReceber />} />
                 <Route path="conciliacao-mesa" element={<Navigate to="/administrativo/conciliacao-recebiveis?aba=creditos" replace />} />
