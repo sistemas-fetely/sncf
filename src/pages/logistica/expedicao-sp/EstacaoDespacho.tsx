@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
@@ -62,14 +63,13 @@ interface Props {
   onRetiradaRegistrada?: () => void;
 }
 
-const CODIGO_CORREIOS = /^[A-Z]{2}[0-9]{9}[A-Z]{2}$/;
 export function normalizarCodigo(v: string): string {
   return v.replace(/\s/g, "").toUpperCase();
 }
 /** Lote Correios só libera com todos os códigos no formato e sem repetição. */
 export function loteCorreiosValido(codigos: string[]): boolean {
   const n = codigos.map(normalizarCodigo);
-  return n.length > 0 && n.every((c) => CODIGO_CORREIOS.test(c)) && new Set(n).size === n.length;
+  return n.length > 0 && n.every((c) => erroCodigoSro(c) === null) && new Set(n).size === n.length;
 }
 
 /** Espera em linguagem de bancada: minutos até 1h, depois horas, depois dias. */
@@ -210,7 +210,7 @@ export function EstacaoDespacho({
                           const n = normalizarCodigo(v);
                           const todos = grupo.caixas.map((x) => normalizarCodigo(codigosLote[x.pedido_id] ?? ""));
                           const repetido = n !== "" && todos.filter((t) => t === n).length > 1;
-                          const invalido = n !== "" && !CODIGO_CORREIOS.test(n);
+                          const invalido = n !== "" ? erroCodigoSro(n) : null;
                           return (
                             <div className="flex flex-col">
                               <Input
@@ -230,7 +230,7 @@ export function EstacaoDespacho({
                               />
                               {(invalido || repetido) && (
                                 <span className="text-xs text-destructive">
-                                  {repetido ? "Código repetido no lote" : "Formato AA123456789BR"}
+                                  {repetido ? "Código repetido no lote" : invalido}
                                 </span>
                               )}
                             </div>

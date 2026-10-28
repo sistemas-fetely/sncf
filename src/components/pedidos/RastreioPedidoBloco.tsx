@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, PackageSearch, Pencil } from "lucide-react";
+import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { useRastreioPedido, useVincularRastreioPedido } from "@/hooks/pedidos/useRastreioPedido";
 
 interface Props {
@@ -21,9 +22,10 @@ export function RastreioPedidoBloco({ pedidoId }: Props) {
   const vinculado = rastreio.data ?? null;
   const mostrarCampo = !vinculado || trocando;
 
+  const erroCodigo = codigo.trim() ? erroCodigoSro(codigo) : null;
   const salvar = () => {
     const c = codigo.trim();
-    if (!c) return;
+    if (!c || erroCodigo) return;
     vincular.mutate(
       { pedidoId, codigoRastreio: c },
       {
@@ -85,7 +87,7 @@ export function RastreioPedidoBloco({ pedidoId }: Props) {
             size="sm"
             variant="outline"
             className="h-9"
-            disabled={!codigo.trim() || vincular.isPending}
+            disabled={!codigo.trim() || !!erroCodigo || vincular.isPending}
             onClick={salvar}
           >
             {vincular.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Vincular"}
@@ -97,6 +99,7 @@ export function RastreioPedidoBloco({ pedidoId }: Props) {
           )}
         </div>
       )}
+      {mostrarCampo && erroCodigo && <p className="text-xs text-destructive">{erroCodigo}</p>}
 
       {mostrarCampo && !rastreio.isLoading && (
         <p className="text-[10px] text-muted-foreground leading-tight">
