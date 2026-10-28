@@ -107,7 +107,7 @@ export default function FluxoRecebimentos() {
     <PageShell className="min-w-0 max-w-full">
       <PageHeader
         titulo={nav?.label ?? ""}
-        estado={q.data ? `${todos.length} recebíveis em aberto · horizonte de ${horizonte} dias` : undefined}
+        estado={q.data ? `${aVencer.length} recebíveis a vencer · horizonte de ${horizonte} dias` : undefined}
       />
 
       {q.error ? (
