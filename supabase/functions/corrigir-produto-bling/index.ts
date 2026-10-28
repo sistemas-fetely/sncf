@@ -4,6 +4,7 @@
 // Campo vazio na matriz nunca sobrescreve o Bling. tributacao.origem nunca é tocada.
 // dry_run é o default: só escreve com dry_run explicitamente false.
 
+import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { ensureFreshToken, makeBlingClient, BLING_BASE, BlingHttpError } from "../_shared/bling/bling-client.ts";
@@ -65,7 +66,21 @@ serve(async (req) => {
     const blingIds = new Map<string, string>();
     const idsPorCodigo = new Map<string, string>();
     for (const c of cacheQ.data ?? []) if (c.bling_produto_id) idsPorCodigo.set(c.sku, String(c.bling_produto_id));
-    for (const sku of skus) { const cod = codigos.get(sku); const id = cod ? idsPorCodigo.get(cod) : undefined; if (id) blingIds.set(sku, id); }
+    // Transição SKU→codigo_externo: o card pode ainda ter o código antigo (SKU). A RPC acha o card
+    // canônico pelo codigo_externo e, na transição, pelo SKU. O cache (chave = código do Bling) é só fallback.
+    for (const sku of skus) {
+      const cod = codigos.get(sku);
+      if (!cod) continue;
+      let id: string | undefined;
+      try {
+        const r = await resolverProdutoBling(supabase, cod);
+        if (r.bling_id && (r.ok || r.card_inativo)) id = String(r.bling_id);
+      } catch (e) {
+        return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500);
+      }
+      id = id ?? idsPorCodigo.get(cod);
+      if (id) blingIds.set(sku, id);
+    }
     const fichas = new Map<string, any>((fichaQ.data ?? []).map((f: any) => [f.sku, f]));
     const faseDestino = await carregarFaseDestino(supabase, "Bling");
     const fases = new Map<string, string | null>((faseQ.data ?? []).map((f: any) => [f.sku, f.fase]));
@@ -190,7 +205,7 @@ serve(async (req) => {
       if (putErro) { resultados.push({ sku, bling_id: blingId, status: "erro_put", de_para, erro: putErro }); continue; }
 
       const { error: upErr } = await supabase.from("bling_produtos_cache")
-        .update({ nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("sku", codigoExterno);
+        .update({ sku: codigoExterno, nome: novo.nome, atualizado_em: new Date().toISOString() }).eq("bling_produto_id", Number(blingId));
 
       // Espelho em dia na hora: re-GET do Bling e grava na tabela `produtos`
       // (espelho do Bling, chave bling_id) TODAS as colunas espelhadas derivadas

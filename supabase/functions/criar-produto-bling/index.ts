@@ -4,6 +4,7 @@
 // Dois portões: ficha furada (vw_produto_ficha_pendencias) e duplicidade (bling_produtos_cache).
 // Nunca assume origem fiscal: é decisão humana/contador.
 
+import { resolverProdutoBling } from "../_shared/bling/resolver-produto.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { carregarFaseDestino, situacaoPelaFase, FaseSemRegra, grupoTributarioDaFicha, carregarGruposBling } from "../_shared/bling/montar-valores-produto.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
@@ -126,7 +127,33 @@ serve(async (req) => {
       .select("sku, bling_produto_id")
       .in("sku", [...new Set((fichas ?? []).map((f: any) => String(f.codigo_externo ?? "").trim()).filter(Boolean))]);
     if (cacheErr) return json({ ok: false, erro: `Falha ao ler bling_produtos_cache: ${cacheErr.message}` }, 500);
-    const jaExiste = new Set<string>((cache || []).map((c: any) => c.sku));
+    // codigo do Bling -> bling_id (cache). Na transição o card pode ter o SKU antigo: a RPC resolve.
+    const cachePorCodigo = new Map<string, string>((cache || []).map((c: any) => [c.sku, String(c.bling_produto_id ?? "")]));
+    const codigoPorBlingId = new Map<string, string>((cache || []).filter((c: any) => c.bling_produto_id).map((c: any) => [String(c.bling_produto_id), c.sku]));
+    const jaExiste = new Map<string, { id: string; codigo: string }>();
+    for (const f of (fichas ?? []) as any[]) {
+      const cod = String(f.codigo_externo ?? "").trim();
+      if (!cod) continue;
+      let r;
+      try { r = await resolverProdutoBling(supabase, cod); }
+      catch (e) { return json({ ok: false, erro: e instanceof Error ? e.message : String(e) }, 500); }
+      if (r.bling_id && (r.ok || r.card_inativo)) {
+        jaExiste.set(cod, { id: String(r.bling_id), codigo: codigoPorBlingId.get(String(r.bling_id)) ?? r.sku ?? cod });
+      } else if (cachePorCodigo.has(cod)) {
+        jaExiste.set(cod, { id: cachePorCodigo.get(cod) || "?", codigo: cod });
+      }
+    }
+    if (jaExiste.size) {
+      // Código atual do card no Bling (pode ser o SKU antigo) pelo id, para a mensagem.
+      const ids = [...jaExiste.values()].map((v) => Number(v.id)).filter((n) => Number.isFinite(n));
+      if (ids.length) {
+        const { data: porId, error: porIdErr } = await supabase
+          .from("bling_produtos_cache").select("sku, bling_produto_id").in("bling_produto_id", ids);
+        if (porIdErr) return json({ ok: false, erro: `Falha ao ler bling_produtos_cache: ${porIdErr.message}` }, 500);
+        const m = new Map<string, string>((porId ?? []).map((c: any) => [String(c.bling_produto_id), c.sku]));
+        for (const v of jaExiste.values()) if (m.has(v.id)) v.codigo = m.get(v.id)!;
+      }
+    }
 
     // ---- PORTÃO 3: nome repetido (Bling espelho, outros SNCF, mesmo lote) ----
     const norm = (s: unknown) => String(s ?? "").trim().toLowerCase();
@@ -194,9 +221,11 @@ serve(async (req) => {
       let codigoExterno: string;
       try { codigoExterno = exigirCodigoExterno(sku, f.codigo_externo); }
       catch (e) { recusados.push({ sku, motivo: (e as Error).message }); continue; }
-      if (jaExiste.has(codigoExterno)) {
-        recusados.push({ sku, motivo: "já existe no Bling" });
-        console.log(`[criar-produto-bling] ${sku}: recusado — já existe no Bling`);
+      const existente = jaExiste.get(codigoExterno);
+      if (existente) {
+        const motivo = `já tem card no Bling (id ${existente.id}, código ${existente.codigo}) — use Corrigir no Bling`;
+        recusados.push({ sku, motivo });
+        console.log(`[criar-produto-bling] ${sku}: recusado — ${motivo}`);
         continue;
       }
       const faltando = pendPorSku.get(sku);
