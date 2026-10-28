@@ -243,43 +243,6 @@ export default function FluxoRecebimentos() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Atrasados */}
-          <Card className="min-w-0">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-base">Atrasados</CardTitle>
-              <span className="text-sm font-semibold text-destructive">{formatBRL(totAtrasado)}</span>
-            </CardHeader>
-            <CardContent className="min-w-0 p-0">
-              {atrasados.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground">{q.isLoading ? "Carregando…" : "Nenhum recebível atrasado."}</p>
-              ) : (
-                <div className="w-full overflow-x-auto">
-                  <Table className="whitespace-nowrap">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Cliente</TableHead><TableHead>Título</TableHead><TableHead>Canal</TableHead>
-                        <TableHead>Crédito esperado</TableHead><TableHead className="text-right">Dias de atraso</TableHead>
-                        <TableHead className="text-right">Valor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {atrasados.map((r) => (
-                        <TableRow key={`${r.origem}-${r.origem_id}`}>
-                          <TableCell className="max-w-[16rem] truncate" title={r.cliente ?? ""}>{r.cliente ?? "—"}</TableCell>
-                          <TableCell>{r.numero_titulo ?? "—"}</TableCell>
-                          <TableCell>{canalDe(r)}</TableCell>
-                          <TableCell>{r.dia_credito ? ddmm(r.dia_credito) : "—"}</TableCell>
-                          <TableCell className="text-right tabular-nums">{r.dias_atraso ?? 0}</TableCell>
-                          <TableCell className="text-right tabular-nums">{formatBRL(valor(r))}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
       )}
 
