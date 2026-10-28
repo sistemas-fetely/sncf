@@ -120,7 +120,7 @@ export default function FluxoRecebimentos() {
       ) : (
         <div className="space-y-4">
           {/* Cards */}
-          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-3">
             {cards.map((c, i) => (
               <Card key={c.d}>
                 <CardContent className="p-4">
@@ -134,17 +134,6 @@ export default function FluxoRecebimentos() {
                 </CardContent>
               </Card>
             ))}
-            <Card>
-              <CardContent className="p-4">
-                <p className="text-xs text-muted-foreground">Atrasado a cobrar</p>
-                {q.isLoading ? <Skeleton className="mt-2 h-7 w-28" /> : (
-                  <>
-                    <p className="mt-1 truncate text-xl font-semibold text-destructive md:text-2xl">{formatBRL(totAtrasado)}</p>
-                    <p className="text-xs text-muted-foreground">{atrasados.length} recebíveis</p>
-                  </>
-                )}
-              </CardContent>
-            </Card>
           </div>
 
           {/* Controles */}
