@@ -22,8 +22,8 @@ import { useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
  *
  * - Modal com executores em `mesa_sp_executor` (Frete Fetely): "Quem entrega";
  *   referência obrigatória se o executor `exige_referencia`.
- * - Correios (`exige_etiqueta_correios`): sem rastreio registrado, pede o
- *   código do comprovante de postagem.
+ * - Correios (`exige_etiqueta_correios`): SEMPRE pede o bipe do código do
+ *   comprovante (campo vazio); diferente do já registrado, o bipado substitui.
  * - Retirada (B2B): "Quem retirou".
  * - Demais (Transportadora): referência da coleta obrigatória.
  */
