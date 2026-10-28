@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
-import { useConcluirDocumentos, useDadosImpressao, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, useRegistrarRastreio } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, useRegistrarRastreio } from "./useMesaSp";
 
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
@@ -39,6 +39,9 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const dadosQ = useDadosImpressao(pedido.id);
   const docs = docsQ.data ?? [];
   const dados = dadosQ.data ?? null;
+  const usaZebra = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume" || d.tipo === "etiqueta_retirada");
+  const danfeQ = useDanfeEtiqueta(usaZebra ? pedido.id : null, !!dados?.nf);
+  const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
   const usaRemetente = docs.some((d) => d.tipo === "etiqueta_entrega" || d.tipo === "etiqueta_volume");
 
   function imprimir(d: DocumentoMesa, fn: (x: DadosImpressao) => boolean) {
@@ -122,9 +125,9 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
         );
       case "etiqueta_entrega":
       case "etiqueta_volume":
-        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, imprimirEtiquetaEntrega);
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, (x) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(x, danfeQ.data); });
       case "etiqueta_retirada":
-        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, imprimirEtiquetaRetirada);
+        return botaoImprimir(d, `Imprimir etiqueta${dados?.volumes && dados.volumes > 1 ? ` (${dados.volumes})` : ""}`, (x) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); });
       case "termo_retirada":
         return botaoImprimir(d, "Imprimir termo", imprimirTermoRetirada);
       case "comprovante_coleta":

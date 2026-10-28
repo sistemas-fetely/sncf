@@ -375,6 +375,26 @@ export function useDadosImpressao(pedidoId: string | null) {
   });
 }
 
+/** DANFE Simplificado – Etiqueta: campos lidos do XML no servidor. Falha = etiqueta Fetely sai sozinha. */
+export function useDanfeEtiqueta(pedidoId: string | null, temNf: boolean) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, "danfe-etiqueta", pedidoId],
+    enabled: !!pedidoId && temNf,
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<DanfeEtiqueta> => {
+      const { data, error } = await supabase.functions.invoke("nf-danfe-etiqueta", { body: { pedido_id: pedidoId } });
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        const corpo = ctx && typeof ctx.json === "function" ? await ctx.json().catch(() => null) : null;
+        throw new Error(corpo?.error ?? error.message);
+      }
+      if (!data?.ok) throw new Error(data?.error ?? "resposta inválida da DANFE etiqueta.");
+      return data as DanfeEtiqueta;
+    },
+  });
+}
+
 /** RPC miúda de documento (marcar/rastreio): toast de erro inteiro e relê os documentos. */
 function useRpcDocumento<TArgs extends { p_pedido_id: string }>(nome: string, sucesso: string | null) {
   const qc = useQueryClient();

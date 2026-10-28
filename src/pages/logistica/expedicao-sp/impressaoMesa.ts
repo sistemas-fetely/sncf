@@ -1,6 +1,17 @@
 // Impressão da estação Documentos: janela própria (window.open + print), sem sidebar.
 // Todos os dados vêm de `fn_mesa_sp_dados_impressao` (DadosImpressao) — a tela não monta endereço.
+import JsBarcode from "jsbarcode";
 import type { DadosImpressao, EnderecoImpressao } from "./tipos";
+
+/** Campos do DANFE Simplificado – Etiqueta, lidos do XML pela edge `nf-danfe-etiqueta`. */
+export interface DanfeEtiqueta {
+  chave_acesso: string; protocolo: string; protocolo_data: string | null;
+  tipo_operacao: string | null; tipo_emissao: string | null;
+  numero: string | null; serie: string | null; data_emissao: string | null;
+  emitente: { nome: string | null; cnpj: string | null; ie: string | null; uf: string | null };
+  destinatario: { nome: string | null; documento: string | null; ie: string | null; uf: string | null };
+  valor_total: string | null;
+}
 
 const esc = (v: unknown) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -36,7 +47,47 @@ const CSS_ZEBRA = `
   .vol{grid-column:1/-1;font-size:24px;font-weight:bold;margin-top:1mm}
   .destaque{font-size:22px;font-weight:bold;text-align:center;border:3px solid #000;padding:3mm}
   .grande{font-size:22px;font-weight:bold;line-height:1.2}
+  .danfe{font-size:11px;gap:1.8mm} .danfe h2{font-size:14px;margin:0;text-align:center;border:2px solid #000;padding:1.5mm}
+  .danfe .bc svg{width:100%;height:16mm;display:block} .danfe .ch{font-family:monospace;font-size:12px;text-align:center;letter-spacing:.02em}
+  .danfe .bx{border:1px solid #000;padding:1.5mm;line-height:1.35} .danfe .vt{font-size:15px;font-weight:bold;text-align:right}
 `;
+
+const fmtDoc = (v: string | null) => {
+  const d = (v ?? "").replace(/\D/g, "");
+  if (d.length === 14) return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+  if (d.length === 11) return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+  return v ?? "—";
+};
+const fmtDataHora = (v: string | null) => (v ? new Date(v).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "—");
+
+function codigoBarras(chave: string): string {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  JsBarcode(svg, chave, { format: "CODE128C", displayValue: false, margin: 0, height: 60, width: 2 });
+  svg.setAttribute("preserveAspectRatio", "none");
+  return svg.outerHTML;
+}
+
+/** DANFE Simplificado – Etiqueta (NT 2020.004): 1 página por NF, ao final das etiquetas Fetely. Sem telefone. */
+function paginaDanfe(n: DanfeEtiqueta): string {
+  const grupos = n.chave_acesso.match(/.{1,4}/g)!.join(" ");
+  const tp = n.tipo_operacao === "0" ? "0 - Entrada" : n.tipo_operacao === "1" ? "1 - Saída" : "—";
+  const cont = n.tipo_emissao && n.tipo_emissao !== "1" ? `<div class="bx"><strong>EMITIDA EM CONTINGÊNCIA</strong> (tpEmis ${esc(n.tipo_emissao)})</div>` : "";
+  const valor = n.valor_total != null ? Number(n.valor_total).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "—";
+  return `<section class="et danfe">
+    <h2>DANFE SIMPLIFICADO - ETIQUETA</h2>
+    <div class="lbl">CHAVE DE ACESSO</div>
+    <div class="bc">${codigoBarras(n.chave_acesso)}</div>
+    <div class="ch">${esc(grupos)}</div>
+    <div class="bx">Protocolo de autorização: <strong>${esc(n.protocolo)}</strong><br>${esc(fmtDataHora(n.protocolo_data))}</div>
+    ${cont}
+    <div class="bx">Tipo: <strong>${esc(tp)}</strong> · Nº <strong>${esc(n.numero ?? "—")}</strong> · Série <strong>${esc(n.serie ?? "—")}</strong><br>Emissão: ${esc(fmtDataHora(n.data_emissao))}</div>
+    <div class="lbl">EMITENTE</div>
+    <div class="bx"><strong>${esc(n.emitente.nome ?? "—")}</strong><br>CNPJ ${esc(fmtDoc(n.emitente.cnpj))} · IE ${esc(n.emitente.ie ?? "—")} · UF ${esc(n.emitente.uf ?? "—")}</div>
+    <div class="lbl">DESTINATÁRIO</div>
+    <div class="bx"><strong>${esc(n.destinatario.nome ?? "—")}</strong><br>${(n.destinatario.documento ?? "").replace(/\D/g, "").length === 11 ? "CPF" : "CNPJ"} ${esc(fmtDoc(n.destinatario.documento))}${n.destinatario.ie ? ` · IE ${esc(n.destinatario.ie)}` : ""} · UF ${esc(n.destinatario.uf ?? "—")}</div>
+    <div class="vt">Valor total da NF: ${esc(valor)}</div>
+  </section>`;
+}
 
 const totalVolumes = (d: DadosImpressao) => Math.max(1, Math.floor(d.volumes ?? 1));
 
@@ -70,13 +121,13 @@ function etiquetaFetely(d: DadosImpressao, faixa?: string): string {
 }
 
 /** Etiqueta de entrega/volume — todos os modais (inclusive Correios, como etiqueta lateral). */
-export function imprimirEtiquetaEntrega(d: DadosImpressao): boolean {
-  return abrir(`Etiquetas ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d));
+export function imprimirEtiquetaEntrega(d: DadosImpressao, danfe?: DanfeEtiqueta | null): boolean {
+  return abrir(`Etiquetas ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d) + (danfe ? paginaDanfe(danfe) : ""));
 }
 
 /** Retirada: mesma etiqueta completa, com faixa "RETIRADA NO BALCÃO" no topo. */
-export function imprimirEtiquetaRetirada(d: DadosImpressao): boolean {
-  return abrir(`Etiquetas retirada ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d, "RETIRADA NO BALCÃO"));
+export function imprimirEtiquetaRetirada(d: DadosImpressao, danfe?: DanfeEtiqueta | null): boolean {
+  return abrir(`Etiquetas retirada ${d.pedido}`, CSS_ZEBRA, etiquetaFetely(d, "RETIRADA NO BALCÃO") + (danfe ? paginaDanfe(danfe) : ""));
 }
 
 const CSS_A4 = `
