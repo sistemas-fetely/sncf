@@ -248,7 +248,11 @@ Deno.serve(async (req) => {
         return tb - ta;
       });
 
-    const pendentes = ordenados.slice(0, limite);
+    // Retoma o par [pedido_id, blingIds] na ordem acima (mesmo formato de antes,
+    // para o loop de processamento nao mudar).
+    const pendentes = ordenados
+      .slice(0, limite)
+      .map((id) => [id, porPedido.get(id) ?? []] as [string, string[]]);
     if (pendentes.length === 0) {
       return new Response(
         JSON.stringify({
