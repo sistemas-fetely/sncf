@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import * as XLSX from "https://esm.sh/xlsx@0.18.5";
+import { mapaCodigoExterno, exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" };
 
@@ -75,11 +76,15 @@ serve(async (req) => {
         const hJson = { Authorization: `Bearer ${token}`, Accept: "application/json", "Content-Type": "application/json" };
 
         const so = (v: unknown) => (v == null ? "" : String(v).trim());
+        const codigosExternos = await mapaCodigoExterno(supabase, skus);
         for (const sku of skus) {
+          let codigoExterno: string;
+          try { codigoExterno = exigirCodigoExterno(sku, codigosExternos.get(sku)); }
+          catch (e) { resultados.push({ sku, status: "erro_update", erro: (e as Error).message }); continue; }
           const { data: cache, error: eCache } = await supabase
             .from("xpm_produtos_cache")
             .select("xpm_produto_id, descricao, descricao_reduzida, payload")
-            .eq("codigo", sku).maybeSingle();
+            .eq("codigo", codigoExterno).maybeSingle();
           if (eCache) throw new Error(`xpm_produtos_cache ${sku}: ${eCache.message}`);
           if (!cache) { resultados.push({ sku, status: "nao_esta_no_xpm" }); continue; }
 
@@ -118,7 +123,7 @@ serve(async (req) => {
             const { error: eUp } = await supabase.from("xpm_produtos_cache").update({
               descricao: para.descricao, descricao_reduzida: para.descricao_reduzida,
               payload: novoPayload, sincronizado_em: new Date().toISOString(),
-            }).eq("codigo", sku);
+            }).eq("codigo", codigoExterno);
             if (eUp) { resultados.push({ sku, status: "erro_update", erro: `XPM ok, cache falhou: ${eUp.message}` }); continue; }
             resultados.push({ sku, status: "ok" });
           } catch (e) {
@@ -208,13 +213,17 @@ serve(async (req) => {
           for (const c of (catMap ?? []) as any[]) codigoDoMapa.set(String(c.categoria_id), String(c.categoria_codigo));
         }
 
+        const codigosExternos = await mapaCodigoExterno(supabase, skus);
         for (const sku of skus) {
+          let codigoExterno: string;
+          try { codigoExterno = exigirCodigoExterno(sku, codigosExternos.get(sku)); }
+          catch (e) { resultados.push({ sku, status: "erro_update", erro: (e as Error).message }); continue; }
           // ===== CORRECAO DE CADASTRO NO XPM PELA MATRIZ (de-para + PUT) =====
           if (tipo === "atualizar_cadastro_xpm") {
             const { data: cache, error: eCache } = await supabase
               .from("xpm_produtos_cache")
               .select("xpm_produto_id, descricao, ncm, peso_unitario_kg, altura_m, largura_m, comprimento_m, categoria_codigo")
-              .eq("codigo", sku).maybeSingle();
+              .eq("codigo", codigoExterno).maybeSingle();
             if (eCache) throw new Error(`xpm_produtos_cache ${sku}: ${eCache.message}`);
             if (!cache?.xpm_produto_id) { resultados.push({ sku, status: "nao_esta_no_xpm" }); continue; }
 
@@ -275,7 +284,7 @@ serve(async (req) => {
               comprimento_m: num(p1.comprimento),
               ...(codEspelho !== undefined ? { categoria_codigo: codEspelho } : {}),
               sincronizado_em: new Date().toISOString(),
-            }).eq("codigo", sku);
+            }).eq("codigo", codigoExterno);
             if (eUpd) throw new Error(`espelho xpm_produtos_cache ${sku}: ${eUpd.message}`);
             resultados.push({ sku, status: "ok", xpm_produto_id: cache.xpm_produto_id, de_para });
             continue;
@@ -283,7 +292,7 @@ serve(async (req) => {
 
           if (tipo === "corrigir_categoria_xpm") {
             const { data: cache, error: eCache } = await supabase
-              .from("xpm_produtos_cache").select("xpm_produto_id").eq("codigo", sku).maybeSingle();
+              .from("xpm_produtos_cache").select("xpm_produto_id").eq("codigo", codigoExterno).maybeSingle();
             if (eCache) throw new Error(`xpm_produtos_cache ${sku}: ${eCache.message}`);
             if (!cache?.xpm_produto_id) { resultados.push({ sku, status: "nao_esta_no_xpm" }); continue; }
 
@@ -405,8 +414,9 @@ serve(async (req) => {
     const unidRow = ["","","","","","Kg","","","","","","","","","","","Kg","Metro","Metro","Metro","","",""];
     const headerRow = ["Codigo Material","Categoria","Descrição","Descrição Reduzida","Unid. med","Peso Liquido","codigoBarras","Cod. Caixa","NF","Cod. NF","lastro","classificacaoFiscalNCM","Quantida de Caixas Master","Quantida de Caixas Inner","qtdItemSKU","descricaoEmbalagem","pesoSku","alturaSKU","larguraSKU","comprimentoSKU","Lote","Validade","Serie"];
 
+    const codExtCad = await mapaCodigoExterno(supabase, (data || []).map((r: any) => String(r.codigo_material)));
     const dataRows = (data || []).map((r: any) => [
-      r.codigo_material,
+      exigirCodigoExterno(String(r.codigo_material), codExtCad.get(String(r.codigo_material))),
       r.categoria ?? "",
       r.descricao ?? "",
       r.descricao_reduzida ?? "",
