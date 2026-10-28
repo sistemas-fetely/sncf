@@ -456,7 +456,7 @@ const App = () => (
 
               {/* ═══════════════════════════════════════════════
                   App SOPs — com sidebar lateral
-                  Absorve: Pedidos, Cobrança, NFs, Parceiros, Estoque Virtual
+                  Absorve: Pedidos, NFs, Estoque Virtual
                   ═══════════════════════════════════════════════ */}
               <Route element={<VendasLayout />}>
                 <Route path="/pedidos" element={<PedidosIndex />} />
@@ -472,9 +472,6 @@ const App = () => (
                 <Route path="/pedidos/venda-direta/:id/imprimir" element={<ImpressaoPedidoVD />} />
                 {/* Venda Direta · Gestão — nó sops.venda_direta_gestao, slug tela.venda_direta_gestao. */}
                 <Route path="/pedidos/venda-direta" element={<VendaDiretaGestao />} />
-                {/* /cliente = lista (porta); /cliente/:id = detalhe */}
-                <Route path="/cliente" element={<ClientesLista />} />
-                <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
 
                 <Route path="/vendas/nfs" element={<NfsDeVenda />} />
                 <Route path="/vendas/bling-pedidos" element={<PedidosVenda />} />
@@ -548,7 +545,6 @@ const App = () => (
                 <Route path="/expedicao-sp" element={<ExpedicaoSpRedirect />} />
                 <Route path="/logistica/expedicao-sp" element={<ExpedicaoSp />} />
                 
-                <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
 
                 <Route path="/devolucoes" element={<RetornoDevolucao />} />
                 <Route path="/estoque/regularizacao" element={<Navigate to="/pedidos/transferencias?aba=retorno" replace />} />
@@ -581,17 +577,11 @@ const App = () => (
 
               {/* UMA-PORTA-SO: a lista de consignados deixou de ser aba da Casa dos Pedidos.
                   MESMA-CASCA-DO-PILAR (16/09/2026): as duas rotas moram no VendasLayout,
-                  a mesma sidebar do SOPs que /cliente usa — antes renderizavam fora
-                  do layout, sem o menu lateral. */}
+                  a mesma sidebar do SOPs — antes renderizavam fora do layout, sem o menu
+                  lateral. */}
               <Route element={<VendasLayout />}>
                 <Route path="/comercial/consignados" element={<Consignados />} />
                 <Route path="/comercial/consignados/:parceiroId" element={<ConsignadoDetalhe />} />
-                {/* Comercial — Comissões de Representante (menu comercial.comissoes):
-                    MESMA-CASCA-DO-PILAR — movidas para dentro do VendasLayout para
-                    ganharem a sidebar, como os consignados. */}
-                <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
-                <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
-                <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
               </Route>
 
 
@@ -666,9 +656,27 @@ const App = () => (
                 <Route path="/minhas-notificacoes" element={<MinhasNotificacoes />} />
               </Route>
 
+              {/* MESMA-CASCA-DO-PILAR (28/10/2026): a sncf_navegacao moveu Cadastro de
+                  Parceiros, Conta Corrente Cliente e Cobrança para o app ADM, e
+                  Representantes e Comissões para o app Controladoria. As URLs não mudaram,
+                  mas as seis rotas saíram do VendasLayout (sidebar do SOPs) para cá: o
+                  FinancasLayout resolve a sidebar pela rota (FinancasContextSidebar +
+                  useAppDaRota), então cada uma abre com a lateral do app dono. O acesso
+                  continua no RotaGate do CasaLayout, como antes. */}
               <Route element={<FinancasLayout />}>
                 <Route path="/compras" element={<Compras />} />
                 <Route path="/compras/a-comprar" element={<ComprasAComprar />} />
+                {/* ADM — Cadastro de Parceiros */}
+                <Route path="/administrativo-fetely/parceiros" element={<Parceiros />} />
+                {/* ADM — Conta Corrente Cliente: /cliente = lista (porta); /cliente/:id = detalhe */}
+                <Route path="/cliente" element={<ClientesLista />} />
+                {/* ADM — Cobrança (fila) */}
+                <Route path="/recebimento/cobranca" element={<CobrancaFila />} />
+                {/* Controladoria — Comissões de Representante */}
+                <Route path="/comercial/comissoes" element={<ComissoesIndex />} />
+                {/* Controladoria — Representantes: painel e ficha */}
+                <Route path="/comercial/representantes" element={<RepresentantesPainel />} />
+                <Route path="/comercial/representantes/:vendedorId" element={<RepresentanteFicha />} />
               </Route>
 
 
