@@ -190,7 +190,7 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
   const mudarCols = (v: string[]) => setNav({ cols: juntar(v), mods: "", nums: "" });
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-4 min-w-0 max-w-full space-y-6">
       {/* a) filtros */}
       <Card className="min-w-0">
         <CardContent className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-4 p-4">
