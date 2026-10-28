@@ -592,7 +592,7 @@ interface ResultadoDespachoLote {
 export function useDespacharLote() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { p_modal: string; p_pedido_ids: string[] }) => {
+    mutationFn: async (args: { p_modal: string; p_itens: { pedido_id: string; referencia: string | null }[] }) => {
       const { data, error } = await supabaseMesa.rpc("fn_mesa_sp_despachar_lote", args);
       if (error) throw new Error(mensagemErro(error));
       return data as unknown as ResultadoDespachoLote;

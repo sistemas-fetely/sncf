@@ -7524,6 +7524,57 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_pedido_rastreamento_limpeza_20261028: {
+        Row: {
+          atualizado_em: string | null
+          codigo_rastreio: string | null
+          criado_em: string | null
+          data_ultima_atualizacao: string | null
+          entregue: boolean | null
+          entregue_confirmado_em: string | null
+          entregue_fonte: string | null
+          estado_canonico: string | null
+          eventos: Json | null
+          id: string | null
+          pedido_id: string | null
+          previsao_entrega: string | null
+          servico: string | null
+          status_atual: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          codigo_rastreio?: string | null
+          criado_em?: string | null
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean | null
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
+          estado_canonico?: string | null
+          eventos?: Json | null
+          id?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          codigo_rastreio?: string | null
+          criado_em?: string | null
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean | null
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
+          estado_canonico?: string | null
+          eventos?: Json | null
+          id?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Relationships: []
+      }
       backup_refs_itau_na_safra_20260929: {
         Row: {
           coluna: string | null
@@ -149770,10 +149821,9 @@ export type Database = {
         }
         Returns: Json
       }
-      fn_mesa_sp_despachar_lote: {
-        Args: { p_modal: string; p_pedido_ids: string[] }
-        Returns: Json
-      }
+      fn_mesa_sp_despachar_lote:
+        | { Args: { p_itens: Json; p_modal: string }; Returns: Json }
+        | { Args: { p_modal: string; p_pedido_ids: string[] }; Returns: Json }
       fn_mesa_sp_devolver_fila: {
         Args: { p_motivo: string; p_pedido_id: string }
         Returns: Json

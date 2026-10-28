@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 import { Link } from "react-router-dom";
 import { BotaoGuardado } from "@/components/acesso/BotaoGuardado";
 import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
@@ -51,7 +52,7 @@ interface Props {
   onDespachar: (modal: string, referencia: string | null, executor: string | null) => void;
   gruposColeta: GrupoColeta[];
   despachandoLote: boolean;
-  onDespacharLote: (modalCodigo: string, pedidoIds: string[]) => void;
+  onDespacharLote: (modalCodigo: string, itens: { pedido_id: string; referencia: string | null }[]) => void;
   /** Cancelamento solicitado no pedido selecionado: não despacha. */
   bloqueado?: boolean;
   /** Dados do pedido para o diálogo de retirada no balcão. */
@@ -59,6 +60,16 @@ interface Props {
   clienteNome?: string | null;
   /** Retirada registrada: a Mesa limpa a seleção (pedido vira entregue). */
   onRetiradaRegistrada?: () => void;
+}
+
+const CODIGO_CORREIOS = /^[A-Z]{2}[0-9]{9}[A-Z]{2}$/;
+export function normalizarCodigo(v: string): string {
+  return v.replace(/\s/g, "").toUpperCase();
+}
+/** Lote Correios só libera com todos os códigos no formato e sem repetição. */
+export function loteCorreiosValido(codigos: string[]): boolean {
+  const n = codigos.map(normalizarCodigo);
+  return n.length > 0 && n.every((c) => CODIGO_CORREIOS.test(c)) && new Set(n).size === n.length;
 }
 
 /** Espera em linguagem de bancada: minutos até 1h, depois horas, depois dias. */
@@ -90,6 +101,10 @@ export function EstacaoDespacho({
   const tituloPerm = !perm.permitido && !perm.carregando ? "Sem permissão: acao.expedicao_sp_operar" : undefined;
   const escolhido = modais.find((m) => m.codigo === modalEmbalado) ?? null;
   const semDespacho = escolhido?.sem_despacho === true;
+  // Lote Correios: um código bipado por pedido (pedido_id → código).
+  const [codigosLote, setCodigosLote] = useState<Record<string, string>>({});
+  const refsLote = useRef<Record<string, HTMLInputElement | null>>({});
+  const ehCorreiosGrupo = (cod: string) => modais.find((m) => m.codigo === cod)?.exige_etiqueta_correios === true;
 
   if (semDespacho) {
     return (
@@ -151,10 +166,15 @@ export function EstacaoDespacho({
                       rotuloAcao="Despachar lote"
                       contexto={{ modal: grupo.modalCodigo }}
                       size="sm"
-                      onClick={() =>
-                        onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => c.pedido_id))
-                      }
-                      disabled={despachandoLote}
+                      onClick={() => {
+                        const correios = ehCorreiosGrupo(grupo.modalCodigo);
+                        onDespacharLote(grupo.modalCodigo, grupo.caixas.map((c) => ({
+                          pedido_id: c.pedido_id,
+                          referencia: correios ? normalizarCodigo(codigosLote[c.pedido_id] ?? "") : null,
+                        })));
+                        if (correios) setCodigosLote({});
+                      }}
+                      disabled={despachandoLote || (ehCorreiosGrupo(grupo.modalCodigo) && !loteCorreiosValido(grupo.caixas.map((c) => codigosLote[c.pedido_id] ?? "")))}
                     >
                       {despachandoLote
                         ? <Loader2 className="animate-spin" aria-hidden="true" />
@@ -184,7 +204,40 @@ export function EstacaoDespacho({
                           {medidas(c)}
                         </span>
                       </div>
-                      <Selo estado="warning">{esperaDesde(c.embaladoEm)}</Selo>
+                      <div className="flex items-center gap-2">
+                        {grupo.temRastreioAutomatico && ehCorreiosGrupo(grupo.modalCodigo) && (() => {
+                          const v = codigosLote[c.pedido_id] ?? "";
+                          const n = normalizarCodigo(v);
+                          const todos = grupo.caixas.map((x) => normalizarCodigo(codigosLote[x.pedido_id] ?? ""));
+                          const repetido = n !== "" && todos.filter((t) => t === n).length > 1;
+                          const invalido = n !== "" && !CODIGO_CORREIOS.test(n);
+                          return (
+                            <div className="flex flex-col">
+                              <Input
+                                ref={(el) => { refsLote.current[c.pedido_id] = el; }}
+                                aria-label={`Código do comprovante ${c.id_externo}`}
+                                placeholder="Código do comprovante"
+                                className="h-8 w-48 font-mono text-xs"
+                                value={v}
+                                onChange={(e) => setCodigosLote((s) => ({ ...s, [c.pedido_id]: e.target.value }))}
+                                onKeyDown={(e) => {
+                                  if (e.key !== "Enter") return;
+                                  e.preventDefault();
+                                  const i = grupo.caixas.findIndex((x) => x.pedido_id === c.pedido_id);
+                                  const prox = grupo.caixas[i + 1];
+                                  if (prox) refsLote.current[prox.pedido_id]?.focus();
+                                }}
+                              />
+                              {(invalido || repetido) && (
+                                <span className="text-xs text-destructive">
+                                  {repetido ? "Código repetido no lote" : "Formato AA123456789BR"}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                        <Selo estado="warning">{esperaDesde(c.embaladoEm)}</Selo>
+                      </div>
                     </li>
                   ))}
                 </ul>
