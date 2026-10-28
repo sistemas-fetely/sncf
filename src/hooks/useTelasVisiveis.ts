@@ -20,12 +20,16 @@ export function useTelasVisiveis(rotas: string[]): Set<string> {
   return useMemo(() => {
     const visiveis = new Set<string>();
     for (const rota of rotas) {
-      if (isSuperAdmin) {
+      const regraNav = resolverRegraNavegacao(rota, nav);
+      // App exclusivo: concessão real obrigatória e SEM atalho de super_admin.
+      const exclusivo = regraNav?.exclusivo_slug ?? null;
+      if (exclusivo) {
+        if (!temPermissaoTela(exclusivo, permitidas)) continue;
+      } else if (isSuperAdmin) {
         visiveis.add(rota);
         continue;
       }
 
-      const regraNav = resolverRegraNavegacao(rota, nav);
       const regraCodigo = resolverRegraRota(rota);
       if (!regraNav && !regraCodigo) continue; // rota não registrada → oculta
 

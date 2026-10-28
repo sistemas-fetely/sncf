@@ -19,10 +19,12 @@ export function RotaGate({ children }: { children: ReactNode }) {
   useRotaNaoDeclarada(location.pathname, nav, isLoadingNav, isSuperAdmin);
 
 
-  // super_admin vê tudo — nem espera o banco carregar.
-  if (isSuperAdmin) return <>{children}</>;
+  // super_admin vê tudo — exceto rotas de app exclusivo, que exigem concessão
+  // real. Por isso, para super_admin, só espera a navegação (não as permissões).
+  const regraNavPre = resolverRegraNavegacao(location.pathname, nav);
+  if (isSuperAdmin && !isLoadingNav && !regraNavPre?.exclusivo_slug) return <>{children}</>;
 
-  // Aguarda auth, permissões e navegação (só para não-super_admin).
+  // Aguarda auth, permissões e navegação.
   if (loading || isLoading || isLoadingNav) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -38,6 +40,12 @@ export function RotaGate({ children }: { children: ReactNode }) {
   // rotasRegistry.ts é fallback de rollback até o passo 6 da ordem de desmonte.
   const regraNav = resolverRegraNavegacao(location.pathname, nav);
   const regraCodigo = resolverRegraRota(location.pathname);
+
+  // App exclusivo: concessão real do slug do app (sem atalho de super_admin)
+  // e depois a regra normal da própria tela, também sem atalho.
+  if (regraNav?.exclusivo_slug && !temPermissaoTela(regraNav.exclusivo_slug, permitidas)) {
+    return <Navigate to="/sem-permissao" replace />;
+  }
 
   // Rota não registrada em lugar nenhum → nega (fail-closed).
   if (!regraNav && !regraCodigo) return <Navigate to="/sem-permissao" replace />;
