@@ -94,19 +94,25 @@ function ListaRanking({
               className={cn("relative block w-full overflow-hidden rounded px-2 py-1.5 text-left", onClicar && "hover:bg-muted", selecionado === l.chave && "bg-muted ring-1 ring-primary")}
             >
               <div className="absolute inset-y-0 left-0 bg-primary/10" style={{ width: `${(l.faturado / max) * 100}%` }} />
-              <div className="relative flex items-center gap-2">
+              <div className="relative flex min-w-0 items-center gap-2">
                 <span className="w-6 shrink-0 text-right text-xs tabular-nums text-muted-foreground">{l.posicao}</span>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">
+                  <div
+                    className="truncate text-sm font-medium"
+                    title={cliente ? [l.nome, l.tipo_pessoa === "PJ" && l.documento ? formatCNPJ(l.documento) : null].filter(Boolean).join(" · ") : undefined}
+                  >
                     {cliente ? l.nome ?? "—" : l.chave}
-                    {cliente && l.tipo_pessoa === "PJ" && l.documento && <span className="ml-2 text-xs font-normal text-muted-foreground">{formatCNPJ(l.documento)}</span>}
                   </div>
-                  <div className="truncate text-xs text-muted-foreground">
+                  <div
+                    className="truncate text-xs text-muted-foreground"
+                    title={cliente ? `${l.tipo_pessoa === "PJ" ? "Lojista" : "Consumidor"} · ${[l.cidade, l.uf].filter(Boolean).join("/") || "—"} · ${l.tipo_pessoa === "PJ" && l.documento ? formatCNPJ(l.documento) + " · " : ""}${fmtInt(l.nfs)} NFs · última ${dataCurta(l.ultima_compra)}` : undefined}
+                  >
+                    {cliente && l.tipo_pessoa === "PJ" && l.documento && <>{formatCNPJ(l.documento)} · </>}
                     {cliente && <>{l.tipo_pessoa === "PJ" ? "Lojista" : "Consumidor"} · {[l.cidade, l.uf].filter(Boolean).join("/") || "—"} · </>}
                     {fmtInt(l.nfs)} NFs · última {dataCurta(l.ultima_compra)}
                   </div>
                 </div>
-                <div className="shrink-0 text-right">
+                <div className="shrink-0 whitespace-nowrap text-right">
                   <div className="text-sm tabular-nums">{formatBRL(l.faturado)}</div>
                   <div className="text-xs tabular-nums text-muted-foreground">{fmtPct(l.pct_total, 1)}</div>
                 </div>
