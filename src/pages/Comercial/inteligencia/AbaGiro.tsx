@@ -26,9 +26,9 @@ function SeloStatus({ s }: { s: StatusGiro | null }) {
 
 function Kpi({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
-    <Card><CardContent className="p-4">
-      <div className="text-xs text-muted-foreground">{rotulo}</div>
-      <div className="mt-1 text-xl font-semibold tabular-nums">{valor}</div>
+    <Card className="min-w-0"><CardContent className="p-4">
+      <div className="truncate text-xs text-muted-foreground" title={rotulo}>{rotulo}</div>
+      <div className="mt-1 truncate whitespace-nowrap text-lg font-semibold tabular-nums md:text-xl" title={valor}>{valor}</div>
     </CardContent></Card>
   );
 }
@@ -40,19 +40,28 @@ function Erro({ e }: { e: unknown }) {
   return <div className="p-4 text-sm text-destructive">Erro: {(e as Error)?.message}</div>;
 }
 
+/* Colunas secundárias somem em telas menores (cabeçalho e célula usam a mesma classe). */
+const OCULTA = {
+  categoria: "hidden lg:table-cell",
+  giro_ano: "hidden xl:table-cell",
+  disponivel: "hidden lg:table-cell",
+  venda_mes: "hidden xl:table-cell",
+  tendencia_30d: "hidden 2xl:table-cell",
+} as const;
+
 /* ---------- tabela de giro (coleção / variante / item) ---------- */
 type Campo = "rotulo" | "categoria" | "status" | "cobertura_meses" | "giro_ano" | "sell_through" | "disponivel" | "vendido" | "saldo" | "venda_mes" | "tendencia_30d" | "estoque_custo" | "receita";
 
-const COLUNAS: { campo: Campo; rotulo: string; dir?: boolean }[] = [
+const COLUNAS: { campo: Campo; rotulo: string; dir?: boolean; cls?: string }[] = [
   { campo: "status", rotulo: "Status" },
   { campo: "cobertura_meses", rotulo: "Cobertura", dir: true },
-  { campo: "giro_ano", rotulo: "Giro/ano", dir: true },
+  { campo: "giro_ano", rotulo: "Giro/ano", dir: true, cls: OCULTA.giro_ano },
   { campo: "sell_through", rotulo: "Sell-through" },
-  { campo: "disponivel", rotulo: "Disponível", dir: true },
+  { campo: "disponivel", rotulo: "Disponível", dir: true, cls: OCULTA.disponivel },
   { campo: "vendido", rotulo: "Vendido", dir: true },
   { campo: "saldo", rotulo: "Sobrou", dir: true },
-  { campo: "venda_mes", rotulo: "Venda/mês", dir: true },
-  { campo: "tendencia_30d", rotulo: "Tendência 30d", dir: true },
+  { campo: "venda_mes", rotulo: "Venda/mês", dir: true, cls: OCULTA.venda_mes },
+  { campo: "tendencia_30d", rotulo: "Tendência 30d", dir: true, cls: OCULTA.tendencia_30d },
   { campo: "estoque_custo", rotulo: "Estoque a custo", dir: true },
   { campo: "receita", rotulo: "Faturado", dir: true },
 ];
@@ -96,20 +105,21 @@ function TabelaGiro({
   const d = (c: Campo) => (campo === c ? (dir as DirecaoOrdenacao) : null);
 
   return (
-    <Card>
+    <Card className="min-w-0">
       {(titulo || acoes) && (
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-          {titulo && <CardTitle className="text-base">{titulo}</CardTitle>}
+          {titulo && <CardTitle className="min-w-0 truncate text-base" title={titulo}>{titulo}</CardTitle>}
           {acoes}
         </CardHeader>
       )}
-      <CardContent className="overflow-x-auto p-0">
-        <Table>
+      <CardContent className="p-0">
+        <div className="w-full max-w-full overflow-x-auto">
+        <Table className="whitespace-nowrap">
           <TableHeader><TableRow>
             <CabecalhoOrdenavel rotulo={rotuloPrimeira} dir={d("rotulo")} onOrdenar={() => ciclo("rotulo")} />
-            {mostrarCategoria && <CabecalhoOrdenavel rotulo="Categoria" dir={d("categoria")} onOrdenar={() => ciclo("categoria")} />}
+            {mostrarCategoria && <CabecalhoOrdenavel className={OCULTA.categoria} rotulo="Categoria" dir={d("categoria")} onOrdenar={() => ciclo("categoria")} />}
             {COLUNAS.map((c) => (
-              <CabecalhoOrdenavel key={c.campo} rotulo={c.rotulo} dir={d(c.campo)} onOrdenar={() => ciclo(c.campo)} alinharDireita={c.dir} />
+              <CabecalhoOrdenavel key={c.campo} rotulo={c.rotulo} dir={d(c.campo)} onOrdenar={() => ciclo(c.campo)} alinharDireita={c.dir} className={c.cls} />
             ))}
           </TableRow></TableHeader>
           <TableBody>
@@ -124,11 +134,11 @@ function TabelaGiro({
                   className={cn(onClicar && "cursor-pointer", selecionado && selecionado === l.rotulo && "bg-muted")}
                   onClick={onClicar ? () => onClicar(l) : undefined}
                 >
-                  <TableCell className="font-medium">{l.rotulo}</TableCell>
-                  {mostrarCategoria && <TableCell className="text-muted-foreground">{l.categoria ?? "—"}</TableCell>}
+                  <TableCell className="max-w-[16rem] truncate font-medium" title={l.rotulo}>{l.rotulo}</TableCell>
+                  {mostrarCategoria && <TableCell className={cn("text-muted-foreground", OCULTA.categoria)}>{l.categoria ?? "—"}</TableCell>}
                   <TableCell><SeloStatus s={l.status} /></TableCell>
                   <TableCell className="text-right tabular-nums">{fmtMeses(l.cobertura_meses)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtX(l.giro_ano)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", OCULTA.giro_ano)}>{fmtX(l.giro_ano)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <div className="h-1.5 w-16 overflow-hidden rounded bg-muted">
@@ -137,11 +147,11 @@ function TabelaGiro({
                       <span className="text-xs tabular-nums">{fmtPct(l.sell_through)}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{fmtInt(l.disponivel)}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", OCULTA.disponivel)}>{fmtInt(l.disponivel)}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtInt(l.vendido)}</TableCell>
                   <TableCell className="text-right tabular-nums">{fmtInt(l.saldo)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{l.venda_mes.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</TableCell>
-                  <TableCell className={cn("text-right tabular-nums", t !== null && t >= 0.05 && "text-success", t !== null && t <= -0.05 && "text-destructive")}>
+                  <TableCell className={cn("text-right tabular-nums", OCULTA.venda_mes)}>{l.venda_mes.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}</TableCell>
+                  <TableCell className={cn("text-right tabular-nums", OCULTA.tendencia_30d, t !== null && t >= 0.05 && "text-success", t !== null && t <= -0.05 && "text-destructive")}>
                     {t === null ? "—" : `${t > 0 ? "+" : ""}${fmtPct(t)}`}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{formatBRL(l.estoque_custo)}</TableCell>
@@ -151,6 +161,7 @@ function TabelaGiro({
             })}
           </TableBody>
         </Table>
+        </div>
       </CardContent>
     </Card>
   );
@@ -223,10 +234,10 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
   const filtroMensal = nav.vari || nav.col || nav.cat;
 
   return (
-    <div className="mt-4 space-y-6">
+    <div className="mt-4 min-w-0 max-w-full space-y-6">
       {/* a) KPIs */}
       {totalQ.isLoading ? <Carregando /> : totalQ.error ? <Erro e={totalQ.error} /> : (
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))]">
           <Kpi rotulo="Faturado" valor={formatBRL(t?.receita ?? 0)} />
           <Kpi rotulo="Vendido (un)" valor={fmtInt(t?.vendido ?? 0)} />
           <Kpi rotulo="Estoque a custo" valor={formatBRL(t?.estoque_custo ?? 0)} />
@@ -239,22 +250,22 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
 
       {/* b) categorias */}
       {catQ.isLoading ? <Carregando /> : catQ.error ? <Erro e={catQ.error} /> : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))]">
           {(catQ.data ?? []).map((c) => {
             const ativo = nav.cat === c.categoria;
             return (
               <Card
                 key={c.categoria}
-                className={cn("cursor-pointer transition-colors hover:border-primary", ativo && "border-primary ring-1 ring-primary")}
+                className={cn("min-w-0 cursor-pointer transition-colors hover:border-primary", ativo && "border-primary ring-1 ring-primary")}
                 onClick={() => setNav({ cat: ativo ? "" : c.categoria ?? "", col: "", vari: "" })}
               >
                 <CardContent className="space-y-2 p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{c.categoria}</span>
+                    <span className="min-w-0 truncate font-semibold" title={c.categoria ?? ""}>{c.categoria}</span>
                     <SeloStatus s={c.status} />
                   </div>
-                  <div><span className="text-3xl font-semibold tabular-nums">{fmtMeses(c.cobertura_meses)}</span> <span className="text-sm text-muted-foreground">meses</span></div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+                  <div><span className="text-2xl font-semibold tabular-nums md:text-3xl">{fmtMeses(c.cobertura_meses)}</span> <span className="text-sm text-muted-foreground">meses</span></div>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 text-xs">
                     <span className="text-muted-foreground">Faturado</span><span className="text-right tabular-nums">{formatBRL(c.receita)}</span>
                     <span className="text-muted-foreground">Estoque a custo</span><span className="text-right tabular-nums">{formatBRL(c.estoque_custo)}</span>
                     <span className="text-muted-foreground">Disp. / vendido</span><span className="text-right tabular-nums">{fmtInt(c.disponivel)} / {fmtInt(c.vendido)} ({fmtPct(c.sell_through)})</span>
@@ -269,20 +280,20 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
       )}
 
       {/* c) onde agir */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
         {[
           { t: "Repor", l: repor, extra: (c: LinhaGiro) => `${c.venda_mes.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}/mês · ${fmtMeses(c.cobertura_meses)} m` },
           { t: "Forçar venda", l: forcar, extra: (c: LinhaGiro) => formatBRL(c.estoque_custo) },
           { t: "Observar", l: observar, extra: (c: LinhaGiro) => formatBRL(c.estoque_custo) },
         ].map((b) => (
-          <Card key={b.t}>
+          <Card key={b.t} className="min-w-0">
             <CardHeader className="pb-2"><CardTitle className="text-base">{b.t} <span className="text-sm font-normal text-muted-foreground">({b.l.length})</span></CardTitle></CardHeader>
             <CardContent className="max-h-72 space-y-1 overflow-y-auto">
               {colQ.isLoading ? <Carregando /> : b.l.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma coleção.</p> : b.l.map((c) => (
                 <button key={c.colecao} type="button" onClick={() => abrirColecao(c)}
                   className="flex w-full items-center justify-between gap-2 rounded px-2 py-1 text-left text-sm hover:bg-muted">
-                  <span className="truncate">{c.colecao}</span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground">{b.extra(c)}</span>
+                  <span className="min-w-0 truncate" title={c.colecao ?? ""}>{c.colecao}</span>
+                  <span className="shrink-0 whitespace-nowrap tabular-nums text-muted-foreground">{b.extra(c)}</span>
                 </button>
               ))}
             </CardContent>
@@ -293,7 +304,7 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
       {/* d) meses de estoque */}
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Meses de estoque por coleção</CardTitle></CardHeader>
-        <CardContent>
+        <CardContent className="min-w-0 overflow-hidden">
           {colQ.isLoading ? <Carregando /> : colQ.error ? <Erro e={colQ.error} /> : (
             <ResponsiveContainer width="100%" height={Math.max(200, dadosCob.length * 22 + 40)}>
               <BarChart data={dadosCob} layout="vertical" margin={{ left: 8, right: 64 }}>
@@ -303,7 +314,7 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
                 <ReferenceArea x1={24} x2={CORTE} fill="hsl(var(--destructive))" fillOpacity={0.06} />
                 <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                 <XAxis type="number" domain={[0, CORTE]} ticks={[0, 6, 12, 24, 36, 48, 60]} tickFormatter={(v) => (v === CORTE ? "60+" : String(v))} fontSize={11} />
-                <YAxis type="category" dataKey="nomeCol" width={180} fontSize={11} interval={0} />
+                <YAxis type="category" dataKey="nomeCol" width={130} fontSize={11} interval={0} tickFormatter={(v: string) => (v.length > 20 ? `${v.slice(0, 19)}…` : v)} />
                 <Tooltip
                   cursor={{ fill: "hsl(var(--muted))" }}
                   content={({ active, payload }) => {
@@ -340,7 +351,7 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
             <Button key={c.categoria} size="sm" variant={nav.cat === c.categoria ? "default" : "outline"}
               onClick={() => setNav({ cat: c.categoria ?? "", col: "", vari: "" })}>{c.categoria}</Button>
           ))}
-          <div className="relative ml-auto w-64">
+          <div className="relative ml-auto w-full min-w-0 sm:w-64">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input className="h-9 pl-8" placeholder="Buscar coleção" value={nav.busca} onChange={(e) => setNav({ busca: e.target.value })} />
           </div>
@@ -371,7 +382,7 @@ export function AbaGiro({ ini, fim }: { ini: string | null; fim: string | null }
       {/* g) faturamento por mês */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-base">Faturamento por mês{filtroMensal ? ` — ${filtroMensal}` : ""}</CardTitle>
+          <CardTitle className="min-w-0 truncate text-base">Faturamento por mês{filtroMensal ? ` — ${filtroMensal}` : ""}</CardTitle>
           {filtroMensal && <Button size="sm" variant="outline" onClick={() => setNav({ cat: "", col: "", vari: "" })}>Ver todas</Button>}
         </CardHeader>
         <CardContent>
