@@ -50,6 +50,7 @@ export function NfDevolucaoBloco({ devolucaoId, nf, onMudou, documento = "nf_dev
     mutationFn: (acao: "gerar" | "verificar") => chamar(devolucaoId, acao),
     onSuccess: (d, acao) => {
       if (acao === "gerar") toast.success(`Rascunho NF nº ${d.numero ?? "?"} criado no Bling`);
+      else if (d.cancelada) toast.warning("NF cancelada no Bling — gere de novo");
       else if (d.autorizada) toast.success(`NF de devolução ${d.numero} autorizada`);
       else toast.info(`Ainda não autorizada (situação ${d.situacao}${d.cancelada ? ", cancelada" : ""})`);
     },

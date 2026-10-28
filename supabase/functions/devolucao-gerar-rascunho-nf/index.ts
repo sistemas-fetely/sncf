@@ -96,7 +96,13 @@ serve(async (req) => {
       if (error) throw error;
       if (!dev?.nf_dev_bling_id) return json({ ok: false, erro: "Devolução sem rascunho de NF no Bling." }, 409);
       const bling = await blingCliente();
-      const nf = (await bling.get(`/nfe/${dev.nf_dev_bling_id}`))?.data;
+      let nf: any = null; let excluida = false;
+      try { nf = (await bling.get(`/nfe/${dev.nf_dev_bling_id}`))?.data; }
+      catch (ge) { if (ge instanceof BlingHttpError && ge.status === 404) excluida = true; else throw ge; }
+      if (excluida || (nf && cancelada(nf))) {
+        await registrar("erro", null, null, `NF ${dev.nf_dev_numero ?? "?"} (Bling ${dev.nf_dev_bling_id}) cancelada/excluída no Bling — gere de novo.`);
+        return json({ ok: true, autorizada: false, cancelada: true });
+      }
       if (!nf) throw new Error("Bling não devolveu a NF.");
       const situacao = Number(nf.situacao);
       if ((situacao === 5 || situacao === 6) && !cancelada(nf)) {
@@ -130,14 +136,12 @@ serve(async (req) => {
       naturezaOperacao: { id: d.natureza_bling_id },
       documentoReferenciado: { modelo: "55", chaveAcesso: d.nf_origem_chave },
       itens: d.itens.map((i) => ({ codigo: i.sku, descricao: i.descricao, unidade: i.unidade || "UN", quantidade: i.quantidade, valor: i.valor, tipo: "P", classificacaoFiscal: i.ncm, origem: i.origem })),
-      parcelas: [], transporte: { fretePorConta: Number(d.valor_frete ?? 0) > 0 ? 0 : 9 },
+      parcelas: [], transporte: (() => { const fr = Number(d.valor_frete ?? 0); return { fretePorConta: fr > 0 ? 0 : 9, ...(fr > 0 ? { frete: Number(fr.toFixed(2)) } : {}) }; })(),
       observacoes: ehCredito
         ? `Nota de crédito (redução de valores ou quantidades) referente à NF-e ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). Justificativa: ${d.justificativa}. ${d.devolucao_numero} — SNCF.`
         : `Devolução de venda referente à NF ${d.nf_origem_numero} (chave ${d.nf_origem_chave}). ${d.devolucao_numero} — SNCF.`,
     };
     // Frete da venda original: quando existe, entra na NF de devolução (frete por conta do emitente) para o total bater.
-    const frete = Number(d.valor_frete ?? 0);
-    if (frete > 0) payload.valorFrete = frete;
     if (ehCredito) {
       // Campo validado em 22/10/2026 contra a API v3: `tipoNota` string ("04" criou a NF 000044 da DEV-2142).
       payload.tipoNota = d.tipo_credito ?? "04";
@@ -192,8 +196,16 @@ serve(async (req) => {
     }
     const blingId = Number(resposta?.data?.id); const numero = String(resposta?.data?.numero ?? "");
     if (!Number.isFinite(blingId)) throw new Error(`Bling retornou sucesso sem data.id: ${JSON.stringify(resposta).slice(0, 500)}`);
-    await registrar("rascunho", blingId, numero || null);
-    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, documento: rotulo, alertas: resposta?.data?.alertas ?? [] }, 201);
+    const alertas: unknown[] = [...(resposta?.data?.alertas ?? [])];
+    let avisoValor: string | null = null;
+    try {
+      const nfLida = (await bling.get(`/nfe/${blingId}`))?.data;
+      const vNf = Number(nfLida?.valorNota ?? 0); const vEsp = Number(d.valor ?? 0);
+      if (Math.abs(vNf - vEsp) > 0.02) avisoValor = `Valor da NF no Bling (${brl(vNf)}) diferente do esperado (${brl(vEsp)}) — confira antes de transmitir`;
+    } catch (ge) { console.warn(`[devolucao-gerar-rascunho-nf] leitura de volta da NF ${blingId} falhou: ${mensagem(ge)}`); }
+    await registrar("rascunho", blingId, numero || null, avisoValor);
+    if (avisoValor) { console.warn(`[devolucao-gerar-rascunho-nf] ${devId}: ${avisoValor}`); alertas.push(avisoValor); }
+    return json({ ok: true, numero: numero || null, bling_nfe_id: blingId, documento: rotulo, alertas }, 201);
   } catch (e) {
     const erro = mensagem(e);
     try { await registrar("erro", null, null, erro); } catch (re) { return json({ ok: false, erro: `${erro} · Falha ao registrar o erro: ${mensagem(re)}` }, 502); }
