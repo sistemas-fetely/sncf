@@ -151,10 +151,25 @@ Deno.serve(async (req) => {
     if (errFila) throw new Error(`erro ao buscar fila B2C: ${errFila.message}`);
 
     // Venda direta (pedido nasce no SNCF, sem Shopify): a fila já traz o
-    // pedido_id — usa direto, sem montar SHP-{order_name} (que seria nulo).
-    for (const f of filaB2c ?? []) {
-      if (!f.shopify_pedido_id && f.pedido_id && f.bling_pedido_id) {
-        fontes.push({ pedido_id: String(f.pedido_id), bling_pedido_id: String(f.bling_pedido_id) });
+    // pedido_id, mas nao traz o estagio — sem filtrar, a sync consultaria no
+    // Bling pedido ja entregue/cancelado. Filtra em pedidos (canal B2C + janela
+    // de estagios) numa unica query e so usa os ids que voltarem elegiveis.
+    const vendaDireta = (filaB2c ?? [])
+      // deno-lint-ignore no-explicit-any -- consulta sem tipos gerados nas edges
+      .filter((f: any) => !f.shopify_pedido_id && f.pedido_id && f.bling_pedido_id)
+      // deno-lint-ignore no-explicit-any
+      .map((f: any) => ({ pedido_id: String(f.pedido_id), bling_pedido_id: String(f.bling_pedido_id) }));
+    if (vendaDireta.length > 0) {
+      const { data: pedidosVD, error: errVD } = await supabase
+        .from("pedidos")
+        .select("id")
+        .eq("canal", "B2C")
+        .in("estagio", ESTAGIOS_B2C_RASTREIO)
+        .in("id", [...new Set(vendaDireta.map((f) => f.pedido_id))]);
+      if (errVD) throw new Error(`erro ao buscar pedidos de venda direta: ${errVD.message}`);
+      const elegiveis = new Set((pedidosVD ?? []).map((p: { id: string }) => p.id));
+      for (const f of vendaDireta) {
+        if (elegiveis.has(f.pedido_id)) fontes.push(f);
       }
     }
 
