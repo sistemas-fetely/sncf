@@ -124,9 +124,8 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
         : { id: "ref-portador", rotulo: "Referência (opcional)", placeholder: "Nome do portador", obrigatorio: false };
     }
   } else if (ehCorreios) {
-    if (!codigoRegistrado) {
-      campo = { id: "ref-correios", rotulo: "Código do comprovante", placeholder: "AA123456789BR", obrigatorio: true };
-    }
+    // Sempre pede o bipe, mesmo com código já no pedido (pode ser pré-postagem morta do Bling).
+    campo = { id: "ref-correios", rotulo: "Código do comprovante", placeholder: "AA123456789BR", obrigatorio: true };
   } else if (modal?.sem_despacho) {
     campo = { id: "ref-retirada", rotulo: "Quem retirou", placeholder: "Nome de quem retira", obrigatorio: true };
   } else {
@@ -179,10 +178,9 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
       )}
 
       {ehCorreios && codigoRegistrado && (
-        <div className="space-y-1.5">
-          <Label>Código de rastreio</Label>
-          <p className="flex h-10 items-center font-mono text-sm">{codigoRegistrado}</p>
-        </div>
+        <p className="text-xs text-muted-foreground">
+          Código já no pedido: <span className="font-mono">{codigoRegistrado}</span>. Bipe o comprovante — se for diferente, o bipado substitui.
+        </p>
       )}
 
       {campo && (
