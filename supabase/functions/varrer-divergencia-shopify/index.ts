@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
 import { FaseSemRegra, carregarFaseDestino, difere, num, situacaoPelaFase, txt, vazio, type MapaFaseDestino } from "../_shared/bling/montar-valores-produto.ts";
+import { exigirCodigoExterno } from "../_shared/produto-codigo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +77,7 @@ type Extrator = { tipo: "txt" | "num"; sncf: (c: Ctx) => unknown; shopify: (v: A
 
 /** Um extrator por produto_campo_destino.campo (sistema Shopify). */
 const EXTRATORES: Record<string, Extrator[]> = {
-  sku: [{ tipo: "txt", sncf: (c) => up(c.ficha.sku), shopify: (v) => up(v.sku), escrita: { inv: "sku" } }],
+  sku: [{ tipo: "txt", sncf: (c) => up(exigirCodigoExterno(c.ficha.sku, c.ficha.codigo_externo)), shopify: (v) => up(v.sku), escrita: { inv: "sku" } }],
   ean: [{ tipo: "txt", sncf: (c) => eanNorm(c.ficha.ean), shopify: (v) => eanNorm(v.barcode), escrita: { variante: "barcode" } }],
   preco_site: [{ tipo: "num", sncf: (c) => num(c.ficha.preco_site), shopify: (v) => num(v.price), escrita: { variante: "price" } }],
   peso_g: [{ tipo: "num", sncf: (c) => num(c.ficha.peso_g), shopify: pesoG, escrita: { inv: "peso" } }],
@@ -197,7 +198,7 @@ Deno.serve(async (req) => {
     let lidos = 0, comDiv = 0, divs = 0, erros = 0;
     if (linhas.length) {
       const { data: fichas, error: fErr } = await sb.from("sncf_produtos")
-        .select("sku, cod_cadastro, nome_comercial, preco_site, ean, peso_g, altura_cm, largura_cm, profundidade_cm, marca, material, linha, colecao, grupo, descricao_produto")
+        .select("sku, codigo_externo, cod_cadastro, nome_comercial, preco_site, ean, peso_g, altura_cm, largura_cm, profundidade_cm, marca, material, linha, colecao, grupo, descricao_produto")
         .in("sku", linhas.map((l: Any) => l.sku));
       if (fErr) throw new Error(`sncf_produtos: ${fErr.message}`);
       const fichaPorSku = new Map((fichas ?? []).map((f: Any) => [f.sku, f]));
@@ -218,7 +219,8 @@ Deno.serve(async (req) => {
         try {
           const ficha = fichaPorSku.get(l.sku);
           if (!ficha) throw new Error("sem ficha em sncf_produtos");
-          const v = await lerVariante(l.sku, l.handle);
+          const codigo_externo = exigirCodigoExterno(l.sku, ficha?.codigo_externo);
+          const v = await lerVariante(codigo_externo, l.handle);
           if (!v) throw new Error(`variante com SKU ${l.sku} não encontrada no Shopify (handle ${l.handle})`);
           if (v.product?.hasVariantsThatRequiresComponents) { kits++; continue; } // kit (Bundles) fora
           lidos++;
@@ -279,7 +281,7 @@ Deno.serve(async (req) => {
               if (mfs.length) { await sleep(THROTTLE_MS); checa(await shop.gql<Any>(M_MF, { m: mfs }), "metafieldsSet"); }
               // Regra "200 OK não prova gravação": relê e confere campo a campo.
               await sleep(THROTTLE_MS);
-              const skuRelido = inputVar.inventoryItem?.sku ?? l.sku;
+              const skuRelido = inputVar.inventoryItem?.sku ?? codigo_externo;
               const relido = await lerVariante(skuRelido, l.handle);
               if (!relido) throw new Error("gravou, mas a releitura não achou a variante");
               const falhou = escritos.filter(({ ex }) => difere(ex.tipo, ex.sncf(ctx), ex.shopify(relido)));

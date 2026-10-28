@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -479,8 +480,13 @@ async function processarOrder(supabase: any, order: any, topic: string, utf8ok: 
 
     const lineItems = Array.isArray(order.line_items) ? order.line_items : [];
     const itens: Array<Record<string, unknown>> = [];
+    // SKU É SÓ INTERNO: li.sku é o código externo; traduz para o SKU interno.
+    const internosPorCodigo = await mapaSkuPorCodigo(supabase, lineItems.map((li: any) => String(li.sku ?? "")));
     for (const li of lineItems) {
-      const sku = str(li.sku);
+      const codigoExt = str(li.sku);
+      const skuInterno = codigoExt ? internosPorCodigo.get(codigoExt.trim()) ?? null : null;
+      if (codigoExt && !skuInterno) console.warn("Item Shopify com código desconhecido", { codigo_externo: codigoExt });
+      const sku = skuInterno ?? codigoExt;
       const nome = str(li.name) ?? str(li.title);
       if (!sku && !nome) continue;
       itens.push({

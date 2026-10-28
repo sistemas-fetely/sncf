@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const API_VERSION = "2026-04";
 const MAX_PAGES = 100;
@@ -266,12 +267,19 @@ Deno.serve(async (req) => {
           vPage = vv?.pageInfo;
           vPaginas++;
         }
+        const internosPorCodigo = await mapaSkuPorCodigo(supabase, variantNodes.map((v: any) => String(v?.sku ?? "")));
+        const skuInterno = (v: any): string | null => {
+          const bruto = v?.sku == null ? null : String(v.sku);
+          const i = internosPorCodigo.get(String(bruto ?? "").trim());
+          if (bruto && !i) console.warn("Variante Shopify com código desconhecido", { shopify_id: shopifyId, codigo_externo: bruto });
+          return i ?? bruto;
+        };
         const variants = variantNodes.map((v: any) => {
           const vid = extrairIdNumerico(v?.id);
           const invId = extrairIdNumerico(v?.inventoryItem?.id);
           return {
             id: vid,
-            sku: v?.sku ?? null,
+            sku: skuInterno(v),
             barcode: v?.barcode ?? null,
             price: v?.price ?? null,
             compare_at_price: v?.compareAtPrice ?? null,
@@ -296,7 +304,7 @@ Deno.serve(async (req) => {
           const fator = unidade ? FATOR_G[unidade] : undefined;
           pesoRows.push({
             inventory_item_id: invId,
-            sku: v?.sku ?? null,
+            sku: skuInterno(v),
             peso_g: valor != null && Number.isFinite(valor) && fator ? Math.round(valor * fator * 1000) / 1000 : null,
             unidade_original: unidade,
             valor_original: valor != null && Number.isFinite(valor) ? valor : null,
@@ -320,7 +328,7 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
             variants: variantNodes.map((v: any) => ({
               id: v?.id ? Number(extrairIdNumerico(v.id)) : null,
-              sku: v?.sku ?? null,
+              sku: skuInterno(v),
               barcode: v?.barcode ?? null,
               price: v?.price ?? null,
               title: v?.title ?? null,

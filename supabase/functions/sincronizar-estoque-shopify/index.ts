@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const API_VERSION = "2026-04";
 const CANDIDATE_DOMAINS = ["mmiavm-ui.myshopify.com", "fetely-3.myshopify.com"];
@@ -195,13 +196,16 @@ async function ativarLocation(supabase: any, locationId: string | null, dryRun: 
     prods.push(...(data ?? []));
     if (!data || data.length < 1000) break;
   }
+  const internosPorCodigo = await mapaSkuPorCodigo(supabase, prods.flatMap((p) => (Array.isArray(p.variants) ? p.variants : []).map((v: any) => String(v?.sku ?? ""))));
   const cand = new Map<string, string>();
   for (const p of prods) {
     if (p.has_variants_that_requires_components === true) continue; // kits/bundles
     for (const v of Array.isArray(p.variants) ? p.variants : []) {
       if (!v?.sku || v?.inventory_item_id == null) continue;
       const id = String(v.inventory_item_id);
-      if (!cand.has(id)) cand.set(id, String(v.sku));
+      const skuInterno = internosPorCodigo.get(String(v.sku).trim()) ?? null;
+      if (!skuInterno) console.warn("Variante Shopify com código desconhecido", { codigo_externo: v.sku });
+      if (!cand.has(id)) cand.set(id, skuInterno ?? String(v.sku));
     }
   }
   const ja = new Set<string>();

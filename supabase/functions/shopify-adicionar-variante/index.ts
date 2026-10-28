@@ -6,6 +6,7 @@
 // FAIL-LOUD: cada SKU volta com status próprio; rodada real grava integracoes_sync_log.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { makeShopifyAdmin } from "../_shared/shopify/admin-client.ts";
+import { mapaCodigoExterno, exigirCodigoExterno, mapaSkuPorCodigo } from "../_shared/produto-codigo.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -103,7 +104,12 @@ Deno.serve(async (req) => {
     const variantes: Linha[] = prod.variants?.nodes ?? [];
 
     // Cadastro SNCF dos novos + das irmãs candidatas.
-    const skusLoja = variantes.map((v) => String(v.sku ?? "").trim()).filter(Boolean);
+    const codigosLoja = variantes.map((v) => String(v.sku ?? "").trim()).filter(Boolean);
+  const internosPorCodigo = await mapaSkuPorCodigo(supabase, codigosLoja);
+  for (const c of codigosLoja) if (!internosPorCodigo.get(c)) console.warn("Variante-irmã sem SKU interno", { codigo_externo: c });
+  const skusLoja = codigosLoja.map((c) => internosPorCodigo.get(c)).filter((s): s is string => typeof s === "string");
+  const skuDaVariante = (v: Linha): string | null => internosPorCodigo.get(String(v.sku ?? "").trim()) ?? null;
+  const codigosPorSku = await mapaCodigoExterno(supabase, skus);
     const { data: cad, error: cErr } = await supabase
       .from("sncf_produtos").select(`sku, ${CAMPOS.join(", ")}`).in("sku", [...skus, ...skusLoja]);
     if (cErr) throw new Error(`leitura do cadastro falhou: ${cErr.message}`);
@@ -113,14 +119,14 @@ Deno.serve(async (req) => {
       const sugestoes = skus.map((sku) => {
         const novo = cadPorSku.get(sku.toUpperCase()) ?? {};
         const irma = variantes
-          .filter((v) => v.sku && cadPorSku.has(String(v.sku).toUpperCase()))
-          .map((v) => ({ v, n: parecenca(sku, v.sku) }))
+          .filter((v) => { const i = skuDaVariante(v); return i !== null && cadPorSku.has(i.toUpperCase()); })
+          .map((v) => ({ v, n: parecenca(sku, skuDaVariante(v)!) }))
           .sort((a, b) => b.n - a.n)[0]?.v;
         if (!irma) return { sku, erro: "Nenhuma variante-irmã do produto está no cadastro do SNCF — preencha as opções manualmente.", opcoes: opcoes.map((o) => ({ nome: o.name, valor: "", origem: "manual" })) };
-        const cadIrma = cadPorSku.get(String(irma.sku).toUpperCase()) ?? {};
+        const cadIrma = cadPorSku.get(skuDaVariante(irma)!.toUpperCase()) ?? {};
         const sel = new Map((irma.selectedOptions ?? []).map((s: Linha) => [s.name, s.value]));
         return {
-          sku, irma_sku: irma.sku,
+          sku, irma_sku: skuDaVariante(irma), irma_codigo_externo: irma.sku,
           opcoes: opcoes.map((o) => {
             const valorIrma = String(sel.get(o.name) ?? "");
             const campo = CAMPOS.find((c) => cadIrma[c] && norm(cadIrma[c]) === norm(valorIrma));
@@ -150,6 +156,9 @@ Deno.serve(async (req) => {
     for (const it of itensIn) {
       const sku = String(it?.sku ?? "").trim();
       const l = porSku.get(sku);
+      let codigo_externo: string;
+      try { codigo_externo = exigirCodigoExterno(sku, codigosPorSku.get(sku)); }
+      catch (e) { resultados.push({ sku, status: "bloqueado", erro: (e as Error).message }); continue; }
       const valores: Linha[] = Array.isArray(it?.opcoes) ? it.opcoes : [];
       const mapa = new Map(valores.map((o: Linha) => [String(o?.nome ?? ""), String(o?.valor ?? "").trim()]));
       const faltam = opcoes.filter((o) => !mapa.get(o.name));
@@ -160,14 +169,14 @@ Deno.serve(async (req) => {
       // Anti-duplicata ao vivo por SKU ou EAN.
       const ean = String(l.ean ?? "").replace(/\D/g, "");
       const eanSemZero = ean.replace(/^0+/, "");
-      const termos = [`sku:"${sku.replace(/"/g, '\\"')}"`];
+      const termos = [`sku:"${codigo_externo.replace(/"/g, '\\"')}"`];
       if (ean) termos.push(`barcode:${ean}`);
       if (eanSemZero && eanSemZero !== ean) termos.push(`barcode:${eanSemZero}`);
       const q = await shop.gql<Linha>(Q_SKU, { q: termos.join(" OR ") });
       if (q.status !== 200 || q.errors) { resultados.push({ sku, status: "erro", etapa: "consulta_sku", erro: JSON.stringify(q.errors ?? q.body).slice(0, 300) }); continue; }
       const nb = (b: unknown) => String(b ?? "").replace(/\D/g, "").replace(/^0+/, "");
       const achado = (q.data?.productVariants?.nodes ?? []).find((n: Linha) =>
-        String(n.sku ?? "").trim().toUpperCase() === sku.toUpperCase() || (!!eanSemZero && nb(n.barcode) === eanSemZero));
+        String(n.sku ?? "").trim().toUpperCase() === codigo_externo.toUpperCase() || (!!eanSemZero && nb(n.barcode) === eanSemZero));
       if (achado) { resultados.push({ sku, status: "ja_existe", sku_no_shopify: achado.sku, produto: achado.product }); continue; }
 
       vistosLote.add(chave);
@@ -176,14 +185,14 @@ Deno.serve(async (req) => {
         price: Number(l.preco_varejo).toFixed(2),
         inventoryPolicy: "DENY",
         inventoryItem: {
-          sku, tracked: true,
+          sku: codigo_externo, tracked: true,
           ...(Number(l.peso_g) > 0 ? { measurement: { weight: { unit: "GRAMS", value: Number(l.peso_g) } } } : {}),
         },
         inventoryQuantities: locais.map((loc) => ({ locationId: `gid://shopify/Location/${loc}`, availableQuantity: 0 })),
       };
       if (ean) input.barcode = String(l.ean).trim();
       inputs.push({ sku, input });
-      resultados.push({ sku, status: dry_run ? "dry_run" : "pendente", payload: input });
+      resultados.push({ sku, codigo_externo, status: dry_run ? "dry_run" : "pendente", payload: input });
     }
 
     if (dry_run || inputs.length === 0) {
@@ -198,7 +207,7 @@ Deno.serve(async (req) => {
     } else {
       const agora = new Date().toISOString();
       for (const c of criadas) {
-        const x = resultados.find((y) => y.sku === c.sku && y.status === "pendente");
+        const x = resultados.find((y) => y.codigo_externo === String(c.sku ?? "").trim() && y.status === "pendente");
         if (!x) continue;
         const itemId = String(c.inventoryItem?.id ?? "").split("/").pop() ?? "";
         const { error: eErr } = await supabase.from("shopify_estoque").upsert(
