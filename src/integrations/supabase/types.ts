@@ -75477,6 +75477,7 @@ export type Database = {
           categoria: string | null
           cest: string | null
           cod_cadastro: string | null
+          codigo_externo: string
           colecao: string | null
           cor: string | null
           cor_nome: string | null
@@ -75531,6 +75532,7 @@ export type Database = {
           categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
+          codigo_externo: string
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
@@ -75585,6 +75587,7 @@ export type Database = {
           categoria?: string | null
           cest?: string | null
           cod_cadastro?: string | null
+          codigo_externo?: string
           colecao?: string | null
           cor?: string | null
           cor_nome?: string | null
@@ -89974,6 +89977,7 @@ export type Database = {
       }
       xpm_estoque_posicao: {
         Row: {
+          codigo_xpm: string | null
           data_hora_posicao: string
           depositante_cnpj: string | null
           descricao: string | null
@@ -89989,6 +89993,7 @@ export type Database = {
           sku: string
         }
         Insert: {
+          codigo_xpm?: string | null
           data_hora_posicao: string
           depositante_cnpj?: string | null
           descricao?: string | null
@@ -90004,6 +90009,7 @@ export type Database = {
           sku: string
         }
         Update: {
+          codigo_xpm?: string | null
           data_hora_posicao?: string
           depositante_cnpj?: string | null
           descricao?: string | null
@@ -90024,6 +90030,7 @@ export type Database = {
         Row: {
           arquivo: string | null
           centro_id: string
+          codigo_xpm: string | null
           criado_em: string
           data_snapshot: string
           id: string
@@ -90035,6 +90042,7 @@ export type Database = {
         Insert: {
           arquivo?: string | null
           centro_id?: string
+          codigo_xpm?: string | null
           criado_em?: string
           data_snapshot: string
           id?: string
@@ -90046,6 +90054,7 @@ export type Database = {
         Update: {
           arquivo?: string | null
           centro_id?: string
+          codigo_xpm?: string | null
           criado_em?: string
           data_snapshot?: string
           id?: string
@@ -90278,6 +90287,7 @@ export type Database = {
       xpm_expedicao_item: {
         Row: {
           codigo_produto: string
+          codigo_xpm: string | null
           expedicao_codigo: string
           id: string
           numero_item: string | null
@@ -90288,6 +90298,7 @@ export type Database = {
         }
         Insert: {
           codigo_produto: string
+          codigo_xpm?: string | null
           expedicao_codigo: string
           id?: string
           numero_item?: string | null
@@ -90298,6 +90309,7 @@ export type Database = {
         }
         Update: {
           codigo_produto?: string
+          codigo_xpm?: string | null
           expedicao_codigo?: string
           id?: string
           numero_item?: string | null
@@ -92611,6 +92623,7 @@ export type Database = {
       xpm_termo_linha: {
         Row: {
           aritmetica_ok: boolean | null
+          codigo_xpm: string | null
           criado_em: string
           data_termo: string | null
           descricao: string | null
@@ -92634,6 +92647,7 @@ export type Database = {
         }
         Insert: {
           aritmetica_ok?: boolean | null
+          codigo_xpm?: string | null
           criado_em?: string
           data_termo?: string | null
           descricao?: string | null
@@ -92657,6 +92671,7 @@ export type Database = {
         }
         Update: {
           aritmetica_ok?: boolean | null
+          codigo_xpm?: string | null
           criado_em?: string
           data_termo?: string | null
           descricao?: string | null
@@ -140821,14 +140836,14 @@ export type Database = {
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueador_status"]
+            columns: ["bloqueada_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
           },
           {
             foreignKeyName: "tarefas_status_fkey"
-            columns: ["bloqueada_status"]
+            columns: ["bloqueador_status"]
             isOneToOne: false
             referencedRelation: "tarefa_status_dim"
             referencedColumns: ["codigo"]
@@ -150478,6 +150493,7 @@ export type Database = {
         Returns: Json
       }
       fn_produto_cockpit_resumo: { Args: { p_skus?: string[] }; Returns: Json }
+      fn_produto_codigo_externo: { Args: { p_sku: string }; Returns: string }
       fn_produto_formato_validar_patch: {
         Args: { p_campos: Json; p_cod_cadastro: string }
         Returns: {
@@ -150504,6 +150520,7 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_itens: Json }
         Returns: Json
       }
+      fn_produto_sku_por_codigo: { Args: { p_codigo: string }; Returns: string }
       fn_prorrogacao_aplicar_antecipado: {
         Args: { p_titulo_id: string }
         Returns: Json

@@ -326,6 +326,10 @@ export interface PropostaCobranca {
   prorrogacao_dias?: number;
   /** Indica se a condição aprovada já possui prazo próprio (true) ou se a prorrogação foi aplicada (false). */
   condicao_tem_prazo?: boolean;
+  /** Soma dos valores gravados na condição aprovada (cópia congelada da aprovação). */
+  valor_aprovado_plano?: number;
+  /** true quando a RPC refez os valores porque o pedido mudou depois da aprovação. */
+  plano_recalculado?: boolean;
 }
 
 export interface CobrancaFilaItem {
