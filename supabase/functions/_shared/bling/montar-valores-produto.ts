@@ -1,3 +1,4 @@
+import { exigirCodigoExterno } from "../produto-codigo.ts";
 // MONTAGEM DOS VALORES SNCF → BLING (05/10/2026, F5 passo 1).
 // Fonte única da regra de conversão usada pela `corrigir-produto-bling` (correção)
 // e pela `varrer-divergencia-bling` (detecção). Não duplicar estas regras.
@@ -68,7 +69,8 @@ export const EXTRATORES_BLING: Record<string, Extrator[]> = {
   cest: [{ tipo: "txt", sncf: (c) => soDig(c.ficha.cest), bling: (a) => soDig(a.tributacao?.cest) }],
   fase: [{ tipo: "txt", sncf: (c) => situacaoPelaFase(c.faseDestino, c.fase), bling: (a) => a.situacao }],
   origem_fisc: [{ tipo: "txt", sncf: (c) => c.ficha.origem_fisc, bling: (a) => a.tributacao?.origem }],
-  sku: [{ tipo: "txt", sncf: (c) => txt(c.ficha.sku).toUpperCase() || null, bling: (a) => txt(a.codigo).toUpperCase() || null }],
+  // SKU É SÓ INTERNO: o código no Bling é o codigo_externo (nunca cai no sku).
+  sku: [{ tipo: "txt", sncf: (c) => exigirCodigoExterno(c.ficha.sku, c.ficha.codigo_externo).toUpperCase(), bling: (a) => txt(a.codigo).toUpperCase() || null }],
 };
 
 // GRUPO TRIBUTÁRIO (07/10/2026): deriva da origem fiscal. No GET v3 vem em
