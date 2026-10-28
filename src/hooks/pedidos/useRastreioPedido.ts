@@ -43,6 +43,7 @@ export function useVincularRastreioPedido() {
         p_pedido_id: pedidoId,
         p_codigo_rastreio: codigoRastreio.trim().toUpperCase(),
         p_servico: null,
+        p_origem: "manual_dados_envio",
       });
       if (error) throw error;
       return data as string;

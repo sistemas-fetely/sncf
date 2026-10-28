@@ -8,6 +8,7 @@
 //   3. Baixa o PDF (URL assinada, sem auth) e extrai o texto
 //   4. Regex SRO: [A-Z]{2}\d{9}BR -> chama fn_registrar_rastreio_pedido (valida + upsert)
 //
+// Pedido da Mesa SP (evento ator_origem='mesa_sp') e pulado: o codigo vem do despacho da Mesa (pulado_mesa_sp).
 // Ordem: mais recente primeiro; pedido faturado há mais de 15 dias sem etiqueta sai da varredura.
 //
 // Rate limit Bling: 3 req/s -> ~450ms de espera entre chamadas.
@@ -206,6 +207,27 @@ Deno.serve(async (req) => {
       porPedido.set(f.pedido_id, lista);
     }
 
+    // 3a'. Mesa SP: pedido que passou pela Mesa SP (qualquer evento ator_origem='mesa_sp')
+    // tem o código definido pelo despacho da Mesa (bipe do comprovante). A etiqueta do Bling
+    // pode ser pré-postagem morta (postado na agência) — nunca registrar daqui.
+    let pulado_mesa_sp = 0;
+    {
+      const ids = [...porPedido.keys()];
+      const daMesa = new Set<string>();
+      for (let i = 0; i < ids.length; i += 200) {
+        const { data: evs, error: errMesa } = await supabase
+          .from("pedido_eventos")
+          .select("pedido_id")
+          .eq("ator_origem", "mesa_sp")
+          .in("pedido_id", ids.slice(i, i + 200));
+        if (errMesa) throw new Error(`erro ao checar pedidos da Mesa SP: ${errMesa.message}`);
+        for (const e of evs ?? []) daMesa.add(String(e.pedido_id));
+      }
+      for (const id of daMesa) {
+        if (porPedido.delete(id)) pulado_mesa_sp++;
+      }
+    }
+
     // 3b. Janela + ordem: busca as datas de referência dos candidatos numa única
     // query. Data de referência = faturado_em ?? estagio_atualizado_em.
     const idsCandidatos = [...porPedido.keys()];
@@ -259,6 +281,7 @@ Deno.serve(async (req) => {
           ok: true,
           candidatos: pedidoIds.length,
           fora_da_janela,
+          pulado_mesa_sp,
           processados: 0,
           resultados: [],
         }),
@@ -334,6 +357,7 @@ Deno.serve(async (req) => {
             p_pedido_id: pedidoId,
             p_codigo_rastreio: codigo,
             p_servico: servico,
+            p_origem: "bling_etiqueta",
           });
           if (errRpc) throw new Error(`fn_registrar_rastreio_pedido: ${errRpc.message}`);
 
@@ -357,6 +381,7 @@ Deno.serve(async (req) => {
       candidatos: pedidoIds.length,
       ja_resolvidos: jaResolvidos.size,
       fora_da_janela,
+      pulado_mesa_sp,
       processados: pendentes.length,
       registrados: resultados.filter((r) => r.resultado === "registrado").length,
       sem_etiqueta: resultados.filter((r) => r.resultado === "sem_etiqueta").length,

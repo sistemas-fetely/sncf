@@ -150608,6 +150608,7 @@ export type Database = {
       fn_registrar_rastreio_pedido: {
         Args: {
           p_codigo_rastreio: string
+          p_origem?: string
           p_pedido_id: string
           p_servico?: string
         }

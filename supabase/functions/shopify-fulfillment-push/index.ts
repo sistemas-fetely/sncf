@@ -33,6 +33,11 @@
 // do Shopify — se o pedido ja tem fulfillment com esse rastreio, pula em silencio.
 // `shopify_fulfillments` (espelho do webhook) e usado so como pre-filtro barato.
 //
+// CORRECAO DE RASTREIO (28/10/2026): envio Correios ja existente com codigo diferente do
+// vigente no SNCF (o antigo saiu de pedido_rastreamento) -> fulfillmentTrackingInfoUpdate
+// notificando o cliente + evento `shopify_rastreio_atualizado`. Pedidos ja fulfillados
+// nos ultimos 30 dias entram so para isso.
+//
 // Auth: `x-cron-secret` contra `get_vault_secret('SYNC_CRON_SECRET')`, ou usuario
 //       autenticado para disparo manual.
 //
@@ -120,7 +125,7 @@ type Detalhe = {
   fonte: Fonte;
   modal: string;
   codigo_rastreio: string;
-  resultado: "criado" | "ja_existia" | "sem_fulfillment_order" | "erro" | "dry";
+  resultado: "criado" | "atualizado" | "ja_existia" | "sem_fulfillment_order" | "erro" | "dry";
   fulfillment_id?: string | null;
   erro?: string | null;
 };
@@ -174,6 +179,23 @@ mutation criarFulfillment($fulfillment: FulfillmentInput!) {
   }
 }`;
 
+// 28/10/2026 RASTREIO-MESA-SP: correcao de rastreio em envio ja existente. Mesmo esquema de
+// descoberta: tenta o nome novo e cai na V2 quando o schema recusa.
+const MUT_UPD_NOVA = `
+mutation atualizarRastreio($fulfillmentId: ID!, $trackingInfoInput: FulfillmentTrackingInput!, $notifyCustomer: Boolean) {
+  fulfillmentTrackingInfoUpdate(fulfillmentId: $fulfillmentId, trackingInfoInput: $trackingInfoInput, notifyCustomer: $notifyCustomer) {
+    fulfillment { id trackingInfo { number company url } }
+    userErrors { field message }
+  }
+}`;
+const MUT_UPD_V2 = `
+mutation atualizarRastreio($fulfillmentId: ID!, $trackingInfoInput: FulfillmentTrackingInput!, $notifyCustomer: Boolean) {
+  fulfillmentTrackingInfoUpdateV2(fulfillmentId: $fulfillmentId, trackingInfoInput: $trackingInfoInput, notifyCustomer: $notifyCustomer) {
+    fulfillment { id trackingInfo { number company url } }
+    userErrors { field message }
+  }
+}`;
+
 /** Normaliza codigo de rastreio para comparacao (Correios: AA123456789BR). */
 const normalizarRastreio = (v: unknown): string =>
   String(v ?? "").toUpperCase().replace(/\s+/g, "");
@@ -218,6 +240,7 @@ Deno.serve(async (req) => {
   const resultado = {
     candidatos: 0,
     criados: 0,
+    atualizados: 0,
     ja_existiam: 0,
     erros: 0,
     dry,
@@ -247,6 +270,28 @@ Deno.serve(async (req) => {
       const loja = String(p.shopify_id);
       abertos.set(loja, p.order_name ?? null);
       criadoEmShopify.set(loja, p.created_at_shopify ?? null);
+    }
+    // 1b. RASTREIO-MESA-SP: pedidos ja fulfillados nos ultimos 30 dias entram SO na fonte
+    // Correios, para corrigir rastreio quando o codigo vigente no SNCF mudou.
+    const fulfillados = new Set<string>();
+    {
+      const desde = new Date(Date.now() - 30 * 86400000).toISOString();
+      const { data: pedFul, error: eFul } = await supabase
+        .from("shopify_pedidos")
+        .select("shopify_id, order_name, created_at_shopify")
+        .is("cancelled_at", null)
+        .eq("fulfillment_status", "fulfilled")
+        .gte("created_at_shopify", desde)
+        .order("created_at_shopify", { ascending: false })
+        .limit(200);
+      if (eFul) throw new Error(`ler shopify_pedidos fulfillados: ${eFul.message}`);
+      for (const p of pedFul ?? []) {
+        const loja = String(p.shopify_id);
+        if (abertos.has(loja)) continue;
+        abertos.set(loja, p.order_name ?? null);
+        criadoEmShopify.set(loja, p.created_at_shopify ?? null);
+        fulfillados.add(loja);
+      }
     }
     if (abertos.size === 0) return json({ sucesso: true, ...resultado });
 
@@ -296,6 +341,19 @@ Deno.serve(async (req) => {
       return executoresCache;
     };
 
+    const espelhoFulfillados = new Set<string>();
+    if (fulfillados.size > 0) {
+      const { data: espF, error: eEspF } = await supabase
+        .from("shopify_fulfillments")
+        .select("order_id, tracking_number, status")
+        .in("order_id", [...fulfillados]);
+      if (eEspF) throw new Error(`ler shopify_fulfillments: ${eEspF.message}`);
+      for (const f of espF ?? []) {
+        if (String(f.status ?? "").toLowerCase() === "cancelled") continue;
+        espelhoFulfillados.add(`${String(f.order_id ?? "")}|${normalizarRastreio(f.tracking_number)}`);
+      }
+    }
+
     const candidatos: Candidato[] = [];
     const vistos = new Set<string>();
     for (const r of rastreios ?? []) {
@@ -305,6 +363,7 @@ Deno.serve(async (req) => {
       if (!codigo) continue;
       const shopifyId = pedidoParaShopify.get(interno)!;
       vistos.add(interno);
+      if (fulfillados.has(shopifyId) && espelhoFulfillados.has(`${shopifyId}|${codigo}`)) continue;
       candidatos.push({
         pedido_id: interno,
         shopify_pedido_id: shopifyId,
@@ -495,6 +554,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Fulfillados recentes so servem para corrigir rastreio Correios.
+    for (let i = candidatos.length - 1; i >= 0; i--) {
+      if (candidatos[i].fonte !== "correios" && fulfillados.has(candidatos[i].shopify_pedido_id)) candidatos.splice(i, 1);
+    }
     resultado.candidatos = candidatos.length;
     if (candidatos.length === 0) return json({ sucesso: true, ...resultado });
 
@@ -616,6 +679,76 @@ Deno.serve(async (req) => {
           resultado.ja_existiam++;
           detalhe({ ...c, resultado: "ja_existia" });
           continue;
+        }
+
+        // RASTREIO-MESA-SP: envio Correios existente com codigo diferente do vigente.
+        // So corrige quando o codigo antigo NAO e mais vigente em nenhum pedido do SNCF
+        // (foi substituido) — assim um pedido Shopify com dois pedidos internos (split)
+        // nunca tem o envio do outro sobrescrito.
+        if (c.fonte === "correios") {
+          const comCodigo = vivos.filter((f) => (f.trackingInfo ?? []).some((t) => normalizarRastreio(t?.number) !== ""));
+          const antigos = [...new Set(comCodigo.flatMap((f) => (f.trackingInfo ?? []).map((t) => normalizarRastreio(t?.number)).filter(Boolean)))];
+          if (antigos.length > 0) {
+            const { data: aindaVigentes, error: eVig } = await supabase
+              .from("pedido_rastreamento")
+              .select("codigo_rastreio")
+              .in("codigo_rastreio", antigos);
+            if (eVig) throw new Error(`ler pedido_rastreamento (vigentes): ${eVig.message}`);
+            const vigentes = new Set((aindaVigentes ?? []).map((r: { codigo_rastreio: string }) => normalizarRastreio(r.codigo_rastreio)));
+            const substituiveis = comCodigo.filter((f) =>
+              (f.trackingInfo ?? []).every((t) => !vigentes.has(normalizarRastreio(t?.number)))
+            );
+            if (substituiveis.length > 1) {
+              throw new Error(`Pedido Shopify com ${substituiveis.length} envios de rastreio substituído — ambíguo, corrija na Shopify.`);
+            }
+            if (substituiveis.length === 1) {
+              const alvo = substituiveis[0];
+              const codigoAntigo = (alvo.trackingInfo ?? []).map((t) => normalizarRastreio(t?.number)).filter(Boolean).join(", ");
+              const vars = { fulfillmentId: alvo.id, trackingInfoInput: trackingDe(c), notifyCustomer: true };
+              if (dry) {
+                console.log("[fulfillment-push][dry] atualizaria rastreio (NENHUMA mutation enviada)", { ...c, codigoAntigo, vars });
+                detalhe({ ...c, resultado: "dry", fulfillment_id: alvo.id });
+                continue;
+              }
+              let up = await shopify.gql(MUT_UPD_NOVA, vars);
+              if ((up.errors ?? []).some((e: { message?: string }) => /doesn't exist|fulfillmentTrackingInfoUpdate/i.test(String(e?.message ?? "")))) {
+                up = await shopify.gql(MUT_UPD_V2, vars);
+              }
+              if (up.status !== 200 || up.errors) {
+                throw new Error(`update de rastreio falhou (HTTP ${up.status}): ${JSON.stringify(up.errors ?? up.body).slice(0, 400)}`);
+              }
+              // deno-lint-ignore no-explicit-any -- corpo varia com o nome da mutation
+              const pu: any = up.data as any;
+              const bl = pu?.fulfillmentTrackingInfoUpdate ?? pu?.fulfillmentTrackingInfoUpdateV2 ?? null;
+              const ue = bl?.userErrors ?? [];
+              if (ue.length > 0) {
+                throw new Error(`userErrors: ${ue.map((u: { field?: string[]; message?: string }) => `${(u.field ?? []).join(".")}: ${u.message}`).join(" | ")}`);
+              }
+              if (!bl?.fulfillment?.id) throw new Error(`Shopify respondeu sem fulfillment no update: ${JSON.stringify(up.body).slice(0, 400)}`);
+              const { error: eEv } = await supabase.from("pedido_eventos").insert({
+                pedido_id: c.pedido_id,
+                tipo_evento: "shopify_rastreio_atualizado",
+                descricao: `Shopify: rastreio do envio atualizado ${codigoAntigo} → ${c.codigo_rastreio} (cliente notificado).`,
+                metadata: {
+                  codigo_antigo: codigoAntigo,
+                  codigo_novo: c.codigo_rastreio,
+                  fulfillment_id: alvo.id,
+                  shopify_pedido_id: c.shopify_pedido_id,
+                  order_name: c.order_name ?? order.name,
+                  notificou_cliente: true,
+                },
+                automatico: true,
+                ator_tipo: "sistema",
+                ator_origem: "shopify_fulfillment_push",
+              });
+              // A Shopify ja foi atualizada: falha do evento grita mas nao desfaz.
+              if (eEv) console.error("[fulfillment-push] evento de atualizacao nao gravado", { pedido_id: c.pedido_id, erro: eEv.message });
+              console.log("[fulfillment-push] rastreio atualizado", { pedido_id: c.pedido_id, codigoAntigo, codigo_novo: c.codigo_rastreio, fulfillment_id: alvo.id });
+              resultado.atualizados++;
+              detalhe({ ...c, resultado: "atualizado", fulfillment_id: alvo.id });
+              continue;
+            }
+          }
         }
 
         // So fulfillment order aberta aceita fulfillment. Sem nenhuma, o pedido ja
