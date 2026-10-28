@@ -184,7 +184,7 @@ export default function FluxoRecebimentos() {
           <Card className="min-w-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-base">Entradas por {GRANS.find((g) => g.v === ver)!.l.toLowerCase()}</CardTitle>
-              <p className="text-xs text-muted-foreground">Cor cheia = firme · cor clara = incerto. Atrasados não entram.</p>
+              <p className="text-xs text-muted-foreground">Cor cheia = firme · cor clara = incerto (a vencer).</p>
             </CardHeader>
             <CardContent className="h-72 min-w-0">
               {q.isLoading ? <Skeleton className="h-full w-full" /> : periodos.length === 0 ? (
