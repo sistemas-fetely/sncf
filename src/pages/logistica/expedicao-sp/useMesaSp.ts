@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatError } from "@/lib/format-error";
+import type { DanfeEtiqueta } from "./impressaoMesa";
 import {
   EVENTO_ROTEADO,
   type AguardandoNfMesa, type CaixaSugerida, type DadosImpressao, type DocumentoMesa, type EtapaMesa, type CancelamentoMesa, type EventoMesa, type IdentidadesPedidoMesa, type ItemChecklistEmbalagem, type ItemConferido, type ItemPedidoMesa,
@@ -371,6 +372,26 @@ export function useDadosImpressao(pedidoId: string | null) {
       if (error) throw new Error(`ler dados de impressão: ${mensagemErro(error)}`);
       if (!data) throw new Error("ler dados de impressão: o banco não devolveu dados para este pedido.");
       return data as DadosImpressao;
+    },
+  });
+}
+
+/** DANFE Simplificado – Etiqueta: campos lidos do XML no servidor. Falha = etiqueta Fetely sai sozinha. */
+export function useDanfeEtiqueta(pedidoId: string | null, temNf: boolean) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, "danfe-etiqueta", pedidoId],
+    enabled: !!pedidoId && temNf,
+    retry: false,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<DanfeEtiqueta> => {
+      const { data, error } = await supabase.functions.invoke("nf-danfe-etiqueta", { body: { pedido_id: pedidoId } });
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        const corpo = ctx && typeof ctx.json === "function" ? await ctx.json().catch(() => null) : null;
+        throw new Error(corpo?.error ?? error.message);
+      }
+      if (!data?.ok) throw new Error(data?.error ?? "resposta inválida da DANFE etiqueta.");
+      return data as DanfeEtiqueta;
     },
   });
 }
