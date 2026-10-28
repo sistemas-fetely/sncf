@@ -256,7 +256,7 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
       </Card>
 
       {/* b) KPIs */}
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,10rem),1fr))] gap-3">
         {[
           ["Faturado", formatBRL(totalFat)],
           ["Kits", fmtInt(totalKits)],
@@ -264,15 +264,15 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
           ["Estados", fmtInt((ufQ.data ?? []).length)],
           ["% dos 5 maiores", fmtPct(top5, 1)],
         ].map(([r, v]) => (
-          <Card key={r}><CardContent className="p-4">
-            <div className="text-xs text-muted-foreground">{r}</div>
-            <div className="mt-1 text-xl font-semibold tabular-nums">{cliQ.isLoading ? "…" : v}</div>
+          <Card key={r} className="min-w-0"><CardContent className="min-w-0 p-4">
+            <div className="truncate text-xs text-muted-foreground" title={r}>{r}</div>
+            <div className="mt-1 truncate whitespace-nowrap text-lg font-semibold tabular-nums md:text-xl" title={String(cliQ.isLoading ? "…" : v)}>{cliQ.isLoading ? "…" : v}</div>
           </CardContent></Card>
         ))}
       </div>
 
       {/* c) listas */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,22rem),1fr))] gap-4">
         <ListaRanking titulo="Top clientes" q={cliQ} cliente selecionado={nav.cli}
           onClicar={(l) => setNav({ cli: nav.cli === l.chave ? "" : l.chave })} arquivo="top_clientes.csv" />
         <ListaRanking titulo="Top estados" q={ufQ} cliente={false} arquivo="top_estados.csv" />
@@ -280,12 +280,12 @@ export function AbaRanking({ ini, fim }: { ini: string | null; fim: string | nul
 
       {/* d) compras do cliente */}
       {nav.cli && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-base">Compras de {clienteSel?.nome ?? "cliente"}</CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setNav({ cli: "" })}><X className="mr-1 h-4 w-4" />Fechar</Button>
+        <Card className="min-w-0">
+          <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
+            <CardTitle className="min-w-0 truncate text-base">Compras de {clienteSel?.nome ?? "cliente"}</CardTitle>
+            <Button size="sm" variant="ghost" className="shrink-0" onClick={() => setNav({ cli: "" })}><X className="mr-1 h-4 w-4" />Fechar</Button>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="min-w-0 p-0">
             {comprasQ.isLoading ? (
               <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Carregando…</div>
             ) : comprasQ.error ? (
