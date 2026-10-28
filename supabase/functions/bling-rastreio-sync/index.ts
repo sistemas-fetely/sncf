@@ -8,6 +8,8 @@
 //   3. Baixa o PDF (URL assinada, sem auth) e extrai o texto
 //   4. Regex SRO: [A-Z]{2}\d{9}BR -> chama fn_registrar_rastreio_pedido (valida + upsert)
 //
+// Ordem: mais recente primeiro; pedido faturado há mais de 15 dias sem etiqueta sai da varredura.
+//
 // Rate limit Bling: 3 req/s -> ~450ms de espera entre chamadas.
 // Auth: x-cron-secret (pg_cron) contra get_vault_secret('SYNC_CRON_SECRET'),
 //       ou usuario autenticado (disparo manual).
@@ -19,7 +21,10 @@ import { ensureFreshToken, makeBlingClient } from "../_shared/bling/bling-client
 
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 const ESPERA_ENTRE_CHAMADAS_MS = 450;
-const LIMITE_PADRAO = 30; // guardrail de tempo de execucao (cada pedido ~1-3s)
+const LIMITE_PADRAO = 100; // guardrail de tempo de execucao (cada pedido ~1-3s)
+// Pedido faturado há mais de 15 dias sem etiqueta no Bling sai da varredura
+// (não vai ter etiqueta; evita ocupar vaga).
+const JANELA_DIAS_SEM_ETIQUETA = 15;
 // Janela de estagios B2C elegiveis (faturamento -> entrega em curso)
 const ESTAGIOS_B2C_RASTREIO = ["em_separacao", "pre_faturamento", "faturado", "em_transporte"];
 
@@ -201,10 +206,58 @@ Deno.serve(async (req) => {
       porPedido.set(f.pedido_id, lista);
     }
 
-    const pendentes = [...porPedido.entries()].slice(0, limite);
+    // 3b. Janela + ordem: busca as datas de referência dos candidatos numa única
+    // query. Data de referência = faturado_em ?? estagio_atualizado_em.
+    const idsCandidatos = [...porPedido.keys()];
+    const dataRef = new Map<string, number | null>();
+    if (idsCandidatos.length > 0) {
+      const { data: datasPedidos, error: errDatas } = await supabase
+        .from("pedidos")
+        .select("id, faturado_em, estagio_atualizado_em")
+        .in("id", idsCandidatos);
+      if (errDatas) throw new Error(`erro ao buscar datas dos candidatos: ${errDatas.message}`);
+      // deno-lint-ignore no-explicit-any -- consulta sem tipos gerados nas edges
+      for (const p of datasPedidos ?? []) {
+        const ref = (p.faturado_em ?? p.estagio_atualizado_em ?? null) as string | null;
+        const t = ref ? Date.parse(String(ref)) : NaN;
+        dataRef.set(p.id as string, Number.isFinite(t) ? t : null);
+      }
+    }
+
+    // Descarta pedidos faturados ha mais de JANELA_DIAS_SEM_ETIQUETA dias: nao vao
+    // ter etiqueta no Bling e só ocupariam vaga. Pedido sem data permanece.
+    const corte = Date.now() - JANELA_DIAS_SEM_ETIQUETA * 86400000;
+    let fora_da_janela = 0;
+    const ordenados = idsCandidatos
+      .filter((id) => {
+        const t = dataRef.get(id) ?? null;
+        if (t === null) return true;
+        if (t < corte) {
+          fora_da_janela++;
+          return false;
+        }
+        return true;
+      })
+      // mais recente primeiro; sem data vai pro fim
+      .sort((a, b) => {
+        const ta = dataRef.get(a) ?? null;
+        const tb = dataRef.get(b) ?? null;
+        if (ta === null && tb === null) return 0;
+        if (ta === null) return 1;
+        if (tb === null) return -1;
+        return tb - ta;
+      });
+
+    const pendentes = ordenados.slice(0, limite);
     if (pendentes.length === 0) {
       return new Response(
-        JSON.stringify({ ok: true, candidatos: pedidoIds.length, processados: 0, resultados: [] }),
+        JSON.stringify({
+          ok: true,
+          candidatos: pedidoIds.length,
+          fora_da_janela,
+          processados: 0,
+          resultados: [],
+        }),
         { status: 200, headers: jsonHeaders },
       );
     }
@@ -299,6 +352,7 @@ Deno.serve(async (req) => {
       ok: true,
       candidatos: pedidoIds.length,
       ja_resolvidos: jaResolvidos.size,
+      fora_da_janela,
       processados: pendentes.length,
       registrados: resultados.filter((r) => r.resultado === "registrado").length,
       sem_etiqueta: resultados.filter((r) => r.resultado === "sem_etiqueta").length,
