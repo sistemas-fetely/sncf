@@ -43,7 +43,7 @@ export function CasaHeader() {
               >
                 <span className="font-display text-2xl text-gold tracking-wide">FETÉLY</span>
                 <span className="text-[10px] uppercase tracking-[2px] text-muted-foreground">
-                  {activeApp.label}
+                  {rotuloApp}
                 </span>
               </Link>
               <div onClick={() => setMobileOpen(false)} className="flex flex-col gap-1">
@@ -59,7 +59,7 @@ export function CasaHeader() {
             FETÉLY
           </span>
           <span className="hidden md:inline text-[10px] uppercase tracking-[2px] text-muted-foreground">
-            {activeApp.label}
+            {rotuloApp}
           </span>
         </Link>
 
