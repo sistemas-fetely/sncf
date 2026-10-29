@@ -8,7 +8,7 @@
 //   3. Baixa o PDF (URL assinada, sem auth) e extrai o texto
 //   4. Regex SRO: [A-Z]{2}\d{9}BR -> chama fn_registrar_rastreio_pedido (valida + upsert)
 //
-// Pedido da Mesa SP (evento ator_origem='mesa_sp') e pulado: o codigo vem do despacho da Mesa (pulado_mesa_sp).
+// Pedido com CD do estabelecimento SP e pulado: o codigo vem do SNCF (pre-postagem/Mesa) (pulado_mesa_sp).
 // Ordem: mais recente primeiro; pedido faturado há mais de 15 dias sem etiqueta sai da varredura.
 //
 // Rate limit Bling: 3 req/s -> ~450ms de espera entre chamadas.
@@ -222,24 +222,33 @@ Deno.serve(async (req) => {
       porPedido.set(f.pedido_id, lista);
     }
 
-    // 3a'. Mesa SP: pedido que passou pela Mesa SP (qualquer evento ator_origem='mesa_sp')
-    // tem o código definido pelo despacho da Mesa (bipe do comprovante). A etiqueta do Bling
-    // pode ser pré-postagem morta (postado na agência) — nunca registrar daqui.
+    // 3a'. CD SP (29/10/2026 ETIQUETA-CORREIOS-SNCF): pedido cujo CD de expedição pertence ao
+    // estabelecimento Site SP (Site SP / Show Room) tem o código definido pelo SNCF (pré-postagem
+    // ou bipe da Mesa) desde o nascimento — antes a trava olhava evento mesa_sp e perdia a corrida
+    // com a pré-postagem automática do Bling (VD-0047).
     let pulado_mesa_sp = 0;
     {
+      const { data: cds, error: errCd } = await supabase
+        .from("centro_distribuicao")
+        .select("id, codigo, centro_fiscal_id");
+      if (errCd) throw new Error(`erro ao ler CDs: ${errCd.message}`);
+      const siteSp = (cds ?? []).find((c: { codigo: string }) => c.codigo === "SITE-SP") as { id: string } | undefined;
+      if (!siteSp) throw new Error("CD SITE-SP não encontrado — não dá pra separar pedidos SP");
+      const cdsSp = new Set(
+        (cds ?? [])
+          .filter((c: { id: string; centro_fiscal_id: string | null }) => (c.centro_fiscal_id ?? c.id) === siteSp.id)
+          .map((c: { id: string }) => c.id),
+      );
       const ids = [...porPedido.keys()];
-      const daMesa = new Set<string>();
       for (let i = 0; i < ids.length; i += 200) {
-        const { data: evs, error: errMesa } = await supabase
-          .from("pedido_eventos")
-          .select("pedido_id")
-          .eq("ator_origem", "mesa_sp")
-          .in("pedido_id", ids.slice(i, i + 200));
-        if (errMesa) throw new Error(`erro ao checar pedidos da Mesa SP: ${errMesa.message}`);
-        for (const e of evs ?? []) daMesa.add(String(e.pedido_id));
-      }
-      for (const id of daMesa) {
-        if (porPedido.delete(id)) pulado_mesa_sp++;
+        const { data: ps, error: errP } = await supabase
+          .from("pedidos")
+          .select("id, origem_centro_id")
+          .in("id", ids.slice(i, i + 200));
+        if (errP) throw new Error(`erro ao checar CD dos pedidos: ${errP.message}`);
+        for (const p of ps ?? []) {
+          if (p.origem_centro_id && cdsSp.has(String(p.origem_centro_id)) && porPedido.delete(String(p.id))) pulado_mesa_sp++;
+        }
       }
     }
 

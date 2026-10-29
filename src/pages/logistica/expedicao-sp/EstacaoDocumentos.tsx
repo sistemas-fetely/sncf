@@ -10,7 +10,7 @@ import { formatError } from "@/lib/format-error";
 import { imprimirComprovanteColeta, imprimirEtiquetaEntrega, imprimirEtiquetaRetirada, imprimirTermoRetirada } from "./impressaoMesa";
 import type { DadosImpressao, DocumentoMesa, EmbalagemRegistrada, ItemPedidoMesa, PedidoMesa } from "./tipos";
 import { SeloServicoCorreios } from "./SeloServicoCorreios";
-import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, useRegistrarRastreio } from "./useMesaSp";
+import { useConcluirDocumentos, useDadosImpressao, useDanfeEtiqueta, useDocumentosMesa, useMarcarDocumento, usePostarAgencia, usePrepostagemViva, useGerarEtiquetaCorreios, useRegistrarRastreio } from "./useMesaSp";
 
 /**
  * Estação Documentos. O estado de cada documento (`liberado`) vem PRONTO de
@@ -36,6 +36,7 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const concluir = useConcluirDocumentos();
   const postar = usePostarAgencia();
   const [codigo, setCodigo] = useState("");
+  const gerarCorreios = useGerarEtiquetaCorreios();
 
   const dadosQ = useDadosImpressao(pedido.id);
   const docs = docsQ.data ?? [];
@@ -45,6 +46,9 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
   const avisoDanfe = usaZebra && dados && (!dados.nf || danfeQ.isError) ? "DANFE etiqueta indisponível — use a DANFE do Bling" : null;
   // Serviço (PAC/SEDEX) só vai ao rodapé da etiqueta quando o modal é Correios (exige rastreio).
   const ehCorreios = docs.some((d) => d.tipo === "rastreio");
+  // Etiqueta Correios gerada pelo SNCF (pré-postagem viva) — a linha fica ok pelo código registrado.
+  const ppQ = usePrepostagemViva(ehCorreios ? pedido.id : null);
+  const pp = ppQ.data ?? null;
   const comServico = (x: DadosImpressao): DadosImpressao => (ehCorreios ? x : { ...x, servico_correios: null });
   const etiquetaZebraEntrega = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaEntrega(comServico(x), danfeQ.data); };
   const etiquetaZebraRetirada = (x: DadosImpressao) => { if (avisoDanfe) toast.warning(avisoDanfe); return imprimirEtiquetaRetirada(x, danfeQ.data); };
@@ -109,6 +113,16 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
         return (
           <div className="flex flex-wrap items-center gap-2">
             <SeloServicoCorreios servico={pedido.servico_correios} freteValor={pedido.frete_cliente_valor} freteGratis={pedido.frete_gratis} />
+            <Button
+              size="sm"
+              onClick={() => gerarCorreios.mutate({ pedidoId: pedido.id, prepostagemId: pp?.id ?? null })}
+              disabled={bloqueado || gerarCorreios.isPending || ppQ.isLoading}
+            >
+              {gerarCorreios.isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Printer aria-hidden="true" />}
+              {pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
+            </Button>
+            {ppQ.error && <span className="text-xs text-destructive">{formatError(ppQ.error)}</span>}
+            {!pp && (<>
             <Input
               className="h-8 w-44 font-mono uppercase"
               placeholder="AA123456789BR"
@@ -121,7 +135,8 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
               {rastreio.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {d.liberado ? "Registrar outro" : "Registrar"}
             </Button>
-            {!d.liberado && (
+            </>)}
+            {!d.liberado && !pp && (
               <Button
                 size="sm"
                 variant="outline"
