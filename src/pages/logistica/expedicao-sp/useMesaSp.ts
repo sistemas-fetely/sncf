@@ -702,14 +702,15 @@ export function useTrocarModal() {
   );
   return useMutation({
     mutationFn: async (args: { p_pedido_id: string; p_modal: string; p_motivo: string }) => {
-      await cancelarPrepostagemSeSairDeCorreios(args.p_pedido_id, args.p_modal, args.p_motivo);
-      return rpc.mutateAsync(args);
+      try {
+        await cancelarPrepostagemSeSairDeCorreios(args.p_pedido_id, args.p_modal, args.p_motivo);
+      } catch (e) {
+        toast.error(mensagemErro(e)); // etiqueta não cancelou: a troca não acontece
+        throw e;
+      }
+      return rpc.mutateAsync(args); // erro do RPC é avisado pelo useRpcMesa
     },
     onSettled: (_d, _e, a) => { if (a) void qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, a.p_pedido_id] }); },
-    onError: (e: unknown) => {
-      // Erro do RPC já foi avisado pelo useRpcMesa; aqui só o da etiqueta.
-      if (!rpc.isError) toast.error(mensagemErro(e));
-    },
   });
 }
 
