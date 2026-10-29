@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -119,11 +123,14 @@ export function EstacaoEmbalagem({
 
   // Volumes seguem a caixa escolhida, com a mesma regra do peso: só sobrescreve
   // enquanto o operador não editou o campo.
-  const volumesSugestao = caixas.find((c) => c.codigo === caixa)?.volumes ?? null;
+  // Caixa fora da regra (cabe=false) não sobrescreve Volumes: o cálculo pode estar inflado.
+  const caixaEscolhida = caixas.find((c) => c.codigo === caixa);
+  const volumesSugestao = caixaEscolhida?.cabe ? caixaEscolhida.volumes : null;
   useEffect(() => {
     if (volumesEditado || volumesSugestao === null) return;
     setVolumes(String(volumesSugestao));
   }, [volumesSugestao, volumesEditado]);
+  const [confirmarCaixa, setConfirmarCaixa] = useState<CaixaSugerida | null>(null);
 
   const estimativaQ = usePesoEstimado(pedidoId, caixa, Number.parseInt(volumes, 10));
   const est = estimativaQ.data ?? null;
@@ -203,26 +210,30 @@ export function EstacaoEmbalagem({
               <div className="mt-3 grid gap-2 sm:grid-cols-3">
                 {caixas.map((c) => {
                   const selecionadaCaixa = caixa === c.codigo;
+                  const manual = selecionadaCaixa && !c.cabe;
                   return (
                     <button
                       key={c.codigo}
                       type="button"
-                      disabled={!c.cabe}
-                      onClick={() => setCaixa(c.codigo)}
+                      onClick={() => (c.cabe ? setCaixa(c.codigo) : setConfirmarCaixa(c))}
                       aria-pressed={selecionadaCaixa}
                       className={cn(
                         "rounded-md border p-3 text-left transition-colors",
-                        c.cabe
-                          ? selecionadaCaixa
-                            ? "border-success bg-success/10"
-                            : "border-border bg-card hover:border-foreground/30"
-                          : "cursor-not-allowed border-border bg-muted/30 opacity-60",
+                        selecionadaCaixa
+                          ? "border-success bg-success/10"
+                          : c.cabe
+                            ? "border-border bg-card hover:border-foreground/30"
+                            : "border-border bg-muted/30 opacity-60 hover:opacity-80",
                       )}
                     >
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-sm font-semibold">{c.codigo}</span>
                         <span className="truncate text-xs text-muted-foreground">{c.nome}</span>
-                        {c.sugerida && (
+                        {manual ? (
+                          <span className="ml-auto shrink-0 rounded-full bg-warning/15 px-2 py-0.5 text-[11px] font-medium text-warning">
+                            Escolha manual
+                          </span>
+                        ) : c.sugerida && (
                           <span className="ml-auto shrink-0 rounded-full bg-success/15 px-2 py-0.5 text-[11px] font-medium text-success">
                             Sugerida
                           </span>
@@ -252,6 +263,24 @@ export function EstacaoEmbalagem({
                 })}
               </div>
             )}
+            <AlertDialog open={confirmarCaixa !== null} onOpenChange={(o) => { if (!o) setConfirmarCaixa(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Caixa fora da regra</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O sistema calcula que {confirmarCaixa?.motivo ?? "não cabe"} para a {confirmarCaixa?.codigo}. Usar {confirmarCaixa?.codigo} mesmo assim?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => { if (confirmarCaixa) setCaixa(confirmarCaixa.codigo); setConfirmarCaixa(null); }}
+                  >
+                    Usar {confirmarCaixa?.codigo}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
 
