@@ -55,14 +55,6 @@ function Erro({ e }: { e: unknown }) {
   return <p className="text-sm text-destructive">{rawMessage(e)}</p>;
 }
 
-function endereco(e: Record<string, unknown> | null | undefined) {
-  if (!e) return "—";
-  const g = (k: string) => (e[k] == null ? "" : String(e[k]));
-  const l1 = [g("logradouro") || g("endereco") || g("rua"), g("numero")].filter(Boolean).join(", ");
-  const l2 = [g("complemento"), g("bairro")].filter(Boolean).join(" · ");
-  const l3 = [g("cidade") || g("municipio"), g("uf")].filter(Boolean).join("/");
-  return [l1, l2, l3, g("cep")].filter(Boolean).join(" — ") || "—";
-}
 
 /** Sincroniza cod_cadastro + nome dos SKUs (doutrina COD-CADASTRO-É-O-NOME-DO-PRODUTO). */
 export function useProdutosPorSku(skus: string[]) {
