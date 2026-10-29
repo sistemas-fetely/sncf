@@ -11,10 +11,12 @@ import PainelXpm from "./PainelXpm";
 import { ImportarFasesXpm } from "./ImportarFasesXpm";
 import { ComparativoFontesXpm } from "./ComparativoFontesXpm";
 import FaturamentoXpm from "./FaturamentoXpm";
+import OperacaoXpm from "./OperacaoXpm";
 
 // CASCA-E-ABA (12/09/2026): mesmo padrão do PedidosIndex — a rota tem portão
 // próprio (tela.wms_casa) e cada aba tem slug próprio.
 const TABS = [
+  { value: "operacao", slug: "tela.wms_operacao", label: "Operação", component: <OperacaoXpm /> },
   { value: "expedicoes", slug: "tela.wms_expedicoes", label: "Expedições", component: <ExpedicoesXpm /> },
   { value: "painel", slug: "tela.wms_painel", label: "Painel XPM", component: <PainelXpm /> },
   { value: "recebimento", slug: "tela.wms_recebimento", label: "Recebimento XPM", component: <RecebimentoXpm /> },
@@ -41,8 +43,10 @@ export default function XpmIndex() {
   const permRecebimento = usePodeVerAba("tela.wms_recebimento");
   const permEstoque = usePodeVerAba("tela.wms_estoque");
   const permFaturamento = usePodeVerAba("tela.wms_faturamento");
+  const permOperacao = usePodeVerAba("tela.wms_operacao");
 
   const permissoes: Record<AbaXpm, { podeVer: boolean; carregando: boolean }> = {
+    operacao: permOperacao,
     expedicoes: permExpedicoes,
     painel: permPainel,
     recebimento: permRecebimento,
