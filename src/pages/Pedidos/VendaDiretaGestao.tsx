@@ -518,7 +518,12 @@ export default function VendaDiretaGestao() {
                             </Tooltip>
                           ) : "—"}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{formatBRL(l.valor_liquido)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatBRL(l.valor_liquido)}
+                          {Number(l.credito_aplicado ?? 0) > 0 && (
+                            <div className="whitespace-nowrap text-xs text-muted-foreground">Crédito −{formatBRL(Number(l.credito_aplicado))} · A pagar {formatBRL(Number(l.valor_a_pagar ?? 0))}</div>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {naoMapeada(l) ? (
                             <Selo estado="destructive">Situação não mapeada — avisar Sistemas</Selo>

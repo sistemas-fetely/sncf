@@ -225,6 +225,13 @@
       "when": 1793275143658,
       "tag": "0031_vd_haver_multiplo_cliente_inativo",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793277831597,
+      "tag": "0032_vd_credito_gestao_edicao",
+      "breakpoints": true
     }
   ]
 }

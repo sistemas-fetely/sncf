@@ -27,6 +27,8 @@ export interface LinhaVD {
   id: string;
   id_externo: string | null;
   valor_liquido: number | null;
+  credito_aplicado?: number | null;
+  valor_a_pagar?: number | null;
   cliente_nome: string | null;
   cliente_telefone?: string | null;
   provisao_id?: string | null;

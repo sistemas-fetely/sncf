@@ -230,6 +230,8 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   const [parcelas, setParcelas] = useState<number | null>(null);
   const cfgQ = useCfgParcelas();
   const meioDlg: MeioLink = linha?.pagamento === "pix" ? "pix" : "cartao";
+  const creditoLink = Number(linha?.credito_aplicado ?? 0);
+  const aPagarLink = creditoLink > 0 ? Number(linha?.valor_a_pagar ?? 0) : linha?.valor_liquido ?? null;
 
   const [emailNovo, setEmailNovo] = useState("");
   useEffect(() => { setResultado(null); setParcelas(null); setEmailNovo(""); }, [linha?.id]);
@@ -268,7 +270,7 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
   });
 
   const padraoAtual = q.data?.max_parcelas
-    ?? (cfgQ.data ? parcelasPadrao(cfgQ.data, Number(linha?.valor_liquido ?? 0)) : 1);
+    ?? (cfgQ.data ? parcelasPadrao(cfgQ.data, Number(aPagarLink ?? 0)) : 1);
   const parcelasEfetivas = parcelas ?? padraoAtual;
 
   const gerarNovo = async () => {
@@ -324,7 +326,11 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Link de pagamento · {meioDlg === "pix" ? "PIX" : "cartão"} · {linha?.id_externo}</DialogTitle>
-          <DialogDescription>{linha?.cliente_nome} · {formatBRL(linha?.valor_liquido ?? null)}</DialogDescription>
+          <DialogDescription>
+            {linha?.cliente_nome} · {creditoLink > 0
+              ? <>Total {formatBRL(linha?.valor_liquido ?? null)} · Crédito −{formatBRL(creditoLink)} · A pagar {formatBRL(aPagarLink)}</>
+              : formatBRL(linha?.valor_liquido ?? null)}
+          </DialogDescription>
         </DialogHeader>
         {q.isLoading ? (
           <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
@@ -346,8 +352,8 @@ export function LinkCartaoDialog({ linha, onClose }: { linha: LinhaVD | null; on
                 url={l.url!}
                 maxParcelas={l.max_parcelas ?? 1}
                 expiraEm={l.expira_em}
-                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, linha?.valor_liquido ?? null, l.max_parcelas ?? 1, l.url!, meioDlg)}
-                email={linha ? { pedidoId: linha.id, idExterno: linha.id_externo, total: linha.valor_liquido, clienteNome: linha.cliente_nome } : undefined}
+                wa={whatsappUrl(linha?.cliente_telefone, linha?.cliente_nome ?? null, linha?.id_externo ?? null, aPagarLink, l.max_parcelas ?? 1, l.url!, meioDlg)}
+                email={linha ? { pedidoId: linha.id, idExterno: linha.id_externo, total: aPagarLink, clienteNome: linha.cliente_nome } : undefined}
               />
             ) : l.url ? (
               <p className="break-all text-sm text-muted-foreground">{l.url} · vale até {fmtDataHora(l.expira_em)}</p>
