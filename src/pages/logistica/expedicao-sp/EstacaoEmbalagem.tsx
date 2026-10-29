@@ -8,6 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -259,6 +263,24 @@ export function EstacaoEmbalagem({
                 })}
               </div>
             )}
+            <AlertDialog open={confirmarCaixa !== null} onOpenChange={(o) => { if (!o) setConfirmarCaixa(null); }}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Caixa fora da regra</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    O sistema calcula que {confirmarCaixa?.motivo ?? "não cabe"} para a {confirmarCaixa?.codigo}. Usar {confirmarCaixa?.codigo} mesmo assim?
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => { if (confirmarCaixa) setCaixa(confirmarCaixa.codigo); setConfirmarCaixa(null); }}
+                  >
+                    Usar {confirmarCaixa?.codigo}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         )}
 
