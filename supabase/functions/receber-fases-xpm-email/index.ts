@@ -152,6 +152,36 @@ Deno.serve(async (req) => {
   const emailId: string = evento?.data?.email_id ?? evento?.data?.id ?? "";
   if (!emailId) return json({ error: "sem email_id" }, 400);
 
+  // 29/10/2026 — F1 Faturamento: e-mail para faturas@ vai para importar-fatura-xpm (sem parser de fases, sem log de fases)
+  {
+    const { data: rk } = await sb.rpc("get_vault_secret", { p_name: "resend_api_key" });
+    // deno-lint-ignore no-explicit-any
+    let destinos: any[] = Array.isArray(evento?.data?.to) ? evento.data.to : [];
+    if (!destinos.length) {
+      const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, { headers: { Authorization: `Bearer ${rk}` } });
+      if (!r.ok) return json({ error: `Resend GET ${r.status}` }, 500);
+      const em = await r.json();
+      destinos = Array.isArray(em?.to) ? em.to : em?.to ? [em.to] : [];
+    }
+    const ehFatura = destinos.some((d) => {
+      const s = String(d ?? "").toLowerCase();
+      const m = s.match(/<([^>]+)>/);
+      return (m ? m[1] : s).trim().startsWith("faturas@");
+    });
+    if (ehFatura) {
+      const { data: ik } = await sb.rpc("get_vault_secret", { p_name: "INTERNAL_EDGE_KEY" });
+      const chaveInterna = String(ik ?? "") || String(rk ?? "");
+      const rf = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/importar-fatura-xpm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-internal-key": chaveInterna },
+        body: JSON.stringify({ resend_email_id: emailId }),
+      });
+      const txt = await rf.text();
+      console.log(`importar-fatura-xpm ${rf.status}: ${txt.slice(0, 500)}`);
+      return json({ encaminhado: "faturas", status_importacao: rf.status });
+    }
+  }
+
   // idempotência: já processado com sucesso -> 200 sem refazer
   const { data: ja } = await sb.from("xpm_fases_email_log").select("id, erro").eq("resend_email_id", emailId).maybeSingle();
   if (ja && !ja.erro) return json({ duplicado: true });
