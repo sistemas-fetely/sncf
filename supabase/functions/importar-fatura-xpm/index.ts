@@ -491,3 +491,8 @@ async function gravarErro(sb: any, r: { competencia: string | null; versao?: num
   if (error) return json({ error: `${r.erro} | e falhou ao gravar erro: ${error.message}` }, 500);
   return json({ error: r.erro, fatura_id: data.id, status: "erro_leitura" }, 422);
 }
+
+async function sha256Hex(b: Uint8Array): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", b);
+  return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, "0")).join("");
+}
