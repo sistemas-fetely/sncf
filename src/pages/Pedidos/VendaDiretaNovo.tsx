@@ -395,6 +395,7 @@ export default function VendaDiretaNovo() {
   const cfgPixNoLink = cfgParcelasQ.data?.pix_no_link === true;
     const [parcelasManual, setParcelasManual] = useState<number | null>(null);
   // Haver Site SP: crédito do cliente — o banco aplica TODOS os haveres (por vencimento) até cobrir o pedido.
+  const parceiroId = !edicao ? cliente?.id ?? null : null;
   const haverQ = useQuery({
     queryKey: ["haver-disponivel-parceiro", parceiroId],
     enabled: !!parceiroId,
