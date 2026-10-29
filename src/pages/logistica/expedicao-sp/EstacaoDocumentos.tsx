@@ -122,6 +122,7 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
               {pp ? `Reimprimir etiqueta Correios${pp.codigo_objeto ? ` (${pp.codigo_objeto})` : ""}` : "Gerar etiqueta Correios"}
             </Button>
             {ppQ.error && <span className="text-xs text-destructive">{formatError(ppQ.error)}</span>}
+            {!pp && (<>
             <Input
               className="h-8 w-44 font-mono uppercase"
               placeholder="AA123456789BR"
@@ -134,7 +135,8 @@ export function EstacaoDocumentos({ pedido, bloqueado = false }: Props) {
               {rastreio.isPending && <Loader2 className="animate-spin" aria-hidden="true" />}
               {d.liberado ? "Registrar outro" : "Registrar"}
             </Button>
-            {!d.liberado && (
+            </>)}
+            {!d.liberado && !pp && (
               <Button
                 size="sm"
                 variant="outline"
