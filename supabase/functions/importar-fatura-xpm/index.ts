@@ -343,13 +343,25 @@ Deno.serve(async (req) => {
     const competencia = competenciaDe(arquivoNome) ?? competenciaDe(assunto);
     if (!competencia) return json({ error: `Não consegui ler a competência do nome do arquivo "${arquivoNome}"${assunto ? ` nem do assunto "${assunto}"` : ""}.` }, 422);
 
-    // versão
-    const { data: existentes, error: ee } = await sb.from("xpm_fatura").select("id, versao, arquivo_nome").eq("competencia", competencia);
+    // versão — decidida pelo conteúdo (SHA-256), não pelo nome do arquivo.
+    // (a) mesmo hash de uma versão existente → reprocessa essa versão (idempotente)
+    // (c) R0N no nome → versão N (sobrescreve se já existir, mesmo com hash diferente)
+    // (b) demais casos → max(versao)+1; anteriores viram substituídas
+    // O hash não é gravado: comparamos com o arquivo já salvo no storage de cada versão.
+    const { data: existentes, error: ee } = await sb.from("xpm_fatura").select("id, versao, arquivo_nome, storage_path").eq("competencia", competencia);
     if (ee) throw new Error(`xpm_fatura: ${ee.message}`);
     const vNome = versaoDoNome(arquivoNome);
-    const mesmaArq = (existentes ?? []).find((f) => f.arquivo_nome === arquivoNome);
+    const hashNovo = await sha256Hex(bytes);
+    let versaoMesmoHash: number | null = null;
+    for (const f of [...(existentes ?? [])].sort((a, b) => b.versao - a.versao)) {
+      const caminho = f.storage_path || `${competencia.slice(0, 7)}/v${f.versao}.xlsm`;
+      if (origem === "upload" && caminho === storagePath) { versaoMesmoHash = f.versao; break; }
+      const { data: blobAnt, error: be } = await sb.storage.from(BUCKET).download(caminho);
+      if (be || !blobAnt) continue; // versão sem arquivo salvo (ex.: erro de leitura) não serve de comparação
+      if ((await sha256Hex(new Uint8Array(await blobAnt.arrayBuffer()))) === hashNovo) { versaoMesmoHash = f.versao; break; }
+    }
     const maxV = Math.max(0, ...(existentes ?? []).map((f) => f.versao));
-    const versao = vNome ?? mesmaArq?.versao ?? (maxV > 0 ? maxV + 1 : 1);
+    const versao = versaoMesmoHash ?? vNome ?? maxV + 1;
 
     if (origem === "email") {
       storagePath = `${competencia.slice(0, 7)}/v${versao}.xlsm`;
@@ -478,4 +490,9 @@ async function gravarErro(sb: any, r: { competencia: string | null; versao?: num
   }, { onConflict: "competencia,versao" }).select("id").single();
   if (error) return json({ error: `${r.erro} | e falhou ao gravar erro: ${error.message}` }, 500);
   return json({ error: r.erro, fatura_id: data.id, status: "erro_leitura" }, 422);
+}
+
+async function sha256Hex(b: Uint8Array): Promise<string> {
+  const d = await crypto.subtle.digest("SHA-256", b as BufferSource);
+  return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
