@@ -695,10 +695,22 @@ export function useExecutoresMesa() {
 
 /** Troca de modal com motivo — precisa vir ANTES de `fn_mesa_sp_embalar`. */
 export function useTrocarModal() {
-  return useRpcMesa<{ p_pedido_id: string; p_modal: string; p_motivo: string }>(
+  const qc = useQueryClient();
+  const rpc = useRpcMesa<{ p_pedido_id: string; p_modal: string; p_motivo: string }>(
     "fn_mesa_sp_trocar_modal",
     () => "Troca de modal registrada.",
   );
+  return useMutation({
+    mutationFn: async (args: { p_pedido_id: string; p_modal: string; p_motivo: string }) => {
+      await cancelarPrepostagemSeSairDeCorreios(args.p_pedido_id, args.p_modal, args.p_motivo);
+      return rpc.mutateAsync(args);
+    },
+    onSettled: (_d, _e, a) => { if (a) void qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, a.p_pedido_id] }); },
+    onError: (e: unknown) => {
+      // Erro do RPC já foi avisado pelo useRpcMesa; aqui só o da etiqueta.
+      if (!rpc.isError) toast.error(mensagemErro(e));
+    },
+  });
 }
 
 export function usePostarAgencia() {
@@ -706,4 +718,101 @@ export function usePostarAgencia() {
     "fn_mesa_sp_postar_agencia",
     "Postagem na agência marcada — bipe o código do comprovante no despacho.",
   );
+}
+
+// ── ETIQUETA-CORREIOS-SNCF (29/10/2026): pré-postagem Correios gerada pelo SNCF ──
+
+export interface PrepostagemViva {
+  id: string;
+  codigo_objeto: string | null;
+  servico: string | null;
+  status: string;
+}
+
+/** Erro da edge com a mensagem real (corpo `erro`), nunca o genérico do SDK. */
+async function erroDaEdge(error: unknown): Promise<Error> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ctx = (error as any)?.context;
+  if (ctx && typeof ctx.json === "function") {
+    try {
+      const b = await ctx.json();
+      if (b?.erro) return new Error(b.detalhe ? `${b.erro} — ${JSON.stringify(b.detalhe)}` : b.erro);
+    } catch { /* corpo não-JSON */ }
+  }
+  return new Error(mensagemErro(error));
+}
+
+export async function chamarPrepostagem<T = Record<string, unknown>>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("correios-prepostagem", { body });
+  if (error) throw await erroDaEdge(error);
+  return data as T;
+}
+
+export function usePrepostagemViva(pedidoId: string | null) {
+  return useQuery({
+    queryKey: [...CHAVE_DOCUMENTOS_MESA, pedidoId, "prepostagem"],
+    enabled: !!pedidoId,
+    queryFn: async (): Promise<PrepostagemViva | null> => {
+      const { data, error } = await supabaseMesa
+        .from("correios_prepostagem")
+        .select("id, codigo_objeto, servico, status")
+        .eq("pedido_id", pedidoId)
+        .neq("status", "cancelada")
+        .maybeSingle();
+      if (error) throw new Error(`ler pré-postagem: ${mensagemErro(error)}`);
+      return (data as PrepostagemViva | null) ?? null;
+    },
+  });
+}
+
+/** Abre o PDF do rótulo (10x15) numa janela própria e manda imprimir. */
+export function imprimirPdfBase64(b64: string): boolean {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+  const w = window.open(url, "_blank");
+  if (!w) return false;
+  w.addEventListener("load", () => { try { w.print(); } catch { /* visualizador do PDF imprime */ } });
+  return true;
+}
+
+/** Gera (ou reaproveita) a pré-postagem e imprime o rótulo no mesmo clique. */
+export function useGerarEtiquetaCorreios() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ pedidoId, prepostagemId }: { pedidoId: string; prepostagemId?: string | null }) => {
+      let id = prepostagemId ?? null;
+      if (!id) {
+        const r = await chamarPrepostagem<{ prepostagem: { id: string } }>({ acao: "criar", pedido_id: pedidoId });
+        id = r.prepostagem.id;
+      }
+      const rot = await chamarPrepostagem<{ pdf_base64: string; codigo_objeto: string }>({ acao: "rotulo", prepostagem_id: id });
+      return { pedidoId, ...rot };
+    },
+    onSuccess: async (r) => {
+      if (!imprimirPdfBase64(r.pdf_base64)) toast.error("O navegador bloqueou a janela de impressão. Libere pop-ups para esta página.");
+      else toast.success(`Etiqueta Correios ${r.codigo_objeto} enviada para impressão.`);
+      await qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, r.pedidoId] });
+      void qc.invalidateQueries({ queryKey: CHAVE_EVENTOS_MESA });
+      void qc.invalidateQueries({ queryKey: CHAVE_PEDIDOS_MESA });
+    },
+    onError: async (e: unknown, v) => {
+      toast.error(mensagemErro(e));
+      // A pré-postagem pode ter nascido mesmo com o rótulo falhando: relê para mostrar "Reimprimir".
+      await qc.invalidateQueries({ queryKey: [...CHAVE_DOCUMENTOS_MESA, v.pedidoId] });
+    },
+  });
+}
+
+/**
+ * Antes de trocar o modal: saindo de um modal com etiqueta Correios, cancela a pré-postagem viva
+ * nos Correios e desvincula o código do pedido (a função de troca recusa se ainda houver viva).
+ */
+export async function cancelarPrepostagemSeSairDeCorreios(pedidoId: string, modalNovo: string, motivo: string) {
+  const { data: m, error } = await supabaseMesa
+    .from("b2c_modal_entrega").select("exige_etiqueta_correios").eq("codigo", modalNovo).maybeSingle();
+  if (error) throw new Error(`ler modal: ${mensagemErro(error)}`);
+  if (m?.exige_etiqueta_correios) return;
+  await chamarPrepostagem({ acao: "cancelar", pedido_id: pedidoId, motivo: `Troca de modal para ${modalNovo}: ${motivo}` });
 }

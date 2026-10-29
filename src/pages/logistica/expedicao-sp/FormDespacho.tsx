@@ -14,7 +14,7 @@ import {
 import { formatError } from "@/lib/format-error";
 import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } from "./tipos";
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
-import { useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
+import { cancelarPrepostagemSeSairDeCorreios, useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
 
 /**
  * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;
@@ -69,6 +69,7 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
     if (houveTroca) {
       setSalvandoTroca(true); setErroTroca(null);
       try {
+        await cancelarPrepostagemSeSairDeCorreios(pedidoId, modalCodigo, motivoTroca.trim());
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase.rpc as any)("fn_mesa_sp_trocar_modal", {
           p_pedido_id: pedidoId, p_modal: modalCodigo, p_motivo: motivoTroca.trim(),
