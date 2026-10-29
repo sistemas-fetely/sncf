@@ -15,6 +15,7 @@ import { formatError } from "@/lib/format-error";
 import { normalizarCodigoCorreios, PADRAO_CODIGO_CORREIOS, type ModalEntrega } from "./tipos";
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { cancelarPrepostagemSeSairDeCorreios, useDocumentosMesa, useExecutoresMesa } from "./useMesaSp";
+import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
 
 /**
  * Despacho individual (B2C e B2B). Modal pré-selecionado com o vigente;
@@ -180,6 +181,8 @@ export function FormDespacho({ pedidoId, modalCodigo: modalEmbalagem, modais, de
           </Select>
         </div>
       )}
+
+      {ehCorreios && <BotaoEtiquetaCorreios pedidoId={pedidoId} />}
 
       {ehCorreios && codigoRegistrado && (
         <p className="text-xs text-muted-foreground">
