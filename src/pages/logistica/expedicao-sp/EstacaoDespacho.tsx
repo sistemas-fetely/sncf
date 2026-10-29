@@ -30,6 +30,8 @@ export interface CaixaAguardandoColeta {
   pedido_id: string;
   id_externo: string;
   cliente: string;
+  /** Só dígitos, 8; null quando o pedido não tem CEP confiável. */
+  cep: string | null;
   volumes: number | null;
   peso_kg: number | null;
   /** Momento do `mesa_embalado` — a espera é contada daqui. */
@@ -199,6 +201,7 @@ export function EstacaoDespacho({
                       <div className="min-w-0">
                         <span className="block truncate text-sm">
                           {c.id_externo} · {c.cliente}
+                          {c.cep ? ` · CEP ${c.cep.slice(0, 5)}-${c.cep.slice(5)}` : ""}
                         </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {medidas(c)}

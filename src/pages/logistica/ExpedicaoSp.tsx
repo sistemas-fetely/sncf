@@ -37,6 +37,7 @@ import {
   ColunaQuadro,
   pedidoEhB2B, colunasQuadro, tempoParado, CENTRO_SITE_SP,
   embalagemDoPedido, modoEntregaVendaDireta, pedidoEhVendaDireta, rotuloEntregaVendaDireta,
+  cepDoEndereco,
   type CancelamentoMesa, type Estacao, type EventoMesa, type ItemConferido, type PedidoMesa,
 } from "./expedicao-sp/tipos";
 import {
@@ -237,6 +238,7 @@ export default function ExpedicaoSp() {
         pedido_id: p.id,
         id_externo: p.id_externo,
         cliente: p.cliente_nome ?? "cliente sem nome",
+        cep: cepDoEndereco(p.endereco_entrega),
         volumes: emb.volumes,
         peso_kg: emb.peso_kg,
         embaladoEm: emb.criado_em,
@@ -470,6 +472,7 @@ export default function ExpedicaoSp() {
                             >
                               <span className="block truncate text-sm">
                                 {caixa.id_externo} · {caixa.cliente}
+                                {caixa.cep ? ` · CEP ${caixa.cep.slice(0, 5)}-${caixa.cep.slice(5)}` : ""}
                               </span>
                               <span className="block truncate text-xs text-muted-foreground">
                                 {medidasColeta(caixa.volumes, caixa.peso_kg)} · {esperaColeta(caixa.embaladoEm)}
