@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Upload, Loader2, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 
 type Fatura = {
