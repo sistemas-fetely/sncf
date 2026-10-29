@@ -232,6 +232,13 @@
       "when": 1793277831597,
       "tag": "0032_vd_credito_gestao_edicao",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793315464442,
+      "tag": "0033_correios_prepostagem_sncf",
+      "breakpoints": true
     }
   ]
 }

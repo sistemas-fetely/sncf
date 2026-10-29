@@ -7575,6 +7575,57 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_rastreio_vd0047_20261029: {
+        Row: {
+          atualizado_em: string | null
+          codigo_rastreio: string | null
+          criado_em: string | null
+          data_ultima_atualizacao: string | null
+          entregue: boolean | null
+          entregue_confirmado_em: string | null
+          entregue_fonte: string | null
+          estado_canonico: string | null
+          eventos: Json | null
+          id: string | null
+          pedido_id: string | null
+          previsao_entrega: string | null
+          servico: string | null
+          status_atual: string | null
+        }
+        Insert: {
+          atualizado_em?: string | null
+          codigo_rastreio?: string | null
+          criado_em?: string | null
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean | null
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
+          estado_canonico?: string | null
+          eventos?: Json | null
+          id?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Update: {
+          atualizado_em?: string | null
+          codigo_rastreio?: string | null
+          criado_em?: string | null
+          data_ultima_atualizacao?: string | null
+          entregue?: boolean | null
+          entregue_confirmado_em?: string | null
+          entregue_fonte?: string | null
+          estado_canonico?: string | null
+          eventos?: Json | null
+          id?: string | null
+          pedido_id?: string | null
+          previsao_entrega?: string | null
+          servico?: string | null
+          status_atual?: string | null
+        }
+        Relationships: []
+      }
       backup_refs_itau_na_safra_20260929: {
         Row: {
           coluna: string | null
@@ -25581,6 +25632,65 @@ export type Database = {
           },
         ]
       }
+      correios_cartao_postagem: {
+        Row: {
+          ativo: boolean
+          cartao: string
+          centro_id: string | null
+          contrato: string
+          criado_em: string
+          dr: number
+          observacao: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cartao: string
+          centro_id?: string | null
+          contrato: string
+          criado_em?: string
+          dr: number
+          observacao?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cartao?: string
+          centro_id?: string | null
+          contrato?: string
+          criado_em?: string
+          dr?: number
+          observacao?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correios_cartao_postagem_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centro_distribuicao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "correios_cartao_postagem_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_consignado_estoque_parceiro"
+            referencedColumns: ["centro_id"]
+          },
+          {
+            foreignKeyName: "correios_cartao_postagem_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_fato_faturamento"
+            referencedColumns: ["estabelecimento_id"]
+          },
+          {
+            foreignKeyName: "correios_cartao_postagem_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "vw_nf_fetely_orfa"
+            referencedColumns: ["origem_centro_id"]
+          },
+        ]
+      }
       correios_faturas_arquivos: {
         Row: {
           baixado_em: string
@@ -25698,6 +25808,101 @@ export type Database = {
           valor_desconto?: number | null
           valor_servico?: number | null
           valor_unitario?: number | null
+        }
+        Relationships: []
+      }
+      correios_prepostagem: {
+        Row: {
+          altura_cm: number | null
+          caixa_codigo: string | null
+          cancelado_em: string | null
+          cancelado_motivo: string | null
+          cartao: string | null
+          chave_nfe: string | null
+          codigo_objeto: string | null
+          codigo_servico: string | null
+          comprimento_cm: number | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          id_prepostagem_correios: string | null
+          largura_cm: number | null
+          payload_envio: Json | null
+          pedido_id: string | null
+          peso_g: number | null
+          resposta: Json | null
+          servico: string | null
+          status: string
+        }
+        Insert: {
+          altura_cm?: number | null
+          caixa_codigo?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cartao?: string | null
+          chave_nfe?: string | null
+          codigo_objeto?: string | null
+          codigo_servico?: string | null
+          comprimento_cm?: number | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          id_prepostagem_correios?: string | null
+          largura_cm?: number | null
+          payload_envio?: Json | null
+          pedido_id?: string | null
+          peso_g?: number | null
+          resposta?: Json | null
+          servico?: string | null
+          status?: string
+        }
+        Update: {
+          altura_cm?: number | null
+          caixa_codigo?: string | null
+          cancelado_em?: string | null
+          cancelado_motivo?: string | null
+          cartao?: string | null
+          chave_nfe?: string | null
+          codigo_objeto?: string | null
+          codigo_servico?: string | null
+          comprimento_cm?: number | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          id_prepostagem_correios?: string | null
+          largura_cm?: number | null
+          payload_envio?: Json | null
+          pedido_id?: string | null
+          peso_g?: number | null
+          resposta?: Json | null
+          servico?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "correios_prepostagem_cartao_fkey"
+            columns: ["cartao"]
+            isOneToOne: false
+            referencedRelation: "correios_cartao_postagem"
+            referencedColumns: ["cartao"]
+          },
+        ]
+      }
+      correios_servico_codigo: {
+        Row: {
+          ativo: boolean
+          codigo_servico: string
+          servico: string
+        }
+        Insert: {
+          ativo?: boolean
+          codigo_servico: string
+          servico: string
+        }
+        Update: {
+          ativo?: boolean
+          codigo_servico?: string
+          servico?: string
         }
         Relationships: []
       }
@@ -73668,6 +73873,7 @@ export type Database = {
           event_id: string | null
           id: number
           payload: Json | null
+          processado_em: string | null
           topic: string | null
         }
         Insert: {
@@ -73675,6 +73881,7 @@ export type Database = {
           event_id?: string | null
           id?: never
           payload?: Json | null
+          processado_em?: string | null
           topic?: string | null
         }
         Update: {
@@ -73682,6 +73889,7 @@ export type Database = {
           event_id?: string | null
           id?: never
           payload?: Json | null
+          processado_em?: string | null
           topic?: string | null
         }
         Relationships: []
@@ -145946,6 +146154,7 @@ export type Database = {
           cliente_nome: string | null
           cliente_telefone: string | null
           codigo_rastreio: string | null
+          credito_aplicado: number | null
           embalado: boolean | null
           endereco_entrega: Json | null
           entrou_na_fase_em: string | null
@@ -145982,6 +146191,7 @@ export type Database = {
           responsavel: string | null
           responsavel_rotulo: string | null
           situacao: string | null
+          valor_a_pagar: number | null
           valor_bruto: number | null
           valor_frete: number | null
           valor_liquido: number | null
@@ -147230,6 +147440,22 @@ export type Database = {
             referencedColumns: ["codigo"]
           },
         ]
+      }
+      vw_xpm_fatura_expedicao_conf: {
+        Row: {
+          data_fatura: string | null
+          data_sncf: string | null
+          diferenca: number | null
+          fatura_id: string | null
+          linhas_fatura: number | null
+          nf_fatura: string | null
+          nf_sncf: string | null
+          pedido_ref: string | null
+          situacao: string | null
+          un_fatura: number | null
+          un_sncf: number | null
+        }
+        Relationships: []
       }
       vw_xpm_funil_fases: {
         Row: {
@@ -149675,6 +149901,18 @@ export type Database = {
         Args: { p_pedido_id: string }
         Returns: Json
       }
+      fn_correios_prepostagem_desvincular: {
+        Args: {
+          p_auth_uid?: string
+          p_motivo: string
+          p_prepostagem_id: string
+        }
+        Returns: Json
+      }
+      fn_correios_prepostagem_vincular: {
+        Args: { p_auth_uid?: string; p_prepostagem_id: string }
+        Returns: Json
+      }
       fn_criar_analise_desde_pedido: {
         Args: { p_pedido_id: string }
         Returns: string
@@ -151728,7 +151966,9 @@ export type Database = {
           uf: string
         }[]
       }
+      fn_vd_credito_aplicado: { Args: { p_pedido_id: string }; Returns: number }
       fn_vd_meio_atual: { Args: { p_pedido_id: string }; Returns: string }
+      fn_vd_modal_efetivo: { Args: { p_pedido_id: string }; Returns: string }
       fn_vd_vendedores_opcoes: {
         Args: never
         Returns: {
@@ -151800,6 +152040,7 @@ export type Database = {
         Returns: undefined
       }
       fn_xpm_expedicao_viva: { Args: { p_id_externo: string }; Returns: string }
+      fn_xpm_fatura_conferir: { Args: { p_fatura_id: string }; Returns: Json }
       fn_xpm_nf_cfop: { Args: { p_raw: Json }; Returns: string }
       fn_xpm_nf_ja_no_espelho: {
         Args: { p_codigo: string; p_nf_id: string }
