@@ -1,3 +1,4 @@
+import { BotaoEtiquetaCorreios } from "./BotaoEtiquetaCorreios";
 import { useRef, useState } from "react";
 import { erroCodigoSro } from "@/lib/logistica/codigoSro";
 import { Input } from "@/components/ui/input";
