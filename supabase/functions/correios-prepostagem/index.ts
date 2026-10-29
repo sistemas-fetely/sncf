@@ -193,7 +193,7 @@ Deno.serve(async (req) => {
     const { data: cl, error: eC } = await userClient.auth.getClaims(auth.slice(7));
     if (eC || !cl?.claims?.sub) return json({ erro: "Não autorizado" }, 401);
     const uid = cl.claims.sub as string;
-    const { data: pode, error: eP } = await userClient.rpc("usuario_tem_acao", { p_slug: "acao.expedicao_sp_operar" });
+    const { data: pode, error: eP } = await admin.rpc("usuario_tem_acao", { p_slug: "acao.expedicao_sp_operar", p_user_id: uid });
     if (eP) throw new Falha(500, `checar permissão: ${eP.message}`);
     if (!pode) return json({ erro: "Sem permissão para esta ação (acao.expedicao_sp_operar)." }, 403);
 
