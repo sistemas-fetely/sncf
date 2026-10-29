@@ -1077,8 +1077,17 @@ export default function VendaDiretaNovo() {
       {/* Mobile: barra enxuta no pé com total e botão */}
       <div className="sticky bottom-0 z-20 -mx-6 flex items-center justify-between gap-4 border-t bg-background/95 px-6 py-3 backdrop-blur lg:hidden">
         <div>
-          <p className="text-xs text-muted-foreground">Total</p>
-          <p className="text-2xl font-semibold tabular-nums">{formatBRL(total)}</p>
+          {haverAtivo && !bonif && haverAplicado > 0 ? (
+            <>
+              <p className="text-xs text-muted-foreground">A pagar</p>
+              <p className="text-2xl font-semibold tabular-nums">{formatBRL(aPagarComHaver)}</p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">Total</p>
+              <p className="text-2xl font-semibold tabular-nums">{formatBRL(total)}</p>
+            </>
+          )}
         </div>
         <Button size="lg" disabled={criar.isPending || (!edicao && !!pendencia)} onClick={tentarSalvar}>
           {criar.isPending && <Loader2 className="h-4 w-4 animate-spin" />} {edicao ? "Salvar alterações" : "Criar pedido"}
