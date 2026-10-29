@@ -330,11 +330,12 @@ Deno.serve(async (req) => {
   const cancelarNoSafra: { id: string; gateway_link_id: string; novoStatus: string; meio: string }[] = [];
   for (const l of vig ?? []) {
     const mesmoPortao = l.provisao_id != null && l.provisao_id === prov.id;
+    const mesmoValor = Math.round(Number(l.valor ?? 0) * 100) === Math.round(valor * 100);
     const valido = l.status === "aberto" && l.expira_em && new Date(l.expira_em).getTime() > agora;
-    if (valido && !forcarNovo && mesmoPortao) {
+    if (valido && !forcarNovo && mesmoPortao && mesmoValor) {
       return json({ ok: true, url: l.url, expira_em: l.expira_em, max_parcelas: l.max_parcelas, pagamento_link_id: l.id, reaproveitado: true });
     }
-    if (l.status === "criando" && !forcarNovo && mesmoPortao && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
+    if (l.status === "criando" && !forcarNovo && mesmoPortao && mesmoValor && new Date(l.criado_em).getTime() > agora - 2 * 60_000) {
       return json({ ok: false, erro: "Já há um link sendo criado para este pedido. Tente em instantes." }, 409);
     }
     const novoStatus = valido || l.status === "criando" || !mesmoPortao ? "cancelado" : "expirado";
