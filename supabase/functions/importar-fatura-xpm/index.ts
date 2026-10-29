@@ -493,6 +493,6 @@ async function gravarErro(sb: any, r: { competencia: string | null; versao?: num
 }
 
 async function sha256Hex(b: Uint8Array): Promise<string> {
-  const d = await crypto.subtle.digest("SHA-256", b);
+  const d = await crypto.subtle.digest("SHA-256", b as BufferSource);
   return Array.from(new Uint8Array(d)).map((x) => x.toString(16).padStart(2, "0")).join("");
 }
