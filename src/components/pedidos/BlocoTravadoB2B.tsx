@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { useEmpurrarXpm } from "@/hooks/pedidos/useEmpurrarXpm";
+import { usePermissaoAcaoOuSuperAdmin } from "@/hooks/usePermissaoAcao";
+import { DialogoAbrirProblema } from "@/components/chamados/DialogoAbrirProblema";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +23,7 @@ type MotivoTravado = {
   desde: string | null;
   acao: string | null;
   o_que_fazer: string | null;
+  classe?: string | null;
   ref: Record<string, unknown> | null;
 };
 
@@ -102,7 +106,14 @@ function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: s
       </Button>
     );
   }
-  if (m.acao === "ver_auditoria") {
+  const ehAuditoria = typeof ref.regra_slug === "string" && !!ref.regra_slug;
+  if (ehAuditoria && ref.regra_slug === "pedido-em-separacao-sem-expedicao-xpm") {
+    return <BotaoEmpurrarXpm pedidoId={pedidoId} />;
+  }
+  if (ehAuditoria && ref.responsavel === "ti") {
+    return <BotaoAcionarTi pedidoRef={idExterno ?? pedidoId} titulo={m.motivo} />;
+  }
+  if (m.acao === "ver_auditoria" || ehAuditoria) {
     return (
       <Button size="sm" variant="outline" className={btn}
         onClick={() => document.getElementById(ID_BLOCO_ALERTAS)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
@@ -160,6 +171,64 @@ function AcoesMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: s
   );
 }
 
+function BotaoEmpurrarXpm({ pedidoId }: { pedidoId: string }) {
+  const empurrar = useEmpurrarXpm();
+  const { permitido } = usePermissaoAcaoOuSuperAdmin("acao.empurrar_xpm");
+  return (
+    <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5"
+      disabled={empurrar.isPending || !permitido}
+      title={permitido ? undefined : "Sem permissão para empurrar pra XPM"}
+      onClick={() => empurrar.mutate({ pedido_id: pedidoId })}>
+      {empurrar.isPending && <Loader2 className="h-3 w-3 animate-spin" />}
+      Empurrar pra XPM
+    </Button>
+  );
+}
+
+function BotaoAcionarTi({ pedidoRef, titulo }: { pedidoRef: string; titulo: string }) {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <>
+      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setAberto(true)}>
+        Acionar TI
+      </Button>
+      <DialogoAbrirProblema open={aberto} onOpenChange={setAberto}
+        contexto={{ pedidoRef, descricao: titulo }} />
+    </>
+  );
+}
+
+function LinhaMotivo({ m, pedidoId, idExterno }: { m: MotivoTravado; pedidoId: string; idExterno?: string | null }) {
+  const ref = m.ref ?? {};
+  const ehAuditoria = typeof ref.regra_slug === "string" && !!ref.regra_slug;
+  const detalhe = typeof ref.detalhe === "string" && ref.detalhe.trim() ? ref.detalhe : null;
+  const respRotulo = typeof ref.responsavel_rotulo === "string" ? ref.responsavel_rotulo : null;
+  const comoAcionar = typeof ref.como_acionar === "string" && ref.como_acionar.trim() ? ref.como_acionar : null;
+  return (
+    <div className="space-y-1.5 text-sm">
+      <div className="flex flex-wrap items-baseline gap-2">
+        <span className="font-medium">{m.motivo}</span>
+        {fmtDdMm(m.desde) && <span className="text-xs text-muted-foreground">desde {fmtDdMm(m.desde)}</span>}
+      </div>
+      {ehAuditoria ? (
+        <>
+          {m.o_que_fazer && <p className="text-sm font-medium text-foreground">{m.o_que_fazer}</p>}
+          {detalhe && <p className="text-[11px] text-muted-foreground">{detalhe}</p>}
+          {respRotulo && (
+            <p className="text-xs text-muted-foreground">
+              Quem resolve: <span className="font-medium text-foreground">{respRotulo}</span>
+              {ref.responsavel !== "operador" && comoAcionar && <> · {comoAcionar}</>}
+            </p>
+          )}
+        </>
+      ) : (
+        m.o_que_fazer && <p className="text-xs text-muted-foreground">{m.o_que_fazer}</p>
+      )}
+      <AcoesMotivo m={m} pedidoId={pedidoId} idExterno={idExterno} />
+    </div>
+  );
+}
+
 /** Bloco "Travado" no topo do pedido B2B: motivo, desde quando, o que fazer e a saída. */
 export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idExterno?: string | null }) {
   const location = useLocation();
@@ -185,22 +254,29 @@ export function BlocoTravadoB2B({ pedidoId, idExterno }: { pedidoId: string; idE
 
   if (motivos.length === 0) return null;
 
+  const travados = motivos.filter((m) => m.classe !== "parado");
+  const parados = motivos.filter((m) => m.classe === "parado");
+
   return (
-    <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-24 rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
-      <div className="flex items-center gap-2 text-sm font-medium text-destructive">
-        <AlertTriangle className="h-4 w-4" />
-        Travado
-      </div>
-      {motivos.map((m, i) => (
-        <div key={`${m.motivo}-${i}`} className="space-y-1.5 text-sm">
-          <div className="flex flex-wrap items-baseline gap-2">
-            <span className="font-medium">{m.motivo}</span>
-            {fmtDdMm(m.desde) && <span className="text-xs text-muted-foreground">desde {fmtDdMm(m.desde)}</span>}
+    <div id={ID_BLOCO_TRAVADO} className="mx-6 mb-3 scroll-mt-24 space-y-3">
+      {travados.length > 0 && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-destructive">
+            <AlertTriangle className="h-4 w-4" />
+            Travado
           </div>
-          {m.o_que_fazer && <p className="text-xs text-muted-foreground">{m.o_que_fazer}</p>}
-          <AcoesMotivo m={m} pedidoId={pedidoId} idExterno={idExterno} />
+          {travados.map((m, i) => <LinhaMotivo key={`${m.motivo}-${i}`} m={m} pedidoId={pedidoId} idExterno={idExterno} />)}
         </div>
-      ))}
+      )}
+      {parados.length > 0 && (
+        <div className="rounded-lg border border-info/30 bg-info/5 p-3 space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-info">
+            <Info className="h-4 w-4" />
+            Parado
+          </div>
+          {parados.map((m, i) => <LinhaMotivo key={`${m.motivo}-${i}`} m={m} pedidoId={pedidoId} idExterno={idExterno} />)}
+        </div>
+      )}
     </div>
   );
 }
